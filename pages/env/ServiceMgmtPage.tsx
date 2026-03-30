@@ -81,7 +81,6 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [deployServiceSuffix, setDeployServiceSuffix] = useState('');
   const [deployPerNodeCount, setDeployPerNodeCount] = useState(1);
   const [deployExtraParamsText, setDeployExtraParamsText] = useState('');
-  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   useEffect(() => {
@@ -539,7 +538,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
 
       const deployments: Array<{ service_name: string; agent_key: string; template_name: string; extra_params?: any }> = [];
       let duplicateCount = 0;
-      const llmBindingExtra = !deployUseTemplateDefaultLlmBinding && deployLlmBinding
+      const llmBindingExtra = deployLlmBinding
         ? {
             llm_provider_binding: {
               provider_keys: deployLlmBinding.provider_keys,
@@ -1469,11 +1468,8 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
               value={deployLlmBinding}
               onChange={setDeployLlmBinding}
               serviceOptions={deployServiceOptions}
-              allowUseTemplateDefault
-              useTemplateDefault={deployUseTemplateDefaultLlmBinding}
-              onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
-              title="部署前 LLM Provider 注入"
-              description="默认沿用模板自己的默认绑定。切到本次覆盖后，会把当前 Provider 组合注入到本次批量部署任务。"
+              title="部署前临时 LLM Provider 注入"
+              description="在模板当前结果基础上，为本次批量部署临时叠加一组 Provider。"
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -96,7 +96,6 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   const [templates, setTemplates] = useState<EnvTemplate[]>([]);
   const [templateSearch, setTemplateSearch] = useState('');
   const [selectedTemplateNames, setSelectedTemplateNames] = useState<Set<string>>(new Set());
-  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   useEffect(() => {
@@ -465,7 +464,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
         service_name: buildServiceName(templateName),
         agent_key: agentKey,
         template_name: templateName,
-        extra_params: !deployUseTemplateDefaultLlmBinding && deployLlmBinding ? {
+        extra_params: deployLlmBinding ? {
           llm_provider_binding: {
             provider_keys: deployLlmBinding.provider_keys,
             target_services: deployLlmBinding.target_services,
@@ -1541,11 +1540,8 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 value={deployLlmBinding}
                 onChange={setDeployLlmBinding}
                 serviceOptions={deployServiceOptions}
-                allowUseTemplateDefault
-                useTemplateDefault={deployUseTemplateDefaultLlmBinding}
-                onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
-                title="部署前 LLM Provider 注入"
-                description="默认沿用模板自己的默认绑定。切到本次覆盖后，会把同一组 Provider 注入到本次选中的模板部署任务中。"
+                title="部署前临时 LLM Provider 注入"
+                description="在模板当前结果基础上，为本次部署临时叠加同一组 Provider。"
               />
             </div>
 

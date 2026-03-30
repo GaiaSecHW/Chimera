@@ -130,7 +130,6 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [templates, setTemplates] = useState<EnvTemplate[]>([]);
   const [templateSearch, setTemplateSearch] = useState('');
   const [selectedTemplateNames, setSelectedTemplateNames] = useState<Set<string>>(new Set());
-  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   useEffect(() => {
@@ -692,7 +691,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       let successCount = 0;
       let failedCount = 0;
       let duplicateCount = 0;
-      const extraParams = !deployUseTemplateDefaultLlmBinding && deployLlmBinding
+      const extraParams = deployLlmBinding
         ? {
             llm_provider_binding: {
               provider_keys: deployLlmBinding.provider_keys,
@@ -1302,11 +1301,8 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 value={deployLlmBinding}
                 onChange={setDeployLlmBinding}
                 serviceOptions={deployServiceOptions}
-                allowUseTemplateDefault
-                useTemplateDefault={deployUseTemplateDefaultLlmBinding}
-                onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
-                title="部署前 LLM Provider 注入"
-                description="多模板批量部署默认沿用各模板自己的默认绑定。切换到本次覆盖后，会把同一组 Provider 注入到本次选中的模板部署任务中。"
+                title="部署前临时 LLM Provider 注入"
+                description="在模板当前结果基础上，为本次多模板批量部署临时叠加同一组 Provider。"
               />
             </div>
 

@@ -34,9 +34,6 @@ interface TemplateLlmBindingEditorProps {
   disabled?: boolean;
   title?: string;
   description?: string;
-  allowUseTemplateDefault?: boolean;
-  useTemplateDefault?: boolean;
-  onUseTemplateDefaultChange?: (next: boolean) => void;
 }
 
 export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> = ({
@@ -47,9 +44,6 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
   disabled = false,
   title = 'LLM Provider 绑定',
   description = '可按顺序选择多个 Provider，后者覆盖前者。',
-  allowUseTemplateDefault = false,
-  useTemplateDefault = false,
-  onUseTemplateDefaultChange,
 }) => {
   const [providers, setProviders] = useState<TemplateLlmProviderSummary[]>([]);
   const [providersLoading, setProvidersLoading] = useState(false);
@@ -91,7 +85,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
   useEffect(() => {
     let cancelled = false;
     const loadPreview = async () => {
-      if (useTemplateDefault || selectedProviderKeys.length === 0) {
+      if (selectedProviderKeys.length === 0) {
         setPreview(null);
         setPreviewError('');
         return;
@@ -99,7 +93,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
       setPreviewLoading(true);
       setPreviewError('');
       try {
-        const data = await api.environment.previewTemplateLlmBinding(projectId, selectedProviderKeys, targetServices);
+        const data = await api.environment.previewTemplateLlmBinding(projectId || '', selectedProviderKeys, targetServices);
         if (!cancelled) setPreview(data);
       } catch (err: any) {
         if (!cancelled) {
@@ -114,7 +108,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
     return () => {
       cancelled = true;
     };
-  }, [projectId, useTemplateDefault, JSON.stringify(selectedProviderKeys), JSON.stringify(targetServices)]);
+  }, [projectId, JSON.stringify(selectedProviderKeys), JSON.stringify(targetServices)]);
 
   const providerMap = useMemo(() => {
     const map = new Map<string, TemplateLlmProviderSummary>();
@@ -187,21 +181,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
         {providersLoading && <Loader2 size={16} className="animate-spin text-slate-400 shrink-0" />}
       </div>
 
-      {allowUseTemplateDefault && (
-        <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
-          <input
-            type="checkbox"
-            checked={useTemplateDefault}
-            disabled={disabled}
-            onChange={(e) => onUseTemplateDefaultChange?.(e.target.checked)}
-            className="w-4 h-4 accent-blue-600"
-          />
-          使用模板默认 Provider 组合
-        </label>
-      )}
-
-      {!useTemplateDefault && (
-        <>
+      <>
           <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
             <select
               value={providerToAdd}
@@ -317,14 +297,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
               </div>
             )}
           </div>
-        </>
-      )}
-
-      {useTemplateDefault && (
-        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-xs text-slate-500 flex items-center gap-2">
-          <RefreshCw size={14} /> 本次部署将直接沿用模板默认 Provider 绑定。
-        </div>
-      )}
+      </>
     </div>
   );
 };

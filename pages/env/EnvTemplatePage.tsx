@@ -98,7 +98,6 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [agentSearch, setAgentSearch] = useState('');
   const [selectedAgentKeys, setSelectedAgentKeys] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<'all' | 'online'>('online');
-  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   // Deletion States
@@ -131,7 +130,6 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     visibility: 'shared' as 'shared' | 'private',
     tags: [] as string[],
     web_port_presets: [] as WebPortPreset[],
-    default_llm_provider_binding: null as TemplateLlmProviderBinding | null,
   });
   const [detailWebPortPresets, setDetailWebPortPresets] = useState<WebPortPreset[]>([]);
   const [savingWebPortPresets, setSavingWebPortPresets] = useState(false);
@@ -326,8 +324,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const getTemplateTags = (template: any): string[] =>
     normalizeTemplateTags(template?.tags || template?.metadata?.tags || []);
 
-  const getTemplateDefaultLlmBinding = (template: any): TemplateLlmProviderBinding | null =>
-    normalizeTemplateLlmBinding(template?.metadata?.default_llm_provider_binding);
+  const getTemplateCurrentMixBinding = (template: any): TemplateLlmProviderBinding | null =>
+    normalizeTemplateLlmBinding(template?.metadata?.llm_mix_state);
 
   const getTemplateServiceOptions = (template: any): string[] => {
     const services = template?.metadata?.parsed_compose?.services;
@@ -362,7 +360,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       }
       setTemplateDetail(detail);
       setDetailWebPortPresets(detailPresets);
-      setDetailLlmBindingDraft(getTemplateDefaultLlmBinding(detail));
+      setDetailLlmBindingDraft(getTemplateCurrentMixBinding(detail));
       setViewMode('detail');
       setExpandedFolders(new Set(['root']));
 
@@ -549,7 +547,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       let successCount = 0;
       let duplicateCount = 0;
       let failedCount = 0;
-      const llmBindingExtra = !deployUseTemplateDefaultLlmBinding && deployLlmBinding
+      const llmBindingExtra = deployLlmBinding
         ? {
             llm_provider_binding: {
               provider_keys: deployLlmBinding.provider_keys,
@@ -905,17 +903,40 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const handleSaveTemplateLlmBinding = async (template: any, binding: TemplateLlmProviderBinding | null) => {
     if (!template?.id) return;
     if (!canManageTemplate(template)) {
-      notify('仅模板拥有者可修改默认 LLM Provider 绑定', 'warning');
+      notify('仅模板拥有者可重新生成模板', 'warning');
       return;
     }
     setSavingTemplateLlmBinding(true);
     try {
-      await api.environment.updateTemplateLlmBinding(template.id, binding);
-      notify('默认 LLM Provider 绑定已更新', 'success');
+      if (!binding?.provider_keys?.length) {
+        notify('请至少选择一个 LLM Provider', 'warning');
+        return;
+      }
+      await api.environment.regenerateTemplateWithLlmProviders(template.id, binding);
+      notify('模板已按所选 Provider 重新生成', 'success');
       await loadTemplates();
       await viewDetail(template.id);
     } catch (err: any) {
-      notify(err?.message || '更新默认 LLM Provider 绑定失败', 'error');
+      notify(err?.message || '重新生成模板失败', 'error');
+    } finally {
+      setSavingTemplateLlmBinding(false);
+    }
+  };
+
+  const handleRestoreOriginalCompose = async (template: any) => {
+    if (!template?.id) return;
+    if (!canManageTemplate(template)) {
+      notify('仅模板拥有者可恢复原始模板', 'warning');
+      return;
+    }
+    setSavingTemplateLlmBinding(true);
+    try {
+      await api.environment.restoreTemplateOriginalCompose(template.id);
+      notify('模板已恢复为原始内容', 'success');
+      await loadTemplates();
+      await viewDetail(template.id);
+    } catch (err: any) {
+      notify(err?.message || '恢复原始模板失败', 'error');
     } finally {
       setSavingTemplateLlmBinding(false);
     }
@@ -964,10 +985,6 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       formData.append('visibility', newTemplate.visibility);
       formData.append('tags', JSON.stringify(normalizeTemplateTags(newTemplate.tags)));
       formData.append('web_port_presets', JSON.stringify(normalizeWebPortPresets(newTemplate.web_port_presets || [])));
-      if (newTemplate.default_llm_provider_binding?.provider_keys?.length) {
-        formData.append('default_llm_provider_binding', JSON.stringify(newTemplate.default_llm_provider_binding));
-      }
-
       if (uploadTab === 'file') {
         const file = selectedUploadFile || fileInputRef.current?.files?.[0];
         if (!file) throw new Error("请选择上传文件");
@@ -990,7 +1007,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   };
 
   const resetUploadForm = () => {
-    setNewTemplate({ name: '', description: '', type: 'yaml', content: '', visibility: 'shared', tags: [], web_port_presets: [], default_llm_provider_binding: null });
+    setNewTemplate({ name: '', description: '', type: 'yaml', content: '', visibility: 'shared', tags: [], web_port_presets: [] });
     setUploadError(null);
     setSelectedUploadFile(null);
     setIsDragOverUpload(false);
@@ -1141,11 +1158,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                     value={deployLlmBinding}
                     onChange={setDeployLlmBinding}
                     serviceOptions={getDeployServiceOptions()}
-                    allowUseTemplateDefault
-                    useTemplateDefault={deployUseTemplateDefaultLlmBinding}
-                    onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
-                    title="部署前 LLM Provider 注入"
-                    description="可为本次部署临时叠加多个 Provider，部署时平台会先生成注入后的临时 compose。"
+                    title="部署前临时 LLM Provider 注入"
+                    description="在模板当前结果基础上，为本次部署临时叠加多个 Provider；该覆盖不会回写模板。"
                   />
                </div>
             </div>
@@ -1399,21 +1413,67 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h4 className="text-sm font-black text-slate-800">默认 LLM Provider 绑定</h4>
-              <p className="text-xs text-slate-500 mt-1">部署弹窗默认会带出这里的 Provider 组合，也可以在部署时临时覆盖。</p>
+              <h4 className="text-sm font-black text-slate-800">LLM Provider 重新生成模板</h4>
+              <p className="text-xs text-slate-500 mt-1">始终基于原始 docker-compose 备份重新生成当前模板结果，不在已混合结果上叠加。</p>
             </div>
             <div className="flex items-center gap-3">
               {savingTemplateLlmBinding && <Loader2 size={16} className="animate-spin text-slate-400" />}
               {canManageCurrentTemplate && (
-                <button
-                  onClick={() => void handleSaveTemplateLlmBinding(templateDetail, detailLlmBindingDraft)}
-                  disabled={savingTemplateLlmBinding}
-                  className="px-3 py-2 text-xs font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-                >
-                  保存默认绑定
-                </button>
+                <>
+                  <button
+                    onClick={() => void handleRestoreOriginalCompose(templateDetail)}
+                    disabled={savingTemplateLlmBinding}
+                    className="px-3 py-2 text-xs font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60"
+                  >
+                    恢复原始模板
+                  </button>
+                  <button
+                    onClick={() => void handleSaveTemplateLlmBinding(templateDetail, detailLlmBindingDraft)}
+                    disabled={savingTemplateLlmBinding}
+                    className="px-3 py-2 text-xs font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    重新生成模板
+                  </button>
+                </>
               )}
             </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-2">
+            <div className="text-xs font-black text-slate-700">当前模板来源</div>
+            <div className="text-sm font-bold text-slate-800">
+              {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
+                ? `原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
+                : '原始模板'}
+            </div>
+            <div className="text-xs text-slate-500">
+              原始 compose 备份：
+              {templateDetail?.metadata?.original_compose_backup?.file_path
+                ? ` ${templateDetail.metadata.original_compose_backup.file_path}`
+                : ' 未建立'}
+            </div>
+            {templateDetail?.metadata?.llm_mix_state?.generated_at && (
+              <div className="text-xs text-slate-500">
+                最近一次生成：{templateDetail.metadata.llm_mix_state.generated_at}
+                {templateDetail?.metadata?.llm_mix_state?.generated_by ? ` · ${templateDetail.metadata.llm_mix_state.generated_by}` : ''}
+              </div>
+            )}
+            {Array.isArray(templateDetail?.metadata?.llm_mix_state?.mapped_env_keys) && templateDetail.metadata.llm_mix_state.mapped_env_keys.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {templateDetail.metadata.llm_mix_state.mapped_env_keys.slice(0, 12).map((key: string) => (
+                  <span key={key} className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-black">{key}</span>
+                ))}
+              </div>
+            )}
+            {Array.isArray(templateDetail?.metadata?.llm_mix_history) && templateDetail.metadata.llm_mix_history.length > 0 && (
+              <div className="pt-2 space-y-1">
+                <div className="text-xs font-black text-slate-700">最近生成记录</div>
+                {templateDetail.metadata.llm_mix_history.slice(-3).reverse().map((item: any, idx: number) => (
+                  <div key={`mix-history-${idx}`} className="text-[11px] text-slate-500">
+                    {(item?.provider_keys || []).join(' + ') || '原始模板'} · {item?.generated_at || '-'}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <TemplateLlmBindingEditor
             projectId={projectId}
@@ -1421,8 +1481,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             onChange={setDetailLlmBindingDraft}
             serviceOptions={getTemplateServiceOptions(templateDetail)}
             disabled={!canManageCurrentTemplate || savingTemplateLlmBinding}
-            title="模板默认 Provider 组合"
-            description="保存到模板 metadata 中，后续部署时自动带出。"
+            title="重新生成所用 Provider 组合"
+            description="基于原始 compose 备份重新生成当前模板结果。"
           />
         </div>
 
@@ -2127,15 +2187,6 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   />
                   <p className="text-[11px] text-slate-400 mt-2">模板 TAG 会用于分类、识别和自动化关联。</p>
                 </div>
-
-                <TemplateLlmBindingEditor
-                  projectId={projectId}
-                  value={newTemplate.default_llm_provider_binding}
-                  onChange={(next) => setNewTemplate({ ...newTemplate, default_llm_provider_binding: next })}
-                  serviceOptions={[]}
-                  title="默认 LLM Provider 绑定"
-                  description="新模板创建后，部署弹窗会默认带出这里的 Provider 组合。当前创建阶段暂不解析 service，默认作用于全部 service。"
-                />
 
                 {/* Template Type */}
                 <div>

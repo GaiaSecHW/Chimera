@@ -788,7 +788,9 @@ export interface EnvTemplate {
     parse_status?: 'success' | 'error' | 'stale';
     content_hash?: string;
     tags?: string[];
-    default_llm_provider_binding?: TemplateLlmProviderBinding | null;
+    original_compose_backup?: TemplateComposeBackupInfo | null;
+    llm_mix_state?: TemplateLlmMixState | null;
+    llm_mix_history?: TemplateLlmMixHistoryEntry[];
     web_port_presets?: Array<{
       name?: string;
       port: number;
@@ -807,6 +809,31 @@ export interface TemplateLlmProviderBinding {
   provider_keys: string[];
   target_services: '*' | string[];
   updated_at?: string;
+}
+
+export interface TemplateComposeBackupInfo {
+  file_path: string;
+  source_type: 'yaml' | 'archive' | string;
+  main_compose_path: string;
+  created_at?: string;
+}
+
+export interface TemplateLlmMixState {
+  provider_keys: string[];
+  provider_snapshots?: Array<Record<string, any>>;
+  mapped_env_keys?: string[];
+  target_services: '*' | string[];
+  generated_at?: string;
+  generated_by?: string;
+}
+
+export interface TemplateLlmMixHistoryEntry {
+  provider_keys: string[];
+  target_services: '*' | string[];
+  generated_at?: string;
+  generated_by?: string;
+  mapped_env_keys?: string[];
+  provider_snapshots?: Array<Record<string, any>>;
 }
 
 export interface TemplateLlmProviderSummary {
@@ -831,6 +858,15 @@ export interface TemplateLlmBindingPreview {
   merged_env: Record<string, string>;
   mapped_env_keys: string[];
   updated_at?: string;
+}
+
+export interface TemplateComposeSourceInfo {
+  template_id: number;
+  template_name: string;
+  original_compose_backup: TemplateComposeBackupInfo | null;
+  llm_mix_state: TemplateLlmMixState | null;
+  llm_mix_history: TemplateLlmMixHistoryEntry[];
+  current_source: string;
 }
 
 // 解析数据响应类型

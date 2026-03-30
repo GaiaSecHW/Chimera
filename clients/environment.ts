@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo } from '../types/types';
 
 const normalizeTask = (raw: any): AsyncTask => ({
   id: raw?.id || raw?.task_id || '',
@@ -138,14 +138,23 @@ export const environmentApi = {
       headers: getHeaders(),
       body: JSON.stringify({ project_id: projectId, provider_keys: providerKeys, target_services: targetServices }),
     })),
-  updateTemplateLlmBinding: async (
+  regenerateTemplateWithLlmProviders: async (
     templateId: number,
-    binding: TemplateLlmProviderBinding | null,
+    binding: TemplateLlmProviderBinding,
   ): Promise<any> =>
-    handleResponse(await fetch(`${API_BASE}/api/agent/templates/id/${templateId}/llm-binding`, {
+    handleResponse(await fetch(`${API_BASE}/api/agent/templates/id/${templateId}/regenerate-with-llm-providers`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ default_llm_provider_binding: binding || {} }),
+      body: JSON.stringify(binding),
+    })),
+  restoreTemplateOriginalCompose: async (templateId: number): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/templates/id/${templateId}/restore-original-compose`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+  getTemplateComposeSource: async (templateId: number): Promise<TemplateComposeSourceInfo> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/templates/id/${templateId}/compose-source`, {
+      headers: getHeaders(),
     })),
   getTemplateFiles: async (templateId: number, path = ''): Promise<{ files: any[] }> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/templates/id/${templateId}/files?path=${path}`, { headers: getHeaders() })),
