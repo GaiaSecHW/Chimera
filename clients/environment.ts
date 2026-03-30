@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding } from '../types/types';
 
 const normalizeTask = (raw: any): AsyncTask => ({
   id: raw?.id || raw?.task_id || '',
@@ -123,6 +123,29 @@ export const environmentApi = {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ web_port_presets: webPortPresets })
+    })),
+  listTemplateLlmProviders: async (projectId = ''): Promise<{ project_id: string; default_provider_key?: string | null; items: TemplateLlmProviderSummary[]; total: number }> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/templates/llm-providers${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`, { headers: getHeaders() })),
+  getTemplateLlmProvider: async (projectId: string, providerKey: string): Promise<TemplateLlmProviderDetail> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/templates/llm-providers/${encodeURIComponent(providerKey)}${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`, { headers: getHeaders() })),
+  previewTemplateLlmBinding: async (
+    projectId: string,
+    providerKeys: string[],
+    targetServices: '*' | string[] = '*',
+  ): Promise<TemplateLlmBindingPreview> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/templates/llm-providers/preview`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, provider_keys: providerKeys, target_services: targetServices }),
+    })),
+  updateTemplateLlmBinding: async (
+    templateId: number,
+    binding: TemplateLlmProviderBinding | null,
+  ): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/templates/id/${templateId}/llm-binding`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ default_llm_provider_binding: binding || {} }),
     })),
   getTemplateFiles: async (templateId: number, path = ''): Promise<{ files: any[] }> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/templates/id/${templateId}/files?path=${path}`, { headers: getHeaders() })),
@@ -285,6 +308,43 @@ export const environmentApi = {
     }).toString();
     return handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents?${query}`, { headers: getHeaders() }));
   },
+
+  listAiAgentLlmProviders: async (projectId = ''): Promise<{ project_id: string; default_provider_key?: string | null; items: AiAgentLlmProviderSummary[]; total: number }> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents/llm-providers${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`, { headers: getHeaders() })),
+
+  getAiAgentLlmProvider: async (projectId: string, providerKey: string, backendType?: string): Promise<AiAgentLlmProviderDetail> => {
+    const query = new URLSearchParams({
+      ...(projectId ? { project_id: projectId } : {}),
+      ...(backendType ? { backend_type: backendType } : {}),
+    }).toString();
+    return handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents/llm-providers/${encodeURIComponent(providerKey)}?${query}`, { headers: getHeaders() }));
+  },
+
+  applyAiAgentLlmProvider: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    agentId: string,
+    providerKey: string,
+    refresh = false,
+  ): Promise<AiAgentLlmApplyResult> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/${encodeURIComponent(agentId)}/apply-llm-provider`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, provider_key: providerKey, refresh }),
+    })),
+
+  batchApplyAiAgentLlmProvider: async (
+    projectId: string,
+    providerKey: string,
+    targets: Array<{ agent_key: string; service_name: string; agent_id: string }>,
+    refresh = false,
+  ): Promise<AiAgentLlmBatchApplyResult> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents/apply-llm-provider/batch`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, provider_key: providerKey, targets, refresh }),
+    })),
 
   getAiHelperDetail: async (projectId: string, agentKey: string, serviceName: string): Promise<AiHelperService> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),

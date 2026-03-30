@@ -788,6 +788,7 @@ export interface EnvTemplate {
     parse_status?: 'success' | 'error' | 'stale';
     content_hash?: string;
     tags?: string[];
+    default_llm_provider_binding?: TemplateLlmProviderBinding | null;
     web_port_presets?: Array<{
       name?: string;
       port: number;
@@ -800,6 +801,36 @@ export interface EnvTemplate {
       ingress_tls_enabled?: boolean;
     }>;
   };
+}
+
+export interface TemplateLlmProviderBinding {
+  provider_keys: string[];
+  target_services: '*' | string[];
+  updated_at?: string;
+}
+
+export interface TemplateLlmProviderSummary {
+  provider_key: string;
+  display_name: string;
+  provider_type: string;
+  enabled: boolean;
+  is_default: boolean;
+  api_base: string;
+  model: string;
+  description?: string | null;
+}
+
+export interface TemplateLlmProviderDetail extends LlmProviderDetail {}
+
+export interface TemplateLlmBindingPreview {
+  project_id: string;
+  provider_keys: string[];
+  target_services: '*' | string[];
+  source: string;
+  provider_snapshots: Array<Record<string, any>>;
+  merged_env: Record<string, string>;
+  mapped_env_keys: string[];
+  updated_at?: string;
 }
 
 // 解析数据响应类型
@@ -994,6 +1025,18 @@ export interface AiAgentItem {
   description?: string;
   health?: any;
   capabilities?: any;
+  llm_provider_key?: string;
+  llm_provider_snapshot?: {
+    provider_key?: string;
+    display_name?: string;
+    provider_type?: string;
+    model?: string;
+    api_base?: string;
+    updated_at?: string | null;
+    description?: string | null;
+  } | null;
+  llm_provider_applied_at?: string | null;
+  llm_provider_mapped_env_keys?: string[];
 }
 
 export interface ProjectAiAgentItem extends AiAgentItem {
@@ -1009,6 +1052,53 @@ export interface ProjectAiAgentItem extends AiAgentItem {
   helper_health?: any;
   last_seen_at?: string;
   updated_at?: string;
+}
+
+export interface AiAgentLlmProviderSummary {
+  provider_key: string;
+  display_name: string;
+  provider_type: string;
+  enabled: boolean;
+  is_default: boolean;
+  api_base: string;
+  model: string;
+  description?: string | null;
+}
+
+export interface AiAgentLlmProviderDetail extends LlmProviderDetail {
+  mapped_env_preview?: Record<string, string>;
+}
+
+export interface AiAgentLlmApplyResult {
+  project_id: string;
+  agent_key: string;
+  service_name: string;
+  agent_id: string;
+  provider_key: string;
+  refresh: boolean;
+  mapped_env_preview: Record<string, string>;
+  mapped_env_keys: string[];
+  updated_agent: ProjectAiAgentItem | AiAgentItem;
+}
+
+export interface AiAgentLlmBatchApplyResult {
+  project_id: string;
+  provider_key: string;
+  refresh: boolean;
+  status: string;
+  total: number;
+  success_count: number;
+  results: Array<{
+    agent_key: string;
+    service_name: string;
+    agent_id: string;
+    success: boolean;
+    error?: string;
+    provider_key?: string;
+    mapped_env_preview?: Record<string, string>;
+    mapped_env_keys?: string[];
+    updated_agent?: ProjectAiAgentItem | AiAgentItem;
+  }>;
 }
 
 export interface AiAgentSession {

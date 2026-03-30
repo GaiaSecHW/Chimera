@@ -47,12 +47,13 @@ import {
   Layers,
   Tags
 } from 'lucide-react';
-import { EnvTemplate, TemplateFile, Agent, ParsedCompose } from '../../types/types';
+import { EnvTemplate, TemplateFile, Agent, ParsedCompose, TemplateLlmProviderBinding } from '../../types/types';
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders } from '../../clients/base';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ComposeViewer } from '../../components/ComposeViewer';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { TemplateLlmBindingEditor, normalizeTemplateLlmBinding } from './llm-binding/TemplateLlmBindingEditor';
 
 // Helper to build tree from flat paths
 interface TreeNode {
@@ -97,6 +98,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [agentSearch, setAgentSearch] = useState('');
   const [selectedAgentKeys, setSelectedAgentKeys] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<'all' | 'online'>('online');
+  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
+  const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   // Deletion States
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; names: string[] }>({ show: false, names: [] });
@@ -127,10 +130,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     content: '',
     visibility: 'shared' as 'shared' | 'private',
     tags: [] as string[],
-    web_port_presets: [] as WebPortPreset[]
+    web_port_presets: [] as WebPortPreset[],
+    default_llm_provider_binding: null as TemplateLlmProviderBinding | null,
   });
   const [detailWebPortPresets, setDetailWebPortPresets] = useState<WebPortPreset[]>([]);
   const [savingWebPortPresets, setSavingWebPortPresets] = useState(false);
+  const [savingTemplateLlmBinding, setSavingTemplateLlmBinding] = useState(false);
+  const [detailLlmBindingDraft, setDetailLlmBindingDraft] = useState<TemplateLlmProviderBinding | null>(null);
 
   // Parsed Compose States
   const [parsedCompose, setParsedCompose] = useState<any>(null);
@@ -320,6 +326,28 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const getTemplateTags = (template: any): string[] =>
     normalizeTemplateTags(template?.tags || template?.metadata?.tags || []);
 
+  const getTemplateDefaultLlmBinding = (template: any): TemplateLlmProviderBinding | null =>
+    normalizeTemplateLlmBinding(template?.metadata?.default_llm_provider_binding);
+
+  const getTemplateServiceOptions = (template: any): string[] => {
+    const services = template?.metadata?.parsed_compose?.services;
+    return services && typeof services === 'object' ? Object.keys(services) : [];
+  };
+
+  const getDeployTemplates = (): EnvTemplate[] => {
+    if (deploySource === 'detail') {
+      return templates.filter((item) => item.id === selectedTemplate);
+    }
+    const selectedIds = new Set(Array.from(selectedNames).map((id) => Number(id)));
+    return templates.filter((item) => selectedIds.has(item.id));
+  };
+
+  const getDeployServiceOptions = (): string[] => {
+    const selectedTemplates = getDeployTemplates();
+    if (selectedTemplates.length !== 1) return [];
+    return getTemplateServiceOptions(selectedTemplates[0]);
+  };
+
   const viewDetail = async (templateId: number) => {
     setSelectedTemplate(templateId);
     setLoading(true);
@@ -334,6 +362,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       }
       setTemplateDetail(detail);
       setDetailWebPortPresets(detailPresets);
+      setDetailLlmBindingDraft(getTemplateDefaultLlmBinding(detail));
       setViewMode('detail');
       setExpandedFolders(new Set(['root']));
 
@@ -450,6 +479,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     setAgentsLoading(true);
     setAgentSearch('');
     setSelectedAgentKeys(new Set());
+    setDeployUseTemplateDefaultLlmBinding(true);
+    setDeployLlmBinding(null);
     try {
       const data = await api.environment.getAgents(projectId, { per_page: 2000 });
       setAvailableAgents(data.agents || []);
@@ -472,6 +503,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     setAgentsLoading(true);
     setAgentSearch('');
     setSelectedAgentKeys(new Set());
+    setDeployUseTemplateDefaultLlmBinding(true);
+    setDeployLlmBinding(null);
     try {
       const data = await api.environment.getAgents(projectId, { per_page: 2000 });
       setAvailableAgents(data.agents || []);
@@ -516,6 +549,15 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       let successCount = 0;
       let duplicateCount = 0;
       let failedCount = 0;
+      const llmBindingExtra = !deployUseTemplateDefaultLlmBinding && deployLlmBinding
+        ? {
+            llm_provider_binding: {
+              provider_keys: deployLlmBinding.provider_keys,
+              target_services: deployLlmBinding.target_services,
+              source: 'deployment_override',
+            }
+          }
+        : undefined;
       for (const tId of templatesToDeploy) {
         const tName = templateNameMap.get(tId);
         if (!tName) continue;
@@ -531,7 +573,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               service_name: serviceName,
               agent_key: aKey,
               template_name: tName,
-              project_id: projectId
+              project_id: projectId,
+              extra_params: llmBindingExtra,
             });
             existing.add(serviceName);
             successCount++;
@@ -859,6 +902,25 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     }
   };
 
+  const handleSaveTemplateLlmBinding = async (template: any, binding: TemplateLlmProviderBinding | null) => {
+    if (!template?.id) return;
+    if (!canManageTemplate(template)) {
+      notify('仅模板拥有者可修改默认 LLM Provider 绑定', 'warning');
+      return;
+    }
+    setSavingTemplateLlmBinding(true);
+    try {
+      await api.environment.updateTemplateLlmBinding(template.id, binding);
+      notify('默认 LLM Provider 绑定已更新', 'success');
+      await loadTemplates();
+      await viewDetail(template.id);
+    } catch (err: any) {
+      notify(err?.message || '更新默认 LLM Provider 绑定失败', 'error');
+    } finally {
+      setSavingTemplateLlmBinding(false);
+    }
+  };
+
   const addUploadWebPortPreset = () => {
     setNewTemplate((prev) => ({
       ...prev,
@@ -902,6 +964,9 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       formData.append('visibility', newTemplate.visibility);
       formData.append('tags', JSON.stringify(normalizeTemplateTags(newTemplate.tags)));
       formData.append('web_port_presets', JSON.stringify(normalizeWebPortPresets(newTemplate.web_port_presets || [])));
+      if (newTemplate.default_llm_provider_binding?.provider_keys?.length) {
+        formData.append('default_llm_provider_binding', JSON.stringify(newTemplate.default_llm_provider_binding));
+      }
 
       if (uploadTab === 'file') {
         const file = selectedUploadFile || fileInputRef.current?.files?.[0];
@@ -925,7 +990,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   };
 
   const resetUploadForm = () => {
-    setNewTemplate({ name: '', description: '', type: 'yaml', content: '', visibility: 'shared', tags: [], web_port_presets: [] });
+    setNewTemplate({ name: '', description: '', type: 'yaml', content: '', visibility: 'shared', tags: [], web_port_presets: [], default_llm_provider_binding: null });
     setUploadError(null);
     setSelectedUploadFile(null);
     setIsDragOverUpload(false);
@@ -1069,6 +1134,20 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                      ))}
                   </div>
                )}
+
+               <div className="mt-6">
+                  <TemplateLlmBindingEditor
+                    projectId={projectId}
+                    value={deployLlmBinding}
+                    onChange={setDeployLlmBinding}
+                    serviceOptions={getDeployServiceOptions()}
+                    allowUseTemplateDefault
+                    useTemplateDefault={deployUseTemplateDefaultLlmBinding}
+                    onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
+                    title="部署前 LLM Provider 注入"
+                    description="可为本次部署临时叠加多个 Provider，部署时平台会先生成注入后的临时 compose。"
+                  />
+               </div>
             </div>
 
             <div className="p-10 border-t border-slate-100 bg-white flex flex-col md:flex-row justify-between items-center gap-6 shrink-0">
@@ -1315,6 +1394,36 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
               <p className="text-xs text-slate-400">暂无 TAG</p>
             )}
           </div>
+        </div>
+
+        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-black text-slate-800">默认 LLM Provider 绑定</h4>
+              <p className="text-xs text-slate-500 mt-1">部署弹窗默认会带出这里的 Provider 组合，也可以在部署时临时覆盖。</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {savingTemplateLlmBinding && <Loader2 size={16} className="animate-spin text-slate-400" />}
+              {canManageCurrentTemplate && (
+                <button
+                  onClick={() => void handleSaveTemplateLlmBinding(templateDetail, detailLlmBindingDraft)}
+                  disabled={savingTemplateLlmBinding}
+                  className="px-3 py-2 text-xs font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  保存默认绑定
+                </button>
+              )}
+            </div>
+          </div>
+          <TemplateLlmBindingEditor
+            projectId={projectId}
+            value={detailLlmBindingDraft}
+            onChange={setDetailLlmBindingDraft}
+            serviceOptions={getTemplateServiceOptions(templateDetail)}
+            disabled={!canManageCurrentTemplate || savingTemplateLlmBinding}
+            title="模板默认 Provider 组合"
+            description="保存到模板 metadata 中，后续部署时自动带出。"
+          />
         </div>
 
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
@@ -1847,8 +1956,8 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       </div>
                     ) : null}
 
-                    {cardWebPortPresets.length > 0 && (
-                      <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3">
+                  {cardWebPortPresets.length > 0 && (
+                    <div className="bg-indigo-50/60 border border-indigo-100 rounded-xl p-3">
                         <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">WEB端口</p>
                         <div className="flex flex-wrap gap-1.5">
                           {cardWebPortPresets.slice(0, 6).map((preset, idx) => (
@@ -1859,10 +1968,22 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                           {cardWebPortPresets.length > 6 && (
                             <span className="text-[10px] text-slate-500">+{cardWebPortPresets.length - 6} 更多</span>
                           )}
-                        </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  {getTemplateDefaultLlmBinding(t)?.provider_keys?.length ? (
+                    <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3">
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">默认 LLM 绑定</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {getTemplateDefaultLlmBinding(t)?.provider_keys.map((providerKey) => (
+                          <span key={`${t.id}-${providerKey}`} className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded font-mono border border-emerald-100">
+                            {providerKey}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
 
                   {/* Card Footer */}
                   <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
@@ -2006,6 +2127,15 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   />
                   <p className="text-[11px] text-slate-400 mt-2">模板 TAG 会用于分类、识别和自动化关联。</p>
                 </div>
+
+                <TemplateLlmBindingEditor
+                  projectId={projectId}
+                  value={newTemplate.default_llm_provider_binding}
+                  onChange={(next) => setNewTemplate({ ...newTemplate, default_llm_provider_binding: next })}
+                  serviceOptions={[]}
+                  title="默认 LLM Provider 绑定"
+                  description="新模板创建后，部署弹窗会默认带出这里的 Provider 组合。当前创建阶段暂不解析 service，默认作用于全部 service。"
+                />
 
                 {/* Template Type */}
                 <div>

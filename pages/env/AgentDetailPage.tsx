@@ -36,11 +36,12 @@ import {
   X,
   SquareTerminal
 } from 'lucide-react';
-import { Agent, AgentService, AsyncTask, DaemonAgentInfo, DaemonService, EnvTemplate, AgentTtydConnectionInfo, AgentIngressRouteInfo } from '../../types/types';
+import { Agent, AgentService, AsyncTask, DaemonAgentInfo, DaemonService, EnvTemplate, AgentTtydConnectionInfo, AgentIngressRouteInfo, TemplateLlmProviderBinding } from '../../types/types';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { TemplateLlmBindingEditor } from './llm-binding/TemplateLlmBindingEditor';
 
 interface AgentDetailPageProps {
   agentKey: string;
@@ -95,6 +96,8 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   const [templates, setTemplates] = useState<EnvTemplate[]>([]);
   const [templateSearch, setTemplateSearch] = useState('');
   const [selectedTemplateNames, setSelectedTemplateNames] = useState<Set<string>>(new Set());
+  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
+  const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   useEffect(() => {
     if (agentKey && projectId) {
@@ -396,6 +399,8 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
     if (!projectId || !agentKey) return;
     setTemplateSearch('');
     setSelectedTemplateNames(new Set());
+    setDeployUseTemplateDefaultLlmBinding(true);
+    setDeployLlmBinding(null);
     setIsBatchDeployModalOpen(true);
     await loadTemplates();
   };
@@ -437,6 +442,17 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
     return `${normalized}-${agentKey.slice(0, 6)}`;
   };
 
+  const selectedTemplates = useMemo(
+    () => templates.filter((template) => selectedTemplateNames.has(template.name)),
+    [templates, selectedTemplateNames]
+  );
+
+  const deployServiceOptions = useMemo(() => {
+    if (selectedTemplates.length !== 1) return [];
+    const services = selectedTemplates[0]?.metadata?.parsed_compose?.services;
+    return services && typeof services === 'object' ? Object.keys(services) : [];
+  }, [selectedTemplates]);
+
   const executeBatchDeploy = async () => {
     if (!projectId || !agentKey || selectedTemplateNames.size === 0) return;
     setDeployingBatch(true);
@@ -449,6 +465,13 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
         service_name: buildServiceName(templateName),
         agent_key: agentKey,
         template_name: templateName,
+        extra_params: !deployUseTemplateDefaultLlmBinding && deployLlmBinding ? {
+          llm_provider_binding: {
+            provider_keys: deployLlmBinding.provider_keys,
+            target_services: deployLlmBinding.target_services,
+            source: 'deployment_override',
+          }
+        } : undefined,
       })).filter(item => {
         if (existingServiceNames.has(item.service_name)) {
           skippedTemplates.push(item.template_name);
@@ -1512,6 +1535,18 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   )}
                 </div>
               )}
+
+              <TemplateLlmBindingEditor
+                projectId={projectId}
+                value={deployLlmBinding}
+                onChange={setDeployLlmBinding}
+                serviceOptions={deployServiceOptions}
+                allowUseTemplateDefault
+                useTemplateDefault={deployUseTemplateDefaultLlmBinding}
+                onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
+                title="部署前 LLM Provider 注入"
+                description="默认沿用模板自己的默认绑定。切到本次覆盖后，会把同一组 Provider 注入到本次选中的模板部署任务中。"
+              />
             </div>
 
             <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between">

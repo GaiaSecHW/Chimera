@@ -15,11 +15,12 @@ import {
   TerminalSquare,
   X,
 } from 'lucide-react';
-import { Agent, AgentService, EnvTemplate } from '../../types/types';
+import { Agent, AgentService, EnvTemplate, TemplateLlmProviderBinding } from '../../types/types';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { openServiceTerminalWindow as openServiceTerminalWindowPopup } from './serviceTerminal';
+import { TemplateLlmBindingEditor } from './llm-binding/TemplateLlmBindingEditor';
 
 type BatchAction = 'start' | 'stop' | 'delete';
 
@@ -80,6 +81,8 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [deployServiceSuffix, setDeployServiceSuffix] = useState('');
   const [deployPerNodeCount, setDeployPerNodeCount] = useState(1);
   const [deployExtraParamsText, setDeployExtraParamsText] = useState('');
+  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
+  const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -118,6 +121,8 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     setDeployServiceSuffix('');
     setDeployPerNodeCount(1);
     setDeployExtraParamsText('');
+    setDeployUseTemplateDefaultLlmBinding(true);
+    setDeployLlmBinding(null);
     setDeployAgentsLoading(true);
     setDeployTemplatesLoading(true);
     try {
@@ -534,6 +539,15 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
 
       const deployments: Array<{ service_name: string; agent_key: string; template_name: string; extra_params?: any }> = [];
       let duplicateCount = 0;
+      const llmBindingExtra = !deployUseTemplateDefaultLlmBinding && deployLlmBinding
+        ? {
+            llm_provider_binding: {
+              provider_keys: deployLlmBinding.provider_keys,
+              target_services: deployLlmBinding.target_services,
+              source: 'deployment_override',
+            }
+          }
+        : undefined;
 
       for (const agentKey of agentKeys) {
         const existing = serviceNameMap.get(agentKey) || new Set<string>();
@@ -550,7 +564,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
               service_name: serviceName,
               agent_key: agentKey,
               template_name: tpl.name,
-              ...(extraParams ? { extra_params: extraParams } : {}),
+              ...((extraParams || llmBindingExtra) ? { extra_params: { ...(extraParams || {}), ...(llmBindingExtra || {}) } } : {}),
             });
             existing.add(serviceName);
           }
@@ -578,6 +592,17 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
       setDeploying(false);
     }
   };
+
+  const selectedDeployTemplates = useMemo(
+    () => deployTemplates.filter((template) => selectedDeployTemplateIds.has(Number(template.id))),
+    [deployTemplates, selectedDeployTemplateIds]
+  );
+
+  const deployServiceOptions = useMemo(() => {
+    if (selectedDeployTemplates.length !== 1) return [];
+    const services = selectedDeployTemplates[0]?.metadata?.parsed_compose?.services;
+    return services && typeof services === 'object' ? Object.keys(services) : [];
+  }, [selectedDeployTemplates]);
 
   const loadIngressRoutesForService = async (svc: AgentService) => {
     if (!svc.agent_key || !projectId) return;
@@ -1437,6 +1462,18 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
               onChange={(e) => setDeployExtraParamsText(e.target.value)}
               placeholder='可选：额外参数 JSON，例如 {"env":{"DEBUG":"1"}}'
               className="w-full min-h-24 px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10 font-mono"
+            />
+
+            <TemplateLlmBindingEditor
+              projectId={projectId}
+              value={deployLlmBinding}
+              onChange={setDeployLlmBinding}
+              serviceOptions={deployServiceOptions}
+              allowUseTemplateDefault
+              useTemplateDefault={deployUseTemplateDefaultLlmBinding}
+              onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
+              title="部署前 LLM Provider 注入"
+              description="默认沿用模板自己的默认绑定。切到本次覆盖后，会把当前 Provider 组合注入到本次批量部署任务。"
             />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

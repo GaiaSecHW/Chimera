@@ -413,7 +413,7 @@ const App: React.FC = () => {
       case 'pentest-report': return <ReportsPage />;
       case 'security-assessment': return <SecurityAssessmentPage />;
       case 'vuln-engine':
-      case 'vuln-overview': return <VulnOverviewPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
+      case 'vuln-overview': return <VulnOverviewPage projectId={selectedProjectId} />;
       case 'vuln-intake': return <VulnIntakePage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-analysis': return <VulnAnalysisPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-verification': return <VulnVerificationPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;

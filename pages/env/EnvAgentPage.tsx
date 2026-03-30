@@ -22,10 +22,11 @@ import {
   Command,
   Clock
 } from 'lucide-react';
-import { Agent, EnvTemplate } from '../../types/types';
+import { Agent, EnvTemplate, TemplateLlmProviderBinding } from '../../types/types';
 import { api } from '../../clients/api';
 import { AgentDetailPage } from './AgentDetailPage';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { TemplateLlmBindingEditor } from './llm-binding/TemplateLlmBindingEditor';
 
 interface SyncHistoryItem {
   sync_id: string;
@@ -129,6 +130,8 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [templates, setTemplates] = useState<EnvTemplate[]>([]);
   const [templateSearch, setTemplateSearch] = useState('');
   const [selectedTemplateNames, setSelectedTemplateNames] = useState<Set<string>>(new Set());
+  const [deployUseTemplateDefaultLlmBinding, setDeployUseTemplateDefaultLlmBinding] = useState(true);
+  const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -615,6 +618,8 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     }
     setTemplateSearch('');
     setSelectedTemplateNames(new Set());
+    setDeployUseTemplateDefaultLlmBinding(true);
+    setDeployLlmBinding(null);
     setIsBatchDeployModalOpen(true);
     await loadTemplates();
   };
@@ -656,6 +661,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     return `${normalized}-${agentKey.slice(0, 6)}`;
   };
 
+  const selectedTemplates = useMemo(
+    () => templates.filter((template) => selectedTemplateNames.has(template.name)),
+    [templates, selectedTemplateNames]
+  );
+
+  const deployServiceOptions = useMemo(() => {
+    if (selectedTemplates.length !== 1) return [];
+    const services = selectedTemplates[0]?.metadata?.parsed_compose?.services;
+    return services && typeof services === 'object' ? Object.keys(services) : [];
+  }, [selectedTemplates]);
+
   const executeBatchDeploy = async () => {
     if (!projectId || selectedAgentKeys.size === 0 || selectedTemplateNames.size === 0) return;
     setDeployingBatch(true);
@@ -676,6 +692,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       let successCount = 0;
       let failedCount = 0;
       let duplicateCount = 0;
+      const extraParams = !deployUseTemplateDefaultLlmBinding && deployLlmBinding
+        ? {
+            llm_provider_binding: {
+              provider_keys: deployLlmBinding.provider_keys,
+              target_services: deployLlmBinding.target_services,
+              source: 'deployment_override',
+            }
+          }
+        : undefined;
 
       for (const templateName of templateNames) {
         for (const agentKey of agentKeys) {
@@ -690,7 +715,8 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               service_name: serviceName,
               agent_key: agentKey,
               template_name: templateName,
-              project_id: projectId
+              project_id: projectId,
+              extra_params: extraParams,
             });
             existing.add(serviceName);
             successCount += 1;
@@ -1270,6 +1296,18 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                   )}
                 </div>
               )}
+
+              <TemplateLlmBindingEditor
+                projectId={projectId}
+                value={deployLlmBinding}
+                onChange={setDeployLlmBinding}
+                serviceOptions={deployServiceOptions}
+                allowUseTemplateDefault
+                useTemplateDefault={deployUseTemplateDefaultLlmBinding}
+                onUseTemplateDefaultChange={setDeployUseTemplateDefaultLlmBinding}
+                title="部署前 LLM Provider 注入"
+                description="多模板批量部署默认沿用各模板自己的默认绑定。切换到本次覆盖后，会把同一组 Provider 注入到本次选中的模板部署任务中。"
+              />
             </div>
 
             <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
