@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, Loader2, Play, Plus, RefreshCw, RotateCcw, Search, StopCircle, Trash2, XCircle } from 'lucide-react';
 import { api } from '../../clients/api';
-import { AppTemplate, AppWorkflow, AppWorkflowStatus, IngressController } from '../../types/types';
+import { AppTemplate, AppWorkflow, AppWorkflowStatus } from '../../types/types';
 
 type CreateStep = 'select-template' | 'fill-form';
 
@@ -35,10 +35,6 @@ export const AppInstancePage: React.FC<{
   const [inputVolumeMountConfigs, setInputVolumeMountConfigs] = useState<Record<string, { pvc_name: string; sub_path: string; read_only: boolean }>>({});
   const [pvcList, setPvcList] = useState<Array<{ pvc_name: string; resource_name?: string }>>([]);
   const [enableIngress, setEnableIngress] = useState(false);
-  const [ingressControllers, setIngressControllers] = useState<IngressController[]>([]);
-  const [selectedIngressController, setSelectedIngressController] = useState('nginx');
-  const [ingressHost, setIngressHost] = useState('');
-  const [ingressIP, setIngressIP] = useState('');
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -57,12 +53,6 @@ export const AppInstancePage: React.FC<{
     loadInstances();
   }, [projectId, statusFilter]);
 
-  useEffect(() => {
-    if (createStep === 'fill-form') {
-      loadIngressControllers();
-    }
-  }, [createStep]);
-
   const loadInstances = async () => {
     setLoading(true);
     try {
@@ -72,21 +62,6 @@ export const AppInstancePage: React.FC<{
       console.error('Failed to load app workflows:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadIngressControllers = async () => {
-    try {
-      const res = await api.workflow.getIngressControllers();
-      const controllers = res.controllers || [];
-      setIngressControllers(controllers);
-      if (controllers.length > 0) {
-        setSelectedIngressController(controllers[0].ingress_class);
-        setIngressIP(controllers[0].external_ip || '');
-      }
-    } catch (error) {
-      console.error('Failed to fetch ingress controllers:', error);
-      setIngressControllers([]);
     }
   };
 
@@ -120,8 +95,6 @@ export const AppInstancePage: React.FC<{
     setInputEnvVarValues({});
     setInputVolumeMountConfigs({});
     setEnableIngress(false);
-    setIngressHost('');
-    setIngressIP('');
     setPvcList([]);
   };
 
@@ -247,10 +220,6 @@ export const AppInstancePage: React.FC<{
       alert('请填写实例名称、模板和 Service 名称');
       return;
     }
-    if (enableIngress && (!selectedIngressController || !ingressHost.trim() || !ingressIP.trim())) {
-      alert('启用域名访问时，请完整填写 Ingress 配置');
-      return;
-    }
     if (selectedTemplate) {
       for (const container of selectedTemplate.containers) {
         for (const envVar of container.input_env_vars || []) {
@@ -285,18 +254,21 @@ export const AppInstancePage: React.FC<{
           }
         });
       });
-      await api.workflow.createAppWorkflow({
+      const created = await api.workflow.createAppWorkflow({
         ...formData,
         project_id: projectId,
         env_vars: envVars.length > 0 ? envVars : undefined,
         volume_mounts: volumeMounts.length > 0 ? volumeMounts : undefined,
-        ingress_type: enableIngress ? selectedIngressController : undefined,
-        ingress_host: enableIngress ? ingressHost : undefined,
-        ingress_ip: enableIngress ? ingressIP : undefined
+        create_ingress: enableIngress,
+        ingress_type: enableIngress ? 'nginx' : undefined
       });
+      if (enableIngress) {
+        await api.workflow.initializeAppWorkflow(created.id, false);
+        await api.workflow.startAppWorkflow(created.id);
+      }
       setIsModalOpen(false);
       resetForm();
-      showToast('创建成功', 'success');
+      showToast(enableIngress ? '创建、初始化并启动成功，Ingress 已自动绑定' : '创建成功', 'success');
       await loadInstances();
     } catch (error: any) {
       showToast(`创建失败: ${error.message}`, 'error');
@@ -533,19 +505,15 @@ export const AppInstancePage: React.FC<{
                   )}
                   <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
                     <div className="mb-4 flex items-center justify-between">
-                      <div><div className="text-sm font-black text-green-700">域名访问配置</div><div className="text-xs text-green-600">可选，启用后会在初始化时创建 Ingress。</div></div>
+                      <div><div className="text-sm font-black text-green-700">绑定 Ingress</div><div className="text-xs text-green-600">勾选后系统会基于当前 Service 自动生成域名，并在创建后自动初始化、启动实例。</div></div>
                       <label className="inline-flex cursor-pointer items-center">
                         <input type="checkbox" checked={enableIngress} onChange={(event) => setEnableIngress(event.target.checked)} className="sr-only peer" />
                         <div className="relative h-6 w-11 rounded-full bg-gray-200 transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white" />
                       </label>
                     </div>
                     {enableIngress && (
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <select value={selectedIngressController} onChange={(event) => { const nextValue = event.target.value; setSelectedIngressController(nextValue); const controller = ingressControllers.find((item) => item.ingress_class === nextValue); if (controller) setIngressIP(controller.external_ip || ''); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-500">
-                          {ingressControllers.map((controller) => <option key={controller.name} value={controller.ingress_class}>{controller.ingress_class} ({controller.external_ip || controller.cluster_ip || '无外部 IP'})</option>)}
-                        </select>
-                        <input value={ingressHost} onChange={(event) => setIngressHost(event.target.value)} placeholder="demo.secflow.sothothv2.com" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-500" />
-                        <input value={ingressIP} onChange={(event) => setIngressIP(event.target.value)} placeholder="10.0.0.1" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-green-500" />
+                      <div className="rounded-xl border border-dashed border-green-300 bg-white/80 px-4 py-3 text-sm text-green-700">
+                        默认使用 `nginx` Ingress，域名规则会按当前 Service 自动生成。创建完成后可直接在实例详情的“访问”页点击“访问服务”按钮。
                       </div>
                     )}
                   </div>
@@ -556,7 +524,7 @@ export const AppInstancePage: React.FC<{
                     <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">取消</button>
                     <button onClick={handleCreate} disabled={isSubmitting} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 disabled:opacity-50">
                       {isSubmitting && <Loader2 className="animate-spin" size={16} />}
-                      创建实例
+                      {enableIngress ? '创建并启动实例' : '创建实例'}
                     </button>
                   </div>
                 </div>

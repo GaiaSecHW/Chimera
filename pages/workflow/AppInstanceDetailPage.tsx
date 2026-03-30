@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink, Globe, Loader2, Play, Power, RefreshCw, RotateCcw, Square, AlertCircle, FileText } from 'lucide-react';
 import { api } from '../../clients/api';
-import { AppWorkflow, AppWorkflowStatus, DomainBindingRecord, IngressController, ServiceAccessInfo } from '../../types/types';
+import { AppWorkflow, AppWorkflowStatus, DomainBindingRecord, ServiceAccessInfo } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 
 type DetailTab = 'overview' | 'config' | 'access' | 'logs';
@@ -18,14 +18,7 @@ export const AppInstanceDetailPage: React.FC<{
   const [accessInfo, setAccessInfo] = useState<ServiceAccessInfo | null>(null);
   const [domainBindings, setDomainBindings] = useState<DomainBindingRecord[]>([]);
   const [loadingAccess, setLoadingAccess] = useState(false);
-  const [controllers, setControllers] = useState<IngressController[]>([]);
-  const [savingBinding, setSavingBinding] = useState(false);
   const [operation, setOperation] = useState('');
-  const [bindingForm, setBindingForm] = useState({
-    ingress_type: 'nginx',
-    ingress_host: '',
-    ingress_ip: ''
-  });
 
   useEffect(() => {
     loadInstance();
@@ -45,11 +38,6 @@ export const AppInstanceDetailPage: React.FC<{
     try {
       const data = await api.workflow.getAppWorkflow(instanceId);
       setInstance(data);
-      setBindingForm((current) => ({
-        ingress_type: data.ingress_type || current.ingress_type || 'nginx',
-        ingress_host: data.ingress_host || current.ingress_host,
-        ingress_ip: data.ingress_ip || current.ingress_ip
-      }));
     } catch (error) {
       console.error('Failed to load app workflow:', error);
       setInstance(null);
@@ -73,24 +61,16 @@ export const AppInstanceDetailPage: React.FC<{
   const loadAccessData = async () => {
     setLoadingAccess(true);
     try {
-      const [access, bindings, ingressControllers] = await Promise.all([
+      const [access, bindings] = await Promise.all([
         api.workflow.getAppWorkflowAccessInfo(instanceId),
-        api.workflow.listAppWorkflowDomainBindings(instanceId),
-        api.workflow.getIngressControllers()
+        api.workflow.listAppWorkflowDomainBindings(instanceId)
       ]);
       setAccessInfo(access);
       setDomainBindings(bindings);
-      setControllers(ingressControllers.controllers || []);
-      setBindingForm((current) => ({
-        ingress_type: access.configured_ingress?.ingress_type || current.ingress_type || ingressControllers.controllers?.[0]?.ingress_class || 'nginx',
-        ingress_host: access.configured_ingress?.ingress_host || current.ingress_host,
-        ingress_ip: access.configured_ingress?.ingress_ip || current.ingress_ip || ingressControllers.controllers?.[0]?.external_ip || ''
-      }));
     } catch (error) {
       console.error('Failed to load access info:', error);
       setAccessInfo(null);
       setDomainBindings([]);
-      setControllers([]);
     } finally {
       setLoadingAccess(false);
     }
@@ -111,28 +91,6 @@ export const AppInstanceDetailPage: React.FC<{
     }
   };
 
-  const handleSaveBinding = async () => {
-    if (!bindingForm.ingress_host.trim() || !bindingForm.ingress_ip.trim()) {
-      alert('请填写完整的域名和 Ingress IP');
-      return;
-    }
-    setSavingBinding(true);
-    try {
-      await api.workflow.bindAppWorkflowIngress(instanceId, {
-        create_ingress: true,
-        ingress_type: bindingForm.ingress_type,
-        ingress_host: bindingForm.ingress_host.trim(),
-        ingress_ip: bindingForm.ingress_ip.trim()
-      });
-      await loadInstance();
-      await loadAccessData();
-    } catch (error: any) {
-      alert(`保存域名绑定失败: ${error.message}`);
-    } finally {
-      setSavingBinding(false);
-    }
-  };
-
   const getAvailableActions = (status?: AppWorkflowStatus) => {
     if (!status) return [];
     if (status === 'pending') return ['initialize'];
@@ -149,13 +107,27 @@ export const AppInstanceDetailPage: React.FC<{
 
   const accessCards = useMemo(() => {
     if (!instance) return [];
+    const displayHost = accessInfo?.ingress_accesses?.[0]?.host || accessInfo?.configured_ingress?.ingress_host || instance.ingress_host || '-';
     return [
       { label: 'Service', value: accessInfo?.name || instance.service_name || '-' },
       { label: '类型', value: accessInfo?.type || instance.service_type || '-' },
       { label: '命名空间', value: accessInfo?.namespace || `secflow-${instance.project_id}` },
-      { label: '域名', value: instance.ingress_host || '-' }
+      { label: '域名', value: displayHost }
     ];
   }, [accessInfo, instance]);
+
+  const primaryIngressAccess = useMemo(() => {
+    const ingressItem = accessInfo?.ingress_accesses?.find((item) => !!item.url);
+    if (ingressItem) return ingressItem;
+    const fallbackItem = accessInfo?.access_urls?.find((item) => item.type === 'Ingress' && item.url);
+    if (!fallbackItem) return null;
+    return {
+      host: fallbackItem.host,
+      url: fallbackItem.url,
+      ingress_name: fallbackItem.ingress_name,
+      selected_ip: fallbackItem.selected_ip,
+    };
+  }, [accessInfo]);
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
@@ -315,6 +287,20 @@ export const AppInstanceDetailPage: React.FC<{
                 </div>
                 <div>
                   <h3 className="mb-4 text-lg font-black text-slate-900">访问方式</h3>
+                  {primaryIngressAccess?.url && (
+                    <button
+                      onClick={() => window.open(primaryIngressAccess.url || '', '_blank', 'noopener,noreferrer')}
+                      className="mb-4 flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-500"
+                    >
+                      <ExternalLink size={16} />
+                      访问服务
+                    </button>
+                  )}
+                  {!primaryIngressAccess?.url && instance.create_ingress && (
+                    <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                      Ingress 已启用，正在等待初始化完成或访问地址同步。
+                    </div>
+                  )}
                   <div className="space-y-3">
                     {(accessInfo?.ingress_accesses || []).map((item, index) => (
                       <div key={`ingress-${index}`} className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
@@ -343,15 +329,10 @@ export const AppInstanceDetailPage: React.FC<{
                   </div>
                 </div>
                 <div>
-                  <h3 className="mb-4 text-lg font-black text-slate-900">域名绑定</h3>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <select value={bindingForm.ingress_type} onChange={(event) => setBindingForm({ ...bindingForm, ingress_type: event.target.value, ingress_ip: controllers.find((item) => item.ingress_class === event.target.value)?.external_ip || bindingForm.ingress_ip })} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500">
-                      {(controllers.length ? controllers : [{ ingress_class: 'nginx', name: 'nginx', namespace: '', type: '', external_ip: '', cluster_ip: '', ports: [] } as IngressController]).map((controller) => <option key={controller.name} value={controller.ingress_class}>{controller.ingress_class}</option>)}
-                    </select>
-                    <input value={bindingForm.ingress_host} onChange={(event) => setBindingForm({ ...bindingForm, ingress_host: event.target.value })} placeholder="demo.secflow.sothothv2.com" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500" />
-                    <input value={bindingForm.ingress_ip} onChange={(event) => setBindingForm({ ...bindingForm, ingress_ip: event.target.value })} placeholder="Ingress IP" className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500" />
+                  <h3 className="mb-4 text-lg font-black text-slate-900">Ingress 记录</h3>
+                  <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    应用实例勾选绑定 Ingress 后，会按当前 Service 自动生成域名并在初始化时创建，无需手动输入域名。
                   </div>
-                  <button onClick={handleSaveBinding} disabled={savingBinding} className="mt-4 flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 font-bold text-white hover:bg-blue-500 disabled:opacity-50">{savingBinding ? <Loader2 className="animate-spin" size={16} /> : <Globe size={16} />}保存域名绑定</button>
                   <div className="mt-4 space-y-3">
                     {domainBindings.map((binding) => (
                       <div key={binding.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
