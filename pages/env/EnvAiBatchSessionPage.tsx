@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, Loader2, RefreshCw, Send } from 'lucide-react';
+import { Bot, Loader2, RefreshCw, Send, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AiBatchRound, AiBatchSession, AiBatchStreamEvent, AiHelperService } from '../../types/types';
@@ -124,6 +124,28 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
     }
   };
 
+  const deleteBatch = async () => {
+    if (!batchId) {
+      notify('当前没有可删除的批量会话', 'error');
+      return;
+    }
+    if (!window.confirm('确认删除当前批量会话吗？会同时清理该 batch 的会话记录。')) return;
+    setBusyAction('delete_batch');
+    try {
+      await api.environment.deleteAiBatchSession(batchId);
+      setBatchId('');
+      setBatchDetail(null);
+      setBatchRounds([]);
+      setMessage('');
+      setStreamEvents([]);
+      notify('批量会话已删除', 'success');
+    } catch (error: any) {
+      notify(`删除批量会话失败: ${error?.message || error}`, 'error');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const helperCards = useMemo(() => helpers.map((helper) => {
     const key = buildHelperKey(helper.agent_key, helper.service_name);
     return { helper, key, detail: helperDetails[key] };
@@ -208,7 +230,10 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   <h2 className="mt-2 break-all text-2xl font-black text-slate-900">{batchDetail.batch_id}</h2>
                   <div className="mt-2 text-sm text-slate-600">状态：{batchDetail.status} · 目标 helper：{batchDetail.items.length}</div>
                 </div>
-                <button onClick={() => void refreshBatch()} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">刷新批量状态</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => void refreshBatch()} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">刷新批量状态</button>
+                  <button onClick={() => void deleteBatch()} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600" disabled={busyAction === 'delete_batch'}><Trash2 size={14} />删除批量会话</button>
+                </div>
               </div>
               <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="输入要 fanout 给当前 batch 的用户消息" />
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">

@@ -412,6 +412,9 @@ export const environmentApi = {
   getAiHelperSession: async (projectId: string, agentKey: string, serviceName: string, sessionId: string): Promise<AiAgentSession> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions/${encodeURIComponent(sessionId)}?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 
+  deleteAiHelperSession: async (projectId: string, agentKey: string, serviceName: string, sessionId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions/${encodeURIComponent(sessionId)}?project_id=${encodeURIComponent(projectId)}`, { method: 'DELETE', headers: getHeaders(), body: JSON.stringify({ project_id: projectId }) })),
+
   sendAiHelperSessionMessage: async (projectId: string, agentKey: string, serviceName: string, sessionId: string, content: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions/${encodeURIComponent(sessionId)}/messages?project_id=${encodeURIComponent(projectId)}`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ project_id: projectId, role: 'user', content }) })),
 
@@ -465,6 +468,9 @@ export const environmentApi = {
 
   getAiBatchSession: async (batchId: string): Promise<AiBatchSession> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/batch/${encodeURIComponent(batchId)}`, { headers: getHeaders() })),
+
+  deleteAiBatchSession: async (batchId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/batch/${encodeURIComponent(batchId)}`, { method: 'DELETE', headers: getHeaders() })),
 
   getAiBatchMessages: async (batchId: string): Promise<{ batch_id: string; items: AiBatchRound[]; total: number }> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/batch/${encodeURIComponent(batchId)}/messages`, { headers: getHeaders() })),

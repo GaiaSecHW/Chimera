@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, Loader2, RefreshCw, Send } from 'lucide-react';
+import { Bot, Loader2, RefreshCw, Send, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AiAgentSession, AiHelperService, AiSessionStreamEvent } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { EmptyState, JsonBlock, buildHelperKey, parseHelperKey, useAiHelpers } from './ai-agent/shared';
+import { EmptyState, buildHelperKey, parseHelperKey, useAiHelpers } from './ai-agent/shared';
 
 export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
@@ -90,6 +90,33 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
       await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name);
     } catch (error: any) {
       notify(`刷新会话失败: ${error?.message || error}`, 'error');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const deleteSession = async (sessionId: string) => {
+    if (!selectedHelper) {
+      notify('请先选择 helper 服务', 'error');
+      return;
+    }
+    if (!window.confirm('确认删除该会话吗？删除后无法恢复。')) return;
+    setBusyAction('delete_session');
+    try {
+      await api.environment.deleteAiHelperSession(
+        projectId,
+        selectedHelper.agent_key,
+        selectedHelper.service_name,
+        sessionId
+      );
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId('');
+        setCurrentSession(null);
+      }
+      await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name);
+      notify('会话已删除', 'success');
+    } catch (error: any) {
+      notify(`删除会话失败: ${error?.message || error}`, 'error');
     } finally {
       setBusyAction('');
     }
@@ -208,15 +235,28 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
               <div className="text-sm font-bold text-slate-900">会话列表</div>
               <div className="mt-3 space-y-2 max-h-[360px] overflow-auto pr-1">
                 {sessions.length === 0 ? <div className="text-sm text-slate-500">暂无会话。</div> : sessions.map((session) => (
-                  <button key={session.session_id} onClick={async () => {
-                    if (!selectedHelper) return;
-                    setCurrentSessionId(session.session_id);
-                    const detail = await api.environment.getAiHelperSession(projectId, selectedHelper.agent_key, selectedHelper.service_name, session.session_id);
-                    setCurrentSession(detail);
-                  }} className={`w-full rounded-xl border px-3 py-2 text-left ${currentSessionId === session.session_id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`}>
-                    <div className="break-all text-xs font-semibold text-slate-900">{session.session_id}</div>
-                    <div className="mt-1 text-[11px] text-slate-500">{(session.agent_ids || []).join(', ') || session.backend || '-'}</div>
-                  </button>
+                  <div key={session.session_id} className={`flex items-start gap-2 rounded-xl border px-3 py-2 ${currentSessionId === session.session_id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                    <button
+                      onClick={async () => {
+                        if (!selectedHelper) return;
+                        setCurrentSessionId(session.session_id);
+                        const detail = await api.environment.getAiHelperSession(projectId, selectedHelper.agent_key, selectedHelper.service_name, session.session_id);
+                        setCurrentSession(detail);
+                      }}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <div className="break-all text-xs font-semibold text-slate-900">{session.session_id}</div>
+                      <div className="mt-1 text-[11px] text-slate-500">{(session.agent_ids || []).join(', ') || session.backend || '-'}</div>
+                    </button>
+                    <button
+                      onClick={() => void deleteSession(session.session_id)}
+                      className="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
+                      title="删除会话"
+                      disabled={busyAction === 'delete_session'}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -262,7 +302,6 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   </div>
                 </div>
               ) : <EmptyState text="还没有选中的会话消息。" />}
-              <JsonBlock title="当前 helper 健康信息" value={selectedHelper.health || {}} />
             </div>
           )}
         </section>
