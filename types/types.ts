@@ -242,10 +242,24 @@ export interface AppWorkflowNode {
   ingress_type?: string;
   ingress_host?: string;
   ingress_ip?: string;
+  llm_binding?: AppWorkflowLlmBinding | null;
   started_at?: string;
   finished_at?: string;
   created_at: string;
   init_logs?: string;
+}
+
+export interface AppWorkflowLlmBinding {
+  source: 'config_center' | 'custom';
+  provider_key: string;
+  config: LlmProviderDetail;
+  bound_at?: string | null;
+}
+
+export interface AppWorkflowLlmBindingRequest {
+  source: 'config_center' | 'custom';
+  provider_key?: string;
+  config?: LlmProviderDetail;
 }
 
 export interface AppWorkflow {
@@ -271,6 +285,7 @@ export interface AppWorkflow {
   ingress_type?: string;
   ingress_host?: string;
   ingress_ip?: string;
+  llm_binding?: AppWorkflowLlmBinding | null;
   created_by?: string;
   created_at: string;
   updated_at?: string;

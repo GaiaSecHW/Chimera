@@ -127,6 +127,7 @@ export const AppInstanceDetailPage: React.FC<{
     () => (accessInfo?.access_urls || []).filter((item) => item.type !== 'Ingress'),
     [accessInfo],
   );
+  const llmBinding = instance?.llm_binding || null;
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
@@ -254,6 +255,43 @@ export const AppInstanceDetailPage: React.FC<{
                     <div className="text-sm text-slate-600">{env.value}</div>
                   </div>
                 )) : <div className="text-sm text-slate-400">暂无环境变量</div>}
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-4 text-lg font-black text-slate-900">LLM 配置绑定</h3>
+              <div className="rounded-2xl bg-slate-50 p-6">
+                {llmBinding ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div>
+                        <div className="mb-1 text-xs text-slate-400">配置来源</div>
+                        <div className="font-bold text-slate-900">{llmBinding.source === 'config_center' ? '配置中心选择' : '自定义配置'}</div>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-slate-400">Provider Key</div>
+                        <div className="font-mono text-sm text-slate-900">{llmBinding.provider_key}</div>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs text-slate-400">绑定时间</div>
+                        <div className="text-sm text-slate-900">{llmBinding.bound_at ? new Date(llmBinding.bound_at).toLocaleString('zh-CN') : '-'}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div><div className="mb-1 text-xs text-slate-400">显示名</div><div className="text-sm text-slate-900">{llmBinding.config.display_name || '-'}</div></div>
+                      <div><div className="mb-1 text-xs text-slate-400">渠道类型</div><div className="text-sm text-slate-900">{llmBinding.config.provider_type || '-'}</div></div>
+                      <div><div className="mb-1 text-xs text-slate-400">模型</div><div className="text-sm text-slate-900">{llmBinding.config.model || '-'}</div></div>
+                      <div><div className="mb-1 text-xs text-slate-400">API Base</div><div className="break-all text-sm text-slate-900">{llmBinding.config.api_base || '-'}</div></div>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-xs font-black uppercase text-slate-500">完整配置 JSON</div>
+                      <pre className="max-h-[420px] overflow-auto rounded-2xl bg-slate-900 p-4 text-xs text-emerald-300 whitespace-pre-wrap">
+                        {JSON.stringify(llmBinding.config, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-400">当前实例未绑定 LLM 配置</div>
+                )}
               </div>
             </div>
             <div>

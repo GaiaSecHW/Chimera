@@ -1,6 +1,6 @@
 
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { AppTemplate, JobTemplate, WorkflowTemplate, WorkflowInstance, AppWorkflow, AppWorkflowLogs, IngressController, WorkflowInstanceNodeLogListResponse, ServiceAccessInfo, DomainBindingRecord } from '../types/types';
+import { AppTemplate, JobTemplate, WorkflowTemplate, WorkflowInstance, AppWorkflow, AppWorkflowLogs, IngressController, WorkflowInstanceNodeLogListResponse, ServiceAccessInfo, DomainBindingRecord, LlmProviderDetail, LlmProviderSummary } from '../types/types';
 
 const getWsBase = () => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -243,6 +243,14 @@ export const workflowApi = {
   },
 
   // --- App Workflows ---
+  listAppWorkflowLlmProviders: async (): Promise<{ items: LlmProviderSummary[]; total: number; default_provider_key?: string | null }> => {
+    const response = await fetch(`${API_BASE}/api/workflow/app-workflows/llm-providers`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+  getAppWorkflowLlmProvider: async (providerKey: string): Promise<LlmProviderDetail> => {
+    const response = await fetch(`${API_BASE}/api/workflow/app-workflows/llm-providers/${encodeURIComponent(providerKey)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
   listAppWorkflows: async (params: { project_id?: string; status?: string } = {}): Promise<{ items: AppWorkflow[]; total: number }> => {
     const queryParams = new URLSearchParams();
     if (params.project_id) queryParams.set('project_id', params.project_id);
