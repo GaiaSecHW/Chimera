@@ -24,10 +24,14 @@ import {
   Hash,
   User,
   History,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Key,
+  Check
 } from 'lucide-react';
-import { SecurityProject, K8sResourceList, NamespaceStatus } from '../types/types';
+import { SecurityProject, K8sResourceList, MachineToken, NamespaceStatus } from '../types/types';
 import { api } from '../clients/api';
+import { authApi } from '../clients/auth';
 import { StatusBadge } from '../components/StatusBadge';
 
 interface ProjectDetailPageProps {
@@ -43,6 +47,10 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const [nsStatus, setNsStatus] = useState<NamespaceStatus | null>(null);
   const [logView, setLogView] = useState<{ show: boolean; podName: string; logs: string }>({ show: false, podName: '', logs: '' });
   const [logLoading, setLogLoading] = useState(false);
+  const [projectToken, setProjectToken] = useState<MachineToken | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
 
@@ -65,6 +73,50 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
       setLoading(false);
     }
   };
+
+  const loadProjectToken = async () => {
+    if (!project?.can_manage) {
+      setProjectToken(null);
+      setTokenError(null);
+      return;
+    }
+
+    setTokenLoading(true);
+    setTokenError(null);
+    try {
+      const token = await authApi.getProjectMachineToken(projectId);
+      setProjectToken(token);
+    } catch (err: any) {
+      setProjectToken(null);
+      setTokenError(err.message || '加载项目 SDK Token 失败');
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
+  const refreshProjectToken = async () => {
+    setTokenLoading(true);
+    setTokenError(null);
+    try {
+      const token = await authApi.refreshProjectMachineToken(projectId);
+      setProjectToken(token);
+    } catch (err: any) {
+      setTokenError(err.message || '刷新项目 SDK Token 失败');
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
+  const copyToken = async () => {
+    if (!projectToken?.token) return;
+    await navigator.clipboard.writeText(projectToken.token);
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    void loadProjectToken();
+  }, [projectId, project?.can_manage]);
 
   const openLogViewer = async (podName: string) => {
     setLogView({ show: true, podName, logs: 'Initializing stream from API...' });
@@ -267,6 +319,62 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                          </div>
                        </div>
                      ))}
+                   </div>
+                 </div>
+
+                 <div className="space-y-6">
+                   <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                     <Key size={20} className="text-blue-600" /> 项目 SDK Token
+                   </h3>
+                   <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-5">
+                     {!project?.can_manage && (
+                       <div className="text-sm font-bold text-slate-500 leading-relaxed">
+                         仅项目管理员可查看和手动刷新项目级 SDK Token。
+                       </div>
+                     )}
+                     {project?.can_manage && (
+                       <>
+                         <div className="flex items-center justify-between gap-3">
+                           <div>
+                             <p className="text-sm font-black text-slate-700">第三方 SDK 专用项目凭证</p>
+                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">
+                               {projectToken?.machine_code || `project-sdk:${projectId}`}
+                             </p>
+                           </div>
+                           <button
+                             onClick={refreshProjectToken}
+                             disabled={tokenLoading}
+                             className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-black flex items-center gap-2 hover:bg-slate-100 transition-all"
+                           >
+                             {tokenLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                             手动刷新
+                           </button>
+                         </div>
+                         <div className="space-y-2">
+                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Token</p>
+                           <div className="relative">
+                             <div className="bg-slate-900 text-blue-200 text-xs font-mono break-all rounded-[1.75rem] p-5 pr-16 min-h-[96px]">
+                               {tokenLoading && !projectToken ? '正在加载项目 Token...' : (projectToken?.token || '当前 Token 不可用')}
+                             </div>
+                             {!!projectToken?.token && (
+                               <button
+                                 onClick={copyToken}
+                                 className="absolute top-3 right-3 p-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all"
+                               >
+                                 {tokenCopied ? <Check size={16} /> : <Copy size={16} />}
+                               </button>
+                             )}
+                           </div>
+                         </div>
+                         <div className="flex justify-between items-center text-xs font-bold text-slate-500">
+                           <span>作用域: 项目级</span>
+                           <span>过期时间: {projectToken?.expires_at ? projectToken.expires_at.replace('T', ' ') : '永不过期'}</span>
+                         </div>
+                         {tokenError && (
+                           <div className="text-xs font-bold text-red-500">{tokenError}</div>
+                         )}
+                       </>
+                     )}
                    </div>
                  </div>
                </div>

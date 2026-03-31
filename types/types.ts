@@ -459,9 +459,12 @@ export interface MachineToken {
   id: number;
   machine_code: string;
   description: string;
+  token_scope?: 'global' | 'project';
+  project_id?: string | null;
   is_active: boolean;
   created_at: string;
   expires_at: string | null;
+  token?: string;
 }
 
 export interface Department {
@@ -709,6 +712,47 @@ export interface DirectoryChildrenResponse {
   breadcrumbs: ExplorerBreadcrumbItem[];
   directories: FileDirectory[];
   files: ManagedFile[];
+}
+
+export interface ProjectPathDirectoryEntry {
+  id: number;
+  name: string;
+  path: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectPathFileEntry {
+  id: number;
+  filename: string;
+  original_filename: string;
+  path: string;
+  content_type?: string | null;
+  size: number;
+  sha256: string;
+  storage_key: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectPathChildrenResponse {
+  project_id: string;
+  current_path: string;
+  current_name: string;
+  root_path: string;
+  root_name: string;
+  special_subproject_name: string;
+  special_subproject_id: number;
+  case_uuid?: string | null;
+  directories: ProjectPathDirectoryEntry[];
+  files: ProjectPathFileEntry[];
+}
+
+export interface VulnFileserverRoot {
+  root_path: string;
+  root_name: string;
+  special_subproject_name: string;
+  special_subproject_id?: number | null;
 }
 
 export interface FilePreviewResponse {
@@ -1095,6 +1139,7 @@ export interface AiAgentItem {
   backend_type: string;
   command?: string;
   args?: string[];
+  cwd?: string;
   env?: Record<string, string>;
   enabled: boolean;
   running: boolean;

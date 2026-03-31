@@ -47,6 +47,13 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
+  createDraftCase: async (payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/draft`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    })),
+
   listCases: async (params: { project_id?: string; current_stage?: string } = {}): Promise<{ items: any[]; total: number }> => {
     const query = new URLSearchParams(params as any).toString();
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases?${query}`, { headers: getHeaders() }));

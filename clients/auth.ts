@@ -91,6 +91,21 @@ export const authApi = {
     return handleResponse(response);
   },
 
+  getProjectMachineToken: async (projectId: string): Promise<MachineToken> => {
+    const response = await fetch(`${API_BASE}/api/auth/machine-tokens/projects/${projectId}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  refreshProjectMachineToken: async (projectId: string): Promise<MachineToken> => {
+    const response = await fetch(`${API_BASE}/api/auth/machine-tokens/projects/${projectId}/refresh`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   // 3.2 用户管理接口
   listUsers: async (): Promise<UserInfo[]> => {
     const response = await fetch(`${API_BASE}/api/auth/users/user_list`, { headers: getHeaders() });

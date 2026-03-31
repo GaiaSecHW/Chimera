@@ -5,6 +5,7 @@ import {
   FileDirectory,
   FileSubproject,
   ManagedFile,
+  ProjectPathChildrenResponse,
 } from '../types/types';
 
 const getUploadHeaders = () => {
@@ -34,6 +35,14 @@ export const fileserverApi = {
       `${API_BASE}/api/fileserver/directories/${directoryId}/children?project_id=${encodeURIComponent(projectId)}`,
       { headers: getHeaders() }
     );
+    return handleResponse(response);
+  },
+
+  getVulnProjectPathChildren: async (projectId: string, path: string): Promise<ProjectPathChildrenResponse> => {
+    const query = new URLSearchParams({ project_id: projectId, path }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/vuln/project-path/children?${query}`, {
+      headers: getHeaders(),
+    });
     return handleResponse(response);
   },
 

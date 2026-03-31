@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, RefreshCw, Server } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, Server } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AiAgentSession, AiHelperService } from '../../types/types';
@@ -11,6 +11,7 @@ import {
   buildHelperKey,
   parseHelperKey,
   summarizeHelperAgents,
+  navigateToAppView,
   uniqueValues,
   useAiHelpers,
   useFilteredHelpers,
@@ -78,6 +79,15 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
       <div className="space-y-6">
         {feedbackNodes}
         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+          <div className="mb-4">
+            <button
+              onClick={() => navigateToAppView('env-ai-agent-overview')}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              <ArrowLeft size={16} />
+              返回 AI Agent 总览
+            </button>
+          </div>
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
