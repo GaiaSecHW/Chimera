@@ -524,7 +524,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     try {
       setLoading(true);
       const [details, _] = await Promise.all([
-        template.type === 'app' ? api.workflow.getAppTemplate(template.id) : api.workflow.getJobTemplate(template.id),
+        template.type === 'app' ? api.workflow.getAppTemplate(template.id, instance?.project_id) : api.workflow.getJobTemplate(template.id, instance?.project_id),
         loadPvcs()
       ]);
       
@@ -720,9 +720,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     try {
       let details;
       if (node.data.node_type === 'app') {
-        details = await api.workflow.getAppTemplate(node.data.template_id as string);
+        details = await api.workflow.getAppTemplate(node.data.template_id as string, instance?.project_id);
       } else {
-        details = await api.workflow.getJobTemplate(node.data.template_id as string);
+        details = await api.workflow.getJobTemplate(node.data.template_id as string, instance?.project_id);
       }
       setSelectedNodeTemplateDetails(details);
     } catch (e) {
@@ -778,9 +778,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       // 2. Fetch template details to know what inputs are required
       let details;
       if (nodeDetails.node_type === 'app') {
-        details = await api.workflow.getAppTemplate(nodeDetails.template_id);
+        details = await api.workflow.getAppTemplate(nodeDetails.template_id, instance?.project_id);
       } else {
-        details = await api.workflow.getJobTemplate(nodeDetails.template_id);
+        details = await api.workflow.getJobTemplate(nodeDetails.template_id, instance?.project_id);
       }
       
       await loadPvcs();
@@ -1325,9 +1325,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       // 2. Fetch template details to know what inputs are required
       let details;
       if (nodeDetails.node_type === 'app') {
-        details = await api.workflow.getAppTemplate(nodeDetails.template_id);
+        details = await api.workflow.getAppTemplate(nodeDetails.template_id, instance?.project_id);
       } else {
-        details = await api.workflow.getJobTemplate(nodeDetails.template_id);
+        details = await api.workflow.getJobTemplate(nodeDetails.template_id, instance?.project_id);
       }
       
       await loadPvcs();

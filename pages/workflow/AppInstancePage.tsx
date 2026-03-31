@@ -149,7 +149,7 @@ export const AppInstancePage: React.FC<{
 
   const handleTemplateSelect = async (templateId: string) => {
     try {
-      const template = await api.workflow.getAppTemplate(templateId);
+      const template = await api.workflow.getAppTemplate(templateId, projectId);
       setSelectedTemplate(template);
       const envVars: Record<string, string> = {};
       const volumeConfigs: Record<string, InputVolumeMountConfig> = {};

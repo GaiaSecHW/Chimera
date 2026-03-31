@@ -22,8 +22,9 @@ export const workflowApi = {
     const response = await fetch(`${API_BASE}/api/workflow/app-templates?${query}`, { headers: getHeaders() });
     return handleResponse(response);
   },
-  getAppTemplate: async (id: string): Promise<AppTemplate> => {
-    const response = await fetch(`${API_BASE}/api/workflow/app-templates/${id}`, { headers: getHeaders() });
+  getAppTemplate: async (id: string, projectId?: string): Promise<AppTemplate> => {
+    const query = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    const response = await fetch(`${API_BASE}/api/workflow/app-templates/${id}${query}`, { headers: getHeaders() });
     return handleResponse(response);
   },
   createAppTemplate: async (payload: any): Promise<AppTemplate> => {
@@ -53,8 +54,9 @@ export const workflowApi = {
     const response = await fetch(`${API_BASE}/api/workflow/job-templates?${query}`, { headers: getHeaders() });
     return handleResponse(response);
   },
-  getJobTemplate: async (id: string): Promise<JobTemplate> => {
-    const response = await fetch(`${API_BASE}/api/workflow/job-templates/${id}`, { headers: getHeaders() });
+  getJobTemplate: async (id: string, projectId?: string): Promise<JobTemplate> => {
+    const query = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    const response = await fetch(`${API_BASE}/api/workflow/job-templates/${id}${query}`, { headers: getHeaders() });
     return handleResponse(response);
   },
   createJobTemplate: async (payload: any): Promise<JobTemplate> => {
