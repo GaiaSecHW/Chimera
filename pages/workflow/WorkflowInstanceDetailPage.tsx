@@ -14,11 +14,12 @@ import {
   Panel
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Save, Play, Square, RefreshCw, Plus, Trash2, Settings, Terminal, Activity, Loader2, LogOut, RotateCcw, Clock, BarChart2, Database, AlertCircle, CheckCircle, XCircle, Zap, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Save, Play, Square, RefreshCw, Plus, Trash2, Settings, Terminal, Activity, FolderTree, Loader2, LogOut, RotateCcw, Clock, BarChart2, Database, AlertCircle, CheckCircle, XCircle, Zap, ExternalLink } from 'lucide-react';
 import { api } from '../../clients/api';
 import { WorkflowInstance, WorkflowNodeInstance, WorkflowStatus } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { XTerminal } from '../../components/XTerminal';
+import { ProjectDirectoryPickerModal, ProjectDirectorySelection } from '../../components/ProjectDirectoryPickerModal';
 
 const nodeColor = (status: WorkflowStatus) => {
   switch (status) {
@@ -31,6 +32,39 @@ const nodeColor = (status: WorkflowStatus) => {
     case 'unready': return '#f97316';
     default: return '#cbd5e1';
   }
+};
+
+type MountSourceType = 'pvc' | 'project_file';
+
+type NodeVolumeMountConfig = {
+  mount_path: string;
+  source_type: MountSourceType;
+  pvc_name: string;
+  sub_path?: string;
+  read_only: boolean;
+  subproject_id?: number | null;
+  directory_id?: number | null;
+  display_path?: string;
+  subproject_name?: string;
+  directory_name?: string | null;
+};
+
+const createNodeMountConfig = (mountPath: string, readOnly = true): NodeVolumeMountConfig => ({
+  mount_path: mountPath,
+  source_type: 'pvc',
+  pvc_name: '',
+  sub_path: '',
+  read_only: readOnly,
+  subproject_id: null,
+  directory_id: null,
+  display_path: '',
+  subproject_name: '',
+  directory_name: null,
+});
+
+const hasNodeMountSource = (mount: NodeVolumeMountConfig) => {
+  if (mount.source_type === 'project_file') return Boolean(mount.subproject_id);
+  return Boolean(mount.pvc_name);
 };
 
 export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: () => void }> = ({ instanceId, onBack }) => {
@@ -84,7 +118,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const [newNodeConfig, setNewNodeConfig] = useState({
     name: '',
     env_vars: [] as { name: string, value: string }[],
-    volume_mounts: [] as { mount_path: string, pvc_name: string, sub_path?: string }[],
+    volume_mounts: [] as NodeVolumeMountConfig[],
     position: null as { x: number, y: number } | null,
     create_service: true,
     service_name: '',
@@ -98,6 +132,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   });
   const [templates, setTemplates] = useState<{ id: string, name: string, type: 'app' | 'job' }[]>([]);
   const [pvcs, setPvcs] = useState<any[]>([]);
+  const [directoryPickerTarget, setDirectoryPickerTarget] = useState<string | null>(null);
   const [ingressControllers, setIngressControllers] = useState<any[]>([]);
   const [loadingIngressControllers, setLoadingIngressControllers] = useState(false);
   
@@ -277,6 +312,63 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     }
   };
 
+  const splitNodeMountPayloads = (mounts: NodeVolumeMountConfig[]) => {
+    const volume_mounts = mounts
+      .filter((mount) => mount.source_type === 'pvc' && mount.pvc_name)
+      .map((mount) => ({
+        pvc_name: mount.pvc_name,
+        mount_path: mount.mount_path,
+        sub_path: mount.sub_path || '',
+        read_only: mount.read_only,
+      }));
+    const project_file_mounts = mounts
+      .filter((mount) => mount.source_type === 'project_file' && mount.subproject_id)
+      .map((mount) => ({
+        subproject_id: mount.subproject_id as number,
+        directory_id: mount.directory_id ?? null,
+        mount_path: mount.mount_path,
+        read_only: mount.read_only,
+        display_path: mount.display_path,
+        subproject_name: mount.subproject_name,
+        directory_name: mount.directory_name ?? null,
+      }));
+    return { volume_mounts, project_file_mounts };
+  };
+
+  const buildTemplateMountConfigs = (details: any, nodeDetails?: any): NodeVolumeMountConfig[] => {
+    const volumeMounts: NodeVolumeMountConfig[] = [];
+    details.containers.forEach((container: any) => {
+      (container.input_volume_mounts || []).forEach((mount: any) => {
+        if (volumeMounts.find((item) => item.mount_path === mount.mount_path)) {
+          return;
+        }
+        const existingPvc = nodeDetails?.volume_mounts?.find((vm: any) => vm.mount_path === mount.mount_path);
+        const existingProject = nodeDetails?.project_file_mounts?.find((vm: any) => vm.mount_path === mount.mount_path);
+        if (existingProject) {
+          volumeMounts.push({
+            mount_path: mount.mount_path,
+            source_type: 'project_file',
+            pvc_name: '',
+            sub_path: '',
+            read_only: existingProject.read_only ?? mount.read_only ?? true,
+            subproject_id: existingProject.subproject_id,
+            directory_id: existingProject.directory_id ?? null,
+            display_path: existingProject.display_path || '/',
+            subproject_name: existingProject.subproject_name || '',
+            directory_name: existingProject.directory_name ?? null,
+          });
+          return;
+        }
+        volumeMounts.push({
+          ...createNodeMountConfig(mount.mount_path, existingPvc?.read_only ?? mount.read_only ?? true),
+          pvc_name: existingPvc?.pvc_name || '',
+          sub_path: existingPvc?.sub_path || '',
+        });
+      });
+    });
+    return volumeMounts;
+  };
+
   useEffect(() => {
     loadInstance();
     const interval = setInterval(() => {
@@ -441,21 +533,13 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       
       // Initialize config with required inputs
       const envVars: { name: string, value: string }[] = [];
-      const volumeMounts: { mount_path: string, pvc_name: string, sub_path?: string }[] = [];
-      
+
       const servicePorts: { name: string, port: number, target_port: number, protocol: string }[] = [];
       details.containers.forEach((c: any) => {
         if (c.input_env_vars) {
           c.input_env_vars.forEach((iv: any) => {
             if (!envVars.find(e => e.name === iv.name)) {
               envVars.push({ name: iv.name, value: iv.default_value || '' });
-            }
-          });
-        }
-        if (c.input_volume_mounts) {
-          c.input_volume_mounts.forEach((iv: any) => {
-            if (!volumeMounts.find(v => v.mount_path === iv.mount_path)) {
-              volumeMounts.push({ mount_path: iv.mount_path, pvc_name: '', sub_path: '' });
             }
           });
         }
@@ -474,6 +558,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       });
       
       const autoServiceName = template.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const volumeMounts = buildTemplateMountConfigs(details);
       
       setNewNodeConfig({
         name: template.name,
@@ -508,7 +593,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
     // Validation
     const missingEnvVars = newNodeConfig.env_vars.filter(e => !e.value);
-    const missingVolumes = newNodeConfig.volume_mounts.filter(v => !v.pvc_name);
+    const missingVolumes = newNodeConfig.volume_mounts.filter(v => !hasNodeMountSource(v));
 
     if (missingEnvVars.length > 0 || missingVolumes.length > 0) {
       let errorMsg = "请完善以下必填项:\n";
@@ -554,12 +639,14 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
 
     try {
       setLoading(true);
+      const mountPayloads = splitNodeMountPayloads(newNodeConfig.volume_mounts);
       
       if (isEditingNode && editingNodeId) {
         await api.workflow.updateNode(instanceId, editingNodeId, {
           name: newNodeConfig.name,
           env_vars: newNodeConfig.env_vars.filter(e => e.value),
-          volume_mounts: newNodeConfig.volume_mounts.filter(v => v.pvc_name),
+          volume_mounts: mountPayloads.volume_mounts,
+          project_file_mounts: mountPayloads.project_file_mounts,
           create_service: newNodeConfig.create_service,
           service_name: newNodeConfig.create_service ? newNodeConfig.service_name : undefined,
           service_ports: newNodeConfig.create_service ? newNodeConfig.service_ports : [],
@@ -577,7 +664,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           name: newNodeConfig.name,
           position: newNodeConfig.position || { x: Math.random() * 200 + 100, y: Math.random() * 200 + 100 },
           env_vars: newNodeConfig.env_vars.filter(e => e.value),
-          volume_mounts: newNodeConfig.volume_mounts.filter(v => v.pvc_name)
+          volume_mounts: mountPayloads.volume_mounts,
+          project_file_mounts: mountPayloads.project_file_mounts
         };
         
         if (selectedTemplate.type === 'app') {
@@ -609,6 +697,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       setAddNodeStep('select');
       setSelectedTemplate(null);
       setTemplateDetails(null);
+      setDirectoryPickerTarget(null);
       await loadInstance();
     } catch (e: any) {
       let errorMsg = (isEditingNode ? "更新" : "创建") + "节点失败: " + e.message;
@@ -701,7 +790,6 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       
       // 3. Populate config from node details
       const envVars: { name: string, value: string }[] = [];
-      const volumeMounts: { mount_path: string, pvc_name: string, sub_path?: string }[] = [];
 
       details.containers.forEach((c: any) => {
         if (c.input_env_vars) {
@@ -712,15 +800,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             }
           });
         }
-        if (c.input_volume_mounts) {
-          c.input_volume_mounts.forEach((iv: any) => {
-            if (!volumeMounts.find(v => v.mount_path === iv.mount_path)) {
-              const existingValue = nodeDetails.volume_mounts?.find((vm: any) => vm.mount_path === iv.mount_path);
-              volumeMounts.push({ mount_path: iv.mount_path, pvc_name: existingValue?.pvc_name || '', sub_path: existingValue?.sub_path || '' });
-            }
-          });
-        }
       });
+      const volumeMounts = buildTemplateMountConfigs(details, nodeDetails);
 
       setNewNodeConfig({
         name: `${nodeDetails.name} (Copy)`,
@@ -1257,7 +1338,6 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       // 3. Populate config from node details
       // We merge the template's required inputs with the node's provided values
       const envVars: { name: string, value: string }[] = [];
-      const volumeMounts: { mount_path: string, pvc_name: string, sub_path?: string }[] = [];
 
       details.containers.forEach((c: any) => {
         if (c.input_env_vars) {
@@ -1268,15 +1348,8 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             }
           });
         }
-        if (c.input_volume_mounts) {
-          c.input_volume_mounts.forEach((iv: any) => {
-            if (!volumeMounts.find(v => v.mount_path === iv.mount_path)) {
-              const existingValue = nodeDetails.volume_mounts?.find((vm: any) => vm.mount_path === iv.mount_path);
-              volumeMounts.push({ mount_path: iv.mount_path, pvc_name: existingValue?.pvc_name || '', sub_path: existingValue?.sub_path || '' });
-            }
-          });
-        }
       });
+      const volumeMounts = buildTemplateMountConfigs(details, nodeDetails);
 
       setNewNodeConfig({
         name: nodeDetails.name,
@@ -2013,35 +2086,79 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       <div className="space-y-2">
                         {newNodeConfig.volume_mounts.map((vm, i) => (
                           <div key={vm.mount_path} className="flex flex-col gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <div className="flex-1">
+                            <div className="flex items-center justify-between gap-3">
                               <div className="text-[10px] font-black text-slate-500 uppercase">挂载路径: {vm.mount_path}</div>
-                              <select 
-                                className="w-full mt-1 bg-transparent outline-none text-sm font-bold text-slate-800"
-                                value={vm.pvc_name}
-                                onChange={e => {
-                                  const n = [...newNodeConfig.volume_mounts];
-                                  n[i].pvc_name = e.target.value;
-                                  setNewNodeConfig({...newNodeConfig, volume_mounts: n});
-                                }}
-                              >
-                                <option value="">选择 PVC</option>
-                                {pvcs.map(pvc => (
-                                  <option key={pvc.pvc_name} value={pvc.pvc_name}>
-                                    {pvc.pvc_name} ({pvc.capacity}) - {pvc.resource_name || '未关联资源'}
-                                  </option>
-                                ))}
-                              </select>
-                              <input 
-                                type="text"
-                                className="w-full mt-2 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none text-xs font-mono text-slate-600 focus:border-blue-500 transition-all"
-                                value={vm.sub_path || ''}
-                                onChange={e => {
-                                  const n = [...newNodeConfig.volume_mounts];
-                                  n[i].sub_path = e.target.value;
-                                  setNewNodeConfig({...newNodeConfig, volume_mounts: n});
-                                }}
-                                placeholder="Sub Path (可选)"
-                              />
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const n = [...newNodeConfig.volume_mounts];
+                                    n[i] = { ...createNodeMountConfig(vm.mount_path, vm.read_only), source_type: 'pvc' };
+                                    setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
+                                  }}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'pvc' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}
+                                >
+                                  PVC
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const n = [...newNodeConfig.volume_mounts];
+                                    n[i] = { ...createNodeMountConfig(vm.mount_path, true), source_type: 'project_file' };
+                                    setNewNodeConfig({ ...newNodeConfig, volume_mounts: n });
+                                  }}
+                                  className={`rounded-full px-3 py-1 text-[10px] font-bold ${vm.source_type === 'project_file' ? 'bg-blue-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}
+                                >
+                                  项目文件夹
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              {vm.source_type === 'project_file' ? (
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                  <button
+                                    type="button"
+                                    className="mt-1 flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:border-blue-400"
+                                    onClick={() => setDirectoryPickerTarget(vm.mount_path)}
+                                  >
+                                    <span className="truncate">{vm.subproject_id ? `${vm.subproject_name || '子项目'} ${vm.display_path || '/'}` : '选择项目文件夹'}</span>
+                                    <FolderTree size={16} className="text-blue-500" />
+                                  </button>
+                                  <div className="mt-1 rounded-lg border border-dashed border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                                    支持选择任意层级文件夹，保存时会自动解析成 fileserver PVC 目录挂载。
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <select 
+                                    className="w-full mt-1 bg-transparent outline-none text-sm font-bold text-slate-800"
+                                    value={vm.pvc_name}
+                                    onChange={e => {
+                                      const n = [...newNodeConfig.volume_mounts];
+                                      n[i].pvc_name = e.target.value;
+                                      setNewNodeConfig({...newNodeConfig, volume_mounts: n});
+                                    }}
+                                  >
+                                    <option value="">选择 PVC</option>
+                                    {pvcs.map(pvc => (
+                                      <option key={pvc.pvc_name} value={pvc.pvc_name}>
+                                        {pvc.pvc_name} ({pvc.capacity}) - {pvc.resource_name || '未关联资源'}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <input 
+                                    type="text"
+                                    className="w-full mt-2 bg-white px-3 py-2 rounded-lg border border-slate-200 outline-none text-xs font-mono text-slate-600 focus:border-blue-500 transition-all"
+                                    value={vm.sub_path || ''}
+                                    onChange={e => {
+                                      const n = [...newNodeConfig.volume_mounts];
+                                      n[i].sub_path = e.target.value;
+                                      setNewNodeConfig({...newNodeConfig, volume_mounts: n});
+                                    }}
+                                    placeholder="Sub Path (可选)"
+                                  />
+                                </>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -2278,6 +2395,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   setAddNodeStep('select');
                   setSelectedTemplate(null);
                   setTemplateDetails(null);
+                  setDirectoryPickerTarget(null);
                 }}
                 className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-100 transition-all"
               >
@@ -3041,6 +3159,33 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           </div>
         </div>
       )}
+
+      <ProjectDirectoryPickerModal
+        isOpen={Boolean(directoryPickerTarget)}
+        projectId={instance?.project_id || ''}
+        onClose={() => setDirectoryPickerTarget(null)}
+        onSelect={(selection: ProjectDirectorySelection) => {
+          if (!directoryPickerTarget) return;
+          const nextMounts = newNodeConfig.volume_mounts.map((mount) => (
+            mount.mount_path === directoryPickerTarget
+              ? {
+                  ...mount,
+                  source_type: 'project_file' as const,
+                  pvc_name: '',
+                  sub_path: '',
+                  read_only: true,
+                  subproject_id: selection.subproject_id,
+                  directory_id: selection.directory_id ?? null,
+                  display_path: selection.display_path,
+                  subproject_name: selection.subproject_name,
+                  directory_name: selection.directory_name ?? null,
+                }
+              : mount
+          ));
+          setNewNodeConfig({ ...newNodeConfig, volume_mounts: nextMounts });
+          setDirectoryPickerTarget(null);
+        }}
+      />
     </div>
   );
 };

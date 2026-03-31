@@ -36,6 +36,16 @@ export interface VolumeMount {
   read_only?: boolean;
 }
 
+export interface ProjectFileMount {
+  subproject_id: number;
+  directory_id?: number | null;
+  mount_path: string;
+  read_only?: boolean;
+  display_path?: string;
+  subproject_name?: string;
+  directory_name?: string;
+}
+
 export interface EnvVarInput {
   name: string;
   source_key: string;
@@ -193,6 +203,7 @@ export interface WorkflowNodeInstance {
   position?: { x: number; y: number };
   env_vars?: any[];
   volume_mounts?: any[];
+  project_file_mounts?: ProjectFileMount[];
   resources?: any;
   started_at?: string;
   finished_at?: string;
@@ -221,6 +232,7 @@ export interface AppWorkflowNode {
   message?: string;
   env_vars?: Array<{ name: string; value: string }>;
   volume_mounts?: VolumeMount[];
+  project_file_mounts?: ProjectFileMount[];
   resources?: ResourceRequirements;
   timeout_seconds?: number;
   create_service?: boolean;
@@ -252,6 +264,7 @@ export interface AppWorkflow {
   replicas?: number;
   env_vars?: Array<{ name: string; value: string }>;
   volume_mounts?: VolumeMount[];
+  project_file_mounts?: ProjectFileMount[];
   resources?: ResourceRequirements;
   create_service?: boolean;
   create_ingress?: boolean;
