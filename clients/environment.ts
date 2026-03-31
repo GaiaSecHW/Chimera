@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent } from '../types/types';
 
 const normalizeTask = (raw: any): AsyncTask => ({
   id: raw?.id || raw?.task_id || '',
@@ -22,6 +22,27 @@ const normalizeTaskLog = (raw: any): TaskLog => ({
   level: raw?.level || 'INFO',
   message: raw?.message || '',
 });
+
+const parseSseChunk = (rawChunk: string): any[] => {
+  return rawChunk
+    .split('\n\n')
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) => {
+      const dataLines = block
+        .split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice(5).trim());
+      const data = dataLines.join('\n');
+      if (!data || data === '[DONE]') return null;
+      try {
+        return JSON.parse(data);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+};
 
 export const environmentApi = {
   // Global Health Check
@@ -394,6 +415,51 @@ export const environmentApi = {
   sendAiHelperSessionMessage: async (projectId: string, agentKey: string, serviceName: string, sessionId: string, content: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions/${encodeURIComponent(sessionId)}/messages?project_id=${encodeURIComponent(projectId)}`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ project_id: projectId, role: 'user', content }) })),
 
+  sendAiHelperSessionMessageStream: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    sessionId: string,
+    content: string,
+    handlers: {
+      onEvent: (event: AiSessionStreamEvent) => void;
+      onDone?: () => void;
+      onError?: (error: Error) => void;
+    }
+  ): Promise<void> => {
+    const response = await fetch(
+      `${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions/${encodeURIComponent(sessionId)}/messages?project_id=${encodeURIComponent(projectId)}&stream=true`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify({ project_id: projectId, role: 'user', content }) }
+    );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(errorData?.detail || errorData?.error || errorData?.message || '流式发送失败');
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('浏览器当前不支持流式响应读取');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        parts.forEach((part) => {
+          parseSseChunk(part + '\n\n').forEach((event) => handlers.onEvent(event as AiSessionStreamEvent));
+        });
+      }
+      if (buffer.trim()) {
+        parseSseChunk(buffer).forEach((event) => handlers.onEvent(event as AiSessionStreamEvent));
+      }
+      handlers.onDone?.();
+    } catch (error: any) {
+      handlers.onError?.(error);
+      throw error;
+    }
+  },
+
   createAiBatchSession: async (projectId: string, payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/batch`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...payload, project_id: projectId }) })),
 
@@ -405,6 +471,48 @@ export const environmentApi = {
 
   sendAiBatchMessage: async (batchId: string, content: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/batch/${encodeURIComponent(batchId)}/messages`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ role: 'user', content }) })),
+
+  sendAiBatchMessageStream: async (
+    batchId: string,
+    content: string,
+    handlers: {
+      onEvent: (event: AiBatchStreamEvent) => void;
+      onDone?: () => void;
+      onError?: (error: Error) => void;
+    }
+  ): Promise<void> => {
+    const response = await fetch(
+      `${API_BASE}/api/agent/ai-helpers/sessions/batch/${encodeURIComponent(batchId)}/messages?stream=true`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify({ role: 'user', content }) }
+    );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(errorData?.detail || errorData?.error || errorData?.message || '批量流式发送失败');
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('浏览器当前不支持流式响应读取');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        parts.forEach((part) => {
+          parseSseChunk(part + '\n\n').forEach((event) => handlers.onEvent(event as AiBatchStreamEvent));
+        });
+      }
+      if (buffer.trim()) {
+        parseSseChunk(buffer).forEach((event) => handlers.onEvent(event as AiBatchStreamEvent));
+      }
+      handlers.onDone?.();
+    } catch (error: any) {
+      handlers.onError?.(error);
+      throw error;
+    }
+  },
   deleteGlobalIngressBatch: async (projectId: string, routeIds: string[]): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/services/global/ingress/delete-batch`, {
       method: 'POST',

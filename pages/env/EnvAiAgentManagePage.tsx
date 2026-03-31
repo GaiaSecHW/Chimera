@@ -357,27 +357,31 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   };
 
   return (
-    <div className="space-y-6">
-      {feedbackNodes}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">AI Agent 管理</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            从项目级 AI Agent 列表切入，完成创建、编辑、删除、启动、停止、激活、环境变量明文管理，以及从配置中心快速应用 LLM 对接配置。
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowCreateAgent((v) => !v)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
-            新增 AI Agent
-          </button>
-          <button onClick={() => void refreshAll()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-            <RefreshCw size={16} />
-            刷新
-          </button>
-        </div>
-      </div>
+    <div className="px-8 pt-8 pb-10">
+      <div className="space-y-6">
+        {feedbackNodes}
+        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">AI Agent 管理</h1>
+              <p className="mt-2 text-sm text-slate-500">
+                从项目级 AI Agent 列表切入，完成创建、编辑、删除、启动、停止、激活、环境变量明文管理，以及从配置中心快速应用 LLM 对接配置。
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowCreateAgent((v) => !v)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
+                新增 AI Agent
+              </button>
+              <button onClick={() => void refreshAll()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                <RefreshCw size={16} />
+                刷新
+              </button>
+            </div>
+          </div>
+        </section>
 
-      {showCreateAgent ? (
+        {showCreateAgent ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="text-sm font-bold text-slate-900">新增 AI Agent</div>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -393,7 +397,6 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
               <option value="claude">claude</option>
               <option value="codex">codex</option>
               <option value="opencode">opencode</option>
-              <option value="claude-a2a">claude-a2a</option>
             </select>
             <input value={createForm.command} onChange={(e) => setCreateForm((prev) => ({ ...prev, command: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="command，留空默认 backend_type" />
             <input value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-2 xl:col-span-3" placeholder="description" />
@@ -409,9 +412,9 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
             </button>
           </div>
         </section>
-      ) : null}
+        ) : null}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="text-sm font-bold text-slate-900">LLM 快速应用</div>
@@ -467,9 +470,9 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
           </div>
         </div>
         {batchApplyResult ? <JsonBlock title="最近一次批量应用结果" value={batchApplyResult} className="mt-4" /> : null}
-      </section>
+        </section>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-1">
             <input value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="搜索节点、helper、agent_id、backend" />
@@ -632,6 +635,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
             </div>
           )}
         </section>
+        </div>
       </div>
     </div>
   );

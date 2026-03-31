@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowDown, ArrowUp, Link2, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertCircle, ArrowDown, ArrowUp, FileText, Link2, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { api } from '../../../clients/api';
 import { TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateLlmProviderSummary } from '../../../types/types';
 
@@ -208,7 +208,7 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
 
           <div className="space-y-2">
             {selectedProviderKeys.length === 0 ? (
-              <div className="text-xs text-slate-400">当前未选择 Provider，部署时不会额外注入 LLM 环境变量。</div>
+              <div className="text-xs text-slate-400">当前未选择 Provider，重新生成时不会额外注入 LLM 环境变量或配置文件。</div>
             ) : (
               selectedProviderKeys.map((providerKey, index) => {
                 const provider = providerMap.get(providerKey);
@@ -294,6 +294,36 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
                     <div className="text-slate-500 break-all">{String(val)}</div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-black text-slate-700">最终文件注入预览</div>
+                <div className="text-[11px] text-slate-500 mt-1">按当前 Provider 顺序合并，同路径后者覆盖前者。</div>
+              </div>
+              {previewLoading && <Loader2 size={14} className="animate-spin text-slate-400" />}
+            </div>
+            {previewError && <div className="text-xs text-red-600">{previewError}</div>}
+            {!previewError && !previewLoading && (!preview?.mapped_file_paths || preview.mapped_file_paths.length === 0) && (
+              <div className="text-xs text-slate-400">暂无文件注入内容</div>
+            )}
+            {!previewError && preview && Array.isArray(preview.mapped_file_paths) && preview.mapped_file_paths.length > 0 && (
+              <div className="space-y-2 max-h-56 overflow-auto">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                  <FileText size={13} /> 注入文件数量: {preview.mapped_file_paths.length}
+                </div>
+                {preview.mapped_file_paths.map((filePath) => {
+                  const from = (preview.merged_files || []).find((item) => item.path === filePath)?.provider_key;
+                  return (
+                    <div key={filePath} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[11px] font-mono bg-slate-50 rounded-lg px-3 py-2">
+                      <div className="text-slate-700 truncate">{filePath}</div>
+                      <div className="text-slate-500">{from ? `from ${from}` : '-'}</div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

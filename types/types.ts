@@ -824,6 +824,15 @@ export interface TemplateLlmProviderBinding {
   updated_at?: string;
 }
 
+export interface TemplateLlmMappedFile {
+  name: string;
+  path: string;
+  content: string;
+  format?: string;
+  enabled?: boolean;
+  provider_key?: string;
+}
+
 export interface TemplateComposeBackupInfo {
   file_path: string;
   source_type: 'yaml' | 'archive' | string;
@@ -835,6 +844,7 @@ export interface TemplateLlmMixState {
   provider_keys: string[];
   provider_snapshots?: Array<Record<string, any>>;
   mapped_env_keys?: string[];
+  mapped_file_paths?: string[];
   target_services: '*' | string[];
   generated_at?: string;
   generated_by?: string;
@@ -846,6 +856,7 @@ export interface TemplateLlmMixHistoryEntry {
   generated_at?: string;
   generated_by?: string;
   mapped_env_keys?: string[];
+  mapped_file_paths?: string[];
   provider_snapshots?: Array<Record<string, any>>;
 }
 
@@ -870,6 +881,8 @@ export interface TemplateLlmBindingPreview {
   provider_snapshots: Array<Record<string, any>>;
   merged_env: Record<string, string>;
   mapped_env_keys: string[];
+  merged_files?: TemplateLlmMappedFile[];
+  mapped_file_paths?: string[];
   updated_at?: string;
 }
 
@@ -1188,6 +1201,36 @@ export interface AiBatchSession {
   items: AiBatchItem[];
 }
 
+export interface AiSessionStreamEvent {
+  type: 'start' | 'delta' | 'done' | 'error';
+  session_id?: string;
+  agent_id?: string;
+  delta?: string;
+  source?: string;
+  session?: AiAgentSession;
+  result?: any;
+  error_message?: string;
+}
+
+export interface AiBatchStreamEvent {
+  type: 'start' | 'item' | 'done' | 'error';
+  batch_id?: string;
+  round_no?: number;
+  total_items?: number;
+  role?: string;
+  content?: string;
+  status?: string;
+  agent_key?: string;
+  service_name?: string;
+  success?: boolean;
+  status_code?: number;
+  response?: any;
+  error?: string;
+  error_message?: string;
+  results?: any[];
+  partial_success?: boolean;
+}
+
 export interface Workspace {
   id: string;
   name: string;
@@ -1283,10 +1326,19 @@ export interface LlmProviderSummary {
   max_tokens?: number | null;
   temperature?: number | null;
   env_bindings: Record<string, any>;
+  file_bindings: LlmProviderFileBinding[];
   extra_config: Record<string, any>;
   description?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+export interface LlmProviderFileBinding {
+  name: string;
+  path: string;
+  content: string;
+  format: 'json' | 'yaml' | 'yml' | 'toml' | 'env' | 'conf' | 'txt' | 'md' | 'xml' | 'ini' | 'other';
+  enabled: boolean;
 }
 
 export interface LlmProviderDetail {
@@ -1304,6 +1356,7 @@ export interface LlmProviderDetail {
   max_tokens?: number | null;
   temperature?: number | null;
   env_bindings: Record<string, any>;
+  file_bindings: LlmProviderFileBinding[];
   extra_config: Record<string, any>;
   description?: string | null;
   created_at?: string | null;
@@ -1325,6 +1378,7 @@ export interface LlmProviderUpsertRequest {
   max_tokens?: number | null;
   temperature?: number | null;
   env_bindings: Record<string, any>;
+  file_bindings: LlmProviderFileBinding[];
   extra_config: Record<string, any>;
   description?: string | null;
 }

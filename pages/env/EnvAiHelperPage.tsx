@@ -67,19 +67,23 @@ export const EnvAiHelperPage: React.FC<{ projectId: string }> = ({ projectId }) 
   };
 
   return (
-    <div className="space-y-6">
-      {feedbackNodes}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">Helper 服务管理</h1>
-          <p className="mt-1 text-sm text-slate-500">从 helper 服务实例视角查看节点、健康状态、内部 AI Agent 摘要与会话概况。</p>
-        </div>
-        <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-          <RefreshCw size={16} />刷新
-        </button>
-      </div>
+    <div className="px-8 pt-8 pb-10">
+      <div className="space-y-6">
+        {feedbackNodes}
+        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Helper 服务管理</h1>
+              <p className="mt-2 text-sm text-slate-500">从 helper 服务实例视角查看节点、健康状态、内部 AI Agent 摘要与会话概况。</p>
+            </div>
+            <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              <RefreshCw size={16} />刷新
+            </button>
+          </div>
+        </section>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex gap-2">
             <input value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="搜索节点、服务名、agent_key" />
@@ -200,6 +204,7 @@ export const EnvAiHelperPage: React.FC<{ projectId: string }> = ({ projectId }) 
             </div>
           )}
         </section>
+        </div>
       </div>
     </div>
   );
