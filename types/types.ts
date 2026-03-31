@@ -171,6 +171,8 @@ export interface WorkflowInstance {
   name: string;
   description: string;
   status: WorkflowStatus;
+  has_warning?: boolean;
+  message?: string;
   project_id: string;
   run_mode: 'once' | 'persistent';
   trigger_type: 'manual' | 'http';

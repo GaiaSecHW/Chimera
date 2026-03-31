@@ -11,10 +11,21 @@ import {
   Clock,
   Monitor
 } from 'lucide-react';
-import { AppTemplate, TemplateScope } from '../../types/types';
+import { AppTemplate, ServicePort, TemplateScope } from '../../types/types';
 import { api } from '../../clients/api';
 
 export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () => void }> = ({ templateId, onBack }) => {
+  type AppTemplateFormData = {
+    name: string;
+    description: string;
+    scope: TemplateScope;
+    replicas: number;
+    service_ports: ServicePort[];
+    service_name: string;
+    create_service: boolean;
+    service_type: 'ClusterIP' | 'LoadBalancer' | 'NodePort';
+    containers: any[];
+  };
   const [template, setTemplate] = useState<AppTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -38,7 +49,7 @@ export const AppTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
     readiness_probe: { type: 'http', port: '', path: '', initial_delay_seconds: 0, period_seconds: 10, timeout_seconds: 1, failure_threshold: 3, success_threshold: 1 }
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AppTemplateFormData>({
     name: '',
     description: '',
     scope: 'project' as TemplateScope,

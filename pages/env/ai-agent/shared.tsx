@@ -12,8 +12,8 @@ export const parseHelperKey = (value: string) => {
   return { agentKey, serviceName };
 };
 
-export const navigateToAppView = (view: string) => {
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view } }));
+export const navigateToAppView = (view: string, extraDetail: Record<string, any> = {}) => {
+  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view, ...extraDetail } }));
 };
 
 export const HealthBadge: React.FC<{ status?: string }> = ({ status }) => {

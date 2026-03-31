@@ -16,7 +16,7 @@ import {
   useFilteredHelpers,
 } from './ai-agent/shared';
 
-export const EnvAiHelperPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: string }> = ({ projectId, initialHelperKey = '' }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const { loading, helpers, reload } = useAiHelpers(projectId, notify);
   const [search, setSearch] = useState('');
@@ -36,6 +36,13 @@ export const EnvAiHelperPage: React.FC<{ projectId: string }> = ({ projectId }) 
       setSelectedKey(buildHelperKey(filteredHelpers[0].agent_key, filteredHelpers[0].service_name));
     }
   }, [filteredHelpers, selectedKey]);
+
+  useEffect(() => {
+    if (!initialHelperKey) return;
+    if (initialHelperKey !== selectedKey) {
+      setSelectedKey(initialHelperKey);
+    }
+  }, [initialHelperKey, selectedKey]);
 
   useEffect(() => {
     if (!selectedKey) {

@@ -398,7 +398,6 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
     if (!projectId || !agentKey) return;
     setTemplateSearch('');
     setSelectedTemplateNames(new Set());
-    setDeployUseTemplateDefaultLlmBinding(true);
     setDeployLlmBinding(null);
     setIsBatchDeployModalOpen(true);
     await loadTemplates();
