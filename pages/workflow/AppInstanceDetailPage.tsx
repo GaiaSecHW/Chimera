@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ExternalLink, Globe, Loader2, Play, Power, RefreshCw, RotateCcw, Square, AlertCircle, FileText } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Loader2, Play, Power, RefreshCw, RotateCcw, Square, AlertCircle, FileText } from 'lucide-react';
 import { api } from '../../clients/api';
-import { AppWorkflow, AppWorkflowStatus, DomainBindingRecord, ServiceAccessInfo } from '../../types/types';
+import { AppWorkflow, AppWorkflowStatus, ServiceAccessInfo } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 
 type DetailTab = 'overview' | 'config' | 'access' | 'logs';
@@ -16,7 +16,6 @@ export const AppInstanceDetailPage: React.FC<{
   const [logs, setLogs] = useState('');
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [accessInfo, setAccessInfo] = useState<ServiceAccessInfo | null>(null);
-  const [domainBindings, setDomainBindings] = useState<DomainBindingRecord[]>([]);
   const [loadingAccess, setLoadingAccess] = useState(false);
   const [operation, setOperation] = useState('');
 
@@ -61,16 +60,11 @@ export const AppInstanceDetailPage: React.FC<{
   const loadAccessData = async () => {
     setLoadingAccess(true);
     try {
-      const [access, bindings] = await Promise.all([
-        api.workflow.getAppWorkflowAccessInfo(instanceId),
-        api.workflow.listAppWorkflowDomainBindings(instanceId)
-      ]);
+      const access = await api.workflow.getAppWorkflowAccessInfo(instanceId);
       setAccessInfo(access);
-      setDomainBindings(bindings);
     } catch (error) {
       console.error('Failed to load access info:', error);
       setAccessInfo(null);
-      setDomainBindings([]);
     } finally {
       setLoadingAccess(false);
     }
@@ -129,6 +123,11 @@ export const AppInstanceDetailPage: React.FC<{
     };
   }, [accessInfo]);
 
+  const secondaryAccessUrls = useMemo(
+    () => (accessInfo?.access_urls || []).filter((item) => item.type !== 'Ingress'),
+    [accessInfo],
+  );
+
   if (loading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
   }
@@ -179,7 +178,7 @@ export const AppInstanceDetailPage: React.FC<{
           <div className="font-bold text-slate-900">{instance.template_name || '-'}</div>
         </div>
         <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-          <div className="mb-2 text-xs font-black uppercase text-slate-500">Service</div>
+          <div className="mb-2 text-xs font-black uppercase text-slate-500">Service名称</div>
           <div className="font-bold text-slate-900">{instance.service_name || '-'}</div>
         </div>
       </div>
@@ -296,22 +295,8 @@ export const AppInstanceDetailPage: React.FC<{
                       访问服务
                     </button>
                   )}
-                  {!primaryIngressAccess?.url && instance.create_ingress && (
-                    <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                      Ingress 已启用，正在等待初始化完成或访问地址同步。
-                    </div>
-                  )}
                   <div className="space-y-3">
-                    {(accessInfo?.ingress_accesses || []).map((item, index) => (
-                      <div key={`ingress-${index}`} className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-bold text-slate-800">{item.host || '-'}</div>
-                          <Globe size={16} className="text-emerald-600" />
-                        </div>
-                        {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="mt-2 flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-800">{item.url}<ExternalLink size={14} /></a>}
-                      </div>
-                    ))}
-                    {(accessInfo?.access_urls || []).map((item, index) => (
+                    {secondaryAccessUrls.map((item, index) => (
                       <div key={`access-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                         <div className="flex items-center justify-between">
                           <div className="text-sm font-bold text-slate-800">{item.type}</div>
@@ -325,26 +310,7 @@ export const AppInstanceDetailPage: React.FC<{
                         )}
                       </div>
                     ))}
-                    {!(accessInfo?.ingress_accesses?.length || accessInfo?.access_urls?.length) && <div className="text-sm text-slate-400">当前没有可用的访问入口。</div>}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="mb-4 text-lg font-black text-slate-900">Ingress 记录</h3>
-                  <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    应用实例勾选绑定 Ingress 后，会按当前 Service 自动生成域名并在初始化时创建，无需手动输入域名。
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    {domainBindings.map((binding) => (
-                      <div key={binding.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="font-bold text-slate-800">{binding.domain}</div>
-                          <StatusBadge status={binding.binding_status} />
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500">Ingress: {binding.ingress_name || '-'} | IP: {binding.ingress_ip || '-'}</div>
-                        {binding.message && <div className="mt-2 text-xs text-slate-500">{binding.message}</div>}
-                      </div>
-                    ))}
-                    {domainBindings.length === 0 && <div className="text-sm text-slate-400">暂无域名绑定记录。</div>}
+                    {!secondaryAccessUrls.length && <div className="text-sm text-slate-400">当前没有可用的访问入口。</div>}
                   </div>
                 </div>
               </>
