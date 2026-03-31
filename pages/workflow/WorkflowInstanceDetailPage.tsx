@@ -71,9 +71,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const [instance, setInstance] = useState<WorkflowInstance | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<any>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [selectedNode, setSelectedNode] = useState<Node<any> | null>(null);
   const [selectedNodeTemplateDetails, setSelectedNodeTemplateDetails] = useState<any>(null);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   

@@ -11,7 +11,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   const { loading, helpers, reload } = useAiHelpers(projectId, notify);
   const [selectedHelperKey, setSelectedHelperKey] = useState('');
   const [selectedHelper, setSelectedHelper] = useState<AiHelperService | null>(null);
-  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState('');
   const [sessions, setSessions] = useState<AiAgentSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState('');
   const [currentSession, setCurrentSession] = useState<AiAgentSession | null>(null);
@@ -45,6 +45,15 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
         api.environment.listAiHelperSessions(projectId, agentKey, serviceName),
       ]);
       setSelectedHelper(detail);
+      const agents = detail?.agents || [];
+      if (agents.length > 0) {
+        const hasSelected = agents.some((item) => item.agent_id === selectedAgentId);
+        if (!hasSelected) {
+          setSelectedAgentId(agents[0].agent_id);
+        }
+      } else {
+        setSelectedAgentId('');
+      }
       setSessions(sessionList.items || []);
       if (currentSessionId) {
         try {
@@ -67,7 +76,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     setBusyAction('create');
     try {
       const session = await api.environment.createAiHelperSession(projectId, selectedHelper.agent_key, selectedHelper.service_name, {
-        agent_ids: selectedAgentIds.length > 0 ? selectedAgentIds : undefined,
+        agent_ids: selectedAgentId ? [selectedAgentId] : undefined,
         metadata: { source: 'env-ai-session-page' },
       });
       setCurrentSessionId(session.session_id);
@@ -193,7 +202,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
             <div>
               <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
               <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">单会话</h1>
-              <p className="mt-2 text-sm text-slate-500">针对单个 helper 服务创建会话，可指定单个或多个 agent_ids 参与同一轮对话。</p>
+              <p className="mt-2 text-sm text-slate-500">针对单个 helper 服务创建会话，只允许选择一个 agent 参与对话。</p>
             </div>
             <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"><RefreshCw size={16} />刷新 helper 列表</button>
           </div>
@@ -212,14 +221,15 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
               <div className="text-sm font-bold text-slate-900">参与 Agent</div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {helperAgentOptions.length === 0 ? <div className="text-sm text-slate-500">当前 helper 没有可选 agent。</div> : helperAgentOptions.map((agent) => {
-                  const checked = selectedAgentIds.includes(agent.agent_id);
+                  const checked = selectedAgentId === agent.agent_id;
                   return (
                     <label key={agent.agent_id} className={`cursor-pointer rounded-xl border px-3 py-2 text-sm ${checked ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-700'}`}>
                       <input
-                        type="checkbox"
+                        type="radio"
+                        name="single-session-agent"
                         className="hidden"
                         checked={checked}
-                        onChange={() => setSelectedAgentIds((prev) => prev.includes(agent.agent_id) ? prev.filter((item) => item !== agent.agent_id) : [...prev, agent.agent_id])}
+                        onChange={() => setSelectedAgentId(agent.agent_id)}
                       />
                       {agent.agent_id}
                     </label>

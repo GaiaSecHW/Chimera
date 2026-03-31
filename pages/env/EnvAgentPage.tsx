@@ -617,7 +617,6 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     }
     setTemplateSearch('');
     setSelectedTemplateNames(new Set());
-    setDeployUseTemplateDefaultLlmBinding(true);
     setDeployLlmBinding(null);
     setIsBatchDeployModalOpen(true);
     await loadTemplates();

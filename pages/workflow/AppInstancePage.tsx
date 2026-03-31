@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, FolderTree, Loader2, Play, Plus, RefreshCw, RotateCcw, Search, StopCircle, Trash2, XCircle } from 'lucide-react';
 import { api } from '../../clients/api';
-import { AppTemplate, AppWorkflow, AppWorkflowStatus } from '../../types/types';
+import { AppTemplate, AppWorkflow, AppWorkflowStatus, ServicePort } from '../../types/types';
 import { ProjectDirectoryPickerModal, ProjectDirectorySelection } from '../../components/ProjectDirectoryPickerModal';
 
 type CreateStep = 'select-template' | 'fill-form';
@@ -42,6 +42,15 @@ export const AppInstancePage: React.FC<{
   projectId: string;
   onNavigateToDetail: (id: string) => void;
 }> = ({ projectId, onNavigateToDetail }) => {
+  type CreateFormData = {
+    name: string;
+    description: string;
+    template_id: string;
+    service_name: string;
+    service_ports: ServicePort[];
+    service_type: 'ClusterIP' | 'LoadBalancer' | 'NodePort';
+    replicas: number;
+  };
   const [instances, setInstances] = useState<AppWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -55,7 +64,7 @@ export const AppInstancePage: React.FC<{
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AppTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateFormData>({
     name: '',
     description: '',
     template_id: '',

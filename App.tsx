@@ -111,6 +111,7 @@ const App: React.FC = () => {
   const [activeAppTemplateId, setActiveAppTemplateId] = useState<string>('');
   const [activeJobTemplateId, setActiveJobTemplateId] = useState<string>('');
   const [activeAppWorkflowId, setActiveAppWorkflowId] = useState<string>('');
+  const [activeAiHelperKey, setActiveAiHelperKey] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,10 +171,14 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleNavigateView = (event: Event) => {
-      const detail = (event as CustomEvent<{ view?: string }>).detail;
+      const detail = (event as CustomEvent<{ view?: string; helperKey?: string }>).detail;
       const nextView = String(detail?.view || '').trim();
       if (nextView) {
         setCurrentView(nextView);
+      }
+      const helperKey = String(detail?.helperKey || '').trim();
+      if (helperKey) {
+        setActiveAiHelperKey(helperKey);
       }
     };
     window.addEventListener('secflow-navigate-view', handleNavigateView as EventListener);
@@ -384,7 +389,7 @@ const App: React.FC = () => {
       case 'env-service': return <ServiceMgmtPage projectId={selectedProjectId} />;
       case 'env-ai-agent': return <EnvAiAgentPage projectId={selectedProjectId} />;
       case 'env-ai-agent-overview': return <EnvAiAgentOverviewPage projectId={selectedProjectId} />;
-      case 'env-ai-helper': return <EnvAiHelperPage projectId={selectedProjectId} />;
+      case 'env-ai-helper': return <EnvAiHelperPage projectId={selectedProjectId} initialHelperKey={activeAiHelperKey} />;
       case 'env-ai-agent-manage': return <EnvAiAgentManagePage projectId={selectedProjectId} />;
       case 'env-ai-session': return <EnvAiSessionPage projectId={selectedProjectId} />;
       case 'env-ai-batch-session': return <EnvAiBatchSessionPage projectId={selectedProjectId} />;

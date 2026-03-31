@@ -121,7 +121,6 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     setDeployServiceSuffix('');
     setDeployPerNodeCount(1);
     setDeployExtraParamsText('');
-    setDeployUseTemplateDefaultLlmBinding(true);
     setDeployLlmBinding(null);
     setDeployAgentsLoading(true);
     setDeployTemplatesLoading(true);

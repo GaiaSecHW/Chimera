@@ -5,6 +5,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import {
   EmptyState,
   HealthBadge,
+  buildHelperKey,
   groupHelpersByNode,
   groupProjectAiAgentsByNode,
   navigateToAppView,
@@ -47,7 +48,6 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
               <p className="mt-2 text-sm text-slate-500">从项目维度看当前所有 helper 和 AI Agent 的整体状态，再按职责进入具体管理页面。</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => navigateToAppView('env-ai-helper')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">Helper 服务管理</button>
               <button onClick={() => navigateToAppView('env-ai-agent-manage')} className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white">AI Agent 管理</button>
               <button onClick={() => navigateToAppView('env-ai-session')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">单会话</button>
               <button onClick={() => navigateToAppView('env-ai-batch-session')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">批量会话</button>
@@ -92,6 +92,12 @@ export const EnvAiAgentOverviewPage: React.FC<{ projectId: string }> = ({ projec
                             <HealthBadge status={helper.health_status} />
                             <span>{helper.ai_agent_count} 个 Agent</span>
                           </div>
+                          <button
+                            onClick={() => navigateToAppView('env-ai-helper', { helperKey: buildHelperKey(helper.agent_key, helper.service_name) })}
+                            className="mt-2 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            查看详情
+                          </button>
                         </div>
                       ))}
                     </div>
