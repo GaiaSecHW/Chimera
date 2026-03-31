@@ -5,37 +5,38 @@ import { AppTemplate, AppWorkflow, AppWorkflowStatus } from '../../types/types';
 import { ProjectDirectoryPickerModal, ProjectDirectorySelection } from '../../components/ProjectDirectoryPickerModal';
 
 type CreateStep = 'select-template' | 'fill-form';
-type MountSourceType = 'pvc' | 'project_file';
 
 type InputVolumeMountConfig = {
-  source_type: MountSourceType;
   pvc_name: string;
   sub_path: string;
   read_only: boolean;
+};
+
+type ProjectFileMountDraft = {
+  mount_path: string;
   subproject_id?: number | null;
   directory_id?: number | null;
+  read_only: boolean;
   display_path?: string;
   subproject_name?: string;
   directory_name?: string | null;
 };
 
 const createMountConfig = (readOnly = true): InputVolumeMountConfig => ({
-  source_type: 'pvc',
   pvc_name: '',
   sub_path: '',
   read_only: readOnly,
+});
+
+const createProjectFileMountDraft = (): ProjectFileMountDraft => ({
+  mount_path: '',
   subproject_id: null,
   directory_id: null,
+  read_only: true,
   display_path: '',
   subproject_name: '',
   directory_name: null,
 });
-
-const hasMountSource = (config?: InputVolumeMountConfig) => {
-  if (!config) return false;
-  if (config.source_type === 'project_file') return Boolean(config.subproject_id);
-  return Boolean(config.pvc_name);
-};
 
 export const AppInstancePage: React.FC<{
   projectId: string;
@@ -65,9 +66,10 @@ export const AppInstancePage: React.FC<{
   });
   const [inputEnvVarValues, setInputEnvVarValues] = useState<Record<string, string>>({});
   const [inputVolumeMountConfigs, setInputVolumeMountConfigs] = useState<Record<string, InputVolumeMountConfig>>({});
+  const [projectFileMounts, setProjectFileMounts] = useState<ProjectFileMountDraft[]>([]);
   const [pvcList, setPvcList] = useState<Array<{ pvc_name: string; resource_name?: string }>>([]);
   const [enableIngress, setEnableIngress] = useState(false);
-  const [directoryPickerTarget, setDirectoryPickerTarget] = useState<string | null>(null);
+  const [directoryPickerTarget, setDirectoryPickerTarget] = useState<number | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -127,6 +129,7 @@ export const AppInstancePage: React.FC<{
     });
     setInputEnvVarValues({});
     setInputVolumeMountConfigs({});
+    setProjectFileMounts([]);
     setEnableIngress(false);
     setPvcList([]);
     setDirectoryPickerTarget(null);
@@ -265,18 +268,27 @@ export const AppInstancePage: React.FC<{
         }
         for (const mount of container.input_volume_mounts || []) {
           const key = `${container.name}.${mount.mount_path}`;
-          if (!hasMountSource(inputVolumeMountConfigs[key])) {
-            alert(`请选择挂载来源：${mount.mount_path}`);
+          if (!inputVolumeMountConfigs[key]?.pvc_name) {
+            alert(`请选择挂载 PVC：${mount.mount_path}`);
             return;
           }
         }
+      }
+    }
+    for (const projectMount of projectFileMounts) {
+      if (!projectMount.mount_path.trim()) {
+        alert('请填写项目文件夹挂载路径');
+        return;
+      }
+      if (!projectMount.subproject_id) {
+        alert(`请选择挂载路径 ${projectMount.mount_path || '(未填写路径)'} 对应的项目文件夹`);
+        return;
       }
     }
     setIsSubmitting(true);
     try {
       const envVars: Array<{ name: string; value: string }> = [];
       const volumeMounts: Array<{ pvc_name: string; mount_path: string; sub_path: string; read_only: boolean }> = [];
-      const projectFileMounts: Array<{ subproject_id: number; directory_id?: number | null; mount_path: string; read_only: boolean; display_path?: string; subproject_name?: string; directory_name?: string | null }> = [];
       selectedTemplate?.containers.forEach((container) => {
         container.input_env_vars?.forEach((envVar) => {
           const value = inputEnvVarValues[`${container.name}.${envVar.name}`];
@@ -284,27 +296,26 @@ export const AppInstancePage: React.FC<{
         });
         container.input_volume_mounts?.forEach((mount) => {
           const config = inputVolumeMountConfigs[`${container.name}.${mount.mount_path}`];
-          if (config?.source_type === 'project_file' && config.subproject_id) {
-            projectFileMounts.push({
-              subproject_id: config.subproject_id,
-              directory_id: config.directory_id ?? null,
-              mount_path: mount.mount_path,
-              read_only: config.read_only,
-              display_path: config.display_path,
-              subproject_name: config.subproject_name,
-              directory_name: config.directory_name ?? null,
-            });
-          } else if (config?.pvc_name) {
+          if (config?.pvc_name) {
             volumeMounts.push({ pvc_name: config.pvc_name, mount_path: mount.mount_path, sub_path: config.sub_path || '', read_only: config.read_only });
           }
         });
       });
+      const payloadProjectFileMounts = projectFileMounts.map((mount) => ({
+        subproject_id: mount.subproject_id as number,
+        directory_id: mount.directory_id ?? null,
+        mount_path: mount.mount_path.trim(),
+        read_only: mount.read_only,
+        display_path: mount.display_path,
+        subproject_name: mount.subproject_name,
+        directory_name: mount.directory_name ?? null,
+      }));
       const created = await api.workflow.createAppWorkflow({
         ...formData,
         project_id: projectId,
         env_vars: envVars.length > 0 ? envVars : undefined,
         volume_mounts: volumeMounts.length > 0 ? volumeMounts : undefined,
-        project_file_mounts: projectFileMounts.length > 0 ? projectFileMounts : undefined,
+        project_file_mounts: payloadProjectFileMounts.length > 0 ? payloadProjectFileMounts : undefined,
         create_ingress: enableIngress,
         ingress_type: enableIngress ? 'nginx' : undefined
       });
@@ -528,56 +539,20 @@ export const AppInstancePage: React.FC<{
                   )}
                   {selectedTemplate?.containers.some((container) => (container.input_volume_mounts || []).length > 0) && (
                     <div className="rounded-2xl border border-purple-200 bg-purple-50 p-5">
-                      <div className="mb-4 text-sm font-black text-purple-700">输入目录挂载依赖</div>
+                      <div className="mb-4 text-sm font-black text-purple-700">PVC 挂载依赖</div>
                       <div className="space-y-4">
                         {selectedTemplate.containers.map((container) => (container.input_volume_mounts || []).map((mount) => {
                           const key = `${container.name}.${mount.mount_path}`;
                           const config = inputVolumeMountConfigs[key] || createMountConfig(mount.read_only ?? true);
                           return (
                             <div key={key} className="rounded-xl border border-purple-200 bg-white p-4">
-                              <div className="mb-3 flex items-center justify-between gap-3">
-                                <div className="text-sm font-bold text-slate-700">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-slate-400">容器：{container.name}</span></div>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...createMountConfig(config.read_only), source_type: 'pvc' } })}
-                                    className={`rounded-full px-3 py-1 text-xs font-bold ${config.source_type === 'pvc' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'}`}
-                                  >
-                                    PVC
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...createMountConfig(true), source_type: 'project_file' } })}
-                                    className={`rounded-full px-3 py-1 text-xs font-bold ${config.source_type === 'project_file' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-500'}`}
-                                  >
-                                    项目文件夹
-                                  </button>
-                                </div>
-                              </div>
+                              <div className="mb-3 text-sm font-bold text-slate-700">挂载路径：{mount.mount_path}<span className="ml-2 text-xs text-slate-400">容器：{container.name}</span></div>
                               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                {config.source_type === 'project_file' ? (
-                                  <>
-                                    <button
-                                      type="button"
-                                      onClick={() => setDirectoryPickerTarget(key)}
-                                      className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition-all hover:border-purple-400"
-                                    >
-                                      <span className="truncate">{config.subproject_id ? `${config.subproject_name || '子项目'} ${config.display_path || '/'}` : '选择项目文件夹'}</span>
-                                      <FolderTree size={16} className="text-purple-500" />
-                                    </button>
-                                    <div className="rounded-lg border border-dashed border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-700">
-                                      支持选择子项目根目录或任意层级文件夹，创建时会自动解析为目录挂载。
-                                    </div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500">
-                                      <option value="">选择 PVC</option>
-                                      {pvcList.map((pvc) => <option key={pvc.pvc_name} value={pvc.pvc_name}>{pvc.pvc_name} {pvc.resource_name ? `(${pvc.resource_name})` : ''}</option>)}
-                                    </select>
-                                    <input value={config.sub_path} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, sub_path: event.target.value } })} placeholder="子路径，可留空" className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500" />
-                                  </>
-                                )}
+                                <select value={config.pvc_name} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, pvc_name: event.target.value } })} className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500">
+                                  <option value="">选择 PVC</option>
+                                  {pvcList.map((pvc) => <option key={pvc.pvc_name} value={pvc.pvc_name}>{pvc.pvc_name} {pvc.resource_name ? `(${pvc.resource_name})` : ''}</option>)}
+                                </select>
+                                <input value={config.sub_path} onChange={(event) => setInputVolumeMountConfigs({ ...inputVolumeMountConfigs, [key]: { ...config, sub_path: event.target.value } })} placeholder="子路径，可留空" className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-purple-500" />
                               </div>
                             </div>
                           );
@@ -585,6 +560,61 @@ export const AppInstancePage: React.FC<{
                       </div>
                     </div>
                   )}
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                    <div className="mb-4 flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-black text-amber-700">项目文件夹挂载</div>
+                        <div className="mt-1 text-xs text-amber-600">这个区域用于额外附加项目文件目录，不影响模板自身定义的 PVC 挂载依赖。</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setProjectFileMounts([...projectFileMounts, createProjectFileMountDraft()])}
+                        className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white hover:bg-amber-500"
+                      >
+                        <Plus size={16} />
+                        添加挂载
+                      </button>
+                    </div>
+                    {projectFileMounts.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-amber-200 bg-white/80 px-4 py-4 text-sm text-amber-700">
+                        如果你希望额外挂载项目文件目录，可以在这里新增挂载路径并选择任意层级文件夹。
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {projectFileMounts.map((mount, index) => (
+                          <div key={index} className="rounded-xl border border-amber-200 bg-white p-4">
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                              <div className="text-sm font-bold text-slate-700">项目文件夹挂载 #{index + 1}</div>
+                              <button
+                                type="button"
+                                onClick={() => setProjectFileMounts(projectFileMounts.filter((_, itemIndex) => itemIndex !== index))}
+                                className="rounded-lg p-2 text-red-500 hover:bg-red-50"
+                                title="删除挂载"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                              <input
+                                value={mount.mount_path}
+                                onChange={(event) => setProjectFileMounts(projectFileMounts.map((item, itemIndex) => itemIndex === index ? { ...item, mount_path: event.target.value } : item))}
+                                placeholder="容器内挂载路径，例如 /workspace/source"
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setDirectoryPickerTarget(index)}
+                                className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition-all hover:border-amber-400"
+                              >
+                                <span className="truncate">{mount.subproject_id ? `${mount.subproject_name || '子项目'} ${mount.display_path || '/'}` : '选择项目文件夹'}</span>
+                                <FolderTree size={16} className="text-amber-500" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
                     <div className="mb-4 flex items-center justify-between">
                       <div><div className="text-sm font-black text-green-700">绑定 Ingress</div><div className="text-xs text-green-600">勾选后系统会基于当前 Service 自动生成域名，并在创建后自动初始化、启动实例。</div></div>
@@ -708,27 +738,23 @@ export const AppInstancePage: React.FC<{
       )}
 
       <ProjectDirectoryPickerModal
-        isOpen={Boolean(directoryPickerTarget)}
+        isOpen={directoryPickerTarget !== null}
         projectId={projectId}
         onClose={() => setDirectoryPickerTarget(null)}
         onSelect={(selection: ProjectDirectorySelection) => {
-          if (!directoryPickerTarget) return;
-          const current = inputVolumeMountConfigs[directoryPickerTarget] || createMountConfig(true);
-          setInputVolumeMountConfigs({
-            ...inputVolumeMountConfigs,
-            [directoryPickerTarget]: {
-              ...current,
-              source_type: 'project_file',
-              pvc_name: '',
-              sub_path: '',
-              read_only: true,
-              subproject_id: selection.subproject_id,
-              directory_id: selection.directory_id ?? null,
-              display_path: selection.display_path,
-              subproject_name: selection.subproject_name,
-              directory_name: selection.directory_name ?? null,
-            },
-          });
+          if (directoryPickerTarget === null) return;
+          setProjectFileMounts(projectFileMounts.map((mount, index) => (
+            index === directoryPickerTarget
+              ? {
+                  ...mount,
+                  subproject_id: selection.subproject_id,
+                  directory_id: selection.directory_id ?? null,
+                  display_path: selection.display_path,
+                  subproject_name: selection.subproject_name,
+                  directory_name: selection.directory_name ?? null,
+                }
+              : mount
+          )));
           setDirectoryPickerTarget(null);
         }}
       />
