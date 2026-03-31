@@ -97,7 +97,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   // Agent Modal Local States
   const [agentSearch, setAgentSearch] = useState('');
   const [selectedAgentKeys, setSelectedAgentKeys] = useState<Set<string>>(new Set());
-  const [statusFilter, setStatusFilter] = useState<'all' | 'online'>('online');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'online'>('all');
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   // Deletion States
@@ -135,6 +135,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [savingWebPortPresets, setSavingWebPortPresets] = useState(false);
   const [savingTemplateLlmBinding, setSavingTemplateLlmBinding] = useState(false);
   const [detailLlmBindingDraft, setDetailLlmBindingDraft] = useState<TemplateLlmProviderBinding | null>(null);
+  const [isTemplateLlmModalOpen, setIsTemplateLlmModalOpen] = useState(false);
 
   // Parsed Compose States
   const [parsedCompose, setParsedCompose] = useState<any>(null);
@@ -381,6 +382,16 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     }
   };
 
+  const openTemplateLlmModal = async (template: any) => {
+    if (!template?.id) return;
+    if (viewMode !== 'detail' || templateDetail?.id !== template.id) {
+      await viewDetail(template.id);
+    } else {
+      setDetailLlmBindingDraft(getTemplateCurrentMixBinding(template));
+    }
+    setIsTemplateLlmModalOpen(true);
+  };
+
   // Build Resource Tree
   const resourceTree = useMemo(() => {
     if (!templateDetail?.directory_files) return null;
@@ -477,7 +488,6 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     setAgentsLoading(true);
     setAgentSearch('');
     setSelectedAgentKeys(new Set());
-    setDeployUseTemplateDefaultLlmBinding(true);
     setDeployLlmBinding(null);
     try {
       const data = await api.environment.getAgents(projectId, { per_page: 2000 });
@@ -501,7 +511,6 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     setAgentsLoading(true);
     setAgentSearch('');
     setSelectedAgentKeys(new Set());
-    setDeployUseTemplateDefaultLlmBinding(true);
     setDeployLlmBinding(null);
     try {
       const data = await api.environment.getAgents(projectId, { per_page: 2000 });
@@ -607,14 +616,19 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
   const filteredAgents = useMemo(() => {
     return availableAgents.filter(a => {
-      const matchesSearch = a.hostname.toLowerCase().includes(agentSearch.toLowerCase()) || 
-                          a.ip_address.includes(agentSearch);
+      const keyword = agentSearch.toLowerCase();
+      const hostname = String(a.hostname || a.key || '').toLowerCase();
+      const ipAddress = String(a.ip_address || '').toLowerCase();
+      const agentKey = String(a.key || '').toLowerCase();
+      const matchesSearch = !keyword || hostname.includes(keyword) || ipAddress.includes(keyword) || agentKey.includes(keyword);
       const matchesStatus = statusFilter === 'all' || a.status === 'online';
       return matchesSearch && matchesStatus;
     });
   }, [availableAgents, agentSearch, statusFilter]);
 
   const toggleAgentSelect = (key: string) => {
+    const agent = availableAgents.find((item) => item.key === key);
+    if (!agent || agent.status !== 'online') return;
     const next = new Set(selectedAgentKeys);
     if (next.has(key)) next.delete(key);
     else next.add(key);
@@ -622,10 +636,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   };
 
   const toggleSelectAllAgents = () => {
-    if (selectedAgentKeys.size === filteredAgents.length && filteredAgents.length > 0) {
+    const selectableKeys = filteredAgents.filter((agent) => agent.status === 'online').map((agent) => agent.key);
+    if (selectableKeys.length === 0) return;
+    const allSelected = selectableKeys.every((key) => selectedAgentKeys.has(key));
+    if (allSelected) {
       setSelectedAgentKeys(new Set());
     } else {
-      setSelectedAgentKeys(new Set(filteredAgents.map(a => a.key)));
+      setSelectedAgentKeys(new Set(selectableKeys));
     }
   };
 
@@ -1117,7 +1134,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                      <button onClick={() => setStatusFilter('online')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${statusFilter === 'online' ? 'bg-green-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>在线</button>
                   </div>
                   <button onClick={toggleSelectAllAgents} className="px-6 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm shrink-0">
-                     <CheckSquare size={16} /> {selectedAgentKeys.size === filteredAgents.length ? '取消' : '全选'}
+                     <CheckSquare size={16} /> {filteredAgents.filter((agent) => agent.status === 'online').length > 0 && filteredAgents.filter((agent) => agent.status === 'online').every((agent) => selectedAgentKeys.has(agent.key)) ? '取消' : '全选'}
                   </button>
                </div>
             </div>
@@ -1130,25 +1147,32 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </div>
                ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                     {filteredAgents.map(agent => (
+                     {filteredAgents.map(agent => {
+                        const online = agent.status === 'online';
+                        const selected = selectedAgentKeys.has(agent.key);
+                        const hostname = String(agent.hostname || agent.key || '-');
+                        return (
                         <div
                           key={agent.key}
-                          onClick={() => toggleAgentSelect(agent.key)}
-                          className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between group ${selectedAgentKeys.has(agent.key) ? 'bg-blue-50 border-blue-600 ring-4 ring-blue-500/5' : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-lg'}`}
+                          onClick={() => online && toggleAgentSelect(agent.key)}
+                          className={`p-5 rounded-3xl border-2 transition-all flex items-center justify-between group ${online ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'} ${selected ? 'bg-blue-50 border-blue-600 ring-4 ring-blue-500/5' : 'bg-white border-slate-100'} ${online ? 'hover:border-blue-200 hover:shadow-lg' : ''}`}
                         >
                            <div className="flex items-center gap-4 min-w-0">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all shrink-0 shadow-sm ${selectedAgentKeys.has(agent.key) ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>{agent.hostname[0].toUpperCase()}</div>
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all shrink-0 shadow-sm ${selected ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'} ${online && !selected ? 'group-hover:bg-blue-100 group-hover:text-blue-600' : ''}`}>{hostname[0].toUpperCase()}</div>
                               <div className="min-w-0">
-                                 <p className="font-black text-slate-800 text-sm truncate">{agent.hostname}</p>
+                                 <p className="font-black text-slate-800 text-sm truncate">{hostname}</p>
                                  <div className="flex items-center gap-2 mt-0.5">
                                     <span className="text-[10px] font-mono font-bold text-slate-400">{agent.ip_address}</span>
                                     <StatusBadge status={agent.status} />
                                  </div>
+                                 {!online && (
+                                    <div className="mt-1 text-[10px] font-semibold text-amber-600">{agent.allow_reason || '当前节点暂不可调度'}</div>
+                                 )}
                               </div>
                            </div>
-                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedAgentKeys.has(agent.key) ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200'}`}>{selectedAgentKeys.has(agent.key) && <Check size={14} />}</div>
+                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200'}`}>{selected && <Check size={14} />}</div>
                         </div>
-                     ))}
+                     )})}
                   </div>
                )}
 
@@ -1182,6 +1206,87 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
          </div>
       </div>
     )
+  );
+
+  const renderTemplateLlmModal = () => (
+    isTemplateLlmModalOpen && templateDetail ? (
+      <div className="fixed inset-0 z-[210] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
+        <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/40 shrink-0">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-2xl font-black text-slate-800 tracking-tight">LLM Provider 混合与重新生成</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  当前模板：{templateDetail.name}。在此选择配置中心中的一个或多个 LLM Provider，对模板环境变量与配置文件做混合并重新生成当前模板。
+                </p>
+              </div>
+              <button
+                onClick={() => setIsTemplateLlmModalOpen(false)}
+                className="p-3 text-slate-400 hover:bg-white hover:text-slate-600 rounded-xl transition-all shadow-sm"
+              >
+                <X size={22} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+            {!canManageTemplate(templateDetail) && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                当前模板仅拥有者可执行 LLM Provider 重新生成和恢复原始模板操作。
+              </div>
+            )}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-2">
+              <div className="text-xs font-black text-slate-700">当前模板来源</div>
+              <div className="text-sm font-bold text-slate-800">
+                {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
+                  ? `原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
+                  : '原始模板'}
+              </div>
+              <div className="text-xs text-slate-500">
+                原始 compose 备份：
+                {templateDetail?.metadata?.original_compose_backup?.file_path
+                  ? ` ${templateDetail.metadata.original_compose_backup.file_path}`
+                  : ' 未建立'}
+              </div>
+            </div>
+            <TemplateLlmBindingEditor
+              projectId={projectId}
+              value={detailLlmBindingDraft}
+              onChange={setDetailLlmBindingDraft}
+              serviceOptions={getTemplateServiceOptions(templateDetail)}
+              disabled={!canManageTemplate(templateDetail) || savingTemplateLlmBinding}
+              title="选择用于重新生成的 Provider 组合"
+              description="始终基于原始 compose 备份重新生成当前模板内容，不在当前混合结果上叠加。"
+            />
+          </div>
+          <div className="p-6 border-t border-slate-100 bg-white shrink-0 flex items-center justify-between gap-3">
+            <button
+              onClick={() => setIsTemplateLlmModalOpen(false)}
+              className="px-4 py-2.5 text-sm font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              关闭
+            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => void handleRestoreOriginalCompose(templateDetail)}
+                disabled={!canManageTemplate(templateDetail) || savingTemplateLlmBinding}
+                title={canManageTemplate(templateDetail) ? '恢复为原始模板' : '仅模板拥有者可操作'}
+                className="px-4 py-2.5 text-sm font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                恢复原始模板
+              </button>
+              <button
+                onClick={() => void handleSaveTemplateLlmBinding(templateDetail, detailLlmBindingDraft)}
+                disabled={!canManageTemplate(templateDetail) || savingTemplateLlmBinding}
+                title={canManageTemplate(templateDetail) ? '使用所选 Provider 重新生成模板' : '仅模板拥有者可操作'}
+                className="px-4 py-2.5 text-sm font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {savingTemplateLlmBinding ? '处理中...' : '重新生成模板'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : null
   );
 
   // Tree Render Component
@@ -1382,108 +1487,109 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
         )}
 
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h4 className="text-sm font-black text-slate-800">模板 TAG</h4>
-              <p className="text-xs text-slate-500 mt-1">用于模板分类、识别和自动化关联。</p>
-            </div>
-            {canManageCurrentTemplate && (
-              <button
-                onClick={() => handleEditTemplateTags(templateDetail)}
-                className="px-3 py-2 text-xs font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
-              >
-                编辑 TAG
-              </button>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2 mt-4">
-            {getTemplateTags(templateDetail).length > 0 ? (
-              getTemplateTags(templateDetail).map((tag) => (
-                <span key={tag} className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-black tracking-wide">
-                  {tag}
-                </span>
-              ))
-            ) : (
-              <p className="text-xs text-slate-400">暂无 TAG</p>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h4 className="text-sm font-black text-slate-800">LLM Provider 重新生成模板</h4>
-              <p className="text-xs text-slate-500 mt-1">始终基于原始 docker-compose 备份重新生成当前模板结果，不在已混合结果上叠加。</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {savingTemplateLlmBinding && <Loader2 size={16} className="animate-spin text-slate-400" />}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-6">
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-black text-slate-800">模板 TAG</h4>
+                <p className="text-xs text-slate-500 mt-1">用于模板分类、识别和自动化关联。</p>
+              </div>
               {canManageCurrentTemplate && (
-                <>
-                  <button
-                    onClick={() => void handleRestoreOriginalCompose(templateDetail)}
-                    disabled={savingTemplateLlmBinding}
-                    className="px-3 py-2 text-xs font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-60"
-                  >
-                    恢复原始模板
-                  </button>
-                  <button
-                    onClick={() => void handleSaveTemplateLlmBinding(templateDetail, detailLlmBindingDraft)}
-                    disabled={savingTemplateLlmBinding}
-                    className="px-3 py-2 text-xs font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-                  >
-                    重新生成模板
-                  </button>
-                </>
+                <button
+                  onClick={() => handleEditTemplateTags(templateDetail)}
+                  className="px-3 py-2 text-xs font-black rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+                >
+                  编辑 TAG
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {getTemplateTags(templateDetail).length > 0 ? (
+                getTemplateTags(templateDetail).map((tag) => (
+                  <span key={tag} className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-black tracking-wide">
+                    {tag}
+                  </span>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400">暂无 TAG</p>
               )}
             </div>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-2">
-            <div className="text-xs font-black text-slate-700">当前模板来源</div>
-            <div className="text-sm font-bold text-slate-800">
-              {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
-                ? `原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
-                : '原始模板'}
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-black text-slate-800">LLM Provider 重新生成模板</h4>
+                <p className="text-xs text-slate-500 mt-1">通过独立弹框选择配置中心中的一个或多个 LLM Provider，基于原始 docker-compose 备份重新生成当前模板结果。</p>
+              </div>
+              <div className="flex items-center gap-3">
+                {savingTemplateLlmBinding && <Loader2 size={16} className="animate-spin text-slate-400" />}
+                <button
+                  onClick={() => void openTemplateLlmModal(templateDetail)}
+                  disabled={savingTemplateLlmBinding}
+                  className="px-3 py-2 text-xs font-black rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 whitespace-nowrap"
+                >
+                  打开混合配置
+                </button>
+              </div>
             </div>
-            <div className="text-xs text-slate-500">
-              原始 compose 备份：
-              {templateDetail?.metadata?.original_compose_backup?.file_path
-                ? ` ${templateDetail.metadata.original_compose_backup.file_path}`
-                : ' 未建立'}
-            </div>
-            {templateDetail?.metadata?.llm_mix_state?.generated_at && (
+            {!canManageCurrentTemplate && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                当前模板仅拥有者可执行 LLM Provider 重新生成和恢复原始模板操作。
+              </div>
+            )}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 space-y-2">
+              <div className="text-xs font-black text-slate-700">当前模板来源</div>
+              <div className="text-sm font-bold text-slate-800">
+                {templateDetail?.metadata?.llm_mix_state?.provider_keys?.length
+                  ? `原始模板 + ${templateDetail.metadata.llm_mix_state.provider_keys.join(' + ')}`
+                  : '原始模板'}
+              </div>
               <div className="text-xs text-slate-500">
-                最近一次生成：{templateDetail.metadata.llm_mix_state.generated_at}
-                {templateDetail?.metadata?.llm_mix_state?.generated_by ? ` · ${templateDetail.metadata.llm_mix_state.generated_by}` : ''}
+                原始 compose 备份：
+                {templateDetail?.metadata?.original_compose_backup?.file_path
+                  ? ` ${templateDetail.metadata.original_compose_backup.file_path}`
+                  : ' 未建立'}
               </div>
-            )}
-            {Array.isArray(templateDetail?.metadata?.llm_mix_state?.mapped_env_keys) && templateDetail.metadata.llm_mix_state.mapped_env_keys.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {templateDetail.metadata.llm_mix_state.mapped_env_keys.slice(0, 12).map((key: string) => (
-                  <span key={key} className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-black">{key}</span>
-                ))}
-              </div>
-            )}
-            {Array.isArray(templateDetail?.metadata?.llm_mix_history) && templateDetail.metadata.llm_mix_history.length > 0 && (
-              <div className="pt-2 space-y-1">
-                <div className="text-xs font-black text-slate-700">最近生成记录</div>
-                {templateDetail.metadata.llm_mix_history.slice(-3).reverse().map((item: any, idx: number) => (
-                  <div key={`mix-history-${idx}`} className="text-[11px] text-slate-500">
-                    {(item?.provider_keys || []).join(' + ') || '原始模板'} · {item?.generated_at || '-'}
+              {templateDetail?.metadata?.llm_mix_state?.generated_at && (
+                <div className="text-xs text-slate-500">
+                  最近一次生成：{templateDetail.metadata.llm_mix_state.generated_at}
+                  {templateDetail?.metadata?.llm_mix_state?.generated_by ? ` · ${templateDetail.metadata.llm_mix_state.generated_by}` : ''}
+                </div>
+              )}
+              {Array.isArray(templateDetail?.metadata?.llm_mix_state?.mapped_env_keys) && templateDetail.metadata.llm_mix_state.mapped_env_keys.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {templateDetail.metadata.llm_mix_state.mapped_env_keys.slice(0, 12).map((key: string) => (
+                    <span key={key} className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-black">{key}</span>
+                  ))}
+                </div>
+              )}
+              {Array.isArray(templateDetail?.metadata?.llm_mix_state?.mapped_file_paths) && templateDetail.metadata.llm_mix_state.mapped_file_paths.length > 0 && (
+                <div className="pt-2 space-y-2">
+                  <div className="text-xs font-black text-slate-700">
+                    文件注入路径（{templateDetail.metadata.llm_mix_state.mapped_file_paths.length}）
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="flex flex-wrap gap-2">
+                    {templateDetail.metadata.llm_mix_state.mapped_file_paths.slice(0, 8).map((filePath: string) => (
+                      <span key={filePath} className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-black">
+                        {filePath}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {Array.isArray(templateDetail?.metadata?.llm_mix_history) && templateDetail.metadata.llm_mix_history.length > 0 && (
+                <div className="pt-2 space-y-1">
+                  <div className="text-xs font-black text-slate-700">最近生成记录</div>
+                  {templateDetail.metadata.llm_mix_history.slice(-3).reverse().map((item: any, idx: number) => (
+                    <div key={`mix-history-${idx}`} className="text-[11px] text-slate-500">
+                      {(item?.provider_keys || []).join(' + ') || '原始模板'} · {item?.generated_at || '-'}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <TemplateLlmBindingEditor
-            projectId={projectId}
-            value={detailLlmBindingDraft}
-            onChange={setDetailLlmBindingDraft}
-            serviceOptions={getTemplateServiceOptions(templateDetail)}
-            disabled={!canManageCurrentTemplate || savingTemplateLlmBinding}
-            title="重新生成所用 Provider 组合"
-            description="基于原始 compose 备份重新生成当前模板结果。"
-          />
         </div>
 
         <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-6 space-y-4">
@@ -1798,6 +1904,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
         )}
         {renderDeployModal()}
+        {renderTemplateLlmModal()}
       </div>
       {feedbackNodes}
       </>
@@ -2031,11 +2138,11 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       </div>
                     </div>
                   )}
-                  {getTemplateDefaultLlmBinding(t)?.provider_keys?.length ? (
+                  {getTemplateCurrentMixBinding(t)?.provider_keys?.length ? (
                     <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3">
-                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">默认 LLM 绑定</p>
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">当前 LLM 混合结果</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {getTemplateDefaultLlmBinding(t)?.provider_keys.map((providerKey) => (
+                        {getTemplateCurrentMixBinding(t)?.provider_keys.map((providerKey) => (
                           <span key={`${t.id}-${providerKey}`} className="text-[10px] bg-white text-emerald-700 px-2 py-0.5 rounded font-mono border border-emerald-100">
                             {providerKey}
                           </span>
@@ -2058,6 +2165,16 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                       </div>
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void openTemplateLlmModal(t);
+                        }}
+                        className="px-2.5 py-2 bg-white border border-slate-200 text-slate-500 hover:text-blue-700 hover:border-blue-200 rounded-lg transition-all shadow-sm text-[11px] font-black"
+                        title="打开 LLM Provider 混合配置弹框"
+                      >
+                        LLM混合
+                      </button>
                       {canCopyCard && (
                         <button
                           onClick={(e) => handleCopyTemplate(t.id, e)}
@@ -2087,6 +2204,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       </div>
 
       {renderDeployModal()}
+      {renderTemplateLlmModal()}
       {/* Upload Template Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">

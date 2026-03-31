@@ -16,10 +16,10 @@ jobs:
           submodules: 'true'
 
       - name: clean to default_local
-        run: sed -i 's/http:\/\/localhost:8080//g'   ./api/base.ts
+        run: sed -i 's/http:\/\/localhost:8080//g' ./clients/base.ts
 
       - name: cat base.ts
-        run: cat ./api/base.ts
+        run: cat ./clients/base.ts
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -56,5 +56,4 @@ jobs:
             runshine0819/secflow-frontend:${{ steps.date.outputs.date_tag }}
             ghcr.io/runshine/secflow-frontend:${{ steps.date.outputs.date_tag }}
           file: docker/docker.txt
-
 

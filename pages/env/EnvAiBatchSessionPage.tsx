@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, Loader2, RefreshCw, Send } from 'lucide-react';
+import { Bot, Loader2, RefreshCw, Send, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AiBatchRound, AiBatchSession, AiHelperService } from '../../types/types';
+import { AiBatchRound, AiBatchSession, AiBatchStreamEvent, AiHelperService } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, JsonBlock, buildHelperKey, prettyJson, useAiHelpers } from './ai-agent/shared';
 
@@ -17,6 +17,8 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
   const [batchRounds, setBatchRounds] = useState<AiBatchRound[]>([]);
   const [message, setMessage] = useState('');
   const [busyAction, setBusyAction] = useState('');
+  const [transportMode, setTransportMode] = useState<'stream' | 'non_stream'>('stream');
+  const [streamEvents, setStreamEvents] = useState<AiBatchStreamEvent[]>([]);
 
   useEffect(() => {
     if (!selectedHelpers.length && helpers.length > 0) {
@@ -98,13 +100,47 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
       return;
     }
     setBusyAction('send');
+    const messageText = message.trim();
     try {
-      await api.environment.sendAiBatchMessage(batchId, message.trim());
+      if (transportMode === 'stream') {
+        setStreamEvents([]);
+        await api.environment.sendAiBatchMessageStream(batchId, messageText, {
+          onEvent: (event: AiBatchStreamEvent) => {
+            if (event.type === 'item' || event.type === 'error' || event.type === 'start' || event.type === 'done') {
+              setStreamEvents((prev) => [...prev, event]);
+            }
+          },
+        });
+      } else {
+        await api.environment.sendAiBatchMessage(batchId, messageText);
+      }
       setMessage('');
       await refreshBatch(batchId);
       notify('批量消息已发送', 'success');
     } catch (error: any) {
       notify(`发送批量消息失败: ${error?.message || error}`, 'error');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const deleteBatch = async () => {
+    if (!batchId) {
+      notify('当前没有可删除的批量会话', 'error');
+      return;
+    }
+    if (!window.confirm('确认删除当前批量会话吗？会同时清理该 batch 的会话记录。')) return;
+    setBusyAction('delete_batch');
+    try {
+      await api.environment.deleteAiBatchSession(batchId);
+      setBatchId('');
+      setBatchDetail(null);
+      setBatchRounds([]);
+      setMessage('');
+      setStreamEvents([]);
+      notify('批量会话已删除', 'success');
+    } catch (error: any) {
+      notify(`删除批量会话失败: ${error?.message || error}`, 'error');
     } finally {
       setBusyAction('');
     }
@@ -116,17 +152,21 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
   }), [helpers, helperDetails]);
 
   return (
-    <div className="space-y-6">
-      {feedbackNodes}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">批量会话</h1>
-          <p className="mt-1 text-sm text-slate-500">选择多个 helper 和各自的 agent_ids，统一创建 batch 会话并按轮次 fanout 消息。</p>
-        </div>
-        <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"><RefreshCw size={16} />刷新 helper 列表</button>
-      </div>
+    <div className="px-8 pt-8 pb-10">
+      <div className="space-y-6">
+        {feedbackNodes}
+        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">AI Agent Workspace</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">批量会话</h1>
+              <p className="mt-2 text-sm text-slate-500">选择多个 helper 和各自的 agent_ids，统一创建 batch 会话并按轮次 fanout 消息。</p>
+            </div>
+            <button onClick={() => void reload(true)} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"><RefreshCw size={16} />刷新 helper 列表</button>
+          </div>
+        </section>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           {loading ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div> : null}
           <div className="space-y-3 max-h-[980px] overflow-auto pr-1">
@@ -190,10 +230,44 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   <h2 className="mt-2 break-all text-2xl font-black text-slate-900">{batchDetail.batch_id}</h2>
                   <div className="mt-2 text-sm text-slate-600">状态：{batchDetail.status} · 目标 helper：{batchDetail.items.length}</div>
                 </div>
-                <button onClick={() => void refreshBatch()} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">刷新批量状态</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => void refreshBatch()} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">刷新批量状态</button>
+                  <button onClick={() => void deleteBatch()} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-600" disabled={busyAction === 'delete_batch'}><Trash2 size={14} />删除批量会话</button>
+                </div>
               </div>
               <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="输入要 fanout 给当前 batch 的用户消息" />
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">传输模式</div>
+                <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="radio" name="batch-transport-mode" checked={transportMode === 'stream'} onChange={() => setTransportMode('stream')} />
+                    流式（默认）
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input type="radio" name="batch-transport-mode" checked={transportMode === 'non_stream'} onChange={() => setTransportMode('non_stream')} />
+                    非流式
+                  </label>
+                </div>
+              </div>
               <button onClick={() => void sendBatchMessage()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">{busyAction === 'send' ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}发送批量消息</button>
+              {streamEvents.length > 0 ? (
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <div className="text-sm font-bold text-slate-900">流式进度</div>
+                  <div className="mt-3 max-h-48 space-y-2 overflow-auto pr-1">
+                    {streamEvents.map((event, index) => (
+                      <div key={`${event.type}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                        {event.type === 'item'
+                          ? `${event.agent_key || '-'} / ${event.service_name || '-'} · ${event.success ? '成功' : '失败'}`
+                          : event.type === 'start'
+                          ? `开始执行本轮（目标 ${event.total_items || 0} 个 helper）`
+                          : event.type === 'done'
+                          ? `本轮完成（success=${event.success ? 'true' : 'false'}）`
+                          : `错误：${event.error_message || event.error || 'unknown'}`}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {batchDetail.items.map((item) => (
                   <div key={`${item.agent_key}::${item.service_name}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -220,6 +294,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
             </div>
           )}
         </section>
+        </div>
       </div>
     </div>
   );

@@ -82,6 +82,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [deployPerNodeCount, setDeployPerNodeCount] = useState(1);
   const [deployExtraParamsText, setDeployExtraParamsText] = useState('');
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
+  const [openingAgentConsoleKey, setOpeningAgentConsoleKey] = useState('');
 
   useEffect(() => {
     if (projectId) {
@@ -154,6 +155,101 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
       setGlobalIngressStats({});
     } finally {
       setGlobalIngressLoading(false);
+    }
+  };
+
+  const buildAgentConsoleAccessUrl = (route: any): string => {
+    const accessUrl = String(route?.access_url || '').trim();
+    if (accessUrl) return accessUrl;
+    const host = String(route?.host || '').trim();
+    if (!host) return '';
+    const path = String(route?.path || '/').trim() || '/';
+    const scheme = route?.tls_enabled === false ? 'http' : 'https';
+    return `${scheme}://${host}${path}`;
+  };
+
+  const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+  const pickReadyAgentConsoleRoute = (items: any[]): any | null => {
+    const consoleRoutes = (items || []).filter(
+      (route: any) => Number(route?.target_port || 0) === 11198 && String(route?.status || '').toLowerCase() !== 'deleted'
+    );
+    if (consoleRoutes.length === 0) return null;
+    return (
+      consoleRoutes.find((route: any) => {
+        const status = String(route?.status || '').toLowerCase();
+        return (status === 'ready' || status === 'active' || status === 'running') && !!buildAgentConsoleAccessUrl(route);
+      }) ||
+      consoleRoutes.find((route: any) => !!buildAgentConsoleAccessUrl(route)) ||
+      consoleRoutes[0]
+    );
+  };
+
+  const waitForAgentConsoleRoute = async (agentKey: string, currentRoute: any): Promise<any> => {
+    let candidate = currentRoute;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      if (candidate) {
+        const candidateStatus = String(candidate?.status || '').toLowerCase();
+        const candidateUrl = buildAgentConsoleAccessUrl(candidate);
+        if ((candidateStatus === 'ready' || candidateStatus === 'active' || candidateStatus === 'running') && candidateUrl) {
+          return candidate;
+        }
+      }
+      await sleep(800);
+      const refreshed = await api.environment.listAgentIngressRoutes(agentKey, projectId);
+      candidate = pickReadyAgentConsoleRoute(refreshed?.items || []);
+    }
+    return candidate;
+  };
+
+  const ensureAgentConsoleIngressAndOpen = async (svc: AgentService) => {
+    if (!projectId || !svc.agent_key) {
+      notify('当前服务缺少关联 Agent，无法打开节点终端', 'error');
+      return;
+    }
+
+    const popup = window.open('about:blank', '_blank');
+    if (popup) {
+      popup.document.title = '正在打开 TTYD 终端...';
+      popup.document.body.innerHTML = '<div style="font-family: sans-serif; padding: 24px; color: #334155;">正在准备节点 TTYD 终端，请稍候...</div>';
+    }
+    setOpeningAgentConsoleKey(svc.agent_key);
+    try {
+      const routesResp = await api.environment.listAgentIngressRoutes(svc.agent_key, projectId);
+      const existingRoute = pickReadyAgentConsoleRoute(routesResp?.items || []);
+      let targetRoute = existingRoute;
+
+      if (!targetRoute) {
+        targetRoute = await api.environment.createAgentIngressRoute(svc.agent_key, {
+          project_id: projectId,
+          target_port: 11198,
+          service_port: 11198,
+          websocket_enabled: true,
+          tls_enabled: true,
+          host_prefix: buildRandomIngressPrefix(`${svc.agent_key}-ttyd`),
+          metadata: {
+            ingress_scope: 'agent_console',
+            source: 'service-mgmt-list',
+          },
+        });
+      }
+
+      targetRoute = await waitForAgentConsoleRoute(svc.agent_key, targetRoute);
+      const accessUrl = buildAgentConsoleAccessUrl(targetRoute);
+      if (!accessUrl) {
+        throw new Error('TTYD Ingress 尚未生成可访问地址，请稍后重试');
+      }
+
+      if (popup) {
+        popup.location.replace(accessUrl);
+      } else {
+        window.open(accessUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err: any) {
+      if (popup) popup.close();
+      notify(err?.message || '打开节点 TTYD 终端失败', 'error');
+    } finally {
+      setOpeningAgentConsoleKey('');
     }
   };
 
@@ -1068,23 +1164,27 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
       </div>
 
       <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden">
-        <table className="w-full text-left">
+        <table className="w-full table-fixed text-left">
           <thead className="bg-slate-50/50 border-b border-slate-100">
             <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              <th className="px-4 py-5">选择</th>
-              <th className="px-6 py-5">服务标识</th>
-              <th className="px-6 py-5">服务模板 (ID/名称)</th>
-              <th className="px-6 py-5">承载节点</th>
-              <th className="px-6 py-5">网络暴露</th>
-              <th className="px-6 py-5">状态</th>
+              <th className="w-14 px-4 py-3">选择</th>
+              <th className="w-[24%] px-4 py-3">服务标识</th>
+              <th className="w-[20%] px-4 py-3">服务模板 (ID/名称)</th>
+              <th className="w-[26%] px-4 py-3">承载节点</th>
+              <th className="w-[18%] px-4 py-3">网络暴露</th>
+              <th className="w-[12%] px-4 py-3">状态</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {projectId && filteredServices.map((svc: any) => {
               const rowId = serviceRowId(svc);
+              const ports = Object.entries(svc.ports || {});
+              const portSummary = ports.length > 0
+                ? ports.map(([proto, port]) => `${proto}:${port}`).join('  |  ')
+                : 'Isolated';
               return (
                 <tr key={rowId} className="hover:bg-slate-50 transition-all">
-                  <td className="px-4 py-5">
+                  <td className="px-4 py-3 align-middle">
                     <input
                       type="checkbox"
                       checked={selectedServiceIds.has(rowId)}
@@ -1093,11 +1193,11 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                       className="w-4 h-4 accent-blue-600"
                     />
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex items-center gap-2 min-w-0 whitespace-nowrap">
                       <button
                         onClick={() => void openServiceDetail(svc)}
-                        className="text-sm font-black text-slate-700 hover:text-blue-600 transition-colors truncate"
+                        className="min-w-0 truncate text-sm font-black text-slate-700 hover:text-blue-600 transition-colors"
                         title="查看服务详情"
                       >
                         {svc.name}
@@ -1111,43 +1211,56 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                         })}
                         disabled={!svc.agent_key || !!svc.is_stale}
                         title={svc.is_stale ? '服务状态已过期（stale），请先刷新服务发现' : '新窗口打开终端（默认 /bin/bash，失败回退 /bin/sh）'}
-                        className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-[10px] font-black hover:bg-blue-100 disabled:opacity-50"
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700 hover:bg-blue-100 disabled:opacity-50"
                       >
                         <TerminalSquare size={12} />
                         终端
                       </button>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="text-xs font-mono text-slate-600">
+                  <td className="px-4 py-3 align-middle">
+                    <div
+                      className="truncate text-xs font-mono text-slate-600"
+                      title={`${svc.template_id ? `#${svc.template_id}` : '-'} / ${svc.template_name || '未识别'}`}
+                    >
                       {svc.template_id ? `#${svc.template_id}` : '-'} / {svc.template_name || '未识别'}
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-700">{svc.agent_hostname || '-'}</span>
-                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">
-                        {(svc.agent_key || '').slice(0, 12)}
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+                      <span className="min-w-0 truncate text-xs font-bold text-slate-700" title={svc.agent_hostname || '-'}>
+                        {svc.agent_hostname || '-'}
                       </span>
-                      <span className={`text-[10px] font-black uppercase mt-1 ${svc.agent_online ? 'text-green-600' : 'text-rose-600'}`}>
+                      <span
+                        className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-tight text-slate-500"
+                        title={svc.agent_key || ''}
+                      >
+                        {(svc.agent_key || '').slice(0, 12) || '-'}
+                      </span>
+                      <span className={`shrink-0 text-[10px] font-black uppercase ${svc.agent_online ? 'text-green-600' : 'text-rose-600'}`}>
                         节点{svc.agent_online ? '在线' : '离线'}
                       </span>
+                      <button
+                        onClick={() => void ensureAgentConsoleIngressAndOpen(svc)}
+                        disabled={!svc.agent_key || !svc.agent_online || openingAgentConsoleKey === svc.agent_key}
+                        title={svc.agent_online ? '打开承载节点的 TTYD 终端（必要时自动创建 11198 Ingress）' : '节点离线，无法打开 TTYD 终端'}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-black text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                      >
+                        {openingAgentConsoleKey === svc.agent_key ? <Loader2 size={12} className="animate-spin" /> : <TerminalSquare size={12} />}
+                        TTYD
+                      </button>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(svc.ports || {}).map(([proto, port]) => (
-                        <span key={proto} className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-lg border border-blue-100">
-                          {proto} ➔ {port}
-                        </span>
-                      ))}
-                      {Object.keys(svc.ports || {}).length === 0 && (
-                        <span className="text-[10px] font-black text-slate-300 uppercase italic">Isolated</span>
-                      )}
+                  <td className="px-4 py-3 align-middle">
+                    <div
+                      className={`truncate text-[10px] font-black uppercase ${ports.length > 0 ? 'text-blue-600' : 'italic text-slate-300'}`}
+                      title={portSummary}
+                    >
+                      {portSummary}
                     </div>
                   </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
+                  <td className="px-4 py-3 align-middle">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
                       <StatusBadge status={svc.effective_state === 'offline_agent' ? 'offline' : (svc.effective_state === 'stale' ? 'checking' : svc.status)} />
                       {svc.is_stale && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 font-black uppercase tracking-wider">

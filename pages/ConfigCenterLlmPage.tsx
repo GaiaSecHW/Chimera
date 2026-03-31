@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, BookOpenText, Braces, CheckCircle2, Eye, EyeOff, LayoutPanelTop, Loader2, MessageSquare, Plus, RefreshCw, Save, ShieldAlert, Sparkles, Trash2, Wifi, X } from 'lucide-react';
+import MonacoEditor from '@monaco-editor/react';
+import { Bot, BookOpenText, Braces, CheckCircle2, Eye, EyeOff, FileCode2, LayoutPanelTop, Loader2, MessageSquare, Plus, RefreshCw, Save, ShieldAlert, Sparkles, Trash2, Wifi, X } from 'lucide-react';
 import { api } from '../clients/api';
 import { showConfirm } from '../components/DialogService';
-import { LlmProviderDetail, LlmProviderSummary, LlmProviderTestResult, LlmProviderUpsertRequest } from '../types/types';
+import { LlmProviderDetail, LlmProviderFileBinding, LlmProviderSummary, LlmProviderTestResult, LlmProviderUpsertRequest } from '../types/types';
 
 interface ConfigCenterLlmPageProps {
   onOpenChat: () => void;
@@ -10,6 +11,47 @@ interface ConfigCenterLlmPageProps {
 
 const normalizeEnvBindings = (envBindings: Record<string, any> | undefined) => {
   return { ...(envBindings || {}) };
+};
+
+const fileFormatOptions: Array<LlmProviderFileBinding['format']> = ['json', 'yaml', 'yml', 'toml', 'env', 'conf', 'txt', 'md', 'xml', 'ini', 'other'];
+
+const normalizeFileBindings = (fileBindings: unknown): LlmProviderFileBinding[] => {
+  if (!Array.isArray(fileBindings)) return [];
+  return fileBindings
+    .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+    .map((item, index) => {
+      const record = item as Record<string, any>;
+      const format = String(record.format || 'other').toLowerCase() as LlmProviderFileBinding['format'];
+      return {
+        name: String(record.name || `config-${index + 1}.txt`),
+        path: String(record.path || `/etc/llm/config-${index + 1}.txt`),
+        content: typeof record.content === 'string' ? record.content : String(record.content ?? ''),
+        format: fileFormatOptions.includes(format) ? format : 'other',
+        enabled: typeof record.enabled === 'boolean' ? record.enabled : true,
+      };
+    });
+};
+
+const toMonacoLanguage = (format: LlmProviderFileBinding['format']) => {
+  switch (format) {
+    case 'json':
+      return 'json';
+    case 'yaml':
+    case 'yml':
+      return 'yaml';
+    case 'toml':
+      return 'ini';
+    case 'env':
+    case 'conf':
+    case 'ini':
+      return 'shell';
+    case 'md':
+      return 'markdown';
+    case 'xml':
+      return 'xml';
+    default:
+      return 'plaintext';
+  }
 };
 
 const normalizeDraft = (draft: Partial<LlmProviderUpsertRequest> | null | undefined): LlmProviderUpsertRequest => ({
@@ -27,6 +69,7 @@ const normalizeDraft = (draft: Partial<LlmProviderUpsertRequest> | null | undefi
   max_tokens: typeof draft?.max_tokens === 'number' && Number.isFinite(draft.max_tokens) ? draft.max_tokens : null,
   temperature: typeof draft?.temperature === 'number' && Number.isFinite(draft.temperature) ? draft.temperature : null,
   env_bindings: normalizeEnvBindings(draft?.env_bindings as Record<string, any> | undefined),
+  file_bindings: normalizeFileBindings(draft?.file_bindings),
   extra_config: draft?.extra_config && typeof draft.extra_config === 'object' && !Array.isArray(draft.extra_config) ? draft.extra_config : {},
   description: draft?.description ? String(draft.description) : '',
 });
@@ -51,6 +94,7 @@ const createEmptyForm = (): LlmProviderUpsertRequest => ({
   max_tokens: null,
   temperature: null,
   env_bindings: {},
+  file_bindings: [],
   extra_config: {},
   description: '',
 });
@@ -65,6 +109,51 @@ const providerTypeOptions = [
   'moonshot',
   'custom',
 ];
+
+const providerTypeRecommendedEnvKeys: Record<string, string[]> = {
+  'openai-compatible': ['OPENAI_BASE_URL', 'OPENAI_API_KEY', 'OPENAI_MODEL'],
+  'azure-openai': ['AZURE_OPENAI_ENDPOINT', 'AZURE_OPENAI_API_KEY', 'AZURE_OPENAI_API_VERSION', 'AZURE_OPENAI_DEPLOYMENT'],
+  'anthropic': ['ANTHROPIC_BASE_URL', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_MODEL'],
+  'deepseek': ['DEEPSEEK_BASE_URL', 'DEEPSEEK_API_KEY', 'DEEPSEEK_MODEL'],
+  'qwen': ['QWEN_BASE_URL', 'QWEN_API_KEY', 'QWEN_MODEL'],
+  'ollama': ['OLLAMA_BASE_URL', 'OLLAMA_MODEL'],
+  'moonshot': ['MOONSHOT_BASE_URL', 'MOONSHOT_API_KEY', 'MOONSHOT_MODEL'],
+  'custom': ['LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL'],
+};
+
+const buildRecommendedEnvValues = (draft: LlmProviderUpsertRequest): Record<string, string> => {
+  const providerType = String(draft.provider_type || '').trim();
+  const apiBase = String(draft.api_base || '').trim();
+  const apiKey = String(draft.api_key || '').trim();
+  const model = String(draft.model || '').trim();
+  const apiVersion = String(draft.api_version || '').trim();
+
+  switch (providerType) {
+    case 'openai-compatible':
+      return { OPENAI_BASE_URL: apiBase, OPENAI_API_KEY: apiKey, OPENAI_MODEL: model };
+    case 'azure-openai':
+      return {
+        AZURE_OPENAI_ENDPOINT: apiBase,
+        AZURE_OPENAI_API_KEY: apiKey,
+        AZURE_OPENAI_API_VERSION: apiVersion,
+        AZURE_OPENAI_DEPLOYMENT: model,
+      };
+    case 'anthropic':
+      return { ANTHROPIC_BASE_URL: apiBase, ANTHROPIC_AUTH_TOKEN: apiKey, ANTHROPIC_MODEL: model };
+    case 'deepseek':
+      return { DEEPSEEK_BASE_URL: apiBase, DEEPSEEK_API_KEY: apiKey, DEEPSEEK_MODEL: model };
+    case 'qwen':
+      return { QWEN_BASE_URL: apiBase, QWEN_API_KEY: apiKey, QWEN_MODEL: model };
+    case 'ollama':
+      return { OLLAMA_BASE_URL: apiBase, OLLAMA_MODEL: model };
+    case 'moonshot':
+      return { MOONSHOT_BASE_URL: apiBase, MOONSHOT_API_KEY: apiKey, MOONSHOT_MODEL: model };
+    case 'custom':
+      return { LLM_BASE_URL: apiBase, LLM_API_KEY: apiKey, LLM_MODEL: model };
+    default:
+      return {};
+  }
+};
 
 export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpenChat }) => {
   const [providers, setProviders] = useState<LlmProviderSummary[]>([]);
@@ -85,6 +174,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
   const [showBulkEnvImport, setShowBulkEnvImport] = useState(false);
   const [bulkEnvInput, setBulkEnvInput] = useState('');
   const [refreshNotice, setRefreshNotice] = useState('');
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
 
   const selectedSummary = useMemo(
     () => providers.find((item) => item.provider_key === selectedKey) || null,
@@ -142,6 +232,16 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     return () => window.clearTimeout(timer);
   }, [refreshNotice]);
 
+  useEffect(() => {
+    if ((form.file_bindings || []).length === 0) {
+      setActiveFileIndex(0);
+      return;
+    }
+    if (activeFileIndex >= form.file_bindings.length) {
+      setActiveFileIndex(form.file_bindings.length - 1);
+    }
+  }, [form.file_bindings, activeFileIndex]);
+
   const applyDetailToForm = (detail: LlmProviderDetail) => {
     const nextForm = normalizeDraft({
       provider_key: detail.provider_key,
@@ -158,6 +258,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
       max_tokens: detail.max_tokens ?? null,
       temperature: detail.temperature ?? null,
       env_bindings: normalizeEnvBindings(detail.env_bindings),
+      file_bindings: normalizeFileBindings(detail.file_bindings),
       extra_config: detail.extra_config || {},
       description: detail.description || '',
     });
@@ -379,7 +480,87 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     setShowBulkEnvImport(false);
   };
 
+  const handleAddRecommendedEnvBindings = () => {
+    const providerType = String(form.provider_type || '').trim();
+    const recommendedKeys = providerTypeRecommendedEnvKeys[providerType] || [];
+    if (recommendedKeys.length === 0) {
+      setError(`当前渠道类型 ${providerType || 'unknown'} 暂无推荐环境变量`);
+      return;
+    }
+
+    const nextBindings = { ...form.env_bindings };
+    const recommendedValues = buildRecommendedEnvValues(form);
+    let addedCount = 0;
+    let filledCount = 0;
+    for (const key of recommendedKeys) {
+      const normalizedKey = String(key || '').trim().toUpperCase();
+      if (!normalizedKey) continue;
+      const recommendedValue = String(recommendedValues[normalizedKey] ?? '');
+      if (!Object.prototype.hasOwnProperty.call(nextBindings, normalizedKey)) {
+        nextBindings[normalizedKey] = recommendedValue;
+        addedCount += 1;
+        if (recommendedValue) filledCount += 1;
+        continue;
+      }
+      const currentValue = String(nextBindings[normalizedKey] ?? '').trim();
+      if (!currentValue && recommendedValue) {
+        nextBindings[normalizedKey] = recommendedValue;
+        filledCount += 1;
+      }
+    }
+
+    if (addedCount === 0 && filledCount === 0) {
+      setMessage(`推荐环境变量已存在（${providerType}）`);
+      setError('');
+      return;
+    }
+
+    setForm({
+      ...form,
+      env_bindings: nextBindings,
+    });
+    setMessage(`已为 ${providerType} 处理推荐变量：新增 ${addedCount} 个，自动填充值 ${filledCount} 个`);
+    setError('');
+  };
+
   const envEntries = Object.entries(form.env_bindings || {});
+  const fileBindings = form.file_bindings || [];
+  const activeFile = fileBindings[activeFileIndex] || null;
+
+  const addFileBinding = () => {
+    const nextIndex = fileBindings.length + 1;
+    setForm({
+      ...form,
+      file_bindings: [
+        ...fileBindings,
+        {
+          name: `config-${nextIndex}.yaml`,
+          path: `/etc/llm/config-${nextIndex}.yaml`,
+          content: '',
+          format: 'yaml',
+          enabled: true,
+        },
+      ],
+    });
+    setActiveFileIndex(fileBindings.length);
+  };
+
+  const removeFileBinding = (index: number) => {
+    const next = fileBindings.filter((_, i) => i !== index);
+    setForm({ ...form, file_bindings: next });
+    if (next.length === 0) {
+      setActiveFileIndex(0);
+      return;
+    }
+    if (activeFileIndex >= next.length) {
+      setActiveFileIndex(next.length - 1);
+    }
+  };
+
+  const updateFileBinding = (index: number, patch: Partial<LlmProviderFileBinding>) => {
+    const next = fileBindings.map((item, i) => (i === index ? { ...item, ...patch } : item));
+    setForm({ ...form, file_bindings: next });
+  };
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-500">
@@ -629,28 +810,37 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
                   <Sparkles size={16} className="text-blue-500" />
                   环境变量绑定
                 </h3>
-                <p className="mt-1 text-xs text-slate-500">默认环境变量键会保留为空值，只有你手动填写后才会写入具体内容，密钥仍通过独立字段管理。</p>
+                <p className="mt-1 text-xs text-slate-500">可按当前渠道类型一键补充推荐环境变量键，默认留空且不会覆盖你已填写的同名变量。</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setForm({
-                  ...form,
-                  env_bindings: {
-                    ...form.env_bindings,
-                    [`CUSTOM_ENV_${envEntries.length + 1}`]: '',
-                  },
-                })}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
-              >
-                添加变量
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowBulkEnvImport((current) => !current)}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
-              >
-                {showBulkEnvImport ? '收起批量导入' : '批量导入'}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAddRecommendedEnvBindings}
+                  className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black text-blue-700"
+                >
+                  添加推荐变量
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({
+                    ...form,
+                    env_bindings: {
+                      ...form.env_bindings,
+                      [`CUSTOM_ENV_${envEntries.length + 1}`]: '',
+                    },
+                  })}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+                >
+                  添加变量
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkEnvImport((current) => !current)}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+                >
+                  {showBulkEnvImport ? '收起批量导入' : '批量导入'}
+                </button>
+              </div>
             </div>
 
             {showBulkEnvImport && (
@@ -736,13 +926,126 @@ API_TIMEOUT_MS=600000`}
             </div>
           </div>
 
+          <div className="mt-8 rounded-[2rem] border border-slate-200 bg-slate-50 p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <FileCode2 size={16} className="text-blue-500" />
+                  配置文件注入
+                </h3>
+                <p className="mt-1 text-xs text-slate-500">支持配置多个文本文件（JSON/YAML/TOML/ENV 等），由服务方自行决定如何消费这些文件内容。</p>
+              </div>
+              <button
+                type="button"
+                onClick={addFileBinding}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-600"
+              >
+                新增文件
+              </button>
+            </div>
+
+            {fileBindings.length === 0 ? (
+              <div className="mt-5 rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs font-medium text-slate-500">
+                当前没有配置文件注入项。可按需新增多个文件并在线编辑内容。
+              </div>
+            ) : (
+              <div className="mt-5 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {fileBindings.map((binding, index) => (
+                    <button
+                      key={`${binding.path}-${index}`}
+                      type="button"
+                      onClick={() => setActiveFileIndex(index)}
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black ${activeFileIndex === index ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600'}`}
+                    >
+                      <span>{binding.name || `file-${index + 1}`}</span>
+                      {!binding.enabled && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">disabled</span>}
+                    </button>
+                  ))}
+                </div>
+
+                {activeFile && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">文件名</label>
+                        <input
+                          value={activeFile.name}
+                          onChange={(event) => updateFileBinding(activeFileIndex, { name: event.target.value })}
+                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                          placeholder="provider-config.yaml"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">文件路径</label>
+                        <input
+                          value={activeFile.path}
+                          onChange={(event) => updateFileBinding(activeFileIndex, { path: event.target.value })}
+                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                          placeholder="/etc/llm/provider-config.yaml"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">格式</label>
+                        <select
+                          value={activeFile.format}
+                          onChange={(event) => updateFileBinding(activeFileIndex, { format: event.target.value as LlmProviderFileBinding['format'] })}
+                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                        >
+                          {fileFormatOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <label className="inline-flex items-center gap-2 text-xs font-black text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={activeFile.enabled}
+                            onChange={(event) => updateFileBinding(activeFileIndex, { enabled: event.target.checked })}
+                            className="h-4 w-4 rounded border-slate-300"
+                          />
+                          启用该文件
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => removeFileBinding(activeFileIndex)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-600"
+                        >
+                          <Trash2 size={14} />
+                          删除
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+                      <MonacoEditor
+                        height="360px"
+                        language={toMonacoLanguage(activeFile.format)}
+                        value={activeFile.content}
+                        onChange={(value) => updateFileBinding(activeFileIndex, { content: value ?? '' })}
+                        theme="vs-dark"
+                        options={{
+                          minimap: { enabled: true },
+                          fontSize: 13,
+                          wordWrap: 'on',
+                          automaticLayout: true,
+                          scrollBeyondLastLine: false,
+                          tabSize: 2,
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="rounded-[2rem] border border-slate-200 bg-white px-5 py-4">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
                 <CheckCircle2 size={14} className="text-green-500" />
                 可选绑定
               </div>
-              <p className="mt-3 text-xs text-slate-600">环境变量绑定完全按需填写，不再预置任何默认项。</p>
+              <p className="mt-3 text-xs text-slate-600">支持按渠道类型一键补充推荐键，也支持按需手动增删和批量导入。</p>
             </div>
             <div className="rounded-[2rem] border border-slate-200 bg-white px-5 py-4">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
