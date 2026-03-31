@@ -55,6 +55,7 @@ const createDefaultCustomLlmConfig = (): LlmProviderDetail => ({
   max_tokens: null,
   temperature: null,
   env_bindings: {},
+  file_bindings: [],
   extra_config: {},
   description: '',
   created_at: null,
