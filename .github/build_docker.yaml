@@ -12,12 +12,6 @@ jobs:
         with:
           submodules: 'true'
 
-      - name: clean to default
-        run: sed -i 's/https:\/\/secflow.819819.xyz//g'   ./api/base.ts
-
-      - name: cat packageService.ts
-        run: cat ./api/base.ts
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
