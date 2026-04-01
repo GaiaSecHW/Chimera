@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const buildTime = env.BUILD_TIME || new Date().toISOString().replace('T', ' ').slice(0, 19);
     return {
+      base: './',
       server: {
         port: 3000,
         host: '0.0.0.0',

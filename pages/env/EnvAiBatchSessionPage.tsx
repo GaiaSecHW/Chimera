@@ -6,6 +6,8 @@ import { AiBatchRound, AiBatchSession, AiBatchStreamEvent, AiHelperService } fro
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, JsonBlock, buildHelperKey, prettyJson, useAiHelpers } from './ai-agent/shared';
 
+const BATCH_SESSION_MODE_KEY = 'secflow_ai_batch_session_mode';
+
 export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const { loading, helpers, reload } = useAiHelpers(projectId, notify);
@@ -18,7 +20,17 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
   const [message, setMessage] = useState('');
   const [busyAction, setBusyAction] = useState('');
   const [transportMode, setTransportMode] = useState<'stream' | 'non_stream'>('stream');
+  const [batchSessionMode, setBatchSessionMode] = useState<'pipe' | 'pty' | 'invoke'>(() => {
+    const raw = String(localStorage.getItem(BATCH_SESSION_MODE_KEY) || '').toLowerCase();
+    if (raw === 'pty') return 'pty';
+    if (raw === 'invoke') return 'invoke';
+    return 'pipe';
+  });
   const [streamEvents, setStreamEvents] = useState<AiBatchStreamEvent[]>([]);
+
+  useEffect(() => {
+    localStorage.setItem(BATCH_SESSION_MODE_KEY, batchSessionMode);
+  }, [batchSessionMode]);
 
   useEffect(() => {
     if (!selectedHelpers.length && helpers.length > 0) {
@@ -55,6 +67,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
     setBusyAction('create');
     try {
       const payload = {
+        session_mode: batchSessionMode,
         helpers: selectedHelpers.map((key) => {
           const [agentKey = '', serviceName = ''] = key.split('::');
           const agentIds = selectedAgentIds[key] || [];
@@ -62,6 +75,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
             agent_key: agentKey,
             service_name: serviceName,
             agent_ids: agentIds.length > 0 ? agentIds : undefined,
+            session_mode: batchSessionMode,
           };
         }),
         metadata: { source: 'env-ai-batch-session-page' },
@@ -170,6 +184,23 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           {loading ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div> : null}
           <div className="space-y-3 max-h-[980px] overflow-auto pr-1">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">会话模式</div>
+              <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                <label className="inline-flex items-center gap-2">
+                  <input type="radio" name="batch-session-mode" checked={batchSessionMode === 'pipe'} onChange={() => setBatchSessionMode('pipe')} />
+                  非VTY（默认）
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input type="radio" name="batch-session-mode" checked={batchSessionMode === 'pty'} onChange={() => setBatchSessionMode('pty')} />
+                  VTY
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input type="radio" name="batch-session-mode" checked={batchSessionMode === 'invoke'} onChange={() => setBatchSessionMode('invoke')} />
+                  经典（单轮）
+                </label>
+              </div>
+            </div>
             {helperCards.length === 0 ? <EmptyState text="当前项目下没有识别到 AI helper 服务。" /> : helperCards.map(({ helper, key, detail }) => {
               const checked = selectedHelpers.includes(key);
               const selectedIds = selectedAgentIds[key] || [];

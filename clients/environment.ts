@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget } from '../types/types';
 
 const normalizeTask = (raw: any): AsyncTask => ({
   id: raw?.id || raw?.task_id || '',
@@ -397,6 +397,9 @@ export const environmentApi = {
   getAiHelperAgentEnv: async (projectId: string, agentKey: string, serviceName: string, agentId: string): Promise<{ name: string; env: Record<string, string> }> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/agents/${encodeURIComponent(agentId)}/env?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 
+  getAiHelperRuntimeEnv: async (projectId: string, agentKey: string, serviceName: string): Promise<AiHelperRuntimeEnv> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/helper-env?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
   replaceAiHelperAgentEnv: async (projectId: string, agentKey: string, serviceName: string, agentId: string, env: Record<string, string>): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/agents/${encodeURIComponent(agentId)}/env?project_id=${encodeURIComponent(projectId)}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify({ project_id: projectId, env }) })),
 
@@ -443,7 +446,17 @@ export const environmentApi = {
       body: JSON.stringify({ project_id: projectId, targets }),
     })),
 
-  createAiHelperSession: async (projectId: string, agentKey: string, serviceName: string, payload: any): Promise<AiAgentSession> =>
+  createAiHelperSession: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    payload: {
+      agent_id?: string;
+      agent_ids?: string[];
+      session_mode?: 'pipe' | 'pty' | 'invoke';
+      metadata?: Record<string, any>;
+    }
+  ): Promise<AiAgentSession> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions?project_id=${encodeURIComponent(projectId)}`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...payload, project_id: projectId }) })),
 
   getAiHelperSession: async (projectId: string, agentKey: string, serviceName: string, sessionId: string): Promise<AiAgentSession> =>
@@ -500,7 +513,20 @@ export const environmentApi = {
     }
   },
 
-  createAiBatchSession: async (projectId: string, payload: any): Promise<any> =>
+  createAiBatchSession: async (
+    projectId: string,
+    payload: {
+      session_mode?: 'pipe' | 'pty' | 'invoke';
+      metadata?: Record<string, any>;
+      helpers: Array<{
+        agent_key: string;
+        service_name: string;
+        agent_id?: string;
+        agent_ids?: string[];
+        session_mode?: 'pipe' | 'pty' | 'invoke';
+      }>;
+    }
+  ): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/batch`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...payload, project_id: projectId }) })),
 
   getAiBatchSession: async (batchId: string): Promise<AiBatchSession> =>

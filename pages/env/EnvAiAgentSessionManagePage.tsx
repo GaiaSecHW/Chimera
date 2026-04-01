@@ -31,10 +31,25 @@ const parseInvalidReason = (reason: string) => {
   const text = String(reason || '');
   if (text.startsWith('status_not_ready:')) return `状态异常(${text.replace('status_not_ready:', '') || 'unknown'})`;
   if (text === 'pty_missing') return 'PTY 缺失';
+  if (text === 'backend_pid_missing') return 'Backend PID 缺失';
   if (text === 'backend_not_found_in_helper_agents') return 'backend 不在当前 helper agent 列表';
   if (text.startsWith('agent_ids_not_found:')) return `agent_ids 不匹配(${text.replace('agent_ids_not_found:', '')})`;
   return text || '未知异常';
 };
+
+const sessionModeLabel = (mode?: string) => {
+  const text = String(mode || '').toLowerCase();
+  if (text === 'pty') return 'VTY';
+  if (text === 'pipe') return '非VTY';
+  if (text === 'invoke') return '经典';
+  return '非VTY';
+};
+const sessionModeTone = (mode?: string) =>
+  String(mode || '').toLowerCase() === 'pty'
+    ? 'bg-violet-100 text-violet-700 border-violet-200'
+    : String(mode || '').toLowerCase() === 'invoke'
+    ? 'bg-amber-100 text-amber-700 border-amber-200'
+    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
 
 const joinAgentDisplay = (item: Pick<ProjectAiAgentSessionItem, 'backend' | 'agent_ids'>) => {
   const ids = Array.isArray(item.agent_ids) ? item.agent_ids.filter(Boolean) : [];
@@ -527,7 +542,12 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                         <div className="inline-flex items-center gap-1.5"><SquareTerminal size={12} className="text-cyan-700" />{item.backend || '-'}</div>
                         <div className="mt-0.5 text-slate-500">{joinAgentDisplay(item) || '-'}</div>
                       </td>
-                      <td className="px-2 py-2 align-top"><span className={`inline-flex rounded-full border px-2 py-0.5 font-semibold ${statusBadge(item.status)}`}>{item.status || 'unknown'}</span></td>
+                      <td className="px-2 py-2 align-top">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className={`inline-flex rounded-full border px-2 py-0.5 font-semibold ${statusBadge(item.status)}`}>{item.status || 'unknown'}</span>
+                          <span className={`inline-flex rounded-full border px-2 py-0.5 font-semibold ${sessionModeTone(item.session_mode)}`}>{sessionModeLabel(item.session_mode)}</span>
+                        </div>
+                      </td>
                       <td className="px-2 py-2 align-top">{resolveBackendPid(item) ?? '-'}</td>
                       <td className="px-2 py-2 align-top">{compactTime(item.updated_at || item.created_at)}</td>
                       <td className="px-2 py-2 align-top">

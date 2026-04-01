@@ -21,6 +21,7 @@ import {
   AiAgentLlmProviderDetail,
   AiAgentLlmProviderSummary,
   AiHelperService,
+  AiHelperRuntimeEnv,
   ProjectAiAgentItem,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -779,6 +780,9 @@ const AgentDetailDrawer: React.FC<{
   onAction: (action: 'activate' | 'start' | 'stop' | 'delete', agent: ProjectAiAgentItem) => Promise<void>;
   onSaveAgent: () => Promise<void>;
   onSaveEnv: () => Promise<void>;
+  helperRuntimeEnv: AiHelperRuntimeEnv | null;
+  helperRuntimeEnvLoading: boolean;
+  onRefreshHelperRuntimeEnv: () => Promise<void>;
   onOpenLlmModal: () => void;
   providerUpdatedAtMap: Map<string, string>;
 }> = ({
@@ -803,6 +807,9 @@ const AgentDetailDrawer: React.FC<{
   onAction,
   onSaveAgent,
   onSaveEnv,
+  helperRuntimeEnv,
+  helperRuntimeEnvLoading,
+  onRefreshHelperRuntimeEnv,
   onOpenLlmModal,
   providerUpdatedAtMap,
 }) => {
@@ -954,6 +961,32 @@ const AgentDetailDrawer: React.FC<{
                   添加环境变量
                 </button>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-black text-slate-900">HELPER运行环境变量</div>
+                <button
+                  onClick={() => void onRefreshHelperRuntimeEnv()}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
+                >
+                  {helperRuntimeEnvLoading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+                  实时刷新
+                </button>
+              </div>
+              <div className="mt-2 text-xs text-slate-500">
+                当前 Agent 未显式配置的变量将继承 Helper 进程环境变量；当 Agent 自身配置了同名变量时，将覆盖 Helper 变量。
+              </div>
+              <JsonBlock
+                title="Helper 进程环境变量"
+                value={{
+                  pid: helperRuntimeEnv?.pid ?? null,
+                  count: helperRuntimeEnv?.count ?? Object.keys(helperRuntimeEnv?.env || {}).length,
+                  updated_at: helperRuntimeEnv?.updated_at || null,
+                  env: helperRuntimeEnv?.env || {},
+                }}
+                className="mt-3 bg-slate-50"
+              />
             </div>
 
             {showEnvImportModal ? (
@@ -1127,6 +1160,8 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
   const [envImportText, setEnvImportText] = useState('');
   const [envImportError, setEnvImportError] = useState('');
+  const [helperRuntimeEnv, setHelperRuntimeEnv] = useState<AiHelperRuntimeEnv | null>(null);
+  const [helperRuntimeEnvLoading, setHelperRuntimeEnvLoading] = useState(false);
   const [llmProviders, setLlmProviders] = useState<AiAgentLlmProviderSummary[]>([]);
   const [singleProviderKey, setSingleProviderKey] = useState('');
   const [singleProviderDetail, setSingleProviderDetail] = useState<AiAgentLlmProviderDetail | null>(null);
@@ -1219,6 +1254,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
     if (!selectedKey) {
       setSelectedAgent(null);
       setSelectedHelper(null);
+      setHelperRuntimeEnv(null);
       return;
     }
     const [agentKey = '', serviceName = '', agentId = ''] = selectedKey.split('::');
@@ -1316,15 +1352,35 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   }, [projectId, batchProviderKey, batchPreviewBackendType, selectedAgents.length, showBatchLlmModal, notify]);
 
   const loadHelper = async (agentKey: string, serviceName: string, focusAgentId?: string) => {
+    setHelperRuntimeEnvLoading(true);
     try {
-      const detail = await api.environment.getAiHelperDetail(projectId, agentKey, serviceName);
+      const [detail, runtimeEnv] = await Promise.all([
+        api.environment.getAiHelperDetail(projectId, agentKey, serviceName),
+        api.environment.getAiHelperRuntimeEnv(projectId, agentKey, serviceName).catch(() => null),
+      ]);
       setSelectedHelper(detail);
+      setHelperRuntimeEnv(runtimeEnv);
       const focused = (detail.agents || []).find((item) => item.agent_id === focusAgentId);
       if (focused) {
         setEnvEntries(envObjectToEntries(focused.env));
       }
     } catch (error: any) {
       notify(`加载 Agent 所属 helper 详情失败: ${error?.message || error}`, 'error');
+    } finally {
+      setHelperRuntimeEnvLoading(false);
+    }
+  };
+
+  const refreshHelperRuntimeEnv = async () => {
+    if (!selectedAgent) return;
+    setHelperRuntimeEnvLoading(true);
+    try {
+      const runtimeEnv = await api.environment.getAiHelperRuntimeEnv(projectId, selectedAgent.agent_key, selectedAgent.service_name);
+      setHelperRuntimeEnv(runtimeEnv);
+    } catch (error: any) {
+      notify(`加载 Helper 运行环境变量失败: ${error?.message || error}`, 'error');
+    } finally {
+      setHelperRuntimeEnvLoading(false);
     }
   };
 
@@ -1836,6 +1892,9 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
             onAction={runAgentAction}
             onSaveAgent={saveAgent}
             onSaveEnv={saveEnv}
+            helperRuntimeEnv={helperRuntimeEnv}
+            helperRuntimeEnvLoading={helperRuntimeEnvLoading}
+            onRefreshHelperRuntimeEnv={refreshHelperRuntimeEnv}
             onOpenLlmModal={() => setShowSingleLlmModal(true)}
             providerUpdatedAtMap={providerUpdatedAtMap}
           />

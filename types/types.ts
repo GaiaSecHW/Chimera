@@ -1133,6 +1133,13 @@ export interface AiHelperService {
   updated_at?: string;
 }
 
+export interface AiHelperRuntimeEnv {
+  pid?: number | null;
+  count?: number;
+  updated_at?: string;
+  env: Record<string, string>;
+}
+
 export interface AiAgentItem {
   agent_id: string;
   name: string;
@@ -1230,6 +1237,7 @@ export interface AiAgentSession {
   session_id: string;
   backend?: string;
   agent_ids?: string[];
+  session_mode?: 'pipe' | 'pty' | 'invoke';
   status?: 'ready' | 'broken' | 'closed';
   pty_pid?: number | null;
   backend_pid?: number | null;

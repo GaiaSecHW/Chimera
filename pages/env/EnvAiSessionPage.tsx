@@ -8,6 +8,7 @@ import { EmptyState, buildHelperKey, parseHelperKey, useAiHelpers } from './ai-a
 
 const SESSION_AUTO_SYNC_ENABLED_KEY = 'secflow_ai_session_auto_sync_enabled';
 const SESSION_AUTO_SYNC_INTERVAL_KEY = 'secflow_ai_session_auto_sync_interval_ms';
+const SESSION_MODE_KEY = 'secflow_ai_session_mode';
 
 const compactTime = (value?: string) => {
   if (!value) return '-';
@@ -35,6 +36,20 @@ const statusTone = (status?: string) => {
   return 'bg-slate-100 text-slate-600 border-slate-200';
 };
 
+const sessionModeLabel = (mode?: string) => {
+  const text = String(mode || '').toLowerCase();
+  if (text === 'pty') return 'VTY';
+  if (text === 'pipe') return '非VTY';
+  if (text === 'invoke') return '经典';
+  return '非VTY';
+};
+const sessionModeTone = (mode?: string) =>
+  String(mode || '').toLowerCase() === 'pty'
+    ? 'bg-violet-100 text-violet-700 border-violet-200'
+    : String(mode || '').toLowerCase() === 'invoke'
+    ? 'bg-amber-100 text-amber-700 border-amber-200'
+    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
+
 export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const { loading, helpers, reload } = useAiHelpers(projectId, notify);
@@ -47,6 +62,12 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   const [message, setMessage] = useState('');
   const [busyAction, setBusyAction] = useState('');
   const [transportMode, setTransportMode] = useState<'stream' | 'non_stream'>('stream');
+  const [sessionMode, setSessionMode] = useState<'pipe' | 'pty' | 'invoke'>(() => {
+    const raw = String(localStorage.getItem(SESSION_MODE_KEY) || '').toLowerCase();
+    if (raw === 'pty') return 'pty';
+    if (raw === 'invoke') return 'invoke';
+    return 'pipe';
+  });
   const [helperSearch, setHelperSearch] = useState('');
   const [lastSyncedAt, setLastSyncedAt] = useState<string>('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => {
@@ -124,6 +145,10 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   }, [autoSyncIntervalMs]);
 
   useEffect(() => {
+    localStorage.setItem(SESSION_MODE_KEY, sessionMode);
+  }, [sessionMode]);
+
+  useEffect(() => {
     if (!selectedHelperKey) return;
     if (!autoSyncEnabled) return;
     const { agentKey, serviceName } = parseHelperKey(selectedHelperKey);
@@ -160,6 +185,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     try {
       const session = await api.environment.createAiHelperSession(projectId, selectedHelper.agent_key, selectedHelper.service_name, {
         agent_ids: selectedAgentId ? [selectedAgentId] : undefined,
+        session_mode: sessionMode,
         metadata: { source: 'env-ai-session-page' },
       });
       setCurrentSessionId(session.session_id);
@@ -365,6 +391,23 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   </button>
                 </div>
                 <div className="text-xs text-slate-500">先选择参与 Agent，再创建会话。</div>
+                <div className="mt-2 rounded-xl border border-slate-200 bg-white p-2.5">
+                  <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">会话模式</div>
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="radio" name="single-session-mode" checked={sessionMode === 'pipe'} onChange={() => setSessionMode('pipe')} />
+                      非VTY（默认）
+                    </label>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="radio" name="single-session-mode" checked={sessionMode === 'pty'} onChange={() => setSessionMode('pty')} />
+                      VTY
+                    </label>
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="radio" name="single-session-mode" checked={sessionMode === 'invoke'} onChange={() => setSessionMode('invoke')} />
+                      经典（单轮）
+                    </label>
+                  </div>
+                </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {helperAgentOptions.length === 0 ? <div className="text-xs text-slate-500">当前 helper 没有可选 agent。</div> : helperAgentOptions.map((agent) => {
                     const checked = selectedAgentId === agent.agent_id;
@@ -416,6 +459,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         <div className="mt-0.5 flex items-center gap-2 text-[11px]">
                           <span className="font-semibold text-cyan-700">AI Agent</span>
                           <span className="text-slate-400">|</span>
+                          <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sessionModeTone(session.session_mode)}`}>{sessionModeLabel(session.session_mode)}</span>
+                          <span className="text-slate-400">|</span>
                           <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${statusTone(session.status)}`}>{session.status || 'unknown'}</span>
                           <span className="text-slate-400">|</span>
                           <span className="text-slate-500">Backend PID {resolveBackendPid(session) ?? '-'}</span>
@@ -456,6 +501,9 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         <span className="text-slate-400">·</span>
                         <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${statusTone(currentSession.status)}`}>
                           {currentSession.status || 'unknown'}
+                        </span>
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold ${sessionModeTone(currentSession.session_mode)}`}>
+                          {sessionModeLabel(currentSession.session_mode)}
                         </span>
                         <span className="text-slate-400">·</span>
                         <span className="text-slate-600">Backend PID: {resolveBackendPid(currentSession) ?? '-'}</span>
