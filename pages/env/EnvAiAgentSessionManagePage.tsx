@@ -520,44 +520,49 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                   <th className="px-2 py-2 text-left">AI Agent</th>
                   <th className="px-2 py-2 text-left">状态</th>
                   <th className="px-2 py-2 text-left">backend_pid</th>
-                  <th className="px-2 py-2 text-left">更新时间</th>
                   <th className="px-2 py-2 text-left">异常原因</th>
                   <th className="px-2 py-2 text-right">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td className="px-3 py-8 text-center text-slate-500" colSpan={10}><span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" />加载中...</span></td></tr>
+                  <tr><td className="px-3 py-8 text-center text-slate-500" colSpan={9}><span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" />加载中...</span></td></tr>
                 ) : items.length === 0 ? (
-                  <tr><td colSpan={10} className="p-3"><EmptyState text="当前筛选条件下没有会话。" /></td></tr>
+                  <tr><td colSpan={9} className="p-3"><EmptyState text="当前筛选条件下没有会话。" /></td></tr>
                 ) : items.map((item) => {
                   const rowKey = buildSessionKey(item);
                   return (
                     <tr key={rowKey} className={item.is_invalid ? 'bg-amber-50/40' : 'bg-white'}>
-                      <td className="px-2 py-2 align-top"><input type="checkbox" checked={selectedKeys.includes(rowKey)} onChange={(event) => toggleSelected(item, event.target.checked)} /></td>
-                      <td className="px-2 py-2 align-top"><div className="font-semibold text-slate-800">{item.agent_hostname || item.agent_key}</div><div className="text-slate-500">{item.agent_key}</div></td>
-                      <td className="px-2 py-2 align-top">{item.service_name}</td>
-                      <td className="px-2 py-2 align-top font-mono text-[11px]">{item.session_id}</td>
-                      <td className="px-2 py-2 align-top">
-                        <div className="inline-flex items-center gap-1.5"><SquareTerminal size={12} className="text-cyan-700" />{item.backend || '-'}</div>
-                        <div className="mt-0.5 text-slate-500">{joinAgentDisplay(item) || '-'}</div>
+                      <td className="px-2 py-2.5 align-top"><input type="checkbox" checked={selectedKeys.includes(rowKey)} onChange={(event) => toggleSelected(item, event.target.checked)} /></td>
+                      <td className="px-2 py-2.5 align-top"><div className="font-semibold text-slate-800">{item.agent_hostname || item.agent_key}</div><div className="text-slate-500">{item.agent_key}</div></td>
+                      <td className="px-2 py-2.5 align-top">{item.service_name}</td>
+                      <td className="px-2 py-2.5 align-top font-mono text-[11px]">{item.session_id}</td>
+                      <td className="px-2 py-2.5 align-top">
+                        <div className="inline-flex max-w-[220px] items-center gap-1 truncate rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
+                          <SquareTerminal size={11} className="shrink-0" />
+                          {item.backend || '-'}
+                        </div>
+                        <div className="mt-1 text-slate-500">{joinAgentDisplay(item) || '-'}</div>
                       </td>
-                      <td className="px-2 py-2 align-top">
+                      <td className="px-2 py-2.5 align-top">
                         <div className="flex flex-wrap items-center gap-1">
                           <span className={`inline-flex rounded-full border px-2 py-0.5 font-semibold ${statusBadge(item.status)}`}>{item.status || 'unknown'}</span>
                           <span className={`inline-flex rounded-full border px-2 py-0.5 font-semibold ${sessionModeTone(item.session_mode)}`}>{sessionModeLabel(item.session_mode)}</span>
                         </div>
                       </td>
-                      <td className="px-2 py-2 align-top">{resolveBackendPid(item) ?? '-'}</td>
-                      <td className="px-2 py-2 align-top">{compactTime(item.updated_at || item.created_at)}</td>
-                      <td className="px-2 py-2 align-top">
+                      <td className="px-2 py-2.5 align-top">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                          PID {resolveBackendPid(item) ?? '-'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 align-top">
                         {!item.is_invalid ? <span className="text-emerald-700">正常</span> : (
                           <div className="space-y-0.5 text-amber-800">
                             {(item.invalid_reasons || []).map((reason) => <div key={reason}>{parseInvalidReason(reason)}</div>)}
                           </div>
                         )}
                       </td>
-                      <td className="px-2 py-2 align-top text-right">
+                      <td className="px-2 py-2.5 align-top text-right">
                         <button
                           onClick={() => void terminateSingle(item)}
                           disabled={!!busyKey}

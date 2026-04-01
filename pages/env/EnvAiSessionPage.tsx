@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Bot, Loader2, RefreshCw, Send, Trash2 } from 'lucide-react';
+import { Bot, Loader2, RefreshCw, Send, SquareTerminal, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import { api } from '../../clients/api';
 import { AiAgentSession, AiHelperService, AiSessionStreamEvent } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { EmptyState, buildHelperKey, parseHelperKey, useAiHelpers } from './ai-agent/shared';
+import { EmptyState, buildHelperKey, navigateToAppView, parseHelperKey, useAiHelpers } from './ai-agent/shared';
 
 const SESSION_AUTO_SYNC_ENABLED_KEY = 'secflow_ai_session_auto_sync_enabled';
 const SESSION_AUTO_SYNC_INTERVAL_KEY = 'secflow_ai_session_auto_sync_interval_ms';
@@ -39,16 +41,41 @@ const statusTone = (status?: string) => {
 const sessionModeLabel = (mode?: string) => {
   const text = String(mode || '').toLowerCase();
   if (text === 'pty') return 'VTY';
-  if (text === 'pipe') return '非VTY';
+  if (text === 'pipe') return 'PIPE(已停用)';
   if (text === 'invoke') return '经典';
-  return '非VTY';
+  return '经典';
 };
 const sessionModeTone = (mode?: string) =>
   String(mode || '').toLowerCase() === 'pty'
     ? 'bg-violet-100 text-violet-700 border-violet-200'
     : String(mode || '').toLowerCase() === 'invoke'
     ? 'bg-amber-100 text-amber-700 border-amber-200'
-    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
+    : 'bg-zinc-100 text-zinc-700 border-zinc-200';
+
+const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
+  <div className="markdown-body break-words leading-6">
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        a: ({ children, href }) => (
+          <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-blue-600 underline underline-offset-2">
+            {children}
+          </a>
+        ),
+        ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
+        blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-slate-300 bg-slate-100 px-3 py-1.5 italic last:mb-0">{children}</blockquote>,
+        code: ({ children, className }) => (className
+          ? <code className="block overflow-x-auto rounded-xl bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100">{children}</code>
+          : <code className="rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[0.9em]">{children}</code>),
+        pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  </div>
+);
 
 export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
@@ -62,11 +89,10 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   const [message, setMessage] = useState('');
   const [busyAction, setBusyAction] = useState('');
   const [transportMode, setTransportMode] = useState<'stream' | 'non_stream'>('stream');
-  const [sessionMode, setSessionMode] = useState<'pipe' | 'pty' | 'invoke'>(() => {
+  const [sessionMode, setSessionMode] = useState<'pty' | 'invoke'>(() => {
     const raw = String(localStorage.getItem(SESSION_MODE_KEY) || '').toLowerCase();
     if (raw === 'pty') return 'pty';
-    if (raw === 'invoke') return 'invoke';
-    return 'pipe';
+    return 'invoke';
   });
   const [helperSearch, setHelperSearch] = useState('');
   const [lastSyncedAt, setLastSyncedAt] = useState<string>('');
@@ -329,6 +355,13 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
               <p className="mt-1 text-sm text-slate-500">更紧凑的单会话视图：左侧管理会话，右侧专注对话。</p>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigateToAppView('env-ai-agent-session-manage')}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-700"
+              >
+                <SquareTerminal size={15} />
+                会话管理
+              </button>
               <span className="text-[11px] text-slate-500">最后同步: {compactTime(lastSyncedAt)}</span>
               <label className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-2 py-1 text-xs text-slate-600">
                 <input
@@ -395,16 +428,12 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs">
                     <label className="inline-flex items-center gap-1.5">
-                      <input type="radio" name="single-session-mode" checked={sessionMode === 'pipe'} onChange={() => setSessionMode('pipe')} />
-                      非VTY（默认）
-                    </label>
-                    <label className="inline-flex items-center gap-1.5">
                       <input type="radio" name="single-session-mode" checked={sessionMode === 'pty'} onChange={() => setSessionMode('pty')} />
                       VTY
                     </label>
                     <label className="inline-flex items-center gap-1.5">
                       <input type="radio" name="single-session-mode" checked={sessionMode === 'invoke'} onChange={() => setSessionMode('invoke')} />
-                      经典（单轮）
+                      经典（默认）
                     </label>
                   </div>
                 </div>
@@ -436,9 +465,9 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   <div className="text-sm font-black text-slate-900">会话列表</div>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{sessions.length}</span>
                 </div>
-                <div className="space-y-1.5 max-h-[540px] overflow-auto pr-1">
+                <div className="space-y-2 max-h-[540px] overflow-auto pr-1">
                   {sessions.length === 0 ? <div className="text-sm text-slate-500">暂无会话。</div> : sessions.map((session) => (
-                    <div key={session.session_id} className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 ${currentSessionId === session.session_id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'}`}>
+                    <div key={session.session_id} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 ${currentSessionId === session.session_id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'}`}>
                       <button
                         onClick={async () => {
                           if (!selectedHelper) return;
@@ -448,24 +477,19 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                         }}
                         className="min-w-0 flex-1 text-left"
                       >
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="font-black text-slate-900">{shortSessionId(session.session_id)}</span>
-                          <span className="text-slate-400">·</span>
-                          <span className="inline-flex max-w-[180px] items-center gap-1 truncate rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-800">
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <span className="font-mono font-black text-slate-900">{shortSessionId(session.session_id)}</span>
+                          <span className="inline-flex max-w-[210px] items-center gap-1 truncate rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-800">
                             <Bot size={11} />
                             {(session.agent_ids || []).join(', ') || session.backend || '-'}
                           </span>
                         </div>
-                        <div className="mt-0.5 flex items-center gap-2 text-[11px]">
-                          <span className="font-semibold text-cyan-700">AI Agent</span>
-                          <span className="text-slate-400">|</span>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
                           <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sessionModeTone(session.session_mode)}`}>{sessionModeLabel(session.session_mode)}</span>
-                          <span className="text-slate-400">|</span>
                           <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${statusTone(session.status)}`}>{session.status || 'unknown'}</span>
-                          <span className="text-slate-400">|</span>
-                          <span className="text-slate-500">Backend PID {resolveBackendPid(session) ?? '-'}</span>
-                          <span className="text-slate-400">|</span>
-                          <span className="text-slate-500">{compactTime(session.updated_at || session.created_at)}</span>
+                          <span className="rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                            PID {resolveBackendPid(session) ?? '-'}
+                          </span>
                         </div>
                         {session.last_error ? <div className="mt-1 truncate text-[11px] text-rose-600">{session.last_error}</div> : null}
                       </button>
@@ -542,13 +566,15 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                     </div>
                     <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
                       {(currentSession.messages || []).map((item, index) => (
-                        <div key={`${item.role}-${index}`} className={`rounded-lg border px-3 py-2 text-sm whitespace-pre-wrap ${item.role === 'assistant' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 bg-blue-50'}`}>
+                        <div key={`${item.role}-${index}`} className={`rounded-lg border px-3 py-2 text-sm ${item.role === 'assistant' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 bg-blue-50'}`}>
                           <div className="mb-1 flex items-center gap-2">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${item.role === 'assistant' ? 'bg-slate-200 text-slate-700' : 'bg-blue-200 text-blue-700'}`}>
                               {item.role}
                             </span>
                           </div>
-                          {item.content}
+                          {item.role === 'assistant'
+                            ? <MarkdownContent content={String(item.content || '')} />
+                            : <div className="whitespace-pre-wrap">{item.content}</div>}
                         </div>
                       ))}
                     </div>

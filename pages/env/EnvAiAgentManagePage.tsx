@@ -8,7 +8,6 @@ import {
   RefreshCw,
   Save,
   Settings2,
-  SquareTerminal,
   Trash2,
   WandSparkles,
   X,
@@ -1793,13 +1792,6 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigateToAppView('env-ai-agent-session-manage')}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
-                >
-                  <SquareTerminal size={15} />
-                  会话管理
-                </button>
                 <button onClick={() => setShowCreateAgent((v) => !v)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
                   新增 AI Agent
                 </button>

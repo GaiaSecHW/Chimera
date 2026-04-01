@@ -17,6 +17,34 @@ import {
   useFilteredHelpers,
 } from './ai-agent/shared';
 
+const statusTone = (status?: string) => {
+  const text = String(status || '').toLowerCase();
+  if (text === 'ready') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  if (text === 'broken') return 'bg-rose-100 text-rose-700 border-rose-200';
+  if (text === 'closed') return 'bg-zinc-100 text-zinc-700 border-zinc-200';
+  return 'bg-slate-100 text-slate-600 border-slate-200';
+};
+
+const sessionModeLabel = (mode?: string) => {
+  const text = String(mode || '').toLowerCase();
+  if (text === 'pty') return 'VTY';
+  if (text === 'pipe') return '非VTY';
+  if (text === 'invoke') return '经典';
+  return '非VTY';
+};
+
+const sessionModeTone = (mode?: string) =>
+  String(mode || '').toLowerCase() === 'pty'
+    ? 'bg-violet-100 text-violet-700 border-violet-200'
+    : String(mode || '').toLowerCase() === 'invoke'
+    ? 'bg-amber-100 text-amber-700 border-amber-200'
+    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
+
+const resolveBackendPid = (session?: AiAgentSession | null) => {
+  if (!session) return null;
+  return session.backend_pid ?? session.pty_pid ?? null;
+};
+
 export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: string }> = ({ projectId, initialHelperKey = '' }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const { loading, helpers, reload } = useAiHelpers(projectId, notify);
@@ -197,10 +225,23 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
                     <div className="text-sm font-bold text-slate-900">最近会话</div>
                     <div className="mt-3 space-y-2">
                       {selectedSessions.length === 0 ? <div className="text-sm text-slate-500">当前 helper 还没有会话记录。</div> : selectedSessions.map((session) => (
-                        <div key={session.session_id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                          <div className="break-all text-xs font-semibold text-slate-900">{session.session_id}</div>
-                          <div className="mt-1 text-[11px] text-slate-500">{(session.agent_ids || []).join(', ') || session.backend || '-'}</div>
-                          <div className="mt-1 text-[11px] text-slate-500">消息数：{session.messages?.length || 0}</div>
+                        <div key={session.session_id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="truncate font-mono text-[11px] font-semibold text-slate-900">{session.session_id}</div>
+                              <div className="mt-1 inline-flex max-w-[220px] items-center rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold text-cyan-800">
+                                {(session.agent_ids || []).join(', ') || session.backend || '-'}
+                              </div>
+                              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${sessionModeTone(session.session_mode)}`}>{sessionModeLabel(session.session_mode)}</span>
+                                <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${statusTone(session.status)}`}>{session.status || 'unknown'}</span>
+                                <span className="rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">PID {resolveBackendPid(session) ?? '-'}</span>
+                              </div>
+                            </div>
+                            <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                              消息 {session.messages?.length || 0}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>

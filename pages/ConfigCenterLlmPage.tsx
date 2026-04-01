@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { Bot, BookOpenText, Braces, CheckCircle2, Eye, EyeOff, FileCode2, LayoutPanelTop, Loader2, MessageSquare, Plus, RefreshCw, Save, ShieldAlert, Sparkles, Trash2, Wifi, X } from 'lucide-react';
 import { api } from '../clients/api';
@@ -175,6 +175,9 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
   const [bulkEnvInput, setBulkEnvInput] = useState('');
   const [refreshNotice, setRefreshNotice] = useState('');
   const [activeFileIndex, setActiveFileIndex] = useState(0);
+  const [fileValidationErrors, setFileValidationErrors] = useState<Record<number, { name?: string; path?: string; content?: string }>>({});
+  const [collapsedFileEditors, setCollapsedFileEditors] = useState<Record<number, boolean>>({});
+  const testSuccessTimerRef = useRef<number | null>(null);
 
   const selectedSummary = useMemo(
     () => providers.find((item) => item.provider_key === selectedKey) || null,
@@ -233,6 +236,14 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
   }, [refreshNotice]);
 
   useEffect(() => {
+    return () => {
+      if (testSuccessTimerRef.current) {
+        window.clearTimeout(testSuccessTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if ((form.file_bindings || []).length === 0) {
       setActiveFileIndex(0);
       return;
@@ -263,6 +274,8 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
       description: detail.description || '',
     });
     setForm(nextForm);
+    setFileValidationErrors({});
+    setCollapsedFileEditors({});
     syncJsonDraft(nextForm);
   };
 
@@ -288,6 +301,8 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     setMessage('');
     setError('');
     setTestResult(null);
+    setFileValidationErrors({});
+    setCollapsedFileEditors({});
     const emptyForm = createEmptyForm();
     setForm(emptyForm);
     syncJsonDraft(emptyForm);
@@ -326,6 +341,13 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     setMessage('');
     try {
       const sourceForm = editorMode === 'json' ? normalizeDraft(JSON.parse(jsonDraft || '{}')) : form;
+      const validation = validateProviderForm(sourceForm);
+      if (!validation.ok) {
+        setFileValidationErrors(validation.fileErrors);
+        setError(validation.message);
+        return;
+      }
+      setFileValidationErrors({});
       const payload = syncSystemEnvBindings(sourceForm);
       setForm(payload);
       syncJsonDraft(payload);
@@ -354,6 +376,14 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     setTesting(true);
     try {
       const sourceForm = editorMode === 'json' ? normalizeDraft(JSON.parse(jsonDraft || '{}')) : form;
+      const validation = validateProviderForm(sourceForm);
+      if (!validation.ok) {
+        setFileValidationErrors(validation.fileErrors);
+        setError(validation.message);
+        setTestResult(null);
+        return;
+      }
+      setFileValidationErrors({});
       if (!String(sourceForm.model || '').trim()) {
         setError('测试前请填写模型');
         setTestResult(null);
@@ -364,7 +394,19 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
       syncJsonDraft(payload);
       const result = await api.configCenter.testLlmProvider(payload);
       setTestResult(result);
-      setMessage(result.ok ? '模型可用性测试成功' : '');
+      if (result.ok) {
+        const successMessage = '模型可用性测试成功';
+        setMessage(successMessage);
+        if (testSuccessTimerRef.current) {
+          window.clearTimeout(testSuccessTimerRef.current);
+        }
+        testSuccessTimerRef.current = window.setTimeout(() => {
+          setMessage((current) => (current === successMessage ? '' : current));
+          testSuccessTimerRef.current = null;
+        }, 2000);
+      } else {
+        setMessage('');
+      }
       if (!result.ok && result.error_message) {
         setError(result.error_message);
       }
@@ -523,9 +565,76 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     setError('');
   };
 
+  const validateProviderForm = (draft: LlmProviderUpsertRequest): {
+    ok: boolean;
+    message: string;
+    fileErrors: Record<number, { name?: string; path?: string; content?: string }>;
+  } => {
+    const missingTopLevel: string[] = [];
+    if (!String(draft.provider_key || '').trim()) missingTopLevel.push('渠道标识');
+    if (!String(draft.display_name || '').trim()) missingTopLevel.push('展示名称');
+    if (!String(draft.provider_type || '').trim()) missingTopLevel.push('渠道类型');
+    if (!String(draft.api_base || '').trim()) missingTopLevel.push('API Base');
+    if (String(draft.provider_type || '').trim() !== 'ollama' && !String(draft.api_key || '').trim()) {
+      missingTopLevel.push('API Key');
+    }
+
+    const fileErrors: Record<number, { name?: string; path?: string; content?: string }> = {};
+    (draft.file_bindings || []).forEach((item, idx) => {
+      const itemErrors: { name?: string; path?: string; content?: string } = {};
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        itemErrors.name = '配置结构异常';
+      } else {
+        if (!String(item.name || '').trim()) itemErrors.name = '请填写文件名';
+        if (!String(item.path || '').trim()) itemErrors.path = '请填写文件路径';
+        if (!String(item.content ?? '').trim()) itemErrors.content = '请填写文件内容';
+      }
+      if (Object.keys(itemErrors).length > 0) {
+        fileErrors[idx] = itemErrors;
+      }
+    });
+
+    const fileErrorSummaries = Object.entries(fileErrors).map(([index, entry]) => {
+      const labels: string[] = [];
+      if (entry.name) labels.push('文件名');
+      if (entry.path) labels.push('文件路径');
+      if (entry.content) labels.push('文件内容');
+      return `第 ${Number(index) + 1} 个文件缺少: ${labels.join('、')}`;
+    });
+
+    const parts: string[] = [];
+    if (missingTopLevel.length > 0) {
+      parts.push(`请先填写必填项: ${missingTopLevel.join('、')}`);
+    }
+    if (fileErrorSummaries.length > 0) {
+      parts.push(`文件绑定未填写完整: ${fileErrorSummaries.join('；')}`);
+    }
+
+    if (parts.length > 0) {
+      return {
+        ok: false,
+        message: parts.join('。'),
+        fileErrors,
+      };
+    }
+
+    return { ok: true, message: '', fileErrors: {} };
+  };
+
   const envEntries = Object.entries(form.env_bindings || {});
   const fileBindings = form.file_bindings || [];
   const activeFile = fileBindings[activeFileIndex] || null;
+  const isActiveFileCollapsed = !!collapsedFileEditors[activeFileIndex];
+  const incompleteFileMap = useMemo(() => {
+    const map: Record<number, boolean> = {};
+    fileBindings.forEach((item, index) => {
+      const missingName = !String(item?.name || '').trim();
+      const missingPath = !String(item?.path || '').trim();
+      const missingContent = !String(item?.content ?? '').trim();
+      map[index] = missingName || missingPath || missingContent;
+    });
+    return map;
+  }, [fileBindings]);
 
   const addFileBinding = () => {
     const nextIndex = fileBindings.length + 1;
@@ -542,12 +651,33 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
         },
       ],
     });
+    setCollapsedFileEditors((prev) => ({ ...prev, [fileBindings.length]: false }));
     setActiveFileIndex(fileBindings.length);
   };
 
   const removeFileBinding = (index: number) => {
     const next = fileBindings.filter((_, i) => i !== index);
     setForm({ ...form, file_bindings: next });
+    setFileValidationErrors((prev) => {
+      const nextErrors: Record<number, { name?: string; path?: string; content?: string }> = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const currentIndex = Number(key);
+        if (Number.isNaN(currentIndex) || currentIndex === index) return;
+        const targetIndex = currentIndex > index ? currentIndex - 1 : currentIndex;
+        nextErrors[targetIndex] = value;
+      });
+      return nextErrors;
+    });
+    setCollapsedFileEditors((prev) => {
+      const nextCollapsed: Record<number, boolean> = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        const currentIndex = Number(key);
+        if (Number.isNaN(currentIndex) || currentIndex === index) return;
+        const targetIndex = currentIndex > index ? currentIndex - 1 : currentIndex;
+        nextCollapsed[targetIndex] = value;
+      });
+      return nextCollapsed;
+    });
     if (next.length === 0) {
       setActiveFileIndex(0);
       return;
@@ -560,6 +690,30 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
   const updateFileBinding = (index: number, patch: Partial<LlmProviderFileBinding>) => {
     const next = fileBindings.map((item, i) => (i === index ? { ...item, ...patch } : item));
     setForm({ ...form, file_bindings: next });
+    setFileValidationErrors((prev) => {
+      if (!prev[index]) return prev;
+      const nextErrors = { ...prev };
+      const entry = { ...(nextErrors[index] || {}) };
+      if (Object.prototype.hasOwnProperty.call(patch, 'name') && String(patch.name || '').trim()) delete entry.name;
+      if (Object.prototype.hasOwnProperty.call(patch, 'path') && String(patch.path || '').trim()) delete entry.path;
+      if (Object.prototype.hasOwnProperty.call(patch, 'content') && String(patch.content ?? '').trim()) delete entry.content;
+      if (Object.keys(entry).length === 0) {
+        delete nextErrors[index];
+      } else {
+        nextErrors[index] = entry;
+      }
+      return nextErrors;
+    });
+  };
+
+  const handleCollapseFileEditor = (index: number) => {
+    setCollapsedFileEditors((prev) => ({ ...prev, [index]: true }));
+    setMessage(`文件 ${index + 1} 已本地保存并收起编辑框（未请求服务器）`);
+    setError('');
+  };
+
+  const handleExpandFileEditor = (index: number) => {
+    setCollapsedFileEditors((prev) => ({ ...prev, [index]: false }));
   };
 
   return (
@@ -958,7 +1112,15 @@ API_TIMEOUT_MS=600000`}
                       onClick={() => setActiveFileIndex(index)}
                       className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black ${activeFileIndex === index ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600'}`}
                     >
-                      <span>{binding.name || `file-${index + 1}`}</span>
+                      <span className="inline-flex items-center gap-2">
+                        {binding.name || `file-${index + 1}`}
+                        {incompleteFileMap[index] && (
+                          <span
+                            className="h-2 w-2 rounded-full bg-red-500"
+                            title="该文件还有未填写项"
+                          />
+                        )}
+                      </span>
                       {!binding.enabled && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">disabled</span>}
                     </button>
                   ))}
@@ -966,73 +1128,116 @@ API_TIMEOUT_MS=600000`}
 
                 {activeFile && (
                   <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">文件名</label>
-                        <input
-                          value={activeFile.name}
-                          onChange={(event) => updateFileBinding(activeFileIndex, { name: event.target.value })}
-                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-                          placeholder="provider-config.yaml"
-                        />
+                    {fileValidationErrors[activeFileIndex] && (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+                        当前文件存在未填写项，请先补全红框字段后再保存。
                       </div>
-                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">文件路径</label>
-                        <input
-                          value={activeFile.path}
-                          onChange={(event) => updateFileBinding(activeFileIndex, { path: event.target.value })}
-                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-                          placeholder="/etc/llm/provider-config.yaml"
-                        />
+                    )}
+                    {isActiveFileCollapsed ? (
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="text-xs text-slate-600">
+                            已收起编辑框：<span className="font-mono text-slate-800">{activeFile.name || `file-${activeFileIndex + 1}`}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleExpandFileEditor(activeFileIndex)}
+                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700"
+                          >
+                            展开继续编辑
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[11px] text-slate-500">该“保存”仅用于本地收起，不会请求服务器。不点击也可以直接提交。</p>
                       </div>
-                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">格式</label>
-                        <select
-                          value={activeFile.format}
-                          onChange={(event) => updateFileBinding(activeFileIndex, { format: event.target.value as LlmProviderFileBinding['format'] })}
-                          className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-                        >
-                          {fileFormatOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                        </select>
-                      </div>
-                      <div className="flex items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                        <label className="inline-flex items-center gap-2 text-xs font-black text-slate-700">
-                          <input
-                            type="checkbox"
-                            checked={activeFile.enabled}
-                            onChange={(event) => updateFileBinding(activeFileIndex, { enabled: event.target.checked })}
-                            className="h-4 w-4 rounded border-slate-300"
-                          />
-                          启用该文件
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => removeFileBinding(activeFileIndex)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-600"
-                        >
-                          <Trash2 size={14} />
-                          删除
-                        </button>
-                      </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">文件名</label>
+                            <input
+                              value={activeFile.name}
+                              onChange={(event) => updateFileBinding(activeFileIndex, { name: event.target.value })}
+                              className={`mt-2 w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.name ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
+                              placeholder="provider-config.yaml"
+                            />
+                            {fileValidationErrors[activeFileIndex]?.name && (
+                              <p className="mt-1 text-[11px] font-bold text-red-600">{fileValidationErrors[activeFileIndex]?.name}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">文件路径</label>
+                            <input
+                              value={activeFile.path}
+                              onChange={(event) => updateFileBinding(activeFileIndex, { path: event.target.value })}
+                              className={`mt-2 w-full rounded-2xl border bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 ${fileValidationErrors[activeFileIndex]?.path ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
+                              placeholder="/etc/llm/provider-config.yaml"
+                            />
+                            {fileValidationErrors[activeFileIndex]?.path && (
+                              <p className="mt-1 text-[11px] font-bold text-red-600">{fileValidationErrors[activeFileIndex]?.path}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">格式</label>
+                            <select
+                              value={activeFile.format}
+                              onChange={(event) => updateFileBinding(activeFileIndex, { format: event.target.value as LlmProviderFileBinding['format'] })}
+                              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
+                            >
+                              {fileFormatOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                            </select>
+                          </div>
+                          <div className="flex items-end justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                            <label className="inline-flex items-center gap-2 text-xs font-black text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={activeFile.enabled}
+                                onChange={(event) => updateFileBinding(activeFileIndex, { enabled: event.target.checked })}
+                                className="h-4 w-4 rounded border-slate-300"
+                              />
+                              启用该文件
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleCollapseFileEditor(activeFileIndex)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black text-blue-700"
+                              >
+                                保存并收起
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeFileBinding(activeFileIndex)}
+                                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-600"
+                              >
+                                <Trash2 size={14} />
+                                删除
+                              </button>
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
-                      <MonacoEditor
-                        height="360px"
-                        language={toMonacoLanguage(activeFile.format)}
-                        value={activeFile.content}
-                        onChange={(value) => updateFileBinding(activeFileIndex, { content: value ?? '' })}
-                        theme="vs-dark"
-                        options={{
-                          minimap: { enabled: true },
-                          fontSize: 13,
-                          wordWrap: 'on',
-                          automaticLayout: true,
-                          scrollBeyondLastLine: false,
-                          tabSize: 2,
-                        }}
-                      />
-                    </div>
+                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+                          <MonacoEditor
+                            height="360px"
+                            language={toMonacoLanguage(activeFile.format)}
+                            value={activeFile.content}
+                            onChange={(value) => updateFileBinding(activeFileIndex, { content: value ?? '' })}
+                            theme="vs-dark"
+                            options={{
+                              minimap: { enabled: true },
+                              fontSize: 13,
+                              wordWrap: 'on',
+                              automaticLayout: true,
+                              scrollBeyondLastLine: false,
+                              tabSize: 2,
+                            }}
+                          />
+                        </div>
+                        {fileValidationErrors[activeFileIndex]?.content && (
+                          <p className="text-[11px] font-bold text-red-600">{fileValidationErrors[activeFileIndex]?.content}</p>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
               </div>

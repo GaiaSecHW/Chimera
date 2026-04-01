@@ -1346,6 +1346,20 @@ export interface AiBatchRound {
   created_at?: string;
 }
 
+export interface AiBatchSessionSummary {
+  batch_id: string;
+  project_id: string;
+  status: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  session_mode?: 'pty' | 'pipe' | 'invoke' | string;
+  helper_total: number;
+  success_count: number;
+  failed_count: number;
+  pending_count: number;
+}
+
 export interface AiBatchSession {
   batch_id: string;
   project_id: string;
@@ -1353,6 +1367,7 @@ export interface AiBatchSession {
   created_by?: string;
   created_at?: string;
   updated_at?: string;
+  session_mode?: 'pty' | 'pipe' | 'invoke' | string;
   items: AiBatchItem[];
 }
 
