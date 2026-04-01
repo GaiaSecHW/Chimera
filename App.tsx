@@ -36,9 +36,14 @@ import { EnvAiAgentPage } from './pages/env/EnvAiAgentPage';
 import { EnvAiAgentOverviewPage } from './pages/env/EnvAiAgentOverviewPage';
 import { EnvAiHelperPage } from './pages/env/EnvAiHelperPage';
 import { EnvAiAgentManagePage } from './pages/env/EnvAiAgentManagePage';
+import { EnvAiAgentSessionManagePage } from './pages/env/EnvAiAgentSessionManagePage';
 import { EnvAiSessionPage } from './pages/env/EnvAiSessionPage';
 import { EnvAiBatchSessionPage } from './pages/env/EnvAiBatchSessionPage';
 import { ServiceTerminalWindowPage } from './pages/env/ServiceTerminalWindowPage';
+import { SystemAnalysisOverviewPage } from './pages/system-analysis/SystemAnalysisOverviewPage';
+import { SystemAnalysisTaskPage } from './pages/system-analysis/SystemAnalysisTaskPage';
+import { SystemAnalysisHistoryPage } from './pages/system-analysis/SystemAnalysisHistoryPage';
+import { SystemAnalysisPromptPage } from './pages/system-analysis/SystemAnalysisPromptPage';
 
 // Workflow Pages
 import { WorkflowInstancePage } from './pages/workflow/WorkflowInstancePage';
@@ -60,7 +65,6 @@ import { VulnOverviewPage } from './pages/pentest/VulnOverviewPage';
 import { VulnIntakePage } from './pages/pentest/VulnIntakePage';
 import { VulnAnalysisPage } from './pages/pentest/VulnAnalysisPage';
 import { VulnVerificationPage } from './pages/pentest/VulnVerificationPage';
-import { VulnProofPage } from './pages/pentest/VulnProofPage';
 import { VulnDecisionPage } from './pages/pentest/VulnDecisionPage';
 import { VulnQueuePage } from './pages/pentest/VulnQueuePage';
 import { VulnServicesPage } from './pages/pentest/VulnServicesPage';
@@ -83,7 +87,8 @@ import { canAccessView, getUserAccess, getUserCenterDefaultView } from './utils/
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
 
 const PROJECT_REQUIRED_VIEWS = new Set<string>([
-  'env-agent', 'env-service', 'env-ai-agent', 'env-ai-agent-overview', 'env-ai-helper', 'env-ai-agent-manage', 'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
+  'env-agent', 'env-service', 'env-ai-agent', 'env-ai-agent-overview', 'env-ai-helper', 'env-ai-agent-manage', 'env-ai-agent-session-manage', 'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
+  'system-analysis-overview', 'system-analysis-task', 'system-analysis-history', 'system-analysis-prompt',
   'workflow-apps', 'workflow-app-detail',
   'workflow-app-instances', 'workflow-app-instance-detail',
   'workflow-jobs', 'workflow-job-detail',
@@ -94,7 +99,7 @@ const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-code', 'pentest-exec-work', 'pentest-exec-secmate',
   'pentest-report',
   'security-assessment',
-  'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-verification', 'vuln-proof', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config'
+  'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-verification', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config'
 ]);
 
 const App: React.FC = () => {
@@ -116,7 +121,7 @@ const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['test-input', 'pentest-root', 'env-mgmt', 'env-ai-agent-root', 'base-mgmt', 'pentest-exec', 'user-mgmt-root', 'org-mgmt-root', 'workflow-root', 'vuln-root']));
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['test-input', 'pentest-root', 'env-mgmt', 'env-ai-agent-root', 'system-analysis-root', 'base-mgmt', 'pentest-exec', 'user-mgmt-root', 'org-mgmt-root', 'workflow-root', 'vuln-root']));
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
   // Data States
@@ -391,10 +396,16 @@ const App: React.FC = () => {
       case 'env-ai-agent-overview': return <EnvAiAgentOverviewPage projectId={selectedProjectId} />;
       case 'env-ai-helper': return <EnvAiHelperPage projectId={selectedProjectId} initialHelperKey={activeAiHelperKey} />;
       case 'env-ai-agent-manage': return <EnvAiAgentManagePage projectId={selectedProjectId} />;
+      case 'env-ai-agent-session-manage': return <EnvAiAgentSessionManagePage projectId={selectedProjectId} />;
       case 'env-ai-session': return <EnvAiSessionPage projectId={selectedProjectId} />;
       case 'env-ai-batch-session': return <EnvAiBatchSessionPage projectId={selectedProjectId} />;
       case 'env-template': return <EnvTemplatePage projectId={selectedProjectId} />;
       case 'env-tasks': return <EnvTasksPage projectId={selectedProjectId} />;
+      case 'system-analysis-root':
+      case 'system-analysis-overview': return <SystemAnalysisOverviewPage projectId={selectedProjectId} />;
+      case 'system-analysis-task': return <SystemAnalysisTaskPage projectId={selectedProjectId} />;
+      case 'system-analysis-history': return <SystemAnalysisHistoryPage projectId={selectedProjectId} />;
+      case 'system-analysis-prompt': return <SystemAnalysisPromptPage projectId={selectedProjectId} />;
 
       // Workflow Management
       case 'workflow-instances': return <WorkflowInstancePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveInstanceId(id); setCurrentView('workflow-instance-detail'); }} onNavigateToLogs={(id) => { setActiveInstanceId(id); setCurrentView('workflow-instance-logs'); }} />;
@@ -422,7 +433,6 @@ const App: React.FC = () => {
       case 'vuln-intake': return <VulnIntakePage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-analysis': return <VulnAnalysisPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-verification': return <VulnVerificationPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-proof': return <VulnProofPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-decision': return <VulnDecisionPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-queue': return <VulnQueuePage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-services': return <VulnServicesPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;

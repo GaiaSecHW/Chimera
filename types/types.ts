@@ -1186,6 +1186,7 @@ export interface AiAgentLlmProviderSummary {
   is_default: boolean;
   api_base: string;
   model: string;
+  updated_at?: string | null;
   description?: string | null;
 }
 
@@ -1229,10 +1230,77 @@ export interface AiAgentSession {
   session_id: string;
   backend?: string;
   agent_ids?: string[];
+  status?: 'ready' | 'broken' | 'closed';
+  pty_pid?: number | null;
+  backend_pid?: number | null;
+  pty_started_at?: string | null;
+  last_error?: string | null;
   metadata?: Record<string, any>;
   messages?: Array<{ role: string; content: string }>;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ProjectAiAgentSessionItem extends AiAgentSession {
+  project_id: string;
+  agent_key: string;
+  service_name: string;
+  agent_hostname?: string;
+  agent_ip?: string;
+  health_status?: string;
+  is_invalid: boolean;
+  invalid_reasons: string[];
+}
+
+export interface ProjectAiAgentSessionGlobalListResponse {
+  project_id: string;
+  items: ProjectAiAgentSessionItem[];
+  total: number;
+  page?: number;
+  per_page?: number;
+  filtered_total?: number;
+  filters?: {
+    nodes?: string[];
+    service_names?: string[];
+    statuses?: string[];
+    invalid_reasons?: string[];
+  };
+  stats?: {
+    total_sessions: number;
+    normal_count: number;
+    invalid_count: number;
+    helper_total: number;
+    helper_reachable_count: number;
+    helper_unreachable_count: number;
+  };
+  helper_unreachable?: Array<{
+    agent_key: string;
+    service_name: string;
+    agent_hostname?: string;
+    agent_ip?: string;
+    health_status?: string;
+    error?: string;
+  }>;
+}
+
+export interface ProjectAiAgentSessionTerminateTarget {
+  agent_key: string;
+  service_name: string;
+  session_id: string;
+}
+
+export interface ProjectAiAgentSessionBatchTerminateResult {
+  project_id: string;
+  status: 'success' | 'partial_success' | 'failed' | string;
+  total: number;
+  success_count: number;
+  failed_count: number;
+  results: Array<ProjectAiAgentSessionTerminateTarget & {
+    success: boolean;
+    status_code?: number;
+    error?: string;
+    response?: any;
+  }>;
 }
 
 export interface AiBatchItem {
@@ -1317,11 +1385,12 @@ export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
   | 'public-resource-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
-  | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
+  | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
+  | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-history' | 'system-analysis-prompt'
   | 'workflow-instances' | 'workflow-instance-detail' | 'workflow-instance-logs' | 'workflow-jobs' | 'workflow-job-detail' | 'workflow-apps' | 'workflow-app-detail' | 'workflow-app-instances' | 'workflow-app-instance-detail'
   | 'engine-validation' | 'pentest-root' | 'pentest-risk' | 'pentest-system' 
   | 'pentest-threat' | 'pentest-orch' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-exec-secmate' | 'pentest-report'
-  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-verification' | 'vuln-proof' | 'vuln-decision' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config'
+  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-verification' | 'vuln-decision' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config'
   | 'sys-settings' | 'change-password'
   | 'user-mgmt-users' | 'user-mgmt-roles' | 'user-mgmt-perms' | 'user-mgmt-access' | 'user-mgmt-online' | 'user-mgmt-machine'
   | 'org-mgmt-departments' | 'org-mgmt-members' | 'org-mgmt-projects';
@@ -1371,6 +1440,119 @@ export interface AdminDashboardStats {
     deploymentName?: string | null;
   }[];
   lastUpdated: string;
+}
+
+export type AnalysisRiskLevel = 'unknown' | 'low' | 'medium' | 'high' | 'critical';
+export type AnalysisTaskStatus = 'pending' | 'preparing' | 'running' | 'partial_success' | 'success' | 'failed' | 'cancelled';
+export type AnalysisTaskType =
+  | 'general_env_check'
+  | 'service_dependency_check'
+  | 'tool_readiness_check'
+  | 'network_connectivity_check'
+  | 'custom';
+
+export interface SystemAnalysisAiAgentOption {
+  agent_id: string;
+  agent_name: string;
+}
+
+export interface SystemAnalysisCapabilityNode {
+  agent_key: string;
+  agent_hostname?: string | null;
+  agent_ip?: string | null;
+  agent_status: string;
+  helper_installed: boolean;
+  helper_service_name?: string | null;
+  helper_status?: string | null;
+  available_ai_agents: SystemAnalysisAiAgentOption[];
+  last_analysis_at?: string | null;
+  last_analysis_summary?: string | null;
+}
+
+export interface SystemAnalysisCapabilitiesResponse {
+  project_id: string;
+  summary: {
+    total_nodes: number;
+    online_nodes: number;
+    helper_ready_nodes: number;
+    analyzable_nodes: number;
+  };
+  items: SystemAnalysisCapabilityNode[];
+}
+
+export interface SystemAnalysisTaskItem {
+  task_id: string;
+  project_id: string;
+  task_name: string;
+  analysis_type: AnalysisTaskType;
+  status: AnalysisTaskStatus;
+  risk_level: AnalysisRiskLevel;
+  total_nodes: number;
+  success_nodes: number;
+  failed_nodes: number;
+  created_by?: string | null;
+  created_at: string;
+  finished_at?: string | null;
+}
+
+export interface SystemAnalysisTaskDetail extends SystemAnalysisTaskItem {
+  prompt_template_id?: string | null;
+  prompt_content: string;
+  running_nodes: number;
+  cancelled_nodes: number;
+  execution_config: {
+    timeout_seconds?: number;
+    max_concurrency?: number;
+  };
+  summary_json: Record<string, any>;
+  started_at?: string | null;
+}
+
+export interface SystemAnalysisTaskNodeItem {
+  agent_key: string;
+  agent_hostname?: string | null;
+  agent_ip?: string | null;
+  helper_service_name: string;
+  helper_session_id?: string | null;
+  ai_agent_id: string;
+  status: string;
+  risk_level: AnalysisRiskLevel;
+  result_summary?: string | null;
+  error_message?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export interface SystemAnalysisTaskNodesResponse {
+  task_id: string;
+  items: SystemAnalysisTaskNodeItem[];
+  total: number;
+}
+
+export interface SystemAnalysisReport {
+  report_id: string;
+  task_id: string;
+  project_id: string;
+  risk_level: AnalysisRiskLevel;
+  summary_markdown: string;
+  summary_json: Record<string, any>;
+  generated_at: string;
+}
+
+export interface SystemAnalysisPromptTemplate {
+  prompt_id: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  content: string;
+  variables_json: string[];
+  version: number;
+  is_default: boolean;
+  is_enabled: boolean;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LlmProviderSummary {

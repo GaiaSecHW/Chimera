@@ -114,7 +114,7 @@ export const useUiFeedback = () => {
     () => (
       <>
         {notice && (
-          <div className="fixed top-6 right-6 z-[260] animate-in slide-in-from-top-2 duration-200">
+          <div className="fixed top-6 right-6 z-[99990] animate-in slide-in-from-top-2 duration-200">
             <div className={`w-[380px] max-w-[90vw] border rounded-2xl shadow-xl px-4 py-3 ${noticeStyles[notice.level].box}`}>
               <div className="flex items-start gap-3">
                 <div className="mt-0.5">{noticeStyles[notice.level].icon}</div>
@@ -223,4 +223,3 @@ export const useUiFeedback = () => {
     feedbackNodes,
   };
 };
-

@@ -14,6 +14,7 @@ import { vulnApi } from './vuln';
 import { fileserverApi } from './fileserver';
 import { menuApi } from './menu';
 import { configCenterApi } from './configcenter';
+import { systemAnalysisApi } from './systemAnalysis';
 
 export const api = {
   auth: authApi,
@@ -30,5 +31,6 @@ export const api = {
   admin: adminApi,
   vuln: vulnApi,
   fileserver: fileserverApi,
-  configCenter: configCenterApi
+  configCenter: configCenterApi,
+  systemAnalysis: systemAnalysisApi,
 };

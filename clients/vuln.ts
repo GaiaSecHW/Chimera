@@ -105,6 +105,13 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
+  finishCase: async (caseId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/finish`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    })),
+
   submitDecision: async (caseId: string, payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/decisions`, {
       method: 'POST',
@@ -162,10 +169,10 @@ export const vulnApi = {
 
   getPublicOpenApiSpecUrl: () => `${API_BASE}/api/vuln/public/intake/spec/openapi`,
 
-  submitAnonymousIntake: async (payload: any): Promise<any> =>
-    publicJson(`${API_BASE}/api/vuln/public/intake/submissions`, {
+  submitAuthenticatedIntake: async (payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/public/intake/submissions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(),
       body: JSON.stringify(payload),
-    }),
+    })),
 };

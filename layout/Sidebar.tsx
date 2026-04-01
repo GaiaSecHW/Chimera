@@ -236,6 +236,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 { id: 'env-ai-batch-session', label: '批量会话', icon: <GitBranch size={12} /> },
               ],
             },
+            {
+              id: 'system-analysis-root',
+              label: '环境分析',
+              icon: <Activity size={14} />,
+              children: [
+                { id: 'system-analysis-overview', label: '分析概览', icon: <Activity size={12} /> },
+                { id: 'system-analysis-task', label: '分析任务', icon: <Play size={12} /> },
+                { id: 'system-analysis-history', label: '任务记录', icon: <ClipboardCheck size={12} /> },
+                { id: 'system-analysis-prompt', label: 'Prompt 管理', icon: <FileText size={12} /> }
+              ],
+            },
             { id: 'env-tasks', label: '任务管理', icon: <Workflow size={14} /> }
           ]} 
         />
@@ -279,10 +290,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           children={[
             { id: 'vuln-overview', label: '生命周期总览', icon: <Activity size={14} /> },
             { id: 'vuln-intake', label: '疑点上报', icon: <FolderOpen size={14} /> },
-            { id: 'vuln-analysis', label: '分析研判', icon: <GitBranch size={14} /> },
-            { id: 'vuln-verification', label: '验证复现', icon: <ShieldCheck size={14} /> },
-            { id: 'vuln-proof', label: '证明利用', icon: <Sparkles size={14} /> },
-            { id: 'vuln-decision', label: '裁决跟踪', icon: <ShieldAlert size={14} /> },
+            { id: 'vuln-analysis', label: '研判阶段', icon: <GitBranch size={14} /> },
+            { id: 'vuln-verification', label: '验证阶段', icon: <ShieldCheck size={14} /> },
+            { id: 'vuln-decision', label: '结束管理', icon: <ShieldAlert size={14} /> },
             { id: 'vuln-queue', label: '运行队列', icon: <Workflow size={14} /> },
             { id: 'vuln-services', label: '能力注册', icon: <ServerCog size={14} /> },
             { id: 'vuln-repro-config', label: '复现模块配置', icon: <Settings size={14} /> }

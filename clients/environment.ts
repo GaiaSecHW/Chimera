@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget } from '../types/types';
 
 const normalizeTask = (raw: any): AsyncTask => ({
   id: raw?.id || raw?.task_id || '',
@@ -405,6 +405,43 @@ export const environmentApi = {
 
   listAiHelperSessions: async (projectId: string, agentKey: string, serviceName: string): Promise<{ items: AiAgentSession[]; total: number }> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
+  listProjectAiAgentSessions: async (
+    projectId: string,
+    params: {
+      page?: number;
+      per_page?: number;
+      q?: string;
+      node?: string;
+      service_name?: string;
+      status?: string;
+      invalid_filter?: 'all' | 'invalid' | 'normal';
+      invalid_reason?: string;
+    } = {}
+  ): Promise<ProjectAiAgentSessionGlobalListResponse> => {
+    const query = new URLSearchParams({
+      project_id: projectId,
+      ...(params.page ? { page: String(params.page) } : {}),
+      ...(params.per_page ? { per_page: String(params.per_page) } : {}),
+      ...(params.q ? { q: params.q } : {}),
+      ...(params.node ? { node: params.node } : {}),
+      ...(params.service_name ? { service_name: params.service_name } : {}),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.invalid_filter ? { invalid_filter: params.invalid_filter } : {}),
+      ...(params.invalid_reason ? { invalid_reason: params.invalid_reason } : {}),
+    }).toString();
+    return handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/global?${query}`, { headers: getHeaders() }));
+  },
+
+  batchTerminateAiAgentSessions: async (
+    projectId: string,
+    targets: ProjectAiAgentSessionTerminateTarget[],
+  ): Promise<ProjectAiAgentSessionBatchTerminateResult> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/sessions/global/delete-batch`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, targets }),
+    })),
 
   createAiHelperSession: async (projectId: string, agentKey: string, serviceName: string, payload: any): Promise<AiAgentSession> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions?project_id=${encodeURIComponent(projectId)}`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...payload, project_id: projectId }) })),
