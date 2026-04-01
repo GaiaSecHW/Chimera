@@ -1,6 +1,6 @@
 
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { AppTemplate, JobTemplate, WorkflowTemplate, WorkflowInstance, AppWorkflow, AppWorkflowLogs, IngressController, WorkflowInstanceNodeLogListResponse, ServiceAccessInfo, DomainBindingRecord, LlmProviderDetail, LlmProviderSummary } from '../types/types';
+import { AppTemplate, JobTemplate, WorkflowTemplate, WorkflowInstance, AppWorkflow, AppWorkflowLogs, IngressController, WorkflowInstanceNodeLogListResponse, ServiceAccessInfo, DomainBindingRecord, LlmProviderDetail, LlmProviderSummary, TemplateTag } from '../types/types';
 
 const getWsBase = () => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -17,7 +17,7 @@ export const workflowApi = {
   },
 
   // --- App Templates ---
-  listAppTemplates: async (params: { scope?: string; project_id?: string } = {}): Promise<{ items: AppTemplate[]; total: number }> => {
+  listAppTemplates: async (params: { scope?: string; project_id?: string; tag_keys?: string } = {}): Promise<{ items: AppTemplate[]; total: number }> => {
     const query = new URLSearchParams(params as any).toString();
     const response = await fetch(`${API_BASE}/api/workflow/app-templates?${query}`, { headers: getHeaders() });
     return handleResponse(response);
@@ -49,7 +49,7 @@ export const workflowApi = {
   },
 
   // --- Job Templates ---
-  listJobTemplates: async (params: { scope?: string; project_id?: string } = {}): Promise<{ items: JobTemplate[]; total: number }> => {
+  listJobTemplates: async (params: { scope?: string; project_id?: string; tag_keys?: string } = {}): Promise<{ items: JobTemplate[]; total: number }> => {
     const query = new URLSearchParams(params as any).toString();
     const response = await fetch(`${API_BASE}/api/workflow/job-templates?${query}`, { headers: getHeaders() });
     return handleResponse(response);
@@ -77,6 +77,20 @@ export const workflowApi = {
   },
   deleteJobTemplate: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/workflow/job-templates/${id}`, { method: 'DELETE', headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  listTemplateTags: async (params: { category?: string; enabled?: boolean; keyword?: string } = {}): Promise<{ items: TemplateTag[]; total: number }> => {
+    const query = new URLSearchParams(params as any).toString();
+    const response = await fetch(`${API_BASE}/api/workflow/template-tags?${query}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+  createTemplateTag: async (payload: Partial<TemplateTag>): Promise<TemplateTag> => {
+    const response = await fetch(`${API_BASE}/api/workflow/template-tags`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
     return handleResponse(response);
   },
 

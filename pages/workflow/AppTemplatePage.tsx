@@ -23,12 +23,26 @@ import {
   FileText,
   HardDrive
 } from 'lucide-react';
-import { AppTemplate, TemplateScope } from '../../types/types';
+import { AppTemplate, TemplateScope, TemplateTag } from '../../types/types';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
 
 export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: (id: string) => void }> = ({ projectId, onNavigateToDetail }) => {
+  const normalizeTagKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const getTagClasses = (color?: string) => {
+    const colorMap: Record<string, string> = {
+      slate: 'bg-slate-100 text-slate-700 border-slate-200',
+      blue: 'bg-blue-50 text-blue-700 border-blue-200',
+      emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      amber: 'bg-amber-50 text-amber-700 border-amber-200',
+      rose: 'bg-rose-50 text-rose-700 border-rose-200',
+      violet: 'bg-violet-50 text-violet-700 border-violet-200',
+    };
+    return colorMap[color || 'slate'] || colorMap.slate;
+  };
   const [templates, setTemplates] = useState<AppTemplate[]>([]);
+  const [availableTags, setAvailableTags] = useState<TemplateTag[]>([]);
+  const [selectedTagKeys, setSelectedTagKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [scope, setScope] = useState<TemplateScope>('project');
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,12 +78,14 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
     description: '',
     scope: 'project' as TemplateScope,
     replicas: 1,
+    tags: [] as TemplateTag[],
     service_ports: [{ name: 'http', port: 80, target_port: 80, protocol: 'TCP' }],
     service_name: '',
     create_service: true,
     service_type: 'ClusterIP' as 'ClusterIP' | 'LoadBalancer' | 'NodePort',
     containers: [ JSON.parse(JSON.stringify(defaultContainer)) ]
   });
+  const [tagInputValue, setTagInputValue] = useState('');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,7 +93,11 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
 
   useEffect(() => {
     loadTemplates();
-  }, [projectId, scope]);
+  }, [projectId, scope, selectedTagKeys.join(',')]);
+
+  useEffect(() => {
+    void loadAvailableTags();
+  }, []);
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -85,7 +105,8 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       // Fix: Query current project or 'all' for global
       const res = await api.workflow.listAppTemplates({ 
         scope, 
-        project_id: scope === 'project' ? projectId : 'all' 
+        project_id: scope === 'project' ? projectId : 'all',
+        tag_keys: selectedTagKeys.length ? selectedTagKeys.join(',') : undefined,
       });
       setTemplates(res.items || []);
       setCurrentPage(1);
@@ -94,6 +115,43 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAvailableTags = async () => {
+    try {
+      const res = await api.workflow.listTemplateTags({ enabled: true });
+      setAvailableTags(res.items || []);
+    } catch (error) {
+      console.error('Failed to load template tags', error);
+    }
+  };
+
+  const addTagToForm = (rawValue: string) => {
+    const tagKey = normalizeTagKey(rawValue);
+    if (!tagKey) return;
+    if (formData.tags.some((tag) => tag.tag_key === tagKey)) {
+      setTagInputValue('');
+      return;
+    }
+    const existingTag = availableTags.find((tag) => tag.tag_key === tagKey);
+    setFormData({
+      ...formData,
+      tags: [
+        ...formData.tags,
+        existingTag || { tag_key: tagKey, tag_label: rawValue.trim() || tagKey, category: 'capability', color: 'slate' }
+      ]
+    });
+    setTagInputValue('');
+  };
+
+  const removeTagFromForm = (tagKey: string) => {
+    setFormData({ ...formData, tags: formData.tags.filter((tag) => tag.tag_key !== tagKey) });
+  };
+
+  const toggleTagFilter = (tagKey: string) => {
+    setSelectedTagKeys((current) =>
+      current.includes(tagKey) ? current.filter((item) => item !== tagKey) : [...current, tagKey]
+    );
   };
 
   const filteredTemplates = useMemo(() => {
@@ -136,6 +194,7 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
     const payload = {
       ...formData,
       project_id: formData.scope === 'project' ? projectId : undefined,
+      tags: formData.tags,
       service_ports: formData.service_ports.filter(p => p.port > 0),
       containers: formData.containers.map((c: any) => {
         const formatProbe = (p: any) => {
@@ -175,12 +234,15 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
       setIsModalOpen(false);
       setFormData({
         name: '', description: '', scope: 'project', replicas: 1, 
+        tags: [],
         service_ports: [{ name: 'http', port: 80, target_port: 80, protocol: 'TCP' }],
         service_name: '',
         create_service: true,
         service_type: 'ClusterIP',
         containers: [ JSON.parse(JSON.stringify(defaultContainer)) ]
       });
+      setTagInputValue('');
+      await loadAvailableTags();
       loadTemplates();
     } catch (err: any) {
       alert("创建失败: " + err.message);
@@ -229,6 +291,43 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
         />
       </div>
 
+      {availableTags.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-[2rem] shadow-sm p-5 space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <Hash size={12} className="text-blue-500" />
+              模板标签筛选
+            </div>
+            {selectedTagKeys.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedTagKeys([])}
+                className="text-[10px] font-black text-slate-500 hover:text-blue-600 uppercase tracking-widest transition-colors"
+              >
+                清空筛选
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => {
+              const selected = selectedTagKeys.includes(tag.tag_key);
+              return (
+                <button
+                  key={tag.tag_key}
+                  type="button"
+                  onClick={() => toggleTagFilter(tag.tag_key)}
+                  className={`px-3 py-1.5 rounded-full border text-[11px] font-black transition-all ${
+                    selected ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10' : getTagClasses(tag.color)
+                  }`}
+                >
+                  #{tag.tag_label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* List Content - Card Grid */}
       <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden flex flex-col min-h-[550px] p-6">
         {loading ? (
@@ -265,6 +364,24 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                 <p className="text-xs text-slate-500 mb-4 line-clamp-2 min-h-[32px] font-medium">
                   {t.description || '暂无描述信息'}
                 </p>
+
+                {t.tags && t.tags.length > 0 && (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {t.tags.slice(0, 4).map((tag) => (
+                      <span
+                        key={tag.tag_key}
+                        className={`px-2.5 py-1 rounded-full border text-[10px] font-black ${getTagClasses(tag.color)}`}
+                      >
+                        #{tag.tag_label}
+                      </span>
+                    ))}
+                    {t.tags.length > 4 && (
+                      <span className="px-2.5 py-1 rounded-full border border-slate-200 bg-slate-100 text-slate-500 text-[10px] font-black">
+                        +{t.tags.length - 4}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Containers */}
                 <div className="mb-4">
@@ -568,6 +685,70 @@ export const AppTemplatePage: React.FC<{ projectId: string, onNavigateToDetail: 
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all resize-none"
                     value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
                   />
+               </div>
+
+               <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
+                  <div className="flex items-center gap-2">
+                    <Hash size={15} className="text-blue-500" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">模板 TAG</label>
+                  </div>
+                  <div className="flex flex-col gap-3 md:flex-row">
+                    <input
+                      type="text"
+                      placeholder="输入标签名后回车，例如 web-scan / ai-agent"
+                      className="flex-1 px-4 py-3 bg-white rounded-xl border border-slate-200 outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all"
+                      value={tagInputValue}
+                      onChange={(e) => setTagInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addTagToForm(tagInputValue);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addTagToForm(tagInputValue)}
+                      className="px-5 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-colors"
+                    >
+                      添加标签
+                    </button>
+                  </div>
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag) => (
+                        <button
+                          key={tag.tag_key}
+                          type="button"
+                          onClick={() => removeTagFromForm(tag.tag_key)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black transition-all ${getTagClasses(tag.color)}`}
+                        >
+                          <span>#{tag.tag_label}</span>
+                          <X size={12} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {availableTags.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">快捷选择</div>
+                      <div className="flex flex-wrap gap-2">
+                        {availableTags
+                          .filter((tag) => !formData.tags.some((selected) => selected.tag_key === tag.tag_key))
+                          .slice(0, 12)
+                          .map((tag) => (
+                            <button
+                              key={tag.tag_key}
+                              type="button"
+                              onClick={() => addTagToForm(tag.tag_label || tag.tag_key)}
+                              className={`px-3 py-1.5 rounded-full border text-[11px] font-black transition-all hover:-translate-y-0.5 ${getTagClasses(tag.color)}`}
+                            >
+                              #{tag.tag_label}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                </div>
 
                {/* Container Stack */}

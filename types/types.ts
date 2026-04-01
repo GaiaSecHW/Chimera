@@ -111,6 +111,21 @@ export interface ServicePort {
   protocol?: string;
 }
 
+export interface TemplateTag {
+  id?: string;
+  tag_key: string;
+  tag_label: string;
+  category: string;
+  description?: string;
+  color?: string;
+  is_system?: boolean;
+  enabled?: boolean;
+  sort_order?: number;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AppTemplate {
   id: string;
   name: string;
@@ -123,6 +138,7 @@ export interface AppTemplate {
   create_service?: boolean;
   service_type?: 'ClusterIP' | 'LoadBalancer' | 'NodePort';
   replicas: number;
+  tags?: TemplateTag[];
   created_by?: string;
   created_at: string;
   updated_at?: string;
@@ -137,6 +153,7 @@ export interface JobTemplate {
   containers: WorkflowContainer[];
   backoff_limit: number;
   ttl_seconds_after_finished?: number;
+  tags?: TemplateTag[];
   created_at: string;
 }
 
