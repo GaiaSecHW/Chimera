@@ -18,7 +18,13 @@ export const workflowApi = {
 
   // --- App Templates ---
   listAppTemplates: async (params: { scope?: string; project_id?: string; tag_keys?: string } = {}): Promise<{ items: AppTemplate[]; total: number }> => {
-    const query = new URLSearchParams(params as any).toString();
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.set(key, String(value));
+      }
+    });
+    const query = queryParams.toString();
     const response = await fetch(`${API_BASE}/api/workflow/app-templates?${query}`, { headers: getHeaders() });
     return handleResponse(response);
   },
@@ -50,7 +56,13 @@ export const workflowApi = {
 
   // --- Job Templates ---
   listJobTemplates: async (params: { scope?: string; project_id?: string; tag_keys?: string } = {}): Promise<{ items: JobTemplate[]; total: number }> => {
-    const query = new URLSearchParams(params as any).toString();
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.set(key, String(value));
+      }
+    });
+    const query = queryParams.toString();
     const response = await fetch(`${API_BASE}/api/workflow/job-templates?${query}`, { headers: getHeaders() });
     return handleResponse(response);
   },
@@ -81,7 +93,13 @@ export const workflowApi = {
   },
 
   listTemplateTags: async (params: { category?: string; enabled?: boolean; keyword?: string } = {}): Promise<{ items: TemplateTag[]; total: number }> => {
-    const query = new URLSearchParams(params as any).toString();
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.set(key, String(value));
+      }
+    });
+    const query = queryParams.toString();
     const response = await fetch(`${API_BASE}/api/workflow/template-tags?${query}`, { headers: getHeaders() });
     return handleResponse(response);
   },
