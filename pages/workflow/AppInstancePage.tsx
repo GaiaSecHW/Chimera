@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, FolderTree, Loader2, Play, Plus, RefreshCw, RotateCcw, Search, StopCircle, Trash2, XCircle } from 'lucide-react';
 import { api } from '../../clients/api';
 import { AppTemplate, AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, LlmProviderDetail, LlmProviderSummary, ServicePort } from '../../types/types';
@@ -23,6 +23,7 @@ type ProjectFileMountDraft = {
 };
 
 type LlmBindingMode = 'none' | 'config_center' | 'custom';
+type HelpSectionKey = 'project-file-mounts' | 'llm-binding' | 'ingress-binding';
 
 const createMountConfig = (readOnly = true): InputVolumeMountConfig => ({
   pvc_name: '',
@@ -112,6 +113,8 @@ export const AppInstancePage: React.FC<{
   const [customLlmJsonText, setCustomLlmJsonText] = useState(JSON.stringify(createDefaultCustomLlmConfig(), null, 2));
   const [customLlmJsonError, setCustomLlmJsonError] = useState('');
   const [isCustomLlmModalOpen, setIsCustomLlmModalOpen] = useState(false);
+  const [openHelpSection, setOpenHelpSection] = useState<HelpSectionKey | null>(null);
+  const helpSectionRefs = useRef<Partial<Record<HelpSectionKey, HTMLDivElement | null>>>({});
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -184,6 +187,34 @@ export const AppInstancePage: React.FC<{
     void loadProviderDetail();
   }, [llmBindingMode, selectedLlmProviderKey]);
 
+  useEffect(() => {
+    if (!openHelpSection) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const targetNode = event.target as Node | null;
+      const activeSection = helpSectionRefs.current[openHelpSection];
+      if (activeSection && targetNode && !activeSection.contains(targetNode)) {
+        setOpenHelpSection(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenHelpSection(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openHelpSection]);
+
   const filteredInstances = useMemo(() => {
     const keyword = searchTerm.toLowerCase();
     return instances.filter((instance) =>
@@ -227,6 +258,54 @@ export const AppInstancePage: React.FC<{
     setCustomLlmJsonText(JSON.stringify(defaultCustomConfig, null, 2));
     setCustomLlmJsonError('');
     setIsCustomLlmModalOpen(false);
+    setOpenHelpSection(null);
+  };
+
+  const renderHelpToggle = (
+    section: HelpSectionKey,
+    message: React.ReactNode,
+    tone: {
+      button: string;
+      panel: string;
+      text: string;
+    },
+    className = ''
+  ) => {
+    const isOpen = openHelpSection === section;
+    const panelId = `${section}-help-panel`;
+    const buttonId = `${section}-help-button`;
+
+    return (
+      <div
+        ref={(node) => {
+          helpSectionRefs.current[section] = node;
+        }}
+        className={`relative flex items-start justify-end ${className}`}
+      >
+        <button
+          id={buttonId}
+          type="button"
+          aria-label="查看说明"
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+          onClick={() => setOpenHelpSection((current) => (current === section ? null : section))}
+          className={`inline-flex h-4 w-4 items-center justify-center rounded-full border text-[8px] font-black leading-none transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 ${tone.button} ${isOpen ? 'scale-105 shadow-sm' : 'hover:scale-105'}`}
+        >
+          ?
+        </button>
+        <div
+          id={panelId}
+          role="status"
+          aria-live="polite"
+          aria-labelledby={buttonId}
+          className={`absolute right-0 top-7 z-10 w-[min(20rem,calc(100vw-5rem))] overflow-hidden transition-all duration-200 ease-out ${isOpen ? 'max-h-40 opacity-100 translate-y-0' : 'pointer-events-none max-h-0 opacity-0 -translate-y-1'}`}
+        >
+          <div className={`rounded-xl border px-4 py-3 text-xs leading-6 shadow-sm ${tone.panel} ${tone.text}`}>
+            {message}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const openCreateModal = async () => {
@@ -699,10 +778,18 @@ export const AppInstancePage: React.FC<{
                   )}
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                     <div className="mb-4 flex items-center justify-between gap-4">
-                      <div>
+                      <div className="flex-1">
                         <div className="text-sm font-black text-amber-700">项目文件夹挂载</div>
-                        <div className="mt-1 text-xs text-amber-600">这个区域用于额外附加项目文件目录，不影响模板自身定义的 PVC 挂载依赖。</div>
                       </div>
+                      {renderHelpToggle(
+                        'project-file-mounts',
+                        '这个区域用于额外附加项目文件目录，不影响模板自身定义的 PVC 挂载依赖。',
+                        {
+                          button: 'border-amber-300 bg-white/90 text-amber-700 hover:border-amber-400 hover:bg-white focus:ring-amber-300',
+                          panel: 'border-amber-200 bg-white/95',
+                          text: 'text-amber-700',
+                        }
+                      )}
                       <button
                         type="button"
                         onClick={() => setProjectFileMounts([...projectFileMounts, createProjectFileMountDraft()])}
@@ -753,9 +840,19 @@ export const AppInstancePage: React.FC<{
                     )}
                   </div>
                   <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5">
-                    <div className="mb-4">
-                      <div className="text-sm font-black text-sky-700">LLM 配置绑定</div>
-                      <div className="mt-1 text-xs text-sky-600">可选绑定。支持从配置中心选择，或以 JSON 方式录入一份与配置中心结构一致的自定义配置。</div>
+                    <div className="mb-4 flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="text-sm font-black text-sky-700">LLM 配置绑定</div>
+                      </div>
+                      {renderHelpToggle(
+                        'llm-binding',
+                        '可选绑定。支持从配置中心选择，或以 JSON 方式录入一份与配置中心结构一致的自定义配置。',
+                        {
+                          button: 'border-sky-300 bg-white/90 text-sky-700 hover:border-sky-400 hover:bg-white focus:ring-sky-300',
+                          panel: 'border-sky-200 bg-white/95',
+                          text: 'text-sky-700',
+                        }
+                      )}
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <button
@@ -852,7 +949,19 @@ export const AppInstancePage: React.FC<{
                   </div>
                   <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
                     <div className="mb-4 flex items-center justify-between">
-                      <div><div className="text-sm font-black text-green-700">绑定 Ingress</div><div className="text-xs text-green-600">勾选后系统会基于当前 Service 自动生成域名，并在创建后自动初始化、启动实例。</div></div>
+                      <div className="flex-1">
+                        <div className="text-sm font-black text-green-700">绑定 Ingress</div>
+                      </div>
+                      {renderHelpToggle(
+                        'ingress-binding',
+                        '勾选后系统会基于当前 Service 自动生成域名，并在创建后自动初始化、启动实例。',
+                        {
+                          button: 'border-green-300 bg-white/90 text-green-700 hover:border-green-400 hover:bg-white focus:ring-green-300',
+                          panel: 'border-green-200 bg-white/95',
+                          text: 'text-green-700',
+                        },
+                        'mr-2 md:mr-3'
+                      )}
                       <label className="inline-flex cursor-pointer items-center">
                         <input type="checkbox" checked={enableIngress} onChange={(event) => setEnableIngress(event.target.checked)} className="sr-only peer" />
                         <div className="relative h-6 w-11 rounded-full bg-gray-200 transition-all after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white" />
