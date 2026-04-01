@@ -725,7 +725,7 @@ export const AppInstancePage: React.FC<{
                       <textarea value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} rows={3} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" />
                     </div>
                     <div>
-                      <label className="mb-2 block text-xs font-black uppercase text-slate-500">Service 绫诲瀷</label>
+                      <label className="mb-2 block text-xs font-black uppercase text-slate-500">Service 类型</label>
                       <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500">
                         <option value="ClusterIP">ClusterIP</option>
                         <option value="NodePort">NodePort</option>
