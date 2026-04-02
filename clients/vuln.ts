@@ -62,6 +62,13 @@ export const vulnApi = {
   getCaseDetail: async (caseId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, { headers: getHeaders() })),
 
+  updateCase: async (caseId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    })),
+
   deleteCase: async (caseId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, {
       method: 'DELETE',

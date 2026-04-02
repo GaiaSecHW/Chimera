@@ -95,6 +95,12 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   };
 
   const refreshProjectToken = async () => {
+    if (projectToken?.token) {
+      const confirmed = window.confirm(
+        '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
+      );
+      if (!confirmed) return;
+    }
     setTokenLoading(true);
     setTokenError(null);
     try {

@@ -1250,7 +1250,12 @@ export interface AiAgentLlmBatchApplyResult {
   }>;
 }
 
-export interface AiAgentSession {
+export interface AiSingleSessionMessage {
+  role: string;
+  content: string;
+}
+
+export interface AiSingleSession {
   session_id: string;
   backend?: string;
   agent_ids?: string[];
@@ -1261,10 +1266,12 @@ export interface AiAgentSession {
   pty_started_at?: string | null;
   last_error?: string | null;
   metadata?: Record<string, any>;
-  messages?: Array<{ role: string; content: string }>;
+  messages?: AiSingleSessionMessage[];
   created_at?: string;
   updated_at?: string;
 }
+
+export interface AiAgentSession extends AiSingleSession {}
 
 export interface ProjectAiAgentSessionItem extends AiAgentSession {
   project_id: string;
