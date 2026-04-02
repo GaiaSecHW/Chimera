@@ -77,6 +77,14 @@ export const environmentApi = {
       `${API_BASE}/api/agent/agents/${encodeURIComponent(key)}/status-history?project_id=${encodeURIComponent(projectId)}&limit=${Math.max(1, Math.min(limit, 100))}`,
       { headers: getHeaders() }
     )),
+  clearAgentStatusHistory: async (
+    key: string,
+    projectId: string
+  ): Promise<{ project_id: string; agent_key: string; deleted: number; message: string }> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/agent/agents/${encodeURIComponent(key)}/status-history?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'DELETE', headers: getHeaders() }
+    )),
   cleanupAgents: async (projectId: string, dryRun = false, cleanupK8sResources = true, force = false): Promise<any> => 
     handleResponse(await fetch(`${API_BASE}/api/agent/agents/cleanup`, { 
       method: 'POST', 

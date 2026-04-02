@@ -92,6 +92,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   const [statusHistoryLoading, setStatusHistoryLoading] = useState(false);
   const [statusHistoryError, setStatusHistoryError] = useState('');
   const [statusHistoryLimit, setStatusHistoryLimit] = useState(20);
+  const [statusHistoryClearing, setStatusHistoryClearing] = useState(false);
 
   // Batch deploy templates for current agent
   const [isBatchDeployModalOpen, setIsBatchDeployModalOpen] = useState(false);
@@ -183,6 +184,29 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       setStatusHistory([]);
     } finally {
       setStatusHistoryLoading(false);
+    }
+  };
+
+  const handleClearAgentStatusHistory = async () => {
+    if (!agentKey || !projectId) return;
+    const confirmed = await showConfirm({
+      title: '清空上下线记录',
+      message: `确认清空节点 ${agent?.hostname || agentKey} 的上下线记录？此操作不可恢复。`,
+      confirmText: '确认清空',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    setStatusHistoryClearing(true);
+    try {
+      const resp = await api.environment.clearAgentStatusHistory(agentKey, projectId);
+      notify(resp?.message || '已清空节点上下线记录', 'success');
+      await loadAgentStatusHistory(statusHistoryLimit);
+    } catch (err: any) {
+      notify(err?.message || '清空上下线记录失败', 'error');
+    } finally {
+      setStatusHistoryClearing(false);
     }
   };
 
@@ -970,6 +994,13 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                     <Clock size={16} className="text-indigo-600" /> 节点上下线记录
                   </h4>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleClearAgentStatusHistory}
+                      disabled={statusHistoryClearing || statusHistoryLoading || statusHistory.length === 0}
+                      className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-[11px] font-black hover:bg-rose-700 disabled:opacity-50"
+                    >
+                      {statusHistoryClearing ? '清空中...' : '清空记录'}
+                    </button>
                     <button
                       onClick={() => {
                         const next = statusHistoryLimit === 20 ? 100 : 20;
