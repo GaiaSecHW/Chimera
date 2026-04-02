@@ -100,29 +100,22 @@ const collectBatchItemOutputs = (item: any): string[] => {
   return outputs;
 };
 
-const buildRoundMarkdown = (round: AiBatchRound): string => {
-  const resultItems = Array.isArray(round?.response?.results) ? round.response.results : [];
-  if (resultItems.length === 0) return '';
-  const lines: string[] = [];
-  resultItems.forEach((item: any, index: number) => {
-    const helperName = `${readText(item?.service_name) || '-'} / ${readText(item?.agent_key) || '-'}`;
-    const success = item?.success === true ? '成功' : item?.success === false ? '失败' : '未知';
-    const outputParts = collectBatchItemOutputs(item);
-    lines.push(`### ${index + 1}. ${helperName}（${success}）`);
-    if (outputParts.length === 0) {
-      lines.push('> 暂无可解析的 AI 输出');
-      lines.push('');
-      return;
-    }
-    outputParts.forEach((part) => {
-      lines.push(part);
-      lines.push('');
-    });
-  });
-  return lines.join('\n').trim();
-};
-
 const agentLabel = (agent: AiAgentItem) => `${agent.agent_id}${agent.backend_type ? ` · ${agent.backend_type}` : ''}`;
+
+const helperItemKey = (item?: { agent_key?: string; service_name?: string }) => `${item?.agent_key || ''}::${item?.service_name || ''}`;
+
+const resolveRoundResultForHelper = (round: AiBatchRound, helper?: { agent_key?: string; service_name?: string; helper_session_id?: string }) => {
+  const resultItems = Array.isArray(round?.response?.results) ? round.response.results : [];
+  if (!helper || resultItems.length === 0) return null;
+  const byIdentity = resultItems.find((item: any) => (
+    readText(item?.agent_key) === readText(helper.agent_key)
+    && readText(item?.service_name) === readText(helper.service_name)
+  ));
+  if (byIdentity) return byIdentity;
+  const sessionId = readText(helper.helper_session_id);
+  if (!sessionId) return null;
+  return resultItems.find((item: any) => readText(item?.helper_session_id) === sessionId) || null;
+};
 
 export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
@@ -137,6 +130,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
   const [activeBatchId, setActiveBatchId] = useState('');
   const [batchDetail, setBatchDetail] = useState<AiBatchSession | null>(null);
   const [batchRounds, setBatchRounds] = useState<AiBatchRound[]>([]);
+  const [activeHelperKey, setActiveHelperKey] = useState('');
   const [detailOpen, setDetailOpen] = useState(false);
 
   const [message, setMessage] = useState('');
@@ -398,6 +392,29 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
   const allVisibleSelected = filteredBatches.length > 0 && filteredBatches.every((item) => selectedBatchIds.includes(item.batch_id));
 
+  const activeHelperItem = useMemo(() => {
+    if (!batchDetail) return null;
+    return batchDetail.items.find((item) => helperItemKey(item) === activeHelperKey) || batchDetail.items[0] || null;
+  }, [batchDetail, activeHelperKey]);
+
+  useEffect(() => {
+    if (!batchDetail || batchDetail.items.length === 0) {
+      setActiveHelperKey('');
+      return;
+    }
+    if (batchDetail.items.some((item) => helperItemKey(item) === activeHelperKey)) return;
+    setActiveHelperKey(helperItemKey(batchDetail.items[0]));
+  }, [batchDetail, activeHelperKey]);
+
+  const helperRounds = useMemo(() => {
+    if (!activeHelperItem) return [] as Array<{ round: AiBatchRound; result: any | null; outputs: string[] }>;
+    return batchRounds.map((round) => {
+      const result = resolveRoundResultForHelper(round, activeHelperItem);
+      const outputs = result ? collectBatchItemOutputs(result) : [];
+      return { round, result, outputs };
+    });
+  }, [batchRounds, activeHelperItem]);
+
   return (
     <div className="px-8 pt-8 pb-10">
       <div className="space-y-6">
@@ -642,16 +659,24 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
 
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 p-4 xl:grid-cols-[340px_minmax(0,1fr)]">
               <section className="min-h-0 overflow-auto rounded-xl border border-slate-200 p-3">
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">目标会话</div>
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">目标 Agent</div>
                 <div className="mt-3 space-y-2">
                   {batchDetail.items.map((item) => (
-                    <div key={`${item.agent_key}::${item.service_name}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <button
+                      key={`${item.agent_key}::${item.service_name}`}
+                      onClick={() => setActiveHelperKey(helperItemKey(item))}
+                      className={`w-full rounded-xl border p-3 text-left transition ${
+                        helperItemKey(item) === helperItemKey(activeHelperItem)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
                       <div className="text-sm font-semibold text-slate-900">{item.service_name}</div>
                       <div className="mt-1 text-xs text-slate-500">{item.agent_key}</div>
                       <div className="mt-2 text-xs text-slate-700">状态：{item.status}</div>
                       <div className="mt-1 break-all text-xs text-slate-700">Session：{item.helper_session_id || '-'}</div>
                       {item.last_error ? <div className="mt-1 text-xs text-rose-600 whitespace-pre-wrap">{item.last_error}</div> : null}
-                    </div>
+                    </button>
                   ))}
                 </div>
               </section>
@@ -662,7 +687,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   onChange={(e) => setMessage(e.target.value)}
                   rows={3}
                   className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  placeholder="输入要 fanout 给当前 batch 的用户消息"
+                  placeholder="输入要发送给当前批量会话（所有目标 Agent）的用户消息"
                 />
                 <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
                   <div className="flex gap-3 text-sm">
@@ -689,43 +714,79 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                   <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                     <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">流式进度</div>
                     <div className="mt-2 max-h-28 space-y-1 overflow-auto pr-1 text-xs text-slate-700">
-                      {streamEvents.map((event, index) => (
-                        <div key={`${event.type}-${index}`}>
-                          {event.type === 'item'
-                            ? `${event.agent_key || '-'} / ${event.service_name || '-'} · ${event.success ? '成功' : '失败'}`
-                            : event.type === 'start'
-                            ? `开始执行（目标 ${event.total_items || 0} 个 helper）`
-                            : event.type === 'done'
-                            ? `本轮完成（success=${event.success ? 'true' : 'false'}）`
-                            : `错误：${event.error_message || event.error || 'unknown'}`}
-                        </div>
-                      ))}
+                      {streamEvents
+                        .filter((event) => (
+                          event.type === 'start'
+                          || event.type === 'done'
+                          || event.type === 'error'
+                          || (
+                            event.type === 'item'
+                            && activeHelperItem
+                            && readText(event.agent_key) === readText(activeHelperItem.agent_key)
+                            && readText(event.service_name) === readText(activeHelperItem.service_name)
+                          )
+                        ))
+                        .map((event, index) => (
+                          <div key={`${event.type}-${index}`}>
+                            {event.type === 'item'
+                              ? `${event.agent_key || '-'} / ${event.service_name || '-'} · ${event.success ? '成功' : '失败'}`
+                              : event.type === 'start'
+                              ? `开始执行（目标 ${event.total_items || 0} 个 helper）`
+                              : event.type === 'done'
+                              ? `本轮完成（success=${event.success ? 'true' : 'false'}）`
+                              : `错误：${event.error_message || event.error || 'unknown'}`}
+                          </div>
+                        ))}
                     </div>
                   </div>
                 ) : null}
 
                 <div className="mt-4 rounded-xl border border-slate-200 p-3">
-                  <div className="text-sm font-bold text-slate-900">多轮记录</div>
+                  <div className="text-sm font-bold text-slate-900">
+                    会话记录（{activeHelperItem ? `${activeHelperItem.service_name} / ${activeHelperItem.agent_key}` : '未选择 Agent'}）
+                  </div>
                   <div className="mt-3 space-y-3 max-h-[50vh] overflow-auto pr-1">
-                    {batchRounds.length === 0 ? <div className="text-sm text-slate-500">暂无多轮记录。</div> : batchRounds.map((round) => (
+                    {helperRounds.length === 0 ? <div className="text-sm text-slate-500">暂无多轮记录。</div> : helperRounds.map(({ round, result, outputs }) => (
                       <div key={round.round_no} className="rounded-xl border border-slate-200 p-3">
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Round {round.round_no}</div>
-                        <div className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{round.content}</div>
-                        {buildRoundMarkdown(round) ? (
-                          <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800">
-                            <MarkdownContent content={buildRoundMarkdown(round)} />
-                          </div>
-                        ) : (
-                          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                            当前轮次未提取到可展示的 AI 响应正文，请展开查看原始结果。
-                          </div>
-                        )}
+                        <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">User</div>
+                          <div className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{round.content}</div>
+                        </div>
+                        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Assistant</div>
+                          {outputs.length > 0 ? (
+                            <div className="mt-2 space-y-3">
+                              {outputs.map((part, index) => (
+                                <div key={`${round.round_no}-output-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+                                  <MarkdownContent content={part} />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                              当前 Agent 在该轮未返回可解析输出。
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500">
+                          执行状态：{result ? (result.success === true ? '成功' : result.success === false ? '失败' : '未知') : '未命中结果'}
+                        </div>
                         <details className="mt-3">
-                          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看原始 JSON</summary>
+                          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看该 Agent 原始结果 JSON</summary>
+                          <pre className="mt-2 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">{prettyJson(result || {})}</pre>
+                        </details>
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看整轮原始 JSON</summary>
                           <pre className="mt-2 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">{prettyJson(round.response)}</pre>
                         </details>
                       </div>
                     ))}
+                    {helperRounds.length > 0 && !activeHelperItem ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        请先在左侧选择一个 Agent 查看会话记录。
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </section>

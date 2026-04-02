@@ -47,6 +47,27 @@ const extractErrorMessage = (errorData: any, status: number): string => {
   return `API Error (${status})`;
 };
 
+const parseResponseBody = async (response: Response): Promise<any> => {
+  if (response.status === 204) return null;
+  const raw = await response.text();
+  if (!raw) return null;
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    return JSON.parse(raw);
+  }
+
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      // fall through and return plain text
+    }
+  }
+  return raw;
+};
+
 export const handleResponse = async (response: Response) => {
   // 处理 401 Token 失效
   if (response.status === 401) {
@@ -61,12 +82,15 @@ export const handleResponse = async (response: Response) => {
   }
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+    const parsed = await parseResponseBody(response).catch(() => ({ detail: 'Unknown error' }));
+    const errorData = typeof parsed === 'string' ? { detail: parsed } : (parsed || { detail: 'Unknown error' });
     const message = extractErrorMessage(errorData, response.status);
     const error = new Error(message);
     if (errorData.code) (error as any).code = errorData.code;
     if (errorData.details) (error as any).details = errorData.details;
     throw error;
   }
-  return response.json();
+
+  const parsed = await parseResponseBody(response);
+  return parsed;
 };

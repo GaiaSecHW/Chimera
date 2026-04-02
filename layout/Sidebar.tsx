@@ -44,7 +44,8 @@ import {
   Activity,
   GitBranch,
   Building2,
-  FolderOpen
+  FolderOpen,
+  FileSearch
 } from 'lucide-react';
 import { UserInfo, ViewType } from '../types/types';
 import { getUserAccess } from '../utils/rbac';
@@ -242,17 +243,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ],
             },
             {
-              id: 'system-analysis-root',
-              label: '环境分析',
-              icon: <Activity size={14} />,
-              children: [
-                { id: 'system-analysis-overview', label: '分析概览', icon: <Activity size={12} /> },
-                { id: 'system-analysis-task', label: '分析任务', icon: <Play size={12} /> },
-                { id: 'system-analysis-history', label: '任务记录', icon: <ClipboardCheck size={12} /> },
-                { id: 'system-analysis-prompt', label: 'Prompt 管理', icon: <FileText size={12} /> }
-              ],
-            },
-            { id: 'env-tasks', label: '任务管理', icon: <Workflow size={14} /> }
+              id: 'env-tasks', label: '任务管理', icon: <Workflow size={14} />
+            }
           ]} 
         />
 
@@ -274,13 +266,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <SidebarItem id="engine-validation" label="安全验证" icon={<ShieldCheck size={20} />} disabled={!hasSelectedProject} />
         <SidebarItem id="pentest-root" label="渗透测试" icon={<Target size={20} />} disabled={!hasSelectedProject} children={[
           { id: 'pentest-risk', label: '风险评估' }, 
-          { id: 'pentest-system', label: '系统分析' }, 
+          {
+            id: 'pentest-system',
+            label: '系统分析',
+            icon: <Activity size={14} />,
+            children: [
+              {
+                id: 'system-analysis-runtime-root',
+                label: '运行环境分析',
+                icon: <ServerCog size={12} />,
+                children: [
+                  { id: 'system-analysis-overview', label: '分析概览', icon: <Activity size={12} /> },
+                  { id: 'system-analysis-task', label: '分析任务', icon: <Play size={12} /> },
+                  { id: 'system-analysis-history', label: '任务记录', icon: <ClipboardCheck size={12} /> },
+                  { id: 'system-analysis-prompt', label: 'Prompt 管理', icon: <FileText size={12} /> }
+                ],
+              }
+            ],
+          },
           { id: 'pentest-threat', label: '威胁分析' }, 
           { id: 'pentest-orch', label: '测试编排' },
           { id: 'pentest-exec', label: '测试执行', icon: <Play size={14} />, children: [
             { id: 'pentest-exec-code', label: '在线代码审计（VSCODE AI版）', icon: <Code2 size={12} /> },
             { id: 'pentest-exec-work', label: '知微' },
-            { id: 'pentest-exec-secmate', label: 'SecMate-NG (AI 助手)', icon: <Sparkles size={12} className="text-amber-400" /> }
+            { id: 'pentest-exec-secmate', label: 'SecMate-NG (AI 助手)', icon: <Sparkles size={12} className="text-amber-400" /> },
+            { id: 'pentest-exec-b2s-root', label: '代码逆向还原引擎', icon: <FileCode size={12} />, children: [
+              { id: 'pentest-exec-b2s-task-list', label: '任务列表', icon: <ListTodo size={12} /> },
+              { id: 'pentest-exec-b2s-create', label: '创建任务', icon: <Play size={12} /> },
+              { id: 'pentest-exec-b2s-queue', label: '执行队列', icon: <Workflow size={12} /> },
+              { id: 'pentest-exec-b2s-result', label: '结果查询', icon: <FileSearch size={12} /> }
+            ]}
           ]},
           { id: 'pentest-report', label: '报告', icon: <FileText size={14} /> }
         ]} />

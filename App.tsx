@@ -69,6 +69,10 @@ import { VulnDecisionPage } from './pages/pentest/VulnDecisionPage';
 import { VulnQueuePage } from './pages/pentest/VulnQueuePage';
 import { VulnServicesPage } from './pages/pentest/VulnServicesPage';
 import { VulnReproConfigPage } from './pages/pentest/VulnReproConfigPage';
+import { B2STaskListPage } from './pages/pentest/B2STaskListPage';
+import { B2STaskCreatePage } from './pages/pentest/B2STaskCreatePage';
+import { B2STaskQueuePage } from './pages/pentest/B2STaskQueuePage';
+import { B2STaskResultPage } from './pages/pentest/B2STaskResultPage';
 
 // User & Auth Pages
 import { UserMgmtPage } from './pages/user/UserMgmtPage';
@@ -97,6 +101,7 @@ const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'engine-validation',
   'pentest-risk', 'pentest-system', 'pentest-threat', 'pentest-orch',
   'pentest-exec-code', 'pentest-exec-work', 'pentest-exec-secmate',
+  'pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result',
   'pentest-report',
   'security-assessment',
   'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-verification', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config'
@@ -121,7 +126,7 @@ const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['test-input', 'pentest-root', 'env-mgmt', 'env-ai-agent-root', 'system-analysis-root', 'base-mgmt', 'pentest-exec', 'user-mgmt-root', 'org-mgmt-root', 'workflow-root', 'vuln-root']));
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['test-input', 'pentest-root', 'pentest-system', 'system-analysis-runtime-root', 'env-mgmt', 'env-ai-agent-root', 'base-mgmt', 'pentest-exec', 'pentest-exec-b2s-root', 'user-mgmt-root', 'org-mgmt-root', 'workflow-root', 'vuln-root']));
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
   // Data States
@@ -432,6 +437,11 @@ const App: React.FC = () => {
       case 'pentest-exec-code': return <ExecutionCodeAuditPage projectId={selectedProjectId} />;
       case 'pentest-exec-work': return <ExecutionWorkPlatformPage projectId={selectedProjectId} />;
       case 'pentest-exec-secmate': return <SecMateNGPage projectId={selectedProjectId} />;
+      case 'pentest-exec-b2s-root':
+      case 'pentest-exec-b2s-task-list': return <B2STaskListPage projectId={selectedProjectId} />;
+      case 'pentest-exec-b2s-create': return <B2STaskCreatePage projectId={selectedProjectId} />;
+      case 'pentest-exec-b2s-queue': return <B2STaskQueuePage projectId={selectedProjectId} />;
+      case 'pentest-exec-b2s-result': return <B2STaskResultPage projectId={selectedProjectId} />;
       case 'pentest-report': return <ReportsPage />;
       case 'security-assessment': return <SecurityAssessmentPage />;
       case 'vuln-engine':

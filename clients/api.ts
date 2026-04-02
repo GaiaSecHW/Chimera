@@ -15,6 +15,7 @@ import { fileserverApi } from './fileserver';
 import { menuApi } from './menu';
 import { configCenterApi } from './configcenter';
 import { systemAnalysisApi } from './systemAnalysis';
+import { binaryToSourceApi } from './binaryToSource';
 
 export const api = {
   auth: authApi,
@@ -33,4 +34,5 @@ export const api = {
   fileserver: fileserverApi,
   configCenter: configCenterApi,
   systemAnalysis: systemAnalysisApi,
+  binaryToSource: binaryToSourceApi,
 };
