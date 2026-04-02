@@ -100,6 +100,7 @@ const RESOURCE_TYPE_ORDER: Array<'document' | 'software' | 'code' | 'other' | 'o
 ];
 
 export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [loading, setLoading] = useState(true);
   const [pvcs, setPvcs] = useState<OutputPvcDetail[]>([]);
   const [selectedPvcId, setSelectedPvcId] = useState<number | null>(null);
@@ -120,6 +121,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     resource_type: 'document' | 'software' | 'code' | 'other' | 'output_pvc';
   }>({ name: '', description: '', pvc_size: 10, resource_type: 'other' });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showArchiveUploadModal, setShowArchiveUploadModal] = useState(false);
+  const [archiveUploadLoading, setArchiveUploadLoading] = useState(false);
+  const [archiveUploadError, setArchiveUploadError] = useState('');
+  const [archiveFiles, setArchiveFiles] = useState<File[]>([]);
+  const [archiveUploadForm, setArchiveUploadForm] = useState<{
+    resource_type: 'document' | 'software' | 'code' | 'other' | 'output_pvc';
+    pvc_size: number;
+  }>({ resource_type: 'other', pvc_size: 10 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
@@ -414,6 +423,42 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     folderInputRef.current?.click();
   };
 
+  const openArchiveUploadModal = () => {
+    setArchiveUploadError('');
+    setArchiveFiles([]);
+    setShowArchiveUploadModal(true);
+  };
+
+  const handleArchiveFileSelection = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setArchiveFiles(Array.from(files));
+  };
+
+  const submitArchiveUpload = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!projectId || archiveFiles.length === 0) return;
+    setArchiveUploadLoading(true);
+    setArchiveUploadError('');
+    try {
+      for (const file of archiveFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('name', file.name.replace(/\.(tar\.gz|tgz|zip|tar|gz)$/i, ''));
+        formData.append('resource_type', archiveUploadForm.resource_type);
+        formData.append('project_ids', projectId);
+        formData.append('pvc_size', String(archiveUploadForm.pvc_size));
+        await api.resources.upload(formData);
+      }
+      setShowArchiveUploadModal(false);
+      setArchiveFiles([]);
+      await loadPvcList();
+    } catch (error: any) {
+      setArchiveUploadError(error?.message || '上传失败，请稍后重试');
+    } finally {
+      setArchiveUploadLoading(false);
+    }
+  };
+
   const handleUploadFiles = async (files: FileList | null) => {
     const pvc = requireSelectedPvc();
     if (!files || files.length === 0) return;
@@ -595,85 +640,143 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     return <FileText size={18} className="text-slate-400" />;
   };
 
+  const openPvcDetail = async (resourceId: number) => {
+    await selectPvc(resourceId);
+    setViewMode('detail');
+  };
+
   return (
     <div className="h-full overflow-y-auto p-2.5 custom-scrollbar lg:p-3">
       <div className="space-y-3">
-        <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-[250px_minmax(260px,1fr)_300px]">
-          <div className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">PVC 列表</div>
-              <div className="flex gap-1.5">
-                <button onClick={() => void loadPvcList()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
-                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                </button>
-                <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-500/20">
-                  <Plus size={14} />
-                  创建 PVC
-                </button>
-              </div>
-            </div>
-            <div className="mb-2.5 rounded-lg border border-slate-200 bg-slate-50 p-2">
-              <div className="mb-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">类型统计</div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {RESOURCE_TYPE_ORDER.map((type) => (
-                  <div key={type} className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1.5">
-                    <span className="text-[11px] font-bold text-slate-600">{RESOURCE_TYPE_LABEL[type]}</span>
-                    <span className="text-xs font-black text-slate-900">{resourceTypeStats[type]}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="relative mb-2.5">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-              <input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="搜索 PVC..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs font-semibold outline-none transition-all focus:border-blue-300"
-              />
-            </div>
-            <div className="space-y-2">
-              {loading ? (
-                <div className="flex min-h-[240px] items-center justify-center">
-                  <Loader2 className="animate-spin text-blue-600" size={28} />
-                </div>
-              ) : filteredPvcs.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 p-3.5 text-center text-xs font-semibold text-slate-400">当前项目暂无 PVC</div>
-              ) : (
-                filteredPvcs.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => void selectPvc(item.id)}
-                    className={`w-full rounded-lg border p-2.5 text-left transition-all ${selectedPvcId === item.id ? 'border-blue-200 bg-blue-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-xs font-black text-slate-900">{item.name}</div>
-                        <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{item.pvc_name}</div>
-                      </div>
-                      <StatusBadge status={item.pvc_k8s_status?.status || 'Unknown'} />
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-slate-500">
-                      <span>{RESOURCE_TYPE_LABEL[item.resource_type] || item.resource_type}</span>
-                      <span className={item.in_use ? 'text-amber-600' : 'text-emerald-600'}>{item.in_use ? 'Mounted' : 'Idle'}</span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFiles(event.target.files)} />
+        <input ref={folderInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFolder(event.target.files)} />
 
-          <div className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
-            {!selectedPvc ? (
-              <div className="flex min-h-[230px] items-center justify-center text-center text-xs font-semibold text-slate-400">选择一个 PVC 后开始浏览文件内容。</div>
-            ) : (
-              <div className="flex h-full min-h-[230px] flex-col gap-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">当前 PVC</div>
-                    <div className="mt-1 text-lg font-black text-slate-900">{selectedPvc.name}</div>
-                    <div className="mt-1 font-mono text-[11px] text-slate-500">{selectedPvc.pvc_name}</div>
+        {viewMode === 'list' ? (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+              <div className="rounded-xl bg-slate-900 p-4 text-white shadow-lg">
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">总 PVC</div>
+                <div className="mt-2 text-3xl font-black leading-none">{pvcs.length}</div>
+              </div>
+              {RESOURCE_TYPE_ORDER.map((type) => (
+                <div key={type} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{RESOURCE_TYPE_LABEL[type]}</div>
+                  <div className="mt-2 text-3xl font-black leading-none text-slate-900">{resourceTypeStats[type]}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-sm font-black text-slate-800">
+                  PVC 列表
+                  <span className="ml-2 text-xs text-slate-400">
+                    {selectedPvc ? `当前选择：${selectedPvc.name}` : '未选择 PVC'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button onClick={() => void loadPvcList()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  </button>
+                  <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-500/20">
+                    <Plus size={14} />
+                    创建空白PVC
+                  </button>
+                  <button onClick={openArchiveUploadModal} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
+                    <Upload size={14} />
+                    上传PVC压缩包
+                  </button>
+                  <button onClick={() => selectedPvc && void handleDeletePvc(selectedPvc)} disabled={!selectedPvc} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm disabled:cursor-not-allowed disabled:opacity-50">
+                    删除 PVC
+                  </button>
+                </div>
+              </div>
+
+              {folderUploadState.visible && (
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-black text-slate-900">{folderUploadState.completed ? '文件夹上传完成' : '文件夹上传中'}</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-500">
+                        阶段：{folderUploadState.phase === 'creating_directories' ? '创建目录' : '上传文件'} · {Math.min(folderUploadState.processed, folderUploadState.total)} / {folderUploadState.total}
+                      </div>
+                    </div>
+                    {!folderUploadState.completed && !folderUploadState.canceled && (
+                      <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-600">
+                        取消
+                      </button>
+                    )}
                   </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div className="h-full bg-blue-600 transition-all" style={{ width: `${folderUploadState.total > 0 ? (Math.min(folderUploadState.processed, folderUploadState.total) / folderUploadState.total) * 100 : 0}%` }} />
+                  </div>
+                </div>
+              )}
+
+              <div className="relative mt-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="按名称、PVC名、描述筛选"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-xs font-semibold outline-none transition-all focus:border-blue-300"
+                />
+              </div>
+
+              <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-3">选择</th>
+                      <th className="px-3 py-3">名称</th>
+                      <th className="px-3 py-3">PVC 名称</th>
+                      <th className="px-3 py-3">类型</th>
+                      <th className="px-3 py-3">容量</th>
+                      <th className="px-3 py-3">状态</th>
+                      <th className="px-3 py-3 text-right">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {loading ? (
+                      <tr><td colSpan={7} className="px-3 py-10 text-center"><Loader2 className="mx-auto animate-spin text-blue-600" size={26} /></td></tr>
+                    ) : filteredPvcs.length === 0 ? (
+                      <tr><td colSpan={7} className="px-3 py-10 text-center font-semibold text-slate-400">当前项目暂无 PVC</td></tr>
+                    ) : (
+                      filteredPvcs.map((item) => (
+                        <tr key={item.id} className="cursor-pointer hover:bg-slate-50" onClick={() => void openPvcDetail(item.id)}>
+                          <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
+                            <input type="radio" checked={selectedPvcId === item.id} onChange={() => setSelectedPvcId(item.id)} />
+                          </td>
+                          <td className="px-3 py-2.5 font-black text-slate-900">{item.name}</td>
+                          <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500">{item.pvc_name}</td>
+                          <td className="px-3 py-2.5 font-bold text-slate-600">{RESOURCE_TYPE_LABEL[item.resource_type] || item.resource_type}</td>
+                          <td className="px-3 py-2.5 font-bold text-slate-600">{item.pvc_size}</td>
+                          <td className="px-3 py-2.5"><StatusBadge status={item.pvc_k8s_status?.status || 'Unknown'} /></td>
+                          <td className="px-3 py-2.5 text-right">
+                            <button className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-50">进入详情</button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-2.5">
+            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setViewMode('list')} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">
+                    返回列表
+                  </button>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">PVC 详情</div>
+                    <div className="mt-1 text-lg font-black text-slate-900">{selectedPvcDetail?.name || '-'}</div>
+                  </div>
+                </div>
+                {selectedPvc && (
                   <div className="flex flex-wrap gap-1.5">
                     <button onClick={() => void refreshBrowser(selectedPvc.id)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm">
                       <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
@@ -681,229 +784,172 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     <button onClick={() => void handleCreateDirectory()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">新建目录</button>
                     <button onClick={handleUploadClick} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
                       <Upload size={14} />
-                      上传文件
+                      上传文件到目录
                     </button>
                     <button onClick={handleUploadFolderClick} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
                       <FolderOpen size={14} />
-                      上传文件夹
+                      上传文件夹到目录
                     </button>
-                    <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFiles(event.target.files)} />
-                    <input ref={folderInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFolder(event.target.files)} />
-                  </div>
-                </div>
-
-                {folderUploadState.visible && (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-xs font-black text-slate-900">
-                          {folderUploadState.completed ? '文件夹上传完成' : '文件夹上传中'}
-                        </div>
-                        <div className="mt-1 text-xs font-semibold text-slate-500">
-                          阶段：{folderUploadState.phase === 'creating_directories' ? '创建目录' : '上传文件'}
-                          {' · '}
-                          {Math.min(folderUploadState.processed, folderUploadState.total)} / {folderUploadState.total}
-                        </div>
-                        {folderUploadState.current && (
-                          <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{folderUploadState.current}</div>
-                        )}
-                      </div>
-                      {!folderUploadState.completed && !folderUploadState.canceled && (
-                        <button
-                          type="button"
-                          onClick={cancelFolderUpload}
-                          className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-600"
-                        >
-                          取消
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
-                      <div
-                        className="h-full bg-blue-600 transition-all"
-                        style={{
-                          width: `${folderUploadState.total > 0 ? (Math.min(folderUploadState.processed, folderUploadState.total) / folderUploadState.total) * 100 : 0}%`,
-                        }}
-                      />
-                    </div>
-                    {folderUploadState.errors.length > 0 && (
-                      <div className="mt-3 max-h-28 overflow-auto rounded-xl border border-amber-200 bg-amber-50 p-2 custom-scrollbar">
-                        {folderUploadState.errors.slice(0, 6).map((item) => (
-                          <div key={`${item.path}:${item.error}`} className="text-[11px] font-semibold text-amber-800">
-                            {item.path}: {item.error}
-                          </div>
-                        ))}
-                        {folderUploadState.errors.length > 6 && (
-                          <div className="mt-1 text-[11px] font-bold text-amber-700">
-                            还有 {folderUploadState.errors.length - 6} 条失败记录
-                          </div>
-                        )}
-                      </div>
+                    {selectedPvcDetail && (
+                      <button onClick={() => void handleDeletePvc(selectedPvcDetail)} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm">
+                        删除 PVC
+                      </button>
                     )}
                   </div>
                 )}
+              </div>
+            </div>
 
-                <div className="grid flex-1 grid-cols-1 gap-2 lg:grid-cols-[220px_minmax(0,1fr)]">
-                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                    <div className="border-b border-slate-200 px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">目录树</div>
-                    <div className="max-h-[32vh] space-y-1 overflow-y-auto p-2 custom-scrollbar">
-                      <button
-                        onClick={() => void openDirectory('/')}
-                        className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left ${selectedNodePath === '/' ? 'bg-blue-50 text-blue-700' : 'hover:bg-white text-slate-700'}`}
-                      >
-                        <Database size={14} className="text-blue-600" />
-                        <span className="text-xs font-semibold">/</span>
-                      </button>
-                      {browserTree.map((node) => renderTreeNode(node))}
+            {folderUploadState.visible && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-black text-slate-900">{folderUploadState.completed ? '文件夹上传完成' : '文件夹上传中'}</div>
+                    <div className="mt-1 text-xs font-semibold text-slate-500">
+                      阶段：{folderUploadState.phase === 'creating_directories' ? '创建目录' : '上传文件'} · {Math.min(folderUploadState.processed, folderUploadState.total)} / {folderUploadState.total}
                     </div>
                   </div>
-
-                  <div className="overflow-hidden rounded-xl border border-slate-200">
-                    <div className="border-b border-slate-200 px-3 py-2">
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
-                        {(currentDirectory?.breadcrumbs || [{ path: '/', name: '/' }]).map((item) => (
-                          <button key={item.path} onClick={() => void openDirectory(item.path)} className="rounded-full bg-slate-100 px-3 py-1.5 hover:bg-slate-200">
-                            {item.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="max-h-[32vh] overflow-y-auto custom-scrollbar">
-                      <table className="w-full">
-                        <thead className="bg-slate-50 text-left text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
-                          <tr>
-                            <th className="px-4 py-3">名称</th>
-                            <th className="px-4 py-3">大小</th>
-                            <th className="px-4 py-3">更新时间</th>
-                            <th className="px-4 py-3 text-right">操作</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {[...(currentDirectory?.directories || []), ...(currentDirectory?.files || [])].map((node) => (
-                            <tr key={node.path} className="hover:bg-slate-50">
-                              <td className="px-3 py-2">
-                                <button onClick={() => void onTreeClick(node)} className="flex items-center gap-3 text-left">
-                                  {renderNodeIcon(node)}
-                                  <div>
-                                    <div className="text-xs font-black text-slate-900">{node.name}</div>
-                                    <div className="font-mono text-[11px] text-slate-400">{node.path}</div>
-                                  </div>
-                                </button>
-                              </td>
-                              <td className="px-3 py-2 text-[11px] font-bold text-slate-500">{node.node_type === 'directory' ? '-' : formatBytes(node.size)}</td>
-                              <td className="px-3 py-2 text-[11px] font-bold text-slate-500">{node.updated_at ? new Date(node.updated_at * 1000).toLocaleString() : '-'}</td>
-                              <td className="px-3 py-2">
-                                <div className="flex items-center justify-end gap-2">
-                                  {node.node_type === 'file' && (
-                                    <button onClick={() => void handleDownloadNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
-                                      <Download size={13} />
-                                    </button>
-                                  )}
-                                  <button onClick={() => void handleRenameNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
-                                    <Pencil size={13} />
-                                  </button>
-                                  <button onClick={() => void handleMoveNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
-                                    <ChevronRight size={13} />
-                                  </button>
-                                  <button onClick={() => void handleDeleteNode(node)} className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-rose-500 hover:text-rose-700">
-                                    <Trash2 size={13} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          {(!currentDirectory || ((currentDirectory.directories.length + currentDirectory.files.length) === 0)) && (
-                            <tr>
-                              <td colSpan={4} className="px-4 py-7 text-center text-xs font-semibold text-slate-400">当前目录为空。</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                  {!folderUploadState.completed && !folderUploadState.canceled && (
+                    <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-600">
+                      取消
+                    </button>
+                  )}
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-full bg-blue-600 transition-all" style={{ width: `${folderUploadState.total > 0 ? (Math.min(folderUploadState.processed, folderUploadState.total) / folderUploadState.total) * 100 : 0}%` }} />
                 </div>
               </div>
             )}
-          </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
-            {!selectedPvcDetail ? (
-              <div className="flex min-h-[230px] items-center justify-center text-center text-xs font-semibold text-slate-400">右侧会显示 PVC 元信息与文件预览。</div>
-            ) : (
-              <div className="space-y-2.5">
-                <div className="rounded-lg bg-slate-50 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+            <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-[220px_minmax(300px,1fr)_320px]">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                <div className="border-b border-slate-200 px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">目录树</div>
+                <div className="max-h-[62vh] space-y-1 overflow-y-auto p-2 custom-scrollbar">
+                  <button
+                    onClick={() => void openDirectory('/')}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left ${selectedNodePath === '/' ? 'bg-blue-50 text-blue-700' : 'hover:bg-white text-slate-700'}`}
+                  >
+                    <Database size={14} className="text-blue-600" />
+                    <span className="text-xs font-semibold">/</span>
+                  </button>
+                  {browserTree.map((node) => renderTreeNode(node))}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div className="border-b border-slate-200 px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
+                    {(currentDirectory?.breadcrumbs || [{ path: '/', name: '/' }]).map((item) => (
+                      <button key={item.path} onClick={() => void openDirectory(item.path)} className="rounded-full bg-slate-100 px-3 py-1.5 hover:bg-slate-200">
+                        {item.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="max-h-[62vh] overflow-y-auto custom-scrollbar">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 text-left text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                      <tr>
+                        <th className="px-4 py-3">名称</th>
+                        <th className="px-4 py-3">大小</th>
+                        <th className="px-4 py-3">更新时间</th>
+                        <th className="px-4 py-3 text-right">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {[...(currentDirectory?.directories || []), ...(currentDirectory?.files || [])].map((node) => (
+                        <tr key={node.path} className="hover:bg-slate-50">
+                          <td className="px-3 py-2">
+                            <button onClick={() => void onTreeClick(node)} className="flex items-center gap-3 text-left">
+                              {renderNodeIcon(node)}
+                              <div>
+                                <div className="text-xs font-black text-slate-900">{node.name}</div>
+                                <div className="font-mono text-[11px] text-slate-400">{node.path}</div>
+                              </div>
+                            </button>
+                          </td>
+                          <td className="px-3 py-2 text-[11px] font-bold text-slate-500">{node.node_type === 'directory' ? '-' : formatBytes(node.size)}</td>
+                          <td className="px-3 py-2 text-[11px] font-bold text-slate-500">{node.updated_at ? new Date(node.updated_at * 1000).toLocaleString() : '-'}</td>
+                          <td className="px-3 py-2">
+                            <div className="flex items-center justify-end gap-2">
+                              {node.node_type === 'file' && (
+                                <button onClick={() => void handleDownloadNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
+                                  <Download size={13} />
+                                </button>
+                              )}
+                              <button onClick={() => void handleRenameNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
+                                <Pencil size={13} />
+                              </button>
+                              <button onClick={() => void handleMoveNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
+                                <ChevronRight size={13} />
+                              </button>
+                              <button onClick={() => void handleDeleteNode(node)} className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-rose-500 hover:text-rose-700">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {(!currentDirectory || ((currentDirectory.directories.length + currentDirectory.files.length) === 0)) && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-7 text-center text-xs font-semibold text-slate-400">当前目录为空。</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+                {!selectedPvcDetail ? (
+                  <div className="flex min-h-[230px] items-center justify-center text-center text-xs font-semibold text-slate-400">右侧会显示 PVC 元信息与文件预览。</div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="rounded-lg bg-slate-50 p-3">
                       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">PVC 元信息</div>
                       <div className="mt-1.5 text-lg font-black text-slate-900">{selectedPvcDetail.name}</div>
                       <div className="mt-1 font-mono text-[11px] text-slate-500">{selectedPvcDetail.pvc_name}</div>
+                      <div className="mt-3 grid grid-cols-2 gap-2.5 text-[11px]">
+                        <div><div className="text-slate-400">容量</div><div className="mt-1 font-black text-slate-900">{selectedPvcDetail.pvc_size}</div></div>
+                        <div><div className="text-slate-400">资源类型</div><div className="mt-1 font-black text-slate-900">{RESOURCE_TYPE_LABEL[selectedPvcDetail.resource_type] || selectedPvcDetail.resource_type}</div></div>
+                        <div><div className="text-slate-400">挂载状态</div><div className="mt-1 font-black text-slate-900">{selectedPvcDetail.in_use ? '使用中' : '空闲'}</div></div>
+                        <div><div className="text-slate-400">StorageClass</div><div className="mt-1 font-black text-slate-900">{selectedPvcDetail.pvc_k8s_status?.storage_class || '-'}</div></div>
+                      </div>
+                      <div className="mt-2"><StatusBadge status={selectedPvcDetail.pvc_k8s_status?.status || 'Unknown'} /></div>
                     </div>
-                    <button onClick={() => void handleDeletePvc(selectedPvcDetail)} className="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-600">
-                      删除 PVC
-                    </button>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2.5 text-[11px]">
-                    <div>
-                      <div className="text-slate-400">容量</div>
-                      <div className="mt-1 font-black text-slate-900">{selectedPvcDetail.pvc_size}</div>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">资源类型</div>
-                      <div className="mt-1 font-black text-slate-900">{RESOURCE_TYPE_LABEL[selectedPvcDetail.resource_type] || selectedPvcDetail.resource_type}</div>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">挂载状态</div>
-                      <div className="mt-1 font-black text-slate-900">{selectedPvcDetail.in_use ? '使用中' : '空闲'}</div>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">StorageClass</div>
-                      <div className="mt-1 font-black text-slate-900">{selectedPvcDetail.pvc_k8s_status?.storage_class || '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-slate-400">K8S 状态</div>
-                      <div className="mt-1"><StatusBadge status={selectedPvcDetail.pvc_k8s_status?.status || 'Unknown'} /></div>
-                    </div>
-                  </div>
-                  {selectedPvcDetail.use_message && (
-                    <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">{selectedPvcDetail.use_message}</div>
-                  )}
-                </div>
 
-                <div className="rounded-lg border border-slate-200 bg-white">
-                  <div className="border-b border-slate-200 px-3 py-2.5">
-                    <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">文件预览</div>
-                    <div className="mt-1.5 text-xs font-black text-slate-900">{previewNode?.name || '未选择文件'}</div>
-                  </div>
-                  <div className="min-h-[150px] p-3">
-                    {preview.mode === 'empty' ? (
-                      <div className="flex min-h-[130px] items-center justify-center text-center text-xs font-semibold text-slate-400">选择一个文件即可在这里预览内容。</div>
-                    ) : preview.mode === 'text' ? (
-                      <div className="space-y-3">
-                        {preview.truncated && (
-                          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">文本预览已截断，仅显示前 1 MiB 内容。</div>
+                    <div className="rounded-lg border border-slate-200 bg-white">
+                      <div className="border-b border-slate-200 px-3 py-2.5">
+                        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">文件预览</div>
+                        <div className="mt-1.5 text-xs font-black text-slate-900">{previewNode?.name || '未选择文件'}</div>
+                      </div>
+                      <div className="min-h-[180px] p-3">
+                        {preview.mode === 'empty' ? (
+                          <div className="flex min-h-[130px] items-center justify-center text-center text-xs font-semibold text-slate-400">选择一个文件即可在这里预览内容。</div>
+                        ) : preview.mode === 'text' ? (
+                          <pre className="max-h-[34vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-2.5 text-[11px] leading-5 text-slate-100 custom-scrollbar">{preview.text}</pre>
+                        ) : preview.mode === 'image' ? (
+                          <img src={preview.url} alt={previewNode?.name} className="max-h-[34vh] w-full rounded-lg object-contain bg-slate-50" />
+                        ) : preview.mode === 'pdf' ? (
+                          <iframe src={preview.url} title={previewNode?.name} className="h-[34vh] w-full rounded-lg border border-slate-200" />
+                        ) : preview.mode === 'audio' ? (
+                          <audio controls src={preview.url} className="w-full" />
+                        ) : preview.mode === 'video' ? (
+                          <video controls src={preview.url} className="max-h-[34vh] w-full rounded-lg bg-slate-950" />
+                        ) : (
+                          <div className="flex min-h-[130px] flex-col items-center justify-center gap-3 text-center">
+                            <FileAudio size={42} className="text-slate-300" />
+                            <div className="text-xs font-semibold text-slate-500">当前文件不支持在线预览，请直接下载查看。</div>
+                          </div>
                         )}
-                        <pre className="max-h-[26vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-2.5 text-[11px] leading-5 text-slate-100 custom-scrollbar">{preview.text}</pre>
                       </div>
-                    ) : preview.mode === 'image' ? (
-                      <img src={preview.url} alt={previewNode?.name} className="max-h-[26vh] w-full rounded-lg object-contain bg-slate-50" />
-                    ) : preview.mode === 'pdf' ? (
-                      <iframe src={preview.url} title={previewNode?.name} className="h-[26vh] w-full rounded-lg border border-slate-200" />
-                    ) : preview.mode === 'audio' ? (
-                      <audio controls src={preview.url} className="w-full" />
-                    ) : preview.mode === 'video' ? (
-                      <video controls src={preview.url} className="max-h-[26vh] w-full rounded-lg bg-slate-950" />
-                    ) : (
-                      <div className="flex min-h-[130px] flex-col items-center justify-center gap-3 text-center">
-                        <FileAudio size={42} className="text-slate-300" />
-                        <div className="text-xs font-semibold text-slate-500">当前文件不支持在线预览，请直接下载查看。</div>
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {showCreateModal && (
@@ -936,7 +982,77 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">取消</button>
                 <button type="submit" disabled={createLoading} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white">
                   {createLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                  创建
+                  创建空白PVC
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showArchiveUploadModal && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl">
+            <div className="text-2xl font-black text-slate-900">上传 PVC 压缩包</div>
+            <p className="mt-2 text-sm font-medium text-slate-500">沿用历史流程：上传压缩包后由任务自动下载并解压到新创建的 PVC 根目录。</p>
+            <form onSubmit={submitArchiveUpload} className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <select
+                  value={archiveUploadForm.resource_type}
+                  onChange={(e) => setArchiveUploadForm((prev) => ({ ...prev, resource_type: e.target.value as any }))}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none"
+                >
+                  <option value="document">文档资源 PVC</option>
+                  <option value="software">软件包资源 PVC</option>
+                  <option value="code">源码资源 PVC</option>
+                  <option value="other">其他资源 PVC</option>
+                  <option value="output_pvc">输出资源 PVC</option>
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={archiveUploadForm.pvc_size}
+                  onChange={(e) => setArchiveUploadForm((prev) => ({ ...prev, pvc_size: Number.parseInt(e.target.value, 10) || 10 }))}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none"
+                  placeholder="PVC大小 Gi"
+                />
+              </div>
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm">
+                  <Upload size={14} />
+                  选择压缩包
+                  <input
+                    type="file"
+                    multiple
+                    accept=".zip,.tar,.tar.gz,.tgz,.gz"
+                    className="hidden"
+                    onChange={(e) => handleArchiveFileSelection(e.target.files)}
+                  />
+                </label>
+                <div className="mt-3 max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white p-2">
+                  {archiveFiles.length === 0 ? (
+                    <div className="text-xs font-semibold text-slate-400">未选择文件（支持 zip/tar/tar.gz/tgz/gz）</div>
+                  ) : (
+                    archiveFiles.map((file) => (
+                      <div key={`${file.name}:${file.size}`} className="flex items-center justify-between border-b border-slate-100 px-2 py-1.5 last:border-b-0">
+                        <span className="truncate text-xs font-semibold text-slate-700">{file.name}</span>
+                        <span className="text-[11px] font-bold text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              {archiveUploadError && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{archiveUploadError}</div>
+              )}
+              <div className="flex justify-end gap-3">
+                <button type="button" disabled={archiveUploadLoading} onClick={() => setShowArchiveUploadModal(false)} className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700">
+                  取消
+                </button>
+                <button type="submit" disabled={archiveUploadLoading || archiveFiles.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">
+                  {archiveUploadLoading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+                  上传并解压
                 </button>
               </div>
             </form>
