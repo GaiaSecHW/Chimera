@@ -7,16 +7,31 @@ import {
   Zap, 
   Container, 
   X,
-  Plus
+  Plus,
+  Hash
 } from 'lucide-react';
-import { JobTemplate, TemplateScope } from '../../types/types';
+import { JobTemplate, TemplateScope, TemplateTag } from '../../types/types';
 import { api } from '../../clients/api';
 
 export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () => void }> = ({ templateId, onBack }) => {
+  const normalizeTagKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const getTagClasses = (color?: string) => {
+    const colorMap: Record<string, string> = {
+      slate: 'bg-slate-100 text-slate-700 border-slate-200',
+      blue: 'bg-blue-50 text-blue-700 border-blue-200',
+      emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      amber: 'bg-amber-50 text-amber-700 border-amber-200',
+      rose: 'bg-rose-50 text-rose-700 border-rose-200',
+      violet: 'bg-violet-50 text-violet-700 border-violet-200',
+    };
+    return colorMap[color || 'slate'] || colorMap.slate;
+  };
   const [template, setTemplate] = useState<JobTemplate | null>(null);
+  const [availableTags, setAvailableTags] = useState<TemplateTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tagInputValue, setTagInputValue] = useState('');
   
   const defaultContainer = { 
     name: 'main', 
@@ -38,8 +53,44 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
     scope: 'project' as TemplateScope,
     backoff_limit: 3,
     ttl_seconds_after_finished: 3600,
+    tags: [] as TemplateTag[],
     containers: [ JSON.parse(JSON.stringify(defaultContainer)) ]
   });
+
+  const loadAvailableTags = async () => {
+    try {
+      const res = await api.workflow.listTemplateTags({ enabled: true });
+      setAvailableTags(res.items || []);
+    } catch (error) {
+      console.error('Failed to load template tags', error);
+    }
+  };
+
+  const addTagToForm = (rawValue: string) => {
+    const trimmedValue = rawValue.trim();
+    const tagKey = normalizeTagKey(trimmedValue);
+    if (!tagKey) return;
+    if (formData.tags.some((tag) => tag.tag_key === tagKey)) {
+      setTagInputValue('');
+      return;
+    }
+    const existingTag = availableTags.find((tag) => tag.tag_key === tagKey);
+    setFormData((current) => ({
+      ...current,
+      tags: [
+        ...current.tags,
+        existingTag || { tag_key: tagKey, tag_label: trimmedValue || tagKey, category: 'capability', color: 'slate' }
+      ]
+    }));
+    setTagInputValue('');
+  };
+
+  const removeTagFromForm = (tagKey: string) => {
+    setFormData((current) => ({
+      ...current,
+      tags: current.tags.filter((tag) => tag.tag_key !== tagKey)
+    }));
+  };
 
   const loadTemplate = async () => {
     try {
@@ -53,6 +104,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
         scope: data.scope || 'project',
         backoff_limit: data.backoff_limit ?? 3,
         ttl_seconds_after_finished: data.ttl_seconds_after_finished ?? 3600,
+        tags: data.tags || [],
         containers: (data.containers || []).map((c: any) => ({
           ...c,
           command: c.command ? c.command.join(', ') : '',
@@ -72,6 +124,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
 
   useEffect(() => {
     loadTemplate();
+    void loadAvailableTags();
   }, [templateId]);
 
   const handleSave = async () => {
@@ -82,6 +135,7 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
     
     const payload = {
       ...formData,
+      tags: formData.tags,
       containers: formData.containers.map((c: any) => {
         return {
           ...c,
@@ -213,6 +267,74 @@ export const JobTemplateDetailPage: React.FC<{ templateId: string, onBack: () =>
                 className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all resize-none disabled:opacity-70 disabled:bg-slate-100"
                 value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
               />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">模板标签</label>
+                {isEditMode && <span className="text-[10px] font-bold text-slate-400">回车或点击标签即可添加/移除</span>}
+              </div>
+              {isEditMode && (
+                <div className="space-y-3">
+                  <div className="flex flex-col md:flex-row gap-3">
+                    <input
+                      placeholder="输入标签名后回车，例如 port-scan / weak-password"
+                      className="flex-1 px-4 py-3 bg-slate-50 rounded-xl border-none outline-none focus:ring-4 ring-blue-500/10 text-sm font-bold text-slate-800 transition-all"
+                      value={tagInputValue}
+                      onChange={(e) => setTagInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addTagToForm(tagInputValue);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addTagToForm(tagInputValue)}
+                      className="px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-slate-800 transition-all"
+                    >
+                      添加标签
+                    </button>
+                  </div>
+                  {availableTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {availableTags
+                        .filter((tag) => !formData.tags.some((selected) => selected.tag_key === tag.tag_key))
+                        .slice(0, 12)
+                        .map((tag) => (
+                          <button
+                            key={tag.tag_key}
+                            type="button"
+                            onClick={() => addTagToForm(tag.tag_label || tag.tag_key)}
+                            className={`px-3 py-1.5 rounded-full border text-[11px] font-black transition-all hover:-translate-y-0.5 ${getTagClasses(tag.color)}`}
+                          >
+                            #{tag.tag_label}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {formData.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {formData.tags.map((tag) => (
+                    <button
+                      key={tag.tag_key}
+                      type="button"
+                      disabled={!isEditMode}
+                      onClick={() => isEditMode && removeTagFromForm(tag.tag_key)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black transition-all disabled:cursor-default ${getTagClasses(tag.color)}`}
+                    >
+                      <Hash size={12} />
+                      <span>{tag.tag_label}</span>
+                      {isEditMode && <X size={12} />}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-slate-400 font-medium">暂未配置标签</div>
+              )}
             </div>
           </div>
 
