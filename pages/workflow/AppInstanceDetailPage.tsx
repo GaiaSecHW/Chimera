@@ -123,6 +123,30 @@ export const AppInstanceDetailPage: React.FC<{
     };
   }, [accessInfo]);
 
+  const directIngressVisitUrl = useMemo(() => {
+    if (primaryIngressAccess?.url) {
+      return primaryIngressAccess.url;
+    }
+
+    const configuredIngress = accessInfo?.configured_ingress;
+    if (configuredIngress?.ingress_access_url) {
+      return configuredIngress.ingress_access_url;
+    }
+    if (instance.ingress_access_url) {
+      return instance.ingress_access_url;
+    }
+
+    const fallbackHost = configuredIngress?.ingress_host || instance.ingress_host;
+    if (!fallbackHost) {
+      return '';
+    }
+
+    const useTls = Boolean(
+      configuredIngress?.ingress_tls_enabled ?? instance.ingress_tls_enabled
+    );
+    return `${useTls ? 'https' : 'http'}://${fallbackHost}/`;
+  }, [accessInfo, instance, primaryIngressAccess]);
+
   const secondaryAccessUrls = useMemo(
     () => (accessInfo?.access_urls || []).filter((item) => item.type !== 'Ingress'),
     [accessInfo],
@@ -324,9 +348,9 @@ export const AppInstanceDetailPage: React.FC<{
                 </div>
                 <div>
                   <h3 className="mb-4 text-lg font-black text-slate-900">访问方式</h3>
-                  {primaryIngressAccess?.url && (
+                  {directIngressVisitUrl && (
                     <button
-                      onClick={() => window.open(primaryIngressAccess.url || '', '_blank', 'noopener,noreferrer')}
+                      onClick={() => window.open(directIngressVisitUrl, '_blank', 'noopener,noreferrer')}
                       className="mb-4 flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-500"
                     >
                       <ExternalLink size={16} />

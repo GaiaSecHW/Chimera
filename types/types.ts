@@ -261,6 +261,8 @@ export interface AppWorkflowNode {
   ingress_type?: string;
   ingress_host?: string;
   ingress_ip?: string;
+  ingress_access_url?: string;
+  ingress_tls_enabled?: boolean;
   llm_binding?: AppWorkflowLlmBinding | null;
   started_at?: string;
   finished_at?: string;
@@ -304,6 +306,8 @@ export interface AppWorkflow {
   ingress_type?: string;
   ingress_host?: string;
   ingress_ip?: string;
+  ingress_access_url?: string;
+  ingress_tls_enabled?: boolean;
   llm_binding?: AppWorkflowLlmBinding | null;
   created_by?: string;
   created_at: string;
@@ -382,6 +386,8 @@ export interface ServiceAccessInfo {
     ingress_type?: string;
     ingress_host?: string;
     ingress_ip?: string;
+    ingress_access_url?: string;
+    ingress_tls_enabled?: boolean;
   };
   domain_bindings?: DomainBindingRecord[];
   node_id?: string;
