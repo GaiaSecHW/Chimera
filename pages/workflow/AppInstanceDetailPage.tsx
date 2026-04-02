@@ -34,6 +34,11 @@ export const AppInstanceDetailPage: React.FC<{
 
   const loadInstance = async () => {
     setLoading(true);
+    if (!instanceId) {
+      setInstance(null);
+      setLoading(false);
+      return;
+    }
     try {
       const data = await api.workflow.getAppWorkflow(instanceId);
       setInstance(data);
@@ -137,7 +142,7 @@ export const AppInstanceDetailPage: React.FC<{
     return (
       <div className="flex h-screen flex-col items-center justify-center">
         <AlertCircle className="mb-4 text-red-400" size={64} />
-        <p className="font-medium text-slate-600">应用实例不存在</p>
+        <p className="font-medium text-slate-600">{instanceId ? '应用实例不存在' : '未获取到应用实例 ID，请返回列表重试'}</p>
         <button onClick={onBack} className="mt-4 px-6 py-3 font-medium text-blue-600 hover:text-blue-700">返回列表</button>
       </div>
     );
@@ -145,6 +150,14 @@ export const AppInstanceDetailPage: React.FC<{
 
   const actions = getAvailableActions(instance.status);
   const primaryPort = instance.service_ports?.[0]?.port;
+  const node = instance.node || {
+    status: 'pending' as AppWorkflowStatus,
+    name: '-',
+    k8s_resource_type: '-',
+    k8s_resource_name: '-',
+    message: '',
+    init_logs: '',
+  };
 
   return (
     <div className="p-8">
@@ -172,7 +185,7 @@ export const AppInstanceDetailPage: React.FC<{
         </div>
         <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <div className="mb-2 text-xs font-black uppercase text-slate-500">节点状态</div>
-          <StatusBadge status={instance.node.status} />
+          <StatusBadge status={node.status} />
         </div>
         <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <div className="mb-2 text-xs font-black uppercase text-slate-500">应用模板</div>
@@ -218,15 +231,15 @@ export const AppInstanceDetailPage: React.FC<{
             <div className="rounded-2xl bg-slate-50 p-6">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-black text-slate-900">节点信息</h3>
-                <StatusBadge status={instance.node.status} />
+                <StatusBadge status={node.status} />
               </div>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                <div><div className="mb-1 text-xs text-slate-400">节点名称</div><div className="font-bold text-slate-800">{instance.node.name}</div></div>
-                <div><div className="mb-1 text-xs text-slate-400">资源类型</div><div className="font-bold text-slate-800">{instance.node.k8s_resource_type || '-'}</div></div>
-                <div><div className="mb-1 text-xs text-slate-400">资源名称</div><div className="font-mono text-sm text-slate-800">{instance.node.k8s_resource_name || '-'}</div></div>
+                <div><div className="mb-1 text-xs text-slate-400">节点名称</div><div className="font-bold text-slate-800">{node.name}</div></div>
+                <div><div className="mb-1 text-xs text-slate-400">资源类型</div><div className="font-bold text-slate-800">{node.k8s_resource_type || '-'}</div></div>
+                <div><div className="mb-1 text-xs text-slate-400">资源名称</div><div className="font-mono text-sm text-slate-800">{node.k8s_resource_name || '-'}</div></div>
               </div>
-              {instance.node.message && <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{instance.node.message}</div>}
-              {instance.node.init_logs && <div className="mt-4"><div className="mb-2 text-xs font-black uppercase text-slate-500">初始化日志摘要</div><pre className="max-h-64 overflow-auto rounded-2xl bg-slate-900 p-4 text-xs text-green-400 whitespace-pre-wrap">{instance.node.init_logs}</pre></div>}
+              {node.message && <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{node.message}</div>}
+              {node.init_logs && <div className="mt-4"><div className="mb-2 text-xs font-black uppercase text-slate-500">初始化日志摘要</div><pre className="max-h-64 overflow-auto rounded-2xl bg-slate-900 p-4 text-xs text-green-400 whitespace-pre-wrap">{node.init_logs}</pre></div>}
             </div>
           </div>
         )}

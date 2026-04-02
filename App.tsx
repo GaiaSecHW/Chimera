@@ -419,7 +419,10 @@ const App: React.FC = () => {
       case 'workflow-apps': return <AppTemplatePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveAppTemplateId(id); setCurrentView('workflow-app-detail'); }} />;
       case 'workflow-app-detail': return <AppTemplateDetailPage templateId={activeAppTemplateId} onBack={() => setCurrentView('workflow-apps')} />;
       case 'workflow-app-instances': return <AppInstancePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveAppWorkflowId(id); setCurrentView('workflow-app-instance-detail'); }} />;
-      case 'workflow-app-instance-detail': return <AppInstanceDetailPage instanceId={activeAppWorkflowId} onBack={() => setCurrentView('workflow-app-instances')} />;
+      case 'workflow-app-instance-detail':
+        return activeAppWorkflowId
+          ? <AppInstanceDetailPage instanceId={activeAppWorkflowId} onBack={() => setCurrentView('workflow-app-instances')} />
+          : <AppInstancePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveAppWorkflowId(id); setCurrentView('workflow-app-instance-detail'); }} />;
 
       case 'engine-validation': return <WorkflowPlaceholder title="安全验证" icon={<ShieldCheck />} />;
       case 'pentest-risk': return <WorkflowPlaceholder title="风险评估" icon={<ShieldAlert />} />;
