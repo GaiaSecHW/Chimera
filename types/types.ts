@@ -805,6 +805,25 @@ export interface Agent {
   allow_reason?: string;
 }
 
+export interface AgentStatusEvent {
+  id: number;
+  project_id: string;
+  agent_key: string;
+  hostname?: string;
+  ip_address?: string;
+  from_status?: string;
+  to_status?: string;
+  edge_state_from?: 'online' | 'offline' | string;
+  edge_state_to?: 'online' | 'offline' | string;
+  direction?: '上线' | '下线' | string;
+  reason_code?: string;
+  reason_message?: string;
+  source?: string;
+  pod_id?: string;
+  observed_at?: string | null;
+  created_at?: string | null;
+}
+
 // Docker Compose 解析相关类型定义
 
 // 解析后的端口配置

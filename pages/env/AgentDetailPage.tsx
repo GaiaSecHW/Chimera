@@ -36,7 +36,7 @@ import {
   X,
   SquareTerminal
 } from 'lucide-react';
-import { Agent, AgentService, AsyncTask, DaemonAgentInfo, DaemonService, EnvTemplate, AgentTtydConnectionInfo, AgentIngressRouteInfo, TemplateLlmProviderBinding } from '../../types/types';
+import { Agent, AgentService, AsyncTask, DaemonAgentInfo, DaemonService, EnvTemplate, AgentTtydConnectionInfo, AgentIngressRouteInfo, TemplateLlmProviderBinding, AgentStatusEvent } from '../../types/types';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -88,6 +88,10 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   const [showTtydShell, setShowTtydShell] = useState(false);
   const [ingressRoutes, setIngressRoutes] = useState<AgentIngressRouteInfo[]>([]);
   const [ingressLoading, setIngressLoading] = useState(false);
+  const [statusHistory, setStatusHistory] = useState<AgentStatusEvent[]>([]);
+  const [statusHistoryLoading, setStatusHistoryLoading] = useState(false);
+  const [statusHistoryError, setStatusHistoryError] = useState('');
+  const [statusHistoryLimit, setStatusHistoryLimit] = useState(20);
 
   // Batch deploy templates for current agent
   const [isBatchDeployModalOpen, setIsBatchDeployModalOpen] = useState(false);
@@ -158,10 +162,27 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       } catch (e) {
         console.warn('Failed to load ttyd connection info', e);
       }
+      await loadAgentStatusHistory(statusHistoryLimit);
     } catch (err) {
       console.error("Failed to load agent detail", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAgentStatusHistory = async (limit = statusHistoryLimit) => {
+    if (!agentKey || !projectId) return;
+    setStatusHistoryLoading(true);
+    setStatusHistoryError('');
+    try {
+      const resp = await api.environment.getAgentStatusHistory(agentKey, projectId, limit);
+      setStatusHistory(Array.isArray(resp?.items) ? resp.items : []);
+    } catch (err: any) {
+      console.error('Failed to load agent status history', err);
+      setStatusHistoryError(err?.message || '记录加载失败');
+      setStatusHistory([]);
+    } finally {
+      setStatusHistoryLoading(false);
     }
   };
 
@@ -942,6 +963,92 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   </div>
                 </div>
               )}
+
+              <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Clock size={16} className="text-indigo-600" /> 节点上下线记录
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const next = statusHistoryLimit === 20 ? 100 : 20;
+                        setStatusHistoryLimit(next);
+                        void loadAgentStatusHistory(next);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-black hover:bg-slate-200"
+                    >
+                      {statusHistoryLimit === 20 ? '查看更多(100)' : '收起到20条'}
+                    </button>
+                    <button
+                      onClick={() => loadAgentStatusHistory(statusHistoryLimit)}
+                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                      title="刷新上下线记录"
+                    >
+                      <RefreshCw size={16} className={statusHistoryLoading ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 mb-4">
+                  仅记录状态边变化（online 与非online之间切换），每个节点最多保留最近100条。
+                </p>
+
+                {statusHistoryError ? (
+                  <div className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                    记录加载失败: {statusHistoryError}
+                  </div>
+                ) : statusHistoryLoading ? (
+                  <div className="py-8 flex items-center gap-2 text-xs text-slate-500">
+                    <Loader2 className="animate-spin" size={14} /> 正在加载上下线记录...
+                  </div>
+                ) : statusHistory.length === 0 ? (
+                  <div className="py-8 text-xs text-slate-400">暂无上下线记录</div>
+                ) : (
+                  <div className="border border-slate-100 rounded-2xl overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50">
+                        <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          <th className="px-3 py-2">时间</th>
+                          <th className="px-3 py-2">方向</th>
+                          <th className="px-3 py-2">状态变化</th>
+                          <th className="px-3 py-2">原因</th>
+                          <th className="px-3 py-2">来源</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {statusHistory.map((item) => {
+                          const toOnline = String(item.edge_state_to || '').toLowerCase() === 'online';
+                          return (
+                            <tr key={`${item.id}-${item.created_at || ''}`} className="hover:bg-slate-50">
+                              <td className="px-3 py-2 text-[11px] font-mono text-slate-600 whitespace-nowrap">
+                                {item.observed_at ? String(item.observed_at).replace('T', ' ').split('.')[0] : '-'}
+                              </td>
+                              <td className="px-3 py-2">
+                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border ${toOnline ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                                  {item.direction || (toOnline ? '上线' : '下线')}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-xs text-slate-700">
+                                <span className="font-mono">{item.from_status || '-'}</span>
+                                <span className="mx-1 text-slate-400">→</span>
+                                <span className="font-mono">{item.to_status || '-'}</span>
+                              </td>
+                              <td className="px-3 py-2 text-xs text-slate-600">
+                                <div className="font-bold text-slate-700">{item.reason_code || '-'}</div>
+                                <div className="text-[11px] text-slate-500">{item.reason_message || '-'}</div>
+                              </td>
+                              <td className="px-3 py-2 text-[11px] text-slate-500">
+                                <div>{item.source || '-'}</div>
+                                <div className="font-mono text-slate-400">pod: {item.pod_id || '-'}</div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
 
               <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8">
                 <div className="flex items-center justify-between mb-6">

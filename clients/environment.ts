@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent } from '../types/types';
 
 const normalizeTask = (raw: any): AsyncTask => ({
   id: raw?.id || raw?.task_id || '',
@@ -68,6 +68,15 @@ export const environmentApi = {
     handleResponse(await fetch(`${API_BASE}/api/agent/agents/stats?project_id=${projectId}`, { headers: getHeaders() })),
   getAgentDetail: async (key: string, projectId: string): Promise<Agent> => 
     handleResponse(await fetch(`${API_BASE}/api/agent/agents/${key}?project_id=${projectId}`, { headers: getHeaders() })),
+  getAgentStatusHistory: async (
+    key: string,
+    projectId: string,
+    limit = 100
+  ): Promise<{ project_id: string; agent_key: string; limit: number; total: number; items: AgentStatusEvent[] }> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/agent/agents/${encodeURIComponent(key)}/status-history?project_id=${encodeURIComponent(projectId)}&limit=${Math.max(1, Math.min(limit, 100))}`,
+      { headers: getHeaders() }
+    )),
   cleanupAgents: async (projectId: string, dryRun = false, cleanupK8sResources = true, force = false): Promise<any> => 
     handleResponse(await fetch(`${API_BASE}/api/agent/agents/cleanup`, { 
       method: 'POST', 
