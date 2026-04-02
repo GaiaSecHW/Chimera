@@ -212,6 +212,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           healthStatus={resourceHealth}
           applyHealth={true}
           icon={<FileBox size={20} />}
+          disabled={!hasSelectedProject}
+          children={[
+            { id: 'public-resource-pvc-management', label: 'PVC管理', icon: <HardDrive size={14} /> },
+            { id: 'public-resource-task-management', label: '任务管理', icon: <ListTodo size={14} /> },
+          ]}
         />
 
         <SidebarItem 

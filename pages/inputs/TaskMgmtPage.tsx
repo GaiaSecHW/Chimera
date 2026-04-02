@@ -89,81 +89,39 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   );
 
   return (
-    <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">资源任务管理</h2>
-          <p className="text-slate-500 mt-1 font-medium">资产上传、镜像解压与持久化存储编排任务审计</p>
-        </div>
-        <div className="flex gap-4">
+    <div className="p-2.5 space-y-2.5 animate-in fade-in duration-500 h-full overflow-y-auto lg:p-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">任务列表</div>
           <button 
             onClick={() => { setLoading(true); loadTasks(); }}
-            className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+            className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm"
           >
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
-      </div>
 
-      {/* Analytics Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
-          <Workflow className="absolute right-[-20px] top-[-20px] w-40 h-40 opacity-5 rotate-12" />
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest relative z-10">活动任务</p>
-          <h3 className="text-4xl font-black mt-2 text-blue-400 relative z-10">
-            {tasks.filter(t => t.status === 'running' || t.status === 'pending').length}
-          </h3>
-          <p className="text-slate-400 text-xs mt-1 font-bold relative z-10">总任务数: {tasks.length}</p>
-        </div>
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">成功率</p>
-          <h3 className="text-4xl font-black mt-2 text-slate-800">
-            {tasks.length > 0 ? Math.round((tasks.filter(t => t.status === 'succeeded').length / tasks.length) * 100) : 0}%
-          </h3>
-          <div className="flex items-center gap-1.5 text-green-500 text-[10px] font-black mt-1 uppercase">
-            <CheckCircle2 size={12} /> Execution Health
-          </div>
-        </div>
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm col-span-2">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-4">异常监控 (Failed / Cancelled)</p>
-          <div className="flex gap-4">
-            <div className="flex-1 p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black text-red-400 uppercase">失败任务</p>
-                <p className="text-2xl font-black text-red-600">{tasks.filter(t => t.status === 'failed').length}</p>
-              </div>
-              <AlertTriangle className="text-red-200" size={24} />
-            </div>
-            <div className="flex-1 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[10px] font-black text-slate-400 uppercase">已取消</p>
-              <p className="text-2xl font-black text-slate-600">{tasks.filter(t => t.status === 'cancelled').length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
         <div className="relative">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
           <input 
             type="text" 
             placeholder="搜索任务 ID、任务类型..." 
-            className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs font-semibold outline-none transition-all focus:border-blue-300"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[400px]">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm min-h-[360px]">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
+            <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
               <tr>
-                <th className="px-8 py-5">任务标识 / ID</th>
-                <th className="px-6 py-5">关联资源 ID</th>
-                <th className="px-6 py-5">执行进度</th>
-                <th className="px-6 py-5">创建日期</th>
-                <th className="px-6 py-5">运行状态</th>
-                <th className="px-8 py-5 text-right">操作</th>
+                <th className="px-4 py-3">任务标识 / ID</th>
+                <th className="px-4 py-3">关联资源 ID</th>
+                <th className="px-4 py-3">执行进度</th>
+                <th className="px-4 py-3">创建日期</th>
+                <th className="px-4 py-3">运行状态</th>
+                <th className="px-4 py-3 text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -177,27 +135,27 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 <tr><td colSpan={6} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={40} /></td></tr>
               ) : filteredTasks.map(t => (
                 <tr key={t.task_id} className="hover:bg-slate-50 transition-all group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                         t.status === 'succeeded' ? 'bg-green-50 text-green-600' : 
                         t.status === 'failed' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'
                       }`}>
-                        <Workflow size={18} />
+                        <Workflow size={14} />
                       </div>
                       <div>
-                        <span className="text-sm font-black text-slate-700 block capitalize">{(t.task_type || 'Task').replace('_', ' ')}</span>
+                        <span className="text-xs font-black text-slate-700 block capitalize">{(t.task_type || 'Task').replace('_', ' ')}</span>
                         <span className="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">{t.task_id}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
                       <FileBox size={14} className="text-slate-300" />
                       <span>{t.resource_id}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden w-24">
                         <div 
@@ -208,29 +166,29 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <span className="text-[10px] font-black text-slate-400">{t.progress || 0}%</span>
                     </div>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                       <Clock size={12} /> {t.created_at?.split('T')[0]}
                     </div>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-3">
                     <StatusBadge status={t.status} />
                   </td>
-                  <td className="px-8 py-5 text-right">
+                  <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => showTaskLogs(t.task_id)}
-                        className="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                         title="查看审计日志"
                       >
-                        <Terminal size={16} />
+                        <Terminal size={14} />
                       </button>
                       <button 
                         onClick={() => handleDeleteClick(t.task_id)}
-                        className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                         title="删除/终止任务"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>

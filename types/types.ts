@@ -589,7 +589,7 @@ export interface OutputPvcDetail {
   resource_uuid: string;
   name: string;
   description?: string | null;
-  resource_type: 'output_pvc';
+  resource_type: 'document' | 'software' | 'code' | 'other' | 'output_pvc';
   pvc_name: string;
   pvc_namespace: string;
   pvc_size: string;
@@ -1430,7 +1430,7 @@ export interface DeployScriptListResponse {
 
 export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
-  | 'public-resource-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer'
+  | 'public-resource-management' | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-history' | 'system-analysis-prompt'

@@ -93,7 +93,7 @@ const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'workflow-app-instances', 'workflow-app-instance-detail',
   'workflow-jobs', 'workflow-job-detail',
   'workflow-instances', 'workflow-instance-detail', 'workflow-instance-logs',
-  'project-file-explorer', 'pvc-management', 'public-resource-management',
+  'project-file-explorer', 'pvc-management', 'public-resource-management', 'public-resource-pvc-management', 'public-resource-task-management',
   'engine-validation',
   'pentest-risk', 'pentest-system', 'pentest-threat', 'pentest-orch',
   'pentest-exec-code', 'pentest-exec-work', 'pentest-exec-secmate',
@@ -382,11 +382,14 @@ const App: React.FC = () => {
       
       // Resource Management Pages
       case 'public-resource-management': return <PublicResourceManagementPage projectId={selectedProjectId} />;
-      case 'test-input-release': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="release" />;
-      case 'test-input-code': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="code" />;
-      case 'test-input-doc': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="doc" />;
+      case 'public-resource-pvc-management': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
+      case 'public-resource-task-management': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="tasks" />;
+      // legacy aliases
+      case 'test-input-release': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
+      case 'test-input-code': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
+      case 'test-input-doc': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
       case 'test-input-tasks': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="tasks" />;
-      case 'test-input-other': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="other" />;
+      case 'test-input-other': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
       case 'pvc-management': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
       case 'project-file-explorer': return <ProjectFileExplorerPage projectId={selectedProjectId} projects={projects} />;
       
