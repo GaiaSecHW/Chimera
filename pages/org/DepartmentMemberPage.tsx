@@ -30,6 +30,10 @@ export const DepartmentMemberPage: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [formData, setFormData] = useState({ user_id: '', department_id: '', role: 'member' });
+  const [departmentPickerSearchOpen, setDepartmentPickerSearchOpen] = useState(false);
+  const [userPickerSearchOpen, setUserPickerSearchOpen] = useState(false);
+  const [departmentPickerSearchTerm, setDepartmentPickerSearchTerm] = useState('');
+  const [userPickerSearchTerm, setUserPickerSearchTerm] = useState('');
   const [moveDepartmentId, setMoveDepartmentId] = useState('');
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
   const [importFileName, setImportFileName] = useState('');
@@ -253,6 +257,10 @@ export const DepartmentMemberPage: React.FC = () => {
       department_id: selectedDepartmentId ? selectedDepartmentId.toString() : '',
       role: 'member',
     });
+    setDepartmentPickerSearchOpen(false);
+    setUserPickerSearchOpen(false);
+    setDepartmentPickerSearchTerm('');
+    setUserPickerSearchTerm('');
     setIsAddModalOpen(true);
   };
 
@@ -380,6 +388,18 @@ export const DepartmentMemberPage: React.FC = () => {
     () => departments.find((d) => d.id === selectedDepartmentId),
     [departments, selectedDepartmentId]
   );
+
+  const filteredDepartmentOptions = useMemo(() => {
+    const keyword = departmentPickerSearchTerm.trim().toLowerCase();
+    if (!keyword) return departments;
+    return departments.filter((department) => department.name.toLowerCase().includes(keyword));
+  }, [departments, departmentPickerSearchTerm]);
+
+  const filteredUserOptions = useMemo(() => {
+    const keyword = userPickerSearchTerm.trim().toLowerCase();
+    if (!keyword) return users;
+    return users.filter((user) => user.username.toLowerCase().includes(keyword));
+  }, [users, userPickerSearchTerm]);
 
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
@@ -543,7 +563,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
       {isAddModalOpen && userPermissions?.can_manage_users && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
+          <div className="bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
@@ -556,24 +576,95 @@ export const DepartmentMemberPage: React.FC = () => {
               </div>
               <button onClick={() => setIsAddModalOpen(false)} className="p-3 text-slate-300 hover:text-slate-600"><X size={28} /></button>
             </div>
-            <form onSubmit={handleAddMember} className="p-10 space-y-6">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">选择部门 *</label>
-                <select required className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800" value={formData.department_id} onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}>
-                  <option value="">请选择部门</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">选择用户 *</label>
-                <select required className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800" value={formData.user_id} onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}>
-                  <option value="">请选择用户</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>{user.username}</option>
-                  ))}
-                </select>
+            <form onSubmit={handleAddMember} className="p-10 space-y-8">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-4 items-end">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">选择部门 *</label>
+                      <button
+                        type="button"
+                        onClick={() => setDepartmentPickerSearchOpen((open) => !open)}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${departmentPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        <Search size={14} />
+                        查询
+                      </button>
+                    </div>
+                    {departmentPickerSearchOpen && (
+                      <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                        <input
+                          type="text"
+                          placeholder="输入部门名称筛选"
+                          className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-slate-700"
+                          value={departmentPickerSearchTerm}
+                          onChange={(e) => setDepartmentPickerSearchTerm(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <select
+                      required
+                      className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800"
+                      value={formData.department_id}
+                      onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                    >
+                      <option value="">请选择部门</option>
+                      {filteredDepartmentOptions.map((dept) => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-400 font-medium">
+                      共 {filteredDepartmentOptions.length} 个部门{departmentPickerSearchTerm ? `，匹配关键字“${departmentPickerSearchTerm}”` : ''}
+                    </p>
+                  </div>
+
+                  <div className="hidden xl:flex items-center justify-center pb-9">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+                      <ArrowRightLeft size={18} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">选择用户 *</label>
+                      <button
+                        type="button"
+                        onClick={() => setUserPickerSearchOpen((open) => !open)}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-black transition-all ${userPickerSearchOpen ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        <Search size={14} />
+                        查询
+                      </button>
+                    </div>
+                    {userPickerSearchOpen && (
+                      <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                        <input
+                          type="text"
+                          placeholder="输入用户名筛选"
+                          className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-4 ring-blue-500/10 text-sm font-semibold text-slate-700"
+                          value={userPickerSearchTerm}
+                          onChange={(e) => setUserPickerSearchTerm(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <select
+                      required
+                      className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800"
+                      value={formData.user_id}
+                      onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
+                    >
+                      <option value="">请选择用户</option>
+                      {filteredUserOptions.map((user) => (
+                        <option key={user.id} value={user.id}>{user.username}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-slate-400 font-medium">
+                      共 {filteredUserOptions.length} 个用户{userPickerSearchTerm ? `，匹配关键字“${userPickerSearchTerm}”` : ''}
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">角色 *</label>
