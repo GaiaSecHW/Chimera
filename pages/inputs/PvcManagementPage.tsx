@@ -114,6 +114,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const [searchTerm, setSearchTerm] = useState('');
   const [busy, setBusy] = useState<string>('');
   const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
   const [createForm, setCreateForm] = useState<{
     name: string;
     description: string;
@@ -356,11 +357,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const handleCreatePvc = async (event: React.FormEvent) => {
     event.preventDefault();
     setCreateLoading(true);
+    setCreateError('');
     try {
       await api.resources.createManualPvc({ ...createForm, project_id: projectId });
       setShowCreateModal(false);
       setCreateForm({ name: '', description: '', pvc_size: 10, resource_type: 'other' });
       await loadPvcList();
+    } catch (error: any) {
+      setCreateError(error?.message || '创建空白PVC失败，请稍后重试');
     } finally {
       setCreateLoading(false);
     }
@@ -429,6 +433,11 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     setArchiveFiles([]);
     setArchiveDragOver(false);
     setShowArchiveUploadModal(true);
+  };
+
+  const openCreatePvcModal = () => {
+    setCreateError('');
+    setShowCreateModal(true);
   };
 
   const handleArchiveFileSelection = (files: FileList | null) => {
@@ -681,7 +690,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   <button data-testid="pvc-list-refresh-btn" onClick={() => void loadPvcList()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
                     <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                   </button>
-                  <button data-testid="pvc-create-blank-btn" onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-500/20">
+                  <button data-testid="pvc-create-blank-btn" onClick={openCreatePvcModal} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-500/20">
                     <Plus size={14} />
                     创建空白PVC
                   </button>
@@ -983,8 +992,11 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </div>
                 <input data-testid="pvc-create-size-range" type="range" min="1" max="100" value={createForm.pvc_size} onChange={(e) => setCreateForm((prev) => ({ ...prev, pvc_size: Number.parseInt(e.target.value, 10) }))} className="w-full accent-blue-600" />
               </div>
+              {createError && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">{createError}</div>
+              )}
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">取消</button>
+                <button type="button" onClick={() => { setShowCreateModal(false); setCreateError(''); }} className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">取消</button>
                 <button data-testid="pvc-create-submit-btn" type="submit" disabled={createLoading} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white">
                   {createLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                   创建空白PVC
