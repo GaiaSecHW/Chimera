@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
-import { Bot, BookOpenText, Braces, CheckCircle2, Eye, EyeOff, FileCode2, LayoutPanelTop, Loader2, MessageSquare, Plus, RefreshCw, Save, ShieldAlert, Sparkles, Trash2, Wifi, X } from 'lucide-react';
+import { Bot, BookOpenText, Braces, CheckCircle2, Copy, Eye, EyeOff, FileCode2, LayoutPanelTop, Loader2, MessageSquare, Plus, RefreshCw, Save, ShieldAlert, Sparkles, Trash2, Wifi, X } from 'lucide-react';
 import { api } from '../clients/api';
 import { showConfirm } from '../components/DialogService';
 import { LlmProviderDetail, LlmProviderFileBinding, LlmProviderSummary, LlmProviderTestResult, LlmProviderUpsertRequest } from '../types/types';
@@ -306,6 +306,43 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     const emptyForm = createEmptyForm();
     setForm(emptyForm);
     syncJsonDraft(emptyForm);
+  };
+
+  const buildUniqueProviderKey = (baseKey: string) => {
+    const normalized = String(baseKey || '').trim().toLowerCase().replace(/[^a-z0-9-_]+/g, '-').replace(/^-+|-+$/g, '') || 'provider-copy';
+    const firstCandidate = normalized.endsWith('-copy') ? normalized : `${normalized}-copy`;
+    const used = new Set(providers.map((item) => String(item.provider_key || '').trim().toLowerCase()));
+    if (!used.has(firstCandidate)) return firstCandidate;
+    for (let index = 2; index <= 9999; index += 1) {
+      const candidate = `${firstCandidate}-${index}`;
+      if (!used.has(candidate)) return candidate;
+    }
+    return `${firstCandidate}-${Date.now()}`;
+  };
+
+  const handleDuplicateProvider = () => {
+    try {
+      const sourceForm = editorMode === 'json' ? normalizeDraft(JSON.parse(jsonDraft || '{}')) : form;
+      const sourceKey = String(sourceForm.provider_key || selectedKey || '').trim();
+      const sourceName = String(sourceForm.display_name || '').trim();
+      const nextForm = normalizeDraft({
+        ...sourceForm,
+        provider_key: buildUniqueProviderKey(sourceKey || 'provider'),
+        display_name: sourceName ? `${sourceName} 副本` : 'LLM Provider 副本',
+        is_default: false,
+      });
+      setSelectedKey('');
+      setIsCreating(true);
+      setEditorMode('visual');
+      setTestResult(null);
+      setError('');
+      setShowSecret(true);
+      setForm(nextForm);
+      syncJsonDraft(nextForm);
+      setMessage(`已基于 ${sourceKey || '当前配置'} 创建副本草稿，请修改后保存`);
+    } catch (err: any) {
+      setError(err.message || '复制配置失败，请先修正 JSON 格式');
+    }
   };
 
   const handleRefresh = async () => {
@@ -835,6 +872,14 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
               </div>
               {!isCreating && (
                 <>
+                  <button
+                    onClick={handleDuplicateProvider}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600"
+                  >
+                    <Copy size={14} />
+                    复制配置
+                  </button>
                   <button
                     onClick={() => void handleToggleEnabled()}
                     disabled={saving}
