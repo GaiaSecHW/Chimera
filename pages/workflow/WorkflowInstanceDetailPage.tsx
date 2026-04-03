@@ -16,7 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ArrowLeft, Save, Play, Square, RefreshCw, Plus, Trash2, Settings, Terminal, Activity, FolderTree, Loader2, LogOut, RotateCcw, Clock, BarChart2, Database, AlertCircle, CheckCircle, XCircle, Zap, ExternalLink } from 'lucide-react';
 import { api } from '../../clients/api';
-import { WorkflowInstance, WorkflowNodeInstance, WorkflowStatus } from '../../types/types';
+import { AppTemplate, WorkflowInstance, WorkflowNodeInstance, WorkflowStatus } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { XTerminal } from '../../components/XTerminal';
 import { ProjectDirectoryPickerModal, ProjectDirectorySelection } from '../../components/ProjectDirectoryPickerModal';
@@ -508,11 +508,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       
       setSelectedTemplate(template);
       setTemplateDetails(details);
+      const appDetails = template.type === 'app' ? (details as AppTemplate) : null;
       
       // Initialize config with required inputs
       const envVars: { name: string, value: string }[] = [];
-
-      const servicePorts: { name: string, port: number, target_port: number, protocol: string }[] = [];
       details.containers.forEach((c: any) => {
         if (c.input_env_vars) {
           c.input_env_vars.forEach((iv: any) => {
@@ -521,19 +520,36 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             }
           });
         }
+      });
+
+      const servicePortsFromTemplate = ((appDetails?.service_ports) || []).map((port: any, index: number) => ({
+        name: port.name || `port-${port.port || port.target_port || index + 1}`,
+        port: Number(port.port || port.target_port || 0),
+        target_port: Number(port.target_port || port.targetPort || port.port || 0),
+        protocol: port.protocol || 'TCP',
+      })).filter((port: any) => port.port > 0 && port.target_port > 0);
+
+      const servicePortsFromContainers: { name: string, port: number, target_port: number, protocol: string }[] = [];
+      details.containers.forEach((c: any) => {
         if (c.ports) {
           c.ports.forEach((p: any) => {
-            if (!servicePorts.find(sp => sp.port === p.container_port)) {
-              servicePorts.push({
-                name: p.name || `port-${p.container_port}`,
-                port: p.container_port,
-                target_port: p.container_port,
+            const containerPort = Number(p.container_port || p.containerPort || p.port || 0);
+            if (containerPort > 0 && !servicePortsFromContainers.find(sp => sp.port === containerPort)) {
+              servicePortsFromContainers.push({
+                name: p.name || `port-${containerPort}`,
+                port: containerPort,
+                target_port: containerPort,
                 protocol: p.protocol || 'TCP'
               });
             }
           });
         }
       });
+
+      const shouldCreateService = template.type === 'app' ? (appDetails?.create_service ?? true) : false;
+      const servicePorts = shouldCreateService
+        ? (servicePortsFromTemplate.length > 0 ? servicePortsFromTemplate : servicePortsFromContainers)
+        : [];
       
       const autoServiceName = template.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
       const volumeMounts = buildTemplateMountConfigs(details);
@@ -543,10 +559,10 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         env_vars: envVars,
         volume_mounts: volumeMounts,
         position: null,
-        create_service: template.type === 'app',
-        service_name: template.type === 'app' ? autoServiceName : '',
-        service_ports: template.type === 'app' ? servicePorts : [],
-        service_type: 'ClusterIP',
+        create_service: shouldCreateService,
+        service_name: template.type === 'app' ? (appDetails?.service_name || autoServiceName) : '',
+        service_ports: servicePorts,
+        service_type: template.type === 'app' ? (appDetails?.service_type || 'ClusterIP') : 'ClusterIP',
         create_ingress: false,
         ingress_type: '',
         ingress_host: '',
