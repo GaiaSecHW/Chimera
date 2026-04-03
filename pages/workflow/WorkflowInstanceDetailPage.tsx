@@ -133,9 +133,6 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   const [templates, setTemplates] = useState<{ id: string, name: string, type: 'app' | 'job' }[]>([]);
   const [pvcs, setPvcs] = useState<any[]>([]);
   const [directoryPickerTarget, setDirectoryPickerTarget] = useState<string | null>(null);
-  const [ingressControllers, setIngressControllers] = useState<any[]>([]);
-  const [loadingIngressControllers, setLoadingIngressControllers] = useState(false);
-  
   // 访问服务相关状态
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
   const [serviceAccessInfo, setServiceAccessInfo] = useState<any>(null);
@@ -299,19 +296,6 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     }
   };
 
-  const loadIngressControllers = async () => {
-    try {
-      setLoadingIngressControllers(true);
-      const res = await api.workflow.getNginxIngressIps();
-      setIngressControllers(res.items || []);
-    } catch (e) {
-      console.error(e);
-      setIngressControllers([]);
-    } finally {
-      setLoadingIngressControllers(false);
-    }
-  };
-
   const splitNodeMountPayloads = (mounts: NodeVolumeMountConfig[]) => {
     const volume_mounts = mounts
       .filter((mount) => mount.source_type === 'pvc' && mount.pvc_name)
@@ -384,12 +368,6 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
       loadTemplates();
     }
   }, [isAddNodeModalOpen]);
-
-  useEffect(() => {
-    if (isAddNodeModalOpen && selectedTemplate?.type === 'app') {
-      loadIngressControllers();
-    }
-  }, [isAddNodeModalOpen, selectedTemplate?.type]);
 
   const onConnect = useCallback((params: Connection) => {
     if (!isEditMode) return;
@@ -622,19 +600,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
         return;
       }
     }
-      if (newNodeConfig.create_ingress) {
-        if (newNodeConfig.ingress_type !== 'nginx') {
-          showToast("请选择 Nginx Ingress 类型", "warning");
-          return;
-        }
-        if (!newNodeConfig.ingress_ip) {
-          showToast("请选择 Ingress IP", "warning");
-          return;
-        }
-        if (!newNodeConfig.ingress_host || !newNodeConfig.ingress_host.trim()) {
-          showToast("请输入自定义域名", "warning");
-          return;
-        }
+      if (newNodeConfig.create_ingress && newNodeConfig.ingress_type !== 'nginx') {
+        showToast("请选择 Nginx Ingress 类型", "warning");
+        return;
       }
 
     try {
@@ -652,9 +620,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
           service_ports: newNodeConfig.create_service ? newNodeConfig.service_ports : [],
           service_type: newNodeConfig.create_service ? newNodeConfig.service_type : undefined,
           create_ingress: newNodeConfig.create_service ? newNodeConfig.create_ingress : false,
-          ingress_type: newNodeConfig.create_service && newNodeConfig.create_ingress ? newNodeConfig.ingress_type : undefined,
-          ingress_host: newNodeConfig.create_service && newNodeConfig.create_ingress ? newNodeConfig.ingress_host : undefined,
-          ingress_ip: newNodeConfig.create_service && newNodeConfig.create_ingress ? newNodeConfig.ingress_ip : undefined
+          ingress_type: newNodeConfig.create_service && newNodeConfig.create_ingress ? 'nginx' : undefined,
         });
         showToast("更新成功", "success");
       } else {
@@ -676,9 +642,7 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
             payload.service_type = newNodeConfig.service_type;
             payload.create_ingress = newNodeConfig.create_ingress;
             if (newNodeConfig.create_ingress) {
-              payload.ingress_type = newNodeConfig.ingress_type;
-              payload.ingress_host = newNodeConfig.ingress_host;
-              payload.ingress_ip = newNodeConfig.ingress_ip;
+              payload.ingress_type = 'nginx';
             }
           }
         }
@@ -2313,57 +2277,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                               </label>
                               <label className="text-[9px] font-black text-slate-500 uppercase">Ingress 配置</label>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-slate-400 uppercase">Ingress 类型</label>
-                                <select
-                                  className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
-                                  value={newNodeConfig.ingress_type}
-                                  onChange={e => setNewNodeConfig({...newNodeConfig, ingress_type: e.target.value as '' | 'nginx', ingress_ip: ''})}
-                                  disabled={!newNodeConfig.create_ingress}
-                                >
-                                  <option value="">不创建 Ingress</option>
-                                  <option value="nginx">Nginx Ingress</option>
-                                </select>
-                              </div>
-                              <div className="space-y-1.5">
-                                <label className="text-[9px] font-black text-slate-400 uppercase">域名</label>
-                                <input
-                                  type="text"
-                                  className="w-full px-3 py-2 bg-white border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 text-sm font-bold text-slate-800"
-                                  value={newNodeConfig.ingress_host}
-                                  onChange={e => setNewNodeConfig({...newNodeConfig, ingress_host: e.target.value})}
-                                  placeholder="example.com"
-                                  disabled={!newNodeConfig.create_ingress}
-                                />
-                              </div>
-                            </div>
                             {newNodeConfig.create_ingress && (
-                              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                    <span className="text-[9px] font-black text-emerald-700 uppercase">Ingress IP</span>
-                                  </div>
-                                  {loadingIngressControllers && <span className="text-[10px] font-bold text-emerald-700">加载中...</span>}
-                                </div>
-                                <select
-                                  className="mt-2 w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg outline-none focus:border-emerald-500 text-sm font-bold text-slate-800"
-                                  value={newNodeConfig.ingress_ip}
-                                  onChange={e => setNewNodeConfig({...newNodeConfig, ingress_ip: e.target.value})}
-                                >
-                                  <option value="">请选择 Ingress IP</option>
-                                  {ingressControllers.filter(controller => controller.external_ip).map((controller, idx) => (
-                                    <option key={`${controller.name}-${controller.external_ip}-${idx}`} value={controller.external_ip}>
-                                      {controller.external_ip} ({controller.name})
-                                    </option>
-                                  ))}
-                                </select>
-                                <div className="mt-2 text-sm font-mono font-bold text-emerald-800">
-                                  {newNodeConfig.ingress_ip && newNodeConfig.ingress_host
-                                    ? `${newNodeConfig.ingress_ip}  ${newNodeConfig.ingress_host}`
-                                    : '选择 IP 并输入域名后，这里会显示 hosts 绑定信息'}
-                                </div>
+                              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                                默认使用 `nginx` Ingress，域名会按当前 Service 自动生成。节点初始化完成后，可在节点“访问服务”里直接打开入口地址。
                               </div>
                             )}
                           </div>
