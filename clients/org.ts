@@ -1,6 +1,6 @@
 
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { Department, DepartmentMember, Project, SecurityProject } from '../types/types';
+import { Department, DepartmentMember, DepartmentMemberImportCommitResponse, DepartmentMemberImportPreviewResponse, Project, SecurityProject } from '../types/types';
 
 export interface UserPermissionInfo {
   user_id: number;
@@ -136,6 +136,31 @@ export const orgApi = {
     const response = await fetch(`${API_BASE}/api/auth/org/department-members/${memberId}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  downloadDepartmentMemberImportTemplate: async (): Promise<string> => {
+    const response = await fetch(`${API_BASE}/api/auth/org/department-members/import/template`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  previewDepartmentMemberImport: async (payload: { department_id: number; csv_content: string; filename?: string; mode?: 'skip_existing' | 'update_role' }): Promise<DepartmentMemberImportPreviewResponse> => {
+    const response = await fetch(`${API_BASE}/api/auth/org/department-members/import/preview`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  commitDepartmentMemberImport: async (payload: { department_id: number; csv_content: string; filename?: string; mode?: 'skip_existing' | 'update_role' }): Promise<DepartmentMemberImportCommitResponse> => {
+    const response = await fetch(`${API_BASE}/api/auth/org/department-members/import/commit`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(response);
   },

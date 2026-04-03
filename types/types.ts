@@ -538,6 +538,41 @@ export interface DepartmentMember {
   updated_at: string;
 }
 
+export interface DepartmentMemberImportNormalizedRow {
+  username: string;
+  department_id: number;
+  department_name: string;
+  role: 'leader' | 'vice_leader' | 'member';
+  action: 'create' | 'skip_existing' | 'update_role';
+  existing_member_id?: number | null;
+  existing_department_id?: number | null;
+  existing_department_name?: string | null;
+}
+
+export interface DepartmentMemberImportRowResult {
+  row_no: number;
+  username: string;
+  status: 'valid' | 'error' | 'success' | 'skipped';
+  messages: string[];
+  normalized?: DepartmentMemberImportNormalizedRow | null;
+  member_id?: number | null;
+}
+
+export interface DepartmentMemberImportPreviewResponse {
+  total_rows: number;
+  valid_rows: number;
+  error_rows: number;
+  rows: DepartmentMemberImportRowResult[];
+}
+
+export interface DepartmentMemberImportCommitResponse {
+  total_rows: number;
+  success_rows: number;
+  skipped_rows: number;
+  failed_rows: number;
+  rows: DepartmentMemberImportRowResult[];
+}
+
 export interface Project {
   id: number | string;  // 支持项目空间的字符串ID
   name: string;
