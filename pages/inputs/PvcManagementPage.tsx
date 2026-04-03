@@ -125,6 +125,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const [archiveUploadLoading, setArchiveUploadLoading] = useState(false);
   const [archiveUploadError, setArchiveUploadError] = useState('');
   const [archiveFiles, setArchiveFiles] = useState<File[]>([]);
+  const [archiveDragOver, setArchiveDragOver] = useState(false);
   const [archiveUploadForm, setArchiveUploadForm] = useState<{
     resource_type: 'document' | 'software' | 'code' | 'other' | 'output_pvc';
     pvc_size: number;
@@ -426,11 +427,13 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const openArchiveUploadModal = () => {
     setArchiveUploadError('');
     setArchiveFiles([]);
+    setArchiveDragOver(false);
     setShowArchiveUploadModal(true);
   };
 
   const handleArchiveFileSelection = (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    setArchiveUploadError('');
     setArchiveFiles(Array.from(files));
   };
 
@@ -1022,7 +1025,32 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   placeholder="PVC大小 Gi"
                 />
               </div>
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+              <div
+                className={`rounded-xl border border-dashed p-4 transition-colors ${
+                  archiveDragOver ? 'border-blue-400 bg-blue-50/80' : 'border-slate-300 bg-slate-50'
+                }`}
+                onDragEnter={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setArchiveDragOver(true);
+                }}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setArchiveDragOver(true);
+                }}
+                onDragLeave={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setArchiveDragOver(false);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setArchiveDragOver(false);
+                  handleArchiveFileSelection(event.dataTransfer.files);
+                }}
+              >
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-black text-slate-700 shadow-sm">
                   <Upload size={14} />
                   选择压缩包
@@ -1035,6 +1063,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     onChange={(e) => handleArchiveFileSelection(e.target.files)}
                   />
                 </label>
+                <div className="mt-2 text-xs font-semibold text-slate-500">
+                  或将压缩包拖拽到此区域（支持 zip/tar/tar.gz/tgz/gz）
+                </div>
                 <div className="mt-3 max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white p-2">
                   {archiveFiles.length === 0 ? (
                     <div className="text-xs font-semibold text-slate-400">未选择文件（支持 zip/tar/tar.gz/tgz/gz）</div>
