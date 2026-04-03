@@ -694,6 +694,8 @@ export interface OutputPvcDetail {
   } | null;
   in_use: boolean;
   use_message?: string;
+  in_use_pods?: string[];
+  in_use_jobs?: string[];
   created_at: string;
   updated_at: string;
 }

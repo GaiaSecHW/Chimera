@@ -1305,6 +1305,46 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     </div>
 
                     <div className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">占用信息</div>
+                      <div className="mt-2 text-[11px] font-semibold text-slate-700">
+                        当前状态：{selectedPvcDetail.in_use ? '占用中' : '未占用'}
+                      </div>
+                      {selectedPvcDetail.use_message && (
+                        <div className="mt-1 text-[11px] text-slate-500">{selectedPvcDetail.use_message}</div>
+                      )}
+                      <div className="mt-2 space-y-2">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Pods</div>
+                          {(selectedPvcDetail.in_use_pods || []).length > 0 ? (
+                            <div className="mt-1 space-y-1">
+                              {(selectedPvcDetail.in_use_pods || []).map((pod) => (
+                                <div key={pod} className="rounded-md bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-700">
+                                  {pod}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-1 text-[11px] text-slate-400">无</div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Jobs</div>
+                          {(selectedPvcDetail.in_use_jobs || []).length > 0 ? (
+                            <div className="mt-1 space-y-1">
+                              {(selectedPvcDetail.in_use_jobs || []).map((job) => (
+                                <div key={job} className="rounded-md bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-700">
+                                  {job}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-1 text-[11px] text-slate-400">无</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 bg-white p-3">
                       <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Worker 信息</div>
                       {selectedPvcDetail.file_gateway ? (
                         <div className="mt-2 space-y-2">
