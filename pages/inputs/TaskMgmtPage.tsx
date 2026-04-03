@@ -20,11 +20,19 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [detailLogs, setDetailLogs] = useState<string[]>([]);
   const [detailLogLoading, setDetailLogLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; taskId: string | null }>({ show: false, taskId: null });
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    show: boolean;
+    mode: 'single' | 'batch' | 'all';
+    taskId: string | null;
+    taskIds: string[];
+  }>({ show: false, mode: 'single', taskId: null, taskIds: [] });
   const [isDeleting, setIsDeleting] = useState(false);
 
   const hasActiveTasks = useMemo(
@@ -53,6 +61,14 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       const data = await api.resources.getTasks(projectId);
       const next = Array.isArray(data) ? data : [];
       setTasks(next);
+      setSelectedTaskIds((prev) => {
+        const valid = new Set(next.map((task) => task.task_id));
+        const normalized = new Set<string>();
+        prev.forEach((id) => {
+          if (valid.has(id)) normalized.add(id);
+        });
+        return normalized;
+      });
       setSelectedTaskId((prev) => {
         if (prev && next.some((task) => task.task_id === prev)) return prev;
         return next[0]?.task_id || null;
@@ -90,17 +106,37 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   }, [selectedTaskId]);
 
   const handleDeleteClick = (taskId: string) => {
-    setDeleteConfirm({ show: true, taskId });
+    setDeleteConfirm({ show: true, mode: 'single', taskId, taskIds: [taskId] });
+  };
+
+  const handleDeleteBatchClick = () => {
+    const ids = Array.from(selectedTaskIds);
+    if (ids.length === 0) return;
+    setDeleteConfirm({ show: true, mode: 'batch', taskId: null, taskIds: ids });
+  };
+
+  const handleDeleteAllClick = () => {
+    const ids = filteredTasks.map((task) => task.task_id);
+    if (ids.length === 0) return;
+    setDeleteConfirm({ show: true, mode: 'all', taskId: null, taskIds: ids });
   };
 
   const executeDeleteTask = async () => {
-    if (!deleteConfirm.taskId) return;
+    if (!deleteConfirm.taskIds.length) return;
     setIsDeleting(true);
     try {
-      await api.resources.deleteTask(deleteConfirm.taskId);
-      const deletedId = deleteConfirm.taskId;
-      setDeleteConfirm({ show: false, taskId: null });
-      if (selectedTaskId === deletedId) {
+      let deletedCurrent = false;
+      for (const taskId of deleteConfirm.taskIds) {
+        await api.resources.deleteTask(taskId);
+        if (selectedTaskId === taskId) deletedCurrent = true;
+      }
+      setDeleteConfirm({ show: false, mode: 'single', taskId: null, taskIds: [] });
+      setSelectedTaskIds((prev) => {
+        const next = new Set(prev);
+        deleteConfirm.taskIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      if (deletedCurrent) {
         setSelectedTaskId(null);
       }
       await loadTasks(true);
@@ -124,6 +160,46 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       }),
     [tasks, searchTerm, statusFilter]
   );
+
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filteredTasks.length / pageSize)), [filteredTasks.length, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter, pageSize]);
+
+  const pagedTasks = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredTasks.slice(start, start + pageSize);
+  }, [filteredTasks, page, pageSize]);
+
+  const allPageSelected = useMemo(
+    () => pagedTasks.length > 0 && pagedTasks.every((task) => selectedTaskIds.has(task.task_id)),
+    [pagedTasks, selectedTaskIds]
+  );
+
+  const toggleTaskSelection = (taskId: string, checked: boolean) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(taskId);
+      else next.delete(taskId);
+      return next;
+    });
+  };
+
+  const togglePageSelection = (checked: boolean) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      pagedTasks.forEach((task) => {
+        if (checked) next.add(task.task_id);
+        else next.delete(task.task_id);
+      });
+      return next;
+    });
+  };
 
   const stats = useMemo(() => {
     const running = tasks.filter((task) => task.status === 'running' || task.status === 'pending').length;
@@ -162,12 +238,28 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-sm font-black text-slate-800">任务列表</div>
-            <button
-              onClick={() => void loadTasks()}
-              className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm"
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            </button>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={handleDeleteBatchClick}
+                disabled={selectedTaskIds.size === 0}
+                className="rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-2 text-xs font-black text-rose-600 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                批量删除（{selectedTaskIds.size}）
+              </button>
+              <button
+                onClick={handleDeleteAllClick}
+                disabled={filteredTasks.length === 0}
+                className="rounded-lg border border-rose-200 bg-white px-2.5 py-2 text-xs font-black text-rose-600 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                一键删除全部
+              </button>
+              <button
+                onClick={() => void loadTasks()}
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm"
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              </button>
+            </div>
           </div>
 
           <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_200px]">
@@ -199,6 +291,9 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <table className="w-full text-left">
               <thead className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500">
                 <tr>
+                  <th className="px-4 py-3">
+                    <input type="checkbox" checked={allPageSelected} onChange={(e) => togglePageSelection(e.target.checked)} />
+                  </th>
                   <th className="px-4 py-3">任务标识 / ID</th>
                   <th className="px-4 py-3">关联资源 ID</th>
                   <th className="px-4 py-3">进度</th>
@@ -209,26 +304,33 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               <tbody className="divide-y divide-slate-50 text-xs">
                 {!projectId ? (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center font-semibold text-slate-400">请先选择一个项目</td>
+                    <td colSpan={6} className="py-16 text-center font-semibold text-slate-400">请先选择一个项目</td>
                   </tr>
                 ) : loading ? (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center"><Loader2 className="mx-auto animate-spin text-blue-600" size={28} /></td>
+                    <td colSpan={6} className="py-16 text-center"><Loader2 className="mx-auto animate-spin text-blue-600" size={28} /></td>
                   </tr>
                 ) : filteredTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-16 text-center">
+                    <td colSpan={6} className="py-16 text-center">
                       <div className="mx-auto mb-3 w-fit rounded-full bg-slate-50 p-3 text-slate-300"><History size={20} /></div>
                       <div className="font-semibold text-slate-400">当前筛选条件下没有任务</div>
                     </td>
                   </tr>
                 ) : (
-                  filteredTasks.map((task) => (
+                  pagedTasks.map((task) => (
                     <tr
                       key={task.task_id}
                       onClick={() => setSelectedTaskId(task.task_id)}
                       className={`cursor-pointer transition-all hover:bg-slate-50 ${selectedTaskId === task.task_id ? 'bg-blue-50/60' : ''}`}
                     >
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedTaskIds.has(task.task_id)}
+                          onChange={(e) => toggleTaskSelection(task.task_id, e.target.checked)}
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
@@ -271,6 +373,36 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-600">
+            <div>
+              共 {filteredTasks.length} 条，当前第 {page} / {totalPages} 页
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold"
+              >
+                <option value={10}>10 / 页</option>
+                <option value={20}>20 / 页</option>
+                <option value={50}>50 / 页</option>
+              </select>
+              <button
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1}
+                className="rounded-md border border-slate-200 bg-white px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                上一页
+              </button>
+              <button
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page >= totalPages}
+                className="rounded-md border border-slate-200 bg-white px-2 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                下一页
+              </button>
+            </div>
           </div>
         </div>
 
@@ -340,13 +472,22 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               </div>
               <h3 className="text-xl font-black text-slate-800">终止异步任务？</h3>
               <p className="text-slate-500 mt-3 font-medium leading-relaxed text-sm">
-                您正准备移除或终止任务 <span className="text-red-600 font-black font-mono">{deleteConfirm.taskId}</span>。
+                {deleteConfirm.mode === 'single' ? (
+                  <>
+                    您正准备移除或终止任务 <span className="text-red-600 font-black font-mono">{deleteConfirm.taskId}</span>。
+                  </>
+                ) : deleteConfirm.mode === 'batch' ? (
+                  <>您正准备批量删除 <span className="text-red-600 font-black">{deleteConfirm.taskIds.length}</span> 个任务。</>
+                ) : (
+                  <>您正准备一键删除当前筛选结果中的 <span className="text-red-600 font-black">{deleteConfirm.taskIds.length}</span> 个任务。</>
+                )}
+                <br />
                 如果任务正在运行中，系统会尝试中断关联 K8S Job，该操作不可逆。
               </p>
             </div>
             <div className="px-8 pb-8 flex gap-3">
               <button
-                onClick={() => setDeleteConfirm({ show: false, taskId: null })}
+                onClick={() => setDeleteConfirm({ show: false, mode: 'single', taskId: null, taskIds: [] })}
                 disabled={isDeleting}
                 className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black hover:bg-slate-200 transition-all disabled:opacity-50"
               >

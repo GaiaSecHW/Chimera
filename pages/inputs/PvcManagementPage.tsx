@@ -152,6 +152,17 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const [selectedNodePath, setSelectedNodePath] = useState<string>('/');
   const [previewNode, setPreviewNode] = useState<PvcBrowserNode | null>(null);
   const [preview, setPreview] = useState<PreviewState>({ mode: 'empty' });
+  const [previewModalState, setPreviewModalState] = useState<{
+    visible: boolean;
+    node: PvcBrowserNode | null;
+    preview: PreviewState;
+    loading: boolean;
+  }>({
+    visible: false,
+    node: null,
+    preview: { mode: 'empty' },
+    loading: false,
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [busy, setBusy] = useState<string>('');
   const [createLoading, setCreateLoading] = useState(false);
@@ -177,6 +188,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const modalPreviewUrlRef = useRef<string | null>(null);
   const cancelFolderUploadRef = useRef(false);
   const [folderUploadState, setFolderUploadState] = useState<{
     visible: boolean;
@@ -278,6 +290,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
       }
+      if (modalPreviewUrlRef.current) {
+        URL.revokeObjectURL(modalPreviewUrlRef.current);
+      }
     };
   }, []);
 
@@ -286,6 +301,51 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = null;
     }
+  };
+
+  const revokeModalPreviewUrl = () => {
+    if (modalPreviewUrlRef.current) {
+      URL.revokeObjectURL(modalPreviewUrlRef.current);
+      modalPreviewUrlRef.current = null;
+    }
+  };
+
+  const closePreviewModal = () => {
+    revokeModalPreviewUrl();
+    setPreviewModalState({
+      visible: false,
+      node: null,
+      preview: { mode: 'empty' },
+      loading: false,
+    });
+  };
+
+  const loadPreviewState = async (
+    resourceId: number,
+    node: PvcBrowserNode,
+    update: (next: PreviewState) => void,
+    urlRef: React.MutableRefObject<string | null>
+  ) => {
+    const mode = inferPreviewMode(node, node.content_type);
+    if (mode === 'text') {
+      const payload = await api.resources.getPvcBrowserFile(resourceId, node.path);
+      update({
+        mode: 'text',
+        text: toText(payload.base64),
+        truncated: payload.truncated,
+        contentType: payload.content_type,
+      });
+      return;
+    }
+    if (mode === 'binary') {
+      const payload = await api.resources.getPvcBrowserFile(resourceId, node.path, 1);
+      update({ mode: 'binary', size: payload.size, contentType: payload.content_type });
+      return;
+    }
+    const blob = await api.resources.fetchPvcBrowserPreviewBlob(resourceId, node.path);
+    const url = URL.createObjectURL(blob);
+    urlRef.current = url;
+    update({ mode, url, contentType: blob.type || node.content_type });
   };
 
   const loadPvcList = async (preferredId?: number | null) => {
@@ -432,30 +492,40 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     setPreviewNode(node);
     revokePreviewUrl();
     try {
-      const mode = inferPreviewMode(node, node.content_type);
-      if (mode === 'text') {
-        const payload = await api.resources.getPvcBrowserFile(resourceId, node.path);
-        setPreview({
-          mode: 'text',
-          text: toText(payload.base64),
-          truncated: payload.truncated,
-          contentType: payload.content_type,
-        });
-      } else if (mode === 'binary') {
-        const payload = await api.resources.getPvcBrowserFile(resourceId, node.path, 1);
-        setPreview({ mode: 'binary', size: payload.size, contentType: payload.content_type });
-      } else {
-        const blob = await api.resources.fetchPvcBrowserPreviewBlob(resourceId, node.path);
-        const url = URL.createObjectURL(blob);
-        previewUrlRef.current = url;
-        setPreview({ mode, url, contentType: blob.type || node.content_type });
-      }
+      await loadPreviewState(resourceId, node, setPreview, previewUrlRef);
       if (currentDirectory?.current_path !== parentPath) {
         await openDirectory(parentPath);
       }
       setSelectedNodePath(node.path);
     } finally {
       setBusy('');
+    }
+  };
+
+  const handleOpenPreviewModal = async (node: PvcBrowserNode) => {
+    if (!selectedPvcId || node.node_type !== 'file') return;
+    const mode = inferPreviewMode(node, node.content_type);
+    if (mode === 'binary') return;
+    revokeModalPreviewUrl();
+    setPreviewModalState({
+      visible: true,
+      node,
+      preview: { mode: 'empty' },
+      loading: true,
+    });
+    try {
+      await loadPreviewState(
+        selectedPvcId,
+        node,
+        (next) =>
+          setPreviewModalState((prev) => ({
+            ...prev,
+            preview: next,
+          })),
+        modalPreviewUrlRef
+      );
+    } finally {
+      setPreviewModalState((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -1246,7 +1316,15 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                       {[...(currentDirectory?.directories || []), ...(currentDirectory?.files || [])].map((node) => (
                         <tr data-testid={`pvc-node-row-${encodeURIComponent(node.path)}`} key={node.path} className="hover:bg-slate-50">
                           <td className="px-3 py-2">
-                            <button onClick={() => void onTreeClick(node)} className="flex items-center gap-3 text-left">
+                            <button
+                              onClick={() => void onTreeClick(node)}
+                              onDoubleClick={() => {
+                                if (node.node_type === 'file') {
+                                  void handleOpenPreviewModal(node);
+                                }
+                              }}
+                              className="flex items-center gap-3 text-left"
+                            >
                               {renderNodeIcon(node)}
                               <div>
                                 <div className="text-xs font-black text-slate-900">{node.name}</div>
@@ -1421,6 +1499,43 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
           </div>
         )}
       </div>
+
+      {previewModalState.visible && (
+        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-slate-950/70 p-5 backdrop-blur-sm" onClick={closePreviewModal}>
+          <div className="h-[86vh] w-full max-w-6xl rounded-2xl border border-slate-200 bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">弹框预览</div>
+                <div className="mt-1 text-sm font-black text-slate-900">{previewModalState.node?.name || '-'}</div>
+              </div>
+              <button className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700" onClick={closePreviewModal}>
+                关闭
+              </button>
+            </div>
+            <div className="h-[calc(86vh-68px)] overflow-auto p-4 custom-scrollbar">
+              {previewModalState.loading ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="animate-spin text-blue-600" size={28} />
+                </div>
+              ) : previewModalState.preview.mode === 'text' ? (
+                <pre className="h-full overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-950 p-3 text-xs leading-6 text-slate-100 custom-scrollbar">{previewModalState.preview.text}</pre>
+              ) : previewModalState.preview.mode === 'image' ? (
+                <img src={previewModalState.preview.url} alt={previewModalState.node?.name} className="max-h-full w-full rounded-lg object-contain bg-slate-50" />
+              ) : previewModalState.preview.mode === 'pdf' ? (
+                <iframe src={previewModalState.preview.url} title={previewModalState.node?.name} className="h-full min-h-[70vh] w-full rounded-lg border border-slate-200" />
+              ) : previewModalState.preview.mode === 'audio' ? (
+                <div className="flex h-full items-center justify-center">
+                  <audio controls src={previewModalState.preview.url} className="w-full max-w-2xl" />
+                </div>
+              ) : previewModalState.preview.mode === 'video' ? (
+                <video controls src={previewModalState.preview.url} className="h-full max-h-[75vh] w-full rounded-lg bg-slate-950" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">该文件类型不支持弹框预览。</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCreateModal && (
         <div data-testid="pvc-create-modal" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
