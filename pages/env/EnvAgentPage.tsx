@@ -462,19 +462,23 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       } else if (syncScope === 'project') {
         const result = await api.environment.syncGlobalServices({ project_id: projectId, stale_only: false });
         const reasons = buildFailureText((result?.results || []) as SyncResultItem[]);
-        const summary = result?.total !== undefined
+        const summary = result?.status === 'empty'
+          ? `项目全量同步：当前无可同步的在线节点（候选 ${result?.candidate_total || 0}）`
+          : result?.total !== undefined
           ? `项目全量同步完成：总计 ${result.total}，成功 ${result.ok_count || 0}，失败 ${result.fail_count || 0}${reasons ? `；失败原因：${reasons}` : ''}`
           : (result?.message || '已触发项目全量同步');
         setLastSyncMessage(summary);
-        notify(summary, (result?.fail_count || 0) > 0 ? 'warning' : 'success');
+        notify(summary, (result?.status === 'empty' || (result?.fail_count || 0) > 0) ? 'warning' : 'success');
       } else {
         const result = await api.environment.syncGlobalServices({ project_id: projectId, stale_only: true });
         const reasons = buildFailureText((result?.results || []) as SyncResultItem[]);
-        const summary = result?.total !== undefined
+        const summary = result?.status === 'empty'
+          ? `异常节点同步：当前无可同步的在线异常节点（候选 ${result?.candidate_total || 0}）`
+          : result?.total !== undefined
           ? `异常节点同步完成：总计 ${result.total}，成功 ${result.ok_count || 0}，失败 ${result.fail_count || 0}${reasons ? `；失败原因：${reasons}` : ''}`
           : (result?.message || '已触发异常节点同步');
         setLastSyncMessage(summary);
-        notify(summary, (result?.fail_count || 0) > 0 ? 'warning' : 'success');
+        notify(summary, (result?.status === 'empty' || (result?.fail_count || 0) > 0) ? 'warning' : 'success');
       }
       await loadSyncHistory();
     } catch (err: any) {

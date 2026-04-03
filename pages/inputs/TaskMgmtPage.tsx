@@ -27,19 +27,28 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; taskId: string | null }>({ show: false, taskId: null });
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const hasActiveTasks = useMemo(
+    () => tasks.some((task) => task.status === 'pending' || task.status === 'running'),
+    [tasks]
+  );
+
   useEffect(() => {
     if (projectId) {
-      void loadTasks();
-      const interval = setInterval(() => {
-        void loadTasks();
-      }, 5000);
-      return () => clearInterval(interval);
+      void loadTasks(true);
     }
     setLoading(false);
   }, [projectId]);
 
-  const loadTasks = async () => {
-    setLoading(true);
+  useEffect(() => {
+    if (!projectId || !hasActiveTasks) return;
+    const interval = setInterval(() => {
+      void loadTasks(false);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [projectId, hasActiveTasks]);
+
+  const loadTasks = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await api.resources.getTasks(projectId);
       const next = Array.isArray(data) ? data : [];
@@ -51,7 +60,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     } catch (err) {
       console.error('Failed to load tasks', err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -94,7 +103,7 @@ export const TaskMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => 
       if (selectedTaskId === deletedId) {
         setSelectedTaskId(null);
       }
-      await loadTasks();
+      await loadTasks(true);
     } catch (err: any) {
       alert(`删除任务失败: ${err.message}`);
     } finally {
