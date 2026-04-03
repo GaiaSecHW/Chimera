@@ -26,6 +26,7 @@ import { showConfirm, showPrompt } from '../../components/DialogService';
 import { StatusBadge } from '../../components/StatusBadge';
 import {
   OutputPvcDetail,
+  ProjectPVC,
   ProjectResource,
   PvcBrowserChildrenResponse,
   PvcBrowserNode,
@@ -47,6 +48,11 @@ const formatBytes = (value?: number | null) => {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const formatSpeed = (value?: number | null) => {
+  if (!value || value <= 0) return '0 B/s';
+  return `${formatBytes(value)}/s`;
+};
+
 const toText = (base64: string) => {
   const binary = atob(base64);
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
@@ -55,6 +61,32 @@ const toText = (base64: string) => {
 
 const sortNodes = (nodes: PvcBrowserNode[]) =>
   [...nodes].sort((a, b) => (a.node_type === b.node_type ? a.name.localeCompare(b.name, 'zh-CN') : a.node_type === 'directory' ? -1 : 1));
+
+const prepareTreeNodes = (nodes: PvcBrowserNode[]) =>
+  sortNodes(nodes).map((node) => ({
+    ...node,
+    children: node.node_type === 'directory' ? (node.children ? prepareTreeNodes(node.children) : []) : undefined,
+  }));
+
+const replaceTreeChildren = (nodes: PvcBrowserNode[], path: string, children: PvcBrowserNode[]): PvcBrowserNode[] => {
+  if (path === '/') return prepareTreeNodes(children);
+  return nodes.map((node) => {
+    if (node.path === path && node.node_type === 'directory') {
+      return {
+        ...node,
+        has_children: children.length > 0,
+        children: prepareTreeNodes(children),
+      };
+    }
+    if (node.node_type === 'directory' && node.children) {
+      return {
+        ...node,
+        children: replaceTreeChildren(node.children, path, children),
+      };
+    }
+    return node;
+  });
+};
 
 const flattenNodes = (nodes: PvcBrowserNode[], map: Record<string, PvcBrowserNode>) => {
   nodes.forEach((node) => {
@@ -125,6 +157,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const [showArchiveUploadModal, setShowArchiveUploadModal] = useState(false);
   const [archiveUploadLoading, setArchiveUploadLoading] = useState(false);
   const [archiveUploadError, setArchiveUploadError] = useState('');
+  const [detailLoadError, setDetailLoadError] = useState('');
   const [archiveFiles, setArchiveFiles] = useState<File[]>([]);
   const [archiveDragOver, setArchiveDragOver] = useState(false);
   const [archiveUploadForm, setArchiveUploadForm] = useState<{
@@ -141,6 +174,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     processed: number;
     total: number;
     current?: string;
+    uploadedBytes: number;
+    totalBytes: number;
+    speedBytesPerSec: number;
     errors: Array<{ path: string; error: string }>;
     canceled?: boolean;
     completed?: boolean;
@@ -149,6 +185,28 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     phase: 'creating_directories',
     processed: 0,
     total: 0,
+    uploadedBytes: 0,
+    totalBytes: 0,
+    speedBytesPerSec: 0,
+    errors: [],
+  });
+  const [fileUploadState, setFileUploadState] = useState<{
+    visible: boolean;
+    processed: number;
+    total: number;
+    current?: string;
+    uploadedBytes: number;
+    totalBytes: number;
+    speedBytesPerSec: number;
+    errors: Array<{ path: string; error: string }>;
+    completed?: boolean;
+  }>({
+    visible: false,
+    processed: 0,
+    total: 0,
+    uploadedBytes: 0,
+    totalBytes: 0,
+    speedBytesPerSec: 0,
     errors: [],
   });
 
@@ -214,16 +272,49 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     if (!projectId) return;
     setLoading(true);
     try {
-      const resources = await api.resources.list(projectId);
+      const [resources, pvcPayload] = await Promise.all([
+        api.resources.list(projectId),
+        api.resources.getPVCs(projectId),
+      ]);
       const pvcResources = resources.filter((item: ProjectResource) => !!item.pvc_name);
-      const details = await Promise.all(pvcResources.map((item: ProjectResource) => api.resources.getPvcResourceDetail(item.id)));
+      const pvcByResourceId = new Map<number, ProjectPVC>(
+        (pvcPayload?.pvcs || []).filter((item): item is ProjectPVC & { resource_id: number } => typeof item.resource_id === 'number').map((item) => [item.resource_id, item])
+      );
+      const details: OutputPvcDetail[] = pvcResources.map((item: ProjectResource) => {
+        const pvcInfo = pvcByResourceId.get(item.id);
+        return {
+          id: item.id,
+          resource_uuid: item.resource_uuid,
+          name: item.name,
+          description: null,
+          resource_type: item.resource_type,
+          pvc_name: item.pvc_name || pvcInfo?.pvc_name || '',
+          pvc_namespace: item.pvc_namespace || pvcInfo?.namespace || '',
+          pvc_size: String(item.pvc_size || pvcInfo?.capacity || '-'),
+          status: item.upload_status,
+          project_ids: item.project_ids || [],
+          pvc_k8s_status: {
+            name: pvcInfo?.pvc_name || item.pvc_name || undefined,
+            capacity: pvcInfo?.capacity || undefined,
+            status: pvcInfo?.status || undefined,
+            storage_class: pvcInfo?.storage_class || undefined,
+            namespace: pvcInfo?.namespace || item.pvc_namespace || undefined,
+          },
+          in_use: false,
+          use_message: '',
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+        };
+      });
       setPvcs(details);
       const rememberedIdRaw = localStorage.getItem(getRecentPvcStorageKey(projectId));
       const rememberedId = rememberedIdRaw ? Number.parseInt(rememberedIdRaw, 10) : null;
       const candidateId = preferredId ?? selectedPvcId ?? rememberedId ?? details[0]?.id ?? null;
       const nextId = candidateId && details.some((item) => item.id === candidateId) ? candidateId : details[0]?.id ?? null;
       if (nextId) {
-        await selectPvc(nextId, details);
+        localStorage.setItem(getRecentPvcStorageKey(projectId), String(nextId));
+        setSelectedPvcId(nextId);
+        setSelectedPvcDetail(details.find((item) => item.id === nextId) || null);
       } else {
         localStorage.removeItem(getRecentPvcStorageKey(projectId));
         setSelectedPvcId(null);
@@ -239,13 +330,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   };
 
   const refreshBrowser = async (resourceId: number, keepDirectoryPath?: string, keepPreviewPath?: string) => {
-    const [detail, tree, directory] = await Promise.all([
+    const directoryPath = keepDirectoryPath || currentDirectory?.current_path || '/';
+    const [detail, directory] = await Promise.all([
       api.resources.getPvcResourceDetail(resourceId),
-      api.resources.getPvcBrowserTree(resourceId),
-      api.resources.getPvcBrowserChildren(resourceId, keepDirectoryPath || currentDirectory?.current_path || '/'),
+      api.resources.getPvcBrowserChildren(resourceId, directoryPath),
     ]);
     setSelectedPvcDetail(detail);
-    setBrowserTree(sortNodes(tree.items));
+    const mergedChildren = [...directory.directories, ...directory.files];
+    setBrowserTree((prev) => replaceTreeChildren(prev, directory.current_path, mergedChildren));
     setCurrentDirectory({
       ...directory,
       directories: sortNodes(directory.directories),
@@ -267,18 +359,18 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     }
   };
 
-  const selectPvc = async (resourceId: number, currentList?: OutputPvcDetail[]) => {
+  const selectPvc = async (resourceId: number) => {
     setSelectedPvcId(resourceId);
     localStorage.setItem(getRecentPvcStorageKey(projectId), String(resourceId));
     setPreviewNode(null);
     setPreview({ mode: 'empty' });
-    const detail = (currentList || pvcs).find((item) => item.id === resourceId) || (await api.resources.getPvcResourceDetail(resourceId));
-    setSelectedPvcDetail(detail);
-    const [tree, children] = await Promise.all([
-      api.resources.getPvcBrowserTree(resourceId),
+    const [detail, children] = await Promise.all([
+      api.resources.getPvcResourceDetail(resourceId),
       api.resources.getPvcBrowserChildren(resourceId, '/'),
     ]);
-    setBrowserTree(sortNodes(tree.items));
+    setSelectedPvcDetail(detail);
+    setPvcs((prev) => prev.map((item) => (item.id === detail.id ? detail : item)));
+    setBrowserTree(prepareTreeNodes([...children.directories, ...children.files]));
     setCurrentDirectory({
       ...children,
       directories: sortNodes(children.directories),
@@ -298,6 +390,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         directories: sortNodes(children.directories),
         files: sortNodes(children.files),
       });
+      setBrowserTree((prev) => replaceTreeChildren(prev, children.current_path, [...children.directories, ...children.files]));
       setSelectedNodePath(path);
       setExpandedPaths((prev) => new Set(prev).add(path));
     } finally {
@@ -474,12 +567,80 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const handleUploadFiles = async (files: FileList | null) => {
     const pvc = requireSelectedPvc();
     if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    const totalBytes = fileArray.reduce((sum, file) => sum + (file.size || 0), 0);
+    let uploadedBytesCompleted = 0;
+    const failures: Array<{ path: string; error: string }> = [];
     setBusy('upload');
+    setFileUploadState({
+      visible: true,
+      processed: 0,
+      total: fileArray.length,
+      current: fileArray[0]?.name,
+      uploadedBytes: 0,
+      totalBytes,
+      speedBytesPerSec: 0,
+      errors: [],
+      completed: false,
+    });
     try {
-      for (const file of Array.from(files)) {
-        await api.resources.uploadPvcBrowserFile(pvc.id, currentDirectory?.current_path || '/', file);
+      for (let i = 0; i < fileArray.length; i += 1) {
+        const file = fileArray[i];
+        let currentFileLoaded = 0;
+        let uploadSucceeded = false;
+        setFileUploadState((prev) => ({
+          ...prev,
+          processed: i,
+          current: file.name,
+          speedBytesPerSec: 0,
+        }));
+        try {
+          await api.resources.uploadPvcBrowserFile(
+            pvc.id,
+            currentDirectory?.current_path || '/',
+            file,
+            (progress) => {
+              currentFileLoaded = Math.max(0, Math.min(progress.loaded_bytes, file.size || progress.total_bytes || 0));
+              setFileUploadState((prev) => ({
+                ...prev,
+                processed: i,
+                total: fileArray.length,
+                current: file.name,
+                uploadedBytes: Math.max(0, uploadedBytesCompleted + currentFileLoaded),
+                totalBytes,
+                speedBytesPerSec: progress.speed_bytes_per_sec,
+              }));
+            }
+          );
+          uploadSucceeded = true;
+        } catch (error: any) {
+          failures.push({
+            path: file.name,
+            error: String(error?.message || error || '上传失败'),
+          });
+        } finally {
+          uploadedBytesCompleted += uploadSucceeded ? file.size || currentFileLoaded : currentFileLoaded;
+          setFileUploadState((prev) => ({
+            ...prev,
+            processed: i + 1,
+            uploadedBytes: Math.max(0, uploadedBytesCompleted),
+            totalBytes,
+            speedBytesPerSec: 0,
+            errors: [...failures],
+          }));
+        }
       }
       await refreshBrowser(pvc.id, currentDirectory?.current_path || '/');
+      setFileUploadState((prev) => ({
+        ...prev,
+        completed: true,
+        processed: fileArray.length,
+        total: fileArray.length,
+        uploadedBytes: Math.max(0, uploadedBytesCompleted),
+        totalBytes,
+        speedBytesPerSec: 0,
+        errors: [...failures],
+      }));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
       setBusy('');
@@ -502,6 +663,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       phase: 'creating_directories',
       processed: 0,
       total: fileArray.length,
+      uploadedBytes: 0,
+      totalBytes: fileArray.reduce((sum, file) => sum + (file.size || 0), 0),
+      speedBytesPerSec: 0,
       errors: [],
       canceled: false,
       completed: false,
@@ -519,6 +683,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             processed: progress.processed,
             total: progress.total,
             current: progress.current,
+            uploadedBytes: progress.uploaded_bytes ?? prev.uploadedBytes,
+            totalBytes: progress.total_bytes ?? prev.totalBytes,
+            speedBytesPerSec: progress.speed_bytes_per_sec ?? prev.speedBytesPerSec,
           }));
         },
       });
@@ -528,6 +695,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         canceled: result.canceled,
         processed: result.processed_files,
         total: result.total_files,
+        speedBytesPerSec: 0,
         errors: result.failures,
       }));
       await refreshBrowser(pvc.id, currentDirectory?.current_path || '/');
@@ -653,8 +821,16 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   };
 
   const openPvcDetail = async (resourceId: number) => {
-    await selectPvc(resourceId);
     setViewMode('detail');
+    setDetailLoadError('');
+    setBusy(`open-detail:${resourceId}`);
+    try {
+      await selectPvc(resourceId);
+    } catch (error: any) {
+      setDetailLoadError(error?.message || 'PVC详情加载失败，请稍后重试');
+    } finally {
+      setBusy('');
+    }
   };
 
   return (
@@ -712,6 +888,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                       <div className="mt-1 text-xs font-semibold text-slate-500">
                         阶段：{folderUploadState.phase === 'creating_directories' ? '创建目录' : '上传文件'} · {Math.min(folderUploadState.processed, folderUploadState.total)} / {folderUploadState.total}
                       </div>
+                      <div className="mt-1 text-[11px] font-semibold text-slate-500">
+                        {formatBytes(folderUploadState.uploadedBytes)} / {formatBytes(folderUploadState.totalBytes)} · {formatSpeed(folderUploadState.speedBytesPerSec)}
+                      </div>
+                      {folderUploadState.current && (
+                        <div className="mt-1 max-w-[560px] truncate text-[11px] font-semibold text-slate-500">
+                          当前：{folderUploadState.current}
+                        </div>
+                      )}
                     </div>
                     {!folderUploadState.completed && !folderUploadState.canceled && (
                       <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-600">
@@ -766,7 +950,17 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           <td className="px-3 py-2.5 font-bold text-slate-600">{item.pvc_size}</td>
                           <td className="px-3 py-2.5"><StatusBadge status={item.pvc_k8s_status?.status || 'Unknown'} /></td>
                           <td className="px-3 py-2.5 text-right">
-                            <button data-testid={`pvc-enter-detail-btn-${item.id}`} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-50">进入详情</button>
+                            <button
+                              data-testid={`pvc-enter-detail-btn-${item.id}`}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                void openPvcDetail(item.id);
+                              }}
+                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-50"
+                            >
+                              进入详情
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -812,8 +1006,13 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 )}
               </div>
             </div>
+            {detailLoadError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                {detailLoadError}
+              </div>
+            )}
 
-            {folderUploadState.visible && (
+              {folderUploadState.visible && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -821,6 +1020,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     <div className="mt-1 text-xs font-semibold text-slate-500">
                       阶段：{folderUploadState.phase === 'creating_directories' ? '创建目录' : '上传文件'} · {Math.min(folderUploadState.processed, folderUploadState.total)} / {folderUploadState.total}
                     </div>
+                    <div className="mt-1 text-[11px] font-semibold text-slate-500">
+                      {formatBytes(folderUploadState.uploadedBytes)} / {formatBytes(folderUploadState.totalBytes)} · {formatSpeed(folderUploadState.speedBytesPerSec)}
+                    </div>
+                    {folderUploadState.current && (
+                      <div className="mt-1 max-w-[560px] truncate text-[11px] font-semibold text-slate-500">
+                        当前：{folderUploadState.current}
+                      </div>
+                    )}
                   </div>
                   {!folderUploadState.completed && !folderUploadState.canceled && (
                     <button type="button" onClick={cancelFolderUpload} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-black text-rose-600">
@@ -830,6 +1037,33 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
                   <div className="h-full bg-blue-600 transition-all" style={{ width: `${folderUploadState.total > 0 ? (Math.min(folderUploadState.processed, folderUploadState.total) / folderUploadState.total) * 100 : 0}%` }} />
+                </div>
+              </div>
+            )}
+
+            {fileUploadState.visible && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 px-4 py-3">
+                <div>
+                  <div className="text-xs font-black text-blue-900">{fileUploadState.completed ? '文件上传完成' : '文件上传中'}</div>
+                  <div className="mt-1 text-xs font-semibold text-blue-700">
+                    {Math.min(fileUploadState.processed, fileUploadState.total)} / {fileUploadState.total}
+                  </div>
+                  <div className="mt-1 text-[11px] font-semibold text-blue-700">
+                    {formatBytes(fileUploadState.uploadedBytes)} / {formatBytes(fileUploadState.totalBytes)} · {formatSpeed(fileUploadState.speedBytesPerSec)}
+                  </div>
+                  {fileUploadState.current && (
+                    <div className="mt-1 max-w-[560px] truncate text-[11px] font-semibold text-blue-700">
+                      当前：{fileUploadState.current}
+                    </div>
+                  )}
+                  {fileUploadState.errors.length > 0 && (
+                    <div className="mt-1 text-[11px] font-semibold text-rose-600">
+                      失败：{fileUploadState.errors.length} 个
+                    </div>
+                  )}
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-blue-100">
+                  <div className="h-full bg-blue-600 transition-all" style={{ width: `${fileUploadState.total > 0 ? (Math.min(fileUploadState.processed, fileUploadState.total) / fileUploadState.total) * 100 : 0}%` }} />
                 </div>
               </div>
             )}
@@ -929,6 +1163,50 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                         <div><div className="text-slate-400">StorageClass</div><div className="mt-1 font-black text-slate-900">{selectedPvcDetail.pvc_k8s_status?.storage_class || '-'}</div></div>
                       </div>
                       <div className="mt-2"><StatusBadge status={selectedPvcDetail.pvc_k8s_status?.status || 'Unknown'} /></div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 bg-white p-3">
+                      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Worker 信息</div>
+                      {selectedPvcDetail.file_gateway ? (
+                        <div className="mt-2 space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            <div>
+                              <div className="text-slate-400">网关开关</div>
+                              <div className="mt-1 font-black text-slate-900">{selectedPvcDetail.file_gateway.enabled ? '已启用' : '已禁用'}</div>
+                            </div>
+                            <div>
+                              <div className="text-slate-400">运行状态</div>
+                              <div className="mt-1 font-black text-slate-900">
+                                {selectedPvcDetail.file_gateway.ready_replicas > 0 ? '运行中' : selectedPvcDetail.file_gateway.deployment_exists ? '启动中' : '未创建'}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="rounded-md bg-slate-50 p-2">
+                            <div className="text-[10px] text-slate-400">Worker Pod 前缀</div>
+                            <div className="mt-0.5 break-all font-mono text-[11px] font-semibold text-slate-700">{selectedPvcDetail.file_gateway.worker_name}</div>
+                          </div>
+                          <div className="rounded-md bg-slate-50 p-2">
+                            <div className="text-[10px] text-slate-400">Service</div>
+                            <div className="mt-0.5 break-all font-mono text-[11px] font-semibold text-slate-700">{selectedPvcDetail.file_gateway.service_name}</div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-[11px]">
+                            <div className="rounded-md bg-slate-50 p-2">
+                              <div className="text-slate-400">期望副本</div>
+                              <div className="mt-0.5 font-black text-slate-900">{selectedPvcDetail.file_gateway.replicas}</div>
+                            </div>
+                            <div className="rounded-md bg-slate-50 p-2">
+                              <div className="text-slate-400">就绪副本</div>
+                              <div className="mt-0.5 font-black text-slate-900">{selectedPvcDetail.file_gateway.ready_replicas}</div>
+                            </div>
+                            <div className="rounded-md bg-slate-50 p-2">
+                              <div className="text-slate-400">可用副本</div>
+                              <div className="mt-0.5 font-black text-slate-900">{selectedPvcDetail.file_gateway.available_replicas}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-xs font-semibold text-slate-400">当前没有 Worker 状态信息。</div>
+                      )}
                     </div>
 
                     <div className="rounded-lg border border-slate-200 bg-white" data-testid="pvc-detail-preview-panel">

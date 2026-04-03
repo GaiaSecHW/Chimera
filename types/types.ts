@@ -602,6 +602,18 @@ export interface OutputPvcDetail {
     storage_class?: string;
     namespace?: string;
   } | null;
+  file_gateway?: {
+    enabled: boolean;
+    worker_name: string;
+    service_name: string;
+    namespace: string;
+    worker_image: string;
+    service_exists: boolean;
+    deployment_exists: boolean;
+    replicas: number;
+    ready_replicas: number;
+    available_replicas: number;
+  } | null;
   in_use: boolean;
   use_message?: string;
   created_at: string;

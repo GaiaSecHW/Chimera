@@ -169,16 +169,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     if (!projectId || refreshingAgents) return;
     setRefreshingAgents(true);
     try {
-      await api.environment.refreshAgents();
       await Promise.all([
         loadData(),
         loadSyncHistory(),
         loadGlobalAgentIngress()
       ]);
-      notify('Agent 节点列表已刷新', 'success');
+      notify('已重新获取后端最新 Agent 状态', 'success');
     } catch (err: any) {
       console.error('Failed to refresh agents', err);
-      notify(`刷新 Agent 节点失败: ${err?.message || 'unknown error'}`, 'error');
+      notify(`获取 Agent 状态失败: ${err?.message || 'unknown error'}`, 'error');
     } finally {
       setRefreshingAgents(false);
     }
