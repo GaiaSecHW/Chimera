@@ -21,6 +21,40 @@ export interface UserInfo {
   updated_at?: string;
 }
 
+export interface UserImportNormalizedRow {
+  username: string;
+  password_provided: boolean;
+  platform_role: 'ordinary_admin' | 'ordinary_user';
+  role_names: string[];
+  department_name?: string | null;
+  department_role?: 'leader' | 'vice_leader' | 'member' | null;
+  is_active: boolean;
+}
+
+export interface UserImportRowResult {
+  row_no: number;
+  username: string;
+  status: 'valid' | 'error' | 'success';
+  messages: string[];
+  normalized?: UserImportNormalizedRow | null;
+  generated_password?: string | null;
+  user_id?: number | null;
+}
+
+export interface UserImportPreviewResponse {
+  total_rows: number;
+  valid_rows: number;
+  error_rows: number;
+  rows: UserImportRowResult[];
+}
+
+export interface UserImportCommitResponse {
+  total_rows: number;
+  success_rows: number;
+  failed_rows: number;
+  rows: UserImportRowResult[];
+}
+
 // --- Workflow Service Types ---
 
 export type WorkflowStatus = 'pending' | 'unready' | 'ready' | 'running' | 'succeeded' | 'failed' | 'stopped';

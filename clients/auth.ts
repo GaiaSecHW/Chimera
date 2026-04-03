@@ -1,6 +1,6 @@
 
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { UserInfo, Role, UserSession, DetailedSession, MachineToken } from '../types/types';
+import { UserInfo, Role, UserSession, DetailedSession, MachineToken, UserImportPreviewResponse, UserImportCommitResponse } from '../types/types';
 
 export const authApi = {
   // 3.1 认证与令牌接口
@@ -139,6 +139,31 @@ export const authApi = {
     const response = await fetch(`${API_BASE}/api/auth/users/${userId}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  downloadUserImportTemplate: async (): Promise<string> => {
+    const response = await fetch(`${API_BASE}/api/auth/users/import/template`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  previewUserImport: async (payload: { csv_content: string; filename?: string }): Promise<UserImportPreviewResponse> => {
+    const response = await fetch(`${API_BASE}/api/auth/users/import/preview`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  commitUserImport: async (payload: { csv_content: string; filename?: string }): Promise<UserImportCommitResponse> => {
+    const response = await fetch(`${API_BASE}/api/auth/users/import/commit`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(response);
   },
