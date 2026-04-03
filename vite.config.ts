@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
             target: 'http://secflow.sothothv2.com',
             changeOrigin: true,
             secure: false,
+            ws: true,
           },
         },
       },
