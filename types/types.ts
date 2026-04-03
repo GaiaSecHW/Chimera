@@ -582,6 +582,15 @@ export interface ProjectPVC {
   storage_class: string;
   resource_id?: number;
   resource_name?: string;
+  file_gateway?: {
+    enabled: boolean;
+    worker_name: string;
+    service_name: string;
+    deployment_exists: boolean;
+    service_exists: boolean;
+    ready_replicas: number;
+    available_replicas: number;
+  } | null;
 }
 
 export interface OutputPvcDetail {
@@ -606,11 +615,11 @@ export interface OutputPvcDetail {
     enabled: boolean;
     worker_name: string;
     service_name: string;
-    namespace: string;
-    worker_image: string;
+    namespace?: string;
+    worker_image?: string;
     service_exists: boolean;
     deployment_exists: boolean;
-    replicas: number;
+    replicas?: number;
     ready_replicas: number;
     available_replicas: number;
   } | null;

@@ -53,6 +53,14 @@ const formatSpeed = (value?: number | null) => {
   return `${formatBytes(value)}/s`;
 };
 
+const getWorkerStatusText = (gateway?: OutputPvcDetail['file_gateway']) => {
+  if (!gateway) return '未知';
+  if (!gateway.enabled) return '禁用';
+  if (gateway.ready_replicas > 0) return '运行中';
+  if (gateway.deployment_exists) return '启动中';
+  return '未创建';
+};
+
 const toText = (base64: string) => {
   const binary = atob(base64);
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
@@ -136,6 +144,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const [loading, setLoading] = useState(true);
   const [pvcs, setPvcs] = useState<OutputPvcDetail[]>([]);
   const [selectedPvcId, setSelectedPvcId] = useState<number | null>(null);
+  const [selectedPvcIds, setSelectedPvcIds] = useState<Set<number>>(new Set());
   const [selectedPvcDetail, setSelectedPvcDetail] = useState<OutputPvcDetail | null>(null);
   const [browserTree, setBrowserTree] = useState<PvcBrowserNode[]>([]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set(['/']));
@@ -158,6 +167,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const [archiveUploadLoading, setArchiveUploadLoading] = useState(false);
   const [archiveUploadError, setArchiveUploadError] = useState('');
   const [detailLoadError, setDetailLoadError] = useState('');
+  const [listActionError, setListActionError] = useState('');
   const [archiveFiles, setArchiveFiles] = useState<File[]>([]);
   const [archiveDragOver, setArchiveDragOver] = useState(false);
   const [archiveUploadForm, setArchiveUploadForm] = useState<{
@@ -243,6 +253,16 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     return counts;
   }, [pvcs]);
 
+  const selectedDeleteItems = useMemo(
+    () => pvcs.filter((item) => selectedPvcIds.has(item.id)),
+    [pvcs, selectedPvcIds]
+  );
+
+  const allFilteredSelected = useMemo(
+    () => filteredPvcs.length > 0 && filteredPvcs.every((item) => selectedPvcIds.has(item.id)),
+    [filteredPvcs, selectedPvcIds]
+  );
+
   useEffect(() => {
     void loadPvcList();
   }, [projectId]);
@@ -300,6 +320,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             storage_class: pvcInfo?.storage_class || undefined,
             namespace: pvcInfo?.namespace || item.pvc_namespace || undefined,
           },
+          file_gateway: pvcInfo?.file_gateway || null,
           in_use: false,
           use_message: '',
           created_at: item.created_at,
@@ -307,6 +328,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         };
       });
       setPvcs(details);
+      setSelectedPvcIds((prev) => {
+        const validIds = new Set(details.map((item) => item.id));
+        const next = new Set<number>();
+        prev.forEach((id) => {
+          if (validIds.has(id)) next.add(id);
+        });
+        return next;
+      });
       const rememberedIdRaw = localStorage.getItem(getRecentPvcStorageKey(projectId));
       const rememberedId = rememberedIdRaw ? Number.parseInt(rememberedIdRaw, 10) : null;
       const candidateId = preferredId ?? selectedPvcId ?? rememberedId ?? details[0]?.id ?? null;
@@ -475,7 +504,80 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     setBusy(`delete-pvc:${resource.id}`);
     try {
       await api.resources.delete(resource.id);
+      setSelectedPvcIds((prev) => {
+        const next = new Set(prev);
+        next.delete(resource.id);
+        return next;
+      });
       await loadPvcList(selectedPvcId === resource.id ? null : selectedPvcId);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const handleTogglePvcSelection = (resourceId: number, checked: boolean) => {
+    setSelectedPvcIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(resourceId);
+      else next.delete(resourceId);
+      return next;
+    });
+    if (checked) {
+      setSelectedPvcId(resourceId);
+      setListActionError('');
+    }
+  };
+
+  const handleToggleAllFilteredSelection = (checked: boolean) => {
+    const ids = filteredPvcs.map((item) => item.id);
+    setSelectedPvcIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => {
+        if (checked) next.add(id);
+        else next.delete(id);
+      });
+      return next;
+    });
+    if (checked && ids.length > 0) {
+      setSelectedPvcId(ids[0]);
+      setListActionError('');
+    }
+  };
+
+  const handleDeleteSelectedPvcs = async () => {
+    if (selectedDeleteItems.length === 0) return;
+    const confirmed = await showConfirm({
+      title: '批量删除 PVC',
+      message: `确认删除选中的 ${selectedDeleteItems.length} 个 PVC 吗？`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setListActionError('');
+    setBusy('delete-pvc-bulk');
+    const failed: Array<{ id: number; name: string; reason: string }> = [];
+    try {
+      for (const item of selectedDeleteItems) {
+        try {
+          await api.resources.delete(item.id);
+        } catch (error: any) {
+          failed.push({ id: item.id, name: item.name, reason: String(error?.message || error || '删除失败') });
+        }
+      }
+      const successIds = new Set(selectedDeleteItems.map((item) => item.id).filter((id) => !failed.some((f) => f.id === id)));
+      setSelectedPvcIds((prev) => {
+        const next = new Set(prev);
+        successIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      if (selectedPvcId && successIds.has(selectedPvcId)) {
+        setSelectedPvcId(null);
+      }
+      if (failed.length > 0) {
+        setListActionError(`批量删除部分失败：成功 ${successIds.size} 个，失败 ${failed.length} 个。首个错误：${failed[0].name} - ${failed[0].reason}`);
+      }
+      await loadPvcList(selectedPvcId && successIds.has(selectedPvcId) ? null : selectedPvcId);
     } finally {
       setBusy('');
     }
@@ -859,7 +961,10 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <div className="text-sm font-black text-slate-800">
                   PVC 列表
                   <span className="ml-2 text-xs text-slate-400">
-                    {selectedPvc ? `当前选择：${selectedPvc.name}` : '未选择 PVC'}
+                    {selectedPvc ? `当前详情：${selectedPvc.name}` : '未选择 PVC'}
+                  </span>
+                  <span className="ml-2 text-xs text-blue-600">
+                    已选中：{selectedDeleteItems.length}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -874,11 +979,22 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     <Upload size={14} />
                     上传PVC压缩包
                   </button>
-                  <button data-testid="pvc-list-delete-btn" onClick={() => selectedPvc && void handleDeletePvc(selectedPvc)} disabled={!selectedPvc} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm disabled:cursor-not-allowed disabled:opacity-50">
-                    删除 PVC
+                  <button
+                    data-testid="pvc-list-delete-btn"
+                    onClick={() => void handleDeleteSelectedPvcs()}
+                    disabled={selectedDeleteItems.length === 0 || busy === 'delete-pvc-bulk'}
+                    className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    删除选中 PVC
                   </button>
                 </div>
               </div>
+
+              {listActionError && (
+                <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                  {listActionError}
+                </div>
+              )}
 
               {folderUploadState.visible && (
                 <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -924,31 +1040,54 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     <tr>
-                      <th className="px-3 py-3">选择</th>
+                      <th className="px-3 py-3">
+                        <label className="inline-flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={allFilteredSelected}
+                            onChange={(event) => handleToggleAllFilteredSelection(event.target.checked)}
+                          />
+                          <span>全选</span>
+                        </label>
+                      </th>
                       <th className="px-3 py-3">名称</th>
                       <th className="px-3 py-3">PVC 名称</th>
                       <th className="px-3 py-3">类型</th>
                       <th className="px-3 py-3">容量</th>
                       <th className="px-3 py-3">状态</th>
+                      <th className="px-3 py-3">Worker</th>
                       <th className="px-3 py-3 text-right">操作</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {loading ? (
-                      <tr><td colSpan={7} className="px-3 py-10 text-center"><Loader2 className="mx-auto animate-spin text-blue-600" size={26} /></td></tr>
+                      <tr><td colSpan={8} className="px-3 py-10 text-center"><Loader2 className="mx-auto animate-spin text-blue-600" size={26} /></td></tr>
                     ) : filteredPvcs.length === 0 ? (
-                      <tr><td colSpan={7} className="px-3 py-10 text-center font-semibold text-slate-400">当前项目暂无 PVC</td></tr>
+                      <tr><td colSpan={8} className="px-3 py-10 text-center font-semibold text-slate-400">当前项目暂无 PVC</td></tr>
                     ) : (
                       filteredPvcs.map((item) => (
                         <tr data-testid={`pvc-list-row-${item.id}`} key={item.id} className="cursor-pointer hover:bg-slate-50" onClick={() => void openPvcDetail(item.id)}>
                           <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                            <input data-testid={`pvc-select-radio-${item.id}`} type="radio" checked={selectedPvcId === item.id} onChange={() => setSelectedPvcId(item.id)} />
+                            <input
+                              data-testid={`pvc-select-checkbox-${item.id}`}
+                              type="checkbox"
+                              checked={selectedPvcIds.has(item.id)}
+                              onChange={(event) => handleTogglePvcSelection(item.id, event.target.checked)}
+                            />
                           </td>
                           <td className="px-3 py-2.5 font-black text-slate-900">{item.name}</td>
                           <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500">{item.pvc_name}</td>
                           <td className="px-3 py-2.5 font-bold text-slate-600">{RESOURCE_TYPE_LABEL[item.resource_type] || item.resource_type}</td>
                           <td className="px-3 py-2.5 font-bold text-slate-600">{item.pvc_size}</td>
                           <td className="px-3 py-2.5"><StatusBadge status={item.pvc_k8s_status?.status || 'Unknown'} /></td>
+                          <td className="px-3 py-2.5">
+                            <div className="space-y-1">
+                              <div className="text-[11px] font-black text-slate-700">{getWorkerStatusText(item.file_gateway)}</div>
+                              <div className="max-w-[220px] truncate font-mono text-[10px] text-slate-400">
+                                {item.file_gateway?.worker_name || '-'}
+                              </div>
+                            </div>
+                          </td>
                           <td className="px-3 py-2.5 text-right">
                             <button
                               data-testid={`pvc-enter-detail-btn-${item.id}`}
