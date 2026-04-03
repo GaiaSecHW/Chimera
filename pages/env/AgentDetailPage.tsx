@@ -36,7 +36,7 @@ import {
   X,
   SquareTerminal
 } from 'lucide-react';
-import { Agent, AgentService, AsyncTask, DaemonAgentInfo, DaemonService, EnvTemplate, AgentTtydConnectionInfo, AgentIngressRouteInfo, TemplateLlmProviderBinding, AgentStatusEvent } from '../../types/types';
+import { Agent, AgentService, AsyncTask, DaemonAgentInfo, DaemonService, EnvTemplate, AgentTtydConnectionInfo, AgentIngressRouteInfo, TemplateLlmProviderBinding, AgentStatusEvent, AgentDiagnostics } from '../../types/types';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -93,6 +93,9 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   const [statusHistoryError, setStatusHistoryError] = useState('');
   const [statusHistoryLimit, setStatusHistoryLimit] = useState(20);
   const [statusHistoryClearing, setStatusHistoryClearing] = useState(false);
+  const [agentDiagnostics, setAgentDiagnostics] = useState<AgentDiagnostics | null>(null);
+  const [agentDiagnosticsLoading, setAgentDiagnosticsLoading] = useState(false);
+  const [agentDiagnosticsError, setAgentDiagnosticsError] = useState('');
 
   // Batch deploy templates for current agent
   const [isBatchDeployModalOpen, setIsBatchDeployModalOpen] = useState(false);
@@ -163,7 +166,10 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       } catch (e) {
         console.warn('Failed to load ttyd connection info', e);
       }
-      await loadAgentStatusHistory(statusHistoryLimit);
+      await Promise.all([
+        loadAgentStatusHistory(statusHistoryLimit),
+        loadAgentDiagnostics(),
+      ]);
     } catch (err) {
       console.error("Failed to load agent detail", err);
     } finally {
@@ -184,6 +190,22 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       setStatusHistory([]);
     } finally {
       setStatusHistoryLoading(false);
+    }
+  };
+
+  const loadAgentDiagnostics = async () => {
+    if (!agentKey || !projectId) return;
+    setAgentDiagnosticsLoading(true);
+    setAgentDiagnosticsError('');
+    try {
+      const resp = await api.environment.getAgentDiagnostics(agentKey, projectId);
+      setAgentDiagnostics(resp || null);
+    } catch (err: any) {
+      console.error('Failed to load agent diagnostics', err);
+      setAgentDiagnostics(null);
+      setAgentDiagnosticsError(err?.message || '诊断加载失败');
+    } finally {
+      setAgentDiagnosticsLoading(false);
     }
   };
 
@@ -987,6 +1009,131 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                   </div>
                 </div>
               )}
+
+              <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Activity size={16} className="text-cyan-600" /> 诊断信息
+                  </h4>
+                  <button
+                    onClick={() => void loadAgentDiagnostics()}
+                    className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg"
+                    title="刷新诊断信息"
+                  >
+                    <RefreshCw size={16} className={agentDiagnosticsLoading ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mb-4">
+                  稳定快照模式：仅展示后端刷新线程与数据库快照，不触发实时探测。
+                </p>
+
+                {agentDiagnosticsError ? (
+                  <div className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
+                    诊断加载失败: {agentDiagnosticsError}
+                  </div>
+                ) : agentDiagnosticsLoading && !agentDiagnostics ? (
+                  <div className="py-8 flex items-center gap-2 text-xs text-slate-500">
+                    <Loader2 className="animate-spin" size={14} /> 正在加载诊断信息...
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">当前状态</div>
+                        <div className="mt-1 text-sm font-black text-slate-800">{agentDiagnostics?.agent_snapshot?.status || '-'}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">最后心跳</div>
+                        <div className="mt-1 text-xs font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.agent_snapshot?.last_seen || undefined)}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">刷新结果</div>
+                        <div className={`mt-1 text-sm font-black ${agentDiagnostics?.refresh_diag?.success ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {agentDiagnostics?.refresh_diag?.success === undefined || agentDiagnostics?.refresh_diag?.success === null
+                            ? '-'
+                            : (agentDiagnostics?.refresh_diag?.success ? '成功' : '失败')}
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400">诊断时间</div>
+                        <div className="mt-1 text-xs font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.generated_at || undefined)}</div>
+                      </div>
+                    </div>
+
+                    {agentDiagnostics?.agent_snapshot?.status_reason ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        {agentDiagnostics.agent_snapshot.status_reason}
+                      </div>
+                    ) : null}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="text-xs font-black text-slate-700 mb-3">刷新线程诊断</div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="text-slate-500">attempted_at</div>
+                          <div className="font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.refresh_diag?.attempted_at || undefined)}</div>
+                          <div className="text-slate-500">completed_at</div>
+                          <div className="font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.refresh_diag?.completed_at || undefined)}</div>
+                          <div className="text-slate-500">service_total</div>
+                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.refresh_diag?.service_total ?? '-')}</div>
+                          <div className="text-slate-500">saved</div>
+                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.refresh_diag?.agent_saved ?? '-')}</div>
+                          <div className="text-slate-500">skip(unhealthy)</div>
+                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.refresh_diag?.service_unhealthy_skipped ?? '-')}</div>
+                          <div className="text-slate-500">pod</div>
+                          <div className="font-mono text-slate-700 break-all">{agentDiagnostics?.refresh_diag?.pod_id || '-'}</div>
+                        </div>
+                        <div className="mt-3 rounded-lg bg-slate-50 border border-slate-200 px-2 py-1.5 text-[11px] text-slate-600">
+                          {agentDiagnostics?.refresh_diag?.message || '-'}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="text-xs font-black text-slate-700 mb-3">列表快照诊断</div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="text-slate-500">generated_at</div>
+                          <div className="font-mono text-slate-700">{formatIsoTime(agentDiagnostics?.list_diag?.generated_at || undefined)}</div>
+                          <div className="text-slate-500">memory_lock</div>
+                          <div className="font-mono text-slate-700">
+                            {agentDiagnostics?.list_diag?.memory_lock_acquired === undefined ? '-' : (agentDiagnostics?.list_diag?.memory_lock_acquired ? 'acquired' : 'timeout')}
+                          </div>
+                          <div className="text-slate-500">db_rows_count</div>
+                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.list_diag?.db_rows_count ?? '-')}</div>
+                          <div className="text-slate-500">memory_agents_count</div>
+                          <div className="font-mono text-slate-700">{String(agentDiagnostics?.list_diag?.memory_agents_count ?? '-')}</div>
+                          <div className="text-slate-500">pod</div>
+                          <div className="font-mono text-slate-700 break-all">{agentDiagnostics?.list_diag?.pod_id || '-'}</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 p-4">
+                      <div className="text-xs font-black text-slate-700 mb-3">上下线摘要（24h）</div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-[11px]">
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                          <div className="text-emerald-700 font-black uppercase tracking-wider text-[10px]">上线次数</div>
+                          <div className="mt-1 font-mono text-emerald-800">{String(agentDiagnostics?.event_diag?.up_count_24h ?? 0)}</div>
+                        </div>
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                          <div className="text-amber-700 font-black uppercase tracking-wider text-[10px]">下线次数</div>
+                          <div className="mt-1 font-mono text-amber-800">{String(agentDiagnostics?.event_diag?.down_count_24h ?? 0)}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">
+                          <div className="text-slate-500 font-black uppercase tracking-wider text-[10px]">最新事件</div>
+                          <div className="mt-1 text-slate-700 font-mono">
+                            {agentDiagnostics?.event_diag?.latest_event?.from_status || '-'}
+                            <span className="mx-1 text-slate-400">→</span>
+                            {agentDiagnostics?.event_diag?.latest_event?.to_status || '-'}
+                          </div>
+                          <div className="mt-1 text-slate-500">
+                            {agentDiagnostics?.event_diag?.latest_event?.reason_code || '-'} · {agentDiagnostics?.event_diag?.latest_event?.source || '-'} · pod: {agentDiagnostics?.event_diag?.latest_event?.pod_id || '-'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm p-8">
                 <div className="flex items-center justify-between mb-4">

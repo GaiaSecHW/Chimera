@@ -916,6 +916,50 @@ export interface AgentStatusEvent {
   created_at?: string | null;
 }
 
+export interface AgentDiagnostics {
+  project_id: string;
+  agent_key: string;
+  generated_at?: string;
+  agent_snapshot?: {
+    key?: string;
+    project_id?: string;
+    status?: string;
+    ip_address?: string;
+    hostname?: string;
+    last_seen?: string | null;
+    updated_at?: string | null;
+    pod_id?: string | null;
+    status_reason?: string | null;
+  };
+  refresh_diag?: {
+    attempted_at?: string | null;
+    completed_at?: string | null;
+    success?: boolean | null;
+    message?: string;
+    service_total?: number;
+    service_parse_skipped?: number;
+    service_unhealthy_skipped?: number;
+    agent_key_missing_skipped?: number;
+    agent_saved?: number;
+    pod_id?: string;
+  };
+  list_diag?: {
+    generated_at?: string | null;
+    project_id?: string | null;
+    memory_lock_acquired?: boolean;
+    memory_agents_count?: number;
+    db_rows_count?: number;
+    pod_id?: string;
+  };
+  event_diag?: {
+    window_hours?: number;
+    up_count_24h?: number;
+    down_count_24h?: number;
+    total_events?: number;
+    latest_event?: AgentStatusEvent | null;
+  };
+}
+
 // Docker Compose 解析相关类型定义
 
 // 解析后的端口配置
