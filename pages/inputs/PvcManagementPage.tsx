@@ -646,10 +646,10 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   };
 
   return (
-    <div className="h-full overflow-y-auto p-2.5 custom-scrollbar lg:p-3">
+    <div className="h-full overflow-y-auto p-2.5 custom-scrollbar lg:p-3" data-testid="pvc-page-root">
       <div className="space-y-3">
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFiles(event.target.files)} />
-        <input ref={folderInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFolder(event.target.files)} />
+        <input data-testid="pvc-detail-hidden-file-input" ref={fileInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFiles(event.target.files)} />
+        <input data-testid="pvc-detail-hidden-folder-input" ref={folderInputRef} type="file" multiple className="hidden" onChange={(event) => void handleUploadFolder(event.target.files)} />
 
         {viewMode === 'list' ? (
           <>
@@ -675,18 +675,18 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <button onClick={() => void loadPvcList()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
+                  <button data-testid="pvc-list-refresh-btn" onClick={() => void loadPvcList()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
                     <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
                   </button>
-                  <button onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-500/20">
+                  <button data-testid="pvc-create-blank-btn" onClick={() => setShowCreateModal(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-500/20">
                     <Plus size={14} />
                     创建空白PVC
                   </button>
-                  <button onClick={openArchiveUploadModal} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
+                  <button data-testid="pvc-upload-archive-btn" onClick={openArchiveUploadModal} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
                     <Upload size={14} />
                     上传PVC压缩包
                   </button>
-                  <button onClick={() => selectedPvc && void handleDeletePvc(selectedPvc)} disabled={!selectedPvc} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm disabled:cursor-not-allowed disabled:opacity-50">
+                  <button data-testid="pvc-list-delete-btn" onClick={() => selectedPvc && void handleDeletePvc(selectedPvc)} disabled={!selectedPvc} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm disabled:cursor-not-allowed disabled:opacity-50">
                     删除 PVC
                   </button>
                 </div>
@@ -716,6 +716,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
               <div className="relative mt-3">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                 <input
+                  data-testid="pvc-list-search-input"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="按名称、PVC名、描述筛选"
@@ -723,7 +724,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 />
               </div>
 
-              <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+              <div className="mt-3 overflow-hidden rounded-lg border border-slate-200" data-testid="pvc-list-table-wrap">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     <tr>
@@ -743,9 +744,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                       <tr><td colSpan={7} className="px-3 py-10 text-center font-semibold text-slate-400">当前项目暂无 PVC</td></tr>
                     ) : (
                       filteredPvcs.map((item) => (
-                        <tr key={item.id} className="cursor-pointer hover:bg-slate-50" onClick={() => void openPvcDetail(item.id)}>
+                        <tr data-testid={`pvc-list-row-${item.id}`} key={item.id} className="cursor-pointer hover:bg-slate-50" onClick={() => void openPvcDetail(item.id)}>
                           <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                            <input type="radio" checked={selectedPvcId === item.id} onChange={() => setSelectedPvcId(item.id)} />
+                            <input data-testid={`pvc-select-radio-${item.id}`} type="radio" checked={selectedPvcId === item.id} onChange={() => setSelectedPvcId(item.id)} />
                           </td>
                           <td className="px-3 py-2.5 font-black text-slate-900">{item.name}</td>
                           <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500">{item.pvc_name}</td>
@@ -753,7 +754,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           <td className="px-3 py-2.5 font-bold text-slate-600">{item.pvc_size}</td>
                           <td className="px-3 py-2.5"><StatusBadge status={item.pvc_k8s_status?.status || 'Unknown'} /></td>
                           <td className="px-3 py-2.5 text-right">
-                            <button className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-50">进入详情</button>
+                            <button data-testid={`pvc-enter-detail-btn-${item.id}`} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-black text-slate-700 hover:bg-slate-50">进入详情</button>
                           </td>
                         </tr>
                       ))
@@ -768,7 +769,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setViewMode('list')} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">
+                  <button data-testid="pvc-detail-back-btn" onClick={() => setViewMode('list')} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">
                     返回列表
                   </button>
                   <div>
@@ -778,20 +779,20 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </div>
                 {selectedPvc && (
                   <div className="flex flex-wrap gap-1.5">
-                    <button onClick={() => void refreshBrowser(selectedPvc.id)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm">
+                    <button data-testid="pvc-detail-refresh-btn" onClick={() => void refreshBrowser(selectedPvc.id)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm">
                       <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
                     </button>
-                    <button onClick={() => void handleCreateDirectory()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">新建目录</button>
-                    <button onClick={handleUploadClick} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
+                    <button data-testid="pvc-detail-create-dir-btn" onClick={() => void handleCreateDirectory()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">新建目录</button>
+                    <button data-testid="pvc-detail-upload-file-btn" onClick={handleUploadClick} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
                       <Upload size={14} />
                       上传文件到目录
                     </button>
-                    <button onClick={handleUploadFolderClick} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
+                    <button data-testid="pvc-detail-upload-folder-btn" onClick={handleUploadFolderClick} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
                       <FolderOpen size={14} />
                       上传文件夹到目录
                     </button>
                     {selectedPvcDetail && (
-                      <button onClick={() => void handleDeletePvc(selectedPvcDetail)} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm">
+                      <button data-testid="pvc-detail-delete-pvc-btn" onClick={() => void handleDeletePvc(selectedPvcDetail)} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs font-black text-rose-600 shadow-sm">
                         删除 PVC
                       </button>
                     )}
@@ -822,9 +823,9 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             )}
 
             <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-[220px_minmax(300px,1fr)_320px]">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-testid="pvc-detail-tree-panel">
                 <div className="border-b border-slate-200 px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">目录树</div>
-                <div className="max-h-[62vh] space-y-1 overflow-y-auto p-2 custom-scrollbar">
+                <div className="max-h-[62vh] space-y-1 overflow-y-auto p-2 custom-scrollbar" data-testid="pvc-detail-tree">
                   <button
                     onClick={() => void openDirectory('/')}
                     className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left ${selectedNodePath === '/' ? 'bg-blue-50 text-blue-700' : 'hover:bg-white text-slate-700'}`}
@@ -836,7 +837,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white" data-testid="pvc-detail-directory-panel">
                 <div className="border-b border-slate-200 px-3 py-2">
                   <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
                     {(currentDirectory?.breadcrumbs || [{ path: '/', name: '/' }]).map((item) => (
@@ -846,7 +847,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     ))}
                   </div>
                 </div>
-                <div className="max-h-[62vh] overflow-y-auto custom-scrollbar">
+                <div className="max-h-[62vh] overflow-y-auto custom-scrollbar" data-testid="pvc-detail-directory-list">
                   <table className="w-full">
                     <thead className="bg-slate-50 text-left text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                       <tr>
@@ -858,7 +859,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {[...(currentDirectory?.directories || []), ...(currentDirectory?.files || [])].map((node) => (
-                        <tr key={node.path} className="hover:bg-slate-50">
+                        <tr data-testid={`pvc-node-row-${encodeURIComponent(node.path)}`} key={node.path} className="hover:bg-slate-50">
                           <td className="px-3 py-2">
                             <button onClick={() => void onTreeClick(node)} className="flex items-center gap-3 text-left">
                               {renderNodeIcon(node)}
@@ -873,17 +874,17 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           <td className="px-3 py-2">
                             <div className="flex items-center justify-end gap-2">
                               {node.node_type === 'file' && (
-                                <button onClick={() => void handleDownloadNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
+                                <button data-testid={`pvc-node-download-${encodeURIComponent(node.path)}`} onClick={() => void handleDownloadNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
                                   <Download size={13} />
                                 </button>
                               )}
-                              <button onClick={() => void handleRenameNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
+                              <button data-testid={`pvc-node-rename-${encodeURIComponent(node.path)}`} onClick={() => void handleRenameNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
                                 <Pencil size={13} />
                               </button>
-                              <button onClick={() => void handleMoveNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
+                              <button data-testid={`pvc-node-move-${encodeURIComponent(node.path)}`} onClick={() => void handleMoveNode(node)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-slate-900">
                                 <ChevronRight size={13} />
                               </button>
-                              <button onClick={() => void handleDeleteNode(node)} className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-rose-500 hover:text-rose-700">
+                              <button data-testid={`pvc-node-delete-${encodeURIComponent(node.path)}`} onClick={() => void handleDeleteNode(node)} className="rounded-xl border border-rose-100 bg-rose-50 p-2 text-rose-500 hover:text-rose-700">
                                 <Trash2 size={13} />
                               </button>
                             </div>
@@ -918,12 +919,12 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                       <div className="mt-2"><StatusBadge status={selectedPvcDetail.pvc_k8s_status?.status || 'Unknown'} /></div>
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-white">
+                    <div className="rounded-lg border border-slate-200 bg-white" data-testid="pvc-detail-preview-panel">
                       <div className="border-b border-slate-200 px-3 py-2.5">
                         <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">文件预览</div>
                         <div className="mt-1.5 text-xs font-black text-slate-900">{previewNode?.name || '未选择文件'}</div>
                       </div>
-                      <div className="min-h-[180px] p-3">
+                      <div className="min-h-[180px] p-3" data-testid="pvc-detail-preview-content">
                         {preview.mode === 'empty' ? (
                           <div className="flex min-h-[130px] items-center justify-center text-center text-xs font-semibold text-slate-400">选择一个文件即可在这里预览内容。</div>
                         ) : preview.mode === 'text' ? (
@@ -953,14 +954,15 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
+        <div data-testid="pvc-create-modal" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
           <div className="w-full max-w-xl rounded-[2rem] bg-white p-8 shadow-2xl">
             <div className="text-2xl font-black text-slate-900">创建 PVC</div>
             <p className="mt-2 text-sm font-medium text-slate-500">为当前项目创建任意资源类型的持久化存储。</p>
             <form onSubmit={handleCreatePvc} className="mt-6 space-y-5">
-              <input value={createForm.name} onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="PVC 名称" required className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none" />
+              <input data-testid="pvc-create-name-input" value={createForm.name} onChange={(e) => setCreateForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="PVC 名称" required className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none" />
               <textarea value={createForm.description} onChange={(e) => setCreateForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="用途说明" rows={3} className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none" />
               <select
+                data-testid="pvc-create-type-select"
                 value={createForm.resource_type}
                 onChange={(e) => setCreateForm((prev) => ({ ...prev, resource_type: e.target.value as any }))}
                 className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-semibold outline-none"
@@ -976,11 +978,11 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   <span>容量</span>
                   <span>{createForm.pvc_size} Gi</span>
                 </div>
-                <input type="range" min="1" max="100" value={createForm.pvc_size} onChange={(e) => setCreateForm((prev) => ({ ...prev, pvc_size: Number.parseInt(e.target.value, 10) }))} className="w-full accent-blue-600" />
+                <input data-testid="pvc-create-size-range" type="range" min="1" max="100" value={createForm.pvc_size} onChange={(e) => setCreateForm((prev) => ({ ...prev, pvc_size: Number.parseInt(e.target.value, 10) }))} className="w-full accent-blue-600" />
               </div>
               <div className="flex justify-end gap-3">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700">取消</button>
-                <button type="submit" disabled={createLoading} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white">
+                <button data-testid="pvc-create-submit-btn" type="submit" disabled={createLoading} className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white">
                   {createLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                   创建空白PVC
                 </button>
@@ -991,13 +993,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       )}
 
       {showArchiveUploadModal && (
-        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
+        <div data-testid="pvc-archive-upload-modal" className="fixed inset-0 z-[210] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">
           <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl">
             <div className="text-2xl font-black text-slate-900">上传 PVC 压缩包</div>
             <p className="mt-2 text-sm font-medium text-slate-500">沿用历史流程：上传压缩包后由任务自动下载并解压到新创建的 PVC 根目录。</p>
             <form onSubmit={submitArchiveUpload} className="mt-5 space-y-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <select
+                  data-testid="pvc-archive-type-select"
                   value={archiveUploadForm.resource_type}
                   onChange={(e) => setArchiveUploadForm((prev) => ({ ...prev, resource_type: e.target.value as any }))}
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold outline-none"
@@ -1009,6 +1012,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   <option value="output_pvc">输出资源 PVC</option>
                 </select>
                 <input
+                  data-testid="pvc-archive-size-input"
                   type="number"
                   min={1}
                   max={500}
@@ -1023,6 +1027,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                   <Upload size={14} />
                   选择压缩包
                   <input
+                    data-testid="pvc-archive-file-input"
                     type="file"
                     multiple
                     accept=".zip,.tar,.tar.gz,.tgz,.gz"
@@ -1050,7 +1055,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 <button type="button" disabled={archiveUploadLoading} onClick={() => setShowArchiveUploadModal(false)} className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700">
                   取消
                 </button>
-                <button type="submit" disabled={archiveUploadLoading || archiveFiles.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">
+                <button data-testid="pvc-archive-submit-btn" type="submit" disabled={archiveUploadLoading || archiveFiles.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50">
                   {archiveUploadLoading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
                   上传并解压
                 </button>

@@ -7,6 +7,15 @@ export const codeServerApi = {
     return handleResponse(response);
   },
 
+  getDeployDefaults: async (): Promise<{
+    default_image: string;
+    preset_env: Record<string, string>;
+    fileserver_mount_enabled: boolean;
+    fileserver_mount_path: string;
+    fileserver_project_root_prefix: string;
+  }> =>
+    handleResponse(await fetch(`${API_BASE}/api/app/code-server/deploy-defaults`, { headers: getHeaders() })),
+
   // Instances
   list: async (projectId: string): Promise<{ total: number; items: any[] }> => 
     handleResponse(await fetch(`${API_BASE}/api/app/code-server/projects/${projectId}/code-servers`, { headers: getHeaders() })),

@@ -19,25 +19,61 @@ import {
   HardDrive,
   Search,
   X,
+  Database,
 } from 'lucide-react';
 import {
   DirectoryChildrenResponse,
   ExplorerBreadcrumbItem,
-  FileExplorerNode,
   ManagedFile,
+  PvcBrowserChildrenResponse,
+  PvcBrowserNode,
+  ProjectResource,
   SecurityProject,
 } from '../../types/types';
 import { api } from '../../clients/api';
 import { showConfirm, showPrompt } from '../../components/DialogService';
 
-type ExplorerNodeType = 'project' | 'subproject' | 'directory' | 'file';
+type NodeSource = 'virtual' | 'fileserver' | 'pvc';
+type UnifiedNodeType =
+  | 'workspace'
+  | 'fileserver-root'
+  | 'pvc-root'
+  | 'subproject'
+  | 'directory'
+  | 'file'
+  | 'pvc'
+  | 'pvc-directory'
+  | 'pvc-file';
 
-interface ExplorerSelection {
-  nodeType: ExplorerNodeType;
+interface UnifiedExplorerNode {
+  id: string;
+  source: NodeSource;
+  nodeType: UnifiedNodeType;
+  name: string;
+  hasChildren: boolean;
+  children: UnifiedExplorerNode[];
+  specialBadge?: string | null;
+  contentType?: string | null;
+  size?: number | null;
+  updatedAt?: string | null;
+
+  projectId?: string;
+
   subprojectId?: number | null;
   directoryId?: number | null;
   fileId?: number | null;
-  name: string;
+
+  resourceId?: number;
+  resourceType?: ProjectResource['resource_type'];
+  pvcName?: string;
+  path?: string;
+}
+
+interface ListingState {
+  title: string;
+  directories: UnifiedExplorerNode[];
+  files: UnifiedExplorerNode[];
+  breadcrumbs: Array<{ id: string; name: string; node: UnifiedExplorerNode | null }>;
 }
 
 interface PreviewState {
@@ -48,120 +84,205 @@ interface PreviewState {
   size?: number;
 }
 
+interface PreviewFileState {
+  node: UnifiedExplorerNode;
+  filename: string;
+  contentType?: string | null;
+  size: number;
+  updatedAt?: string | null;
+}
+
 interface ContextMenuState {
   x: number;
   y: number;
-  node: FileExplorerNode | null;
+  node: UnifiedExplorerNode | null;
+}
+
+interface RootLoadResult {
+  rootNode: UnifiedExplorerNode;
+  fileserverRoot: UnifiedExplorerNode;
+  pvcRoot: UnifiedExplorerNode;
 }
 
 const TEXT_EXTENSIONS = new Set(['txt', 'json', 'yaml', 'yml', 'md', 'log', 'xml', 'csv', 'js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'sh', 'sql']);
 
-const createProjectRootNode = (projectId: string, projectName: string): FileExplorerNode => ({
-  node_type: 'project',
-  id: `project:${projectId}`,
-  name: projectName || projectId,
-  project_id: projectId,
-  has_children: true,
-  children: [],
-});
+const RESOURCE_TYPE_LABEL: Record<'document' | 'software' | 'code' | 'other' | 'output_pvc', string> = {
+  document: '文档',
+  software: '软件包',
+  code: '源码',
+  other: '其他',
+  output_pvc: '输出',
+};
 
-const sortNodes = (nodes: FileExplorerNode[]) => {
+const normalizePvcPath = (value: string) => {
+  const raw = (value || '/').trim();
+  if (!raw || raw === '/') return '/';
+  const parts = raw.split('/').filter(Boolean);
+  return `/${parts.join('/')}`;
+};
+
+const parentPvcPath = (path: string) => {
+  const normalized = normalizePvcPath(path);
+  if (normalized === '/') return '/';
+  const parts = normalized.split('/').filter(Boolean);
+  parts.pop();
+  return parts.length ? `/${parts.join('/')}` : '/';
+};
+
+const sortNodes = (nodes: UnifiedExplorerNode[]) => {
   return [...nodes].sort((a, b) => {
-    const order = (node: FileExplorerNode) => {
-      if (node.node_type === 'subproject') return 0;
-      if (node.node_type === 'directory') return 1;
-      return 2;
+    const order = (node: UnifiedExplorerNode) => {
+      if (node.nodeType === 'subproject' || node.nodeType === 'pvc' || node.nodeType === 'directory' || node.nodeType === 'pvc-directory') return 0;
+      return 1;
     };
     return order(a) - order(b) || a.name.localeCompare(b.name, 'zh-CN');
   });
 };
 
-const replaceNodeChildren = (nodes: FileExplorerNode[], targetId: string, children: FileExplorerNode[]): FileExplorerNode[] => {
-  return nodes.map((node) => {
-    if (node.id === targetId) {
-      return { ...node, children: sortNodes(children), has_children: children.length > 0 || node.has_children };
-    }
-    if (node.children && node.children.length > 0) {
-      return { ...node, children: replaceNodeChildren(node.children, targetId, children) };
-    }
-    return node;
-  });
-};
-
-const flattenNode = (node: FileExplorerNode, map: Record<string, FileExplorerNode>) => {
+const flattenNode = (node: UnifiedExplorerNode, map: Record<string, UnifiedExplorerNode>) => {
   map[node.id] = node;
-  (node.children || []).forEach((child) => flattenNode(child, map));
+  node.children.forEach((child) => flattenNode(child, map));
 };
 
-const collectNodeMap = (root: FileExplorerNode) => {
-  const map: Record<string, FileExplorerNode> = {};
+const collectNodeMap = (root: UnifiedExplorerNode) => {
+  const map: Record<string, UnifiedExplorerNode> = {};
   flattenNode(root, map);
   return map;
 };
 
-const toDirectoryNode = (directory: DirectoryChildrenResponse['directories'][number]): FileExplorerNode => ({
-  node_type: 'directory',
-  id: `directory:${directory.id}`,
-  name: directory.name,
-  project_id: directory.project_id,
-  subproject_id: directory.subproject_id,
-  directory_id: directory.id,
-  parent_directory_id: directory.parent_id ?? null,
-  path_key: directory.path_key,
-  updated_at: directory.updated_at,
-  has_children: true,
-  children: [],
-});
+const replaceNodeChildren = (node: UnifiedExplorerNode, targetId: string, children: UnifiedExplorerNode[]): UnifiedExplorerNode => {
+  if (node.id === targetId) {
+    return { ...node, children: sortNodes(children), hasChildren: children.length > 0 || node.hasChildren };
+  }
+  if (!node.children.length) return node;
+  return { ...node, children: node.children.map((child) => replaceNodeChildren(child, targetId, children)) };
+};
 
-const toFileNode = (file: ManagedFile): FileExplorerNode => ({
-  node_type: 'file',
-  id: `file:${file.id}`,
-  name: file.filename,
-  project_id: file.project_id,
-  subproject_id: file.subproject_id,
-  directory_id: file.directory_id ?? null,
-  file_id: file.id,
-  parent_directory_id: file.directory_id ?? null,
-  path_key: file.storage_key,
-  content_type: file.content_type,
-  size: file.size,
-  updated_at: file.updated_at,
-  has_children: false,
-  children: [],
-});
-
-const inferPreviewMode = (file: ManagedFile, blob: Blob): PreviewState['mode'] => {
-  const contentType = blob.type || file.content_type || '';
-  if (contentType.startsWith('text/') || contentType === 'application/json' || contentType === 'application/xml' || contentType === 'application/javascript') {
+const inferPreviewModeByName = (filename: string, contentType?: string | null): PreviewState['mode'] => {
+  const ct = contentType || '';
+  if (ct.startsWith('text/') || ct === 'application/json' || ct === 'application/xml' || ct === 'application/javascript') {
     return 'text';
   }
-  if (contentType.startsWith('image/')) return 'image';
-  if (contentType === 'application/pdf') return 'pdf';
-  if (contentType.startsWith('audio/')) return 'audio';
-  if (contentType.startsWith('video/')) return 'video';
-  const extension = file.filename.includes('.') ? file.filename.split('.').pop()!.toLowerCase() : '';
+  if (ct.startsWith('image/')) return 'image';
+  if (ct === 'application/pdf') return 'pdf';
+  if (ct.startsWith('audio/')) return 'audio';
+  if (ct.startsWith('video/')) return 'video';
+  const extension = filename.includes('.') ? filename.split('.').pop()!.toLowerCase() : '';
   if (TEXT_EXTENSIONS.has(extension)) return 'text';
   return 'binary';
 };
 
+const toFsSubprojectNode = (projectId: string, raw: any): UnifiedExplorerNode => ({
+  id: `fs:subproject:${raw.subproject_id}`,
+  source: 'fileserver',
+  nodeType: 'subproject',
+  name: raw.name,
+  hasChildren: true,
+  children: [],
+  projectId,
+  subprojectId: raw.subproject_id,
+  updatedAt: raw.updated_at || null,
+  specialBadge: raw.special_badge || null,
+});
+
+const toFsDirectoryNode = (projectId: string, directory: DirectoryChildrenResponse['directories'][number]): UnifiedExplorerNode => ({
+  id: `fs:directory:${directory.id}`,
+  source: 'fileserver',
+  nodeType: 'directory',
+  name: directory.name,
+  hasChildren: true,
+  children: [],
+  projectId,
+  subprojectId: directory.subproject_id,
+  directoryId: directory.id,
+  updatedAt: directory.updated_at,
+});
+
+const toFsFileNode = (projectId: string, file: ManagedFile): UnifiedExplorerNode => ({
+  id: `fs:file:${file.id}`,
+  source: 'fileserver',
+  nodeType: 'file',
+  name: file.filename,
+  hasChildren: false,
+  children: [],
+  projectId,
+  subprojectId: file.subproject_id,
+  directoryId: file.directory_id ?? null,
+  fileId: file.id,
+  contentType: file.content_type,
+  size: file.size,
+  updatedAt: file.updated_at,
+});
+
+const toPvcResourceNode = (resource: ProjectResource): UnifiedExplorerNode => ({
+  id: `pvc:resource:${resource.id}`,
+  source: 'pvc',
+  nodeType: 'pvc',
+  name: resource.name,
+  hasChildren: true,
+  children: [],
+  resourceId: resource.id,
+  resourceType: resource.resource_type,
+  pvcName: resource.pvc_name,
+  updatedAt: resource.updated_at,
+  specialBadge: RESOURCE_TYPE_LABEL[resource.resource_type] || resource.resource_type,
+});
+
+const toPvcDirectoryNode = (resourceId: number, node: PvcBrowserNode): UnifiedExplorerNode => ({
+  id: `pvc:dir:${resourceId}:${encodeURIComponent(node.path)}`,
+  source: 'pvc',
+  nodeType: 'pvc-directory',
+  name: node.name,
+  hasChildren: node.has_children,
+  children: [],
+  resourceId,
+  path: normalizePvcPath(node.path),
+  updatedAt: node.updated_at ? new Date(node.updated_at * 1000).toISOString() : null,
+});
+
+const toPvcFileNode = (resourceId: number, node: PvcBrowserNode): UnifiedExplorerNode => ({
+  id: `pvc:file:${resourceId}:${encodeURIComponent(node.path)}`,
+  source: 'pvc',
+  nodeType: 'pvc-file',
+  name: node.name,
+  hasChildren: false,
+  children: [],
+  resourceId,
+  path: normalizePvcPath(node.path),
+  contentType: node.content_type,
+  size: node.size ?? 0,
+  updatedAt: node.updated_at ? new Date(node.updated_at * 1000).toISOString() : null,
+});
+
 export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: SecurityProject[] }> = ({ projectId, projects }) => {
   const projectName = projects.find((item) => item.id === projectId)?.name || projectId;
-  const [rootNode, setRootNode] = useState<FileExplorerNode>(createProjectRootNode(projectId, projectName));
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set([`project:${projectId}`]));
-  const [selected, setSelected] = useState<ExplorerSelection | null>(null);
-  const [currentDirectory, setCurrentDirectory] = useState<DirectoryChildrenResponse | null>(null);
-  const [previewFile, setPreviewFile] = useState<ManagedFile | null>(null);
+
+  const [rootNode, setRootNode] = useState<UnifiedExplorerNode>({
+    id: `workspace:${projectId}`,
+    source: 'virtual',
+    nodeType: 'workspace',
+    name: projectName,
+    hasChildren: true,
+    children: [],
+    projectId,
+  });
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [listing, setListing] = useState<ListingState>({ title: '项目文件资源', directories: [], files: [], breadcrumbs: [] });
+  const [previewFile, setPreviewFile] = useState<PreviewFileState | null>(null);
   const [preview, setPreview] = useState<PreviewState>({ mode: 'empty' });
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [dragHoverNodeId, setDragHoverNodeId] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadTargetRef = useRef<{ subprojectId: number; directoryId: number | null } | null>(null);
+  const uploadTargetRef = useRef<UnifiedExplorerNode | null>(null);
   const previewUrlRef = useRef<string | null>(null);
 
   const nodeMap = useMemo(() => collectNodeMap(rootNode), [rootNode]);
+  const selectedNode = selectedNodeId ? nodeMap[selectedNodeId] || null : null;
 
   useEffect(() => {
     void initialize();
@@ -181,182 +302,292 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     };
   }, []);
 
-  const initialize = async () => {
+  const clearPreview = () => {
+    setPreviewFile(null);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setPreview({ mode: 'empty' });
+  };
+
+  const loadRoots = async (): Promise<RootLoadResult> => {
+    const [fsRoot, resources] = await Promise.all([
+      api.fileserver.getRoot(projectId),
+      api.resources.list(projectId),
+    ]);
+
+    const fileserverRoot: UnifiedExplorerNode = {
+      id: `fs:root:${projectId}`,
+      source: 'virtual',
+      nodeType: 'fileserver-root',
+      name: '项目文件（Fileserver）',
+      hasChildren: true,
+      children: sortNodes((fsRoot.items || []).map((item: any) => toFsSubprojectNode(projectId, item))),
+      projectId,
+    };
+
+    const pvcResources = resources
+      .filter((item: ProjectResource) => Boolean(item.pvc_name))
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+    const pvcRoot: UnifiedExplorerNode = {
+      id: `pvc:root:${projectId}`,
+      source: 'virtual',
+      nodeType: 'pvc-root',
+      name: 'PVC资源',
+      hasChildren: true,
+      children: pvcResources.map((item) => toPvcResourceNode(item)),
+      projectId,
+    };
+
+    const workspaceRoot: UnifiedExplorerNode = {
+      id: `workspace:${projectId}`,
+      source: 'virtual',
+      nodeType: 'workspace',
+      name: projectName,
+      hasChildren: true,
+      children: [fileserverRoot, pvcRoot],
+      projectId,
+    };
+
+    return { rootNode: workspaceRoot, fileserverRoot, pvcRoot };
+  };
+
+  const initialize = async (preferred?: { source: 'fileserver' } | { source: 'pvc'; resourceId: number }) => {
     setLoading(true);
     try {
-      const root = await api.fileserver.getRoot(projectId);
-      const projectRoot = createProjectRootNode(projectId, projectName || root.root_name);
-      projectRoot.children = sortNodes(root.items);
-      setRootNode(projectRoot);
-      setExpandedNodes(new Set([projectRoot.id]));
-      if (root.items[0]) {
-        await openNode(root.items[0]);
+      const { rootNode: loadedRoot, fileserverRoot, pvcRoot } = await loadRoots();
+      setRootNode(loadedRoot);
+      setExpandedNodes(new Set([loadedRoot.id, fileserverRoot.id, pvcRoot.id]));
+
+      const preferSource = preferred?.source || 'fileserver';
+      if (preferSource === 'pvc' && preferred?.source === 'pvc' && preferred.resourceId) {
+        const pvcNode = pvcRoot.children.find((item) => item.resourceId === preferred.resourceId);
+        if (pvcNode) {
+          await openNode(pvcNode, loadedRoot);
+          return;
+        }
+      }
+
+      if (fileserverRoot.children[0]) {
+        await openNode(fileserverRoot.children[0], loadedRoot);
       } else {
-        setSelected({ nodeType: 'project', name: projectRoot.name });
-        setCurrentDirectory(null);
-        setPreviewFile(null);
-        setPreview({ mode: 'empty' });
+        await openNode(fileserverRoot, loadedRoot);
       }
     } catch (error: any) {
       alert(error?.message || '加载项目文件资源失败');
+      setListing({ title: '项目文件资源', directories: [], files: [], breadcrumbs: [] });
+      clearPreview();
     } finally {
       setLoading(false);
     }
   };
 
-  const resolveSelectionTarget = (node: FileExplorerNode | null): { subprojectId: number; directoryId: number | null } | null => {
-    if (!node) return null;
-    if (node.node_type === 'subproject') {
-      return { subprojectId: node.subproject_id || 0, directoryId: null };
-    }
-    if (node.node_type === 'directory') {
-      return { subprojectId: node.subproject_id || 0, directoryId: node.directory_id || null };
-    }
-    if (node.node_type === 'file') {
-      return { subprojectId: node.subproject_id || 0, directoryId: node.directory_id || null };
-    }
-    return null;
+  const updateNodeChildren = (targetId: string, children: UnifiedExplorerNode[]) => {
+    setRootNode((prev) => replaceNodeChildren(prev, targetId, children));
   };
 
-  const refreshCurrentView = async () => {
-    const root = await api.fileserver.getRoot(projectId);
-    const projectRoot = createProjectRootNode(projectId, projectName || root.root_name);
-    projectRoot.children = sortNodes(root.items);
-    setRootNode(projectRoot);
-    if (!selected) {
-      return;
-    }
-    if (selected.nodeType === 'project') {
-      setSelected({ nodeType: 'project', name: projectRoot.name });
-      setCurrentDirectory(null);
-      setPreviewFile(null);
-      setPreview({ mode: 'empty' });
-      return;
-    }
-    if (selected.nodeType === 'subproject' && selected.subprojectId) {
-      const node = root.items.find((item) => item.subproject_id === selected.subprojectId);
-      if (node) await openNode(node);
-      return;
-    }
-    if (selected.nodeType === 'directory' && selected.directoryId) {
-      const payload = await api.fileserver.getDirectoryChildren(projectId, selected.directoryId);
-      const target = nodeMap[`directory:${selected.directoryId}`] || {
-        node_type: 'directory' as const,
-        id: `directory:${selected.directoryId}`,
-        name: payload.current_name,
-        project_id: projectId,
-        subproject_id: payload.subproject_id,
-        directory_id: selected.directoryId,
-        has_children: true,
+  const setListingForRootNode = (node: UnifiedExplorerNode, maybeRoot?: UnifiedExplorerNode) => {
+    const rootRef = maybeRoot || rootNode;
+    const map = collectNodeMap(rootRef);
+    setSelectedNodeId(node.id);
+    clearPreview();
+
+    setListing({
+      title: node.name,
+      directories: sortNodes(node.children.filter((item) => item.nodeType !== 'file' && item.nodeType !== 'pvc-file')),
+      files: sortNodes(node.children.filter((item) => item.nodeType === 'file' || item.nodeType === 'pvc-file')),
+      breadcrumbs: [
+        { id: rootRef.id, name: rootRef.name, node: map[rootRef.id] || rootRef },
+        node.id !== rootRef.id ? { id: node.id, name: node.name, node } : null,
+      ].filter(Boolean) as Array<{ id: string; name: string; node: UnifiedExplorerNode | null }>,
+    });
+  };
+
+  const buildFsListing = (node: UnifiedExplorerNode, payload: DirectoryChildrenResponse) => {
+    const directories = payload.directories.map((item) => toFsDirectoryNode(projectId, item));
+    const files = payload.files.map((item) => toFsFileNode(projectId, item));
+    const merged = sortNodes(directories.concat(files));
+    updateNodeChildren(node.id, merged);
+
+    const breadcrumbs = payload.breadcrumbs.map((item: ExplorerBreadcrumbItem) => {
+      if (item.node_type === 'subproject' && item.subproject_id) {
+        return {
+          id: `fs:subproject:${item.subproject_id}`,
+          name: item.name,
+          node: null,
+        };
+      }
+      if (item.node_type === 'directory' && item.directory_id) {
+        return {
+          id: `fs:directory:${item.directory_id}`,
+          name: item.name,
+          node: null,
+        };
+      }
+      return {
+        id: `fs:root:${projectId}`,
+        name: '项目文件（Fileserver）',
+        node: null,
       };
-      await openNode(target);
-      return;
-    }
-    if (selected.nodeType === 'file' && selected.fileId) {
-      const file = currentDirectory?.files.find((item) => item.id === selected.fileId);
-      if (file) {
-        await openNode(toFileNode(file));
-      }
-    }
+    });
+
+    setListing({
+      title: payload.current_name,
+      directories: sortNodes(directories),
+      files: sortNodes(files),
+      breadcrumbs,
+    });
   };
 
-  const updateNodeBranch = async (node: FileExplorerNode) => {
-    if (node.node_type === 'subproject' && node.subproject_id) {
-      const payload = await api.fileserver.getSubprojectChildren(projectId, node.subproject_id);
-      const children = payload.directories.map(toDirectoryNode).concat(payload.files.map(toFileNode));
-      setRootNode((prev) => replaceNodeChildren([prev], node.id, children)[0]);
-      return payload;
-    }
-    if (node.node_type === 'directory' && node.directory_id) {
-      const payload = await api.fileserver.getDirectoryChildren(projectId, node.directory_id);
-      const children = payload.directories.map(toDirectoryNode).concat(payload.files.map(toFileNode));
-      setRootNode((prev) => replaceNodeChildren([prev], node.id, children)[0]);
-      return payload;
-    }
-    return null;
+  const buildPvcListing = (node: UnifiedExplorerNode, payload: PvcBrowserChildrenResponse) => {
+    const resourceId = node.resourceId || 0;
+    const directories = payload.directories.map((item) => toPvcDirectoryNode(resourceId, item));
+    const files = payload.files.map((item) => toPvcFileNode(resourceId, item));
+    const merged = sortNodes(directories.concat(files));
+    updateNodeChildren(node.id, merged);
+
+    const pvcRootId = `pvc:root:${projectId}`;
+    const pvcNodeId = `pvc:resource:${resourceId}`;
+    const pvcName = node.name;
+    const breadcrumbs = [
+      { id: pvcRootId, name: 'PVC资源', node: null },
+      { id: pvcNodeId, name: pvcName, node: null },
+      ...payload.breadcrumbs
+        .filter((item) => item.path !== '/')
+        .map((item) => ({
+          id: `pvc:dir:${resourceId}:${encodeURIComponent(normalizePvcPath(item.path))}`,
+          name: item.name,
+          node: null,
+        })),
+    ];
+
+    setListing({
+      title: payload.current_path === '/' ? pvcName : payload.current_path,
+      directories: sortNodes(directories),
+      files: sortNodes(files),
+      breadcrumbs,
+    });
   };
 
-  const loadPreview = async (file: ManagedFile) => {
-    setBusyAction(`preview:${file.id}`);
+  const openFileNode = async (node: UnifiedExplorerNode) => {
+    setSelectedNodeId(node.id);
+    setContextMenu(null);
+
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+
+    const fileState: PreviewFileState = {
+      node,
+      filename: node.name,
+      contentType: node.contentType,
+      size: node.size || 0,
+      updatedAt: node.updatedAt,
+    };
+
+    setPreviewFile(fileState);
+    setBusyAction(`preview:${node.id}`);
+
     try {
-      const blob = await api.fileserver.fetchPreviewBlob(file.id);
-      const mode = inferPreviewMode(file, blob);
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-        previewUrlRef.current = null;
+      let blob: Blob;
+      if (node.source === 'fileserver' && node.fileId) {
+        const parentPayload = node.directoryId
+          ? await api.fileserver.getDirectoryChildren(projectId, node.directoryId)
+          : await api.fileserver.getSubprojectChildren(projectId, node.subprojectId || 0);
+        const actualFile = parentPayload.files.find((item) => item.id === node.fileId);
+        if (actualFile) {
+          fileState.filename = actualFile.filename;
+          fileState.contentType = actualFile.content_type;
+          fileState.size = actualFile.size;
+          fileState.updatedAt = actualFile.updated_at;
+          setPreviewFile({ ...fileState });
+          setListing((prev) => ({
+            ...prev,
+            directories: sortNodes(parentPayload.directories.map((item) => toFsDirectoryNode(projectId, item))),
+            files: sortNodes(parentPayload.files.map((item) => toFsFileNode(projectId, item))),
+          }));
+        }
+        blob = await api.fileserver.fetchPreviewBlob(node.fileId);
+      } else if (node.source === 'pvc' && node.resourceId && node.path) {
+        blob = await api.resources.fetchPvcBrowserPreviewBlob(node.resourceId, node.path);
+      } else {
+        throw new Error('不支持的文件节点');
       }
+
+      const contentType = blob.type || fileState.contentType || '';
+      const mode = inferPreviewModeByName(fileState.filename, contentType);
       if (mode === 'text') {
         const text = await blob.text();
-        setPreview({ mode, text, contentType: blob.type || file.content_type || '', size: file.size });
+        setPreview({ mode, text, contentType, size: fileState.size });
       } else if (mode === 'binary') {
-        setPreview({ mode, contentType: blob.type || file.content_type || '', size: file.size });
+        setPreview({ mode, contentType, size: fileState.size });
       } else {
         const url = URL.createObjectURL(blob);
         previewUrlRef.current = url;
-        setPreview({ mode, url, contentType: blob.type || file.content_type || '', size: file.size });
+        setPreview({ mode, contentType, size: fileState.size, url });
       }
     } catch (error: any) {
       alert(error?.message || '加载文件预览失败');
-      setPreview({ mode: 'binary', size: file.size, contentType: file.content_type || '' });
+      setPreview({ mode: 'binary', contentType: fileState.contentType || '', size: fileState.size });
     } finally {
       setBusyAction('');
     }
   };
 
-  const openNode = async (node: FileExplorerNode) => {
-    setSelected({
-      nodeType: node.node_type,
-      subprojectId: node.subproject_id ?? null,
-      directoryId: node.directory_id ?? null,
-      fileId: node.file_id ?? null,
-      name: node.name,
-    });
+  const openNode = async (node: UnifiedExplorerNode, maybeRoot?: UnifiedExplorerNode) => {
     setContextMenu(null);
 
-    if (node.node_type === 'project') {
-      setCurrentDirectory(null);
-      setPreviewFile(null);
-      setPreview({ mode: 'empty' });
+    if (node.nodeType === 'workspace' || node.nodeType === 'fileserver-root' || node.nodeType === 'pvc-root') {
+      setListingForRootNode(node, maybeRoot);
       return;
     }
 
-    if (node.node_type === 'subproject') {
-      const payload = await updateNodeBranch(node);
+    if (node.nodeType === 'subproject' && node.subprojectId) {
+      setSelectedNodeId(node.id);
+      clearPreview();
+      const payload = await api.fileserver.getSubprojectChildren(projectId, node.subprojectId);
       setExpandedNodes((prev) => new Set(prev).add(node.id));
-      if (payload) {
-        setCurrentDirectory(payload);
-        setPreviewFile(null);
-        setPreview({ mode: 'empty' });
-      }
+      buildFsListing(node, payload);
       return;
     }
 
-    if (node.node_type === 'directory') {
-      const payload = await updateNodeBranch(node);
+    if (node.nodeType === 'directory' && node.directoryId) {
+      setSelectedNodeId(node.id);
+      clearPreview();
+      const payload = await api.fileserver.getDirectoryChildren(projectId, node.directoryId);
       setExpandedNodes((prev) => new Set(prev).add(node.id));
-      if (payload) {
-        setCurrentDirectory(payload);
-        setPreviewFile(null);
-        setPreview({ mode: 'empty' });
-      }
+      buildFsListing(node, payload);
       return;
     }
 
-    if (node.node_type === 'file' && node.file_id) {
-      const parentPayload = node.directory_id
-        ? await api.fileserver.getDirectoryChildren(projectId, node.directory_id)
-        : await api.fileserver.getSubprojectChildren(projectId, node.subproject_id || 0);
-      setCurrentDirectory(parentPayload);
-      const file = parentPayload.files.find((item) => item.id === node.file_id);
-      if (file) {
-        setPreviewFile(file);
-        await loadPreview(file);
-      }
+    if (node.nodeType === 'pvc' && node.resourceId) {
+      setSelectedNodeId(node.id);
+      clearPreview();
+      const payload = await api.resources.getPvcBrowserChildren(node.resourceId, '/');
+      setExpandedNodes((prev) => new Set(prev).add(node.id));
+      buildPvcListing(node, payload);
+      return;
+    }
+
+    if (node.nodeType === 'pvc-directory' && node.resourceId && node.path) {
+      setSelectedNodeId(node.id);
+      clearPreview();
+      const payload = await api.resources.getPvcBrowserChildren(node.resourceId, node.path);
+      setExpandedNodes((prev) => new Set(prev).add(node.id));
+      buildPvcListing(node, payload);
+      return;
+    }
+
+    if (node.nodeType === 'file' || node.nodeType === 'pvc-file') {
+      await openFileNode(node);
     }
   };
 
-  const toggleNode = async (node: FileExplorerNode) => {
-    if (node.node_type === 'file') {
+  const toggleNode = async (node: UnifiedExplorerNode) => {
+    if (node.nodeType === 'file' || node.nodeType === 'pvc-file') {
       await openNode(node);
       return;
     }
@@ -371,6 +602,14 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     await openNode(node);
   };
 
+  const refreshCurrentView = async () => {
+    if (selectedNode?.source === 'pvc' && selectedNode.resourceId) {
+      await initialize({ source: 'pvc', resourceId: selectedNode.resourceId });
+      return;
+    }
+    await initialize({ source: 'fileserver' });
+  };
+
   const askName = (title: string, currentValue = '') =>
     showPrompt({
       title,
@@ -381,13 +620,41 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       cancelText: '取消',
     });
 
+  const resolveUploadTarget = (node: UnifiedExplorerNode | null): UnifiedExplorerNode | null => {
+    if (!node) return null;
+    if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
+      return node;
+    }
+    if (node.nodeType === 'file' || node.nodeType === 'pvc-file') {
+      if (node.source === 'fileserver') {
+        if (node.directoryId) return nodeMap[`fs:directory:${node.directoryId}`] || null;
+        if (node.subprojectId) return nodeMap[`fs:subproject:${node.subprojectId}`] || null;
+      }
+      if (node.source === 'pvc' && node.resourceId && node.path) {
+        const parent = parentPvcPath(node.path);
+        if (parent === '/') return nodeMap[`pvc:resource:${node.resourceId}`] || null;
+        return nodeMap[`pvc:dir:${node.resourceId}:${encodeURIComponent(parent)}`] || {
+          id: `pvc:dir:${node.resourceId}:${encodeURIComponent(parent)}`,
+          source: 'pvc',
+          nodeType: 'pvc-directory',
+          name: parent.split('/').pop() || '/',
+          hasChildren: true,
+          children: [],
+          resourceId: node.resourceId,
+          path: parent,
+        };
+      }
+    }
+    return null;
+  };
+
   const handleCreateSubproject = async () => {
     const name = (await askName('请输入子项目名称'))?.trim() || '';
     if (!name) return;
     setBusyAction('create-subproject');
     try {
       await api.fileserver.createSubproject({ project_id: projectId, name });
-      await refreshCurrentView();
+      await initialize({ source: 'fileserver' });
     } catch (error: any) {
       alert(error?.message || '创建子项目失败');
     } finally {
@@ -395,24 +662,33 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
   };
 
-  const handleCreateDirectory = async (node?: FileExplorerNode | null) => {
-    const targetNode = node || (selected ? nodeMap[`${selected.nodeType}:${selected.nodeType === 'subproject' ? selected.subprojectId : selected.nodeType === 'directory' ? selected.directoryId : selected.fileId}`] : null);
-    const target = resolveSelectionTarget(targetNode || null);
-    if (!target) {
-      alert('请先选择子项目或目录');
+  const handleCreateDirectory = async (node?: UnifiedExplorerNode | null) => {
+    const targetNode = node || resolveUploadTarget(selectedNode || null);
+    if (!targetNode) {
+      alert('请先选择可写入的目录节点');
       return;
     }
+
     const name = (await askName('请输入文件夹名称'))?.trim() || '';
     if (!name) return;
+
     setBusyAction('create-directory');
     try {
-      await api.fileserver.createDirectory({
-        project_id: projectId,
-        subproject_id: target.subprojectId,
-        parent_id: target.directoryId,
-        name,
-      });
-      await refreshCurrentView();
+      if (targetNode.source === 'fileserver') {
+        if (!targetNode.subprojectId) throw new Error('无效的目标子项目');
+        await api.fileserver.createDirectory({
+          project_id: projectId,
+          subproject_id: targetNode.subprojectId,
+          parent_id: targetNode.nodeType === 'directory' ? targetNode.directoryId || null : null,
+          name,
+        });
+        await initialize({ source: 'fileserver' });
+      } else {
+        if (!targetNode.resourceId) throw new Error('无效的PVC资源');
+        const basePath = targetNode.nodeType === 'pvc-directory' ? normalizePvcPath(targetNode.path || '/') : '/';
+        await api.resources.createPvcBrowserDirectory(targetNode.resourceId, basePath, name);
+        await initialize({ source: 'pvc', resourceId: targetNode.resourceId });
+      }
     } catch (error: any) {
       alert(error?.message || '创建目录失败');
     } finally {
@@ -420,19 +696,25 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
   };
 
-  const handleRename = async (node: FileExplorerNode) => {
+  const handleRename = async (node: UnifiedExplorerNode) => {
     const name = (await askName('请输入新的名称', node.name))?.trim() || '';
     if (!name || name === node.name) return;
+
     setBusyAction(`rename:${node.id}`);
     try {
-      if (node.node_type === 'subproject' && node.subproject_id) {
-        await api.fileserver.renameSubproject(projectId, node.subproject_id, { name });
-      } else if (node.node_type === 'directory' && node.directory_id) {
-        await api.fileserver.renameDirectory(node.directory_id, name);
-      } else if (node.node_type === 'file' && node.file_id) {
-        await api.fileserver.renameFile(node.file_id, name);
+      if (node.source === 'fileserver') {
+        if (node.nodeType === 'subproject' && node.subprojectId) {
+          await api.fileserver.renameSubproject(projectId, node.subprojectId, { name });
+        } else if (node.nodeType === 'directory' && node.directoryId) {
+          await api.fileserver.renameDirectory(node.directoryId, name);
+        } else if (node.nodeType === 'file' && node.fileId) {
+          await api.fileserver.renameFile(node.fileId, name);
+        }
+        await initialize({ source: 'fileserver' });
+      } else if (node.source === 'pvc' && node.resourceId && node.path) {
+        await api.resources.renamePvcBrowserNode(node.resourceId, node.path, name);
+        await initialize({ source: 'pvc', resourceId: node.resourceId });
       }
-      await refreshCurrentView();
     } catch (error: any) {
       alert(error?.message || '重命名失败');
     } finally {
@@ -440,7 +722,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
   };
 
-  const handleDelete = async (node: FileExplorerNode) => {
+  const handleDelete = async (node: UnifiedExplorerNode) => {
     const confirmed = await showConfirm({
       title: '永久删除资源',
       message: `确认永久删除 ${node.name} 吗？该操作不可恢复。`,
@@ -449,16 +731,22 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       danger: true,
     });
     if (!confirmed) return;
+
     setBusyAction(`delete:${node.id}`);
     try {
-      if (node.node_type === 'subproject' && node.subproject_id) {
-        await api.fileserver.deleteSubproject(projectId, node.subproject_id, true);
-      } else if (node.node_type === 'directory' && node.directory_id) {
-        await api.fileserver.deleteDirectory(projectId, node.directory_id, true);
-      } else if (node.node_type === 'file' && node.file_id) {
-        await api.fileserver.deleteFile(node.file_id);
+      if (node.source === 'fileserver') {
+        if (node.nodeType === 'subproject' && node.subprojectId) {
+          await api.fileserver.deleteSubproject(projectId, node.subprojectId, true);
+        } else if (node.nodeType === 'directory' && node.directoryId) {
+          await api.fileserver.deleteDirectory(projectId, node.directoryId, true);
+        } else if (node.nodeType === 'file' && node.fileId) {
+          await api.fileserver.deleteFile(node.fileId);
+        }
+        await initialize({ source: 'fileserver' });
+      } else if (node.source === 'pvc' && node.resourceId && node.path) {
+        await api.resources.deletePvcBrowserNode(node.resourceId, node.path);
+        await initialize({ source: 'pvc', resourceId: node.resourceId });
       }
-      await refreshCurrentView();
     } catch (error: any) {
       alert(error?.message || '删除失败');
     } finally {
@@ -466,30 +754,41 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
   };
 
-  const triggerUpload = (targetNode: FileExplorerNode | null) => {
-    const target = resolveSelectionTarget(targetNode);
+  const triggerUpload = (targetNode: UnifiedExplorerNode | null) => {
+    const target = resolveUploadTarget(targetNode);
     if (!target) {
-      alert('请先选择子项目或目录');
+      alert('请先选择可上传的目录节点');
       return;
     }
     uploadTargetRef.current = target;
     fileInputRef.current?.click();
   };
 
-  const uploadFiles = async (files: FileList | File[], target: { subprojectId: number; directoryId: number | null }) => {
+  const uploadFiles = async (files: FileList | File[], target: UnifiedExplorerNode) => {
     const list = Array.from(files);
     if (list.length === 0) return;
+
     setBusyAction('upload');
     try {
-      for (const file of list) {
-        await api.fileserver.uploadFile({
-          project_id: projectId,
-          subproject_id: target.subprojectId,
-          directory_id: target.directoryId,
-          file,
-        });
+      if (target.source === 'fileserver') {
+        if (!target.subprojectId) throw new Error('无效的子项目');
+        for (const file of list) {
+          await api.fileserver.uploadFile({
+            project_id: projectId,
+            subproject_id: target.subprojectId,
+            directory_id: target.nodeType === 'directory' ? target.directoryId || null : null,
+            file,
+          });
+        }
+        await initialize({ source: 'fileserver' });
+      } else {
+        if (!target.resourceId) throw new Error('无效的PVC资源');
+        const basePath = target.nodeType === 'pvc-directory' ? normalizePvcPath(target.path || '/') : '/';
+        for (const file of list) {
+          await api.resources.uploadPvcBrowserFile(target.resourceId, basePath, file);
+        }
+        await initialize({ source: 'pvc', resourceId: target.resourceId });
       }
-      await refreshCurrentView();
     } catch (error: any) {
       alert(error?.message || '上传失败');
     } finally {
@@ -497,14 +796,25 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
   };
 
-  const handleDownload = async (file: ManagedFile) => {
-    setBusyAction(`download:${file.id}`);
+  const handleDownload = async (node: UnifiedExplorerNode | PreviewFileState) => {
+    const sourceNode = 'node' in node ? node.node : node;
+    setBusyAction(`download:${sourceNode.id}`);
     try {
-      const blob = await api.fileserver.fetchDownloadBlob(file.id);
+      let blob: Blob;
+      let filename: string;
+      if (sourceNode.source === 'fileserver' && sourceNode.fileId) {
+        blob = await api.fileserver.fetchDownloadBlob(sourceNode.fileId);
+        filename = sourceNode.name;
+      } else if (sourceNode.source === 'pvc' && sourceNode.resourceId && sourceNode.path) {
+        blob = await api.resources.fetchPvcBrowserDownloadBlob(sourceNode.resourceId, sourceNode.path);
+        filename = sourceNode.name;
+      } else {
+        throw new Error('当前节点不支持下载');
+      }
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = file.filename;
+      anchor.download = filename;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -516,32 +826,57 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
   };
 
-  const handleNodeDrop = async (dragNodeId: string, targetNode: FileExplorerNode) => {
+  const handleNodeDrop = async (dragNodeId: string, targetNode: UnifiedExplorerNode) => {
     const dragNode = nodeMap[dragNodeId];
     if (!dragNode || dragNode.id === targetNode.id) return;
-    if (dragNode.node_type === 'subproject') {
-      alert('子项目不支持拖拽移动');
+
+    if (dragNode.source !== targetNode.source) {
+      alert('不支持跨根移动（Fileserver 与 PVC 之间不可拖拽迁移）');
       return;
     }
+
     setBusyAction(`move:${dragNode.id}`);
     try {
-      if (dragNode.node_type === 'file' && dragNode.file_id) {
-        if ((targetNode.node_type === 'subproject' || targetNode.node_type === 'directory') && dragNode.subproject_id === targetNode.subproject_id) {
-          const targetDirectoryId = targetNode.node_type === 'directory' ? targetNode.directory_id || null : null;
-          await api.fileserver.moveFile(dragNode.file_id, targetDirectoryId);
-        } else {
-          throw new Error('暂不支持跨子项目移动文件');
+      if (dragNode.source === 'fileserver') {
+        if (dragNode.nodeType === 'subproject') {
+          throw new Error('子项目不支持拖拽移动');
         }
-      }
-      if (dragNode.node_type === 'directory' && dragNode.directory_id) {
-        if ((targetNode.node_type === 'subproject' || targetNode.node_type === 'directory') && dragNode.subproject_id === targetNode.subproject_id) {
-          const targetParentId = targetNode.node_type === 'directory' ? targetNode.directory_id || null : null;
-          await api.fileserver.moveDirectory(dragNode.directory_id, targetParentId);
-        } else {
-          throw new Error('暂不支持跨子项目移动目录');
+        if (dragNode.nodeType === 'file' && dragNode.fileId) {
+          if ((targetNode.nodeType === 'subproject' || targetNode.nodeType === 'directory') && dragNode.subprojectId === targetNode.subprojectId) {
+            const targetDirectoryId = targetNode.nodeType === 'directory' ? targetNode.directoryId || null : null;
+            await api.fileserver.moveFile(dragNode.fileId, targetDirectoryId);
+          } else {
+            throw new Error('暂不支持跨子项目移动文件');
+          }
         }
+        if (dragNode.nodeType === 'directory' && dragNode.directoryId) {
+          if ((targetNode.nodeType === 'subproject' || targetNode.nodeType === 'directory') && dragNode.subprojectId === targetNode.subprojectId) {
+            const targetParentId = targetNode.nodeType === 'directory' ? targetNode.directoryId || null : null;
+            await api.fileserver.moveDirectory(dragNode.directoryId, targetParentId);
+          } else {
+            throw new Error('暂不支持跨子项目移动目录');
+          }
+        }
+        await initialize({ source: 'fileserver' });
+      } else if (dragNode.source === 'pvc') {
+        if (!dragNode.resourceId || !dragNode.path) throw new Error('无效PVC节点');
+        if (dragNode.resourceId !== targetNode.resourceId) throw new Error('暂不支持跨PVC移动');
+        if (dragNode.nodeType !== 'pvc-file' && dragNode.nodeType !== 'pvc-directory') {
+          throw new Error('仅文件/目录支持拖拽移动');
+        }
+
+        let targetPath = '/';
+        if (targetNode.nodeType === 'pvc-directory') {
+          targetPath = normalizePvcPath(targetNode.path || '/');
+        } else if (targetNode.nodeType === 'pvc') {
+          targetPath = '/';
+        } else {
+          throw new Error('目标必须是PVC或目录');
+        }
+
+        await api.resources.movePvcBrowserNode(dragNode.resourceId, dragNode.path, targetPath);
+        await initialize({ source: 'pvc', resourceId: dragNode.resourceId });
       }
-      await refreshCurrentView();
     } catch (error: any) {
       alert(error?.message || '移动失败');
     } finally {
@@ -550,12 +885,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
   };
 
-  const currentItems = useMemo(() => {
-    if (!currentDirectory) return [];
-    const directoryNodes = currentDirectory.directories.map(toDirectoryNode);
-    const fileNodes = currentDirectory.files.map(toFileNode);
-    return sortNodes(directoryNodes.concat(fileNodes));
-  }, [currentDirectory]);
+  const currentItems = useMemo(() => sortNodes(listing.directories.concat(listing.files)), [listing]);
 
   const filteredItems = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -563,10 +893,16 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     return currentItems.filter((item) => item.name.toLowerCase().includes(keyword));
   }, [currentItems, searchTerm]);
 
-  const renderNodeIcon = (node: FileExplorerNode, expanded: boolean) => {
-    if (node.node_type === 'subproject') return expanded ? <HardDrive size={14} className="text-sky-500" /> : <HardDrive size={14} className="text-sky-500" />;
-    if (node.node_type === 'directory') return expanded ? <FolderOpen size={14} className="text-amber-500" /> : <Folder size={14} className="text-amber-500" />;
-    const type = node.content_type || '';
+  const renderNodeIcon = (node: UnifiedExplorerNode, expanded: boolean) => {
+    if (node.nodeType === 'workspace') return <FolderTree size={14} className="text-slate-500" />;
+    if (node.nodeType === 'fileserver-root') return <HardDrive size={14} className="text-sky-600" />;
+    if (node.nodeType === 'pvc-root') return <Database size={14} className="text-emerald-600" />;
+    if (node.nodeType === 'subproject') return <HardDrive size={14} className="text-sky-500" />;
+    if (node.nodeType === 'pvc') return <Database size={14} className="text-emerald-500" />;
+    if (node.nodeType === 'directory' || node.nodeType === 'pvc-directory') {
+      return expanded ? <FolderOpen size={14} className="text-amber-500" /> : <Folder size={14} className="text-amber-500" />;
+    }
+    const type = node.contentType || '';
     if (type.startsWith('image/')) return <ImageIcon size={14} className="text-emerald-500" />;
     if (type.startsWith('audio/')) return <Music size={14} className="text-pink-500" />;
     if (type.startsWith('video/')) return <Video size={14} className="text-violet-500" />;
@@ -575,13 +911,9 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     return <File size={14} className="text-slate-400" />;
   };
 
-  const renderTree = (node: FileExplorerNode, depth = 0): React.ReactNode => {
+  const renderTree = (node: UnifiedExplorerNode, depth = 0): React.ReactNode => {
     const expanded = expandedNodes.has(node.id);
-    const active = selected?.nodeType === node.node_type &&
-      ((node.node_type === 'subproject' && selected.subprojectId === node.subproject_id) ||
-       (node.node_type === 'directory' && selected.directoryId === node.directory_id) ||
-       (node.node_type === 'file' && selected.fileId === node.file_id) ||
-       (node.node_type === 'project' && selected.nodeType === 'project'));
+    const active = selectedNodeId === node.id;
 
     return (
       <div key={node.id}>
@@ -591,13 +923,13 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
             active ? 'bg-sky-100 text-sky-900' : dragHoverNodeId === node.id ? 'bg-amber-100' : 'text-slate-700 hover:bg-slate-100'
           }`}
           style={{ paddingLeft: `${depth * 14 + 8}px` }}
-          draggable={node.node_type !== 'project'}
+          draggable={node.nodeType !== 'workspace' && node.nodeType !== 'fileserver-root' && node.nodeType !== 'pvc-root' && node.nodeType !== 'pvc'}
           onDragStart={(event) => {
             event.dataTransfer.setData('application/secflow-node', node.id);
             event.dataTransfer.effectAllowed = 'move';
           }}
           onDragOver={(event) => {
-            if (node.node_type === 'subproject' || node.node_type === 'directory') {
+            if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
               event.preventDefault();
               setDragHoverNodeId(node.id);
             }
@@ -612,7 +944,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
               return;
             }
             const files = event.dataTransfer.files;
-            const target = resolveSelectionTarget(node);
+            const target = resolveUploadTarget(node);
             if (target && files && files.length > 0) {
               await uploadFiles(files, target);
             }
@@ -632,15 +964,15 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
               void toggleNode(node);
             }}
           >
-            {(node.node_type === 'project' || node.node_type === 'subproject' || node.node_type === 'directory') ? (
+            {node.hasChildren ? (
               <ChevronRight size={12} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
             ) : <span className="w-3" />}
           </button>
           {renderNodeIcon(node, expanded)}
           <span className="truncate flex-1">{node.name}</span>
-          {node.special_badge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{node.special_badge}</span>}
+          {node.specialBadge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{node.specialBadge}</span>}
         </div>
-        {expanded && node.children && node.children.length > 0 && (
+        {expanded && node.children.length > 0 && (
           <div>{node.children.map((child) => renderTree(child, depth + 1))}</div>
         )}
       </div>
@@ -677,7 +1009,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
         <FileText size={36} className="text-slate-300" />
         <div className="text-sm font-bold">该文件类型暂不支持内嵌预览</div>
-        <div className="text-xs text-slate-400">文件类型：{preview.contentType || previewFile.content_type || 'unknown'}</div>
+        <div className="text-xs text-slate-400">文件类型：{preview.contentType || previewFile.contentType || 'unknown'}</div>
         <button
           type="button"
           className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
@@ -693,28 +1025,30 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     if (!contextMenu) return null;
     const node = contextMenu.node;
     const actions: Array<{ label: string; icon: React.ReactNode; onClick: () => void }> = [];
-    if (!node || node.node_type === 'project') {
-      actions.push(
-        { label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() },
-        { label: '新建子项目', icon: <HardDrive size={14} />, onClick: () => void handleCreateSubproject() },
-      );
-    } else if (node.node_type === 'subproject' || node.node_type === 'directory') {
-      actions.push(
-        { label: '打开', icon: <FolderOpen size={14} />, onClick: () => void openNode(node) },
-        { label: '新建文件夹', icon: <FolderPlus size={14} />, onClick: () => void handleCreateDirectory(node) },
-        { label: '上传文件', icon: <Upload size={14} />, onClick: () => triggerUpload(node) },
-        { label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRename(node) },
-        { label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDelete(node) },
-      );
-    } else if (node.node_type === 'file' && node.file_id) {
-      const file = currentDirectory?.files.find((item) => item.id === node.file_id) || previewFile;
-      actions.push(
-        { label: '打开预览', icon: <FileText size={14} />, onClick: () => void openNode(node) },
-        ...(file ? [{ label: '下载', icon: <Download size={14} />, onClick: () => void handleDownload(file) }] : []),
-        { label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRename(node) },
-        { label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDelete(node) },
-      );
+
+    if (!node || node.nodeType === 'workspace') {
+      actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
+      actions.push({ label: '新建子项目', icon: <HardDrive size={14} />, onClick: () => void handleCreateSubproject() });
+    } else if (node.nodeType === 'fileserver-root') {
+      actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
+      actions.push({ label: '新建子项目', icon: <HardDrive size={14} />, onClick: () => void handleCreateSubproject() });
+    } else if (node.nodeType === 'pvc-root') {
+      actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
+    } else if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
+      actions.push({ label: '打开', icon: <FolderOpen size={14} />, onClick: () => void openNode(node) });
+      actions.push({ label: '新建文件夹', icon: <FolderPlus size={14} />, onClick: () => void handleCreateDirectory(node) });
+      actions.push({ label: '上传文件', icon: <Upload size={14} />, onClick: () => triggerUpload(node) });
+      if (node.nodeType !== 'pvc') {
+        actions.push({ label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRename(node) });
+        actions.push({ label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDelete(node) });
+      }
+    } else if (node.nodeType === 'file' || node.nodeType === 'pvc-file') {
+      actions.push({ label: '打开预览', icon: <FileText size={14} />, onClick: () => void openNode(node) });
+      actions.push({ label: '下载', icon: <Download size={14} />, onClick: () => void handleDownload(node) });
+      actions.push({ label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRename(node) });
+      actions.push({ label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDelete(node) });
     }
+
     return (
       <div
         className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
@@ -752,6 +1086,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
           }
         }}
       />
+
       <div className="flex h-full min-h-0 flex-col gap-4">
         <div className="rounded-[2rem] border border-white/70 bg-white/85 px-6 py-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -784,28 +1119,23 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
               <button type="button" onClick={() => void handleCreateDirectory()} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black text-amber-700">
                 <span className="inline-flex items-center gap-2"><FolderPlus size={14} /> 新建文件夹</span>
               </button>
-              <button type="button" onClick={() => triggerUpload(selected ? nodeMap[`${selected.nodeType}:${selected.nodeType === 'subproject' ? selected.subprojectId : selected.nodeType === 'directory' ? selected.directoryId : selected.fileId}`] || null : null)} className="rounded-2xl bg-slate-900 px-4 py-2 text-xs font-black text-white">
+              <button type="button" onClick={() => triggerUpload(selectedNode || null)} className="rounded-2xl bg-slate-900 px-4 py-2 text-xs font-black text-white">
                 <span className="inline-flex items-center gap-2"><Upload size={14} /> 上传文件</span>
               </button>
             </div>
           </div>
+
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500">
-            {(currentDirectory?.breadcrumbs || [{ id: `project:${projectId}`, name: projectName, node_type: 'project' } as ExplorerBreadcrumbItem]).map((item, index, array) => (
-              <React.Fragment key={item.id}>
+            {(listing.breadcrumbs.length > 0 ? listing.breadcrumbs : [{ id: `workspace:${projectId}`, name: projectName, node: nodeMap[`workspace:${projectId}`] || null }]).map((item, index, array) => (
+              <React.Fragment key={`${item.id}-${index}`}>
                 <button
                   type="button"
                   className="rounded-lg px-2 py-1 hover:bg-slate-100"
                   onClick={() => {
-                    if (item.node_type === 'project') {
-                      setSelected({ nodeType: 'project', name: projectName });
-                      setCurrentDirectory(null);
-                      setPreviewFile(null);
-                      setPreview({ mode: 'empty' });
-                    } else if (item.node_type === 'subproject' && item.subproject_id) {
-                      const node = nodeMap[`subproject:${item.subproject_id}`];
-                      if (node) void openNode(node);
-                    } else if (item.node_type === 'directory' && item.directory_id) {
-                      const node = nodeMap[`directory:${item.directory_id}`];
+                    if (item.node) {
+                      void openNode(item.node);
+                    } else {
+                      const node = nodeMap[item.id];
                       if (node) void openNode(node);
                     }
                   }}
@@ -841,11 +1171,11 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
           <div
             className="min-h-0 rounded-[2rem] border border-white/70 bg-white/92 shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
             onDragOver={(event) => {
-              const target = selected ? resolveSelectionTarget(nodeMap[`${selected.nodeType}:${selected.nodeType === 'subproject' ? selected.subprojectId : selected.nodeType === 'directory' ? selected.directoryId : selected.fileId}`] || null) : null;
+              const target = resolveUploadTarget(selectedNode || null);
               if (target) event.preventDefault();
             }}
             onDrop={async (event) => {
-              const target = selected ? resolveSelectionTarget(nodeMap[`${selected.nodeType}:${selected.nodeType === 'subproject' ? selected.subprojectId : selected.nodeType === 'directory' ? selected.directoryId : selected.fileId}`] || null) : null;
+              const target = resolveUploadTarget(selectedNode || null);
               if (target && event.dataTransfer.files.length > 0) {
                 event.preventDefault();
                 await uploadFiles(event.dataTransfer.files, target);
@@ -855,21 +1185,21 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
             <div className="flex h-full min-h-0 flex-col">
               <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                 <div>
-                  <div className="text-sm font-black text-slate-900">{selected?.name || '项目文件资源'}</div>
+                  <div className="text-sm font-black text-slate-900">{selectedNode?.name || '项目文件资源'}</div>
                   <div className="mt-1 text-[11px] text-slate-400">{busyAction ? `执行中: ${busyAction}` : '双击目录进入，单击文件预览'}</div>
                 </div>
               </div>
 
-              {selected?.nodeType === 'file' ? (
+              {selectedNode && (selectedNode.nodeType === 'file' || selectedNode.nodeType === 'pvc-file') ? (
                 <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] gap-0">
                   <div className="min-h-0 p-4">{renderPreview()}</div>
                   <div className="border-l border-slate-100 p-5 text-sm text-slate-600">
                     <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">文件信息</div>
                     <div className="mt-4 space-y-3">
                       <div><div className="text-xs text-slate-400">文件名</div><div className="font-bold text-slate-900 break-all">{previewFile?.filename}</div></div>
-                      <div><div className="text-xs text-slate-400">内容类型</div><div className="font-semibold">{previewFile?.content_type || preview.contentType || 'unknown'}</div></div>
+                      <div><div className="text-xs text-slate-400">内容类型</div><div className="font-semibold">{previewFile?.contentType || preview.contentType || 'unknown'}</div></div>
                       <div><div className="text-xs text-slate-400">大小</div><div className="font-semibold">{previewFile?.size || 0} bytes</div></div>
-                      <div><div className="text-xs text-slate-400">更新时间</div><div className="font-semibold">{previewFile?.updated_at || '-'}</div></div>
+                      <div><div className="text-xs text-slate-400">更新时间</div><div className="font-semibold">{previewFile?.updatedAt || '--'}</div></div>
                     </div>
                     {previewFile && (
                       <button
@@ -895,19 +1225,15 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
                       <div
                         key={item.id}
                         className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl px-4 py-3 text-sm ${
-                          selected?.nodeType === item.node_type &&
-                          ((item.node_type === 'directory' && selected.directoryId === item.directory_id) ||
-                            (item.node_type === 'subproject' && selected.subprojectId === item.subproject_id))
-                            ? 'bg-sky-50'
-                            : 'hover:bg-slate-50'
-                        }`}
-                        draggable
+                          selectedNodeId === item.id ? 'bg-sky-50' : 'hover:bg-slate-50'
+                        } ${dragHoverNodeId === item.id ? 'ring-1 ring-amber-300' : ''}`}
+                        draggable={item.nodeType !== 'pvc' && item.nodeType !== 'subproject'}
                         onDragStart={(event) => {
                           event.dataTransfer.setData('application/secflow-node', item.id);
                           event.dataTransfer.effectAllowed = 'move';
                         }}
                         onDragOver={(event) => {
-                          if (item.node_type === 'directory' || item.node_type === 'subproject') {
+                          if (item.nodeType === 'directory' || item.nodeType === 'subproject' || item.nodeType === 'pvc' || item.nodeType === 'pvc-directory') {
                             event.preventDefault();
                             setDragHoverNodeId(item.id);
                           }
@@ -919,6 +1245,11 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
                           setDragHoverNodeId(null);
                           if (nodeId) {
                             await handleNodeDrop(nodeId, item);
+                            return;
+                          }
+                          if (event.dataTransfer.files.length > 0) {
+                            const target = resolveUploadTarget(item);
+                            if (target) await uploadFiles(event.dataTransfer.files, target);
                           }
                         }}
                         onClick={() => void openNode(item)}
@@ -931,10 +1262,10 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
                         <div className="flex min-w-0 items-center gap-3">
                           {renderNodeIcon(item, expandedNodes.has(item.id))}
                           <span className="truncate font-semibold text-slate-700">{item.name}</span>
-                          {item.special_badge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{item.special_badge}</span>}
+                          {item.specialBadge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{item.specialBadge}</span>}
                         </div>
-                        <div className="text-xs text-slate-500">{item.node_type === 'file' ? `${item.size || 0} bytes` : '--'}</div>
-                        <div className="truncate text-xs text-slate-500">{item.updated_at || '--'}</div>
+                        <div className="text-xs text-slate-500">{item.nodeType === 'file' || item.nodeType === 'pvc-file' ? `${item.size || 0} bytes` : '--'}</div>
+                        <div className="truncate text-xs text-slate-500">{item.updatedAt || '--'}</div>
                       </div>
                     ))}
                     {filteredItems.length === 0 && (

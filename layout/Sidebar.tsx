@@ -292,7 +292,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             { id: 'pentest-exec-secmate', label: 'SecMate-NG (AI 助手)', icon: <Sparkles size={12} className="text-amber-400" /> },
             { id: 'pentest-exec-b2s-root', label: '代码逆向还原引擎', icon: <FileCode size={12} />, children: [
               { id: 'pentest-exec-b2s-task-list', label: '任务列表', icon: <ListTodo size={12} /> },
-              { id: 'pentest-exec-b2s-create', label: '创建任务', icon: <Play size={12} /> },
               { id: 'pentest-exec-b2s-queue', label: '执行队列', icon: <Workflow size={12} /> },
               { id: 'pentest-exec-b2s-result', label: '结果查询', icon: <FileSearch size={12} /> }
             ]}

@@ -70,7 +70,6 @@ import { VulnQueuePage } from './pages/pentest/VulnQueuePage';
 import { VulnServicesPage } from './pages/pentest/VulnServicesPage';
 import { VulnReproConfigPage } from './pages/pentest/VulnReproConfigPage';
 import { B2STaskListPage } from './pages/pentest/B2STaskListPage';
-import { B2STaskCreatePage } from './pages/pentest/B2STaskCreatePage';
 import { B2STaskQueuePage } from './pages/pentest/B2STaskQueuePage';
 import { B2STaskResultPage } from './pages/pentest/B2STaskResultPage';
 
@@ -438,8 +437,8 @@ const App: React.FC = () => {
       case 'pentest-exec-work': return <ExecutionWorkPlatformPage projectId={selectedProjectId} />;
       case 'pentest-exec-secmate': return <SecMateNGPage projectId={selectedProjectId} />;
       case 'pentest-exec-b2s-root':
-      case 'pentest-exec-b2s-task-list': return <B2STaskListPage projectId={selectedProjectId} />;
-      case 'pentest-exec-b2s-create': return <B2STaskCreatePage projectId={selectedProjectId} />;
+      case 'pentest-exec-b2s-task-list':
+      case 'pentest-exec-b2s-create': return <B2STaskListPage projectId={selectedProjectId} />;
       case 'pentest-exec-b2s-queue': return <B2STaskQueuePage projectId={selectedProjectId} />;
       case 'pentest-exec-b2s-result': return <B2STaskResultPage projectId={selectedProjectId} />;
       case 'pentest-report': return <ReportsPage />;
