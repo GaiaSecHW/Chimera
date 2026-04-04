@@ -37,7 +37,7 @@ type PreviewState =
   | { mode: 'empty' }
   | { mode: 'text'; text: string; truncated: boolean; contentType?: string | null }
   | { mode: 'image' | 'pdf' | 'audio' | 'video'; url: string; contentType?: string | null }
-  | { mode: 'binary'; size?: number | null; contentType?: string | null };
+  | { mode: 'binary'; size?: number | null; contentType?: string | null; truncated: boolean; displayedBytes: number; view: string };
 
 const TEXT_EXTENSIONS = new Set(['txt', 'json', 'yaml', 'yml', 'md', 'log', 'xml', 'csv', 'js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'sh', 'sql']);
 
@@ -65,6 +65,35 @@ const toText = (base64: string) => {
   const binary = atob(base64);
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
   return new TextDecoder().decode(bytes);
+};
+
+const toBytes = (base64: string) => {
+  const binary = atob(base64);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+};
+
+const toHexAsciiView = (bytes: Uint8Array) => {
+  const rows: string[] = [];
+  const rowSize = 16;
+  for (let offset = 0; offset < bytes.length; offset += rowSize) {
+    const slice = bytes.slice(offset, offset + rowSize);
+    const hexChunks: string[] = [];
+    const asciiChars: string[] = [];
+    for (let idx = 0; idx < rowSize; idx += 1) {
+      if (idx < slice.length) {
+        const value = slice[idx];
+        hexChunks.push(value.toString(16).padStart(2, '0'));
+        asciiChars.push(value >= 32 && value <= 126 ? String.fromCharCode(value) : '.');
+      } else {
+        hexChunks.push('  ');
+        asciiChars.push(' ');
+      }
+    }
+    const left = hexChunks.slice(0, 8).join(' ');
+    const right = hexChunks.slice(8).join(' ');
+    rows.push(`${offset.toString(16).padStart(8, '0')}  ${left}  ${right}  |${asciiChars.join('')}|`);
+  }
+  return rows.join('\n');
 };
 
 const sortNodes = (nodes: PvcBrowserNode[]) =>
@@ -347,8 +376,16 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       return;
     }
     if (mode === 'binary') {
-      const payload = await api.resources.getPvcBrowserFile(resourceId, node.path, 1);
-      update({ mode: 'binary', size: payload.size, contentType: payload.content_type });
+      const payload = await api.resources.getPvcBrowserFile(resourceId, node.path, 1024 * 1024);
+      const bytes = toBytes(payload.base64 || '');
+      update({
+        mode: 'binary',
+        size: payload.size,
+        contentType: payload.content_type,
+        truncated: payload.truncated,
+        displayedBytes: bytes.length,
+        view: toHexAsciiView(bytes),
+      });
       return;
     }
     const blob = await api.resources.fetchPvcBrowserPreviewBlob(resourceId, node.path);
@@ -513,8 +550,6 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
 
   const handleOpenPreviewModal = async (node: PvcBrowserNode) => {
     if (!selectedPvcId || node.node_type !== 'file') return;
-    const mode = inferPreviewMode(node, node.content_type);
-    if (mode === 'binary') return;
     revokeModalPreviewUrl();
     setPreviewModalState({
       visible: true,
@@ -1569,11 +1604,16 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                           <audio controls src={preview.url} className="w-full" />
                         ) : preview.mode === 'video' ? (
                           <video controls src={preview.url} className="max-h-[34vh] w-full rounded-lg bg-slate-950" />
-                        ) : (
-                          <div className="flex min-h-[130px] flex-col items-center justify-center gap-3 text-center">
-                            <FileAudio size={42} className="text-slate-300" />
-                            <div className="text-xs font-semibold text-slate-500">当前文件不支持在线预览，请直接下载查看。</div>
+                        ) : preview.mode === 'binary' ? (
+                          <div className="space-y-2">
+                            <div className="rounded-md bg-slate-100 px-2.5 py-2 text-[10px] font-semibold text-slate-600">
+                              已展示前 {formatBytes(preview.displayedBytes)} 二进制内容
+                              {preview.truncated ? `（文件总大小 ${formatBytes(preview.size)}）` : ''}
+                            </div>
+                            <pre className="max-h-[34vh] overflow-auto whitespace-pre rounded-lg bg-slate-950 p-2.5 text-[11px] leading-5 text-slate-100 custom-scrollbar">{preview.view}</pre>
                           </div>
+                        ) : (
+                          <div className="flex min-h-[130px] items-center justify-center text-center text-xs font-semibold text-slate-400">当前文件不支持在线预览。</div>
                         )}
                       </div>
                     </div>
@@ -1614,6 +1654,14 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                 </div>
               ) : previewModalState.preview.mode === 'video' ? (
                 <video controls src={previewModalState.preview.url} className="h-full max-h-[75vh] w-full rounded-lg bg-slate-950" />
+              ) : previewModalState.preview.mode === 'binary' ? (
+                <div className="space-y-2">
+                  <div className="rounded-md bg-slate-100 px-2.5 py-2 text-[11px] font-semibold text-slate-600">
+                    已展示前 {formatBytes(previewModalState.preview.displayedBytes)} 二进制内容
+                    {previewModalState.preview.truncated ? `（文件总大小 ${formatBytes(previewModalState.preview.size)}）` : ''}
+                  </div>
+                  <pre className="h-full min-h-[70vh] overflow-auto whitespace-pre rounded-lg bg-slate-950 p-3 text-xs leading-6 text-slate-100 custom-scrollbar">{previewModalState.preview.view}</pre>
+                </div>
               ) : (
                 <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-400">该文件类型不支持弹框预览。</div>
               )}

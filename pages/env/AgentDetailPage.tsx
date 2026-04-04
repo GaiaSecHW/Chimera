@@ -83,6 +83,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
   const [selectedService, setSelectedService] = useState<DaemonService | null>(null);
   const [daemonAgentInfo, setDaemonAgentInfo] = useState<DaemonAgentInfo | null>(null);
   const [daemonAgentHealth, setDaemonAgentHealth] = useState<any>(null);
+  const [daemonUnavailableReason, setDaemonUnavailableReason] = useState('');
   const [ttydInfo, setTtydInfo] = useState<AgentTtydConnectionInfo | null>(null);
   const [ttydLoading, setTtydLoading] = useState(false);
   const [showTtydShell, setShowTtydShell] = useState(false);
@@ -145,21 +146,7 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       setAgent(agentData);
       setServices(servicesData?.items || []);
       setTasks(tasksData?.task || []);
-
-      let daemonInfo = agentData?.daemon_info || null;
-      try {
-        const daemonInfoResp = await api.environment.getDaemonAgentInfo(agentKey);
-        if (daemonInfoResp?.data) daemonInfo = daemonInfoResp.data;
-      } catch (e) {
-        console.warn('Failed to load daemon agent info', e);
-      }
-      setDaemonAgentInfo(daemonInfo);
-      try {
-        const daemonHealthResp = await api.environment.getDaemonAgentHealth(agentKey);
-      setDaemonAgentHealth(daemonHealthResp || null);
-      } catch (e) {
-        console.warn('Failed to load daemon agent health', e);
-      }
+      setDaemonAgentInfo(agentData?.daemon_info || null);
       try {
         const ttydResp = await api.environment.getAgentTtydConnection(agentKey);
         setTtydInfo(ttydResp || null);
@@ -175,6 +162,13 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
     } finally {
       setLoading(false);
     }
+  };
+
+  const isDaemonConnectionError = (err: any) => {
+    const msg = String(err?.message || '').toLowerCase();
+    return msg.includes('connection failed to agent')
+      || msg.includes('request timeout to agent')
+      || msg.includes('daemon unavailable');
   };
 
   const loadAgentStatusHistory = async (limit = statusHistoryLimit) => {
@@ -318,9 +312,14 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
     try {
       const response = await api.environment.getDaemonServices(agentKey);
       setDaemonServices(response?.data?.services || []);
+      setDaemonUnavailableReason('');
     } catch (err) {
-      console.error("Failed to load daemon services", err);
       setDaemonServices([]);
+      if (isDaemonConnectionError(err)) {
+        setDaemonUnavailableReason(err?.message || '守护进程连接不可用');
+      } else {
+        console.error("Failed to load daemon services", err);
+      }
     } finally {
       setDaemonLoading(false);
     }
@@ -335,8 +334,13 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
       ]);
       setDaemonAgentInfo(infoResp?.data || null);
       setDaemonAgentHealth(healthResp || null);
+      setDaemonUnavailableReason('');
     } catch (err) {
-      console.error("Failed to load daemon agent info", err);
+      if (isDaemonConnectionError(err)) {
+        setDaemonUnavailableReason(err?.message || '守护进程连接不可用');
+      } else {
+        console.error("Failed to load daemon agent info", err);
+      }
     }
   };
 
@@ -1445,6 +1449,11 @@ export const AgentDetailPage: React.FC<AgentDetailPageProps> = ({ agentKey, proj
                 <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Zap size={16} className="text-blue-500" /> 守护进程服务
+                    {daemonUnavailableReason && (
+                      <span className="text-[10px] normal-case text-amber-600 font-bold">
+                        (降级显示: {daemonUnavailableReason})
+                      </span>
+                    )}
                   </h4>
                   <button
                     onClick={async () => {

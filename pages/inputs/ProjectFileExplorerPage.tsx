@@ -82,6 +82,9 @@ interface PreviewState {
   text?: string;
   url?: string;
   size?: number;
+  truncated?: boolean;
+  displayedBytes?: number;
+  view?: string;
 }
 
 interface PreviewFileState {
@@ -105,6 +108,36 @@ interface RootLoadResult {
 }
 
 const TEXT_EXTENSIONS = new Set(['txt', 'json', 'yaml', 'yml', 'md', 'log', 'xml', 'csv', 'js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'sh', 'sql']);
+const BINARY_PREVIEW_MAX_BYTES = 1024 * 1024;
+
+const toBytes = (base64: string) => {
+  const binary = atob(base64);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+};
+
+const toHexAsciiView = (bytes: Uint8Array) => {
+  const rows: string[] = [];
+  const rowSize = 16;
+  for (let offset = 0; offset < bytes.length; offset += rowSize) {
+    const slice = bytes.slice(offset, offset + rowSize);
+    const hexChunks: string[] = [];
+    const asciiChars: string[] = [];
+    for (let idx = 0; idx < rowSize; idx += 1) {
+      if (idx < slice.length) {
+        const value = slice[idx];
+        hexChunks.push(value.toString(16).padStart(2, '0'));
+        asciiChars.push(value >= 32 && value <= 126 ? String.fromCharCode(value) : '.');
+      } else {
+        hexChunks.push('  ');
+        asciiChars.push(' ');
+      }
+    }
+    const left = hexChunks.slice(0, 8).join(' ');
+    const right = hexChunks.slice(8).join(' ');
+    rows.push(`${offset.toString(16).padStart(8, '0')}  ${left}  ${right}  |${asciiChars.join('')}|`);
+  }
+  return rows.join('\n');
+};
 
 const RESOURCE_TYPE_LABEL: Record<'document' | 'software' | 'code' | 'other' | 'output_pvc', string> = {
   document: '文档',
@@ -523,7 +556,28 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         const text = await blob.text();
         setPreview({ mode, text, contentType, size: fileState.size });
       } else if (mode === 'binary') {
-        setPreview({ mode, contentType, size: fileState.size });
+        if (node.source === 'pvc' && node.resourceId && node.path) {
+          const payload = await api.resources.getPvcBrowserFile(node.resourceId, node.path, BINARY_PREVIEW_MAX_BYTES);
+          const bytes = toBytes(payload.base64 || '');
+          setPreview({
+            mode: 'binary',
+            contentType: payload.content_type || contentType,
+            size: payload.size,
+            truncated: payload.truncated,
+            displayedBytes: bytes.length,
+            view: toHexAsciiView(bytes),
+          });
+        } else {
+          const bytes = new Uint8Array(await blob.arrayBuffer()).slice(0, BINARY_PREVIEW_MAX_BYTES);
+          setPreview({
+            mode: 'binary',
+            contentType,
+            size: fileState.size,
+            truncated: (fileState.size || 0) > bytes.length || blob.size > bytes.length,
+            displayedBytes: bytes.length,
+            view: toHexAsciiView(bytes),
+          });
+        }
       } else {
         const url = URL.createObjectURL(blob);
         previewUrlRef.current = url;
@@ -531,7 +585,14 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       }
     } catch (error: any) {
       alert(error?.message || '加载文件预览失败');
-      setPreview({ mode: 'binary', contentType: fileState.contentType || '', size: fileState.size });
+      setPreview({
+        mode: 'binary',
+        contentType: fileState.contentType || '',
+        size: fileState.size,
+        truncated: false,
+        displayedBytes: 0,
+        view: '',
+      });
     } finally {
       setBusyAction('');
     }
@@ -1004,6 +1065,19 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     }
     if (preview.mode === 'video' && preview.url) {
       return <div className="flex h-full items-center justify-center"><video controls src={preview.url} className="max-h-full max-w-full rounded-xl shadow-xl" /></div>;
+    }
+    if (preview.mode === 'binary') {
+      return (
+        <div className="flex h-full min-h-0 flex-col gap-3">
+          <div className="text-xs font-semibold text-slate-500">
+            已展示前 {preview.displayedBytes || 0} bytes
+            {preview.truncated && typeof preview.size === 'number' ? `（总大小 ${preview.size} bytes）` : ''}
+          </div>
+          <pre className="min-h-0 flex-1 overflow-auto rounded-2xl bg-slate-950 p-4 text-[11px] leading-5 text-slate-100">
+            {preview.view || ''}
+          </pre>
+        </div>
+      );
     }
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-500">
