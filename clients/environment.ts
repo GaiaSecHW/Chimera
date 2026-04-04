@@ -1,4 +1,4 @@
-import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress } from './base';
+import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress, fetchWithRetry } from './base';
 import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics } from '../types/types';
 import { trackUploadTask } from '../services/uploadCenter';
 
@@ -401,14 +401,14 @@ export const environmentApi = {
   },
 
   listAiAgentLlmProviders: async (projectId = ''): Promise<{ project_id: string; default_provider_key?: string | null; items: AiAgentLlmProviderSummary[]; total: number }> =>
-    handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents/llm-providers${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`, { headers: getHeaders() })),
+    handleResponse(await fetchWithRetry(`${API_BASE}/api/agent/ai-agents/llm-providers${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`, { headers: getHeaders() }, { retries: 2, retryDelayMs: 350 })),
 
   getAiAgentLlmProvider: async (projectId: string, providerKey: string, backendType?: string): Promise<AiAgentLlmProviderDetail> => {
     const query = new URLSearchParams({
       ...(projectId ? { project_id: projectId } : {}),
       ...(backendType ? { backend_type: backendType } : {}),
     }).toString();
-    return handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents/llm-providers/${encodeURIComponent(providerKey)}?${query}`, { headers: getHeaders() }));
+    return handleResponse(await fetchWithRetry(`${API_BASE}/api/agent/ai-agents/llm-providers/${encodeURIComponent(providerKey)}?${query}`, { headers: getHeaders() }, { retries: 2, retryDelayMs: 350 }));
   },
 
   applyAiAgentLlmProvider: async (

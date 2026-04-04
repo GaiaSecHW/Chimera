@@ -95,6 +95,54 @@ export const handleResponse = async (response: Response) => {
   return parsed;
 };
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isTransientNetworkError = (error: unknown): boolean => {
+  const message = (error instanceof Error ? error.message : String(error || '')).toLowerCase();
+  return (
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('load failed') ||
+    message.includes('connection reset') ||
+    message.includes('err_connection_reset')
+  );
+};
+
+export const fetchWithRetry = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options?: { retries?: number; retryDelayMs?: number; retryOnStatus?: number[] },
+): Promise<Response> => {
+  const retries = Math.max(0, options?.retries ?? 2);
+  const retryDelayMs = Math.max(0, options?.retryDelayMs ?? 300);
+  const statusAllowlist = options?.retryOnStatus && options.retryOnStatus.length > 0
+    ? options.retryOnStatus
+    : [408, 429, 500, 502, 503, 504];
+
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(input, init);
+      if (!statusAllowlist.includes(response.status) || attempt >= retries) {
+        return response;
+      }
+      await sleep(retryDelayMs * (attempt + 1));
+      continue;
+    } catch (error) {
+      lastError = error;
+      if (!isTransientNetworkError(error) || attempt >= retries) {
+        throw error;
+      }
+      await sleep(retryDelayMs * (attempt + 1));
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error('请求失败');
+};
+
 export interface XhrUploadProgress {
   loaded_bytes: number;
   total_bytes: number;
