@@ -47,13 +47,14 @@ import {
   Layers,
   Tags
 } from 'lucide-react';
-import { EnvTemplate, TemplateFile, Agent, ParsedCompose, TemplateLlmProviderBinding } from '../../types/types';
+import { EnvTemplate, TemplateFile, Agent, AgentService, ParsedCompose, TemplateLlmProviderBinding } from '../../types/types';
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders } from '../../clients/base';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ComposeViewer } from '../../components/ComposeViewer';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { TemplateLlmBindingEditor, normalizeTemplateLlmBinding } from './llm-binding/TemplateLlmBindingEditor';
+import { AgentDetailPage } from './AgentDetailPage';
 
 // Helper to build tree from flat paths
 interface TreeNode {
@@ -84,6 +85,7 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [templateDetail, setTemplateDetail] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [detailTab, setDetailTab] = useState<'overview' | 'compose' | 'files' | 'deployments'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   
   // Selection States
@@ -149,6 +151,11 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
 
   // 所有模板的解析数据 (用于卡片视图)
   const [templatesParsedData, setTemplatesParsedData] = useState<Record<string, any>>({});
+  const [templateDeployments, setTemplateDeployments] = useState<AgentService[]>([]);
+  const [templateDeploymentsLoading, setTemplateDeploymentsLoading] = useState(false);
+  const [templateDeploymentsError, setTemplateDeploymentsError] = useState<string>('');
+  const [deploymentAgentMap, setDeploymentAgentMap] = useState<Record<string, Agent>>({});
+  const [deploymentDetailAgentKey, setDeploymentDetailAgentKey] = useState<string | null>(null);
 
   useEffect(() => {
     loadTemplates();
@@ -362,8 +369,10 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       setTemplateDetail(detail);
       setDetailWebPortPresets(detailPresets);
       setDetailLlmBindingDraft(getTemplateCurrentMixBinding(detail));
+      setDetailTab('overview');
       setViewMode('detail');
       setExpandedFolders(new Set(['root']));
+      void loadTemplateDeployments(templateId);
 
       // 如果是 yaml 类型模板，获取解析数据和文件内容
       if (detail.type === 'yaml') {
@@ -379,6 +388,60 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       notify("获取模版详情失败", 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTemplateDeployments = async (templateId: number) => {
+    if (!projectId) {
+      setTemplateDeployments([]);
+      return;
+    }
+    setTemplateDeploymentsLoading(true);
+    setTemplateDeploymentsError('');
+    try {
+      const agentsResp = await api.environment.getAgents(projectId, { per_page: 2000 });
+      const agentMap: Record<string, Agent> = {};
+      (agentsResp?.agents || []).forEach((agent) => {
+        if (agent?.key) agentMap[agent.key] = agent;
+      });
+      setDeploymentAgentMap(agentMap);
+      const validAgentKeys = new Set(Object.keys(agentMap));
+
+      let page = 1;
+      const perPage = 200;
+      let total = 0;
+      const all: AgentService[] = [];
+      do {
+        const resp = await api.environment.getGlobalServices(projectId, {
+          page,
+          per_page: perPage,
+          include_stale: false,
+        });
+        total = Number(resp?.total || 0);
+        all.push(...(resp?.items || []));
+        page += 1;
+      } while (all.length < total && page <= 20);
+
+      const rows = all
+        .filter((svc) =>
+          Number(svc.template_id) === Number(templateId) &&
+          svc.is_stale !== true &&
+          Boolean(svc.agent_key) &&
+          Boolean(svc.name) &&
+          validAgentKeys.has(String(svc.agent_key || ''))
+        )
+        .sort((a, b) => {
+          const agentCmp = String(a.agent_key || '').localeCompare(String(b.agent_key || ''));
+          if (agentCmp !== 0) return agentCmp;
+          return String(a.name || '').localeCompare(String(b.name || ''));
+        });
+      setTemplateDeployments(rows);
+    } catch (error) {
+      console.error('Failed to load template deployments', error);
+      setTemplateDeployments([]);
+      setTemplateDeploymentsError('加载部署实例失败');
+    } finally {
+      setTemplateDeploymentsLoading(false);
     }
   };
 
@@ -419,6 +482,28 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     });
     return root;
   }, [templateDetail]);
+
+  const deploymentAgentRows = useMemo(() => {
+    const grouped = new Map<string, { agentKey: string; services: AgentService[]; latestAt: string }>();
+    templateDeployments.forEach((svc) => {
+      const key = String(svc.agent_key || '');
+      if (!key) return;
+      const existing = grouped.get(key);
+      const currentTs = String(svc.updated_at || svc.last_seen_at || '');
+      if (!existing) {
+        grouped.set(key, { agentKey: key, services: [svc], latestAt: currentTs });
+      } else {
+        existing.services.push(svc);
+        if (currentTs && currentTs > existing.latestAt) existing.latestAt = currentTs;
+      }
+    });
+    return Array.from(grouped.values())
+      .map((item) => ({
+        ...item,
+        agent: deploymentAgentMap[item.agentKey],
+      }))
+      .sort((a, b) => a.agentKey.localeCompare(b.agentKey));
+  }, [templateDeployments, deploymentAgentMap]);
 
   const toggleFolder = (path: string) => {
     const next = new Set(expandedFolders);
@@ -1379,9 +1464,29 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     );
   };
 
+  if (deploymentDetailAgentKey) {
+    return (
+      <AgentDetailPage
+        agentKey={deploymentDetailAgentKey}
+        projectId={projectId}
+        onBack={() => setDeploymentDetailAgentKey(null)}
+      />
+    );
+  }
+
   if (viewMode === 'detail' && templateDetail) {
     const canManageCurrentTemplate = canManageTemplate(templateDetail);
     const canCopyCurrentTemplate = canCopyTemplate(templateDetail);
+    const detailTabs: Array<{ key: 'overview' | 'compose' | 'files' | 'deployments'; label: string; icon: React.ReactNode }> = [
+      { key: 'overview', label: '概览', icon: <Info size={15} /> },
+      ...((templateDetail.type === 'yaml' || templateDetail.type === 'archive')
+        ? [
+            { key: 'compose' as const, label: 'Compose', icon: <Container size={15} /> },
+            { key: 'files' as const, label: '资源文件', icon: <FolderOpen size={15} /> },
+          ]
+        : []),
+      { key: 'deployments', label: '部署实例', icon: <Network size={15} /> },
+    ];
     return (
       <>
       <div className="p-10 space-y-8 animate-in slide-in-from-right duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
@@ -1476,6 +1581,25 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
         </div>
 
+        <div className="inline-flex items-center gap-1.5 rounded-[1.5rem] border border-slate-200 bg-white p-1.5 shadow-sm">
+          {detailTabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setDetailTab(tab.key)}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
+                detailTab === tab.key
+                  ? 'bg-slate-900 text-white shadow'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {detailTab === 'overview' && (
+          <>
         {/* 模板说明 */}
         {templateDetail.description && (
           <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
@@ -1700,9 +1824,11 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
             ))}
           </div>
         </div>
+          </>
+        )}
 
-        {/* YAML 类型 - 直接展示 ComposeViewer */}
-        {templateDetail.type === 'yaml' && (
+        {/* YAML 类型 - Compose 标签页 */}
+        {templateDetail.type === 'yaml' && detailTab === 'compose' && (
           <div className="space-y-8">
             {parseLoading ? (
               <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-12">
@@ -1741,64 +1867,66 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
                 </div>
               </div>
             )}
+          </div>
+        )}
 
-            {/* YAML 文件内容查看 */}
-            <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
-                    <FileCode size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-slate-800">源文件内容</h3>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
-                      YAML 配置文件
-                    </p>
-                  </div>
+        {/* YAML 类型 - 资源文件标签页 */}
+        {templateDetail.type === 'yaml' && detailTab === 'files' && (
+          <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
+                  <FileCode size={24} />
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleDownloadAll}
-                    className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm"
-                    title="下载文件"
-                  >
-                    <Download size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleOpenYamlEditor(canManageCurrentTemplate)}
-                    className={`p-3 rounded-xl transition-all shadow-sm ${
-                      canManageCurrentTemplate
-                        ? 'text-slate-400 hover:text-green-600 hover:bg-green-50'
-                        : 'text-slate-300 hover:text-amber-600 hover:bg-amber-50'
-                    }`}
-                    title="编辑文件"
-                  >
-                    <Edit3 size={18} />
-                  </button>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800">源文件内容</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                    YAML 配置文件
+                  </p>
                 </div>
               </div>
-              <div className="p-6 bg-slate-900 min-h-[300px]">
-                {yamlFileLoading ? (
-                  <div className="flex items-center justify-center py-16">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
-                  </div>
-                ) : yamlFileLoaded ? (
-                  <pre className="text-xs font-mono text-blue-100/90 leading-relaxed whitespace-pre-wrap">
-                    {yamlFileContent || '# 文件为空'}
-                  </pre>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-                    <FileCode size={48} className="mb-4 opacity-30" />
-                    <p className="text-sm font-medium">无法加载文件内容</p>
-                  </div>
-                )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDownloadAll}
+                  className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm"
+                  title="下载文件"
+                >
+                  <Download size={18} />
+                </button>
+                <button
+                  onClick={() => handleOpenYamlEditor(canManageCurrentTemplate)}
+                  className={`p-3 rounded-xl transition-all shadow-sm ${
+                    canManageCurrentTemplate
+                      ? 'text-slate-400 hover:text-green-600 hover:bg-green-50'
+                      : 'text-slate-300 hover:text-amber-600 hover:bg-amber-50'
+                  }`}
+                  title="编辑文件"
+                >
+                  <Edit3 size={18} />
+                </button>
               </div>
+            </div>
+            <div className="p-6 bg-slate-900 min-h-[300px]">
+              {yamlFileLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+                </div>
+              ) : yamlFileLoaded ? (
+                <pre className="text-xs font-mono text-blue-100/90 leading-relaxed whitespace-pre-wrap">
+                  {yamlFileContent || '# 文件为空'}
+                </pre>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+                  <FileCode size={48} className="mb-4 opacity-30" />
+                  <p className="text-sm font-medium">无法加载文件内容</p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Archive 类型 - 显示文件树 */}
-        {templateDetail.type === 'archive' && (
+        {/* Archive 类型 - 显示文件树（资源文件标签页） */}
+        {templateDetail.type === 'archive' && detailTab === 'files' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* 左侧信息 */}
             <div className="lg:col-span-4 space-y-6">
@@ -1851,13 +1979,116 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
         )}
 
-        {/* Archive 类型的 Compose 解析展示（如果包含 docker-compose） */}
-        {templateDetail.type === 'archive' && parsedCompose?.parsed_compose && (
-          <ComposeViewer
-            parsedCompose={parsedCompose.parsed_compose}
-            isStale={parsedCompose.is_stale}
-            onRefresh={() => fetchParsedCompose(selectedTemplate!)}
-          />
+        {/* Archive 类型的 Compose 解析展示（Compose 标签页） */}
+        {templateDetail.type === 'archive' && detailTab === 'compose' && (
+          parsedCompose?.parsed_compose ? (
+            <ComposeViewer
+              parsedCompose={parsedCompose.parsed_compose}
+              isStale={parsedCompose.is_stale}
+              onRefresh={() => fetchParsedCompose(selectedTemplate!)}
+            />
+          ) : (
+            <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-12">
+              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                <Container size={56} className="mb-4 opacity-30" />
+                <p className="text-sm font-medium">该压缩包模板暂无可解析的 Compose 内容</p>
+              </div>
+            </div>
+          )
+        )}
+
+        {/* 部署实例标签页 */}
+        {detailTab === 'deployments' && (
+          <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                  <Network size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-800">模板部署实例</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
+                    基于当前服务列表 · 共 {deploymentAgentRows.length} 个 Agent
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => void loadTemplateDeployments(templateDetail.id)}
+                className="p-3 text-slate-400 hover:text-slate-700 hover:bg-white rounded-xl transition-all shadow-sm"
+                title="刷新部署实例"
+              >
+                <RefreshCw size={18} className={templateDeploymentsLoading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-100">
+                <div className="col-span-4">节点标识</div>
+                <div className="col-span-3">网络</div>
+                <div className="col-span-2">节点状态</div>
+                <div className="col-span-1">服务数</div>
+                <div className="col-span-2 text-right">操作</div>
+              </div>
+
+              {templateDeploymentsLoading ? (
+                <div className="py-12 flex items-center justify-center text-slate-500">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  加载部署实例中...
+                </div>
+              ) : templateDeploymentsError ? (
+                <div className="py-10 text-center text-sm text-red-600">{templateDeploymentsError}</div>
+              ) : deploymentAgentRows.length === 0 ? (
+                <div className="py-12 text-center text-sm text-slate-400">当前服务列表中没有该模板的在线实例</div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {deploymentAgentRows.map((row) => {
+                    const agent = row.agent;
+                    const nodeStatus = agent?.status || 'unknown';
+                    const latestServiceName = row.services[0]?.name || '-';
+                    return (
+                    <div
+                      key={row.agentKey}
+                      onClick={() => setDeploymentDetailAgentKey(row.agentKey)}
+                      className="grid grid-cols-12 gap-2 px-3 py-2.5 text-sm items-center hover:bg-slate-50 cursor-pointer"
+                    >
+                      <div className="col-span-4 min-w-0 flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${nodeStatus === 'online' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+                          <Monitor size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 truncate">{agent?.hostname || row.agentKey}</div>
+                          <div className="text-xs text-slate-400 truncate font-mono">{row.agentKey}</div>
+                        </div>
+                      </div>
+                      <div className="col-span-3 min-w-0">
+                        <div className="font-semibold text-slate-700 truncate">{agent?.ip_address || row.services[0]?.agent_ip || '-'}</div>
+                        <div className="text-xs text-slate-400 truncate">{agent?.last_seen ? `Last: ${String(agent.last_seen).replace('T', ' ')}` : '-'}</div>
+                      </div>
+                      <div className="col-span-2">
+                        <StatusBadge status={nodeStatus} />
+                      </div>
+                      <div className="col-span-1 text-xs text-slate-700 font-bold">
+                        {row.services.length}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeploymentDetailAgentKey(row.agentKey);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-black text-slate-700 hover:bg-white"
+                          title={`查看节点详情（${latestServiceName} 等 ${row.services.length} 个服务）`}
+                        >
+                          详情
+                          <ChevronRight size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )})}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Editor Overlay */}
