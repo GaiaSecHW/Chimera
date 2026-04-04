@@ -1,4 +1,4 @@
-import { API_BASE, handleResponse, getHeaders } from './base';
+import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress } from './base';
 import {
   ProjectResource,
   ProjectTask,
@@ -8,6 +8,7 @@ import {
   PvcBrowserFileResponse,
   PvcBrowserRootResponse,
 } from '../types/types';
+import { trackUploadTask } from '../services/uploadCenter';
 
 export interface PvcFolderUploadProgress {
   phase: 'creating_directories' | 'uploading_files';
@@ -62,25 +63,14 @@ const getRelativePath = (file: File): string => {
   return file.name;
 };
 
-const parseXhrResponse = (xhr: XMLHttpRequest): any => {
-  const raw = xhr.responseText || '';
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return raw;
-  }
-};
+const toPvcUploadProgress = (event: XhrUploadProgress): PvcUploadProgress => ({
+  loaded_bytes: event.loaded_bytes,
+  total_bytes: event.total_bytes,
+  speed_bytes_per_sec: event.speed_bytes_per_sec,
+  elapsed_ms: event.elapsed_ms,
+});
 
-const extractXhrErrorMessage = (payload: any, status: number): string => {
-  if (typeof payload === 'string' && payload.trim()) return payload.trim();
-  if (payload && typeof payload === 'object') {
-    if (typeof payload.detail === 'string' && payload.detail.trim()) return payload.detail.trim();
-    if (typeof payload.message === 'string' && payload.message.trim()) return payload.message.trim();
-    if (typeof payload.error === 'string' && payload.error.trim()) return payload.error.trim();
-  }
-  return `API Error (${status})`;
-};
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export const resourcesApi = {
   // Health Check
@@ -101,17 +91,66 @@ export const resourcesApi = {
     return data.resources || [];
   },
 
-  upload: async (formData: FormData): Promise<{ task_id: string; resource_uuid: string; message: string }> => {
+  upload: async (
+    formData: FormData,
+    options?: {
+      onProgress?: (progress: PvcUploadProgress) => void;
+      signal?: AbortSignal;
+      trackGlobal?: boolean;
+      sourceLabel?: string;
+    }
+  ): Promise<{ task_id: string; resource_uuid: string; message: string }> => {
     const headers = getHeaders();
-    const uploadHeaders: any = { ...headers };
-    delete uploadHeaders['Content-Type']; 
+    const uploadHeaders: Record<string, string> = { ...headers };
+    delete uploadHeaders['Content-Type'];
+    const file = formData.get('file');
+    const fileName = file instanceof File ? file.name : 'archive-upload';
+    const fileSize = file instanceof File ? file.size : 0;
+    const projectId = String(formData.get('project_ids') || '').trim();
+    const shouldTrack = options?.trackGlobal !== false;
 
-    const response = await fetch(`${API_BASE}/api/resource/resources/upload`, {
-      method: 'POST',
-      headers: uploadHeaders,
-      body: formData,
+    const execute = async (params?: { signal?: AbortSignal; onProgress?: (progress: PvcUploadProgress) => void }) => {
+      return xhrUpload<{ task_id: string; resource_uuid: string; message: string }>({
+        url: `${API_BASE}/api/resource/resources/upload`,
+        method: 'POST',
+        headers: uploadHeaders,
+        formData,
+        signal: params?.signal ?? options?.signal,
+        onProgress: (event) => {
+          const progress = toPvcUploadProgress(event);
+          options?.onProgress?.(progress);
+          params?.onProgress?.(progress);
+        },
+      });
+    };
+
+    if (!shouldTrack) {
+      return execute();
+    }
+
+    return trackUploadTask({
+      source: options?.sourceLabel || '公共资源 ZIP 上传',
+      name: fileName,
+      size: fileSize,
+      run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+      postProcess: async (result) => {
+        if (!result?.task_id || !projectId) return;
+        const finalStates = new Set(['succeeded', 'failed', 'error', 'cancelled']);
+        const maxRound = 90;
+        for (let idx = 0; idx < maxRound; idx += 1) {
+          const detail = await resourcesApi.getTaskDetail(result.task_id);
+          const status = String(detail?.status || '').toLowerCase();
+          if (finalStates.has(status)) {
+            if (status === 'failed' || status === 'error' || status === 'cancelled') {
+              throw new Error(detail?.error_message || detail?.message || '后端任务处理失败');
+            }
+            return;
+          }
+          await sleep(2000);
+        }
+        throw new Error('后端任务处理超时，请到任务管理页面查看');
+      },
     });
-    return handleResponse(response);
   },
 
   getById: async (id: number): Promise<ProjectResource> => {
@@ -245,7 +284,12 @@ export const resourcesApi = {
     resourceId: number,
     path: string,
     file: File,
-    onProgress?: (progress: PvcUploadProgress) => void
+    onProgressOrOptions?: ((progress: PvcUploadProgress) => void) | {
+      onProgress?: (progress: PvcUploadProgress) => void;
+      signal?: AbortSignal;
+      trackGlobal?: boolean;
+      sourceLabel?: string;
+    }
   ): Promise<{ message: string; path: string; size: number }> => {
     const formData = new FormData();
     formData.append('path', path);
@@ -253,58 +297,34 @@ export const resourcesApi = {
     const headers = getHeaders();
     const uploadHeaders: Record<string, string> = { ...headers };
     delete uploadHeaders['Content-Type'];
-    if (!onProgress) {
-      const response = await fetch(`${API_BASE}/api/resource/resources/${resourceId}/browser/upload`, {
+    const options = typeof onProgressOrOptions === 'function'
+      ? { onProgress: onProgressOrOptions }
+      : (onProgressOrOptions || {});
+    const shouldTrack = options.trackGlobal !== false;
+    const sourceLabel = options.sourceLabel || 'PVC 文件上传';
+    const execute = async (params?: { signal?: AbortSignal; onProgress?: (progress: PvcUploadProgress) => void }) => {
+      return xhrUpload<{ message: string; path: string; size: number }>({
+        url: `${API_BASE}/api/resource/resources/${resourceId}/browser/upload`,
         method: 'POST',
         headers: uploadHeaders,
-        body: formData,
+        formData,
+        signal: params?.signal ?? options.signal,
+        onProgress: (event) => {
+          const progress = toPvcUploadProgress(event);
+          options.onProgress?.(progress);
+          params?.onProgress?.(progress);
+        },
       });
-      return handleResponse(response);
-    }
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      const url = `${API_BASE}/api/resource/resources/${resourceId}/browser/upload`;
-      const startedAt = Date.now();
-      let lastLoaded = 0;
-      let lastAt = startedAt;
-      xhr.open('POST', url, true);
-      Object.entries(uploadHeaders).forEach(([key, value]) => {
-        xhr.setRequestHeader(key, value);
-      });
-      xhr.upload.onprogress = (event) => {
-        const now = Date.now();
-        const loaded = event.loaded || 0;
-        const total = event.total || file.size || 0;
-        const deltaMs = Math.max(now - lastAt, 1);
-        const speed = Math.max(0, ((loaded - lastLoaded) * 1000) / deltaMs);
-        lastLoaded = loaded;
-        lastAt = now;
-        onProgress({
-          loaded_bytes: loaded,
-          total_bytes: total,
-          speed_bytes_per_sec: speed,
-          elapsed_ms: now - startedAt,
-        });
-      };
-      xhr.onerror = () => {
-        reject(new Error('网络错误，上传失败'));
-      };
-      xhr.onload = () => {
-        const status = xhr.status;
-        const payload = parseXhrResponse(xhr);
-        if (status === 401) {
-          localStorage.removeItem('secflow_token');
-          window.dispatchEvent(new Event('secflow-unauthorized'));
-          reject(new Error('登录会话已过期，请重新登录'));
-          return;
-        }
-        if (status < 200 || status >= 300) {
-          reject(new Error(extractXhrErrorMessage(payload, status)));
-          return;
-        }
-        resolve(payload as { message: string; path: string; size: number });
-      };
-      xhr.send(formData);
+    };
+    if (!shouldTrack) return execute();
+    return trackUploadTask({
+      source: sourceLabel,
+      name: file.name || 'pvc-file',
+      size: file.size || 0,
+      run: ({ signal, onProgress }) => execute({
+        signal,
+        onProgress,
+      }),
     });
   },
 
@@ -376,149 +396,154 @@ export const resourcesApi = {
     onProgress?: (progress: PvcFolderUploadProgress) => void;
     shouldCancel?: () => boolean;
   }): Promise<PvcFolderUploadResult> => {
-    const startedAt = Date.now();
-    const basePath = normalizeBrowserPath(params.basePath || '/');
-    const files = params.files || [];
-    const failures: PvcFolderUploadFailure[] = [];
-    let createdDirectories = 0;
-    let skippedDirectories = 0;
-    let uploadedFiles = 0;
-    let processedFiles = 0;
-    let canceled = false;
-    const totalBytes = files.reduce((sum, item) => sum + (item.size || 0), 0);
-    let uploadedBytesCompleted = 0;
-    let activeFileLoaded = 0;
-    let activeFileSpeed = 0;
+    const execute = async () => {
+      const startedAt = Date.now();
+      const basePath = normalizeBrowserPath(params.basePath || '/');
+      const files = params.files || [];
+      const failures: PvcFolderUploadFailure[] = [];
+      let createdDirectories = 0;
+      let skippedDirectories = 0;
+      let uploadedFiles = 0;
+      let processedFiles = 0;
+      let canceled = false;
+      const totalBytes = files.reduce((sum, item) => sum + (item.size || 0), 0);
+      let uploadedBytesCompleted = 0;
+      let activeFileLoaded = 0;
+      let activeFileSpeed = 0;
 
-    const directoryPaths = new Set<string>();
-    const fileTargets = files.map((file) => {
-      const relative = getRelativePath(file).replace(/^\/+/, '');
-      const segments = relative.split('/').filter(Boolean);
-      segments.pop();
-      const relativeDir = segments.join('/');
-      const targetDirectory = relativeDir ? joinBrowserPath(basePath, relativeDir) : basePath;
-      if (relativeDir) {
-        const pathSegments = relativeDir.split('/').filter(Boolean);
-        let cursor = basePath;
-        for (const segment of pathSegments) {
-          cursor = joinBrowserPath(cursor, segment);
-          directoryPaths.add(cursor);
+      const directoryPaths = new Set<string>();
+      const fileTargets = files.map((file) => {
+        const relative = getRelativePath(file).replace(/^\/+/, '');
+        const segments = relative.split('/').filter(Boolean);
+        segments.pop();
+        const relativeDir = segments.join('/');
+        const targetDirectory = relativeDir ? joinBrowserPath(basePath, relativeDir) : basePath;
+        if (relativeDir) {
+          const pathSegments = relativeDir.split('/').filter(Boolean);
+          let cursor = basePath;
+          for (const segment of pathSegments) {
+            cursor = joinBrowserPath(cursor, segment);
+            directoryPaths.add(cursor);
+          }
         }
-      }
-      return {
-        file,
-        relative,
-        targetDirectory,
-      };
-    });
-
-    const orderedDirectories = Array.from(directoryPaths).sort((a, b) => {
-      const depthA = a.split('/').filter(Boolean).length;
-      const depthB = b.split('/').filter(Boolean).length;
-      return depthA - depthB || a.localeCompare(b);
-    });
-
-    for (let i = 0; i < orderedDirectories.length; i += 1) {
-      if (params.shouldCancel?.()) {
-        canceled = true;
-        break;
-      }
-      const fullPath = orderedDirectories[i];
-      const normalized = normalizeBrowserPath(fullPath);
-      const parent = normalized.includes('/') ? normalizeBrowserPath(normalized.substring(0, normalized.lastIndexOf('/')) || '/') : '/';
-      const name = normalized.split('/').filter(Boolean).pop() || '';
-
-      params.onProgress?.({
-        phase: 'creating_directories',
-        processed: i,
-        total: orderedDirectories.length,
-        current: fullPath,
+        return {
+          file,
+          relative,
+          targetDirectory,
+        };
       });
 
-      try {
-        await resourcesApi.createPvcBrowserDirectory(params.resourceId, parent, name);
-        createdDirectories += 1;
-      } catch (error: any) {
-        const message = String(error?.message || error || '');
-        if (message.includes('File exists') || message.includes('already exists')) {
-          skippedDirectories += 1;
-        } else {
-          failures.push({ path: fullPath, error: message || '创建目录失败' });
+      const orderedDirectories = Array.from(directoryPaths).sort((a, b) => {
+        const depthA = a.split('/').filter(Boolean).length;
+        const depthB = b.split('/').filter(Boolean).length;
+        return depthA - depthB || a.localeCompare(b);
+      });
+
+      for (let i = 0; i < orderedDirectories.length; i += 1) {
+        if (params.shouldCancel?.()) {
+          canceled = true;
+          break;
+        }
+        const fullPath = orderedDirectories[i];
+        const normalized = normalizeBrowserPath(fullPath);
+        const parent = normalized.includes('/') ? normalizeBrowserPath(normalized.substring(0, normalized.lastIndexOf('/')) || '/') : '/';
+        const name = normalized.split('/').filter(Boolean).pop() || '';
+
+        params.onProgress?.({
+          phase: 'creating_directories',
+          processed: i,
+          total: orderedDirectories.length,
+          current: fullPath,
+        });
+
+        try {
+          await resourcesApi.createPvcBrowserDirectory(params.resourceId, parent, name);
+          createdDirectories += 1;
+        } catch (error: any) {
+          const message = String(error?.message || error || '');
+          if (message.includes('File exists') || message.includes('already exists')) {
+            skippedDirectories += 1;
+          } else {
+            failures.push({ path: fullPath, error: message || '创建目录失败' });
+          }
         }
       }
-    }
 
-    for (let i = 0; i < fileTargets.length; i += 1) {
-      if (params.shouldCancel?.()) {
-        canceled = true;
-        break;
+      for (let i = 0; i < fileTargets.length; i += 1) {
+        if (params.shouldCancel?.()) {
+          canceled = true;
+          break;
+        }
+        const current = fileTargets[i];
+        let currentFileLoaded = 0;
+        let uploadSucceeded = false;
+        params.onProgress?.({
+          phase: 'uploading_files',
+          processed: i,
+          total: fileTargets.length,
+          current: current.relative,
+          uploaded_bytes: Math.max(0, uploadedBytesCompleted),
+          total_bytes: totalBytes,
+          speed_bytes_per_sec: activeFileSpeed,
+        });
+        try {
+          await resourcesApi.uploadPvcBrowserFile(
+            params.resourceId,
+            current.targetDirectory,
+            current.file,
+            {
+              onProgress: (progress) => {
+                currentFileLoaded = Math.max(0, Math.min(progress.loaded_bytes, current.file.size || progress.total_bytes || 0));
+                activeFileLoaded = currentFileLoaded;
+                activeFileSpeed = progress.speed_bytes_per_sec;
+                params.onProgress?.({
+                  phase: 'uploading_files',
+                  processed: i,
+                  total: fileTargets.length,
+                  current: current.relative,
+                  uploaded_bytes: Math.max(0, uploadedBytesCompleted + activeFileLoaded),
+                  total_bytes: totalBytes,
+                  speed_bytes_per_sec: activeFileSpeed,
+                });
+              },
+            }
+          );
+          uploadedFiles += 1;
+          uploadSucceeded = true;
+        } catch (error: any) {
+          failures.push({
+            path: current.relative,
+            error: String(error?.message || error || '上传失败'),
+          });
+        } finally {
+          uploadedBytesCompleted += uploadSucceeded ? current.file.size || currentFileLoaded : currentFileLoaded;
+          activeFileLoaded = 0;
+          activeFileSpeed = 0;
+          processedFiles += 1;
+        }
       }
-      const current = fileTargets[i];
-      let currentFileLoaded = 0;
-      let uploadSucceeded = false;
+
       params.onProgress?.({
         phase: 'uploading_files',
-        processed: i,
+        processed: fileTargets.length,
         total: fileTargets.length,
-        current: current.relative,
         uploaded_bytes: Math.max(0, uploadedBytesCompleted),
         total_bytes: totalBytes,
-        speed_bytes_per_sec: activeFileSpeed,
+        speed_bytes_per_sec: 0,
       });
-      try {
-        await resourcesApi.uploadPvcBrowserFile(
-          params.resourceId,
-          current.targetDirectory,
-          current.file,
-          (progress) => {
-            currentFileLoaded = Math.max(0, Math.min(progress.loaded_bytes, current.file.size || progress.total_bytes || 0));
-            activeFileLoaded = currentFileLoaded;
-            activeFileSpeed = progress.speed_bytes_per_sec;
-            params.onProgress?.({
-              phase: 'uploading_files',
-              processed: i,
-              total: fileTargets.length,
-              current: current.relative,
-              uploaded_bytes: Math.max(0, uploadedBytesCompleted + activeFileLoaded),
-              total_bytes: totalBytes,
-              speed_bytes_per_sec: activeFileSpeed,
-            });
-          }
-        );
-        uploadedFiles += 1;
-        uploadSucceeded = true;
-      } catch (error: any) {
-        failures.push({
-          path: current.relative,
-          error: String(error?.message || error || '上传失败'),
-        });
-      } finally {
-        uploadedBytesCompleted += uploadSucceeded ? current.file.size || currentFileLoaded : currentFileLoaded;
-        activeFileLoaded = 0;
-        activeFileSpeed = 0;
-        processedFiles += 1;
-      }
-    }
 
-    params.onProgress?.({
-      phase: 'uploading_files',
-      processed: fileTargets.length,
-      total: fileTargets.length,
-      uploaded_bytes: Math.max(0, uploadedBytesCompleted),
-      total_bytes: totalBytes,
-      speed_bytes_per_sec: 0,
-    });
-
-    return {
-      total_files: fileTargets.length,
-      processed_files: processedFiles,
-      uploaded_files: uploadedFiles,
-      failed_files: failures.length,
-      created_directories: createdDirectories,
-      skipped_directories: skippedDirectories,
-      canceled,
-      elapsed_ms: Date.now() - startedAt,
-      failures,
+      return {
+        total_files: fileTargets.length,
+        processed_files: processedFiles,
+        uploaded_files: uploadedFiles,
+        failed_files: failures.length,
+        created_directories: createdDirectories,
+        skipped_directories: skippedDirectories,
+        canceled,
+        elapsed_ms: Date.now() - startedAt,
+        failures,
+      } as PvcFolderUploadResult;
     };
+    return execute();
   },
 };

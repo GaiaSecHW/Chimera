@@ -187,9 +187,12 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   }>({ resource_type: 'other', pvc_size: 10 });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const uploadFileTargetPathRef = useRef<string | null>(null);
+  const uploadFolderTargetPathRef = useRef<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
   const modalPreviewUrlRef = useRef<string | null>(null);
   const cancelFolderUploadRef = useRef(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: PvcBrowserNode | null } | null>(null);
   const [folderUploadState, setFolderUploadState] = useState<{
     visible: boolean;
     phase: 'creating_directories' | 'uploading_files';
@@ -283,6 +286,12 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     if (!folderInputRef.current) return;
     folderInputRef.current.setAttribute('webkitdirectory', '');
     folderInputRef.current.setAttribute('directory', '');
+  }, []);
+
+  useEffect(() => {
+    const closeMenu = () => setContextMenu(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
   }, []);
 
   useEffect(() => {
@@ -672,24 +681,27 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     return selectedPvc;
   };
 
-  const handleCreateDirectory = async () => {
+  const handleCreateDirectory = async (basePath?: string) => {
     const pvc = requireSelectedPvc();
     const name = await askCurrentDirectoryName('新建目录');
     if (!name) return;
     setBusy('mkdir');
     try {
-      await api.resources.createPvcBrowserDirectory(pvc.id, currentDirectory?.current_path || '/', name);
-      await refreshBrowser(pvc.id, currentDirectory?.current_path || '/');
+      const targetPath = basePath || currentDirectory?.current_path || '/';
+      await api.resources.createPvcBrowserDirectory(pvc.id, targetPath, name);
+      await refreshBrowser(pvc.id, targetPath);
     } finally {
       setBusy('');
     }
   };
 
-  const handleUploadClick = () => {
+  const handleUploadClick = (targetPath?: string) => {
+    uploadFileTargetPathRef.current = targetPath || null;
     fileInputRef.current?.click();
   };
 
-  const handleUploadFolderClick = () => {
+  const handleUploadFolderClick = (targetPath?: string) => {
+    uploadFolderTargetPathRef.current = targetPath || null;
     folderInputRef.current?.click();
   };
 
@@ -739,6 +751,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const handleUploadFiles = async (files: FileList | null) => {
     const pvc = requireSelectedPvc();
     if (!files || files.length === 0) return;
+    const uploadBasePath = uploadFileTargetPathRef.current || currentDirectory?.current_path || '/';
     const fileArray = Array.from(files);
     const totalBytes = fileArray.reduce((sum, file) => sum + (file.size || 0), 0);
     let uploadedBytesCompleted = 0;
@@ -769,7 +782,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         try {
           await api.resources.uploadPvcBrowserFile(
             pvc.id,
-            currentDirectory?.current_path || '/',
+            uploadBasePath,
             file,
             (progress) => {
               currentFileLoaded = Math.max(0, Math.min(progress.loaded_bytes, file.size || progress.total_bytes || 0));
@@ -802,7 +815,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
           }));
         }
       }
-      await refreshBrowser(pvc.id, currentDirectory?.current_path || '/');
+      await refreshBrowser(pvc.id, uploadBasePath);
       setFileUploadState((prev) => ({
         ...prev,
         completed: true,
@@ -815,6 +828,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       }));
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
+      uploadFileTargetPathRef.current = null;
       setBusy('');
     }
   };
@@ -827,6 +841,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
   const handleUploadFolder = async (files: FileList | null) => {
     const pvc = requireSelectedPvc();
     if (!files || files.length === 0) return;
+    const uploadBasePath = uploadFolderTargetPathRef.current || currentDirectory?.current_path || '/';
     const fileArray = Array.from(files);
     cancelFolderUploadRef.current = false;
     setBusy('upload-folder');
@@ -845,7 +860,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     try {
       const result = await api.resources.uploadPvcBrowserFolder({
         resourceId: pvc.id,
-        basePath: currentDirectory?.current_path || '/',
+        basePath: uploadBasePath,
         files: fileArray,
         shouldCancel: () => cancelFolderUploadRef.current,
         onProgress: (progress) => {
@@ -870,9 +885,10 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
         speedBytesPerSec: 0,
         errors: result.failures,
       }));
-      await refreshBrowser(pvc.id, currentDirectory?.current_path || '/');
+      await refreshBrowser(pvc.id, uploadBasePath);
     } finally {
       if (folderInputRef.current) folderInputRef.current.value = '';
+      uploadFolderTargetPathRef.current = null;
       setBusy('');
     }
   };
@@ -960,6 +976,66 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
     }
   };
 
+  const openContextMenu = (event: React.MouseEvent, node: PvcBrowserNode | null = null) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setContextMenu({ x: event.clientX, y: event.clientY, node });
+  };
+
+  const renderContextMenu = () => {
+    if (!contextMenu || !selectedPvcId) return null;
+    const actions: Array<{ label: string; icon: React.ReactNode; onClick: () => void }> = [];
+    const node = contextMenu.node;
+    const currentPath = currentDirectory?.current_path || '/';
+    const basePath = node?.node_type === 'directory' ? node.path : currentPath;
+
+    if (!node) {
+      actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshBrowser(selectedPvcId, currentPath) });
+      actions.push({ label: '打开根目录', icon: <Database size={14} />, onClick: () => void openDirectory('/') });
+      actions.push({ label: '新建目录', icon: <Plus size={14} />, onClick: () => void handleCreateDirectory(currentPath) });
+      actions.push({ label: '上传文件', icon: <Upload size={14} />, onClick: () => handleUploadClick(currentPath) });
+      actions.push({ label: '上传文件夹', icon: <FolderOpen size={14} />, onClick: () => handleUploadFolderClick(currentPath) });
+    } else if (node.node_type === 'directory') {
+      actions.push({ label: '打开', icon: <FolderOpen size={14} />, onClick: () => void openDirectory(node.path) });
+      actions.push({ label: '新建目录', icon: <Plus size={14} />, onClick: () => void handleCreateDirectory(basePath) });
+      actions.push({ label: '上传文件', icon: <Upload size={14} />, onClick: () => handleUploadClick(basePath) });
+      actions.push({ label: '上传文件夹', icon: <FolderOpen size={14} />, onClick: () => handleUploadFolderClick(basePath) });
+      if (node.path !== '/') {
+        actions.push({ label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRenameNode(node) });
+        actions.push({ label: '移动', icon: <ChevronRight size={14} />, onClick: () => void handleMoveNode(node) });
+        actions.push({ label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDeleteNode(node) });
+      }
+    } else {
+      actions.push({ label: '打开', icon: <FileText size={14} />, onClick: () => void onTreeClick(node) });
+      actions.push({ label: '下载', icon: <Download size={14} />, onClick: () => void handleDownloadNode(node) });
+      actions.push({ label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRenameNode(node) });
+      actions.push({ label: '移动', icon: <ChevronRight size={14} />, onClick: () => void handleMoveNode(node) });
+      actions.push({ label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDeleteNode(node) });
+    }
+
+    return (
+      <div
+        className="fixed z-[220] min-w-[180px] rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl"
+        style={{ left: contextMenu.x, top: contextMenu.y }}
+      >
+        {actions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-slate-700 hover:bg-slate-100"
+            onClick={() => {
+              setContextMenu(null);
+              action.onClick();
+            }}
+          >
+            {action.icon}
+            {action.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   const renderTreeNode = (node: PvcBrowserNode, depth = 0): React.ReactNode => {
     const isExpanded = expandedPaths.has(node.path);
     const isSelected = selectedNodePath === node.path;
@@ -968,6 +1044,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
       <div key={node.path}>
         <button
           onClick={() => void onTreeClick(node)}
+          onContextMenu={(event) => openContextMenu(event, node)}
           className={`flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left transition-all ${isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-100 text-slate-700'}`}
           style={{ paddingLeft: 12 + depth * 16 }}
         >
@@ -1198,11 +1275,11 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                       <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
                     </button>
                     <button data-testid="pvc-detail-create-dir-btn" onClick={() => void handleCreateDirectory()} className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">新建目录</button>
-                    <button data-testid="pvc-detail-upload-file-btn" onClick={handleUploadClick} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
+                    <button data-testid="pvc-detail-upload-file-btn" onClick={() => handleUploadClick()} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-2 text-xs font-black text-white shadow-lg shadow-slate-900/10">
                       <Upload size={14} />
                       上传文件到目录
                     </button>
-                    <button data-testid="pvc-detail-upload-folder-btn" onClick={handleUploadFolderClick} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
+                    <button data-testid="pvc-detail-upload-folder-btn" onClick={() => handleUploadFolderClick()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-black text-slate-700 shadow-sm">
                       <FolderOpen size={14} />
                       上传文件夹到目录
                     </button>
@@ -1280,9 +1357,12 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
             <div className="grid grid-cols-1 gap-2.5 xl:grid-cols-[220px_minmax(300px,1fr)_320px]">
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50" data-testid="pvc-detail-tree-panel">
                 <div className="border-b border-slate-200 px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-slate-500">目录树</div>
-                <div className="max-h-[62vh] space-y-1 overflow-y-auto p-2 custom-scrollbar" data-testid="pvc-detail-tree">
+                <div className="max-h-[62vh] space-y-1 overflow-y-auto p-2 custom-scrollbar" data-testid="pvc-detail-tree" onContextMenu={(event) => openContextMenu(event, null)}>
                   <button
                     onClick={() => void openDirectory('/')}
+                    onContextMenu={(event) =>
+                      openContextMenu(event, { path: '/', name: '/', node_type: 'directory', has_children: true, children: browserTree })
+                    }
                     className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left ${selectedNodePath === '/' ? 'bg-blue-50 text-blue-700' : 'hover:bg-white text-slate-700'}`}
                   >
                     <Database size={14} className="text-blue-600" />
@@ -1302,7 +1382,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     ))}
                   </div>
                 </div>
-                <div className="max-h-[62vh] overflow-y-auto custom-scrollbar" data-testid="pvc-detail-directory-list">
+                <div className="max-h-[62vh] overflow-y-auto custom-scrollbar" data-testid="pvc-detail-directory-list" onContextMenu={(event) => openContextMenu(event, null)}>
                   <table className="w-full">
                     <thead className="bg-slate-50 text-left text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
                       <tr>
@@ -1314,7 +1394,12 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {[...(currentDirectory?.directories || []), ...(currentDirectory?.files || [])].map((node) => (
-                        <tr data-testid={`pvc-node-row-${encodeURIComponent(node.path)}`} key={node.path} className="hover:bg-slate-50">
+                        <tr
+                          data-testid={`pvc-node-row-${encodeURIComponent(node.path)}`}
+                          key={node.path}
+                          className="hover:bg-slate-50"
+                          onContextMenu={(event) => openContextMenu(event, node)}
+                        >
                           <td className="px-3 py-2">
                             <button
                               onClick={() => void onTreeClick(node)}
@@ -1536,6 +1621,7 @@ export const PvcManagementPage: React.FC<{ projectId: string }> = ({ projectId }
           </div>
         </div>
       )}
+      {renderContextMenu()}
 
       {showCreateModal && (
         <div data-testid="pvc-create-modal" className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-sm">

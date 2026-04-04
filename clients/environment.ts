@@ -1,5 +1,6 @@
-import { API_BASE, handleResponse, getHeaders } from './base';
+import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress } from './base';
 import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics } from '../types/types';
+import { trackUploadTask } from '../services/uploadCenter';
 
 const normalizeTask = (raw: any): AsyncTask => ({
   id: raw?.id || raw?.task_id || '',
@@ -43,6 +44,20 @@ const parseSseChunk = (rawChunk: string): any[] => {
     })
     .filter(Boolean);
 };
+
+export interface TemplateUploadProgress {
+  loaded_bytes: number;
+  total_bytes: number;
+  speed_bytes_per_sec: number;
+  elapsed_ms: number;
+}
+
+const toUploadProgress = (event: XhrUploadProgress): TemplateUploadProgress => ({
+  loaded_bytes: event.loaded_bytes,
+  total_bytes: event.total_bytes,
+  speed_bytes_per_sec: event.speed_bytes_per_sec,
+  elapsed_ms: event.elapsed_ms,
+});
 
 export const environmentApi = {
   // Global Health Check
@@ -236,17 +251,38 @@ export const environmentApi = {
     return Promise.all(templateIds.map(id => environmentApi.deleteTemplate(id)));
   },
   
-  uploadTemplate: async (formData: FormData) => {
+  uploadTemplate: async (formData: FormData, options?: {
+    onProgress?: (progress: TemplateUploadProgress) => void;
+    signal?: AbortSignal;
+    trackGlobal?: boolean;
+    sourceLabel?: string;
+  }) => {
     const headers = getHeaders();
-    const uploadHeaders: any = { ...headers };
+    const uploadHeaders: Record<string, string> = { ...headers };
     delete uploadHeaders['Content-Type'];
+    const file = formData.get('file');
+    const fileName = file instanceof File ? file.name : 'template-file';
+    const fileSize = file instanceof File ? file.size : 0;
 
-    const response = await fetch(`${API_BASE}/api/agent/templates`, {
+    const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: TemplateUploadProgress) => void }) => xhrUpload<any>({
+      url: `${API_BASE}/api/agent/templates`,
       method: 'POST',
       headers: uploadHeaders,
-      body: formData
+      formData,
+      signal: params?.signal ?? options?.signal,
+      onProgress: (event) => {
+        const progress = toUploadProgress(event);
+        options?.onProgress?.(progress);
+        params?.onProgress?.(progress);
+      },
     });
-    return handleResponse(response);
+    if (options?.trackGlobal === false) return execute();
+    return trackUploadTask({
+      source: options?.sourceLabel || '环境模板上传',
+      name: fileName,
+      size: fileSize,
+      run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+    });
   },
 
   copyTemplate: async (

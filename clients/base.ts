@@ -94,3 +94,107 @@ export const handleResponse = async (response: Response) => {
   const parsed = await parseResponseBody(response);
   return parsed;
 };
+
+export interface XhrUploadProgress {
+  loaded_bytes: number;
+  total_bytes: number;
+  speed_bytes_per_sec: number;
+  elapsed_ms: number;
+}
+
+const parseXhrResponse = (xhr: XMLHttpRequest): any => {
+  const raw = xhr.responseText || '';
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+};
+
+export const xhrUpload = <TResult,>(params: {
+  url: string;
+  formData: FormData;
+  headers?: Record<string, string>;
+  method?: 'POST' | 'PUT';
+  signal?: AbortSignal;
+  onProgress?: (event: XhrUploadProgress) => void;
+}): Promise<TResult> => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const method = params.method || 'POST';
+    const startedAt = Date.now();
+    let lastLoaded = 0;
+    let lastAt = startedAt;
+
+    xhr.open(method, params.url, true);
+    Object.entries(params.headers || {}).forEach(([key, value]) => {
+      xhr.setRequestHeader(key, value);
+    });
+
+    let settled = false;
+    const rejectOnce = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    const resolveOnce = (value: TResult) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
+    xhr.upload.onprogress = (event) => {
+      if (!params.onProgress) return;
+      const now = Date.now();
+      const loaded = event.loaded || 0;
+      const total = event.total || 0;
+      const deltaMs = Math.max(now - lastAt, 1);
+      const speed = Math.max(0, ((loaded - lastLoaded) * 1000) / deltaMs);
+      lastLoaded = loaded;
+      lastAt = now;
+      params.onProgress({
+        loaded_bytes: loaded,
+        total_bytes: total,
+        speed_bytes_per_sec: speed,
+        elapsed_ms: now - startedAt,
+      });
+    };
+
+    xhr.onerror = () => {
+      rejectOnce(new Error('网络错误，上传失败'));
+    };
+
+    xhr.onabort = () => {
+      rejectOnce(new Error('上传已取消'));
+    };
+
+    xhr.onload = () => {
+      const status = xhr.status;
+      const payload = parseXhrResponse(xhr);
+      if (status === 401) {
+        localStorage.removeItem('secflow_token');
+        window.dispatchEvent(new Event('secflow-unauthorized'));
+        rejectOnce(new Error('登录会话已过期，请重新登录'));
+        return;
+      }
+      if (status < 200 || status >= 300) {
+        const errorData = typeof payload === 'string' ? { detail: payload } : payload || { detail: 'Unknown error' };
+        rejectOnce(new Error(extractErrorMessage(errorData, status)));
+        return;
+      }
+      resolveOnce(payload as TResult);
+    };
+
+    const abortBySignal = () => xhr.abort();
+    if (params.signal) {
+      if (params.signal.aborted) {
+        xhr.abort();
+        return;
+      }
+      params.signal.addEventListener('abort', abortBySignal, { once: true });
+    }
+
+    xhr.send(params.formData);
+  });
+};

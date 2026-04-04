@@ -7,6 +7,8 @@ import { Sidebar } from './layout/Sidebar';
 import { Header } from './layout/Header';
 import { WorkflowPlaceholder } from './components/WorkflowPlaceholder';
 import { DialogViewport } from './components/DialogService';
+import { GlobalUploadWidget } from './components/upload-center/GlobalUploadWidget';
+import { UploadCenterProvider } from './services/uploadCenter';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProjectMgmtPage } from './pages/ProjectMgmtPage';
 import { ProjectDetailPage } from './pages/ProjectDetailPage';
@@ -524,7 +526,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <>
+    <UploadCenterProvider>
       <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
         <Sidebar 
           user={user} 
@@ -571,8 +573,9 @@ const App: React.FC = () => {
           .animate-in { animation: fade-in 0.3s ease-out; }
         `}</style>
       </div>
+      <GlobalUploadWidget />
       <DialogViewport />
-    </>
+    </UploadCenterProvider>
   );
 };
 

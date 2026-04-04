@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getHeaders, handleResponse, xhrUpload, XhrUploadProgress } from './base';
 import {
   DirectoryChildrenResponse,
   ExplorerRootResponse,
@@ -7,6 +7,21 @@ import {
   ManagedFile,
   ProjectPathChildrenResponse,
 } from '../types/types';
+import { trackUploadTask } from '../services/uploadCenter';
+
+export interface FileserverUploadProgress {
+  loaded_bytes: number;
+  total_bytes: number;
+  speed_bytes_per_sec: number;
+  elapsed_ms: number;
+}
+
+const toUploadProgress = (event: XhrUploadProgress): FileserverUploadProgress => ({
+  loaded_bytes: event.loaded_bytes,
+  total_bytes: event.total_bytes,
+  speed_bytes_per_sec: event.speed_bytes_per_sec,
+  elapsed_ms: event.elapsed_ms,
+});
 
 const getUploadHeaders = () => {
   const headers: Record<string, string> = { ...getHeaders() };
@@ -130,6 +145,11 @@ export const fileserverApi = {
     subproject_id: number;
     directory_id?: number | null;
     file: File;
+  }, options?: {
+    onProgress?: (progress: FileserverUploadProgress) => void;
+    signal?: AbortSignal;
+    trackGlobal?: boolean;
+    sourceLabel?: string;
   }): Promise<ManagedFile> => {
     const formData = new FormData();
     formData.append('project_id', payload.project_id);
@@ -138,12 +158,25 @@ export const fileserverApi = {
       formData.append('directory_id', String(payload.directory_id));
     }
     formData.append('file', payload.file);
-    const response = await fetch(`${API_BASE}/api/fileserver/files/upload`, {
+    const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: FileserverUploadProgress) => void }) => xhrUpload<ManagedFile>({
+      url: `${API_BASE}/api/fileserver/files/upload`,
       method: 'POST',
       headers: getUploadHeaders(),
-      body: formData,
+      formData,
+      signal: params?.signal ?? options?.signal,
+      onProgress: (event) => {
+        const progress = toUploadProgress(event);
+        options?.onProgress?.(progress);
+        params?.onProgress?.(progress);
+      },
     });
-    return handleResponse(response);
+    if (options?.trackGlobal === false) return execute();
+    return trackUploadTask({
+      source: options?.sourceLabel || '项目文件上传',
+      name: payload.file.name || 'file',
+      size: payload.file.size || 0,
+      run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+    });
   },
 
   renameFile: async (fileId: number, filename: string): Promise<ManagedFile> => {
