@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, UploadCloud, Loader2, XCircle, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-react';
 import { useUploadCenter, useUploadCenterStore, UploadTask } from '../../services/uploadCenter';
 
@@ -67,15 +67,15 @@ export const GlobalUploadWidget: React.FC = () => {
   const center = useUploadCenter();
   const totalProgress = percent(snapshot.totalUploadedBytes, snapshot.totalBytes);
 
-  const summaryText = useMemo(() => {
-    if (snapshot.activeCount > 0) {
-      return `进行中 ${snapshot.activeCount} / 总计 ${snapshot.totalCount}`;
-    }
-    if (snapshot.totalCount > 0) {
-      return `全部完成 ${snapshot.totalCount}`;
-    }
-    return '暂无上传任务';
-  }, [snapshot.activeCount, snapshot.totalCount]);
+  const summaryText = snapshot.activeCount > 0
+    ? `进行中 ${snapshot.activeCount} / 总计 ${snapshot.totalCount}`
+    : snapshot.totalCount > 0
+      ? `全部完成 ${snapshot.totalCount}`
+      : '暂无上传任务';
+
+  if (snapshot.activeCount === 0) {
+    return null;
+  }
 
   const renderTaskIcon = (task: UploadTask) => {
     if (task.status === 'uploading' || task.status === 'processing' || task.status === 'queued') {

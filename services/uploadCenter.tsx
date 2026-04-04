@@ -68,13 +68,25 @@ class UploadCenterStore {
   private readonly queuedJobs: InternalJob<any>[] = [];
   private readonly runningJobs = new Map<string, InternalJob<any>>();
   private maxConcurrent = 3;
+  private snapshot: UploadSnapshot = {
+    tasks: [],
+    activeCount: 0,
+    totalCount: 0,
+    runningCount: 0,
+    queuedCount: 0,
+    processingCount: 0,
+    totalSpeedBps: 0,
+    totalUploadedBytes: 0,
+    totalBytes: 0,
+    hasBlockingTasks: false,
+  };
 
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
 
-  private emit = () => {
+  private rebuildSnapshot = () => {
     this.listeners.forEach((listener) => listener());
   };
 
@@ -84,7 +96,7 @@ class UploadCenterStore {
     this.pumpQueue();
   };
 
-  getSnapshot = (): UploadSnapshot => {
+  private computeSnapshot = (): UploadSnapshot => {
     const tasks = Array.from(this.tasks.values()).sort((a, b) => b.updatedAt - a.updatedAt);
     const active = tasks.filter((task) => ACTIVE_STATUSES.includes(task.status));
     const running = tasks.filter((task) => task.status === 'uploading');
@@ -106,6 +118,13 @@ class UploadCenterStore {
       hasBlockingTasks: active.length > 0,
     };
   };
+
+  private emit = () => {
+    this.snapshot = this.computeSnapshot();
+    this.listeners.forEach((listener) => listener());
+  };
+
+  getSnapshot = (): UploadSnapshot => this.snapshot;
 
   private updateTask = (taskId: string, patch: Partial<UploadTask>) => {
     const current = this.tasks.get(taskId);
