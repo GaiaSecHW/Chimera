@@ -75,7 +75,10 @@ export const environmentApi = {
     handleResponse(await fetch(`${API_BASE}/api/agent/workspace`, { headers: getHeaders() })),
 
   // Agents
-  getAgents: async (projectId: string, params: { page?: number; per_page?: number; workspace_id?: string } = {}): Promise<{ agents: Agent[]; total: number }> => {
+  getAgents: async (
+    projectId: string,
+    params: { page?: number; per_page?: number; workspace_id?: string } = {}
+  ): Promise<{ agents: Agent[]; total: number; page?: number; per_page?: number }> => {
     const query = new URLSearchParams({ ...params as any, project_id: projectId }).toString();
     return handleResponse(await fetch(`${API_BASE}/api/agent/agents?${query}`, { headers: getHeaders() }));
   },
@@ -666,11 +669,13 @@ export const environmentApi = {
     })),
   getGlobalAgentIngress: async (
     projectId: string,
-    params: { include_deleted?: boolean } = {}
-  ): Promise<{ project_id: string; items: any[]; stats: any }> => {
+    params: { include_deleted?: boolean; page?: number; per_page?: number } = {}
+  ): Promise<{ project_id: string; items: any[]; stats: any; total?: number; page?: number; per_page?: number }> => {
     const query = new URLSearchParams({
       project_id: projectId,
-      include_deleted: params.include_deleted ? 'true' : 'false'
+      include_deleted: params.include_deleted ? 'true' : 'false',
+      ...(params.page ? { page: String(params.page) } : {}),
+      ...(params.per_page ? { per_page: String(params.per_page) } : {}),
     }).toString();
     return handleResponse(await fetch(`${API_BASE}/api/agent/agents/global/ingress?${query}`, { headers: getHeaders() }));
   },

@@ -93,6 +93,9 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentsTotal, setAgentsTotal] = useState(0);
+  const [agentsPage, setAgentsPage] = useState(1);
+  const [agentsPerPage, setAgentsPerPage] = useState(100);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAgentKey, setSelectedAgentKey] = useState<string | null>(null);
   const [selectedAgentKeys, setSelectedAgentKeys] = useState<Set<string>>(new Set());
@@ -110,6 +113,9 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [agentIngressLoading, setAgentIngressLoading] = useState(false);
   const [agentIngressItems, setAgentIngressItems] = useState<any[]>([]);
   const [agentIngressStats, setAgentIngressStats] = useState<any>({});
+  const [agentIngressTotal, setAgentIngressTotal] = useState(0);
+  const [agentIngressPage, setAgentIngressPage] = useState(1);
+  const [agentIngressPerPage, setAgentIngressPerPage] = useState(10);
   const [selectedAgentIngressRouteIds, setSelectedAgentIngressRouteIds] = useState<Set<string>>(new Set<string>());
   const [agentIngressActionLoading, setAgentIngressActionLoading] = useState(false);
 
@@ -133,12 +139,21 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
 
   useEffect(() => {
-    if (projectId) {
-      loadData();
-      void loadSyncHistory();
-      void loadGlobalAgentIngress();
-    }
+    if (!projectId) return;
+    setAgentsPage(1);
+    setAgentIngressPage(1);
+    void loadSyncHistory();
   }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    void loadData();
+  }, [projectId, agentsPage, agentsPerPage]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    void loadGlobalAgentIngress();
+  }, [projectId, agentIngressPage, agentIngressPerPage]);
 
   useEffect(() => {
     if (integrationType === 'manual' && externalIps.length === 0) {
@@ -150,16 +165,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     if (!projectId) return;
     setLoading(true);
     try {
-      const agentsData = await api.environment.getAgents(projectId, { per_page: 2000 });
+      const agentsData = await api.environment.getAgents(projectId, {
+        page: agentsPage,
+        per_page: agentsPerPage,
+      });
       const nextAgents = agentsData.agents || [];
       setAgents(nextAgents);
-      setSelectedAgentKeys(prev => {
-        const available = new Set(nextAgents.map(a => a.key));
-        const prevKeys = Array.from(prev.values()) as string[];
-        return new Set(prevKeys.filter(k => available.has(k)));
-      });
+      setAgentsTotal(Number(agentsData.total || nextAgents.length || 0));
     } catch (err) {
       console.error("Failed to load agents", err);
+      setAgents([]);
+      setAgentsTotal(0);
     } finally {
       setLoading(false);
     }
@@ -213,14 +229,20 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     if (!projectId) return;
     setAgentIngressLoading(true);
     try {
-      const data = await api.environment.getGlobalAgentIngress(projectId, { include_deleted: false });
+      const data = await api.environment.getGlobalAgentIngress(projectId, {
+        include_deleted: false,
+        page: agentIngressPage,
+        per_page: agentIngressPerPage,
+      });
       setAgentIngressItems(data?.items || []);
       setAgentIngressStats(data?.stats || {});
+      setAgentIngressTotal(Number(data?.total || data?.stats?.total || 0));
       setSelectedAgentIngressRouteIds(new Set<string>());
     } catch (err) {
       console.error('Failed to load global agent ingress', err);
       setAgentIngressItems([]);
       setAgentIngressStats({});
+      setAgentIngressTotal(0);
     } finally {
       setAgentIngressLoading(false);
     }
@@ -549,6 +571,20 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     a.hostname.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.ip_address.includes(searchTerm)
   );
+  const agentTotalPages = Math.max(1, Math.ceil(Math.max(agentsTotal, 0) / Math.max(agentsPerPage, 1)));
+  const agentIngressTotalPages = Math.max(1, Math.ceil(Math.max(agentIngressTotal, 0) / Math.max(agentIngressPerPage, 1)));
+
+  useEffect(() => {
+    if (agentsPage > agentTotalPages) {
+      setAgentsPage(agentTotalPages);
+    }
+  }, [agentsPage, agentTotalPages]);
+
+  useEffect(() => {
+    if (agentIngressPage > agentIngressTotalPages) {
+      setAgentIngressPage(agentIngressTotalPages);
+    }
+  }, [agentIngressPage, agentIngressTotalPages]);
 
   const agentNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -994,6 +1030,38 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               </tbody>
             </table>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+            <div>共 {agentIngressTotal} 条，当前第 {agentIngressPage}/{agentIngressTotalPages} 页</div>
+            <div className="flex items-center gap-2">
+              <span>每页</span>
+              <select
+                value={String(agentIngressPerPage)}
+                onChange={(event) => {
+                  setAgentIngressPerPage(Math.max(1, Math.min(Number(event.target.value || 10), 1000)));
+                  setAgentIngressPage(1);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+              >
+                {[10, 20, 50, 100, 200, 500, 1000].map((size) => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => setAgentIngressPage((p) => Math.max(1, p - 1))}
+                disabled={agentIngressPage <= 1 || agentIngressLoading}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+              >
+                上一页
+              </button>
+              <button
+                onClick={() => setAgentIngressPage((p) => Math.min(agentIngressTotalPages, p + 1))}
+                disabled={agentIngressPage >= agentIngressTotalPages || agentIngressLoading}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+              >
+                下一页
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1011,15 +1079,30 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         </div>
         <div className="flex items-center justify-between px-2">
           <p className="text-xs font-bold text-slate-500">
-            已选择 <span className="text-blue-600 font-black">{selectedAgentKeys.size}</span> / {agents.length} 个节点
+            已选择 <span className="text-blue-600 font-black">{selectedAgentKeys.size}</span> / {agentsTotal} 个节点
           </p>
-          <button
-            onClick={toggleSelectAllFilteredAgents}
-            disabled={!projectId || filteredAgents.length === 0}
-            className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 disabled:opacity-50"
-          >
-            {filteredAgents.length > 0 && filteredAgents.every(a => selectedAgentKeys.has(a.key)) ? '取消全选筛选项' : '全选筛选项'}
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">每页</span>
+            <select
+              value={String(agentsPerPage)}
+              onChange={(event) => {
+                setAgentsPerPage(Math.max(1, Math.min(Number(event.target.value || 100), 1000)));
+                setAgentsPage(1);
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+            >
+              {[50, 100, 200, 500, 1000].map((size) => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+            <button
+              onClick={toggleSelectAllFilteredAgents}
+              disabled={!projectId || filteredAgents.length === 0}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 disabled:opacity-50"
+            >
+              {filteredAgents.length > 0 && filteredAgents.every(a => selectedAgentKeys.has(a.key)) ? '取消全选筛选项' : '全选筛选项'}
+            </button>
+          </div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
@@ -1031,6 +1114,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 <th className="px-6 py-6">网络配置 (IP)</th>
                 <th className="px-6 py-6">实时资源载荷 (CPU/Mem)</th>
                 <th className="px-6 py-6">持续运行时间 (Uptime)</th>
+                <th className="px-6 py-6">最后心跳时间</th>
                 <th className="px-6 py-6">准入状态</th>
                 <th className="px-8 py-6 text-right">活跃状态</th>
               </tr>
@@ -1038,7 +1122,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             <tbody className="divide-y divide-slate-50">
               {!projectId ? (
                 <tr>
-                  <td colSpan={7} className="py-40 text-center">
+                  <td colSpan={8} className="py-40 text-center">
                     <p className="text-sm font-black text-slate-400 uppercase tracking-widest italic">请先在顶部菜单选择项目</p>
                   </td>
                 </tr>
@@ -1131,6 +1215,11 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       </div>
                     </td>
                     <td className="px-6 py-6">
+                      <div className="text-xs font-mono text-slate-700">
+                        {agent.last_seen ? agent.last_seen.split('.')[0].replace('T', ' ') : '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
                       <div className="flex flex-col gap-2">
                         <span className={`inline-flex w-fit px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest ${permission.className}`}>
                           {permission.label}
@@ -1153,7 +1242,7 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               })}
               {!loading && projectId && filteredAgents.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-40 text-center">
+                  <td colSpan={8} className="py-40 text-center">
                     <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
                       <Monitor size={40} />
                     </div>
@@ -1163,6 +1252,25 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-2 text-xs text-slate-500">
+          <div>共 {agentsTotal} 条，当前第 {agentsPage}/{agentTotalPages} 页</div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAgentsPage((p) => Math.max(1, p - 1))}
+              disabled={agentsPage <= 1 || loading}
+              className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+            >
+              上一页
+            </button>
+            <button
+              onClick={() => setAgentsPage((p) => Math.min(agentTotalPages, p + 1))}
+              disabled={agentsPage >= agentTotalPages || loading}
+              className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-50"
+            >
+              下一页
+            </button>
+          </div>
         </div>
       </div>
 
