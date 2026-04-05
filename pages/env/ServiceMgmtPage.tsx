@@ -40,6 +40,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [cleanupOfflineLoading, setCleanupOfflineLoading] = useState(false);
   const [allServices, setAllServices] = useState<AgentService[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -484,6 +485,30 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
       notify(err?.message || '清理无效Ingress失败', 'error');
     } finally {
       setGlobalIngressActionLoading(false);
+    }
+  };
+
+  const cleanupOfflineServices = async () => {
+    if (!projectId) return;
+    const ok = await confirm({
+      title: '清除 OFFLINE 服务',
+      message: '确认一键清除当前项目中 OFFLINE 状态服务（仅节点离线/孤儿服务，在线节点的 stale 不清理）？',
+      confirmText: '确认清除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!ok) return;
+    setCleanupOfflineLoading(true);
+    try {
+      const result = await api.environment.cleanupOfflineGlobalServices(projectId, false);
+      const deleted = Number(result?.deleted || 0);
+      const target = Number(result?.target_count || 0);
+      notify(`清除完成：目标 ${target} 条，已删除 ${deleted} 条`, 'success');
+      await loadAllServices();
+    } catch (err: any) {
+      notify(err?.message || '清除OFFLINE服务失败', 'error');
+    } finally {
+      setCleanupOfflineLoading(false);
     }
   };
 
@@ -1159,6 +1184,14 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           className="px-4 py-2 rounded-xl text-xs font-black bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
         >
           按模板删除实例
+        </button>
+        <button
+          onClick={cleanupOfflineServices}
+          disabled={!projectId || cleanupOfflineLoading}
+          className="px-4 py-2 rounded-xl text-xs font-black bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 disabled:opacity-50 flex items-center gap-2"
+        >
+          {cleanupOfflineLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          一键清除OFFLINE
         </button>
         <div className="text-xs text-slate-500 ml-auto">
           已选 {selectedItems.length} / 当前结果 {filteredServices.length}

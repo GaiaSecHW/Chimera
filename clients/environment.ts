@@ -372,6 +372,12 @@ export const environmentApi = {
     }).toString();
     return handleResponse(await fetch(`${API_BASE}/api/agent/services/global?${query}`, { headers: getHeaders() }));
   },
+  cleanupOfflineGlobalServices: async (projectId: string, dryRun = false): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/services/global/cleanup-offline`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, dry_run: dryRun })
+    })),
   getGlobalIngress: async (
     projectId: string,
     params: { include_deleted?: boolean } = {}
