@@ -23,6 +23,7 @@ import { openServiceTerminalWindow as openServiceTerminalWindowPopup } from './s
 import { TemplateLlmBindingEditor } from './llm-binding/TemplateLlmBindingEditor';
 
 type BatchAction = 'start' | 'stop' | 'delete';
+type DeployModalTab = 'scope' | 'templates' | 'agents' | 'advanced';
 
 const buildRandomIngressPrefix = (base: string) => {
   const normalized = String(base || '')
@@ -82,6 +83,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [deployPerNodeCount, setDeployPerNodeCount] = useState(1);
   const [deployExtraParamsText, setDeployExtraParamsText] = useState('');
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
+  const [deployModalTab, setDeployModalTab] = useState<DeployModalTab>('scope');
   const [openingAgentConsoleKey, setOpeningAgentConsoleKey] = useState('');
 
   useEffect(() => {
@@ -95,7 +97,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     setLoading(true);
     try {
       const [data, agentData] = await Promise.all([
-        api.environment.getGlobalServices(projectId, { per_page: 2000 }),
+        api.environment.getGlobalServices(projectId, { per_page: 2000, include_stale: true }),
         api.environment.getAgents(projectId, { per_page: 2000 })
       ]);
       setAllServices(data?.items || []);
@@ -122,6 +124,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     setDeployPerNodeCount(1);
     setDeployExtraParamsText('');
     setDeployLlmBinding(null);
+    setDeployModalTab('scope');
     setDeployAgentsLoading(true);
     setDeployTemplatesLoading(true);
     try {
@@ -1544,47 +1547,54 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           </div>
 
           <div className="p-5 space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <input
-                value={deployServiceSuffix}
-                onChange={(e) => setDeployServiceSuffix(e.target.value)}
-                placeholder="可选：服务名后缀，如 v2"
-                className="px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10"
-              />
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={deployPerNodeCount}
-                onChange={(e) => setDeployPerNodeCount(Math.max(1, Math.min(20, Number(e.target.value || 1))))}
-                placeholder="每节点每模板实例数"
-                className="px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10"
-              />
-              <input
-                value={deployAgentSearch}
-                onChange={(e) => setDeployAgentSearch(e.target.value)}
-                placeholder="过滤节点: 主机名 / IP / Key"
-                className="px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10"
-              />
+            <div className="flex flex-wrap items-center gap-2 border border-slate-200 bg-slate-50/70 rounded-2xl p-2">
+              <button
+                onClick={() => setDeployModalTab('scope')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'scope' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+              >
+                部署范围
+              </button>
+              <button
+                onClick={() => setDeployModalTab('templates')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'templates' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+              >
+                模板选择
+              </button>
+              <button
+                onClick={() => setDeployModalTab('agents')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'agents' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+              >
+                节点选择
+              </button>
+              <button
+                onClick={() => setDeployModalTab('advanced')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black ${deployModalTab === 'advanced' ? 'bg-white text-blue-700 border border-blue-200' : 'text-slate-600 hover:bg-white'}`}
+              >
+                高级参数
+              </button>
             </div>
 
-            <textarea
-              value={deployExtraParamsText}
-              onChange={(e) => setDeployExtraParamsText(e.target.value)}
-              placeholder='可选：额外参数 JSON，例如 {"env":{"DEBUG":"1"}}'
-              className="w-full min-h-24 px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10 font-mono"
-            />
+            {deployModalTab === 'scope' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <input
+                  value={deployServiceSuffix}
+                  onChange={(e) => setDeployServiceSuffix(e.target.value)}
+                  placeholder="可选：服务名后缀，如 v2"
+                  className="px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={deployPerNodeCount}
+                  onChange={(e) => setDeployPerNodeCount(Math.max(1, Math.min(20, Number(e.target.value || 1))))}
+                  placeholder="每节点每模板实例数"
+                  className="px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10"
+                />
+              </div>
+            )}
 
-            <TemplateLlmBindingEditor
-              projectId={projectId}
-              value={deployLlmBinding}
-              onChange={setDeployLlmBinding}
-              serviceOptions={deployServiceOptions}
-              title="部署前临时 LLM Provider 注入"
-              description="在模板当前结果基础上，为本次批量部署临时叠加一组 Provider。"
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {deployModalTab === 'templates' && (
               <div className="border border-slate-200 rounded-2xl overflow-hidden">
                 <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                   <p className="text-xs font-black text-slate-700">选择模板</p>
@@ -1601,7 +1611,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     {selectedDeployTemplateIds.size === deployTemplates.length && deployTemplates.length > 0 ? '取消全选' : '全选'}
                   </button>
                 </div>
-                <div className="max-h-72 overflow-auto divide-y divide-slate-100">
+                <div className="max-h-[48vh] overflow-auto divide-y divide-slate-100">
                   {deployTemplatesLoading && (
                     <div className="px-4 py-10 text-center text-xs text-slate-400">模板加载中...</div>
                   )}
@@ -1628,18 +1638,28 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   })}
                 </div>
               </div>
+            )}
 
+            {deployModalTab === 'agents' && (
               <div className="border border-slate-200 rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
                   <p className="text-xs font-black text-slate-700">选择节点（仅在线可选）</p>
-                  <button
-                    onClick={toggleAllDeployAgents}
-                    className="text-[10px] px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700"
-                  >
-                    全选筛选结果
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={deployAgentSearch}
+                      onChange={(e) => setDeployAgentSearch(e.target.value)}
+                      placeholder="过滤节点: 主机名 / IP / Key"
+                      className="px-3 py-1.5 text-[11px] border border-slate-200 rounded-lg outline-none focus:ring-2 ring-blue-500/10"
+                    />
+                    <button
+                      onClick={toggleAllDeployAgents}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 whitespace-nowrap"
+                    >
+                      全选筛选结果
+                    </button>
+                  </div>
                 </div>
-                <div className="max-h-72 overflow-auto divide-y divide-slate-100">
+                <div className="max-h-[48vh] overflow-auto divide-y divide-slate-100">
                   {deployAgentsLoading && (
                     <div className="px-4 py-10 text-center text-xs text-slate-400">节点加载中...</div>
                   )}
@@ -1666,7 +1686,26 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   })}
                 </div>
               </div>
-            </div>
+            )}
+
+            {deployModalTab === 'advanced' && (
+              <div className="space-y-3">
+                <textarea
+                  value={deployExtraParamsText}
+                  onChange={(e) => setDeployExtraParamsText(e.target.value)}
+                  placeholder='可选：额外参数 JSON，例如 {"env":{"DEBUG":"1"}}'
+                  className="w-full min-h-24 px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:ring-2 ring-blue-500/10 font-mono"
+                />
+                <TemplateLlmBindingEditor
+                  projectId={projectId}
+                  value={deployLlmBinding}
+                  onChange={setDeployLlmBinding}
+                  serviceOptions={deployServiceOptions}
+                  title="部署前临时 LLM Provider 注入"
+                  description="在模板当前结果基础上，为本次批量部署临时叠加一组 Provider。"
+                />
+              </div>
+            )}
 
             <div className="text-xs text-slate-500">
               预计提交任务数: {selectedDeployTemplateIds.size} 模板 × {selectedDeployAgentKeys.size} 节点 × {deployPerNodeCount} 实例 = {selectedDeployTemplateIds.size * selectedDeployAgentKeys.size * deployPerNodeCount}
