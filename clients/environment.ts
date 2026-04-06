@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress, fetchWithRetry } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics, ProcessMonitorNode, ProcessItem, ProcessSyncCandidateTreeNode, ProcessSyncTaskHistoryItem } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics, ProcessMonitorNode, ProcessItem, ProcessSyncCandidateTreeNode, ProcessSyncPreviewResponse, ProcessSyncTaskHistoryItem } from '../types/types';
 import { trackUploadTask } from '../services/uploadCenter';
 
 const normalizeTask = (raw: any): AsyncTask => ({
@@ -460,6 +460,22 @@ export const environmentApi = {
     remote_root_url?: string;
   }): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  previewProcessMonitorSync: async (payload: {
+    project_id: string;
+    agent_key: string;
+    service_name?: string;
+    mode: 'pid_files' | 'path_files';
+    pids?: number[];
+    paths?: string[];
+    remote_root_url?: string;
+    preview_limit?: number;
+  }): Promise<ProcessSyncPreviewResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/preview`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),

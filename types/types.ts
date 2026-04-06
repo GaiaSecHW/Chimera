@@ -1341,6 +1341,46 @@ export interface ProcessSyncTaskHistoryItem {
   updated_at?: string;
 }
 
+export interface ProcessSyncPreviewIssue {
+  scope?: 'pid' | 'path' | string;
+  pid?: number;
+  path?: string;
+  status?: string;
+  reason?: string;
+}
+
+export interface ProcessSyncPreviewItem {
+  source_path?: string;
+  relative_path?: string;
+  remote_relative_path?: string;
+  entry_type?: string;
+  size?: number | null;
+  refs?: Array<Record<string, any>>;
+}
+
+export interface ProcessSyncPreviewResponse {
+  project_id?: string;
+  agent_key?: string;
+  service_name?: string;
+  mode: 'pid_files' | 'path_files';
+  summary: {
+    total_candidates: number;
+    total_files: number;
+    total_symlinks: number;
+    estimated_total_bytes: number;
+    failed_count: number;
+    skipped_count: number;
+  };
+  items_preview: ProcessSyncPreviewItem[];
+  issues: ProcessSyncPreviewIssue[];
+  pid_summary?: Record<string, any>;
+  target?: {
+    remote_root_url?: string;
+    remote_path_prefix?: string;
+    sample_remote_paths?: string[];
+  };
+}
+
 export interface AiHelperService {
   id: string;
   project_id: string;
