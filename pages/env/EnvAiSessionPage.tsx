@@ -41,16 +41,16 @@ const statusTone = (status?: string) => {
 const sessionModeLabel = (mode?: string) => {
   const text = String(mode || '').toLowerCase();
   if (text === 'pty') return 'VTY';
-  if (text === 'pipe') return 'PIPE(已停用)';
+  if (text === 'pipe') return '非VTY';
   if (text === 'invoke') return '经典';
-  return '经典';
+  return '非VTY';
 };
 const sessionModeTone = (mode?: string) =>
   String(mode || '').toLowerCase() === 'pty'
     ? 'bg-violet-100 text-violet-700 border-violet-200'
     : String(mode || '').toLowerCase() === 'invoke'
     ? 'bg-amber-100 text-amber-700 border-amber-200'
-    : 'bg-zinc-100 text-zinc-700 border-zinc-200';
+    : 'bg-cyan-100 text-cyan-700 border-cyan-200';
 
 const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
   <div className="markdown-body break-words leading-6">
@@ -89,8 +89,9 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   const [message, setMessage] = useState('');
   const [busyAction, setBusyAction] = useState('');
   const [transportMode, setTransportMode] = useState<'stream' | 'non_stream'>('stream');
-  const [sessionMode, setSessionMode] = useState<'pty' | 'invoke'>(() => {
+  const [sessionMode, setSessionMode] = useState<'pipe' | 'pty' | 'invoke'>(() => {
     const raw = String(localStorage.getItem(SESSION_MODE_KEY) || '').toLowerCase();
+    if (raw === 'pipe') return 'pipe';
     if (raw === 'pty') return 'pty';
     return 'invoke';
   });
@@ -427,6 +428,10 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 <div className="mt-2 rounded-xl border border-slate-200 bg-white p-2.5">
                   <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs">
+                    <label className="inline-flex items-center gap-1.5">
+                      <input type="radio" name="single-session-mode" checked={sessionMode === 'pipe'} onChange={() => setSessionMode('pipe')} />
+                      非VTY（PIPE）
+                    </label>
                     <label className="inline-flex items-center gap-1.5">
                       <input type="radio" name="single-session-mode" checked={sessionMode === 'pty'} onChange={() => setSessionMode('pty')} />
                       VTY

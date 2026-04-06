@@ -242,6 +242,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ],
             },
             {
+              id: 'env-process-monitor-root',
+              label: '节点进程监控',
+              icon: <Cpu size={14} />,
+              children: [
+                { id: 'env-process-monitor-overview', label: '节点总览', icon: <Activity size={12} /> },
+                { id: 'env-process-monitor-detail', label: '进程详情', icon: <FolderTree size={12} /> },
+                { id: 'env-process-monitor-tasks', label: '任务管理', icon: <Workflow size={12} /> },
+              ],
+            },
+            {
               id: 'env-tasks', label: '任务管理', icon: <Workflow size={14} />
             }
           ]} 

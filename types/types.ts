@@ -1287,6 +1287,58 @@ export interface AgentService {
   tags?: string[];
 }
 
+export interface ProcessMonitorNode {
+  service_uid?: string;
+  project_id: string;
+  agent_key: string;
+  agent_hostname?: string;
+  agent_ip?: string;
+  service_name: string;
+  image?: string;
+  status?: string;
+  template_id?: number | null;
+  template_name?: string;
+  template_tags?: string[];
+  tags?: string[];
+  is_stale?: boolean;
+  last_seen_at?: string;
+  updated_at?: string;
+}
+
+export interface ProcessItem {
+  pid: number;
+  ppid?: number;
+  name?: string;
+  username?: string;
+  status?: string;
+  cmdline?: string[];
+  cwd?: string;
+  exe?: string;
+  create_time?: number;
+}
+
+export interface ProcessSyncCandidateTreeNode {
+  name: string;
+  path: string;
+  type: 'dir' | 'file';
+  children?: ProcessSyncCandidateTreeNode[];
+}
+
+export interface ProcessSyncTaskHistoryItem {
+  sync_id: string;
+  project_id: string;
+  agent_key: string;
+  service_name: string;
+  node_task_id?: string;
+  mode: 'pid_files' | 'path_files';
+  status: string;
+  request?: Record<string, any>;
+  node_snapshot?: Record<string, any>;
+  message?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AiHelperService {
   id: string;
   project_id: string;
@@ -1628,6 +1680,7 @@ export type ViewType =
   | 'public-resource-management' | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
+  | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
   | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-history' | 'system-analysis-prompt'
   | 'workflow-instances' | 'workflow-instance-detail' | 'workflow-instance-logs' | 'workflow-jobs' | 'workflow-job-detail' | 'workflow-apps' | 'workflow-app-detail' | 'workflow-app-instances' | 'workflow-app-instance-detail'
   | 'engine-validation' | 'pentest-root' | 'pentest-risk' | 'pentest-system' 

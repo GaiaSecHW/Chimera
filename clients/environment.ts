@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress, fetchWithRetry } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics, ProcessMonitorNode, ProcessItem, ProcessSyncTaskHistoryItem } from '../types/types';
 import { trackUploadTask } from '../services/uploadCenter';
 
 const normalizeTask = (raw: any): AsyncTask => ({
@@ -388,6 +388,124 @@ export const environmentApi = {
     }).toString();
     return handleResponse(await fetch(`${API_BASE}/api/agent/services/global/ingress?${query}`, { headers: getHeaders() }));
   },
+
+  listProcessMonitorNodes: async (
+    projectId: string,
+    params: { q?: string; agent_key?: string; include_stale?: boolean } = {}
+  ): Promise<{ project_id: string; total: number; items: ProcessMonitorNode[] }> => {
+    const query = new URLSearchParams({
+      project_id: projectId,
+      ...(params.q ? { q: params.q } : {}),
+      ...(params.agent_key ? { agent_key: params.agent_key } : {}),
+      include_stale: params.include_stale ? 'true' : 'false',
+    }).toString();
+    return handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/nodes?${query}`, { headers: getHeaders() }));
+  },
+
+  getNodeProcesses: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    params: { name?: string; keyword?: string } = {}
+  ): Promise<{ total: number; items: ProcessItem[]; service_name?: string; agent_key?: string }> => {
+    const query = new URLSearchParams({
+      project_id: projectId,
+      ...(params.name ? { name: params.name } : {}),
+      ...(params.keyword ? { keyword: params.keyword } : {}),
+    }).toString();
+    return handleResponse(await fetch(
+      `${API_BASE}/api/agent/process-monitor/nodes/${encodeURIComponent(agentKey)}/services/${encodeURIComponent(serviceName)}/processes?${query}`,
+      { headers: getHeaders() }
+    ));
+  },
+
+  getNodeProcessDetail: async (projectId: string, agentKey: string, serviceName: string, pid: number): Promise<any> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/agent/process-monitor/nodes/${encodeURIComponent(agentKey)}/services/${encodeURIComponent(serviceName)}/processes/${pid}?project_id=${encodeURIComponent(projectId)}`,
+      { headers: getHeaders() }
+    )),
+
+  getNodeProcessSyncCandidates: async (projectId: string, agentKey: string, serviceName: string, pid: number): Promise<any> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/agent/process-monitor/nodes/${encodeURIComponent(agentKey)}/services/${encodeURIComponent(serviceName)}/processes/${pid}/sync-candidates?project_id=${encodeURIComponent(projectId)}`,
+      { headers: getHeaders() }
+    )),
+
+  createProcessMonitorSyncTask: async (payload: {
+    project_id: string;
+    agent_key: string;
+    service_name?: string;
+    mode: 'pid_files' | 'path_files';
+    pids?: number[];
+    paths?: string[];
+    subproject_id?: number;
+    remote_root_url?: string;
+  }): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  getProcessMonitorSyncHistory: async (
+    projectId: string,
+    params: { page?: number; per_page?: number; status?: string; mode?: string; agent_key?: string } = {}
+  ): Promise<{ project_id: string; page: number; per_page: number; total: number; items: ProcessSyncTaskHistoryItem[] }> => {
+    const query = new URLSearchParams({
+      project_id: projectId,
+      page: String(params.page || 1),
+      per_page: String(params.per_page || 50),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.mode ? { mode: params.mode } : {}),
+      ...(params.agent_key ? { agent_key: params.agent_key } : {}),
+    }).toString();
+    return handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/tasks/history?${query}`, { headers: getHeaders() }));
+  },
+
+  clearProcessMonitorSyncHistory: async (payload: {
+    project_id: string;
+    sync_ids?: string[];
+    include_running?: boolean;
+  }): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/tasks/history`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  getProcessMonitorSyncLiveTasks: async (
+    projectId: string,
+    params: { agent_keys?: string[] } = {}
+  ): Promise<any> => {
+    const query = new URLSearchParams({
+      project_id: projectId,
+      ...(params.agent_keys && params.agent_keys.length ? { agent_keys: params.agent_keys.join(',') } : {}),
+    }).toString();
+    return handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/tasks/live?${query}`, { headers: getHeaders() }));
+  },
+
+  getProcessMonitorSyncLiveTaskDetail: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    taskId: string
+  ): Promise<any> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/agent/process-monitor/sync/tasks/live/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/${encodeURIComponent(taskId)}?project_id=${encodeURIComponent(projectId)}`,
+      { headers: getHeaders() }
+    )),
+
+  clearProcessMonitorSyncLiveTasks: async (payload: {
+    project_id: string;
+    agent_keys?: string[];
+    task_ids?: string[];
+    include_running?: boolean;
+  }): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/tasks/live`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
 
   listAiHelpers: async (
     projectId: string,

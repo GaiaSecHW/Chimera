@@ -142,8 +142,9 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
   const [helperDetails, setHelperDetails] = useState<Record<string, AiHelperService>>({});
   const [createSelectedHelpers, setCreateSelectedHelpers] = useState<string[]>([]);
   const [createSelectedAgentId, setCreateSelectedAgentId] = useState('');
-  const [batchSessionMode, setBatchSessionMode] = useState<'pty' | 'invoke'>(() => {
+  const [batchSessionMode, setBatchSessionMode] = useState<'pipe' | 'pty' | 'invoke'>(() => {
     const raw = String(localStorage.getItem(BATCH_SESSION_MODE_KEY) || '').toLowerCase();
+    if (raw === 'pipe') return 'pipe';
     if (raw === 'pty') return 'pty';
     return 'invoke';
   });
@@ -607,6 +608,10 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-sm">
+                    <label className="inline-flex items-center gap-2">
+                      <input type="radio" name="create-batch-mode" checked={batchSessionMode === 'pipe'} onChange={() => setBatchSessionMode('pipe')} />
+                      PIPE
+                    </label>
                     <label className="inline-flex items-center gap-2">
                       <input type="radio" name="create-batch-mode" checked={batchSessionMode === 'invoke'} onChange={() => setBatchSessionMode('invoke')} />
                       经典（默认）

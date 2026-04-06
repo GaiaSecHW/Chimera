@@ -39,6 +39,9 @@ import { EnvAiAgentManagePage } from './pages/env/EnvAiAgentManagePage';
 import { EnvAiAgentSessionManagePage } from './pages/env/EnvAiAgentSessionManagePage';
 import { EnvAiSessionPage } from './pages/env/EnvAiSessionPage';
 import { EnvAiBatchSessionPage } from './pages/env/EnvAiBatchSessionPage';
+import { EnvProcessMonitorOverviewPage } from './pages/env/EnvProcessMonitorOverviewPage';
+import { EnvProcessMonitorDetailPage } from './pages/env/EnvProcessMonitorDetailPage';
+import { EnvProcessMonitorTasksPage } from './pages/env/EnvProcessMonitorTasksPage';
 import { ServiceTerminalWindowPage } from './pages/env/ServiceTerminalWindowPage';
 import { SystemAnalysisOverviewPage } from './pages/system-analysis/SystemAnalysisOverviewPage';
 import { SystemAnalysisTaskPage } from './pages/system-analysis/SystemAnalysisTaskPage';
@@ -91,6 +94,7 @@ import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/men
 
 const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'env-agent', 'env-service', 'env-ai-agent', 'env-ai-helper', 'env-ai-agent-manage', 'env-ai-agent-session-manage', 'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
+  'env-process-monitor-overview', 'env-process-monitor-detail', 'env-process-monitor-tasks',
   'system-analysis-overview', 'system-analysis-task', 'system-analysis-history', 'system-analysis-prompt',
   'workflow-apps', 'workflow-app-detail',
   'workflow-app-instances', 'workflow-app-instance-detail',
@@ -407,6 +411,10 @@ const App: React.FC = () => {
       case 'env-ai-agent-session-manage': return <EnvAiAgentSessionManagePage projectId={selectedProjectId} />;
       case 'env-ai-session': return <EnvAiSessionPage projectId={selectedProjectId} />;
       case 'env-ai-batch-session': return <EnvAiBatchSessionPage projectId={selectedProjectId} />;
+      case 'env-process-monitor-root':
+      case 'env-process-monitor-overview': return <EnvProcessMonitorOverviewPage projectId={selectedProjectId} />;
+      case 'env-process-monitor-detail': return <EnvProcessMonitorDetailPage projectId={selectedProjectId} />;
+      case 'env-process-monitor-tasks': return <EnvProcessMonitorTasksPage projectId={selectedProjectId} />;
       case 'env-template': return <EnvTemplatePage projectId={selectedProjectId} />;
       case 'env-tasks': return <EnvTasksPage projectId={selectedProjectId} />;
       case 'system-analysis-root':
