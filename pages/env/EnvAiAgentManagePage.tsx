@@ -467,6 +467,7 @@ const BatchLlmApplyModal: React.FC<{
 }) => {
   const [activeTab, setActiveTab] = useState<'providers' | 'env' | 'files' | 'submit'>('providers');
   const [selectedProviderKeys, setSelectedProviderKeys] = useState<string[]>([]);
+  const [providerToAdd, setProviderToAdd] = useState('');
   const [providerDetailsMap, setProviderDetailsMap] = useState<Record<string, AiAgentLlmProviderDetail>>({});
   const [mergeStrategy, setMergeStrategy] = useState<'overwrite' | 'merge'>('overwrite');
   const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
@@ -475,10 +476,13 @@ const BatchLlmApplyModal: React.FC<{
   const firstBackendType = backendTypes[0] || '';
 
   useEffect(() => {
+    const fallback = providerOptions[0]?.provider_key || '';
+    if (!providerToAdd && fallback) {
+      setProviderToAdd(fallback);
+    }
     if (selectedProviderKeys.length > 0) return;
-    const fallback = providerOptions[0]?.provider_key;
     if (fallback) setSelectedProviderKeys([fallback]);
-  }, [providerOptions, selectedProviderKeys.length]);
+  }, [providerOptions, providerToAdd, selectedProviderKeys.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -498,13 +502,14 @@ const BatchLlmApplyModal: React.FC<{
     return () => { cancelled = true; };
   }, [projectId, firstBackendType, selectedProviderKeys, providerDetailsMap, notify]);
 
-  const toggleProvider = (providerKey: string, checked: boolean) => {
-    setSelectedProviderKeys((prev) => {
-      const has = prev.includes(providerKey);
-      if (checked && !has) return [...prev, providerKey];
-      if (!checked && has) return prev.filter((item) => item !== providerKey);
-      return prev;
-    });
+  const addProvider = () => {
+    const key = String(providerToAdd || '').trim();
+    if (!key) return;
+    setSelectedProviderKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  };
+
+  const removeProvider = (providerKey: string) => {
+    setSelectedProviderKeys((prev) => prev.filter((item) => item !== providerKey));
   };
 
   const moveProvider = (index: number, offset: number) => {
@@ -545,6 +550,42 @@ const BatchLlmApplyModal: React.FC<{
     setEnvEntries(Object.entries(mergedEnv).map(([key, value]) => createEnvEntry(key, value)));
     setFileEntries(Array.from(fileMap.values()));
   };
+
+  const providerPreview = useMemo(() => {
+    const mergedEnv: Array<{ key: string; value: string; provider_key: string }> = [];
+    const envMap = new Map<string, { value: string; provider_key: string }>();
+    const fileMap = new Map<string, FileEntry>();
+    selectedProviderKeys.forEach((providerKey) => {
+      const detail = providerDetailsMap[providerKey];
+      if (!detail) return;
+      Object.entries(detail.env_bindings || {}).forEach(([key, value]) => {
+        envMap.set(String(key), {
+          value: value === undefined || value === null ? '' : String(value),
+          provider_key: providerKey,
+        });
+      });
+      (detail.file_bindings || []).forEach((item, idx) => {
+        if (!item?.enabled) return;
+        const path = String(item.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, createFileEntry({
+          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
+          path,
+          content: String(item.content || ''),
+          format: String(item.format || 'other'),
+          enabled: true,
+          provider_key: providerKey,
+        }));
+      });
+    });
+    envMap.forEach((val, key) => {
+      mergedEnv.push({ key, value: val.value, provider_key: val.provider_key });
+    });
+    return {
+      env: mergedEnv.sort((a, b) => a.key.localeCompare(b.key)),
+      files: Array.from(fileMap.values()),
+    };
+  }, [selectedProviderKeys, providerDetailsMap]);
 
   const submit = async () => {
     if (selectedProviderKeys.length === 0) {
@@ -630,25 +671,46 @@ const BatchLlmApplyModal: React.FC<{
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           {activeTab === 'providers' ? (
             <div className="space-y-3">
-              <div className="text-sm font-black text-slate-900">选择多个 Provider（可排序）</div>
-              <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
-                {providerOptions.map((provider) => {
-                  const checked = selectedProviderKeys.includes(provider.provider_key);
-                  const index = selectedProviderKeys.indexOf(provider.provider_key);
+              <div className="text-sm font-black text-slate-900">选择 Provider 后点击“增加”</div>
+              <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                <select
+                  value={providerToAdd}
+                  onChange={(e) => setProviderToAdd(e.target.value)}
+                  className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                >
+                  {providerOptions.map((provider) => (
+                    <option key={provider.provider_key} value={provider.provider_key}>
+                      {provider.display_name || provider.provider_key} · {provider.provider_type}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={addProvider}
+                  disabled={!providerToAdd}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                >
+                  <Plus size={14} />
+                  增加
+                </button>
+              </div>
+              <div className="max-h-[220px] space-y-2 overflow-auto pr-1">
+                {selectedProviderKeys.length === 0 ? (
+                  <div className="text-xs text-slate-400">尚未添加 Provider。</div>
+                ) : selectedProviderKeys.map((providerKey, index) => {
+                  const provider = providerOptions.find((item) => item.provider_key === providerKey);
                   return (
-                    <div key={provider.provider_key} className="rounded-xl border border-slate-200 px-3 py-2">
+                    <div key={providerKey} className="rounded-xl border border-slate-200 px-3 py-2">
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" checked={checked} onChange={(event) => toggleProvider(provider.provider_key, event.target.checked)} />
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-semibold text-slate-900">{provider.display_name}</div>
-                          <div className="text-xs text-slate-500">{provider.provider_key} · {provider.provider_type}</div>
+                          <div className="truncate text-sm font-semibold text-slate-900">{provider?.display_name || providerKey}</div>
+                          <div className="text-xs text-slate-500">{providerKey} · {provider?.provider_type || 'unknown'}</div>
                         </div>
-                        {checked ? (
-                          <div className="flex items-center gap-1">
-                            <button type="button" onClick={() => moveProvider(index, -1)} className="rounded border border-slate-200 px-2 py-1 text-xs">↑</button>
-                            <button type="button" onClick={() => moveProvider(index, 1)} className="rounded border border-slate-200 px-2 py-1 text-xs">↓</button>
-                          </div>
-                        ) : null}
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => moveProvider(index, -1)} disabled={index === 0} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↑</button>
+                          <button type="button" onClick={() => moveProvider(index, 1)} disabled={index === selectedProviderKeys.length - 1} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↓</button>
+                          <button type="button" onClick={() => removeProvider(providerKey)} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -657,6 +719,36 @@ const BatchLlmApplyModal: React.FC<{
               <button type="button" onClick={rebuildDraftFromProviders} disabled={selectedProviderKeys.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
                 从 Provider 重建草稿
               </button>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">本次即将添加预览</div>
+                <div className="mt-2 text-xs text-slate-600">环境变量 {providerPreview.env.length} 项 · 文件注入 {providerPreview.files.length} 项</div>
+                <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 bg-white p-2">
+                    <div className="text-xs font-black text-slate-700">环境变量</div>
+                    <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
+                      {providerPreview.env.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.env.map((item) => (
+                        <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-slate-800">{item.key}</div>
+                          <div className="truncate text-slate-600">{item.value}</div>
+                          <div className="text-slate-400">来源: {item.provider_key}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-2">
+                    <div className="text-xs font-black text-slate-700">文件注入</div>
+                    <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
+                      {providerPreview.files.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.files.map((item) => (
+                        <div key={`${item.path}-${item.provider_key || ''}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-slate-800">{item.path}</div>
+                          <div className="text-slate-600">{item.name || '-'}</div>
+                          <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : null}
 

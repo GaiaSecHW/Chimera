@@ -22,7 +22,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { openServiceTerminalWindow as openServiceTerminalWindowPopup } from './serviceTerminal';
 import { TemplateLlmBindingEditor } from './llm-binding/TemplateLlmBindingEditor';
 
-type BatchAction = 'start' | 'stop' | 'delete';
+type BatchAction = 'start' | 'stop' | 'delete' | 'update';
 type DeployModalTab = 'scope' | 'templates' | 'agents' | 'advanced';
 
 const buildRandomIngressPrefix = (base: string) => {
@@ -371,7 +371,13 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
 
   const applyBatchAction = async (action: BatchAction, targets: AgentService[]) => {
     if (!projectId || targets.length === 0) return;
-    const actionText = action === 'start' ? '启动' : action === 'stop' ? '停止' : '删除';
+    const actionText = action === 'start'
+      ? '启动'
+      : action === 'stop'
+        ? '停止'
+        : action === 'update'
+          ? '更新'
+          : '删除';
     const okToContinue = await confirm({
       title: `批量${actionText}服务`,
       message: `确认批量${actionText} ${targets.length} 个服务实例？`,
@@ -384,27 +390,60 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     setActionLoading(true);
     let ok = 0;
     let fail = 0;
+    let skipped = 0;
     try {
-      for (const svc of targets) {
-        const agentKey = svc.agent_key || '';
-        if (!agentKey) {
-          fail += 1;
-          continue;
-        }
-        try {
-          if (action === 'start') {
-            await api.environment.startAgentService(agentKey, svc.name);
-          } else if (action === 'stop') {
-            await api.environment.stopAgentService(agentKey, svc.name);
-          } else {
-            await api.environment.deleteAgentService(agentKey, svc.name, projectId);
+      if (action === 'update') {
+        const groups = new Map<string, AgentService[]>();
+        for (const svc of targets) {
+          const agentKey = svc.agent_key || '';
+          const effectiveState = String((svc as any).effective_state || '');
+          if (!agentKey || effectiveState === 'offline_agent') {
+            skipped += 1;
+            continue;
           }
-          ok += 1;
-        } catch {
-          fail += 1;
+          const current = groups.get(agentKey) || [];
+          current.push(svc);
+          groups.set(agentKey, current);
+        }
+
+        await Promise.all(Array.from(groups.entries()).map(async ([agentKey, services]) => {
+          for (const svc of services) {
+            try {
+              await api.environment.updateAgentService(agentKey, svc.name);
+              ok += 1;
+            } catch {
+              fail += 1;
+            }
+          }
+        }));
+      } else {
+        for (const svc of targets) {
+          const agentKey = svc.agent_key || '';
+          if (!agentKey) {
+            fail += 1;
+            continue;
+          }
+          try {
+            if (action === 'start') {
+              await api.environment.startAgentService(agentKey, svc.name);
+            } else if (action === 'stop') {
+              await api.environment.stopAgentService(agentKey, svc.name);
+            } else {
+              await api.environment.deleteAgentService(agentKey, svc.name, projectId);
+            }
+            ok += 1;
+          } catch {
+            fail += 1;
+          }
         }
       }
-      notify(`批量${actionText}完成：成功 ${ok}，失败 ${fail}`, fail > 0 ? 'warning' : 'success');
+      const summary = skipped > 0
+        ? `批量${actionText}完成：成功 ${ok}，失败 ${fail}，跳过 ${skipped}`
+        : `批量${actionText}完成：成功 ${ok}，失败 ${fail}`;
+      notify(summary, fail > 0 ? 'warning' : 'success');
+      if (action === 'update' && skipped > 0 && fail === 0) {
+        notify('离线节点服务已跳过，其余服务已执行更新', 'info');
+      }
       await loadAllServices();
     } finally {
       setActionLoading(false);
@@ -1170,6 +1209,13 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           className="px-4 py-2 rounded-xl text-xs font-black bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
         >
           <Square size={14} /> 批量停止
+        </button>
+        <button
+          onClick={() => void applyBatchAction('update', selectedItems)}
+          disabled={!projectId || actionLoading || selectedItems.length === 0}
+          className="px-4 py-2 rounded-xl text-xs font-black bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-50 flex items-center gap-2"
+        >
+          <RefreshCw size={14} className={actionLoading ? 'animate-spin' : ''} /> 批量更新
         </button>
         <button
           onClick={() => void applyBatchAction('delete', selectedItems)}

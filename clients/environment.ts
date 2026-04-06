@@ -774,6 +774,12 @@ export const environmentApi = {
       headers: getHeaders(),
       body: JSON.stringify({})
     })),
+  updateAgentService: async (key: string, serviceName: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/agent/${key}/services/${encodeURIComponent(serviceName)}/update`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({})
+    })),
   deleteAgentService: async (key: string, serviceName: string, projectId?: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/agent/${key}/services/${encodeURIComponent(serviceName)}${projectId ? `?project_id=${encodeURIComponent(projectId)}` : ''}`, {
       method: 'DELETE',
