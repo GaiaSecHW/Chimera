@@ -1329,6 +1329,7 @@ export interface AiAgentItem {
   health?: any;
   capabilities?: any;
   llm_provider_key?: string;
+  llm_provider_keys?: string[];
   llm_provider_snapshot?: {
     provider_key?: string;
     display_name?: string;
@@ -1338,8 +1339,11 @@ export interface AiAgentItem {
     updated_at?: string | null;
     description?: string | null;
   } | null;
+  llm_provider_snapshots?: Array<Record<string, any>>;
   llm_provider_applied_at?: string | null;
   llm_provider_mapped_env_keys?: string[];
+  llm_provider_file_bindings?: AiAgentLlmFileBinding[];
+  llm_provider_merge_strategy?: 'overwrite' | 'merge';
 }
 
 export interface ProjectAiAgentItem extends AiAgentItem {
@@ -1402,6 +1406,41 @@ export interface AiAgentLlmBatchApplyResult {
     mapped_env_preview?: Record<string, string>;
     mapped_env_keys?: string[];
     updated_agent?: ProjectAiAgentItem | AiAgentItem;
+  }>;
+}
+
+export interface AiAgentLlmFileBinding {
+  name: string;
+  path: string;
+  content: string;
+  format?: string;
+  enabled?: boolean;
+  provider_key?: string | null;
+}
+
+export interface AiAgentLlmConfigDraft {
+  provider_keys: string[];
+  env_overrides: Record<string, string>;
+  file_overrides: AiAgentLlmFileBinding[];
+  merge_strategy: 'overwrite' | 'merge';
+}
+
+export interface AiAgentBatchConfigureResult {
+  project_id: string;
+  provider_keys: string[];
+  merge_strategy: 'overwrite' | 'merge';
+  status: string;
+  total: number;
+  success_count: number;
+  results: Array<{
+    agent_key: string;
+    service_name: string;
+    agent_id: string;
+    success: boolean;
+    error?: string;
+    provider_keys?: string[];
+    merge_strategy?: 'overwrite' | 'merge';
+    updated_config?: any;
   }>;
 }
 

@@ -16,7 +16,9 @@ import {
 import { showConfirm } from '../../components/DialogService';
 import { api } from '../../clients/api';
 import {
-  AiAgentLlmBatchApplyResult,
+  AiAgentBatchConfigureResult,
+  AiAgentLlmConfigDraft,
+  AiAgentLlmFileBinding,
   AiAgentLlmProviderDetail,
   AiAgentLlmProviderSummary,
   AiHelperService,
@@ -25,9 +27,9 @@ import {
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import {
+  buildHelperKey,
   EmptyState,
   JsonBlock,
-  navigateToAppView,
   prettyJson,
   uniqueValues,
   useAiHelpers,
@@ -108,6 +110,16 @@ type ArgEntry = {
   value: string;
 };
 
+type FileEntry = {
+  id: string;
+  name: string;
+  path: string;
+  content: string;
+  format: string;
+  enabled: boolean;
+  provider_key?: string;
+};
+
 const createEnvEntry = (key = '', value = ''): EnvEntry => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   key,
@@ -117,6 +129,16 @@ const createEnvEntry = (key = '', value = ''): EnvEntry => ({
 const createArgEntry = (value = ''): ArgEntry => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   value,
+});
+
+const createFileEntry = (value?: Partial<FileEntry>): FileEntry => ({
+  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  name: value?.name || '',
+  path: value?.path || '',
+  content: value?.content || '',
+  format: value?.format || 'other',
+  enabled: value?.enabled ?? true,
+  provider_key: value?.provider_key || '',
 });
 
 const envObjectToEntries = (env?: Record<string, string>) =>
@@ -210,11 +232,6 @@ const parseArgImportText = (input: string) => {
   return { entries };
 };
 
-const getBatchPreviewBackendType = (agents: ProjectAiAgentItem[]) => {
-  const backendTypes = uniqueValues(agents.map((item) => item.backend_type || '').filter(Boolean));
-  return backendTypes.length === 1 ? backendTypes[0] : agents[0]?.backend_type;
-};
-
 const StatsStrip: React.FC<{ agents: ProjectAiAgentItem[]; selectedCount: number }> = ({ agents, selectedCount }) => {
   const stats = useMemo(() => ({
     total: agents.length,
@@ -258,80 +275,6 @@ const healthDotTone = (status?: string) => {
   return 'bg-slate-300';
 };
 
-const llmDotTone = (status: LlmBindingStatus) =>
-  status === 'bound_fresh'
-    ? 'bg-emerald-500'
-    : status === 'bound_stale'
-      ? 'bg-amber-500'
-      : status === 'bound_unknown'
-        ? 'bg-zinc-400'
-        : 'bg-slate-300';
-
-const NodeCompactRow: React.FC<{
-  node: string;
-  items: ProjectAiAgentItem[];
-  selectedKey: string;
-  selectedAgentKeys: string[];
-  providerUpdatedAtMap: Map<string, string>;
-  onSelect: (agent: ProjectAiAgentItem) => void;
-  onCheck: (agent: ProjectAiAgentItem, checked: boolean) => void;
-}> = ({ node, items, selectedKey, selectedAgentKeys, providerUpdatedAtMap, onSelect, onCheck }) => {
-  const runningCount = items.filter((item) => item.running).length;
-  const activeCount = items.filter((item) => item.active).length;
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-        <div className="xl:w-64 xl:shrink-0">
-          <div className="truncate text-sm font-black text-slate-900">{node}</div>
-          <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-            <span>{items.length} Agents</span>
-            <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>Running {runningCount}</span>
-            <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>Active {activeCount}</span>
-          </div>
-        </div>
-
-        <div className="min-w-0 flex-1 overflow-x-auto">
-          <div className="inline-flex min-w-full flex-nowrap gap-2">
-            {items.map((agent) => {
-              const key = buildAgentKey(agent);
-              const isSelected = key === selectedKey;
-              const isChecked = selectedAgentKeys.includes(key);
-              const llmStatus = getLlmBindingStatus(agent, providerUpdatedAtMap);
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => onSelect(agent)}
-                  className={`inline-flex min-w-[220px] max-w-[320px] items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition ${
-                    isSelected ? 'border-cyan-400 bg-cyan-50' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-white'
-                  }`}
-                >
-                  <label className="inline-flex items-center" onClick={(event) => event.stopPropagation()}>
-                    <input type="checkbox" checked={isChecked} onChange={(event) => onCheck(agent, event.target.checked)} />
-                  </label>
-                  <div className="rounded-lg bg-white p-1 ring-1 ring-slate-200">{backendTypeIcon(agent.backend_type)}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-xs font-black text-slate-900">{agent.agent_id}</div>
-                    <div className="mt-0.5 truncate text-[11px] text-slate-500">{agent.service_name} · {agent.backend_type}</div>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Play size={12} className={agent.running ? 'text-emerald-600' : 'text-slate-300'} />
-                    <Power size={12} className={agent.active ? 'text-cyan-600' : 'text-slate-300'} />
-                    <span className={`h-2 w-2 rounded-full ${healthDotTone(agent.health_status)}`} title={`health: ${agent.health_status || 'unknown'}`} />
-                    <span className={`h-2 w-2 rounded-full ${llmDotTone(llmStatus)}`} title={`llm: ${llmStatus}`} />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const ModalShell: React.FC<{
   title: string;
   description: string;
@@ -355,7 +298,7 @@ const ModalShell: React.FC<{
           <X size={18} />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto px-6 py-6 md:px-8">{children}</div>
+      <div className={`${compactHeight ? 'overflow-auto' : 'min-h-0 flex-1 overflow-auto'} px-6 py-6 md:px-8`}>{children}</div>
     </div>
   </div>
 );
@@ -465,6 +408,7 @@ const CreateAgentModal: React.FC<{
     description="选择目标 helper 后，配置 backend、命令、参数与初始环境变量，再创建新的 AI Agent。"
     onClose={onClose}
     maxWidthClassName="max-w-4xl"
+    compactHeight
   >
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       <select value={createHelperKey} onChange={(e) => setCreateHelperKey(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm xl:col-span-3">
@@ -503,108 +447,280 @@ const CreateAgentModal: React.FC<{
 );
 
 const BatchLlmApplyModal: React.FC<{
+  projectId: string;
   selectedAgents: ProjectAiAgentItem[];
   providerOptions: AiAgentLlmProviderSummary[];
-  selectedProviderKey: string;
-  onProviderChange: (value: string) => void;
-  providerDetail: AiAgentLlmProviderDetail | null;
   llmBusy: string;
-  result: AiAgentLlmBatchApplyResult | null;
+  result: AiAgentBatchConfigureResult | null;
+  notify: (message: string, type?: 'success' | 'error' | 'warning') => void;
   onClose: () => void;
-  onApply: (refresh: boolean) => Promise<void>;
-  onClear: () => Promise<void>;
+  onSubmit: (draft: AiAgentLlmConfigDraft) => Promise<void>;
 }> = ({
+  projectId,
   selectedAgents,
   providerOptions,
-  selectedProviderKey,
-  onProviderChange,
-  providerDetail,
   llmBusy,
   result,
+  notify,
   onClose,
-  onApply,
-  onClear,
+  onSubmit,
 }) => {
+  const [activeTab, setActiveTab] = useState<'providers' | 'env' | 'files' | 'submit'>('providers');
+  const [selectedProviderKeys, setSelectedProviderKeys] = useState<string[]>([]);
+  const [providerDetailsMap, setProviderDetailsMap] = useState<Record<string, AiAgentLlmProviderDetail>>({});
+  const [mergeStrategy, setMergeStrategy] = useState<'overwrite' | 'merge'>('overwrite');
+  const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
+  const [fileEntries, setFileEntries] = useState<FileEntry[]>([]);
   const backendTypes = uniqueValues(selectedAgents.map((item) => item.backend_type || '').filter(Boolean));
+  const firstBackendType = backendTypes[0] || '';
+
+  useEffect(() => {
+    if (selectedProviderKeys.length > 0) return;
+    const fallback = providerOptions[0]?.provider_key;
+    if (fallback) setSelectedProviderKeys([fallback]);
+  }, [providerOptions, selectedProviderKeys.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadMissing = async () => {
+      const missing = selectedProviderKeys.filter((key) => !providerDetailsMap[key]);
+      for (const key of missing) {
+        try {
+          const detail = await api.environment.getAiAgentLlmProvider(projectId || '', key, firstBackendType);
+          if (cancelled) return;
+          setProviderDetailsMap((prev) => ({ ...prev, [key]: detail }));
+        } catch (error: any) {
+          if (!cancelled) notify(`加载 Provider 详情失败: ${error?.message || error}`, 'error');
+        }
+      }
+    };
+    void loadMissing();
+    return () => { cancelled = true; };
+  }, [projectId, firstBackendType, selectedProviderKeys, providerDetailsMap, notify]);
+
+  const toggleProvider = (providerKey: string, checked: boolean) => {
+    setSelectedProviderKeys((prev) => {
+      const has = prev.includes(providerKey);
+      if (checked && !has) return [...prev, providerKey];
+      if (!checked && has) return prev.filter((item) => item !== providerKey);
+      return prev;
+    });
+  };
+
+  const moveProvider = (index: number, offset: number) => {
+    setSelectedProviderKeys((prev) => {
+      const target = index + offset;
+      if (target < 0 || target >= prev.length || index < 0 || index >= prev.length) return prev;
+      const next = [...prev];
+      const tmp = next[index];
+      next[index] = next[target];
+      next[target] = tmp;
+      return next;
+    });
+  };
+
+  const rebuildDraftFromProviders = () => {
+    const mergedEnv: Record<string, string> = {};
+    const fileMap = new Map<string, FileEntry>();
+    selectedProviderKeys.forEach((providerKey) => {
+      const detail = providerDetailsMap[providerKey];
+      if (!detail) return;
+      Object.entries(detail.env_bindings || {}).forEach(([key, value]) => {
+        mergedEnv[String(key)] = value === undefined || value === null ? '' : String(value);
+      });
+      (detail.file_bindings || []).forEach((item, idx) => {
+        if (!item?.enabled) return;
+        const path = String(item.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, createFileEntry({
+          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
+          path,
+          content: String(item.content || ''),
+          format: String(item.format || 'other'),
+          enabled: true,
+          provider_key: providerKey,
+        }));
+      });
+    });
+    setEnvEntries(Object.entries(mergedEnv).map(([key, value]) => createEnvEntry(key, value)));
+    setFileEntries(Array.from(fileMap.values()));
+  };
+
+  const submit = async () => {
+    if (selectedProviderKeys.length === 0) {
+      notify('请至少选择一个 Provider', 'error');
+      return;
+    }
+    const draft: AiAgentLlmConfigDraft = {
+      provider_keys: selectedProviderKeys,
+      merge_strategy: mergeStrategy,
+      env_overrides: envEntriesToObject(envEntries),
+      file_overrides: fileEntries
+        .map((item) => ({
+          name: item.name,
+          path: item.path,
+          content: item.content,
+          format: item.format,
+          enabled: item.enabled,
+          provider_key: item.provider_key || undefined,
+        }))
+        .filter((item) => String(item.path || '').trim() && typeof item.content === 'string') as AiAgentLlmFileBinding[],
+    };
+    await onSubmit(draft);
+  };
 
   return (
     <ModalShell
-      title="批量应用 LLM 配置"
+      title="批量配置AI Agent"
       description="对当前勾选的 AI Agent 批量写入或刷新配置中心中的 LLM 映射。"
       onClose={onClose}
+      compactHeight
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="min-w-[180px]">
               <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">目标范围</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{selectedAgents.length}</div>
-              <div className="mt-1 text-sm text-slate-500">个 AI Agent</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {backendTypes.map((item) => (
-                  <span key={item} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 ring-1 ring-slate-200">
-                    {item}
-                  </span>
-                ))}
+              <div className="mt-1 flex items-end gap-2">
+                <span className="text-2xl font-black text-slate-900">{selectedAgents.length}</span>
+                <span className="pb-0.5 text-sm text-slate-500">个 AI Agent</span>
               </div>
             </div>
+            <div className="flex flex-wrap gap-2 md:justify-end">
+              {backendTypes.map((item) => (
+                <span key={item} className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 ring-1 ring-slate-200">
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-              <div className="text-sm font-black text-slate-900">选择 Provider</div>
-              <select value={selectedProviderKey} onChange={(event) => onProviderChange(event.target.value)} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
-                <option value="">选择 LLM Provider</option>
-                {providerOptions.map((provider) => (
-                  <option key={provider.provider_key} value={provider.provider_key}>
-                    {provider.display_name} · {provider.provider_type}
-                    {provider.is_default ? ' · 默认' : ''}
-                  </option>
-                ))}
-              </select>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  onClick={() => void onApply(false)}
-                  disabled={!selectedProviderKey || selectedAgents.length === 0}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                >
-                  {llmBusy === 'apply-batch' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  批量应用
-                </button>
-                <button
-                  onClick={() => void onApply(true)}
-                  disabled={!selectedProviderKey || selectedAgents.length === 0}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
-                >
-                  {llmBusy === 'refresh-batch' ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                  批量刷新
-                </button>
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('providers')}
+            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'providers' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            Provider编排
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('env')}
+            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'env' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            环境变量
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('files')}
+            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'files' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            文件注入
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('submit')}
+            className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'submit' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            下发与结果
+          </button>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          {activeTab === 'providers' ? (
+            <div className="space-y-3">
+              <div className="text-sm font-black text-slate-900">选择多个 Provider（可排序）</div>
+              <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
+                {providerOptions.map((provider) => {
+                  const checked = selectedProviderKeys.includes(provider.provider_key);
+                  const index = selectedProviderKeys.indexOf(provider.provider_key);
+                  return (
+                    <div key={provider.provider_key} className="rounded-xl border border-slate-200 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" checked={checked} onChange={(event) => toggleProvider(provider.provider_key, event.target.checked)} />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-slate-900">{provider.display_name}</div>
+                          <div className="text-xs text-slate-500">{provider.provider_key} · {provider.provider_type}</div>
+                        </div>
+                        {checked ? (
+                          <div className="flex items-center gap-1">
+                            <button type="button" onClick={() => moveProvider(index, -1)} className="rounded border border-slate-200 px-2 py-1 text-xs">↑</button>
+                            <button type="button" onClick={() => moveProvider(index, 1)} className="rounded border border-slate-200 px-2 py-1 text-xs">↓</button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <button
-                onClick={() => void onClear()}
-                disabled={selectedAgents.length === 0}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 disabled:opacity-50"
-              >
-                {llmBusy === 'clear-batch' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                批量清除映射
+              <button type="button" onClick={rebuildDraftFromProviders} disabled={selectedProviderKeys.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
+                从 Provider 重建草稿
               </button>
             </div>
+          ) : null}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="text-sm font-black text-slate-900">目标 Agent 摘要</div>
-              <div className="mt-3 max-h-[320px] space-y-2 overflow-auto pr-1">
-                {selectedAgents.map((agent) => (
-                  <div key={buildAgentKey(agent)} className="rounded-xl border border-slate-200 px-3 py-2">
-                    <div className="text-sm font-bold text-slate-900">{agent.agent_id}</div>
-                    <div className="mt-1 text-xs text-slate-500">{agent.agent_hostname || agent.agent_key} · {agent.service_name} · {agent.backend_type}</div>
+          {activeTab === 'env' ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-black text-slate-900">环境变量覆盖</div>
+                <button type="button" onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+              </div>
+              <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
+                {envEntries.map((entry) => (
+                  <div key={entry.id} className="grid grid-cols-1 gap-2 md:grid-cols-[220px_minmax(0,1fr)_72px]">
+                    <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="KEY" />
+                    <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="VALUE" />
+                    <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          ) : null}
 
-          <div className="space-y-4">
-            <LlmProviderPreview providerDetail={providerDetail} emptyText="选择一个 LLM Provider 后，可在这里预览即将写入的映射。" />
-            {result ? <JsonBlock title="最近一次批量应用结果" value={result} className="bg-white" /> : null}
-          </div>
+          {activeTab === 'files' ? (
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-black text-slate-900">文件注入覆盖</div>
+                <button type="button" onClick={() => setFileEntries((prev) => [...prev, createFileEntry()])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+              </div>
+              <div className="mt-3 max-h-[420px] space-y-3 overflow-auto pr-1">
+                {fileEntries.map((entry) => (
+                  <div key={entry.id} className="rounded-xl border border-slate-200 p-3">
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                      <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="name" />
+                      <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="path" />
+                      <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="format" />
+                      <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                    </div>
+                    <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="mt-2 w-full rounded border border-slate-200 px-2 py-1 text-xs font-mono" placeholder="content" />
+                    <div className="mt-2 flex items-center justify-between">
+                      <label className="inline-flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />enabled</label>
+                      <button type="button" onClick={() => setFileEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {activeTab === 'submit' ? (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">冲突策略</div>
+                <div className="mt-2 flex items-center gap-4 text-sm">
+                  <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'overwrite'} onChange={() => setMergeStrategy('overwrite')} />覆盖</label>
+                  <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'merge'} onChange={() => setMergeStrategy('merge')} />合并</label>
+                </div>
+              </div>
+              <div className="text-xs text-slate-500">Provider: {selectedProviderKeys.length}，Env: {envEntries.length}，Files: {fileEntries.length}</div>
+              <button type="button" onClick={() => void submit()} disabled={llmBusy === 'configure-batch' || selectedAgents.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                {llmBusy === 'configure-batch' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                确定配置并下发
+              </button>
+              {result ? <JsonBlock title="最近一次批量配置结果" value={result} className="bg-white" /> : <EmptyState text="暂无批量执行结果。" />}
+            </div>
+          ) : null}
         </div>
       </div>
     </ModalShell>
@@ -1165,10 +1281,8 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   const [singleProviderKey, setSingleProviderKey] = useState('');
   const [singleProviderDetail, setSingleProviderDetail] = useState<AiAgentLlmProviderDetail | null>(null);
   const [singleLlmNotice, setSingleLlmNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [batchProviderKey, setBatchProviderKey] = useState('');
-  const [batchProviderDetail, setBatchProviderDetail] = useState<AiAgentLlmProviderDetail | null>(null);
   const [llmBusy, setLlmBusy] = useState('');
-  const [batchApplyResult, setBatchApplyResult] = useState<AiAgentLlmBatchApplyResult | null>(null);
+  const [batchApplyResult, setBatchApplyResult] = useState<AiAgentBatchConfigureResult | null>(null);
   const lastSelectedKeyRef = useRef('');
 
   const providerUpdatedAtMap = useMemo(() => {
@@ -1219,26 +1333,21 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
     return agents.filter((item) => selectedSet.has(buildAgentKey(item)));
   }, [agents, selectedAgentKeys]);
 
-  const groupedFilteredAgents = useMemo(() => {
-    const map = new Map<string, ProjectAiAgentItem[]>();
-    filteredAgents.forEach((item) => {
-      const nodeKey = item.agent_hostname || item.agent_key || 'unknown-node';
-      const list = map.get(nodeKey) || [];
-      list.push(item);
-      map.set(nodeKey, list);
-    });
-    return Array.from(map.entries())
-      .map(([node, items]) => ({
-        node,
-        items: items.sort((a, b) => String(a.agent_id || '').localeCompare(String(b.agent_id || ''))),
-      }))
-      .sort((a, b) => a.node.localeCompare(b.node));
-  }, [filteredAgents]);
-
-  const batchPreviewBackendType = useMemo(() => getBatchPreviewBackendType(selectedAgents), [selectedAgents]);
+  const sortedFilteredAgents = useMemo(
+    () =>
+      [...filteredAgents].sort((a, b) => {
+        const hostCmp = String(a.agent_hostname || '').localeCompare(String(b.agent_hostname || ''));
+        if (hostCmp !== 0) return hostCmp;
+        const helperCmp = String(a.service_name || '').localeCompare(String(b.service_name || ''));
+        if (helperCmp !== 0) return helperCmp;
+        return String(a.agent_id || '').localeCompare(String(b.agent_id || ''));
+      }),
+    [filteredAgents],
+  );
 
   const allFilteredSelected =
     filteredAgents.length > 0 && filteredAgents.every((item) => selectedAgentKeys.includes(buildAgentKey(item)));
+  const allAgentsSelected = agents.length > 0 && agents.every((item) => selectedAgentKeys.includes(buildAgentKey(item)));
 
   useEffect(() => {
     if (!createHelperKey && helperOptions.length > 0) {
@@ -1289,7 +1398,6 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
         const items = data.items || [];
         const fallbackProvider = data.default_provider_key || items[0]?.provider_key || '';
         setLlmProviders(items);
-        setBatchProviderKey((current) => current || fallbackProvider);
         setSingleProviderKey((current) => current || fallbackProvider);
       } catch (error: any) {
         notify(`加载 LLM Provider 列表失败: ${error?.message || error}`, 'error');
@@ -1323,32 +1431,6 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
       cancelled = true;
     };
   }, [projectId, singleProviderKey, selectedAgent?.backend_type, showSingleLlmModal, notify]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadBatchProviderDetail = async () => {
-      if (!showBatchLlmModal || !batchProviderKey || selectedAgents.length === 0) {
-        setBatchProviderDetail(null);
-        return;
-      }
-      try {
-        const detail = await api.environment.getAiAgentLlmProvider(projectId || '', batchProviderKey, batchPreviewBackendType);
-        if (!cancelled) {
-          setBatchProviderDetail(detail);
-        }
-      } catch (error: any) {
-        if (!cancelled) {
-          setBatchProviderDetail(null);
-          notify(`加载批量 LLM Provider 详情失败: ${error?.message || error}`, 'error');
-        }
-      }
-    };
-    void loadBatchProviderDetail();
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, batchProviderKey, batchPreviewBackendType, selectedAgents.length, showBatchLlmModal, notify]);
 
   const loadHelper = async (agentKey: string, serviceName: string, focusAgentId?: string) => {
     setHelperRuntimeEnvLoading(true);
@@ -1414,6 +1496,14 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
       });
       return Array.from(next);
     });
+  };
+
+  const toggleAllAgents = (checked: boolean) => {
+    if (checked) {
+      setSelectedAgentKeys(agents.map((item) => buildAgentKey(item)));
+      return;
+    }
+    setSelectedAgentKeys([]);
   };
 
   const runAgentAction = async (action: 'activate' | 'start' | 'stop' | 'delete', agent: ProjectAiAgentItem) => {
@@ -1665,112 +1755,27 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
     }
   };
 
-  const batchApplyProvider = async (refresh = false) => {
-    if (!batchProviderKey) {
-      notify('请先选择一个 LLM Provider', 'error');
-      return;
-    }
+  const batchConfigureAgents = async (draft: AiAgentLlmConfigDraft) => {
     if (selectedAgents.length === 0) {
       notify('请先选择至少一个 AI Agent', 'error');
       return;
     }
-    setLlmBusy(refresh ? 'refresh-batch' : 'apply-batch');
+    setLlmBusy('configure-batch');
     try {
-      const result = await api.environment.batchApplyAiAgentLlmProvider(
+      const result = await api.environment.batchConfigureAiAgents(
         projectId,
-        batchProviderKey,
+        draft,
         selectedAgents.map((item) => ({
           agent_key: item.agent_key,
           service_name: item.service_name,
           agent_id: item.agent_id,
         })),
-        refresh,
       );
       setBatchApplyResult(result);
-      notify(refresh ? '批量刷新已完成' : '批量应用已完成', result.status === 'failed' ? 'error' : 'success');
+      notify('批量配置已完成', result.status === 'failed' ? 'error' : 'success');
       await refreshAll();
     } catch (error: any) {
-      notify(`批量应用 LLM 配置失败: ${error?.message || error}`, 'error');
-    } finally {
-      setLlmBusy('');
-    }
-  };
-
-  const batchClearProvider = async () => {
-    if (selectedAgents.length === 0) {
-      notify('请先选择至少一个 AI Agent', 'error');
-      return;
-    }
-    const confirmed = await showConfirm({
-      title: '批量清除 LLM 映射',
-      message: `确认清除已选 ${selectedAgents.length} 个 AI Agent 的 LLM 映射？将移除每个 Agent 已注入环境变量并清空绑定信息。`,
-      confirmText: '确认清除',
-      cancelText: '取消',
-      danger: true,
-    });
-    if (!confirmed) return;
-
-    setLlmBusy('clear-batch');
-    try {
-      const results = await Promise.all(
-        selectedAgents.map(async (agent) => {
-          const mappedKeys = Array.isArray(agent.llm_provider_mapped_env_keys) ? agent.llm_provider_mapped_env_keys : [];
-          try {
-            const envPayload = await api.environment.getAiHelperAgentEnv(projectId, agent.agent_key, agent.service_name, agent.agent_id);
-            const currentEnv = { ...(envPayload?.env || {}) };
-            mappedKeys.forEach((key) => delete currentEnv[String(key)]);
-
-            await api.environment.updateAiHelperAgent(projectId, agent.agent_key, agent.service_name, agent.agent_id, {
-              backend_type: agent.backend_type,
-              command: agent.command || agent.backend_type,
-              args: Array.isArray(agent.args) ? agent.args : [],
-              cwd: agent.cwd || undefined,
-              env: currentEnv,
-              enabled: !!agent.enabled,
-              description: agent.description || '',
-              llm_provider_key: null,
-              llm_provider_snapshot: null,
-              llm_provider_applied_at: null,
-              llm_provider_mapped_env_keys: [],
-            });
-            return {
-              agent_key: agent.agent_key,
-              service_name: agent.service_name,
-              agent_id: agent.agent_id,
-              success: true,
-            };
-          } catch (error: any) {
-            return {
-              agent_key: agent.agent_key,
-              service_name: agent.service_name,
-              agent_id: agent.agent_id,
-              success: false,
-              error: error?.message || String(error),
-            };
-          }
-        }),
-      );
-
-      const successCount = results.filter((item) => item.success).length;
-      const batchResult: AiAgentLlmBatchApplyResult = {
-        project_id: projectId,
-        provider_key: '',
-        refresh: false,
-        status: successCount === results.length ? 'completed' : successCount === 0 ? 'failed' : 'partial',
-        total: results.length,
-        success_count: successCount,
-        results,
-      };
-      setBatchApplyResult(batchResult);
-      notify(
-        successCount === results.length
-          ? `批量清除完成（${successCount}/${results.length}）`
-          : `批量清除部分完成（${successCount}/${results.length}）`,
-        successCount === results.length ? 'success' : 'warning',
-      );
-      await refreshAll();
-    } catch (error: any) {
-      notify(`批量清除 LLM 映射失败: ${error?.message || error}`, 'error');
+      notify(`批量配置AI Agent失败: ${error?.message || error}`, 'error');
     } finally {
       setLlmBusy('');
     }
@@ -1806,7 +1811,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-700"
                 >
                   <WandSparkles size={15} />
-                  批量 LLM 应用
+                  批量配置AI Agent
                 </button>
                 <button onClick={() => void refreshAll()} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
                   <RefreshCw size={16} />
@@ -1828,32 +1833,141 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                 <select value={runningFilter} onChange={(e) => setRunningFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">Running 全部</option><option value="true">运行中</option><option value="false">已停止</option></select>
                 <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm"><option value="">Active 全部</option><option value="true">已激活</option><option value="false">未激活</option></select>
               </div>
-              <div className="flex items-center justify-between gap-3 xl:justify-end">
-                <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                  <input type="checkbox" checked={allFilteredSelected} onChange={(e) => toggleAllFiltered(e.target.checked)} />
+              <div className="flex flex-wrap items-center justify-between gap-3 xl:justify-end">
+                <button
+                  type="button"
+                  onClick={() => toggleAllAgents(true)}
+                  className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${
+                    allAgentsSelected
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  全选全部 AI Agent
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleAllFiltered(!allFilteredSelected)}
+                  className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${
+                    allFilteredSelected
+                      ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
                   全选当前筛选结果
-                </label>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedAgentKeys([])}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                >
+                  清空选择
+                </button>
                 <span className="text-xs text-slate-500">已勾选 {selectedAgentKeys.length} 个</span>
               </div>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="mt-5">
               {loading ? (
                 <div className="col-span-full flex items-center gap-2 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div>
               ) : filteredAgents.length === 0 ? (
                 <div className="col-span-full"><EmptyState text="当前筛选条件下没有 AI Agent。" /></div>
-              ) : groupedFilteredAgents.map((group) => (
-                <NodeCompactRow
-                  key={group.node}
-                  node={group.node}
-                  items={group.items}
-                  selectedKey={selectedKey}
-                  selectedAgentKeys={selectedAgentKeys}
-                  providerUpdatedAtMap={providerUpdatedAtMap}
-                  onSelect={(agent) => setSelectedKey(buildAgentKey(agent))}
-                  onCheck={(agent, checked) => toggleAgentSelection(agent, checked)}
-                />
-              ))}
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                  <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-50">
+                      <tr className="text-left text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                        <th className="px-3 py-3 w-12">选</th>
+                        <th className="px-3 py-3">Agent ID</th>
+                        <th className="px-3 py-3">节点</th>
+                        <th className="px-3 py-3">Helper Service</th>
+                        <th className="px-3 py-3">Backend</th>
+                        <th className="px-3 py-3">Installed / Running / Active</th>
+                        <th className="px-3 py-3">Health</th>
+                        <th className="px-3 py-3">LLM</th>
+                        <th className="px-3 py-3">更新时间</th>
+                        <th className="px-3 py-3 text-right">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {sortedFilteredAgents.map((agent) => {
+                        const key = buildAgentKey(agent);
+                        const isSelected = selectedKey === key;
+                        const isChecked = selectedAgentKeys.includes(key);
+                        const llmStatus = getLlmBindingStatus(agent, providerUpdatedAtMap);
+                        return (
+                          <tr
+                            key={key}
+                            onClick={() => setSelectedKey(key)}
+                            className={`cursor-pointer transition-colors hover:bg-slate-50 ${isSelected ? 'bg-cyan-50/60' : ''}`}
+                          >
+                            <td className="px-3 py-3">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onClick={(event) => event.stopPropagation()}
+                                onChange={(event) => toggleAgentSelection(agent, event.target.checked)}
+                              />
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                              <div className="max-w-[220px] truncate font-semibold text-slate-800" title={agent.agent_id}>
+                                {agent.agent_id || '-'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                              <div className="max-w-[180px] truncate text-slate-700" title={agent.agent_hostname || agent.agent_key}>
+                                {agent.agent_hostname || agent.agent_key || '-'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                              <div className="max-w-[240px] truncate text-slate-700" title={agent.service_name}>
+                                {agent.service_name || '-'}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                              <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
+                                {backendTypeIcon(agent.backend_type)}
+                                <span>{agent.backend_type || '-'}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${agent.installed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>I</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${agent.running ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>R</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${agent.active ? 'border-cyan-200 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>A</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                              <div className="inline-flex items-center gap-2 text-xs text-slate-700">
+                                <span className={`h-2 w-2 rounded-full ${healthDotTone(agent.health_status)}`} />
+                                <span>{agent.health_status || 'unknown'}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 align-top">
+                              <LlmStatusBadge status={llmStatus} />
+                            </td>
+                            <td className="px-3 py-3 align-top text-xs text-slate-600">
+                              {formatTimestamp(agent.updated_at || '')}
+                            </td>
+                            <td className="px-3 py-3 align-top text-right">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setSelectedKey(key);
+                                }}
+                                className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                              >
+                                详情
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -1926,16 +2040,14 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
 
       {showBatchLlmModal ? (
         <BatchLlmApplyModal
+          projectId={projectId}
           selectedAgents={selectedAgents}
           providerOptions={llmProviders}
-          selectedProviderKey={batchProviderKey}
-          onProviderChange={setBatchProviderKey}
-          providerDetail={batchProviderDetail}
           llmBusy={llmBusy}
           result={batchApplyResult}
+          notify={notify}
           onClose={() => setShowBatchLlmModal(false)}
-          onApply={batchApplyProvider}
-          onClear={batchClearProvider}
+          onSubmit={batchConfigureAgents}
         />
       ) : null}
     </>

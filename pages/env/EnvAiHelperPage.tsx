@@ -109,11 +109,11 @@ export const EnvAiHelperPage: React.FC<{ projectId: string; initialHelperKey?: s
         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
           <div className="mb-4">
             <button
-              onClick={() => navigateToAppView('env-ai-agent-overview')}
+              onClick={() => navigateToAppView('env-ai-agent-manage')}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               <ArrowLeft size={16} />
-              返回 AI Agent 总览
+              返回 AI Agent 管理
             </button>
           </div>
           <div className="flex items-center justify-between gap-4 flex-wrap">

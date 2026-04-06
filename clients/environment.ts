@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress, fetchWithRetry } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics } from '../types/types';
 import { trackUploadTask } from '../services/uploadCenter';
 
 const normalizeTask = (raw: any): AsyncTask => ({
@@ -444,6 +444,35 @@ export const environmentApi = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ project_id: projectId, provider_key: providerKey, targets, refresh }),
+    })),
+
+  getAiAgentLlmConfig: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    agentId: string,
+  ): Promise<any> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/agent/ai-agents/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/${encodeURIComponent(agentId)}/config?project_id=${encodeURIComponent(projectId)}`,
+      { headers: getHeaders() }
+    )),
+
+  batchConfigureAiAgents: async (
+    projectId: string,
+    draft: AiAgentLlmConfigDraft,
+    targets: Array<{ agent_key: string; service_name: string; agent_id: string }>,
+  ): Promise<AiAgentBatchConfigureResult> =>
+    handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents/configure/batch`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        project_id: projectId,
+        provider_keys: draft.provider_keys,
+        env_overrides: draft.env_overrides || {},
+        file_overrides: draft.file_overrides || [],
+        merge_strategy: draft.merge_strategy || 'overwrite',
+        targets,
+      }),
     })),
 
   getAiHelperDetail: async (projectId: string, agentKey: string, serviceName: string): Promise<AiHelperService> =>

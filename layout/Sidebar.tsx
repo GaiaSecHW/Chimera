@@ -236,7 +236,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               label: 'AI Agent管理',
               icon: <Bot size={14} />,
               children: [
-                { id: 'env-ai-agent-overview', label: 'AI Agent 总览', icon: <Activity size={12} /> },
                 { id: 'env-ai-agent-manage', label: 'AI Agent 管理', icon: <Bot size={12} /> },
                 { id: 'env-ai-session', label: '单会话', icon: <MessageSquare size={12} /> },
                 { id: 'env-ai-batch-session', label: '批量会话', icon: <GitBranch size={12} /> },

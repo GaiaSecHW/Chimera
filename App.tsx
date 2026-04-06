@@ -34,8 +34,6 @@ import { EnvAgentPage } from './pages/env/EnvAgentPage';
 import { EnvTemplatePage } from './pages/env/EnvTemplatePage';
 import { EnvTasksPage } from './pages/env/EnvTasksPage';
 import { ServiceMgmtPage } from './pages/env/ServiceMgmtPage';
-import { EnvAiAgentPage } from './pages/env/EnvAiAgentPage';
-import { EnvAiAgentOverviewPage } from './pages/env/EnvAiAgentOverviewPage';
 import { EnvAiHelperPage } from './pages/env/EnvAiHelperPage';
 import { EnvAiAgentManagePage } from './pages/env/EnvAiAgentManagePage';
 import { EnvAiAgentSessionManagePage } from './pages/env/EnvAiAgentSessionManagePage';
@@ -92,7 +90,7 @@ import { canAccessView, getUserAccess, getUserCenterDefaultView } from './utils/
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
 
 const PROJECT_REQUIRED_VIEWS = new Set<string>([
-  'env-agent', 'env-service', 'env-ai-agent', 'env-ai-agent-overview', 'env-ai-helper', 'env-ai-agent-manage', 'env-ai-agent-session-manage', 'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
+  'env-agent', 'env-service', 'env-ai-agent', 'env-ai-helper', 'env-ai-agent-manage', 'env-ai-agent-session-manage', 'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
   'system-analysis-overview', 'system-analysis-task', 'system-analysis-history', 'system-analysis-prompt',
   'workflow-apps', 'workflow-app-detail',
   'workflow-app-instances', 'workflow-app-instance-detail',
@@ -401,8 +399,9 @@ const App: React.FC = () => {
       
       case 'env-agent': return <EnvAgentPage projectId={selectedProjectId} />;
       case 'env-service': return <ServiceMgmtPage projectId={selectedProjectId} />;
-      case 'env-ai-agent': return <EnvAiAgentPage projectId={selectedProjectId} />;
-      case 'env-ai-agent-overview': return <EnvAiAgentOverviewPage projectId={selectedProjectId} />;
+      case 'env-ai-agent':
+      case 'env-ai-agent-overview':
+        return <EnvAiAgentManagePage projectId={selectedProjectId} />;
       case 'env-ai-helper': return <EnvAiHelperPage projectId={selectedProjectId} initialHelperKey={activeAiHelperKey} />;
       case 'env-ai-agent-manage': return <EnvAiAgentManagePage projectId={selectedProjectId} />;
       case 'env-ai-agent-session-manage': return <EnvAiAgentSessionManagePage projectId={selectedProjectId} />;

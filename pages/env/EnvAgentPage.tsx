@@ -1161,7 +1161,17 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                           <Server size={22} />
                         </div>
                         <div>
-                          <span className="text-sm font-black text-slate-800 group-hover:text-blue-600 transition-colors">{agent.hostname}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAgentClick(agent.key);
+                            }}
+                            className="text-sm font-black text-slate-800 group-hover:text-blue-600 hover:text-blue-600 transition-colors underline decoration-dotted underline-offset-2"
+                            title="查看 Agent 详情"
+                          >
+                            {agent.hostname || agent.key}
+                          </button>
                           <div className="flex items-center gap-1.5 mt-0.5">
                              <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
