@@ -1322,6 +1322,7 @@ export interface ProcessSyncCandidateTreeNode {
   name: string;
   path: string;
   type: 'dir' | 'file';
+  has_children?: boolean;
   children?: ProcessSyncCandidateTreeNode[];
 }
 

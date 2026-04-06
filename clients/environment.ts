@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress, fetchWithRetry } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics, ProcessMonitorNode, ProcessItem, ProcessSyncTaskHistoryItem } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics, ProcessMonitorNode, ProcessItem, ProcessSyncCandidateTreeNode, ProcessSyncTaskHistoryItem } from '../types/types';
 import { trackUploadTask } from '../services/uploadCenter';
 
 const normalizeTask = (raw: any): AsyncTask => ({
@@ -430,6 +430,24 @@ export const environmentApi = {
       `${API_BASE}/api/agent/process-monitor/nodes/${encodeURIComponent(agentKey)}/services/${encodeURIComponent(serviceName)}/processes/${pid}/sync-candidates?project_id=${encodeURIComponent(projectId)}`,
       { headers: getHeaders() }
     )),
+
+  getNodeFilesystemTree: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    params: { path?: string; include_hidden?: boolean; limit?: number } = {}
+  ): Promise<{ path: string; total: number; items: ProcessSyncCandidateTreeNode[]; truncated?: boolean }> => {
+    const query = new URLSearchParams({
+      project_id: projectId,
+      path: params.path || '/',
+      include_hidden: params.include_hidden ? 'true' : 'false',
+      limit: String(params.limit || 500),
+    }).toString();
+    return handleResponse(await fetch(
+      `${API_BASE}/api/agent/process-monitor/nodes/${encodeURIComponent(agentKey)}/services/${encodeURIComponent(serviceName)}/filesystem/tree?${query}`,
+      { headers: getHeaders() }
+    ));
+  },
 
   createProcessMonitorSyncTask: async (payload: {
     project_id: string;

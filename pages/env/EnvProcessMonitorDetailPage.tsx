@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CheckSquare, FolderTree, Loader2, RefreshCw, Server, Square, UploadCloud } from 'lucide-react';
+import { CheckSquare, ChevronRight, FolderTree, Loader2, RefreshCw, Server, Square, UploadCloud } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ProcessItem, ProcessMonitorNode, ProcessSyncCandidateTreeNode } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 type ProcessTreeNode = ProcessItem & { children: ProcessTreeNode[] };
+type FileTreeNode = ProcessSyncCandidateTreeNode & { loaded?: boolean };
 type ContextMenuState =
   | { type: 'process'; x: number; y: number; pid: number }
   | { type: 'path'; x: number; y: number; path: string; nodeType: 'dir' | 'file' }
@@ -70,24 +71,57 @@ const ProcessTreeView: React.FC<{
 };
 
 const PathTreeView: React.FC<{
-  nodes: ProcessSyncCandidateTreeNode[];
+  nodes: FileTreeNode[];
+  expandedPaths: Set<string>;
+  loadingPaths: Set<string>;
+  onToggleDir: (path: string) => void;
   onContext: (event: React.MouseEvent, path: string, nodeType: 'dir' | 'file') => void;
-}> = ({ nodes, onContext }) => {
-  const renderNode = (node: ProcessSyncCandidateTreeNode, depth = 0): React.ReactNode => (
+}> = ({ nodes, expandedPaths, loadingPaths, onToggleDir, onContext }) => {
+  const renderNode = (node: FileTreeNode, depth = 0): React.ReactNode => (
     <div key={node.path}>
       <div
         className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-default"
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
+        onClick={() => {
+          if (node.type === 'dir') onToggleDir(node.path);
+        }}
         onContextMenu={(event) => onContext(event, node.path, node.type)}
       >
+        {node.type === 'dir' ? (
+          <button
+            type="button"
+            className="text-slate-500 hover:text-blue-600"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleDir(node.path);
+            }}
+          >
+            <ChevronRight
+              size={14}
+              className={`transition-transform ${expandedPaths.has(node.path) ? 'rotate-90' : ''}`}
+            />
+          </button>
+        ) : (
+          <span className="inline-block w-[14px]" />
+        )}
         <span className="text-[11px] uppercase text-slate-400">{node.type}</span>
         <span className="text-sm text-slate-700">{node.name}</span>
+        {loadingPaths.has(node.path) ? <Loader2 size={12} className="animate-spin text-blue-600" /> : null}
       </div>
-      {(node.children || []).map((child) => renderNode(child, depth + 1))}
+      {node.type === 'dir' && expandedPaths.has(node.path) ? (node.children || []).map((child) => renderNode(child, depth + 1)) : null}
     </div>
   );
   return <div className="space-y-0.5">{nodes.map((node) => renderNode(node))}</div>;
 };
+
+const attachChildren = (nodes: FileTreeNode[], targetPath: string, children: FileTreeNode[]): FileTreeNode[] =>
+  nodes.map((node) => {
+    if (node.path === targetPath) {
+      return { ...node, children, loaded: true, has_children: children.length > 0 };
+    }
+    if (!node.children || node.children.length === 0) return node;
+    return { ...node, children: attachChildren(node.children as FileTreeNode[], targetPath, children) };
+  });
 
 export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
@@ -97,9 +131,10 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
   const [processes, setProcesses] = useState<ProcessItem[]>([]);
   const [selectedServiceKey, setSelectedServiceKey] = useState('');
   const [selectedPids, setSelectedPids] = useState<Set<number>>(new Set());
-  const [focusedPid, setFocusedPid] = useState<number | null>(null);
-  const [candidateTree, setCandidateTree] = useState<ProcessSyncCandidateTreeNode[]>([]);
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set(['/']));
+  const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set());
   const [subprojectId, setSubprojectId] = useState(1);
   const [leftPaneWidth, setLeftPaneWidth] = useState(40);
   const [menu, setMenu] = useState<ContextMenuState>(null);
@@ -155,26 +190,42 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
     }
   };
 
-  const loadCandidates = async (pid: number | null) => {
-    if (!projectId || !selectedService || !pid) {
-      setCandidateTree([]);
-      return;
-    }
-    setLoadingCandidates(true);
+  const loadDirectory = async (path: string, force = false) => {
+    if (!projectId || !selectedService) return;
+    if (path === '/') setLoadingFiles(true);
+    setLoadingPaths((prev) => new Set(prev).add(path));
     try {
-      const data = await api.environment.getNodeProcessSyncCandidates(
+      const data = await api.environment.getNodeFilesystemTree(
         projectId,
         selectedService.agent_key,
         selectedService.service_name,
-        pid,
+        { path, limit: 600 },
       );
-      setCandidateTree(Array.isArray(data?.tree) ? data.tree : []);
+      const children = (Array.isArray(data?.items) ? data.items : []).map((item: ProcessSyncCandidateTreeNode) => ({
+        ...item,
+        children: [],
+        loaded: false,
+      })) as FileTreeNode[];
+      if (path === '/' || force) {
+        setFileTree((prev) => {
+          if (!prev.length || force) {
+            return [{ name: '/', path: '/', type: 'dir', has_children: true, loaded: true, children }];
+          }
+          return attachChildren(prev, path, children);
+        });
+      } else {
+        setFileTree((prev) => attachChildren(prev, path, children));
+      }
     } catch (error) {
       console.error(error);
-      notify('加载进程文件树失败', 'error');
-      setCandidateTree([]);
+      notify(`加载目录失败: ${path}`, 'error');
     } finally {
-      setLoadingCandidates(false);
+      if (path === '/') setLoadingFiles(false);
+      setLoadingPaths((prev) => {
+        const next = new Set(prev);
+        next.delete(path);
+        return next;
+      });
     }
   };
 
@@ -184,14 +235,13 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
 
   useEffect(() => {
     setSelectedPids(new Set());
-    setFocusedPid(null);
-    setCandidateTree([]);
-    if (selectedService) void loadProcesses();
+    setExpandedPaths(new Set(['/']));
+    setFileTree([]);
+    if (selectedService) {
+      void loadProcesses();
+      void loadDirectory('/', true);
+    }
   }, [selectedServiceKey, projectId]);
-
-  useEffect(() => {
-    void loadCandidates(focusedPid);
-  }, [focusedPid, selectedServiceKey, projectId]);
 
   useEffect(() => {
     const onMouseMove = (event: MouseEvent) => {
@@ -324,16 +374,38 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
               <div style={{ width: `${leftPaneWidth}%` }} className="h-full border-r border-slate-100 overflow-auto">
                 <div className="sticky top-0 bg-white border-b border-slate-100 px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                   <FolderTree size={14} />
-                  进程文件树 {focusedPid ? `(PID ${focusedPid})` : ''}
+                  全局文件系统树
                 </div>
                 <div className="p-2">
-                  {loadingCandidates ? (
+                  {loadingFiles ? (
                     <div className="py-10 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></div>
-                  ) : candidateTree.length === 0 ? (
-                    <div className="py-10 text-center text-sm text-slate-400">请选择一个进程查看文件树</div>
+                  ) : fileTree.length === 0 ? (
+                    <div className="py-10 text-center text-sm text-slate-400">暂无文件系统数据</div>
                   ) : (
                     <PathTreeView
-                      nodes={candidateTree}
+                      nodes={fileTree}
+                      expandedPaths={expandedPaths}
+                      loadingPaths={loadingPaths}
+                      onToggleDir={(path) => {
+                        setExpandedPaths((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(path)) next.delete(path);
+                          else next.add(path);
+                          return next;
+                        });
+                        const scan = (items: FileTreeNode[]): FileTreeNode | null => {
+                          for (const item of items) {
+                            if (item.path === path) return item;
+                            if (item.children && item.children.length) {
+                              const hit = scan(item.children as FileTreeNode[]);
+                              if (hit) return hit;
+                            }
+                          }
+                          return null;
+                        };
+                        const current = scan(fileTree);
+                        if (current?.type === 'dir' && !current.loaded) void loadDirectory(path);
+                      }}
                       onContext={(event, path, nodeType) => {
                         event.preventDefault();
                         setMenu({ type: 'path', x: event.clientX, y: event.clientY, path, nodeType });
@@ -362,10 +434,9 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
                       nodes={treeNodes}
                       selectedPids={selectedPids}
                       onTogglePid={togglePid}
-                      onFocusPid={(pid) => setFocusedPid(pid)}
+                      onFocusPid={(_pid) => undefined}
                       onContext={(event, pid) => {
                         event.preventDefault();
-                        setFocusedPid(pid);
                         setMenu({ type: 'process', x: event.clientX, y: event.clientY, pid });
                       }}
                     />
