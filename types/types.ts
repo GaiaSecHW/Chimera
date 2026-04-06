@@ -1272,6 +1272,7 @@ export interface AgentService {
   image: string;
   template_id?: number | null;
   template_name?: string;
+  template_tags?: string[];
   status: string;
   ports: Record<string, string>;
   agent_key?: string;

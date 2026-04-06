@@ -465,10 +465,12 @@ const BatchLlmApplyModal: React.FC<{
   onClose,
   onSubmit,
 }) => {
+  const initializedDefaultProviderRef = useRef(false);
   const [activeTab, setActiveTab] = useState<'providers' | 'env' | 'files' | 'submit'>('providers');
   const [selectedProviderKeys, setSelectedProviderKeys] = useState<string[]>([]);
   const [providerToAdd, setProviderToAdd] = useState('');
   const [providerDetailsMap, setProviderDetailsMap] = useState<Record<string, AiAgentLlmProviderDetail>>({});
+  const [pendingProviderDraftApply, setPendingProviderDraftApply] = useState<string[]>([]);
   const [mergeStrategy, setMergeStrategy] = useState<'overwrite' | 'merge'>('overwrite');
   const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
   const [fileEntries, setFileEntries] = useState<FileEntry[]>([]);
@@ -480,8 +482,9 @@ const BatchLlmApplyModal: React.FC<{
     if (!providerToAdd && fallback) {
       setProviderToAdd(fallback);
     }
-    if (selectedProviderKeys.length > 0) return;
-    if (fallback) setSelectedProviderKeys([fallback]);
+    if (!initializedDefaultProviderRef.current) {
+      initializedDefaultProviderRef.current = true;
+    }
   }, [providerOptions, providerToAdd, selectedProviderKeys.length]);
 
   useEffect(() => {
@@ -502,14 +505,189 @@ const BatchLlmApplyModal: React.FC<{
     return () => { cancelled = true; };
   }, [projectId, firstBackendType, selectedProviderKeys, providerDetailsMap, notify]);
 
+  const applyProviderDefaultsToDraft = (providerKey: string, detail: AiAgentLlmProviderDetail) => {
+    setEnvEntries((prev) => {
+      const envMap = new Map<string, EnvEntry>();
+      prev.forEach((entry) => {
+        const key = String(entry.key || '').trim();
+        if (!key) return;
+        envMap.set(key, entry);
+      });
+      Object.entries(detail.env_bindings || {}).forEach(([rawKey, rawValue]) => {
+        const key = String(rawKey || '').trim();
+        if (!key) return;
+        const value = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+        const existing = envMap.get(key);
+        if (existing) {
+          envMap.set(key, { ...existing, value });
+        } else {
+          envMap.set(key, createEnvEntry(key, value));
+        }
+      });
+      return Array.from(envMap.values());
+    });
+
+    setFileEntries((prev) => {
+      const fileMap = new Map<string, FileEntry>();
+      prev.forEach((entry) => {
+        const path = String(entry.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, entry);
+      });
+      (detail.file_bindings || []).forEach((item, idx) => {
+        if (!item?.enabled) return;
+        const path = String(item.path || '').trim();
+        if (!path) return;
+        const next = createFileEntry({
+          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
+          path,
+          content: String(item.content || ''),
+          format: String(item.format || 'other'),
+          enabled: true,
+          provider_key: providerKey,
+        });
+        const existing = fileMap.get(path);
+        if (existing) {
+          fileMap.set(path, { ...existing, ...next, id: existing.id, path });
+        } else {
+          fileMap.set(path, next);
+        }
+      });
+      return Array.from(fileMap.values());
+    });
+  };
+
+  const buildProviderDefaultsByKeys = (providerKeys: string[]) => {
+    const envMap = new Map<string, { value: string; provider_key: string }>();
+    const fileMap = new Map<string, Omit<FileEntry, 'id'>>();
+
+    providerKeys.forEach((providerKey) => {
+      const detail = providerDetailsMap[providerKey];
+      if (!detail) return;
+
+      Object.entries(detail.env_bindings || {}).forEach(([rawKey, rawValue]) => {
+        const key = String(rawKey || '').trim();
+        if (!key) return;
+        envMap.set(key, {
+          value: rawValue === undefined || rawValue === null ? '' : String(rawValue),
+          provider_key: providerKey,
+        });
+      });
+
+      (detail.file_bindings || []).forEach((item, idx) => {
+        if (!item?.enabled) return;
+        const path = String(item.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, {
+          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
+          path,
+          content: String(item.content || ''),
+          format: String(item.format || 'other'),
+          enabled: true,
+          provider_key: providerKey,
+        });
+      });
+    });
+
+    return { envMap, fileMap };
+  };
+
+  const isFileEntryEquivalent = (entry: FileEntry, expected: Omit<FileEntry, 'id'>) => {
+    return String(entry.path || '').trim() === String(expected.path || '').trim()
+      && String(entry.name || '') === String(expected.name || '')
+      && String(entry.content || '') === String(expected.content || '')
+      && String(entry.format || '') === String(expected.format || '')
+      && Boolean(entry.enabled) === Boolean(expected.enabled)
+      && String(entry.provider_key || '') === String(expected.provider_key || '');
+  };
+
   const addProvider = () => {
     const key = String(providerToAdd || '').trim();
     if (!key) return;
-    setSelectedProviderKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+    const exists = selectedProviderKeys.includes(key);
+    if (!exists) {
+      setSelectedProviderKeys((prev) => [...prev, key]);
+    }
+    const detail = providerDetailsMap[key];
+    if (detail) {
+      applyProviderDefaultsToDraft(key, detail);
+      return;
+    }
+    setPendingProviderDraftApply((prev) => (prev.includes(key) ? prev : [...prev, key]));
   };
 
   const removeProvider = (providerKey: string) => {
-    setSelectedProviderKeys((prev) => prev.filter((item) => item !== providerKey));
+    const prevKeys = [...selectedProviderKeys];
+    if (!prevKeys.includes(providerKey)) return;
+    const remainKeys = prevKeys.filter((item) => item !== providerKey);
+
+    setSelectedProviderKeys(remainKeys);
+    setPendingProviderDraftApply((prev) => prev.filter((item) => item !== providerKey));
+
+    const removedDetail = providerDetailsMap[providerKey];
+    if (!removedDetail) return;
+
+    const removedDefaults = buildProviderDefaultsByKeys([providerKey]);
+    const remainDefaults = buildProviderDefaultsByKeys(remainKeys);
+
+    setEnvEntries((prev) => {
+      const envMap = new Map<string, EnvEntry>();
+      prev.forEach((entry) => {
+        const key = String(entry.key || '').trim();
+        if (!key) return;
+        envMap.set(key, entry);
+      });
+
+      removedDefaults.envMap.forEach((removedVal, key) => {
+        const current = envMap.get(key);
+        if (!current) return;
+        const currentValue = String(current.value ?? '');
+        if (currentValue !== removedVal.value) {
+          return;
+        }
+        const remainVal = remainDefaults.envMap.get(key);
+        if (remainVal) {
+          envMap.set(key, { ...current, value: remainVal.value });
+        } else {
+          envMap.delete(key);
+        }
+      });
+
+      return Array.from(envMap.values());
+    });
+
+    setFileEntries((prev) => {
+      const fileMap = new Map<string, FileEntry>();
+      prev.forEach((entry) => {
+        const path = String(entry.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, entry);
+      });
+
+      removedDefaults.fileMap.forEach((removedFile, path) => {
+        const current = fileMap.get(path);
+        if (!current) return;
+        if (!isFileEntryEquivalent(current, removedFile)) {
+          return;
+        }
+        const remainFile = remainDefaults.fileMap.get(path);
+        if (remainFile) {
+          fileMap.set(path, {
+            ...current,
+            name: remainFile.name,
+            path: remainFile.path,
+            content: remainFile.content,
+            format: remainFile.format,
+            enabled: remainFile.enabled,
+            provider_key: remainFile.provider_key,
+          });
+        } else {
+          fileMap.delete(path);
+        }
+      });
+
+      return Array.from(fileMap.values());
+    });
   };
 
   const moveProvider = (index: number, offset: number) => {
@@ -524,32 +702,17 @@ const BatchLlmApplyModal: React.FC<{
     });
   };
 
-  const rebuildDraftFromProviders = () => {
-    const mergedEnv: Record<string, string> = {};
-    const fileMap = new Map<string, FileEntry>();
-    selectedProviderKeys.forEach((providerKey) => {
+  useEffect(() => {
+    if (pendingProviderDraftApply.length === 0) return;
+    const resolved = pendingProviderDraftApply.filter((providerKey) => !!providerDetailsMap[providerKey]);
+    if (resolved.length === 0) return;
+    resolved.forEach((providerKey) => {
       const detail = providerDetailsMap[providerKey];
       if (!detail) return;
-      Object.entries(detail.env_bindings || {}).forEach(([key, value]) => {
-        mergedEnv[String(key)] = value === undefined || value === null ? '' : String(value);
-      });
-      (detail.file_bindings || []).forEach((item, idx) => {
-        if (!item?.enabled) return;
-        const path = String(item.path || '').trim();
-        if (!path) return;
-        fileMap.set(path, createFileEntry({
-          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
-          path,
-          content: String(item.content || ''),
-          format: String(item.format || 'other'),
-          enabled: true,
-          provider_key: providerKey,
-        }));
-      });
+      applyProviderDefaultsToDraft(providerKey, detail);
     });
-    setEnvEntries(Object.entries(mergedEnv).map(([key, value]) => createEnvEntry(key, value)));
-    setFileEntries(Array.from(fileMap.values()));
-  };
+    setPendingProviderDraftApply((prev) => prev.filter((providerKey) => !resolved.includes(providerKey)));
+  }, [pendingProviderDraftApply, providerDetailsMap]);
 
   const providerPreview = useMemo(() => {
     const mergedEnv: Array<{ key: string; value: string; provider_key: string }> = [];
@@ -587,11 +750,26 @@ const BatchLlmApplyModal: React.FC<{
     };
   }, [selectedProviderKeys, providerDetailsMap]);
 
+  const submitEnvPreview = useMemo(() => {
+    return Object.entries(envEntriesToObject(envEntries))
+      .map(([key, value]) => ({ key, value }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+  }, [envEntries]);
+
+  const submitFilePreview = useMemo(() => {
+    return fileEntries
+      .map((item) => ({
+        name: item.name,
+        path: item.path,
+        content: item.content,
+        format: item.format,
+        enabled: item.enabled,
+        provider_key: item.provider_key || undefined,
+      }))
+      .filter((item) => String(item.path || '').trim() && typeof item.content === 'string');
+  }, [fileEntries]);
+
   const submit = async () => {
-    if (selectedProviderKeys.length === 0) {
-      notify('请至少选择一个 Provider', 'error');
-      return;
-    }
     const draft: AiAgentLlmConfigDraft = {
       provider_keys: selectedProviderKeys,
       merge_strategy: mergeStrategy,
@@ -716,9 +894,6 @@ const BatchLlmApplyModal: React.FC<{
                   );
                 })}
               </div>
-              <button type="button" onClick={rebuildDraftFromProviders} disabled={selectedProviderKeys.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">
-                从 Provider 重建草稿
-              </button>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">本次即将添加预览</div>
                 <div className="mt-2 text-xs text-slate-600">环境变量 {providerPreview.env.length} 项 · 文件注入 {providerPreview.files.length} 项</div>
@@ -780,14 +955,29 @@ const BatchLlmApplyModal: React.FC<{
                 {fileEntries.map((entry) => (
                   <div key={entry.id} className="rounded-xl border border-slate-200 p-3">
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                      <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="name" />
-                      <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="path" />
-                      <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="format" />
-                      <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                      <label className="text-xs text-slate-600">
+                        <div className="mb-1 font-semibold text-slate-700">名称（name）</div>
+                        <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: claude-config" />
+                      </label>
+                      <label className="text-xs text-slate-600">
+                        <div className="mb-1 font-semibold text-slate-700">注入路径（path）</div>
+                        <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: /etc/agent/config.json" />
+                      </label>
+                      <label className="text-xs text-slate-600">
+                        <div className="mb-1 font-semibold text-slate-700">格式（format）</div>
+                        <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="json/yaml/env/other" />
+                      </label>
+                      <label className="text-xs text-slate-600">
+                        <div className="mb-1 font-semibold text-slate-700">来源 Provider（可选）</div>
+                        <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                      </label>
                     </div>
-                    <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="mt-2 w-full rounded border border-slate-200 px-2 py-1 text-xs font-mono" placeholder="content" />
+                    <label className="mt-2 block text-xs text-slate-600">
+                      <div className="mb-1 font-semibold text-slate-700">文件内容（content）</div>
+                      <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="w-full rounded border border-slate-200 px-2 py-1 text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
+                    </label>
                     <div className="mt-2 flex items-center justify-between">
-                      <label className="inline-flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />enabled</label>
+                      <label className="inline-flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
                       <button type="button" onClick={() => setFileEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
                     </div>
                   </div>
@@ -806,6 +996,38 @@ const BatchLlmApplyModal: React.FC<{
                 </div>
               </div>
               <div className="text-xs text-slate-500">Provider: {selectedProviderKeys.length}，Env: {envEntries.length}，Files: {fileEntries.length}</div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">最终配置注入预览（只读）</div>
+                <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 bg-white p-2">
+                    <div className="text-xs font-black text-slate-700">环境变量（{submitEnvPreview.length}）</div>
+                    <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
+                      {submitEnvPreview.length === 0 ? (
+                        <div className="text-[11px] text-slate-400">暂无</div>
+                      ) : submitEnvPreview.map((item) => (
+                        <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-slate-800">{item.key}</div>
+                          <div className="break-all text-slate-600">{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-2">
+                    <div className="text-xs font-black text-slate-700">文件注入（{submitFilePreview.length}）</div>
+                    <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
+                      {submitFilePreview.length === 0 ? (
+                        <div className="text-[11px] text-slate-400">暂无</div>
+                      ) : submitFilePreview.map((item, index) => (
+                        <div key={`${item.path}-${index}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                          <div className="font-semibold text-slate-800">{item.path}</div>
+                          <div className="text-slate-600">名称: {item.name || '-'} · 格式: {item.format || '-'} · 启用: {item.enabled ? '是' : '否'}</div>
+                          <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
               <button type="button" onClick={() => void submit()} disabled={llmBusy === 'configure-batch' || selectedAgents.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
                 {llmBusy === 'configure-batch' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 确定配置并下发

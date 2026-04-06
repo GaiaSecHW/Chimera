@@ -1306,6 +1306,30 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                     >
                       {svc.template_id ? `#${svc.template_id}` : '-'} / {svc.template_name || '未识别'}
                     </div>
+                    {(() => {
+                      const templateTags = Array.isArray(svc.template_tags)
+                        ? svc.template_tags.map((item: any) => String(item || '').trim()).filter(Boolean)
+                        : [];
+                      if (templateTags.length === 0) {
+                        return <div className="mt-1 text-[10px] text-slate-400">-</div>;
+                      }
+                      const visible = templateTags.slice(0, 3);
+                      const rest = templateTags.length - visible.length;
+                      return (
+                        <div className="mt-1 flex flex-wrap items-center gap-1" title={templateTags.join(', ')}>
+                          {visible.map((tag: string) => (
+                            <span key={tag} className="rounded-full border border-cyan-200 bg-cyan-50 px-1.5 py-0.5 text-[10px] font-black tracking-wide text-cyan-700">
+                              {tag}
+                            </span>
+                          ))}
+                          {rest > 0 ? (
+                            <span className="rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-600">
+                              +{rest}
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 align-middle">
                     <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
