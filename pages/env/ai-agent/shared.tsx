@@ -76,20 +76,33 @@ export const useAiHelpers = (projectId: string, notify: (message: string, type?:
 export const useProjectAiAgents = (projectId: string, notify: (message: string, type?: any) => void) => {
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState<ProjectAiAgentItem[]>([]);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(100);
+  const [total, setTotal] = useState(0);
 
   const reload = async (
     withSpinner = true,
-    params: { agent_key?: string; health_status?: string; backend_type?: string; installed?: boolean } = {}
+    params: { agent_key?: string; health_status?: string; backend_type?: string; installed?: boolean; page?: number; per_page?: number } = {}
   ) => {
     if (!projectId) {
       setAgents([]);
+      setTotal(0);
       setLoading(false);
       return;
     }
     if (withSpinner) setLoading(true);
     try {
-      const data = await api.environment.listProjectAiAgents(projectId, params);
+      const targetPage = Math.max(1, Number(params.page ?? page) || 1);
+      const targetPerPage = Math.max(1, Math.min(1000, Number(params.per_page ?? perPage) || 100));
+      const data = await api.environment.listProjectAiAgents(projectId, {
+        ...params,
+        page: targetPage,
+        per_page: targetPerPage,
+      });
       setAgents(data.items || []);
+      setTotal(Number(data.total || 0));
+      setPage(Number(data.page || targetPage));
+      setPerPage(Number(data.per_page || targetPerPage));
     } catch (error: any) {
       notify(`加载项目级 AI Agent 列表失败: ${error?.message || error}`, 'error');
     } finally {
@@ -98,10 +111,10 @@ export const useProjectAiAgents = (projectId: string, notify: (message: string, 
   };
 
   useEffect(() => {
-    void reload(true);
-  }, [projectId]);
+    void reload(true, { page, per_page: perPage });
+  }, [projectId, page, perPage]);
 
-  return { loading, agents, reload, setAgents };
+  return { loading, agents, reload, setAgents, page, perPage, total, setPage, setPerPage };
 };
 
 export const groupHelpersByNode = (helpers: AiHelperService[]) => {

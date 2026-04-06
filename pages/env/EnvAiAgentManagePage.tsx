@@ -53,6 +53,33 @@ const buildAgentKey = (item: Pick<ProjectAiAgentItem, 'agent_key' | 'service_nam
 const formatProviderText = (provider?: { display_name?: string | null; provider_key?: string | null } | null) =>
   provider?.display_name || provider?.provider_key || '未绑定';
 
+const getBoundProviderLabels = (
+  agent: Pick<ProjectAiAgentItem, 'llm_provider_key' | 'llm_provider_keys' | 'llm_provider_snapshot' | 'llm_provider_snapshots'>,
+) => {
+  const labels: string[] = [];
+  const seen = new Set<string>();
+  const append = (value?: string | null) => {
+    const text = String(value || '').trim();
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    labels.push(text);
+  };
+
+  const snapshots = Array.isArray(agent.llm_provider_snapshots) ? agent.llm_provider_snapshots : [];
+  snapshots.forEach((item) => {
+    if (!item || typeof item !== 'object') return;
+    append(String((item as any).display_name || (item as any).provider_key || ''));
+  });
+
+  const keys = Array.isArray(agent.llm_provider_keys) ? agent.llm_provider_keys : [];
+  keys.forEach((key) => append(key));
+
+  if (labels.length === 0) {
+    append(formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key }));
+  }
+  return labels.filter((item) => item !== '未绑定');
+};
+
 const formatTimestamp = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(value);
@@ -1560,7 +1587,7 @@ const AgentDetailDrawer: React.FC<{
 export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const { helpers, reload: reloadHelpers } = useAiHelpers(projectId, notify);
-  const { loading, agents, reload } = useProjectAiAgents(projectId, notify);
+  const { loading, agents, reload, page, perPage, total, setPage, setPerPage } = useProjectAiAgents(projectId, notify);
   const [search, setSearch] = useState('');
   const [nodeFilter, setNodeFilter] = useState('');
   const [backendFilter, setBackendFilter] = useState('');
@@ -1598,6 +1625,11 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   const [llmBusy, setLlmBusy] = useState('');
   const [batchApplyResult, setBatchApplyResult] = useState<AiAgentBatchConfigureResult | null>(null);
   const lastSelectedKeyRef = useRef('');
+  const notifyRef = useRef(notify);
+
+  useEffect(() => {
+    notifyRef.current = notify;
+  }, [notify]);
 
   const providerUpdatedAtMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -1662,6 +1694,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   const allFilteredSelected =
     filteredAgents.length > 0 && filteredAgents.every((item) => selectedAgentKeys.includes(buildAgentKey(item)));
   const allAgentsSelected = agents.length > 0 && agents.every((item) => selectedAgentKeys.includes(buildAgentKey(item)));
+  const totalPages = Math.max(1, Math.ceil((Number(total) || 0) / Math.max(1, perPage)));
 
   useEffect(() => {
     if (!createHelperKey && helperOptions.length > 0) {
@@ -1706,19 +1739,26 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   }, [selectedKey, agents, showSingleLlmModal]);
 
   useEffect(() => {
+    let cancelled = false;
     const loadProviders = async () => {
       try {
         const data = await api.environment.listAiAgentLlmProviders(projectId || '');
+        if (cancelled) return;
         const items = data.items || [];
         const fallbackProvider = data.default_provider_key || items[0]?.provider_key || '';
         setLlmProviders(items);
         setSingleProviderKey((current) => current || fallbackProvider);
       } catch (error: any) {
-        notify(`加载 LLM Provider 列表失败: ${error?.message || error}`, 'error');
+        if (!cancelled) {
+          notifyRef.current(`加载 LLM Provider 列表失败: ${error?.message || error}`, 'error');
+        }
       }
     };
     void loadProviders();
-  }, [projectId, notify]);
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2043,9 +2083,14 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
         enabled: !!selectedAgent.enabled,
         description: selectedAgent.description || '',
         llm_provider_key: null,
+        llm_provider_keys: [],
         llm_provider_snapshot: null,
+        llm_provider_snapshots: [],
         llm_provider_applied_at: null,
         llm_provider_mapped_env_keys: [],
+        llm_provider_file_bindings: [],
+        llm_provider_file_backups: [],
+        llm_provider_merge_strategy: 'overwrite',
       });
 
       setSingleProviderKey('');
@@ -2178,6 +2223,8 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   清空选择
                 </button>
                 <span className="text-xs text-slate-500">已勾选 {selectedAgentKeys.length} 个</span>
+                <span className="mx-2 text-slate-300">|</span>
+                <span className="text-xs text-slate-500">总计 {total} 个</span>
               </div>
             </div>
 
@@ -2208,7 +2255,8 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                         const key = buildAgentKey(agent);
                         const isSelected = selectedKey === key;
                         const isChecked = selectedAgentKeys.includes(key);
-                        const llmStatus = getLlmBindingStatus(agent, providerUpdatedAtMap);
+                        const providerLabels = getBoundProviderLabels(agent);
+                        const overflowCount = Math.max(0, providerLabels.length - 2);
                         return (
                           <tr
                             key={key}
@@ -2258,7 +2306,25 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                              <LlmStatusBadge status={llmStatus} />
+                              {providerLabels.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5" title={providerLabels.join(', ')}>
+                                  {providerLabels.slice(0, 2).map((name) => (
+                                    <span
+                                      key={`${key}-${name}`}
+                                      className="inline-flex max-w-[180px] truncate rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-semibold text-cyan-800"
+                                    >
+                                      {name}
+                                    </span>
+                                  ))}
+                                  {overflowCount > 0 ? (
+                                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                                      +{overflowCount}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400">未绑定</span>
+                              )}
                             </td>
                             <td className="px-3 py-3 align-top text-xs text-slate-600">
                               {formatTimestamp(agent.updated_at || '')}
@@ -2282,6 +2348,44 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
                   </table>
                 </div>
               )}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              <div className="flex items-center gap-2">
+                <span>每页</span>
+                <select
+                  value={perPage}
+                  onChange={(event) => {
+                    const next = Math.max(1, Math.min(1000, Number(event.target.value) || 100));
+                    setPerPage(next);
+                    setPage(1);
+                  }}
+                  className="rounded border border-slate-300 px-2 py-1 text-xs"
+                >
+                  {[50, 100, 200, 500, 1000].map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                <span>条</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  className="rounded border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  上一页
+                </button>
+                <span>第 {page} / {totalPages} 页</span>
+                <button
+                  type="button"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  className="rounded border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  下一页
+                </button>
+              </div>
             </div>
           </section>
         </div>

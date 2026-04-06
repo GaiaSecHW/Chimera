@@ -1269,7 +1269,8 @@ export interface K8sResourceList {
 export interface AgentService {
   id: string;
   name: string;
-  image: string;
+  image?: string;
+  image_versions?: string[];
   template_id?: number | null;
   template_name?: string;
   template_tags?: string[];

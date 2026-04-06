@@ -515,14 +515,16 @@ export const environmentApi = {
 
   listProjectAiAgents: async (
     projectId: string,
-    params: { agent_key?: string; health_status?: string; backend_type?: string; installed?: boolean } = {}
-  ): Promise<{ project_id: string; items: ProjectAiAgentItem[]; total: number }> => {
+    params: { agent_key?: string; health_status?: string; backend_type?: string; installed?: boolean; page?: number; per_page?: number } = {}
+  ): Promise<{ project_id: string; page?: number; per_page?: number; items: ProjectAiAgentItem[]; total: number }> => {
     const query = new URLSearchParams({
       project_id: projectId,
       ...(params.agent_key ? { agent_key: params.agent_key } : {}),
       ...(params.health_status ? { health_status: params.health_status } : {}),
       ...(params.backend_type ? { backend_type: params.backend_type } : {}),
       ...(typeof params.installed === 'boolean' ? { installed: params.installed ? 'true' : 'false' } : {}),
+      ...(typeof params.page === 'number' ? { page: String(params.page) } : {}),
+      ...(typeof params.per_page === 'number' ? { per_page: String(params.per_page) } : {}),
     }).toString();
     return handleResponse(await fetch(`${API_BASE}/api/agent/ai-agents?${query}`, { headers: getHeaders() }));
   },

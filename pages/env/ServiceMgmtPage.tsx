@@ -1249,11 +1249,12 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
           <thead className="bg-slate-50/50 border-b border-slate-100">
             <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <th className="w-14 px-4 py-3">选择</th>
-              <th className="w-[24%] px-4 py-3">服务标识</th>
-              <th className="w-[20%] px-4 py-3">服务模板 (ID/名称)</th>
-              <th className="w-[26%] px-4 py-3">承载节点</th>
-              <th className="w-[18%] px-4 py-3">网络暴露</th>
-              <th className="w-[12%] px-4 py-3">状态</th>
+              <th className="w-[20%] px-4 py-3">服务标识</th>
+              <th className="w-[20%] px-4 py-3">服务版本</th>
+              <th className="w-[18%] px-4 py-3">服务模板 (ID/名称)</th>
+              <th className="w-[22%] px-4 py-3">承载节点</th>
+              <th className="w-[12%] px-4 py-3">网络暴露</th>
+              <th className="w-[8%] px-4 py-3">状态</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -1298,6 +1299,30 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                         终端
                       </button>
                     </div>
+                  </td>
+                  <td className="px-4 py-3 align-middle">
+                    {(() => {
+                      const versions = Array.isArray((svc as any).image_versions)
+                        ? (svc as any).image_versions.map((item: any) => String(item || '').trim()).filter(Boolean)
+                        : (svc.image ? [String(svc.image)] : []);
+                      if (versions.length === 0) {
+                        return <div className="text-[10px] text-slate-400">-</div>;
+                      }
+                      const visible = versions.slice(0, 2);
+                      const rest = versions.length - visible.length;
+                      return (
+                        <div className="space-y-1" title={versions.join('\n')}>
+                          {visible.map((version: string, index: number) => (
+                            <div key={`${version}-${index}`} className="truncate rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-mono text-slate-700">
+                              {version}
+                            </div>
+                          ))}
+                          {rest > 0 ? (
+                            <div className="text-[10px] font-black text-slate-500">+{rest}</div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 align-middle">
                     <div
@@ -1379,7 +1404,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
             })}
             {(!projectId || filteredServices.length === 0) && !loading && (
               <tr>
-                <td colSpan={6} className="py-28 text-center">
+                <td colSpan={7} className="py-28 text-center">
                   <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
                     {projectId ? '未检索到符合条件的服务实例' : '请先选择项目'}
                   </p>
