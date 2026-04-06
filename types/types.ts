@@ -1556,6 +1556,15 @@ export interface AiSingleSession {
   last_error?: string | null;
   metadata?: Record<string, any>;
   messages?: AiSingleSessionMessage[];
+  vendor_session_id?: string | null;
+  vendor_session_kind?: string | null;
+  vendor_resume_mode?: string | null;
+  vendor_session_initialized?: boolean | null;
+  vendor_last_mode?: string | null;
+  vendor_last_cmd?: string | null;
+  vendor_last_error?: string | null;
+  claude_session_id?: string | null;
+  claude_workdir?: string | null;
   created_at?: string;
   updated_at?: string;
 }

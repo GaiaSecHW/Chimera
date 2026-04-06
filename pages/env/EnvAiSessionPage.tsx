@@ -96,6 +96,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     return 'invoke';
   });
   const [helperSearch, setHelperSearch] = useState('');
+  const [errorDialog, setErrorDialog] = useState<{ title: string; content: string } | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string>('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => {
     const raw = localStorage.getItem(SESSION_AUTO_SYNC_ENABLED_KEY);
@@ -496,7 +497,22 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                             PID {resolveBackendPid(session) ?? '-'}
                           </span>
                         </div>
-                        {session.last_error ? <div className="mt-1 truncate text-[11px] text-rose-600">{session.last_error}</div> : null}
+                        {session.last_error ? (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setErrorDialog({
+                                title: `会话错误 · ${shortSessionId(session.session_id)}`,
+                                content: String(session.last_error || ''),
+                              });
+                            }}
+                            className="mt-1 block w-full truncate text-left text-[11px] text-rose-600 hover:text-rose-700 hover:underline"
+                            title="点击查看完整错误"
+                          >
+                            {session.last_error}
+                          </button>
+                        ) : null}
                       </button>
                       <button
                         onClick={() => void deleteSession(session.session_id)}
@@ -590,6 +606,27 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
           </section>
         </div>
       </div>
+
+      {errorDialog ? (
+        <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/45 p-4">
+          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div className="text-sm font-black text-slate-900">{errorDialog.title}</div>
+              <button
+                onClick={() => setErrorDialog(null)}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-auto p-5">
+              <pre className="whitespace-pre-wrap break-words rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                {errorDialog.content || '-'}
+              </pre>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

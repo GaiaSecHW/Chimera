@@ -3,6 +3,7 @@ import { AlertTriangle, Loader2, RefreshCw, SquareTerminal, Trash2, X } from 'lu
 
 import { api } from '../../clients/api';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { AiAgentSession } from '../../types/types';
 import { ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionItem } from '../../types/types';
 import { EmptyState } from './ai-agent/shared';
 
@@ -106,6 +107,9 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
   const [lastBatchResult, setLastBatchResult] = useState<ProjectAiAgentSessionBatchTerminateResult | null>(null);
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultOnlyFailed, setResultOnlyFailed] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailSession, setDetailSession] = useState<AiAgentSession | null>(null);
+  const [detailTarget, setDetailTarget] = useState<ProjectAiAgentSessionItem | null>(null);
   const [urlStateReady, setUrlStateReady] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string>('');
   const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => {
@@ -385,6 +389,20 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
     }
   };
 
+  const openSessionDetail = async (item: ProjectAiAgentSessionItem) => {
+    setDetailLoading(true);
+    setDetailTarget(item);
+    try {
+      const session = await api.environment.getAiHelperSession(projectId, item.agent_key, item.service_name, item.session_id);
+      setDetailSession(session);
+    } catch (error: any) {
+      setDetailSession(null);
+      notify(`加载会话详情失败: ${error?.message || error}`, 'error');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   return (
     <div className="px-6 pt-6 pb-8">
       <div className="space-y-4">
@@ -564,6 +582,13 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                       </td>
                       <td className="px-2 py-2.5 align-top text-right">
                         <button
+                          onClick={() => void openSessionDetail(item)}
+                          disabled={!!busyKey}
+                          className="mr-1 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          详情
+                        </button>
+                        <button
                           onClick={() => void terminateSingle(item)}
                           disabled={!!busyKey}
                           className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -646,6 +671,76 @@ export const EnvAiAgentSessionManagePage: React.FC<{ projectId: string }> = ({ p
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {detailTarget ? (
+        <div className="fixed inset-0 z-[305] flex items-center justify-center bg-slate-950/40 p-4">
+          <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+              <div>
+                <div className="text-sm font-black text-slate-900">会话详情</div>
+                <div className="text-xs text-slate-500">{detailTarget.agent_key}/{detailTarget.service_name}/{detailTarget.session_id}</div>
+              </div>
+              <button
+                onClick={() => {
+                  setDetailTarget(null);
+                  setDetailSession(null);
+                }}
+                className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="max-h-[70vh] space-y-3 overflow-auto p-5">
+              {detailLoading ? (
+                <div className="text-sm text-slate-500"><span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" />加载中...</span></div>
+              ) : !detailSession ? (
+                <div className="text-sm text-slate-500">暂无详情数据。</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">状态: {detailSession.status || '-'}</div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">模式: {detailSession.session_mode || '-'}</div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">backend_pid: {detailSession.backend_pid ?? detailSession.pty_pid ?? '-'}</div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">agent_ids: {(detailSession.agent_ids || []).join(', ') || '-'}</div>
+                  </div>
+                  {detailSession.last_error ? (
+                    <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">last_error: {detailSession.last_error}</div>
+                  ) : null}
+                  <div className="rounded-lg border border-slate-200 p-3">
+                    <div className="mb-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500">Vendor 诊断</div>
+                    <div className="grid grid-cols-1 gap-2 text-xs md:grid-cols-2">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_session_id: {detailSession.vendor_session_id || '-'}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_session_kind: {detailSession.vendor_session_kind || '-'}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_resume_mode: {detailSession.vendor_resume_mode || '-'}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_last_mode: {detailSession.vendor_last_mode || '-'}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">vendor_session_initialized: {String(detailSession.vendor_session_initialized ?? '-')}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">claude_workdir: {detailSession.claude_workdir || '-'}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">claude_session_id: {detailSession.claude_session_id || '-'}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">vendor_last_cmd: {detailSession.vendor_last_cmd || '-'}</div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-2">vendor_last_error: {detailSession.vendor_last_error || '-'}</div>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 p-3">
+                    <div className="mb-2 text-xs font-black uppercase tracking-[0.08em] text-slate-500">消息记录</div>
+                    <div className="space-y-2">
+                      {(detailSession.messages || []).length === 0 ? (
+                        <div className="text-xs text-slate-500">暂无消息。</div>
+                      ) : (
+                        (detailSession.messages || []).map((msg, idx) => (
+                          <div key={`${msg.role}-${idx}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+                            <div className="mb-1 font-semibold text-slate-700">{msg.role || 'assistant'}</div>
+                            <div className="whitespace-pre-wrap text-slate-800">{String(msg.content || '')}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
