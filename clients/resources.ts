@@ -1,4 +1,4 @@
-import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress } from './base';
+import { API_BASE, handleResponse, getHeaders, fetchWithRetry, xhrUpload, XhrUploadProgress } from './base';
 import {
   ProjectResource,
   ProjectTask,
@@ -71,6 +71,37 @@ const toPvcUploadProgress = (event: XhrUploadProgress): PvcUploadProgress => ({
 });
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const GATEWAY_ACTIVATION_MAX_RETRIES = 18;
+const GATEWAY_ACTIVATION_RETRY_DELAY_MS = 700;
+
+const isGatewayActivatingError = (error: unknown) => {
+  const message = (error instanceof Error ? error.message : String(error || '')).toLowerCase();
+  return (
+    message.includes('file gateway worker unavailable') ||
+    message.includes('connection refused') ||
+    message.includes('server disconnected without sending a response') ||
+    message.includes('upstream connect error') ||
+    message.includes('bad gateway') ||
+    message.includes('api error (502)') ||
+    message.includes('api error (503)')
+  );
+};
+
+const withGatewayActivationRetry = async <T>(runner: () => Promise<T>): Promise<T> => {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt <= GATEWAY_ACTIVATION_MAX_RETRIES; attempt += 1) {
+    try {
+      return await runner();
+    } catch (error) {
+      lastError = error;
+      if (!isGatewayActivatingError(error) || attempt >= GATEWAY_ACTIVATION_MAX_RETRIES) {
+        throw error;
+      }
+      await sleep(GATEWAY_ACTIVATION_RETRY_DELAY_MS);
+    }
+  }
+  throw (lastError instanceof Error ? lastError : new Error('PVC 文件网关启动失败'));
+};
 
 export const resourcesApi = {
   // Health Check
@@ -243,41 +274,53 @@ export const resourcesApi = {
   },
 
   getPvcBrowserChildren: async (resourceId: number, path = '/'): Promise<PvcBrowserChildrenResponse> => {
-    const response = await fetch(
-      `${API_BASE}/api/resource/resources/${resourceId}/browser/children?path=${encodeURIComponent(path)}`,
-      { headers: getHeaders() }
-    );
-    return handleResponse(response);
+    return withGatewayActivationRetry(async () => {
+      const response = await fetchWithRetry(
+        `${API_BASE}/api/resource/resources/${resourceId}/browser/children?path=${encodeURIComponent(path)}`,
+        { headers: getHeaders() },
+        { retries: 1, retryDelayMs: 300, retryOnStatus: [502, 503, 504] }
+      );
+      return handleResponse(response);
+    });
   },
 
   getPvcBrowserFile: async (resourceId: number, path: string, maxBytes = 1048576): Promise<PvcBrowserFileResponse> => {
-    const response = await fetch(
-      `${API_BASE}/api/resource/resources/${resourceId}/browser/file?path=${encodeURIComponent(path)}&max_bytes=${maxBytes}`,
-      { headers: getHeaders() }
-    );
-    return handleResponse(response);
+    return withGatewayActivationRetry(async () => {
+      const response = await fetchWithRetry(
+        `${API_BASE}/api/resource/resources/${resourceId}/browser/file?path=${encodeURIComponent(path)}&max_bytes=${maxBytes}`,
+        { headers: getHeaders() },
+        { retries: 1, retryDelayMs: 300, retryOnStatus: [502, 503, 504] }
+      );
+      return handleResponse(response);
+    });
   },
 
   fetchPvcBrowserPreviewBlob: async (resourceId: number, path: string): Promise<Blob> => {
-    const response = await fetch(
-      `${API_BASE}/api/resource/resources/${resourceId}/browser/download?path=${encodeURIComponent(path)}`,
-      { headers: getHeaders() }
-    );
-    if (!response.ok) {
-      await handleResponse(response);
-    }
-    return response.blob();
+    return withGatewayActivationRetry(async () => {
+      const response = await fetchWithRetry(
+        `${API_BASE}/api/resource/resources/${resourceId}/browser/download?path=${encodeURIComponent(path)}`,
+        { headers: getHeaders() },
+        { retries: 1, retryDelayMs: 300, retryOnStatus: [502, 503, 504] }
+      );
+      if (!response.ok) {
+        await handleResponse(response);
+      }
+      return response.blob();
+    });
   },
 
   fetchPvcBrowserDownloadBlob: async (resourceId: number, path: string): Promise<Blob> => {
-    const response = await fetch(
-      `${API_BASE}/api/resource/resources/${resourceId}/browser/download?path=${encodeURIComponent(path)}`,
-      { headers: getHeaders() }
-    );
-    if (!response.ok) {
-      await handleResponse(response);
-    }
-    return response.blob();
+    return withGatewayActivationRetry(async () => {
+      const response = await fetchWithRetry(
+        `${API_BASE}/api/resource/resources/${resourceId}/browser/download?path=${encodeURIComponent(path)}`,
+        { headers: getHeaders() },
+        { retries: 1, retryDelayMs: 300, retryOnStatus: [502, 503, 504] }
+      );
+      if (!response.ok) {
+        await handleResponse(response);
+      }
+      return response.blob();
+    });
   },
 
   uploadPvcBrowserFile: async (

@@ -15,6 +15,17 @@ const pretty = (value: any) => {
   }
 };
 
+const readNodeStatusFromHistory = (item: ProcessSyncTaskHistoryItem): string => {
+  const snapshot = item?.node_snapshot;
+  if (snapshot && typeof snapshot === 'object') {
+    const direct = String((snapshot as any).status || '').trim();
+    if (direct) return direct;
+    const taskStatus = String((snapshot as any)?.task?.status || '').trim();
+    if (taskStatus) return taskStatus;
+  }
+  return '-';
+};
+
 export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [mode, setMode] = useState<QueryMode>('platform');
@@ -29,6 +40,8 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
   const [detailError, setDetailError] = useState('');
   const [detailTab, setDetailTab] = useState<DetailTab>('overview');
   const [detailData, setDetailData] = useState<ProcessSyncTaskDetailResponse | null>(null);
+  const [selectedHistorySyncIds, setSelectedHistorySyncIds] = useState<Set<string>>(new Set());
+  const [selectedLiveTaskKeys, setSelectedLiveTaskKeys] = useState<Set<string>>(new Set());
 
   const selectedKeysArray = useMemo(() => Array.from(selectedAgentKeys), [selectedAgentKeys]);
 
@@ -87,7 +100,35 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
     setDetailData(null);
     setDetailError('');
     setDetailTab('overview');
+    setSelectedHistorySyncIds(new Set());
+    setSelectedLiveTaskKeys(new Set());
   }, [mode, projectId]);
+
+  useEffect(() => {
+    if (mode !== 'platform') return;
+    const valid = new Set(historyItems.map((item) => String(item.sync_id || '')));
+    setSelectedHistorySyncIds((prev) => {
+      const next = new Set<string>();
+      prev.forEach((item) => {
+        if (valid.has(item)) next.add(item);
+      });
+      return next;
+    });
+  }, [mode, historyItems]);
+
+  useEffect(() => {
+    if (mode !== 'live') return;
+    const valid = new Set(
+      liveItems.map((item) => `${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`)
+    );
+    setSelectedLiveTaskKeys((prev) => {
+      const next = new Set<string>();
+      prev.forEach((item) => {
+        if (valid.has(item)) next.add(item);
+      });
+      return next;
+    });
+  }, [mode, liveItems]);
 
   const toggleAgent = (agentKey: string) => {
     setSelectedAgentKeys((prev) => {
@@ -98,11 +139,36 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
     });
   };
 
-  const clearCurrent = async () => {
+  const clearCurrent = async (scope: 'selected' | 'filtered' | 'all') => {
     if (!projectId) return;
+    const selectedLiveItems = liveItems.filter((item) => selectedLiveTaskKeys.has(`${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`));
+    const selectedLiveTaskIds = selectedLiveItems
+      .map((item) => String(item?.node_task_id || item?.task?.task_id || '').trim())
+      .filter(Boolean);
+    const selectedLiveAgentKeys = Array.from(new Set(selectedLiveItems.map((item) => String(item?.agent_key || '').trim()).filter(Boolean)));
+    if (mode === 'platform' && scope === 'selected' && selectedHistorySyncIds.size === 0) {
+      notify('请先选择要清理的任务记录', 'warning');
+      return;
+    }
+    if (mode === 'live' && scope === 'selected' && selectedLiveTaskIds.length === 0) {
+      notify('请先选择要清理的实时任务', 'warning');
+      return;
+    }
     const ok = await confirm({
-      title: mode === 'platform' ? '清空平台记录' : '清空节点记录',
-      message: mode === 'platform' ? '仅清理已结束任务记录，确认继续？' : '将对选中节点清理已结束任务，确认继续？',
+      title:
+        mode === 'platform'
+          ? (scope === 'selected' ? '清理选中平台记录' : '全量清理平台记录')
+          : (scope === 'selected' ? '清理选中实时任务' : scope === 'filtered' ? '清理筛选节点任务' : '全量清理实时任务'),
+      message:
+        mode === 'platform'
+          ? (scope === 'selected'
+            ? `将清理选中的 ${selectedHistorySyncIds.size} 条平台记录（仅已结束任务），确认继续？`
+            : '将全量清理平台记录中的已结束任务，确认继续？')
+          : (scope === 'selected'
+            ? `将清理选中的 ${selectedLiveTaskIds.length} 个实时任务（仅已结束任务），确认继续？`
+            : scope === 'filtered'
+              ? '将清理当前筛选节点上的已结束任务，确认继续？'
+              : '将清理全部节点上的已结束任务，确认继续？'),
       confirmText: '确认清理',
       cancelText: '取消',
       danger: true,
@@ -113,12 +179,19 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
       if (mode === 'platform') {
         await api.environment.clearProcessMonitorSyncHistory({
           project_id: projectId,
+          sync_ids: scope === 'selected' ? Array.from(selectedHistorySyncIds) : undefined,
           include_running: false,
         });
       } else {
         await api.environment.clearProcessMonitorSyncLiveTasks({
           project_id: projectId,
-          agent_keys: selectedKeysArray.length ? selectedKeysArray : undefined,
+          agent_keys:
+            scope === 'selected'
+              ? (selectedLiveAgentKeys.length ? selectedLiveAgentKeys : undefined)
+              : scope === 'filtered'
+                ? (selectedKeysArray.length ? selectedKeysArray : undefined)
+                : undefined,
+          task_ids: scope === 'selected' ? selectedLiveTaskIds : undefined,
           include_running: false,
         });
       }
@@ -219,12 +292,30 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
               刷新
             </button>
             <button
-              onClick={() => void clearCurrent()}
-              disabled={!projectId || clearing}
+              onClick={() => void clearCurrent('selected')}
+              disabled={!projectId || clearing || (mode === 'platform' ? selectedHistorySyncIds.size === 0 : selectedLiveTaskKeys.size === 0)}
               className="px-4 py-3 rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
             >
               {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-              清理
+              清理选中
+            </button>
+            {mode === 'live' && (
+              <button
+                onClick={() => void clearCurrent('filtered')}
+                disabled={!projectId || clearing}
+                className="px-4 py-3 rounded-2xl border border-amber-200 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
+              >
+                {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                清理筛选节点
+              </button>
+            )}
+            <button
+              onClick={() => void clearCurrent('all')}
+              disabled={!projectId || clearing}
+              className="px-4 py-3 rounded-2xl border border-rose-300 bg-white hover:bg-rose-600 hover:text-white text-rose-700 text-xs font-bold uppercase tracking-wider flex items-center gap-2 disabled:opacity-50"
+            >
+              {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              全量清理
             </button>
           </div>
         </div>
@@ -275,21 +366,49 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
               <tr>
                 {mode === 'platform' ? (
                   <>
+                    <th className="px-4 py-4 w-10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const all = new Set(historyItems.map((item) => String(item.sync_id || '')));
+                          setSelectedHistorySyncIds((prev) => (prev.size === all.size ? new Set() : all));
+                        }}
+                        className="text-slate-500 hover:text-blue-600"
+                        title="全选/取消全选"
+                      >
+                        {historyItems.length > 0 && selectedHistorySyncIds.size === historyItems.length ? <CheckSquare size={14} /> : <Square size={14} />}
+                      </button>
+                    </th>
                     <th className="px-5 py-4">sync_id</th>
                     <th className="px-4 py-4">节点</th>
                     <th className="px-4 py-4">服务</th>
                     <th className="px-4 py-4">模式</th>
-                    <th className="px-4 py-4">状态</th>
+                    <th className="px-4 py-4">平台状态</th>
+                    <th className="px-4 py-4">节点状态</th>
                     <th className="px-4 py-4">ID一致</th>
                     <th className="px-4 py-4">创建时间</th>
                   </>
                 ) : (
                   <>
+                    <th className="px-4 py-4 w-10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const all = new Set(liveItems.map((item) => `${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`));
+                          setSelectedLiveTaskKeys((prev) => (prev.size === all.size ? new Set() : all));
+                        }}
+                        className="text-slate-500 hover:text-blue-600"
+                        title="全选/取消全选"
+                      >
+                        {liveItems.length > 0 && selectedLiveTaskKeys.size === liveItems.length ? <CheckSquare size={14} /> : <Square size={14} />}
+                      </button>
+                    </th>
                     <th className="px-5 py-4">节点</th>
                     <th className="px-4 py-4">服务</th>
                     <th className="px-4 py-4">task_id</th>
                     <th className="px-4 py-4">模式</th>
-                    <th className="px-4 py-4">状态</th>
+                    <th className="px-4 py-4">平台状态</th>
+                    <th className="px-4 py-4">节点状态</th>
                     <th className="px-4 py-4">创建时间</th>
                   </>
                 )}
@@ -297,10 +416,10 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={mode === 'platform' ? 7 : 6} className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></td></tr>
+                <tr><td colSpan={mode === 'platform' ? 9 : 8} className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></td></tr>
               ) : mode === 'platform' ? (
                 historyItems.length === 0 ? (
-                  <tr><td colSpan={7} className="py-16 text-center text-slate-400">暂无记录</td></tr>
+                  <tr><td colSpan={9} className="py-16 text-center text-slate-400">暂无记录</td></tr>
                 ) : historyItems.map((item) => (
                   <tr
                     key={item.sync_id}
@@ -308,11 +427,30 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                     onClick={() => void openPlatformDetail(item)}
                     title="单击查看任务详情"
                   >
+                    <td className="px-4 py-4" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedHistorySyncIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(item.sync_id)) next.delete(item.sync_id);
+                            else next.add(item.sync_id);
+                            return next;
+                          });
+                        }}
+                        className="text-slate-500 hover:text-blue-600"
+                        title="选择任务"
+                      >
+                        {selectedHistorySyncIds.has(item.sync_id) ? <CheckSquare size={14} /> : <Square size={14} />}
+                      </button>
+                    </td>
                     <td className="px-5 py-4 text-xs font-mono text-slate-700">{item.sync_id}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.agent_key}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.service_name}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.mode}</td>
-                    <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.status}</td>
+                    <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.status || '-'}</td>
+                    <td className="px-4 py-4 text-xs uppercase text-slate-600">{readNodeStatusFromHistory(item)}</td>
                     <td className="px-4 py-4 text-xs">
                       {item.id_consistent === false ? (
                         <span className="inline-flex rounded-full bg-rose-100 px-2 py-1 text-rose-700 font-bold">不一致</span>
@@ -325,7 +463,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                 ))
               ) : (
                 liveItems.length === 0 ? (
-                  <tr><td colSpan={6} className="py-16 text-center text-slate-400">暂无实时任务</td></tr>
+                  <tr><td colSpan={8} className="py-16 text-center text-slate-400">暂无实时任务</td></tr>
                 ) : liveItems.map((item) => (
                   <tr
                     key={`${item.agent_key}:${item.service_name}:${item.node_task_id || ''}`}
@@ -333,10 +471,30 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                     onClick={() => void openLiveDetail(item)}
                     title="单击查看任务详情"
                   >
+                    <td className="px-4 py-4" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          const rowKey = `${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`;
+                          setSelectedLiveTaskKeys((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(rowKey)) next.delete(rowKey);
+                            else next.add(rowKey);
+                            return next;
+                          });
+                        }}
+                        className="text-slate-500 hover:text-blue-600"
+                        title="选择任务"
+                      >
+                        {selectedLiveTaskKeys.has(`${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`) ? <CheckSquare size={14} /> : <Square size={14} />}
+                      </button>
+                    </td>
                     <td className="px-5 py-4 text-sm text-slate-700">{item.agent_key}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.service_name}</td>
                     <td className="px-4 py-4 text-xs font-mono text-slate-700">{item.node_task_id || '-'}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.task?.mode || '-'}</td>
+                    <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.platform_status || '-'}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.task?.status || '-'}</td>
                     <td className="px-4 py-4 text-xs text-slate-500">{item.task?.created_at || '-'}</td>
                   </tr>

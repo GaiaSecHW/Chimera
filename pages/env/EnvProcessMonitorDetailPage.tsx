@@ -461,7 +461,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
             >
               {nodes.map((item) => (
                 <option key={`${item.agent_key}:${item.service_name}`} value={`${item.agent_key}:${item.service_name}`}>
-                  {item.agent_key} / {item.service_name} ({item.agent_ip || '-'})
+                  {(item.agent_hostname || item.agent_key)} / {item.service_name} (节点ID: {item.agent_key}, IP: {item.agent_ip || '-'})
                 </option>
               ))}
             </select>
@@ -472,7 +472,9 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
               <Server size={14} />
-              {selectedService ? `${selectedService.agent_key} / ${selectedService.service_name}` : '未选择节点'}
+              {selectedService
+                ? `${selectedService.agent_hostname || selectedService.agent_key} / ${selectedService.service_name} / 节点ID: ${selectedService.agent_key}`
+                : '未选择节点'}
             </div>
             <button
               onClick={() => void openSyncPreview({ mode: 'pid_files', pids: Array.from(selectedPids) })}
