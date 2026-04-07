@@ -62,6 +62,37 @@ const extractSendResultOutput = (result: any): string => {
   return '';
 };
 
+const extractReadableStreamDelta = (rawDelta: any): string => {
+  const text = String(rawDelta || '');
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  if (!(trimmed.startsWith('{') && trimmed.endsWith('}'))) return text;
+
+  try {
+    const payload = JSON.parse(trimmed);
+    if (!payload || typeof payload !== 'object') return text;
+    const eventType = String((payload as any).type || '').toLowerCase();
+    if (eventType === 'system' || eventType === 'result') return '';
+    if (eventType === 'assistant') {
+      const parts: string[] = [];
+      const content = (payload as any)?.message?.content;
+      if (Array.isArray(content)) {
+        content.forEach((item: any) => {
+          if (!item || typeof item !== 'object') return;
+          const itemType = String(item.type || '').toLowerCase();
+          if (itemType === 'text' && typeof item.text === 'string' && item.text) {
+            parts.push(item.text);
+          }
+        });
+      }
+      return parts.join('');
+    }
+    return text;
+  } catch {
+    return text;
+  }
+};
+
 const patchSessionWithOutput = (session?: AiAgentSession | null, outputText = ''): AiAgentSession | null => {
   if (!session) return null;
   if (!outputText.trim()) return session;
@@ -351,15 +382,17 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
           {
             onEvent: (event: AiSessionStreamEvent) => {
               if (event.type === 'delta') {
+                const readableDelta = extractReadableStreamDelta(event.delta);
+                if (!readableDelta) return;
                 setCurrentSession((prev) => {
                   if (!prev) return prev;
                   const messages = [...(prev.messages || [])];
                   if (messages.length === 0 || messages[messages.length - 1].role !== 'assistant') {
-                    messages.push({ role: 'assistant', content: String(event.delta || '') });
+                    messages.push({ role: 'assistant', content: readableDelta });
                   } else {
                     messages[messages.length - 1] = {
                       ...messages[messages.length - 1],
-                      content: `${messages[messages.length - 1].content}${event.delta || ''}`,
+                      content: `${messages[messages.length - 1].content}${readableDelta}`,
                     };
                   }
                   return { ...prev, messages };
