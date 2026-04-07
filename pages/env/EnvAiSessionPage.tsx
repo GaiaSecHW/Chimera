@@ -30,6 +30,57 @@ const resolveBackendPid = (session?: AiAgentSession | null) => {
   return session.backend_pid ?? session.pty_pid ?? null;
 };
 
+const cloneMessages = (session?: AiAgentSession | null) =>
+  Array.isArray(session?.messages) ? [...(session?.messages || [])] : [];
+
+const sessionMessageScore = (session?: AiAgentSession | null) => {
+  const messages = cloneMessages(session);
+  const count = messages.length;
+  const nonEmptyCount = messages.filter((item) => String(item?.content || '').trim().length > 0).length;
+  const totalChars = messages.reduce((sum, item) => sum + String(item?.content || '').length, 0);
+  return (count * 1_000_000) + (nonEmptyCount * 10_000) + totalChars;
+};
+
+const pickRicherSession = (primary?: AiAgentSession | null, fallback?: AiAgentSession | null): AiAgentSession | null => {
+  if (!primary && !fallback) return null;
+  if (!primary) return fallback || null;
+  if (!fallback) return primary;
+  return sessionMessageScore(primary) >= sessionMessageScore(fallback) ? primary : fallback;
+};
+
+const extractSendResultOutput = (result: any): string => {
+  const list = Array.isArray(result?.result?.results) ? result.result.results : [];
+  for (const item of list) {
+    const text = String(
+      item?.output
+      || item?.raw?.output
+      || item?.raw?.raw?.stdout
+      || ''
+    ).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const patchSessionWithOutput = (session?: AiAgentSession | null, outputText = ''): AiAgentSession | null => {
+  if (!session) return null;
+  if (!outputText.trim()) return session;
+  const messages = cloneMessages(session);
+  if (messages.length === 0) {
+    return { ...session, messages: [{ role: 'assistant', content: outputText }] };
+  }
+  const last = messages[messages.length - 1];
+  if (last?.role === 'assistant') {
+    if (!String(last.content || '').trim()) {
+      messages[messages.length - 1] = { ...last, content: outputText };
+      return { ...session, messages };
+    }
+    return session;
+  }
+  messages.push({ role: 'assistant', content: outputText });
+  return { ...session, messages };
+};
+
 const statusTone = (status?: string) => {
   const text = String(status || '').toLowerCase();
   if (text === 'ready') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
@@ -130,7 +181,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   const loadHelperData = async (
     agentKey: string,
     serviceName: string,
-    options: { silent?: boolean } = {},
+    options: { silent?: boolean; preferredSession?: AiAgentSession | null } = {},
   ) => {
     try {
       const [detail, sessionList] = await Promise.all([
@@ -150,10 +201,18 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
       setSessions(sessionList.items || []);
       if (currentSessionId) {
         try {
-          const session = await api.environment.getAiHelperSession(projectId, agentKey, serviceName, currentSessionId);
-          setCurrentSession(session);
+          const fetchedSession = await api.environment.getAiHelperSession(projectId, agentKey, serviceName, currentSessionId);
+          setCurrentSession((prev) => {
+            const preferred = options.preferredSession?.session_id === currentSessionId ? options.preferredSession : null;
+            const prevSession = prev?.session_id === currentSessionId ? prev : null;
+            return pickRicherSession(pickRicherSession(fetchedSession, preferred), prevSession);
+          });
         } catch {
-          setCurrentSession(null);
+          if (options.preferredSession?.session_id === currentSessionId) {
+            setCurrentSession(options.preferredSession);
+          } else {
+            setCurrentSession(null);
+          }
         }
       }
       setLastSyncedAt(new Date().toISOString());
@@ -316,7 +375,13 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
         if (latestSession) setCurrentSession(latestSession);
       } else {
         const result = await api.environment.sendAiHelperSessionMessage(projectId, selectedHelper.agent_key, selectedHelper.service_name, currentSessionId, messageText);
-        setCurrentSession(result.session);
+        const outputText = extractSendResultOutput(result);
+        const patchedSession = patchSessionWithOutput(result.session, outputText);
+        setCurrentSession(patchedSession);
+        await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name, { silent: false, preferredSession: patchedSession });
+        setMessage('');
+        notify('消息已发送', 'success');
+        return;
       }
       setMessage('');
       await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name, { silent: false });
