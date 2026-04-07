@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, RefreshCw, Search, Server } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, RefreshCw, Search, Server } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ProcessMonitorNode } from '../../types/types';
+import { navigateToAppView } from './ai-agent/shared';
 
 export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<ProcessMonitorNode[]>([]);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(100);
 
   const load = async () => {
     if (!projectId) {
@@ -42,6 +45,18 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
       ].some((value) => String(value || '').toLowerCase().includes(keyword));
     });
   }, [items, search]);
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const pageStart = (page - 1) * perPage;
+  const pagedItems = useMemo(() => filtered.slice(pageStart, pageStart + perPage), [filtered, pageStart, perPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [projectId, search, perPage]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   return (
     <div className="p-10 space-y-6">
@@ -74,6 +89,44 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-700 text-sm font-semibold">请先选择项目</div>
       ) : (
         <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 bg-slate-50/70">
+            <div className="text-xs font-semibold text-slate-500">
+              共 <span className="font-black text-slate-700">{total}</span> 条，当前第 <span className="font-black text-slate-700">{page}</span> / {totalPages} 页
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">每页</span>
+              <select
+                value={perPage}
+                onChange={(event) => {
+                  const value = Math.max(1, Math.min(1000, Number(event.target.value) || 100));
+                  setPerPage(value);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+              >
+                {[50, 100, 200, 500, 1000].map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs disabled:opacity-40"
+              >
+                <ChevronLeft size={14} />
+                上一页
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page >= totalPages}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs disabled:opacity-40"
+              >
+                下一页
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-[11px] text-slate-500 uppercase tracking-widest">
               <tr>
@@ -92,13 +145,18 @@ export const EnvProcessMonitorOverviewPage: React.FC<{ projectId: string }> = ({
                     <Loader2 className="animate-spin mx-auto text-blue-600" />
                   </td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : total === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center text-slate-400">暂无支持进程监控的节点</td>
                 </tr>
               ) : (
-                filtered.map((item) => (
-                  <tr key={`${item.agent_key}:${item.service_name}:${item.service_uid || ''}`} className="border-t border-slate-100 hover:bg-slate-50">
+                pagedItems.map((item) => (
+                  <tr
+                    key={`${item.agent_key}:${item.service_name}:${item.service_uid || ''}`}
+                    className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    onClick={() => navigateToAppView('env-process-monitor-detail', { processMonitorServiceKey: `${item.agent_key}:${item.service_name}` })}
+                    title="点击查看该节点的进程详情"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Server size={14} className="text-slate-400" />

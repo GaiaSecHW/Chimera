@@ -184,7 +184,7 @@ const attachChildren = (nodes: FileTreeNode[], targetPath: string, children: Fil
     return { ...node, children: attachChildren(node.children as FileTreeNode[], targetPath, children) };
   });
 
-export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialServiceKey?: string }> = ({ projectId, initialServiceKey }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const [nodes, setNodes] = useState<ProcessMonitorNode[]>([]);
   const [loadingNodes, setLoadingNodes] = useState(false);
@@ -223,7 +223,6 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
       const data = await api.environment.listProcessMonitorNodes(projectId);
       const items = Array.isArray(data?.items) ? data.items : [];
       setNodes(items);
-      if (items.length > 0 && !selectedServiceKey) setSelectedServiceKey(`${items[0].agent_key}:${items[0].service_name}`);
     } catch (error) {
       console.error(error);
       notify('加载节点失败', 'error');
@@ -354,6 +353,22 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
   useEffect(() => {
     void loadNodes();
   }, [projectId]);
+
+  useEffect(() => {
+    if (!nodes.length) {
+      setSelectedServiceKey('');
+      return;
+    }
+    const preferred = String(initialServiceKey || '').trim();
+    if (preferred && nodes.some((item) => `${item.agent_key}:${item.service_name}` === preferred)) {
+      setSelectedServiceKey(preferred);
+      return;
+    }
+    setSelectedServiceKey((prev) => {
+      if (prev && nodes.some((item) => `${item.agent_key}:${item.service_name}` === prev)) return prev;
+      return `${nodes[0].agent_key}:${nodes[0].service_name}`;
+    });
+  }, [nodes, initialServiceKey]);
 
   useEffect(() => {
     setSelectedPids(new Set());

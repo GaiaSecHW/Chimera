@@ -125,6 +125,7 @@ const App: React.FC = () => {
   const [activeJobTemplateId, setActiveJobTemplateId] = useState<string>('');
   const [activeAppWorkflowId, setActiveAppWorkflowId] = useState<string>('');
   const [activeAiHelperKey, setActiveAiHelperKey] = useState<string>('');
+  const [activeProcessMonitorServiceKey, setActiveProcessMonitorServiceKey] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -184,7 +185,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleNavigateView = (event: Event) => {
-      const detail = (event as CustomEvent<{ view?: string; helperKey?: string }>).detail;
+      const detail = (event as CustomEvent<{ view?: string; helperKey?: string; processMonitorServiceKey?: string }>).detail;
       const nextView = String(detail?.view || '').trim();
       if (nextView) {
         setCurrentView(nextView);
@@ -192,6 +193,10 @@ const App: React.FC = () => {
       const helperKey = String(detail?.helperKey || '').trim();
       if (helperKey) {
         setActiveAiHelperKey(helperKey);
+      }
+      const processMonitorServiceKey = String(detail?.processMonitorServiceKey || '').trim();
+      if (processMonitorServiceKey) {
+        setActiveProcessMonitorServiceKey(processMonitorServiceKey);
       }
     };
     window.addEventListener('secflow-navigate-view', handleNavigateView as EventListener);
@@ -413,7 +418,7 @@ const App: React.FC = () => {
       case 'env-ai-batch-session': return <EnvAiBatchSessionPage projectId={selectedProjectId} />;
       case 'env-process-monitor-root':
       case 'env-process-monitor-overview': return <EnvProcessMonitorOverviewPage projectId={selectedProjectId} />;
-      case 'env-process-monitor-detail': return <EnvProcessMonitorDetailPage projectId={selectedProjectId} />;
+      case 'env-process-monitor-detail': return <EnvProcessMonitorDetailPage projectId={selectedProjectId} initialServiceKey={activeProcessMonitorServiceKey} />;
       case 'env-process-monitor-tasks': return <EnvProcessMonitorTasksPage projectId={selectedProjectId} />;
       case 'env-template': return <EnvTemplatePage projectId={selectedProjectId} />;
       case 'env-tasks': return <EnvTasksPage projectId={selectedProjectId} />;

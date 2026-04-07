@@ -1332,6 +1332,7 @@ export interface ProcessSyncTaskHistoryItem {
   agent_key: string;
   service_name: string;
   node_task_id?: string;
+  id_consistent?: boolean;
   mode: 'pid_files' | 'path_files';
   status: string;
   request?: Record<string, any>;
@@ -1378,6 +1379,37 @@ export interface ProcessSyncPreviewResponse {
     remote_root_url?: string;
     remote_path_prefix?: string;
     sample_remote_paths?: string[];
+  };
+}
+
+export interface ProcessSyncTaskDetailResponse {
+  project_id: string;
+  sync_id?: string;
+  node_task_id?: string;
+  id_consistent?: boolean;
+  platform?: {
+    sync_id?: string;
+    project_id?: string;
+    agent_key?: string;
+    service_name?: string;
+    mode?: string;
+    status?: string;
+    message?: string;
+    created_at?: string;
+    updated_at?: string;
+    request?: Record<string, any>;
+    node_snapshot?: Record<string, any>;
+  };
+  live?: {
+    task?: Record<string, any>;
+    progress?: Record<string, any>;
+    events?: Record<string, any>;
+    results?: Record<string, any>;
+    errors?: Array<Record<string, any>>;
+  };
+  failure_summary?: {
+    failed_count?: number;
+    failed_samples?: Array<Record<string, any>>;
   };
 }
 

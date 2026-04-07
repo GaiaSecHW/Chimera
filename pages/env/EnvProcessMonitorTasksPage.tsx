@@ -1,10 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckSquare, Loader2, RefreshCw, Square, Trash2 } from 'lucide-react';
+import { CheckSquare, Loader2, RefreshCw, Square, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
-import { ProcessMonitorNode, ProcessSyncTaskHistoryItem } from '../../types/types';
+import { ProcessMonitorNode, ProcessSyncTaskDetailResponse, ProcessSyncTaskHistoryItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 type QueryMode = 'platform' | 'live';
+type DetailTab = 'overview' | 'progress' | 'events' | 'results';
+
+const pretty = (value: any) => {
+  try {
+    return JSON.stringify(value ?? {}, null, 2);
+  } catch {
+    return String(value ?? '');
+  }
+};
 
 export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, confirm, feedbackNodes } = useUiFeedback();
@@ -15,6 +24,11 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
   const [liveItems, setLiveItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
+  const [detailTab, setDetailTab] = useState<DetailTab>('overview');
+  const [detailData, setDetailData] = useState<ProcessSyncTaskDetailResponse | null>(null);
 
   const selectedKeysArray = useMemo(() => Array.from(selectedAgentKeys), [selectedAgentKeys]);
 
@@ -68,6 +82,13 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
     void loadData();
   }, [projectId, mode, selectedKeysArray.join(',')]);
 
+  useEffect(() => {
+    setDetailOpen(false);
+    setDetailData(null);
+    setDetailError('');
+    setDetailTab('overview');
+  }, [mode, projectId]);
+
   const toggleAgent = (agentKey: string) => {
     setSelectedAgentKeys((prev) => {
       const next = new Set(prev);
@@ -108,6 +129,75 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
       notify('清理失败', 'error');
     } finally {
       setClearing(false);
+    }
+  };
+
+  const openPlatformDetail = async (item: ProcessSyncTaskHistoryItem) => {
+    if (!projectId) return;
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError('');
+    setDetailTab('overview');
+    try {
+      const detail = await api.environment.getProcessMonitorSyncHistoryDetail(projectId, item.sync_id);
+      setDetailData(detail || null);
+    } catch (error: any) {
+      console.error(error);
+      setDetailData(null);
+      setDetailError(error?.message || '加载任务详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openLiveDetail = async (item: any) => {
+    if (!projectId) return;
+    const agentKey = String(item?.agent_key || '').trim();
+    const serviceName = String(item?.service_name || '').trim();
+    const taskId = String(item?.node_task_id || item?.task?.task_id || '').trim();
+    if (!agentKey || !serviceName || !taskId) {
+      setDetailOpen(true);
+      setDetailData(null);
+      setDetailError('实时任务缺少 agent/service/task_id，无法查询详情');
+      setDetailLoading(false);
+      return;
+    }
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError('');
+    setDetailTab('overview');
+    try {
+      const live = await api.environment.getProcessMonitorSyncLiveTaskDetail(projectId, agentKey, serviceName, taskId);
+      setDetailData({
+        project_id: projectId,
+        sync_id: taskId,
+        node_task_id: taskId,
+        id_consistent: true,
+        platform: {
+          sync_id: taskId,
+          project_id: projectId,
+          agent_key: agentKey,
+          service_name: serviceName,
+          mode: String(item?.task?.mode || ''),
+          status: String(item?.task?.status || ''),
+          created_at: item?.task?.created_at,
+          request: {},
+          node_snapshot: item?.task || {},
+        },
+        live: {
+          task: live?.task || {},
+          progress: live?.progress || {},
+          events: live?.events || {},
+          results: live?.results || {},
+          errors: [],
+        },
+      });
+    } catch (error: any) {
+      console.error(error);
+      setDetailData(null);
+      setDetailError(error?.message || '加载实时任务详情失败');
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -190,6 +280,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                     <th className="px-4 py-4">服务</th>
                     <th className="px-4 py-4">模式</th>
                     <th className="px-4 py-4">状态</th>
+                    <th className="px-4 py-4">ID一致</th>
                     <th className="px-4 py-4">创建时间</th>
                   </>
                 ) : (
@@ -206,17 +297,29 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></td></tr>
+                <tr><td colSpan={mode === 'platform' ? 7 : 6} className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></td></tr>
               ) : mode === 'platform' ? (
                 historyItems.length === 0 ? (
-                  <tr><td colSpan={6} className="py-16 text-center text-slate-400">暂无记录</td></tr>
+                  <tr><td colSpan={7} className="py-16 text-center text-slate-400">暂无记录</td></tr>
                 ) : historyItems.map((item) => (
-                  <tr key={item.sync_id} className="border-t border-slate-100 hover:bg-slate-50">
+                  <tr
+                    key={item.sync_id}
+                    className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    onClick={() => void openPlatformDetail(item)}
+                    title="单击查看任务详情"
+                  >
                     <td className="px-5 py-4 text-xs font-mono text-slate-700">{item.sync_id}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.agent_key}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.service_name}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.mode}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.status}</td>
+                    <td className="px-4 py-4 text-xs">
+                      {item.id_consistent === false ? (
+                        <span className="inline-flex rounded-full bg-rose-100 px-2 py-1 text-rose-700 font-bold">不一致</span>
+                      ) : (
+                        <span className="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-emerald-700 font-bold">一致</span>
+                      )}
+                    </td>
                     <td className="px-4 py-4 text-xs text-slate-500">{item.created_at || '-'}</td>
                   </tr>
                 ))
@@ -224,7 +327,12 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                 liveItems.length === 0 ? (
                   <tr><td colSpan={6} className="py-16 text-center text-slate-400">暂无实时任务</td></tr>
                 ) : liveItems.map((item) => (
-                  <tr key={`${item.agent_key}:${item.service_name}:${item.node_task_id || ''}`} className="border-t border-slate-100 hover:bg-slate-50">
+                  <tr
+                    key={`${item.agent_key}:${item.service_name}:${item.node_task_id || ''}`}
+                    className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    onClick={() => void openLiveDetail(item)}
+                    title="单击查看任务详情"
+                  >
                     <td className="px-5 py-4 text-sm text-slate-700">{item.agent_key}</td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.service_name}</td>
                     <td className="px-4 py-4 text-xs font-mono text-slate-700">{item.node_task_id || '-'}</td>
@@ -238,6 +346,99 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
           </table>
         </div>
       </div>
+
+      {detailOpen && (
+        <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setDetailOpen(false)}>
+          <div className="absolute inset-y-0 right-0 w-[min(980px,92vw)] bg-white border-l border-slate-200 shadow-2xl flex flex-col" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">同步任务详情</h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  {(detailData?.sync_id || detailData?.platform?.sync_id || detailData?.node_task_id || '-') as string}
+                </p>
+              </div>
+              <button className="p-2 rounded-xl hover:bg-slate-100" onClick={() => setDetailOpen(false)}><X size={18} /></button>
+            </div>
+
+            <div className="px-6 pt-3 border-b border-slate-100 flex items-center gap-2">
+              {[
+                { id: 'overview', label: '概览' },
+                { id: 'progress', label: '进度' },
+                { id: 'events', label: '事件' },
+                { id: 'results', label: '结果(成功+失败)' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setDetailTab(tab.id as DetailTab)}
+                  className={`px-3 py-2 rounded-t-xl text-xs font-black uppercase tracking-wider ${
+                    detailTab === tab.id ? 'bg-blue-50 text-blue-700 border border-blue-100 border-b-0' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-auto p-6">
+              {detailLoading ? (
+                <div className="py-16 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></div>
+              ) : detailError ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm">{detailError}</div>
+              ) : !detailData ? (
+                <div className="py-16 text-center text-slate-400">暂无详情数据</div>
+              ) : (
+                <>
+                  {detailTab === 'overview' && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">平台ID</div><div className="mt-1 text-xs font-mono break-all text-slate-700">{detailData.sync_id || detailData.platform?.sync_id || '-'}</div></div>
+                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">节点ID</div><div className="mt-1 text-xs font-mono break-all text-slate-700">{detailData.node_task_id || '-'}</div></div>
+                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">状态</div><div className="mt-1 text-sm font-bold text-slate-700">{detailData.platform?.status || detailData.live?.task?.status || '-'}</div></div>
+                        <div className="rounded-2xl border border-slate-200 p-4"><div className="text-xs text-slate-500">ID一致性</div><div className="mt-1 text-sm font-bold text-slate-700">{detailData.id_consistent === false ? '不一致' : '一致'}</div></div>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="text-xs uppercase tracking-wider text-slate-500">错误摘要</div>
+                        <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-slate-700">{pretty(detailData.failure_summary || detailData.live?.errors || [])}</pre>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="text-xs uppercase tracking-wider text-slate-500">平台请求</div>
+                        <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-slate-700">{pretty(detailData.platform?.request || {})}</pre>
+                      </div>
+                    </div>
+                  )}
+
+                  {detailTab === 'progress' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="text-xs uppercase tracking-wider text-slate-500">节点进度</div>
+                        <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-slate-700">{pretty(detailData.live?.progress || {})}</pre>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="text-xs uppercase tracking-wider text-slate-500">平台快照</div>
+                        <pre className="mt-2 text-xs font-mono whitespace-pre-wrap break-all text-slate-700">{pretty(detailData.platform?.node_snapshot || {})}</pre>
+                      </div>
+                    </div>
+                  )}
+
+                  {detailTab === 'events' && (
+                    <div className="rounded-2xl border border-slate-200 p-4">
+                      <div className="text-xs uppercase tracking-wider text-slate-500">Events</div>
+                      <pre className="mt-2 max-h-[58vh] overflow-auto text-xs font-mono whitespace-pre-wrap break-all text-slate-700">{pretty(detailData.live?.events || {})}</pre>
+                    </div>
+                  )}
+
+                  {detailTab === 'results' && (
+                    <div className="rounded-2xl border border-slate-200 p-4">
+                      <div className="text-xs uppercase tracking-wider text-slate-500">Results</div>
+                      <pre className="mt-2 max-h-[58vh] overflow-auto text-xs font-mono whitespace-pre-wrap break-all text-slate-700">{pretty(detailData.live?.results || {})}</pre>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {feedbackNodes}
     </>
   );
