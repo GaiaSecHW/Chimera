@@ -70,6 +70,14 @@ export const projectsApi = {
     const response = await fetch(`${API_BASE}/api/project/${projectId}/resources`, { headers: getHeaders() });
     return handleResponse(response);
   },
+
+  rebuildIngressTls: async (projectId: string): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE}/api/project/${projectId}/tls-secret/rebuild`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
   
   getPodLogs: async (projectId: string, podName: string, params: { tail_lines?: number; container?: string } = {}): Promise<{ logs: string }> => {
     const query = new URLSearchParams(params as any).toString();

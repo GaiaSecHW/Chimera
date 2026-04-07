@@ -51,6 +51,7 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
   const [tokenLoading, setTokenLoading] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [tlsRebuildLoading, setTlsRebuildLoading] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
 
@@ -137,6 +138,29 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
     }
   };
 
+  const rebuildIngressTls = async () => {
+    if (!project?.can_manage) {
+      window.alert('仅项目管理员可执行重建 Ingress TLS。');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      '将重新复制并覆盖当前项目命名空间中的 TLS Secret。\n是否确认执行“重建 Ingress TLS”？',
+    );
+    if (!confirmed) return;
+
+    setTlsRebuildLoading(true);
+    try {
+      const result = await api.projects.rebuildIngressTls(projectId);
+      window.alert(result?.message || '重建 Ingress TLS 成功');
+      await loadAllData();
+    } catch (err: any) {
+      window.alert(err?.message || '重建 Ingress TLS 失败');
+    } finally {
+      setTlsRebuildLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-20 animate-in fade-in">
@@ -174,9 +198,6 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
           <button onClick={loadAllData} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
             <RefreshCw size={20} />
           </button>
-          <button className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20">
-            <Activity size={18} /> 发起渗透任务
-          </button>
         </div>
       </div>
 
@@ -198,6 +219,35 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
              </div>
           </div>
         ))}
+      </div>
+
+      {/* Action Bar */}
+      <div className="flex flex-wrap items-center gap-3 rounded-[1.75rem] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <button
+          onClick={() => void rebuildIngressTls()}
+          disabled={tlsRebuildLoading || !project?.can_manage}
+          title={project?.can_manage ? '重新同步当前项目命名空间的 Ingress TLS Secret' : '仅项目管理员可操作'}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 transition-all ${
+            project?.can_manage
+              ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed'
+              : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          {tlsRebuildLoading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+          重建 Ingress TLS
+        </button>
+        <button
+          disabled
+          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-slate-300 text-slate-400 bg-slate-50 cursor-not-allowed"
+        >
+          功能预留
+        </button>
+        <button
+          disabled
+          className="px-5 py-2.5 rounded-xl text-xs font-black border border-dashed border-slate-300 text-slate-400 bg-slate-50 cursor-not-allowed"
+        >
+          功能预留
+        </button>
       </div>
 
       {/* Tabs */}
