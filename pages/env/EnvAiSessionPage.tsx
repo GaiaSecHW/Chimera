@@ -83,6 +83,9 @@ const extractReadableStreamDelta = (rawDelta: any): string => {
           if (itemType === 'text' && typeof item.text === 'string' && item.text) {
             parts.push(item.text);
           }
+          if (itemType === 'thinking' && typeof item.thinking === 'string' && item.thinking.trim()) {
+            parts.push(`\n<reasoning_content>\n${item.thinking}\n</reasoning_content>\n`);
+          }
         });
       }
       return parts.join('');
