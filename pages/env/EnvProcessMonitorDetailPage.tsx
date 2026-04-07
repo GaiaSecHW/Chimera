@@ -13,6 +13,40 @@ type ContextMenuState =
   | { type: 'path'; x: number; y: number; path: string; nodeType: 'dir' | 'file' }
   | null;
 
+const HOST_ROOT_PREFIX = '/host';
+
+const normalizeHostVisiblePath = (value: string): string => {
+  const text = String(value || '');
+  if (!text.startsWith('/')) return text;
+  let suffix = '';
+  let body = text;
+  if (body.endsWith(' (deleted)')) {
+    suffix = ' (deleted)';
+    body = body.slice(0, -10);
+  }
+  if (body === HOST_ROOT_PREFIX) return `/${suffix}`;
+  if (body.startsWith(`${HOST_ROOT_PREFIX}/`)) return `/${body.slice(HOST_ROOT_PREFIX.length + 1)}${suffix}`;
+  return `${body}${suffix}`;
+};
+
+const normalizePathNode = (node: any, keyName = ''): any => {
+  if (Array.isArray(node)) {
+    if (keyName === 'paths') return node.map((item) => (typeof item === 'string' ? normalizeHostVisiblePath(item) : item));
+    return node.map((item) => normalizePathNode(item, keyName));
+  }
+  if (node && typeof node === 'object') {
+    const result: Record<string, any> = {};
+    Object.entries(node).forEach(([key, value]) => {
+      result[key] = normalizePathNode(value, key);
+    });
+    return result;
+  }
+  if (typeof node === 'string' && ['path', 'procfs_root', 'cwd', 'exe', 'target', 'source_path', 'relative_path', 'symlink_target'].includes(keyName)) {
+    return normalizeHostVisiblePath(node);
+  }
+  return node;
+};
+
 const buildProcessTree = (items: ProcessItem[]): ProcessTreeNode[] => {
   const map = new Map<number, ProcessTreeNode>();
   for (const item of items) {
@@ -221,7 +255,8 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
     setLoadingPaths((prev) => new Set(prev).add(path));
     try {
       const data = await api.environment.getNodeFilesystemTree(projectId, selectedService.agent_key, selectedService.service_name, { path, limit: 600 });
-      const children = (Array.isArray(data?.items) ? data.items : []).map((item: ProcessSyncCandidateTreeNode) => ({ ...item, children: [], loaded: false })) as FileTreeNode[];
+      const normalizedItems = Array.isArray(data?.items) ? data.items.map((item: any) => normalizePathNode(item)) : [];
+      const children = normalizedItems.map((item: ProcessSyncCandidateTreeNode) => ({ ...item, children: [], loaded: false })) as FileTreeNode[];
       if (path === '/' || force) {
         setFileTree((prev) => {
           if (!prev.length || force) return [{ name: '/', path: '/', type: 'dir', has_children: true, loaded: true, children }];
@@ -251,7 +286,7 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
     setProcessDetailLoading(true);
     try {
       const data = await api.environment.getNodeProcessDetail(projectId, selectedService.agent_key, selectedService.service_name, pid);
-      setProcessDetailData(data || null);
+      setProcessDetailData(normalizePathNode(data || null));
     } catch (error) {
       console.error(error);
       notify('加载进程详情失败', 'error');
@@ -264,13 +299,14 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
     if (!projectId || !selectedService) return;
     setSyncing(true);
     try {
+      const normalizedPaths = payload.paths?.map((item) => normalizeHostVisiblePath(item));
       await api.environment.createProcessMonitorSyncTask({
         project_id: projectId,
         agent_key: selectedService.agent_key,
         service_name: selectedService.service_name,
         mode: payload.mode,
         pids: payload.pids,
-        paths: payload.paths,
+        paths: normalizedPaths,
       });
       notify('同步任务已创建', 'success');
       setSyncPreviewOpen(false);
@@ -291,18 +327,22 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string }> = ({ p
     setSyncPreviewLoading(true);
     setSyncPreviewError('');
     setSyncPreviewData(null);
-    setSyncPreviewPayload(payload);
+    const normalizedPayload: SyncPayload = {
+      ...payload,
+      paths: payload.paths?.map((item) => normalizeHostVisiblePath(item)),
+    };
+    setSyncPreviewPayload(normalizedPayload);
     try {
       const data = await api.environment.previewProcessMonitorSync({
         project_id: projectId,
         agent_key: selectedService.agent_key,
         service_name: selectedService.service_name,
-        mode: payload.mode,
-        pids: payload.pids,
-        paths: payload.paths,
+        mode: normalizedPayload.mode,
+        pids: normalizedPayload.pids,
+        paths: normalizedPayload.paths,
         preview_limit: 80,
       });
-      setSyncPreviewData(data);
+      setSyncPreviewData(normalizePathNode(data));
     } catch (error: any) {
       console.error(error);
       setSyncPreviewError(error?.message || '预览同步内容失败');

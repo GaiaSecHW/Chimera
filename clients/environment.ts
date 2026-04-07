@@ -45,6 +45,14 @@ const parseSseChunk = (rawChunk: string): any[] => {
     .filter(Boolean);
 };
 
+const normalizeProcessMonitorPath = (value: string): string => {
+  const text = String(value || '').trim();
+  if (!text.startsWith('/')) return text;
+  if (text === '/host') return '/';
+  if (text.startsWith('/host/')) return `/${text.slice('/host/'.length)}`;
+  return text;
+};
+
 export interface TemplateUploadProgress {
   loaded_bytes: number;
   total_bytes: number;
@@ -439,7 +447,7 @@ export const environmentApi = {
   ): Promise<{ path: string; total: number; items: ProcessSyncCandidateTreeNode[]; truncated?: boolean }> => {
     const query = new URLSearchParams({
       project_id: projectId,
-      path: params.path || '/',
+      path: normalizeProcessMonitorPath(params.path || '/'),
       include_hidden: params.include_hidden ? 'true' : 'false',
       limit: String(params.limit || 500),
     }).toString();
@@ -462,7 +470,10 @@ export const environmentApi = {
     handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/tasks`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        paths: Array.isArray(payload.paths) ? payload.paths.map((item) => normalizeProcessMonitorPath(String(item))) : payload.paths,
+      }),
     })),
 
   previewProcessMonitorSync: async (payload: {
@@ -478,7 +489,10 @@ export const environmentApi = {
     handleResponse(await fetch(`${API_BASE}/api/agent/process-monitor/sync/preview`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        paths: Array.isArray(payload.paths) ? payload.paths.map((item) => normalizeProcessMonitorPath(String(item))) : payload.paths,
+      }),
     })),
 
   getProcessMonitorSyncHistory: async (
