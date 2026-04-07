@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Loader2, 
   Terminal, 
@@ -13,7 +13,7 @@ import {
   History,
   AlertTriangle
 } from 'lucide-react';
-import { AsyncTask, TaskLog } from '../../types/types';
+import { Agent, AsyncTask, TaskLog } from '../../types/types';
 import { api } from '../../clients/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -23,6 +23,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   const [loading, setLoading] = useState(true);
   const [clearingAll, setClearingAll] = useState(false);
   const [tasks, setTasks] = useState<AsyncTask[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedTask, setSelectedTask] = useState<AsyncTask | null>(null);
   const [logs, setLogs] = useState<TaskLog[]>([]);
   const [logLoading, setLogLoading] = useState(false);
@@ -31,10 +32,21 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
   useEffect(() => {
     if (projectId) {
       loadTasks();
+      void loadAgents();
       const interval = setInterval(loadTasks, 10000); // Polling for progress
       return () => clearInterval(interval);
     }
   }, [projectId]);
+
+  const loadAgents = async () => {
+    if (!projectId) return;
+    try {
+      const data = await api.environment.getAgents(projectId, { page: 1, per_page: 2000 });
+      setAgents(data?.agents || []);
+    } catch (err) {
+      console.error('Failed to load agents', err);
+    }
+  };
 
   const loadTasks = async () => {
     if (!projectId) return;
@@ -118,11 +130,33 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     }
   };
 
+  const agentsByKey = useMemo(() => {
+    const map: Record<string, Agent> = {};
+    (agents || []).forEach((agent) => {
+      if (agent?.key) map[agent.key] = agent;
+    });
+    return map;
+  }, [agents]);
+
   const filteredTasks = (tasks || []).filter(t => {
     const serviceMatch = t?.service_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const idMatch = t?.id?.includes(searchTerm);
-    return serviceMatch || idMatch;
+    const key = String(t?.agent_key || '').toLowerCase();
+    const fallbackAgent = agentsByKey[t.agent_key || ''];
+    const agentHostname = String(t?.agent_hostname || fallbackAgent?.hostname || '').toLowerCase();
+    const agentFullName = String(t?.full_name || fallbackAgent?.full_name || '').toLowerCase();
+    const nodeMatch = [key, agentHostname, agentFullName].some((value) => value.includes(searchTerm.toLowerCase()));
+    return serviceMatch || idMatch || nodeMatch;
   });
+
+  const resolveTaskNode = (task?: AsyncTask | null) => {
+    const fallbackAgent = task?.agent_key ? agentsByKey[task.agent_key] : undefined;
+    const key = task?.agent_key || '-';
+    const primary = task?.agent_hostname || fallbackAgent?.hostname || task?.full_name || fallbackAgent?.full_name || '-';
+    const secondary = task?.full_name || fallbackAgent?.full_name || '';
+    return { key, primary, secondary };
+  };
+  const selectedTaskNode = selectedTask ? resolveTaskNode(selectedTask) : null;
 
   const formatTaskTime = (timeStr: string | undefined) => {
     if (!timeStr) return { date: '-', time: '-' };
@@ -193,6 +227,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 <tr><td colSpan={6} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></td></tr>
               ) : filteredTasks.map(t => {
                 const timeInfo = formatTaskTime(t?.create_time);
+                const nodeInfo = resolveTaskNode(t);
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-all group">
                     <td className="px-8 py-5">
@@ -213,7 +248,15 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       </div>
                     </td>
                     <td className="px-6 py-5 uppercase text-[10px] font-black text-slate-500">{t.type}</td>
-                    <td className="px-6 py-5 text-xs font-bold text-slate-600 truncate max-w-[150px]">{t.agent_key}</td>
+                    <td className="px-6 py-5">
+                      <div className="max-w-[220px]">
+                        <div className="text-xs font-bold text-slate-700 truncate" title={nodeInfo.primary}>{nodeInfo.primary}</div>
+                        {nodeInfo.secondary && nodeInfo.secondary !== nodeInfo.primary ? (
+                          <div className="mt-0.5 text-[10px] text-slate-400 truncate" title={nodeInfo.secondary}>{nodeInfo.secondary}</div>
+                        ) : null}
+                        <div className="mt-0.5 text-[10px] font-mono text-slate-400 truncate" title={nodeInfo.key}>{nodeInfo.key}</div>
+                      </div>
+                    </td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden w-24">
@@ -308,7 +351,11 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                 </div>
                 <div className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-3">
                   <div className="text-[10px] font-black tracking-widest text-slate-500 uppercase">目标节点</div>
-                  <div className="mt-1 text-sm font-mono text-slate-100 break-all">{selectedTask.agent_key || '-'}</div>
+                  <div className="mt-1 text-sm font-bold text-slate-100 break-all">{selectedTaskNode?.primary || '-'}</div>
+                  {selectedTaskNode?.secondary && selectedTaskNode.secondary !== selectedTaskNode.primary ? (
+                    <div className="mt-0.5 text-xs text-slate-300 break-all">{selectedTaskNode.secondary}</div>
+                  ) : null}
+                  <div className="mt-0.5 text-xs font-mono text-slate-300 break-all">{selectedTaskNode?.key || '-'}</div>
                 </div>
                 <div className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-3">
                   <div className="text-[10px] font-black tracking-widest text-slate-500 uppercase">执行进度</div>

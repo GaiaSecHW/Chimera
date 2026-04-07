@@ -10,6 +10,8 @@ const normalizeTask = (raw: any): AsyncTask => ({
   progress: typeof raw?.progress === 'number' ? raw.progress : Number(raw?.progress || 0),
   create_time: raw?.create_time || raw?.created_at || '',
   agent_key: raw?.agent_key || '',
+  agent_hostname: raw?.agent_hostname || raw?.hostname || '',
+  full_name: raw?.full_name || raw?.agent_full_name || '',
   project_id: raw?.project_id || '',
   message: raw?.message || '',
   created_at: raw?.created_at || raw?.create_time || '',

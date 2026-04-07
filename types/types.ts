@@ -1146,6 +1146,8 @@ export interface AsyncTask {
   progress: number;
   create_time: string;
   agent_key: string;
+  agent_hostname?: string;
+  full_name?: string;
   project_id?: string;
   message?: string;
   created_at?: string;
