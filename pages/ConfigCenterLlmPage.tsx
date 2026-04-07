@@ -1434,10 +1434,10 @@ API_TIMEOUT_MS=600000`}
                 <h4 className="text-sm font-black text-slate-900">5. curl 示例</h4>
                 <code className="mt-4 block whitespace-pre-wrap break-all rounded-[1.5rem] bg-slate-950 px-5 py-4 text-xs leading-6 text-slate-100">
 {`curl -H "Authorization: Bearer <machine-token>" \\
-  https://secflow.sothothv2.com/api/configcenter/service/llm/providers
+  https://secflow.ai.icsl.huawei.com/api/configcenter/service/llm/providers
 
 curl -H "Authorization: Bearer <machine-token>" \\
-  https://secflow.sothothv2.com/api/configcenter/service/llm/providers/openai-prod`}
+  https://secflow.ai.icsl.huawei.com/api/configcenter/service/llm/providers/openai-prod`}
                 </code>
               </section>
 

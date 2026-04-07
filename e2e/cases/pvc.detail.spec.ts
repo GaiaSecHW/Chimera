@@ -3,7 +3,7 @@ import { bootstrapSession, loginByApi, openPvcManagement } from '../fixtures/aut
 import { createManualBlankPvc, deleteResourceById } from '../helpers/resource';
 import { searchAndOpenPvcDetail, uniqueName } from '../helpers/ui';
 
-const baseURL = process.env.E2E_BASE_URL || 'https://secflow.sothothv2.com';
+const baseURL = process.env.E2E_BASE_URL || 'https://secflow.ai.icsl.huawei.com';
 
 test.describe('PVC detail operations', () => {
   test('rename/move/delete/download and preview should work', async ({ page, request }) => {

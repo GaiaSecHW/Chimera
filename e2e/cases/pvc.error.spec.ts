@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { loginByApi } from '../fixtures/auth';
 import { createManualBlankPvc, deleteResourceById } from '../helpers/resource';
 
-const baseURL = process.env.E2E_BASE_URL || 'https://secflow.sothothv2.com';
+const baseURL = process.env.E2E_BASE_URL || 'https://secflow.ai.icsl.huawei.com';
 
 test.describe('PVC error and boundary paths', () => {
   test('should reject invalid path operations', async ({ request }) => {
