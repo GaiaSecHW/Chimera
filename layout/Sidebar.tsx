@@ -252,7 +252,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ],
             },
             {
-              id: 'env-tasks', label: '任务管理', icon: <Workflow size={14} />
+              id: 'env-tasks', label: '环境模板部署/卸载任务管理', icon: <Workflow size={14} />
             }
           ]} 
         />

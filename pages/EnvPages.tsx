@@ -44,7 +44,7 @@ export const EnvTemplatePage: React.FC<{ templates: EnvTemplate[]; isLoading: bo
 
 export const EnvTasksPage: React.FC<{ tasks: AsyncTask[]; isLoading: boolean }> = ({ tasks, isLoading }) => (
   <div className="p-10 space-y-8 animate-in fade-in duration-300">
-    <h2 className="text-3xl font-black text-slate-800 tracking-tight">任务调度管理</h2>
+    <h2 className="text-3xl font-black text-slate-800 tracking-tight">环境模板部署/卸载任务管理</h2>
     <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
       <table className="w-full text-left">
         <thead className="bg-slate-50/50 border-b border-slate-100"><tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest"><th className="px-8 py-6">任务 ID</th><th className="px-8 py-6">类型</th><th className="px-8 py-6">进度</th><th className="px-8 py-6">状态</th></tr></thead>

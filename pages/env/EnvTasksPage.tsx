@@ -171,7 +171,7 @@ export const EnvTasksPage: React.FC<{ projectId: string }> = ({ projectId }) => 
     <div className="p-10 space-y-10 animate-in fade-in duration-500 pb-24">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">任务调度管理</h2>
+          <h2 className="text-3xl font-black text-slate-800 tracking-tight">环境模板部署/卸载任务管理</h2>
           <p className="text-slate-500 mt-1 font-medium">分布式节点部署任务队列与实时执行审计</p>
         </div>
         <div className="flex gap-4">
