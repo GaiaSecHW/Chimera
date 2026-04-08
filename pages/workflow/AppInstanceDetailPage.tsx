@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink, Loader2, Play, Power, RefreshCw, RotateCcw, Square, AlertCircle, FileText } from 'lucide-react';
 import { api } from '../../clients/api';
-import { AppWorkflow, AppWorkflowStatus, ServiceAccessInfo } from '../../types/types';
+import { AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, ServiceAccessInfo } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
+import { AppWorkflowLlmBindingsEditor } from '../../components/workflow/AppWorkflowLlmBindingsEditor';
 
 type DetailTab = 'overview' | 'config' | 'access' | 'logs';
 
@@ -18,6 +19,10 @@ export const AppInstanceDetailPage: React.FC<{
   const [accessInfo, setAccessInfo] = useState<ServiceAccessInfo | null>(null);
   const [loadingAccess, setLoadingAccess] = useState(false);
   const [operation, setOperation] = useState('');
+  const [isEditingLlmBindings, setIsEditingLlmBindings] = useState(false);
+  const [llmBindingsDraft, setLlmBindingsDraft] = useState<AppWorkflowLlmBindingRequest[]>([]);
+  const [savingLlmBindings, setSavingLlmBindings] = useState(false);
+  const [llmBindingsNotice, setLlmBindingsNotice] = useState<string | null>(null);
 
   useEffect(() => {
     loadInstance();
@@ -128,11 +133,58 @@ export const AppInstanceDetailPage: React.FC<{
     };
   }, [accessInfo]);
 
-  const secondaryAccessUrls = useMemo(
-    () => (accessInfo?.access_urls || []).filter((item) => item.type !== 'Ingress'),
-    [accessInfo],
-  );
-  const llmBinding = instance?.llm_binding || null;
+  const hasIngressAccess = Boolean(primaryIngressAccess?.url);
+  const llmBindings = useMemo(() => {
+    if (!instance) return [];
+    if (Array.isArray(instance.llm_bindings) && instance.llm_bindings.length > 0) {
+      return instance.llm_bindings;
+    }
+    return instance.llm_binding ? [instance.llm_binding] : [];
+  }, [instance]);
+
+  useEffect(() => {
+    if (!isEditingLlmBindings) {
+      setLlmBindingsDraft(
+        llmBindings.map((binding) => (
+          binding.source === 'custom'
+            ? { source: 'custom', config: binding.config }
+            : { source: 'config_center', provider_key: binding.provider_key }
+        ))
+      );
+    }
+  }, [llmBindings, isEditingLlmBindings]);
+
+  const handleSaveLlmBindings = async () => {
+    for (const binding of llmBindingsDraft) {
+      if (binding.source === 'config_center') {
+        if (!String(binding.provider_key || '').trim()) {
+          alert('请为配置中心绑定选择一个 LLM Provider');
+          return;
+        }
+        continue;
+      }
+      const config = binding.config;
+      if (!config?.provider_key || !config?.api_base || !config?.api_key || !config?.display_name || !config?.provider_type) {
+        alert('自定义 LLM 配置缺少必要字段，请补全 provider_key、display_name、provider_type、api_base、api_key');
+        return;
+      }
+    }
+
+    setSavingLlmBindings(true);
+    setLlmBindingsNotice(null);
+    try {
+      const updated = await api.workflow.updateAppWorkflow(instanceId, {
+        llm_bindings: llmBindingsDraft,
+      });
+      setInstance(updated);
+      setIsEditingLlmBindings(false);
+      setLlmBindingsNotice('LLM 绑定已更新');
+    } catch (error: any) {
+      alert(`更新 LLM 绑定失败: ${error.message}`);
+    } finally {
+      setSavingLlmBindings(false);
+    }
+  };
 
   if (loading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
@@ -149,7 +201,6 @@ export const AppInstanceDetailPage: React.FC<{
   }
 
   const actions = getAvailableActions(instance.status);
-  const primaryPort = instance.service_ports?.[0]?.port;
   const node = instance.node || {
     status: 'pending' as AppWorkflowStatus,
     name: '-',
@@ -273,34 +324,97 @@ export const AppInstanceDetailPage: React.FC<{
             <div>
               <h3 className="mb-4 text-lg font-black text-slate-900">LLM 配置绑定</h3>
               <div className="rounded-2xl bg-slate-50 p-6">
-                {llmBinding ? (
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="text-sm text-slate-500">支持在实例详情里直接调整多个 LLM 绑定及配置文件注入。</div>
+                  <div className="flex items-center gap-3">
+                    {isEditingLlmBindings ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingLlmBindings(false);
+                            setLlmBindingsDraft(
+                              llmBindings.map((binding) => (
+                                binding.source === 'custom'
+                                  ? { source: 'custom', config: binding.config }
+                                  : { source: 'config_center', provider_key: binding.provider_key }
+                              ))
+                            );
+                            setLlmBindingsNotice(null);
+                          }}
+                          disabled={savingLlmBindings}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:border-slate-300 disabled:opacity-50"
+                        >
+                          取消
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveLlmBindings}
+                          disabled={savingLlmBindings}
+                          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50"
+                        >
+                          {savingLlmBindings ? <Loader2 size={14} className="animate-spin" /> : null}
+                          保存绑定
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingLlmBindings(true);
+                          setLlmBindingsNotice(null);
+                        }}
+                        className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50"
+                      >
+                        编辑绑定
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {llmBindingsNotice && (
+                  <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    {llmBindingsNotice}
+                  </div>
+                )}
+
+                {isEditingLlmBindings ? (
+                  <AppWorkflowLlmBindingsEditor
+                    value={llmBindingsDraft}
+                    onChange={setLlmBindingsDraft}
+                    disabled={savingLlmBindings}
+                    showWrapper={false}
+                    description="按顺序覆盖同名环境变量和同路径文件，支持在详情页直接修改并保存。"
+                  />
+                ) : llmBindings.length > 0 ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <div>
-                        <div className="mb-1 text-xs text-slate-400">配置来源</div>
-                        <div className="font-bold text-slate-900">{llmBinding.source === 'config_center' ? '配置中心选择' : '自定义配置'}</div>
+                    {llmBindings.map((binding, index) => (
+                      <div key={`${binding.provider_key}-${index}`} className="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-black text-blue-700">#{index + 1}</span>
+                            <span className="text-sm font-bold text-slate-900">{binding.source === 'config_center' ? '配置中心选择' : '自定义配置'}</span>
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            绑定时间：{binding.bound_at ? new Date(binding.bound_at).toLocaleString('zh-CN') : '-'}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <div><div className="mb-1 text-xs text-slate-400">Provider Key</div><div className="font-mono text-sm text-slate-900">{binding.provider_key}</div></div>
+                          <div><div className="mb-1 text-xs text-slate-400">显示名</div><div className="text-sm text-slate-900">{binding.config.display_name || '-'}</div></div>
+                          <div><div className="mb-1 text-xs text-slate-400">渠道类型</div><div className="text-sm text-slate-900">{binding.config.provider_type || '-'}</div></div>
+                          <div><div className="mb-1 text-xs text-slate-400">模型</div><div className="text-sm text-slate-900">{binding.config.model || '-'}</div></div>
+                          <div><div className="mb-1 text-xs text-slate-400">API Base</div><div className="break-all text-sm text-slate-900">{binding.config.api_base || '-'}</div></div>
+                          <div><div className="mb-1 text-xs text-slate-400">文件注入</div><div className="text-sm text-slate-900">{(binding.config.file_bindings || []).filter((item) => item.enabled).length} 个启用文件</div></div>
+                        </div>
+                        <div className="mt-4">
+                          <div className="mb-2 text-xs font-black uppercase text-slate-500">完整配置 JSON</div>
+                          <pre className="max-h-[320px] overflow-auto rounded-2xl bg-slate-900 p-4 text-xs text-emerald-300 whitespace-pre-wrap">
+                            {JSON.stringify(binding.config, null, 2)}
+                          </pre>
+                        </div>
                       </div>
-                      <div>
-                        <div className="mb-1 text-xs text-slate-400">Provider Key</div>
-                        <div className="font-mono text-sm text-slate-900">{llmBinding.provider_key}</div>
-                      </div>
-                      <div>
-                        <div className="mb-1 text-xs text-slate-400">绑定时间</div>
-                        <div className="text-sm text-slate-900">{llmBinding.bound_at ? new Date(llmBinding.bound_at).toLocaleString('zh-CN') : '-'}</div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div><div className="mb-1 text-xs text-slate-400">显示名</div><div className="text-sm text-slate-900">{llmBinding.config.display_name || '-'}</div></div>
-                      <div><div className="mb-1 text-xs text-slate-400">渠道类型</div><div className="text-sm text-slate-900">{llmBinding.config.provider_type || '-'}</div></div>
-                      <div><div className="mb-1 text-xs text-slate-400">模型</div><div className="text-sm text-slate-900">{llmBinding.config.model || '-'}</div></div>
-                      <div><div className="mb-1 text-xs text-slate-400">API Base</div><div className="break-all text-sm text-slate-900">{llmBinding.config.api_base || '-'}</div></div>
-                    </div>
-                    <div>
-                      <div className="mb-2 text-xs font-black uppercase text-slate-500">完整配置 JSON</div>
-                      <pre className="max-h-[420px] overflow-auto rounded-2xl bg-slate-900 p-4 text-xs text-emerald-300 whitespace-pre-wrap">
-                        {JSON.stringify(llmBinding.config, null, 2)}
-                      </pre>
-                    </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="text-sm text-slate-400">当前实例未绑定 LLM 配置</div>
@@ -337,32 +451,16 @@ export const AppInstanceDetailPage: React.FC<{
                 </div>
                 <div>
                   <h3 className="mb-4 text-lg font-black text-slate-900">访问方式</h3>
-                  {primaryIngressAccess?.url && (
-                    <button
-                      onClick={() => window.open(primaryIngressAccess.url || '', '_blank', 'noopener,noreferrer')}
-                      className="mb-4 flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-500"
-                    >
-                      <ExternalLink size={16} />
-                      访问服务
-                    </button>
-                  )}
-                  <div className="space-y-3">
-                    {secondaryAccessUrls.map((item, index) => (
-                      <div key={`access-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-bold text-slate-800">{item.type}</div>
-                          {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700">{item.url}<ExternalLink size={14} /></a>}
-                        </div>
-                        {primaryPort && item.type === 'ClusterIP' && instance.service_name && (
-                          <button onClick={() => window.open(api.k8s.proxyServiceUrl(instance.project_id, instance.service_name, item.port || primaryPort, item.path || '/'), '_blank')} className="mt-3 flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-700">
-                            <ExternalLink size={14} />
-                            通过代理访问
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    {!secondaryAccessUrls.length && <div className="text-sm text-slate-400">当前没有可用的访问入口。</div>}
-                  </div>
+                  <button
+                    disabled={!hasIngressAccess}
+                    onClick={() => hasIngressAccess && window.open(primaryIngressAccess?.url || '', '_blank', 'noopener,noreferrer')}
+                    className={`mb-4 flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-white transition-colors ${
+                      hasIngressAccess ? 'bg-emerald-600 hover:bg-emerald-500' : 'cursor-not-allowed bg-slate-300'
+                    }`}
+                  >
+                    <ExternalLink size={16} />
+                    访问服务
+                  </button>
                 </div>
               </>
             )}
