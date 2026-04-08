@@ -47,7 +47,7 @@ import {
   Layers,
   Tags
 } from 'lucide-react';
-import { EnvTemplate, TemplateFile, Agent, AgentService, ParsedCompose, TemplateLlmProviderBinding } from '../../types/types';
+import { EnvTemplate, TemplateFile, Agent, AgentService, ParsedCompose, TemplateLlmProviderBinding, TemplateLlmBindingPreview, TemplateLlmMappedFile } from '../../types/types';
 import { api } from '../../clients/api';
 import { API_BASE, getHeaders } from '../../clients/base';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -100,7 +100,13 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [agentSearch, setAgentSearch] = useState('');
   const [selectedAgentKeys, setSelectedAgentKeys] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<'all' | 'online'>('all');
+  const [deployModalTab, setDeployModalTab] = useState<'agents' | 'config' | 'llm' | 'confirm'>('agents');
+  const [agentPage, setAgentPage] = useState(1);
+  const [agentPageSize, setAgentPageSize] = useState(10);
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
+  const [deployLlmPreview, setDeployLlmPreview] = useState<TemplateLlmBindingPreview | null>(null);
+  const [deployLlmPreviewLoading, setDeployLlmPreviewLoading] = useState(false);
+  const [deployLlmPreviewError, setDeployLlmPreviewError] = useState('');
 
   // Deletion States
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; names: string[] }>({ show: false, names: [] });
@@ -573,7 +579,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     setAgentsLoading(true);
     setAgentSearch('');
     setSelectedAgentKeys(new Set());
+    setDeployModalTab('agents');
+    setAgentPage(1);
+    setAgentPageSize(10);
     setDeployLlmBinding(null);
+    setDeployLlmPreview(null);
+    setDeployLlmPreviewError('');
     try {
       const data = await api.environment.getAgents(projectId, { per_page: 2000 });
       setAvailableAgents(data.agents || []);
@@ -596,7 +607,12 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
     setAgentsLoading(true);
     setAgentSearch('');
     setSelectedAgentKeys(new Set());
+    setDeployModalTab('agents');
+    setAgentPage(1);
+    setAgentPageSize(10);
     setDeployLlmBinding(null);
+    setDeployLlmPreview(null);
+    setDeployLlmPreviewError('');
     try {
       const data = await api.environment.getAgents(projectId, { per_page: 2000 });
       setAvailableAgents(data.agents || []);
@@ -641,11 +657,14 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
       let successCount = 0;
       let duplicateCount = 0;
       let failedCount = 0;
-      const llmBindingExtra = deployLlmBinding
+      const normalizedDeployBinding = normalizeDeployLlmBinding(deployLlmBinding);
+      const llmBindingExtra = normalizedDeployBinding
         ? {
             llm_provider_binding: {
-              provider_keys: deployLlmBinding.provider_keys,
-              target_services: deployLlmBinding.target_services,
+              provider_keys: normalizedDeployBinding.provider_keys,
+              target_services: normalizedDeployBinding.target_services,
+              env_overrides: normalizedDeployBinding.env_overrides || {},
+              file_overrides: normalizedDeployBinding.file_overrides || [],
               source: 'deployment_override',
             }
           }
@@ -700,16 +719,153 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   };
 
   const filteredAgents = useMemo(() => {
-    return availableAgents.filter(a => {
+    const list = availableAgents.filter(a => {
       const keyword = agentSearch.toLowerCase();
       const hostname = String(a.hostname || a.key || '').toLowerCase();
       const ipAddress = String(a.ip_address || '').toLowerCase();
       const agentKey = String(a.key || '').toLowerCase();
-      const matchesSearch = !keyword || hostname.includes(keyword) || ipAddress.includes(keyword) || agentKey.includes(keyword);
+      const allowReason = String(a.allow_reason || '').toLowerCase();
+      const matchesSearch = !keyword || hostname.includes(keyword) || ipAddress.includes(keyword) || agentKey.includes(keyword) || allowReason.includes(keyword);
       const matchesStatus = statusFilter === 'all' || a.status === 'online';
       return matchesSearch && matchesStatus;
     });
+    return list.sort((a, b) => {
+      if (a.status === b.status) {
+        return String(a.hostname || a.key || '').localeCompare(String(b.hostname || b.key || ''));
+      }
+      return a.status === 'online' ? -1 : 1;
+    });
   }, [availableAgents, agentSearch, statusFilter]);
+
+  useEffect(() => {
+    setAgentPage(1);
+  }, [agentSearch, statusFilter, isDeployModalOpen]);
+
+  const totalAgentPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredAgents.length / Math.max(1, agentPageSize))),
+    [filteredAgents.length, agentPageSize]
+  );
+
+  const pagedAgents = useMemo(() => {
+    const normalizedPage = Math.min(Math.max(agentPage, 1), totalAgentPages);
+    const start = (normalizedPage - 1) * Math.max(1, agentPageSize);
+    return filteredAgents.slice(start, start + Math.max(1, agentPageSize));
+  }, [filteredAgents, agentPage, agentPageSize, totalAgentPages]);
+
+  useEffect(() => {
+    if (agentPage > totalAgentPages) {
+      setAgentPage(totalAgentPages);
+    }
+  }, [agentPage, totalAgentPages]);
+
+  const normalizeDeployLlmBinding = (binding: TemplateLlmProviderBinding | null): TemplateLlmProviderBinding | null => {
+    const normalized = normalizeTemplateLlmBinding(binding);
+    if (!normalized) return null;
+    return {
+      provider_keys: normalized.provider_keys,
+      target_services: normalized.target_services,
+      env_overrides: normalized.env_overrides || {},
+      file_overrides: normalized.file_overrides || [],
+      updated_at: normalized.updated_at,
+    };
+  };
+
+  const patchDeployLlmBinding = (patch: Partial<TemplateLlmProviderBinding>) => {
+    setDeployLlmBinding((prev) => {
+      const base = normalizeDeployLlmBinding(prev) || {
+        provider_keys: [],
+        target_services: '*',
+        env_overrides: {},
+        file_overrides: [],
+      };
+      return {
+        ...base,
+        ...patch,
+        env_overrides: patch.env_overrides ?? base.env_overrides ?? {},
+        file_overrides: patch.file_overrides ?? base.file_overrides ?? [],
+      };
+    });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const binding = normalizeDeployLlmBinding(deployLlmBinding);
+      const providerKeys = binding?.provider_keys || [];
+      if (providerKeys.length === 0) {
+        setDeployLlmPreview(null);
+        setDeployLlmPreviewError('');
+        return;
+      }
+      setDeployLlmPreviewLoading(true);
+      setDeployLlmPreviewError('');
+      try {
+        const preview = await api.environment.previewTemplateLlmBinding(projectId, providerKeys, binding?.target_services || '*');
+        if (!cancelled) setDeployLlmPreview(preview);
+      } catch (err: any) {
+        if (!cancelled) {
+          setDeployLlmPreview(null);
+          setDeployLlmPreviewError(String(err?.message || err || 'LLM 注入预览失败'));
+        }
+      } finally {
+        if (!cancelled) setDeployLlmPreviewLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    projectId,
+    JSON.stringify((normalizeDeployLlmBinding(deployLlmBinding)?.provider_keys || [])),
+    JSON.stringify(normalizeDeployLlmBinding(deployLlmBinding)?.target_services || '*'),
+  ]);
+
+  const deployLlmFinalEnvPreview = useMemo(() => {
+    const merged: Record<string, string> = { ...(deployLlmPreview?.merged_env || {}) };
+    const overrides = normalizeDeployLlmBinding(deployLlmBinding)?.env_overrides || {};
+    Object.entries(overrides).forEach(([key, value]) => {
+      const normalizedKey = String(key || '').trim();
+      if (!normalizedKey) return;
+      merged[normalizedKey] = value == null ? '' : String(value);
+    });
+    return merged;
+  }, [deployLlmPreview, deployLlmBinding]);
+
+  const deployLlmFinalFilePreview = useMemo(() => {
+    const filesByPath = new Map<string, TemplateLlmMappedFile>();
+    (deployLlmPreview?.merged_files || []).forEach((item, idx) => {
+      const path = String(item?.path || '').trim();
+      if (!path) return;
+      filesByPath.set(path, {
+        name: String(item?.name || '').trim() || `file-${idx + 1}`,
+        path,
+        content: String(item?.content || ''),
+        format: String(item?.format || 'other'),
+        enabled: item?.enabled !== false,
+        provider_key: item?.provider_key || undefined,
+      });
+    });
+
+    const overrides = normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [];
+    overrides.forEach((item, idx) => {
+      const path = String(item?.path || '').trim();
+      if (!path) return;
+      if (item?.enabled === false) {
+        filesByPath.delete(path);
+        return;
+      }
+      filesByPath.set(path, {
+        name: String(item?.name || '').trim() || `override-${idx + 1}`,
+        path,
+        content: String(item?.content || ''),
+        format: String(item?.format || 'other'),
+        enabled: true,
+        provider_key: item?.provider_key || undefined,
+      });
+    });
+    return Array.from(filesByPath.values());
+  }, [deployLlmPreview, deployLlmBinding]);
 
   const toggleAgentSelect = (key: string) => {
     const agent = availableAgents.find((item) => item.key === key);
@@ -1169,126 +1325,523 @@ export const EnvTemplatePage: React.FC<{ projectId: string }> = ({ projectId }) 
   const renderDeployModal = () => (
     isDeployModalOpen && (
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
-         <div className="bg-white w-full max-w-5xl h-[85vh] rounded-[3rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
-            <div className="p-10 pb-6 border-b border-slate-50 bg-slate-50/30 shrink-0">
-               <div className="flex justify-between items-start mb-8">
-                  <div className="flex items-center gap-5">
-                     <div className="w-16 h-16 bg-blue-600 text-white rounded-[1.5rem] flex items-center justify-center shadow-xl shadow-blue-600/20">
-                        <Monitor size={32} />
-                     </div>
-                     <div>
-                        <h3 className="text-3xl font-black text-slate-800 tracking-tight">选择目标执行节点</h3>
-                        <div className="flex items-center gap-3 mt-1.5">
-                           <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              <Box size={12} /> 模板: <span className="text-blue-600">
-                                {deploySource === 'detail'
-                                  ? `1 个 (${templateDetail?.name || selectedTemplate})`
-                                  : `${selectedNames.size} 个`}
-                              </span>
-                           </div>
-                           <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                           <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              <Activity size={12} /> 总节点: <span>{availableAgents.length}</span>
-                           </div>
-                           <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                           <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              <Check size={12} className="text-green-500" /> 已就绪: <span className="text-green-600">{availableAgents.filter(a => a.status === 'online').length}</span>
-                           </div>
-                        </div>
-                     </div>
+        <div className="bg-white w-full max-w-6xl max-h-[86vh] rounded-[2.25rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95">
+          <div className="p-7 border-b border-slate-100 bg-slate-50/60 shrink-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/25">
+                  <Monitor size={26} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">部署到节点</h3>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                    <span>模板 {deploySource === 'detail' ? 1 : selectedNames.size} 个</span>
+                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span>已选节点 {selectedAgentKeys.size} / {availableAgents.length}</span>
+                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span>预计任务 {((deploySource === 'detail' ? 1 : selectedNames.size) * selectedAgentKeys.size) || 0} 个</span>
                   </div>
-                  <button onClick={() => setIsDeployModalOpen(false)} className="p-4 text-slate-400 hover:bg-white hover:text-slate-600 rounded-2xl transition-all shadow-sm">
-                     <X size={28} />
-                  </button>
-               </div>
-
-               <div className="flex flex-col md:flex-row gap-4 items-center">
-                  <div className="relative flex-1 w-full group">
-                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
-                     <input
-                       type="text"
-                       autoFocus
-                       placeholder="主机名、IP 地址或工作空间检索..."
-                       className="w-full pl-16 pr-8 py-4 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
-                       value={agentSearch}
-                       onChange={(e) => setAgentSearch(e.target.value)}
-                     />
-                  </div>
-                  <div className="flex gap-2 p-1 bg-white border border-slate-200 rounded-2xl shrink-0 shadow-sm">
-                     <button onClick={() => setStatusFilter('all')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${statusFilter === 'all' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>全部</button>
-                     <button onClick={() => setStatusFilter('online')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${statusFilter === 'online' ? 'bg-green-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>在线</button>
-                  </div>
-                  <button onClick={toggleSelectAllAgents} className="px-6 py-4 bg-white border border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm shrink-0">
-                     <CheckSquare size={16} /> {filteredAgents.filter((agent) => agent.status === 'online').length > 0 && filteredAgents.filter((agent) => agent.status === 'online').every((agent) => selectedAgentKeys.has(agent.key)) ? '取消' : '全选'}
-                  </button>
-               </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsDeployModalOpen(false)}
+                className="p-3 text-slate-400 hover:bg-white hover:text-slate-600 rounded-xl transition-all shadow-sm"
+              >
+                <X size={22} />
+              </button>
             </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {[
+                { key: 'agents', label: '1. 节点选择' },
+                { key: 'config', label: '2. 部署配置' },
+                { key: 'llm', label: '3. LLM 注入' },
+                { key: 'confirm', label: '4. 确认下发' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setDeployModalTab(tab.key as 'agents' | 'config' | 'llm' | 'confirm')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                    deployModalTab === tab.key
+                      ? 'bg-white text-blue-700 border border-blue-200 shadow-sm'
+                      : 'text-slate-600 hover:bg-white'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            <div className="flex-1 overflow-y-auto p-10 bg-slate-50/20 custom-scrollbar relative">
-               {agentsLoading ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-4">
-                     <Loader2 className="animate-spin text-blue-600" size={48} />
-                     <p className="text-[10px] font-black uppercase tracking-widest">拉取节点清单...</p>
+          <div className="min-h-0 overflow-y-auto p-7 bg-slate-50/20 custom-scrollbar">
+            {deployModalTab === 'agents' && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto_auto] gap-3 items-center">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={agentSearch}
+                        onChange={(e) => setAgentSearch(e.target.value)}
+                        placeholder="快速筛选：hostname / IP / agent key / 原因"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div className="flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+                      <button
+                        onClick={() => setStatusFilter('all')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+                      >
+                        全部
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter('online')}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold ${statusFilter === 'online' ? 'bg-green-600 text-white shadow-sm' : 'text-slate-500'}`}
+                      >
+                        仅在线
+                      </button>
+                    </div>
+                    <select
+                      value={agentPageSize}
+                      onChange={(e) => setAgentPageSize(Number(e.target.value) || 10)}
+                      className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                    >
+                      <option value={10}>10/页</option>
+                      <option value={20}>20/页</option>
+                      <option value={50}>50/页</option>
+                      <option value={100}>100/页</option>
+                    </select>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={toggleSelectAllAgents}
+                        className="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        {filteredAgents.filter((agent) => agent.status === 'online').length > 0 && filteredAgents.filter((agent) => agent.status === 'online').every((agent) => selectedAgentKeys.has(agent.key)) ? '取消全选筛选结果' : '全选筛选结果'}
+                      </button>
+                    </div>
                   </div>
-               ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                     {filteredAgents.map(agent => {
-                        const online = agent.status === 'online';
-                        const selected = selectedAgentKeys.has(agent.key);
-                        const hostname = String(agent.hostname || agent.key || '-');
-                        return (
-                        <div
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                  <div className="grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 text-[11px] font-black text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+                    <div />
+                    <div>节点</div>
+                    <div>IP</div>
+                    <div>状态</div>
+                    <div>调度说明</div>
+                    <div>Agent Key</div>
+                  </div>
+                  {agentsLoading ? (
+                    <div className="py-14 flex items-center justify-center text-slate-400 gap-3">
+                      <Loader2 className="animate-spin" size={18} />
+                      <span className="text-sm">拉取节点列表中...</span>
+                    </div>
+                  ) : pagedAgents.length === 0 ? (
+                    <div className="py-14 text-center text-sm text-slate-500">无匹配节点</div>
+                  ) : (
+                    pagedAgents.map((agent) => {
+                      const online = agent.status === 'online';
+                      const selected = selectedAgentKeys.has(agent.key);
+                      return (
+                        <button
                           key={agent.key}
+                          type="button"
                           onClick={() => online && toggleAgentSelect(agent.key)}
-                          className={`p-5 rounded-3xl border-2 transition-all flex items-center justify-between group ${online ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'} ${selected ? 'bg-blue-50 border-blue-600 ring-4 ring-blue-500/5' : 'bg-white border-slate-100'} ${online ? 'hover:border-blue-200 hover:shadow-lg' : ''}`}
+                          className={`w-full text-left grid grid-cols-[44px_1.1fr_1fr_120px_220px_140px] gap-3 px-4 py-3 border-b border-slate-100 transition-colors ${
+                            online ? 'hover:bg-blue-50/50' : 'opacity-60 cursor-not-allowed'
+                          } ${selected ? 'bg-blue-50' : 'bg-white'}`}
                         >
-                           <div className="flex items-center gap-4 min-w-0">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black transition-all shrink-0 shadow-sm ${selected ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'} ${online && !selected ? 'group-hover:bg-blue-100 group-hover:text-blue-600' : ''}`}>{hostname[0].toUpperCase()}</div>
-                              <div className="min-w-0">
-                                 <p className="font-black text-slate-800 text-sm truncate">{hostname}</p>
-                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <span className="text-[10px] font-mono font-bold text-slate-400">{agent.ip_address}</span>
-                                    <StatusBadge status={agent.status} />
-                                 </div>
-                                 {!online && (
-                                    <div className="mt-1 text-[10px] font-semibold text-amber-600">{agent.allow_reason || '当前节点暂不可调度'}</div>
-                                 )}
-                              </div>
-                           </div>
-                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-200'}`}>{selected && <Check size={14} />}</div>
+                          <div className="flex items-center justify-center">
+                            <span className={`w-5 h-5 rounded border flex items-center justify-center ${selected ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white'}`}>
+                              {selected ? <Check size={12} /> : null}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-black text-slate-800 truncate">{agent.hostname || '-'}</p>
+                          </div>
+                          <div className="text-xs font-mono text-slate-600 truncate">{agent.ip_address || '-'}</div>
+                          <div><StatusBadge status={agent.status} /></div>
+                          <div className="text-xs text-slate-500 truncate">{agent.allow_reason || '-'}</div>
+                          <div className="text-[11px] font-mono text-slate-500 truncate">{agent.key}</div>
+                        </button>
+                      );
+                    })
+                  )}
+                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                    <span>第 {Math.min(agentPage, totalAgentPages)} / {totalAgentPages} 页 · 共 {filteredAgents.length} 条</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setAgentPage((p) => Math.max(1, p - 1))}
+                        disabled={agentPage <= 1}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40"
+                      >
+                        上一页
+                      </button>
+                      <button
+                        onClick={() => setAgentPage((p) => Math.min(totalAgentPages, p + 1))}
+                        disabled={agentPage >= totalAgentPages}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white disabled:opacity-40"
+                      >
+                        下一页
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {deployModalTab === 'config' && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <h4 className="text-sm font-black text-slate-800 mb-2">本次部署模板</h4>
+                  <div className="space-y-2">
+                    {deploySource === 'detail' ? (
+                      <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700">
+                        {templateDetail?.name || selectedTemplate}
+                      </div>
+                    ) : (
+                      templates.filter((tpl) => selectedNames.has(String(tpl.id))).map((tpl) => (
+                        <div key={`deploy-preview-tpl-${tpl.id}`} className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-700">
+                          {tpl.name}
                         </div>
-                     )})}
+                      ))
+                    )}
                   </div>
-               )}
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <h4 className="text-sm font-black text-slate-800 mb-2">服务命名规则</h4>
+                  <p className="text-sm text-slate-600">
+                    <code className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">{'{template_name}-{agent_key前6位}'}</code>
+                    ，同节点重复名称会自动跳过。
+                  </p>
+                </div>
+              </div>
+            )}
 
-               <div className="mt-6">
-                  <TemplateLlmBindingEditor
-                    projectId={projectId}
-                    value={deployLlmBinding}
-                    onChange={setDeployLlmBinding}
-                    serviceOptions={getDeployServiceOptions()}
-                    title="部署前临时 LLM Provider 注入"
-                    description="在模板当前结果基础上，为本次部署临时叠加多个 Provider；该覆盖不会回写模板。"
-                  />
-               </div>
-            </div>
-
-            <div className="p-10 border-t border-slate-100 bg-white flex flex-col md:flex-row justify-between items-center gap-6 shrink-0">
-               <div className="flex items-center gap-6">
-                  <div>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">任务概览</p>
-                     <p className="text-lg font-black text-slate-800 mt-0.5"><span className="text-blue-600">{deploySource === 'detail' ? 1 : selectedNames.size}</span> 模板 ➔ <span className="text-blue-600">{selectedAgentKeys.size}</span> 节点</p>
+            {deployModalTab === 'llm' && (
+              <div className="space-y-4">
+                <TemplateLlmBindingEditor
+                  projectId={projectId}
+                  value={deployLlmBinding}
+                  onChange={(next) => setDeployLlmBinding(normalizeDeployLlmBinding(next))}
+                  serviceOptions={getDeployServiceOptions()}
+                  title="部署前临时 LLM Provider 注入"
+                  description="在模板当前结果基础上，为本次部署临时叠加多个 Provider；该覆盖不会回写模板。"
+                />
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-black text-slate-800">环境变量草稿（可编辑）</h4>
+                      <p className="text-xs text-slate-500 mt-1">第3步仅编辑草稿，不作为最终预览。最终只读预览在第4步展示。</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => patchDeployLlmBinding({ env_overrides: { ...(deployLlmPreview?.merged_env || {}) } })}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        从 Provider 填充
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => patchDeployLlmBinding({ env_overrides: {} })}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        清空
+                      </button>
+                    </div>
                   </div>
-               </div>
-               <div className="flex gap-4">
-                  <button onClick={() => setIsDeployModalOpen(false)} disabled={deploying} className="px-10 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all">取消</button>
-                  <button onClick={executeDeploy} disabled={deploying || selectedAgentKeys.size === 0} className="px-12 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 shadow-2xl transition-all flex items-center gap-3 min-w-[200px]">
-                    {deploying ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
-                    执行批量部署
+                  {deployLlmPreviewLoading && (
+                    <div className="text-xs text-slate-500 flex items-center gap-2"><Loader2 size={13} className="animate-spin" /> 正在获取 Provider 预览...</div>
+                  )}
+                  {deployLlmPreviewError && (
+                    <div className="text-xs text-red-600">{deployLlmPreviewError}</div>
+                  )}
+                  {Object.entries(normalizeDeployLlmBinding(deployLlmBinding)?.env_overrides || {}).map(([key, value], index, arr) => (
+                    <div key={`deploy-env-${index}-${key}`} className="grid grid-cols-[minmax(0,240px)_1fr_auto] gap-2">
+                      <input
+                        value={key}
+                        onChange={(e) => {
+                          const nextKey = e.target.value;
+                          const next: Record<string, string> = {};
+                          arr.forEach(([rawKey, rawVal], idx) => {
+                            if (idx === index) {
+                              const normalizedKey = String(nextKey || '').trim();
+                              if (normalizedKey) next[normalizedKey] = String(rawVal || '');
+                              return;
+                            }
+                            const normalizedKey = String(rawKey || '').trim();
+                            if (!normalizedKey) return;
+                            next[normalizedKey] = String(rawVal || '');
+                          });
+                          patchDeployLlmBinding({ env_overrides: next });
+                        }}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono"
+                        placeholder="ENV_KEY"
+                      />
+                      <input
+                        value={String(value || '')}
+                        onChange={(e) => {
+                          const next = { ...(normalizeDeployLlmBinding(deployLlmBinding)?.env_overrides || {}) };
+                          next[key] = e.target.value;
+                          patchDeployLlmBinding({ env_overrides: next });
+                        }}
+                        className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono"
+                        placeholder="value"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = { ...(normalizeDeployLlmBinding(deployLlmBinding)?.env_overrides || {}) };
+                          delete next[key];
+                          patchDeployLlmBinding({ env_overrides: next });
+                        }}
+                        className="px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const base = { ...(normalizeDeployLlmBinding(deployLlmBinding)?.env_overrides || {}) };
+                      let seed = 'NEW_ENV_KEY';
+                      let idx = 1;
+                      while (Object.prototype.hasOwnProperty.call(base, seed)) {
+                        seed = `NEW_ENV_KEY_${idx++}`;
+                      }
+                      base[seed] = '';
+                      patchDeployLlmBinding({ env_overrides: base });
+                    }}
+                    className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    + 新增环境变量
                   </button>
-               </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-black text-slate-800">文件注入草稿（可编辑）</h4>
+                      <p className="text-xs text-slate-500 mt-1">可编辑名称、路径、格式、内容与启用状态。</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => patchDeployLlmBinding({ file_overrides: (deployLlmPreview?.merged_files || []) as TemplateLlmMappedFile[] })}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        从 Provider 填充
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => patchDeployLlmBinding({ file_overrides: [] })}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        清空
+                      </button>
+                    </div>
+                  </div>
+                  {(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || []).map((item, index) => (
+                    <div key={`deploy-file-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input
+                          value={item.name || ''}
+                          onChange={(e) => {
+                            const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
+                            next[index] = { ...next[index], name: e.target.value };
+                            patchDeployLlmBinding({ file_overrides: next });
+                          }}
+                          className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs"
+                          placeholder="文件名称"
+                        />
+                        <input
+                          value={item.path || ''}
+                          onChange={(e) => {
+                            const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
+                            next[index] = { ...next[index], path: e.target.value };
+                            patchDeployLlmBinding({ file_overrides: next });
+                          }}
+                          className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono"
+                          placeholder="/etc/service/config.toml"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-[160px_1fr_auto] gap-2">
+                        <input
+                          value={item.format || 'other'}
+                          onChange={(e) => {
+                            const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
+                            next[index] = { ...next[index], format: e.target.value };
+                            patchDeployLlmBinding({ file_overrides: next });
+                          }}
+                          className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs"
+                          placeholder="format"
+                        />
+                        <label className="flex items-center gap-2 text-xs text-slate-700 px-3 py-2 rounded-lg border border-slate-200 bg-white">
+                          <input
+                            type="checkbox"
+                            checked={item.enabled !== false}
+                            onChange={(e) => {
+                              const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
+                              next[index] = { ...next[index], enabled: e.target.checked };
+                              patchDeployLlmBinding({ file_overrides: next });
+                            }}
+                            className="w-4 h-4 accent-blue-600"
+                          />
+                          启用
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
+                            next.splice(index, 1);
+                            patchDeployLlmBinding({ file_overrides: next });
+                          }}
+                          className="px-3 py-2 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100"
+                        >
+                          删除
+                        </button>
+                      </div>
+                      <textarea
+                        rows={5}
+                        value={item.content || ''}
+                        onChange={(e) => {
+                          const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
+                          next[index] = { ...next[index], content: e.target.value };
+                          patchDeployLlmBinding({ file_overrides: next });
+                        }}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-mono"
+                        placeholder="文件内容"
+                      />
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = [...(normalizeDeployLlmBinding(deployLlmBinding)?.file_overrides || [])];
+                      next.push({
+                        name: `file-${next.length + 1}`,
+                        path: '',
+                        content: '',
+                        format: 'other',
+                        enabled: true,
+                      });
+                      patchDeployLlmBinding({ file_overrides: next });
+                    }}
+                    className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    + 新增文件注入
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {deployModalTab === 'confirm' && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <h4 className="text-sm font-black text-slate-800 mb-3">最终确认</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-[11px] text-slate-500">模板数量</p>
+                      <p className="text-xl font-black text-slate-800">{deploySource === 'detail' ? 1 : selectedNames.size}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-[11px] text-slate-500">目标节点</p>
+                      <p className="text-xl font-black text-slate-800">{selectedAgentKeys.size}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-[11px] text-slate-500">预计任务</p>
+                      <p className="text-xl font-black text-blue-700">{((deploySource === 'detail' ? 1 : selectedNames.size) * selectedAgentKeys.size) || 0}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <h4 className="text-sm font-black text-slate-800 mb-2">已选节点</h4>
+                  <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                    {Array.from(selectedAgentKeys).length === 0 ? (
+                      <p className="text-sm text-slate-500">尚未选择节点</p>
+                    ) : (
+                      Array.from(selectedAgentKeys).map((key) => {
+                        const item = availableAgents.find((agent) => agent.key === key);
+                        return (
+                          <div key={`confirm-agent-${key}`} className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 flex items-center justify-between gap-2">
+                            <span className="font-semibold truncate">{item?.hostname || key}</span>
+                            <span className="text-xs font-mono text-slate-500 truncate">{item?.ip_address || '-'}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <h4 className="text-sm font-black text-slate-800 mb-2">最终部署注入预览（只读）</h4>
+                  <p className="text-xs text-slate-500 mb-3">此处为最终下发内容预览，第4步不可编辑。</p>
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-black text-slate-700 mb-2">环境变量 ({Object.keys(deployLlmFinalEnvPreview).length})</div>
+                      <div className="max-h-56 overflow-y-auto space-y-1 custom-scrollbar">
+                        {Object.entries(deployLlmFinalEnvPreview).length === 0 ? (
+                          <div className="text-xs text-slate-400">无环境变量注入</div>
+                        ) : (
+                          Object.entries(deployLlmFinalEnvPreview).map(([key, value]) => (
+                            <div key={`confirm-env-${key}`} className="grid grid-cols-[minmax(0,180px)_1fr] gap-2 rounded-lg bg-white border border-slate-200 px-2.5 py-2 text-[11px] font-mono">
+                              <span className="truncate text-slate-700">{key}</span>
+                              <span className="break-all text-slate-500">{String(value || '')}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs font-black text-slate-700 mb-2">文件注入 ({deployLlmFinalFilePreview.length})</div>
+                      <div className="max-h-56 overflow-y-auto space-y-2 custom-scrollbar">
+                        {deployLlmFinalFilePreview.length === 0 ? (
+                          <div className="text-xs text-slate-400">无文件注入</div>
+                        ) : (
+                          deployLlmFinalFilePreview.map((file, idx) => (
+                            <div key={`confirm-file-${idx}-${file.path}`} className="rounded-lg bg-white border border-slate-200 p-2.5 text-[11px]">
+                              <div className="font-semibold text-slate-700">{file.name || `file-${idx + 1}`}</div>
+                              <div className="font-mono text-slate-500 break-all mt-0.5">{file.path}</div>
+                              <pre className="mt-2 p-2 rounded bg-slate-50 border border-slate-100 text-[11px] font-mono text-slate-600 max-h-28 overflow-auto whitespace-pre-wrap break-all">{file.content || ''}</pre>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 border-t border-slate-100 bg-white flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
+            <div className="text-xs text-slate-500">
+              当前步骤：
+              <span className="font-bold text-slate-700 ml-1">
+                {deployModalTab === 'agents' ? '节点选择' : deployModalTab === 'config' ? '部署配置' : deployModalTab === 'llm' ? 'LLM 注入' : '确认下发'}
+              </span>
             </div>
-         </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsDeployModalOpen(false)}
+                disabled={deploying}
+                className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={executeDeploy}
+                disabled={deploying || selectedAgentKeys.size === 0}
+                className="px-7 py-2.5 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
+              >
+                {deploying ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
+                执行批量部署
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     )
   );

@@ -19,9 +19,39 @@ export const normalizeTemplateLlmBinding = (raw: any): TemplateLlmProviderBindin
         .map((item) => String(item || '').trim())
         .filter((item, index, arr) => Boolean(item) && arr.indexOf(item) === index);
 
+  const rawEnvOverrides = raw.env_overrides;
+  const envOverrides: Record<string, string> = {};
+  if (rawEnvOverrides && typeof rawEnvOverrides === 'object' && !Array.isArray(rawEnvOverrides)) {
+    Object.entries(rawEnvOverrides).forEach(([key, value]) => {
+      const normalizedKey = String(key || '').trim();
+      if (!normalizedKey) return;
+      envOverrides[normalizedKey] = value == null ? '' : String(value);
+    });
+  }
+
+  const fileOverrides = Array.isArray(raw.file_overrides)
+    ? raw.file_overrides
+        .filter((item: any) => item && typeof item === 'object')
+        .map((item: any, idx: number) => {
+          const path = String(item.path || '').trim();
+          const content = item.content == null ? '' : String(item.content);
+          return {
+            name: String(item.name || '').trim() || `file-${idx + 1}`,
+            path,
+            content,
+            format: String(item.format || 'other').trim() || 'other',
+            enabled: item.enabled !== false,
+            provider_key: String(item.provider_key || '').trim() || undefined,
+          };
+        })
+        .filter((item: any) => Boolean(item.path))
+    : [];
+
   return {
     provider_keys: providerKeys,
     target_services: targetServices,
+    env_overrides: envOverrides,
+    file_overrides: fileOverrides,
     updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : undefined,
   };
 };
@@ -127,6 +157,8 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
     onChange({
       provider_keys: normalized,
       target_services: targetServices,
+      env_overrides: normalizedValue?.env_overrides || {},
+      file_overrides: normalizedValue?.file_overrides || [],
     });
   };
 
@@ -138,6 +170,8 @@ export const TemplateLlmBindingEditor: React.FC<TemplateLlmBindingEditorProps> =
     onChange({
       provider_keys: selectedProviderKeys,
       target_services: nextTargets,
+      env_overrides: normalizedValue?.env_overrides || {},
+      file_overrides: normalizedValue?.file_overrides || [],
     });
   };
 

@@ -1057,6 +1057,8 @@ export interface EnvTemplate {
 export interface TemplateLlmProviderBinding {
   provider_keys: string[];
   target_services: '*' | string[];
+  env_overrides?: Record<string, string>;
+  file_overrides?: TemplateLlmMappedFile[];
   updated_at?: string;
 }
 
