@@ -24,6 +24,7 @@ type ProjectFileMountDraft = {
 
 type LlmBindingMode = 'none' | 'config_center' | 'custom';
 type HelpSectionKey = 'project-file-mounts' | 'llm-binding' | 'ingress-binding';
+type TemplateScopeFilter = 'global' | 'project';
 
 const createMountConfig = (readOnly = true): InputVolumeMountConfig => ({
   pvc_name: '',
@@ -86,6 +87,10 @@ export const AppInstancePage: React.FC<{
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [createStep, setCreateStep] = useState<CreateStep>('select-template');
   const [templates, setTemplates] = useState<AppTemplate[]>([]);
+  const [templateSearchTerm, setTemplateSearchTerm] = useState('');
+  const [templateScopeFilter, setTemplateScopeFilter] = useState<TemplateScopeFilter>('project');
+  const [templatePage, setTemplatePage] = useState(1);
+  const [templatePageSize, setTemplatePageSize] = useState(10);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<AppTemplate | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -230,8 +235,40 @@ export const AppInstancePage: React.FC<{
     return filteredInstances.slice(start, start + pageSize);
   }, [filteredInstances, currentPage, pageSize]);
 
+  const filteredTemplates = useMemo(() => {
+    const keyword = templateSearchTerm.trim().toLowerCase();
+    const scopeFilteredTemplates = templates.filter((template) => template.scope === templateScopeFilter);
+
+    if (!keyword) return scopeFilteredTemplates;
+
+    return scopeFilteredTemplates.filter((template) => {
+      const tagText = (template.tags || [])
+        .map((tag) => `${tag.tag_label} ${tag.tag_key}`)
+        .join(' ')
+        .toLowerCase();
+
+      return [
+        template.name,
+        template.description || '',
+        template.scope,
+        template.created_by || '',
+        tagText,
+      ].some((field) => field.toLowerCase().includes(keyword));
+    });
+  }, [templates, templateSearchTerm, templateScopeFilter]);
+
+  const templateTotalPages = Math.max(1, Math.ceil(filteredTemplates.length / templatePageSize));
+  const paginatedTemplates = useMemo(() => {
+    const start = (templatePage - 1) * templatePageSize;
+    return filteredTemplates.slice(start, start + templatePageSize);
+  }, [filteredTemplates, templatePage, templatePageSize]);
+
   const resetForm = () => {
     setCreateStep('select-template');
+    setTemplateSearchTerm('');
+    setTemplateScopeFilter('project');
+    setTemplatePage(1);
+    setTemplatePageSize(10);
     setSelectedTemplate(null);
     setFormData({
       name: '',
@@ -322,6 +359,14 @@ export const AppInstancePage: React.FC<{
       setLoadingTemplates(false);
     }
   };
+
+  useEffect(() => {
+    setTemplatePage(1);
+  }, [templateSearchTerm, templateScopeFilter]);
+
+  useEffect(() => {
+    setTemplatePage((current) => Math.min(current, templateTotalPages));
+  }, [templateTotalPages]);
 
   const handleTemplateSelect = async (templateId: string) => {
     try {
@@ -662,35 +707,182 @@ export const AppInstancePage: React.FC<{
       )}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-3xl bg-white shadow-2xl">
+          <div className="max-h-[94vh] w-full max-w-5xl overflow-auto rounded-3xl bg-white shadow-2xl">
             {createStep === 'select-template' ? (
               <>
-                <div className="border-b border-slate-100 p-8">
-                  <h2 className="text-2xl font-black text-slate-900">选择应用模板</h2>
-                  <p className="mt-1 text-sm text-slate-500">从现有模板创建单应用工作流实例。</p>
+                <div className="border-b border-slate-100 p-6">
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900">选择应用模板</h2>
+                    </div>
+                    <div className="w-full max-w-xs">
+                      <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        <input
+                          type="text"
+                          value={templateSearchTerm}
+                          onChange={(event) => setTemplateSearchTerm(event.target.value)}
+                          placeholder="搜索模板名称、描述、标签或创建人"
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3.5 text-[13px] text-slate-700 outline-none transition-all focus:border-blue-500 focus:bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {[
+                      { key: 'project', label: '项目模板' },
+                      { key: 'global', label: '公共模板' },
+                    ].map((option) => {
+                      const isActive = templateScopeFilter === option.key;
+                      return (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => setTemplateScopeFilter(option.key as TemplateScopeFilter)}
+                          className={`rounded-2xl px-4 py-2 text-sm font-bold transition-all ${
+                            isActive
+                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="p-8">
+                <div className="p-6">
                   {loadingTemplates ? (
                     <div className="flex items-center justify-center py-16"><Loader2 className="animate-spin text-blue-600" size={32} /></div>
                   ) : templates.length === 0 ? (
                     <div className="py-12 text-center text-slate-400">暂无可用模板</div>
+                  ) : filteredTemplates.length === 0 ? (
+                    <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-14 text-center">
+                      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-300 shadow-sm">
+                        <Search size={22} />
+                      </div>
+                      <div className="text-base font-bold text-slate-700">没有找到匹配的模板</div>
+                      <p className="mt-2 text-sm text-slate-500">可以尝试更短的关键词，或按模板名称、标签重新检索。</p>
+                    </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      {templates.map((template) => (
-                        <button key={template.id} onClick={() => handleTemplateSelect(template.id)} className="rounded-2xl border border-slate-200 p-5 text-left transition-all hover:border-blue-300 hover:bg-blue-50">
-                          <div className="text-lg font-black text-slate-900">{template.name}</div>
-                          <div className="mt-2 text-sm text-slate-500">{template.description || '暂无描述'}</div>
-                          <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                            <span className="rounded-full bg-slate-100 px-3 py-1">容器 {template.containers.length}</span>
-                            <span className="rounded-full bg-slate-100 px-3 py-1">副本 {template.replicas}</span>
-                            <span className="rounded-full bg-slate-100 px-3 py-1">{template.scope}</span>
+                    <div className="space-y-5">
+                      <div className="max-h-[68vh] overflow-y-auto rounded-[1.75rem] border border-slate-200 bg-white shadow-inner shadow-slate-100/70">
+                        <div className="divide-y divide-slate-100">
+                          {paginatedTemplates.map((template) => (
+                            <button
+                              key={template.id}
+                              onClick={() => handleTemplateSelect(template.id)}
+                              className="group flex w-full flex-col gap-2.5 px-4 py-3 text-left transition-all hover:bg-slate-50 md:px-5"
+                            >
+                              <div className="flex flex-col gap-2.5 xl:flex-row xl:items-start xl:justify-between">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2.5">
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all group-hover:bg-blue-600 group-hover:text-white">
+                                      <Box size={16} />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="truncate text-[15px] font-black text-slate-900 md:text-base">{template.name}</div>
+                                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                                        <span>{template.scope === 'global' ? '全局模板' : '项目模板'}</span>
+                                        {template.created_by && (
+                                          <>
+                                            <span className="h-1 w-1 rounded-full bg-slate-300" />
+                                            <span>{template.created_by}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <p className="mt-1.5 line-clamp-2 text-[13px] leading-5 text-slate-600">
+                                    {template.description || '暂无描述，点击后可继续补充实例配置。'}
+                                  </p>
+
+                                  {!!template.tags?.length && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                      {template.tags.slice(0, 4).map((tag) => (
+                                        <span
+                                          key={`${template.id}-${tag.tag_key}`}
+                                          className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600"
+                                        >
+                                          {tag.tag_label}
+                                        </span>
+                                      ))}
+                                      {template.tags.length > 4 && (
+                                        <span className="rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-bold text-slate-400">
+                                          +{template.tags.length - 4}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex shrink-0 flex-wrap gap-1.5 xl:max-w-[15rem] xl:justify-end">
+                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    容器 {template.containers.length}
+                                  </span>
+                                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    副本 {template.replicas}
+                                  </span>
+                                  {template.service_ports && template.service_ports.length > 0 && (
+                                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                                      端口 {template.service_ports.length}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-slate-200 bg-gradient-to-r from-slate-50 via-white to-blue-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">分页浏览</div>
+                          <div className="mt-1 text-sm text-slate-600">共 <span className="font-black text-slate-900">{filteredTemplates.length}</span> 个模板</div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold uppercase tracking-widest text-slate-400">每页</span>
+                            <select
+                              value={templatePageSize}
+                              onChange={(event) => {
+                                setTemplatePageSize(Number(event.target.value));
+                                setTemplatePage(1);
+                              }}
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500"
+                            >
+                              <option value={5}>5</option>
+                              <option value={10}>10</option>
+                              <option value={15}>15</option>
+                              <option value={20}>20</option>
+                            </select>
                           </div>
-                        </button>
-                      ))}
+                          <div className="flex items-center gap-2">
+                            <button
+                              disabled={templatePage === 1}
+                              onClick={() => setTemplatePage((page) => page - 1)}
+                              className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30"
+                            >
+                              <ChevronLeft size={18} />
+                            </button>
+                            <span className="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-800 ring-1 ring-slate-200">
+                              {templatePage} / {templateTotalPages}
+                            </span>
+                            <button
+                              disabled={templatePage >= templateTotalPages}
+                              onClick={() => setTemplatePage((page) => page + 1)}
+                              className="p-2 text-slate-400 hover:text-slate-800 disabled:opacity-30"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="border-t border-slate-100 p-8 text-right">
+                <div className="border-t border-slate-100 p-6 text-right">
                   <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-700">取消</button>
                 </div>
               </>
