@@ -49,6 +49,8 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [nodeFilter, setNodeFilter] = useState('all');
   const [templateFilter, setTemplateFilter] = useState('all');
   const [serviceStateFilter, setServiceStateFilter] = useState<'all' | 'running' | 'stopped' | 'offline_agent' | 'stale' | 'error'>('all');
+  const [servicePage, setServicePage] = useState(1);
+  const [servicePerPage, setServicePerPage] = useState(50);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set<string>());
   const [selectedService, setSelectedService] = useState<AgentService | null>(null);
   const [serviceDetail, setServiceDetail] = useState<any>(null);
@@ -359,16 +361,34 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     return 'unknown';
   };
 
+  const resolveServiceStateMeta = (
+    svc: AgentService,
+    agentStatus: string
+  ): {
+    effectiveState: 'running' | 'stopped' | 'offline_agent' | 'stale' | 'error' | 'unknown';
+    badgeStatus: string;
+  } => {
+    const effectiveState = getEffectiveServiceState(svc, agentStatus);
+    if (effectiveState === 'offline_agent') {
+      return { effectiveState, badgeStatus: 'offline' };
+    }
+    if (effectiveState === 'stale') {
+      return { effectiveState, badgeStatus: 'checking' };
+    }
+    return { effectiveState, badgeStatus: String(svc?.status || 'unknown') };
+  };
+
   const servicesWithAgentStatus = useMemo(() => {
     return allServices.map((svc) => {
       const agent = svc.agent_key ? agentByKey.get(svc.agent_key) : undefined;
       const agentStatus = String(agent?.status || 'unknown');
-      const effectiveState = getEffectiveServiceState(svc, agentStatus);
+      const stateMeta = resolveServiceStateMeta(svc, agentStatus);
       return {
         ...svc,
         agent_status: agentStatus,
         agent_online: agentStatus === 'online',
-        effective_state: effectiveState
+        effective_state: stateMeta.effectiveState,
+        badge_status: stateMeta.badgeStatus,
       };
     });
   }, [allServices, agentByKey]);
@@ -421,6 +441,26 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     });
     return summary;
   }, [servicesWithAgentStatus]);
+
+  const servicePageCount = useMemo(() => {
+    const total = filteredServices.length;
+    return Math.max(1, Math.ceil(total / Math.max(1, servicePerPage)));
+  }, [filteredServices.length, servicePerPage]);
+
+  const pagedServices = useMemo(() => {
+    const start = (servicePage - 1) * servicePerPage;
+    return filteredServices.slice(start, start + servicePerPage);
+  }, [filteredServices, servicePage, servicePerPage]);
+
+  useEffect(() => {
+    setServicePage(1);
+  }, [searchTerm, nodeFilter, templateFilter, serviceStateFilter, projectId]);
+
+  useEffect(() => {
+    if (servicePage > servicePageCount) {
+      setServicePage(servicePageCount);
+    }
+  }, [servicePage, servicePageCount]);
 
   const selectedItems = filteredServices.filter((svc) => selectedServiceIds.has(serviceRowId(svc)));
 
@@ -1331,6 +1371,34 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <div className="text-xs text-slate-500 ml-auto">
           已选 {selectedItems.length} / 当前结果 {filteredServices.length}
         </div>
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          <span>每页</span>
+          <select
+            value={servicePerPage}
+            onChange={(e) => setServicePerPage(Number(e.target.value) || 50)}
+            className="px-2 py-1 border border-slate-200 rounded-lg bg-white text-xs"
+          >
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={200}>200</option>
+          </select>
+          <span>页码 {servicePage}/{servicePageCount}</span>
+          <button
+            onClick={() => setServicePage((prev) => Math.max(1, prev - 1))}
+            disabled={servicePage <= 1}
+            className="px-2 py-1 rounded-lg border border-slate-200 bg-white disabled:opacity-50"
+          >
+            上一页
+          </button>
+          <button
+            onClick={() => setServicePage((prev) => Math.min(servicePageCount, prev + 1))}
+            disabled={servicePage >= servicePageCount}
+            className="px-2 py-1 rounded-lg border border-slate-200 bg-white disabled:opacity-50"
+          >
+            下一页
+          </button>
+        </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-sm overflow-hidden">
@@ -1347,7 +1415,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {projectId && filteredServices.map((svc: any) => {
+            {projectId && pagedServices.map((svc: any) => {
               const rowId = serviceRowId(svc);
               const ports = Object.entries(svc.ports || {});
               const portSummary = ports.length > 0
@@ -1480,7 +1548,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
                   </td>
                   <td className="px-4 py-3 align-middle">
                     <div className="flex items-center gap-2 whitespace-nowrap">
-                      <StatusBadge status={svc.effective_state === 'offline_agent' ? 'offline' : (svc.effective_state === 'stale' ? 'checking' : svc.status)} />
+                      <StatusBadge status={String((svc as any).badge_status || svc.status || 'unknown')} />
                       {svc.is_stale && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 font-black uppercase tracking-wider">
                           stale

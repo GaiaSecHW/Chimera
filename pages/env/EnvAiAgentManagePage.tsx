@@ -1069,151 +1069,686 @@ const BatchLlmApplyModal: React.FC<{
 };
 
 const SingleAgentLlmModal: React.FC<{
+  projectId: string;
   agent: ProjectAiAgentItem;
   providerOptions: AiAgentLlmProviderSummary[];
-  selectedProviderKey: string;
-  onProviderChange: (value: string) => void;
-  providerDetail: AiAgentLlmProviderDetail | null;
+  initialDraft: AiAgentLlmConfigDraft | null;
+  initialLoading: boolean;
   llmBusy: string;
   notice: { type: 'success' | 'error'; text: string } | null;
+  notify: (message: string, type?: 'success' | 'error' | 'warning') => void;
   onClose: () => void;
-  onApply: (refresh: boolean) => Promise<void>;
+  onApply: (draft: AiAgentLlmConfigDraft) => Promise<void>;
   onClear: () => Promise<void>;
-}> = ({ agent, providerOptions, selectedProviderKey, onProviderChange, providerDetail, llmBusy, notice, onClose, onApply, onClear }) => {
-  const chosen = providerOptions.find((item) => item.provider_key === selectedProviderKey) || null;
+}> = ({ projectId, agent, providerOptions, initialDraft, initialLoading, llmBusy, notice, notify, onClose, onApply, onClear }) => {
+  const [activeTab, setActiveTab] = useState<'providers' | 'env' | 'files' | 'submit'>('providers');
+  const [providerToAdd, setProviderToAdd] = useState('');
+  const [selectedProviderKeys, setSelectedProviderKeys] = useState<string[]>([]);
+  const [providerDetailsMap, setProviderDetailsMap] = useState<Record<string, AiAgentLlmProviderDetail>>({});
+  const [pendingProviderDraftApply, setPendingProviderDraftApply] = useState<string[]>([]);
+  const [mergeStrategy, setMergeStrategy] = useState<'overwrite' | 'merge'>('overwrite');
+  const [envEntries, setEnvEntries] = useState<EnvEntry[]>([]);
+  const [fileEntries, setFileEntries] = useState<FileEntry[]>([]);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
+  const backendType = String(agent.backend_type || '').trim();
   const currentBindingName = formatProviderText(agent.llm_provider_snapshot || { provider_key: agent.llm_provider_key });
+
+  useEffect(() => {
+    setProviderToAdd('');
+  }, [agent.agent_id]);
+
+  useEffect(() => {
+    const providerKeys = Array.isArray(initialDraft?.provider_keys) ? initialDraft.provider_keys : [];
+    const envOverrides = initialDraft?.env_overrides && typeof initialDraft.env_overrides === 'object' ? initialDraft.env_overrides : {};
+    const fileOverrides = Array.isArray(initialDraft?.file_overrides) ? initialDraft.file_overrides : [];
+    const strategy = initialDraft?.merge_strategy === 'merge' ? 'merge' : 'overwrite';
+
+    setSelectedProviderKeys(providerKeys.map((item) => String(item || '').trim()).filter(Boolean));
+    setEnvEntries(envObjectToEntries(envOverrides));
+    setFileEntries(fileOverrides.map((item) => createFileEntry({
+      name: String(item?.name || ''),
+      path: String(item?.path || ''),
+      content: String(item?.content || ''),
+      format: String(item?.format || 'other'),
+      enabled: item?.enabled !== false,
+      provider_key: String(item?.provider_key || ''),
+    })));
+    setMergeStrategy(strategy);
+    setPendingProviderDraftApply([]);
+    setActiveTab('providers');
+    setShowSubmitConfirm(false);
+  }, [initialDraft, agent.agent_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadMissing = async () => {
+      const missing = Array.from(new Set([providerToAdd, ...selectedProviderKeys].filter(Boolean))).filter((key) => !providerDetailsMap[key]);
+      for (const key of missing) {
+        try {
+          const detail = await api.environment.getAiAgentLlmProvider(projectId || '', key, backendType);
+          if (cancelled) return;
+          setProviderDetailsMap((prev) => ({ ...prev, [key]: detail }));
+        } catch (error: any) {
+          if (!cancelled) notify(`加载 Provider 详情失败: ${error?.message || error}`, 'error');
+        }
+      }
+    };
+
+    void loadMissing();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, backendType, providerToAdd, selectedProviderKeys, providerDetailsMap, notify]);
+
+  const applyProviderDefaultsToDraft = (providerKey: string, detail: AiAgentLlmProviderDetail) => {
+    setEnvEntries((prev) => {
+      const envMap = new Map<string, EnvEntry>();
+      prev.forEach((entry) => {
+        const key = String(entry.key || '').trim();
+        if (!key) return;
+        envMap.set(key, entry);
+      });
+      Object.entries(detail.env_bindings || {}).forEach(([rawKey, rawValue]) => {
+        const key = String(rawKey || '').trim();
+        if (!key) return;
+        const value = rawValue === undefined || rawValue === null ? '' : String(rawValue);
+        const existing = envMap.get(key);
+        if (existing) {
+          envMap.set(key, { ...existing, value });
+        } else {
+          envMap.set(key, createEnvEntry(key, value));
+        }
+      });
+      return Array.from(envMap.values());
+    });
+
+    setFileEntries((prev) => {
+      const fileMap = new Map<string, FileEntry>();
+      prev.forEach((entry) => {
+        const path = String(entry.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, entry);
+      });
+      (detail.file_bindings || []).forEach((item, idx) => {
+        if (!item?.enabled) return;
+        const path = String(item.path || '').trim();
+        if (!path) return;
+        const next = createFileEntry({
+          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
+          path,
+          content: String(item.content || ''),
+          format: String(item.format || 'other'),
+          enabled: true,
+          provider_key: providerKey,
+        });
+        const existing = fileMap.get(path);
+        if (existing) {
+          fileMap.set(path, { ...existing, ...next, id: existing.id, path });
+        } else {
+          fileMap.set(path, next);
+        }
+      });
+      return Array.from(fileMap.values());
+    });
+  };
+
+  const buildProviderDefaultsByKeys = (providerKeys: string[]) => {
+    const envMap = new Map<string, { value: string; provider_key: string }>();
+    const fileMap = new Map<string, Omit<FileEntry, 'id'>>();
+
+    providerKeys.forEach((providerKey) => {
+      const detail = providerDetailsMap[providerKey];
+      if (!detail) return;
+
+      Object.entries(detail.env_bindings || {}).forEach(([rawKey, rawValue]) => {
+        const key = String(rawKey || '').trim();
+        if (!key) return;
+        envMap.set(key, {
+          value: rawValue === undefined || rawValue === null ? '' : String(rawValue),
+          provider_key: providerKey,
+        });
+      });
+
+      (detail.file_bindings || []).forEach((item, idx) => {
+        if (!item?.enabled) return;
+        const path = String(item.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, {
+          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
+          path,
+          content: String(item.content || ''),
+          format: String(item.format || 'other'),
+          enabled: true,
+          provider_key: providerKey,
+        });
+      });
+    });
+
+    return { envMap, fileMap };
+  };
+
+  const isFileEntryEquivalent = (entry: FileEntry, expected: Omit<FileEntry, 'id'>) => {
+    return String(entry.path || '').trim() === String(expected.path || '').trim()
+      && String(entry.name || '') === String(expected.name || '')
+      && String(entry.content || '') === String(expected.content || '')
+      && String(entry.format || '') === String(expected.format || '')
+      && Boolean(entry.enabled) === Boolean(expected.enabled)
+      && String(entry.provider_key || '') === String(expected.provider_key || '');
+  };
+
+  const addProvider = () => {
+    const key = String(providerToAdd || '').trim();
+    if (!key) return;
+    const exists = selectedProviderKeys.includes(key);
+    if (!exists) {
+      setSelectedProviderKeys((prev) => [...prev, key]);
+    }
+    const detail = providerDetailsMap[key];
+    if (detail) {
+      applyProviderDefaultsToDraft(key, detail);
+      return;
+    }
+    setPendingProviderDraftApply((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  };
+
+  const removeProvider = (providerKey: string) => {
+    const prevKeys = [...selectedProviderKeys];
+    if (!prevKeys.includes(providerKey)) return;
+    const remainKeys = prevKeys.filter((item) => item !== providerKey);
+
+    setSelectedProviderKeys(remainKeys);
+    setPendingProviderDraftApply((prev) => prev.filter((item) => item !== providerKey));
+
+    const removedDetail = providerDetailsMap[providerKey];
+    if (!removedDetail) return;
+
+    const removedDefaults = buildProviderDefaultsByKeys([providerKey]);
+    const remainDefaults = buildProviderDefaultsByKeys(remainKeys);
+
+    setEnvEntries((prev) => {
+      const envMap = new Map<string, EnvEntry>();
+      prev.forEach((entry) => {
+        const key = String(entry.key || '').trim();
+        if (!key) return;
+        envMap.set(key, entry);
+      });
+
+      removedDefaults.envMap.forEach((removedVal, key) => {
+        const current = envMap.get(key);
+        if (!current) return;
+        const currentValue = String(current.value ?? '');
+        if (currentValue !== removedVal.value) return;
+        const remainVal = remainDefaults.envMap.get(key);
+        if (remainVal) {
+          envMap.set(key, { ...current, value: remainVal.value });
+        } else {
+          envMap.delete(key);
+        }
+      });
+
+      return Array.from(envMap.values());
+    });
+
+    setFileEntries((prev) => {
+      const fileMap = new Map<string, FileEntry>();
+      prev.forEach((entry) => {
+        const path = String(entry.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, entry);
+      });
+
+      removedDefaults.fileMap.forEach((removedFile, path) => {
+        const current = fileMap.get(path);
+        if (!current) return;
+        if (!isFileEntryEquivalent(current, removedFile)) return;
+        const remainFile = remainDefaults.fileMap.get(path);
+        if (remainFile) {
+          fileMap.set(path, {
+            ...current,
+            name: remainFile.name,
+            path: remainFile.path,
+            content: remainFile.content,
+            format: remainFile.format,
+            enabled: remainFile.enabled,
+            provider_key: remainFile.provider_key,
+          });
+        } else {
+          fileMap.delete(path);
+        }
+      });
+
+      return Array.from(fileMap.values());
+    });
+  };
+
+  const moveProvider = (index: number, offset: number) => {
+    setSelectedProviderKeys((prev) => {
+      const target = index + offset;
+      if (target < 0 || target >= prev.length || index < 0 || index >= prev.length) return prev;
+      const next = [...prev];
+      const tmp = next[index];
+      next[index] = next[target];
+      next[target] = tmp;
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (pendingProviderDraftApply.length === 0) return;
+    const resolved = pendingProviderDraftApply.filter((providerKey) => !!providerDetailsMap[providerKey]);
+    if (resolved.length === 0) return;
+    resolved.forEach((providerKey) => {
+      const detail = providerDetailsMap[providerKey];
+      if (!detail) return;
+      applyProviderDefaultsToDraft(providerKey, detail);
+    });
+    setPendingProviderDraftApply((prev) => prev.filter((providerKey) => !resolved.includes(providerKey)));
+  }, [pendingProviderDraftApply, providerDetailsMap]);
+
+  const providerPreview = useMemo(() => {
+    const mergedEnv: Array<{ key: string; value: string; provider_key: string }> = [];
+    const envMap = new Map<string, { value: string; provider_key: string }>();
+    const fileMap = new Map<string, FileEntry>();
+    selectedProviderKeys.forEach((providerKey) => {
+      const detail = providerDetailsMap[providerKey];
+      if (!detail) return;
+      Object.entries(detail.env_bindings || {}).forEach(([key, value]) => {
+        envMap.set(String(key), {
+          value: value === undefined || value === null ? '' : String(value),
+          provider_key: providerKey,
+        });
+      });
+      (detail.file_bindings || []).forEach((item, idx) => {
+        if (!item?.enabled) return;
+        const path = String(item.path || '').trim();
+        if (!path) return;
+        fileMap.set(path, createFileEntry({
+          name: String(item.name || '').trim() || `${providerKey}-file-${idx + 1}`,
+          path,
+          content: String(item.content || ''),
+          format: String(item.format || 'other'),
+          enabled: true,
+          provider_key: providerKey,
+        }));
+      });
+    });
+    envMap.forEach((val, key) => {
+      mergedEnv.push({ key, value: val.value, provider_key: val.provider_key });
+    });
+    return {
+      env: mergedEnv.sort((a, b) => a.key.localeCompare(b.key)),
+      files: Array.from(fileMap.values()),
+    };
+  }, [selectedProviderKeys, providerDetailsMap]);
+
+  const submitDraft = useMemo<AiAgentLlmConfigDraft>(() => ({
+    provider_keys: selectedProviderKeys,
+    merge_strategy: mergeStrategy,
+    env_overrides: envEntriesToObject(envEntries),
+    file_overrides: fileEntries
+      .map((item) => ({
+        name: item.name,
+        path: item.path,
+        content: item.content,
+        format: item.format,
+        enabled: item.enabled,
+        provider_key: item.provider_key || undefined,
+      }))
+      .filter((item) => String(item.path || '').trim() && typeof item.content === 'string') as AiAgentLlmFileBinding[],
+  }), [selectedProviderKeys, mergeStrategy, envEntries, fileEntries]);
+
+  const submitEnvPreview = useMemo(() => {
+    return Object.entries(submitDraft.env_overrides || {})
+      .map(([key, value]) => ({ key, value: String(value ?? '') }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+  }, [submitDraft]);
+
+  const submitFilePreview = useMemo(() => submitDraft.file_overrides || [], [submitDraft]);
+
+  const submit = async () => {
+    setConfirmBusy(true);
+    try {
+      await onApply(submitDraft);
+      setShowSubmitConfirm(false);
+    } finally {
+      setConfirmBusy(false);
+    }
+  };
 
   return (
     <ModalShell
       title={`为 ${agent.agent_id} 选择 LLM 配置`}
-      description="左侧选择并执行应用动作，右侧查看当前绑定与目标 Provider 预览。"
+      description="支持多 Provider 编排，编辑环境变量与文件注入后，进行二次确认下发。"
       onClose={onClose}
       maxWidthClassName="max-w-6xl"
+      compactHeight
     >
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(165deg,#f8fafc_0%,#ecfeff_100%)] p-4">
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">Target Agent</div>
-            <div className="mt-2 text-xl font-black text-slate-900">{agent.agent_id}</div>
-            <div className="mt-1 text-sm text-slate-600">{agent.agent_hostname || agent.agent_key} · {agent.service_name}</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 ring-1 ring-slate-200">{agent.backend_type}</span>
-              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200">当前: {currentBindingName}</span>
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-slate-200 bg-[linear-gradient(165deg,#f8fafc_0%,#ecfeff_100%)] p-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">Target Agent</div>
+          <div className="mt-2 text-xl font-black text-slate-900">{agent.agent_id}</div>
+          <div className="mt-1 text-sm text-slate-600">{agent.agent_hostname || agent.agent_key} · {agent.service_name}</div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 ring-1 ring-slate-200">{agent.backend_type}</span>
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 ring-1 ring-slate-200">当前: {currentBindingName}</span>
+          </div>
+        </div>
+
+        {initialLoading ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            <div className="inline-flex items-center gap-2">
+              <Loader2 size={16} className="animate-spin" />
+              正在从 helper 加载当前已生效配置...
             </div>
           </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="text-sm font-black text-slate-900">1. 选择 Provider</div>
-            <select value={selectedProviderKey} onChange={(event) => onProviderChange(event.target.value)} className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm">
-              <option value="">选择 LLM Provider</option>
-              {providerOptions.map((provider) => (
-                <option key={provider.provider_key} value={provider.provider_key}>
-                  {provider.display_name} · {provider.provider_type}
-                  {provider.is_default ? ' · 默认' : ''}
-                </option>
-              ))}
-            </select>
-            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              {!chosen ? '未选择 Provider' : `${chosen.display_name} · ${chosen.provider_type} · ${chosen.model || '-'}`}
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('providers')}
+                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'providers' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                Provider编排
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('env')}
+                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'env' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                环境变量
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('files')}
+                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'files' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                文件注入
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('submit')}
+                className={`rounded-xl px-3 py-2 text-xs font-black tracking-[0.08em] ${activeTab === 'submit' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                下发与结果
+              </button>
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="text-sm font-black text-slate-900">2. 执行动作</div>
-            <div className="mt-3 grid grid-cols-1 gap-2">
-              <button
-                onClick={() => void onApply(false)}
-                disabled={!selectedProviderKey}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {llmBusy === 'apply-single' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                应用到当前 Agent
-              </button>
-              <button
-                onClick={() => void onApply(true)}
-                disabled={!agent.llm_provider_key && !selectedProviderKey}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:opacity-50"
-              >
-                {llmBusy === 'refresh-single' ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                从配置中心刷新
-              </button>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              {activeTab === 'providers' ? (
+                <div className="space-y-4">
+                  <div className="text-sm font-black text-slate-900">选择 Provider 后点击“新增”加入草稿</div>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                    <select
+                      value={providerToAdd}
+                      onChange={(e) => setProviderToAdd(e.target.value)}
+                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                    >
+                      <option value="">选择 LLM Provider</option>
+                      {providerOptions.map((provider) => (
+                        <option key={provider.provider_key} value={provider.provider_key}>
+                          {provider.display_name || provider.provider_key} · {provider.provider_type}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={addProvider}
+                      disabled={!providerToAdd}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                    >
+                      <Plus size={14} />
+                      新增
+                    </button>
+                  </div>
+
+                  <div className="max-h-[220px] space-y-2 overflow-auto pr-1">
+                    {selectedProviderKeys.length === 0 ? (
+                      <div className="text-xs text-slate-400">尚未添加 Provider。</div>
+                    ) : selectedProviderKeys.map((providerKey, index) => {
+                      const provider = providerOptions.find((item) => item.provider_key === providerKey);
+                      return (
+                        <div key={`${providerKey}-${index}`} className="rounded-xl border border-slate-200 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-semibold text-slate-900">{provider?.display_name || providerKey}</div>
+                              <div className="text-xs text-slate-500">{providerKey} · {provider?.provider_type || 'unknown'}</div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button type="button" onClick={() => moveProvider(index, -1)} disabled={index === 0} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↑</button>
+                              <button type="button" onClick={() => moveProvider(index, 1)} disabled={index === selectedProviderKeys.length - 1} className="rounded border border-slate-200 px-2 py-1 text-xs disabled:opacity-40">↓</button>
+                              <button type="button" onClick={() => removeProvider(providerKey)} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">当前 Provider 合并预览</div>
+                    <div className="mt-2 text-xs text-slate-600">环境变量 {providerPreview.env.length} 项 · 文件注入 {providerPreview.files.length} 项</div>
+                    <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                      <div className="rounded-lg border border-slate-200 bg-white p-2">
+                        <div className="text-xs font-black text-slate-700">环境变量</div>
+                        <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
+                          {providerPreview.env.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.env.map((item) => (
+                            <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-slate-800">{item.key}</div>
+                              <div className="truncate text-slate-600">{item.value}</div>
+                              <div className="text-slate-400">来源: {item.provider_key}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white p-2">
+                        <div className="text-xs font-black text-slate-700">文件注入</div>
+                        <div className="mt-2 max-h-[180px] space-y-1 overflow-auto pr-1">
+                          {providerPreview.files.length === 0 ? <div className="text-[11px] text-slate-400">暂无</div> : providerPreview.files.map((item) => (
+                            <div key={`${item.path}-${item.provider_key || ''}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-slate-800">{item.path}</div>
+                              <div className="text-slate-600">{item.name || '-'}</div>
+                              <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTab === 'env' ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-black text-slate-900">环境变量覆盖（可编辑）</div>
+                    <button type="button" onClick={() => setEnvEntries((prev) => [...prev, createEnvEntry('', '')])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+                  </div>
+                  <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
+                    {envEntries.map((entry) => (
+                      <div key={entry.id} className="grid grid-cols-1 gap-2 md:grid-cols-[220px_minmax(0,1fr)_72px]">
+                        <input value={entry.key} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, key: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="KEY" />
+                        <input value={entry.value} onChange={(e) => setEnvEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, value: e.target.value } : it))} className="rounded border border-slate-200 px-2 py-1 text-xs" placeholder="VALUE" />
+                        <button type="button" onClick={() => setEnvEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTab === 'files' ? (
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-black text-slate-900">文件注入覆盖（可编辑）</div>
+                    <button type="button" onClick={() => setFileEntries((prev) => [...prev, createFileEntry()])} className="rounded border border-slate-200 px-2 py-1 text-xs">新增</button>
+                  </div>
+                  <div className="mt-3 max-h-[420px] space-y-3 overflow-auto pr-1">
+                    {fileEntries.map((entry) => (
+                      <div key={entry.id} className="rounded-xl border border-slate-200 p-3">
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          <label className="text-xs text-slate-600">
+                            <div className="mb-1 font-semibold text-slate-700">名称（name）</div>
+                            <input value={entry.name} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, name: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: claude-config" />
+                          </label>
+                          <label className="text-xs text-slate-600">
+                            <div className="mb-1 font-semibold text-slate-700">注入路径（path）</div>
+                            <input value={entry.path} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, path: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="例如: /etc/agent/config.json" />
+                          </label>
+                          <label className="text-xs text-slate-600">
+                            <div className="mb-1 font-semibold text-slate-700">格式（format）</div>
+                            <input value={entry.format} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, format: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="json/yaml/env/other" />
+                          </label>
+                          <label className="text-xs text-slate-600">
+                            <div className="mb-1 font-semibold text-slate-700">来源 Provider（可选）</div>
+                            <input value={entry.provider_key || ''} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, provider_key: e.target.value } : it))} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" placeholder="provider_key(optional)" />
+                          </label>
+                        </div>
+                        <label className="mt-2 block text-xs text-slate-600">
+                          <div className="mb-1 font-semibold text-slate-700">文件内容（content）</div>
+                          <textarea value={entry.content} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, content: e.target.value } : it))} rows={4} className="w-full rounded border border-slate-200 px-2 py-1 text-xs font-mono" placeholder="输入将注入到文件中的完整内容" />
+                        </label>
+                        <div className="mt-2 flex items-center justify-between">
+                          <label className="inline-flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={entry.enabled} onChange={(e) => setFileEntries((prev) => prev.map((it) => it.id === entry.id ? { ...it, enabled: e.target.checked } : it))} />启用（enabled）</label>
+                          <button type="button" onClick={() => setFileEntries((prev) => prev.filter((it) => it.id !== entry.id))} className="rounded border border-rose-200 px-2 py-1 text-xs text-rose-700">删除</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTab === 'submit' ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">冲突策略</div>
+                    <div className="mt-2 flex items-center gap-4 text-sm">
+                      <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'overwrite'} onChange={() => setMergeStrategy('overwrite')} />覆盖</label>
+                      <label className="inline-flex items-center gap-2"><input type="radio" checked={mergeStrategy === 'merge'} onChange={() => setMergeStrategy('merge')} />合并</label>
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-500">Provider: {selectedProviderKeys.length}，Env: {submitEnvPreview.length}，Files: {submitFilePreview.length}</div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">最终配置注入预览（只读）</div>
+                    <div className="mt-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                      <div className="rounded-lg border border-slate-200 bg-white p-2">
+                        <div className="text-xs font-black text-slate-700">环境变量（{submitEnvPreview.length}）</div>
+                        <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
+                          {submitEnvPreview.length === 0 ? (
+                            <div className="text-[11px] text-slate-400">暂无</div>
+                          ) : submitEnvPreview.map((item) => (
+                            <div key={item.key} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-slate-800">{item.key}</div>
+                              <div className="break-all text-slate-600">{item.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white p-2">
+                        <div className="text-xs font-black text-slate-700">文件注入（{submitFilePreview.length}）</div>
+                        <div className="mt-2 max-h-[220px] space-y-1 overflow-auto pr-1">
+                          {submitFilePreview.length === 0 ? (
+                            <div className="text-[11px] text-slate-400">暂无</div>
+                          ) : submitFilePreview.map((item, index) => (
+                            <div key={`${item.path}-${index}`} className="rounded border border-slate-200 px-2 py-1 text-[11px]">
+                              <div className="font-semibold text-slate-800">{item.path}</div>
+                              <div className="text-slate-600">名称: {item.name || '-'} · 格式: {item.format || '-'} · 启用: {item.enabled ? '是' : '否'}</div>
+                              <div className="text-slate-400">来源: {item.provider_key || '-'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSubmitConfirm(true)}
+                    disabled={llmBusy === 'configure-single'}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {llmBusy === 'configure-single' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    应用到当前 Agent
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-sm font-black text-slate-900">清除绑定</div>
+              <div className="mt-2 text-xs text-slate-500">保留原有清除逻辑：移除映射环境变量并清空 LLM 绑定信息。</div>
               <button
                 onClick={() => void onClear()}
                 disabled={!agent.llm_provider_key && (agent.llm_provider_mapped_env_keys || []).length === 0}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 disabled:opacity-50"
+                className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 disabled:opacity-50"
               >
                 {llmBusy === 'clear-single' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                 清除当前映射
               </button>
             </div>
-            {notice ? (
-              <div className={`mt-3 rounded-xl border px-3 py-2 text-sm ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
-                {notice.text}
-              </div>
-            ) : null}
-          </div>
-        </div>
+          </>
+        )}
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-300 bg-[linear-gradient(160deg,#ffffff_0%,#f8fafc_100%)] p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-black text-slate-900">当前已生效绑定</div>
-              <span className="rounded-full border border-slate-300 bg-slate-100 px-2.5 py-1 text-[11px] font-black tracking-[0.12em] text-slate-700">
-                LIVE
-              </span>
-            </div>
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Provider Key</div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">{agent.llm_provider_key || '-'}</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Provider Name</div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">{agent.llm_provider_snapshot?.display_name || '-'}</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Applied At</div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">{formatTimestamp(agent.llm_provider_applied_at)}</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Provider Type</div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">{agent.llm_provider_snapshot?.provider_type || '-'}</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Model</div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">{agent.llm_provider_snapshot?.model || '-'}</div>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">映射环境变量</div>
-                <div className="mt-1 text-sm font-semibold text-slate-900">{(agent.llm_provider_mapped_env_keys || []).length}</div>
-              </div>
-            </div>
-            {(agent.llm_provider_mapped_env_keys || []).length > 0 ? (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(agent.llm_provider_mapped_env_keys || []).map((key) => (
-                  <span key={key} className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-                    {key}
-                  </span>
-                ))}
-              </div>
-            ) : null}
+        {notice ? (
+          <div className={`rounded-xl border px-3 py-2 text-sm ${notice.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
+            {notice.text}
           </div>
+        ) : null}
 
-          <div className="rounded-2xl border-2 border-cyan-200 bg-[linear-gradient(160deg,#ecfeff_0%,#ffffff_65%)] p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="text-sm font-black text-cyan-800">待应用 Provider 预览</div>
-              <span className="rounded-full border border-cyan-300 bg-cyan-100 px-2.5 py-1 text-[11px] font-black tracking-[0.12em] text-cyan-800">
-                PREVIEW
-              </span>
+        {showSubmitConfirm ? (
+          <div className="fixed inset-0 z-[280] bg-slate-950/50 p-4 md:p-8" onClick={() => setShowSubmitConfirm(false)}>
+            <div
+              className="mx-auto w-full max-w-5xl rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_35px_120px_rgba(15,23,42,0.35)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-6 py-5">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-600">最终确认</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">确认下发到 {agent.agent_id}</div>
+                  <div className="mt-1 text-xs text-slate-500">请确认最终配置内容，确认后将立即写入 helper 并生效。</div>
+                </div>
+                <button onClick={() => setShowSubmitConfirm(false)} className="rounded-lg bg-slate-100 p-2 text-slate-500 hover:bg-slate-200">
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="max-h-[68vh] overflow-auto px-6 py-4">
+                <JsonBlock
+                  title="下发 Payload 预览"
+                  value={{
+                    target: {
+                      agent_key: agent.agent_key,
+                      service_name: agent.service_name,
+                      agent_id: agent.agent_id,
+                    },
+                    provider_keys: submitDraft.provider_keys,
+                    merge_strategy: submitDraft.merge_strategy,
+                    env_overrides: submitDraft.env_overrides,
+                    file_overrides: submitDraft.file_overrides,
+                  }}
+                  className="bg-slate-50"
+                />
+              </div>
+              <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+                <button onClick={() => setShowSubmitConfirm(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                  取消
+                </button>
+                <button
+                  onClick={() => void submit()}
+                  disabled={confirmBusy || llmBusy === 'configure-single'}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {confirmBusy || llmBusy === 'configure-single' ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  确认下发
+                </button>
+              </div>
             </div>
-            <LlmProviderPreview providerDetail={providerDetail} emptyText="选择一个 Provider 后，这里会显示即将写入 Agent 的环境变量与文件注入内容。" />
           </div>
-        </div>
+        ) : null}
       </div>
     </ModalShell>
   );
 };
-
 const AgentDetailDrawer: React.FC<{
   agent: ProjectAiAgentItem | null;
   helper: AiHelperService | null;
@@ -1619,12 +2154,11 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   const [helperRuntimeEnv, setHelperRuntimeEnv] = useState<AiHelperRuntimeEnv | null>(null);
   const [helperRuntimeEnvLoading, setHelperRuntimeEnvLoading] = useState(false);
   const [llmProviders, setLlmProviders] = useState<AiAgentLlmProviderSummary[]>([]);
-  const [singleProviderKey, setSingleProviderKey] = useState('');
-  const [singleProviderDetail, setSingleProviderDetail] = useState<AiAgentLlmProviderDetail | null>(null);
+  const [singleLlmDraft, setSingleLlmDraft] = useState<AiAgentLlmConfigDraft | null>(null);
+  const [singleLlmDraftLoading, setSingleLlmDraftLoading] = useState(false);
   const [singleLlmNotice, setSingleLlmNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [llmBusy, setLlmBusy] = useState('');
   const [batchApplyResult, setBatchApplyResult] = useState<AiAgentBatchConfigureResult | null>(null);
-  const lastSelectedKeyRef = useRef('');
   const notifyRef = useRef(notify);
 
   useEffect(() => {
@@ -1703,9 +2237,6 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
   }, [helperOptions, createHelperKey]);
 
   useEffect(() => {
-    const selectedChanged = lastSelectedKeyRef.current !== selectedKey;
-    lastSelectedKeyRef.current = selectedKey;
-
     if (!selectedKey) {
       setSelectedAgent(null);
       setSelectedHelper(null);
@@ -1731,12 +2262,9 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
       setEnvImportText('');
       setEnvImportError('');
       setSingleLlmNotice(null);
-      if (selectedChanged || !showSingleLlmModal) {
-        setSingleProviderKey(nextAgent.llm_provider_key || '');
-      }
       void loadHelper(nextAgent.agent_key, nextAgent.service_name, nextAgent.agent_id);
     }
-  }, [selectedKey, agents, showSingleLlmModal]);
+  }, [selectedKey, agents]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1744,10 +2272,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
       try {
         const data = await api.environment.listAiAgentLlmProviders(projectId || '');
         if (cancelled) return;
-        const items = data.items || [];
-        const fallbackProvider = data.default_provider_key || items[0]?.provider_key || '';
-        setLlmProviders(items);
-        setSingleProviderKey((current) => current || fallbackProvider);
+        setLlmProviders(data.items || []);
       } catch (error: any) {
         if (!cancelled) {
           notifyRef.current(`加载 LLM Provider 列表失败: ${error?.message || error}`, 'error');
@@ -1762,29 +2287,52 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
 
   useEffect(() => {
     let cancelled = false;
-
-    const loadSingleProviderDetail = async () => {
-      if (!showSingleLlmModal || !singleProviderKey) {
-        setSingleProviderDetail(null);
-        return;
-      }
+    const loadSingleDraft = async () => {
+      if (!showSingleLlmModal || !selectedAgent) return;
+      setSingleLlmDraftLoading(true);
+      setSingleLlmNotice(null);
       try {
-        const detail = await api.environment.getAiAgentLlmProvider(projectId || '', singleProviderKey, selectedAgent?.backend_type);
-        if (!cancelled) {
-          setSingleProviderDetail(detail);
-        }
+        const data = await api.environment.getAiAgentLlmConfig(
+          projectId,
+          selectedAgent.agent_key,
+          selectedAgent.service_name,
+          selectedAgent.agent_id,
+        );
+        if (cancelled) return;
+        const providerKeys = Array.isArray(data?.provider_keys)
+          ? data.provider_keys.map((item: any) => String(item || '').trim()).filter(Boolean)
+          : Array.isArray(selectedAgent.llm_provider_keys)
+            ? selectedAgent.llm_provider_keys.map((item: any) => String(item || '').trim()).filter(Boolean)
+            : (selectedAgent.llm_provider_key ? [String(selectedAgent.llm_provider_key)] : []);
+        const fileOverrides = Array.isArray(data?.file_bindings)
+          ? data.file_bindings
+          : (Array.isArray(selectedAgent.llm_provider_file_bindings) ? selectedAgent.llm_provider_file_bindings : []);
+        setSingleLlmDraft({
+          provider_keys: providerKeys,
+          env_overrides: data?.env && typeof data.env === 'object' ? data.env : (selectedAgent.env || {}),
+          file_overrides: fileOverrides,
+          merge_strategy: data?.merge_strategy === 'merge' ? 'merge' : 'overwrite',
+        });
       } catch (error: any) {
-        if (!cancelled) {
-          setSingleProviderDetail(null);
-          notify(`加载 LLM Provider 详情失败: ${error?.message || error}`, 'error');
-        }
+        if (cancelled) return;
+        notify(`加载当前 Agent LLM 配置失败: ${error?.message || error}`, 'error');
+        setSingleLlmDraft({
+          provider_keys: Array.isArray(selectedAgent.llm_provider_keys)
+            ? selectedAgent.llm_provider_keys.map((item: any) => String(item || '').trim()).filter(Boolean)
+            : (selectedAgent.llm_provider_key ? [String(selectedAgent.llm_provider_key)] : []),
+          env_overrides: selectedAgent.env || {},
+          file_overrides: Array.isArray(selectedAgent.llm_provider_file_bindings) ? selectedAgent.llm_provider_file_bindings : [],
+          merge_strategy: selectedAgent.llm_provider_merge_strategy === 'merge' ? 'merge' : 'overwrite',
+        });
+      } finally {
+        if (!cancelled) setSingleLlmDraftLoading(false);
       }
     };
-    void loadSingleProviderDetail();
+    void loadSingleDraft();
     return () => {
       cancelled = true;
     };
-  }, [projectId, singleProviderKey, selectedAgent?.backend_type, showSingleLlmModal, notify]);
+  }, [showSingleLlmModal, selectedAgent, projectId, notify]);
 
   const loadHelper = async (agentKey: string, serviceName: string, focusAgentId?: string) => {
     setHelperRuntimeEnvLoading(true);
@@ -2006,39 +2554,31 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
     }
   };
 
-  const applyProviderToSelectedAgent = async (refresh = false) => {
+  const applyLlmConfigToSelectedAgent = async (draft: AiAgentLlmConfigDraft) => {
     if (!selectedAgent) return;
-    const providerKey = singleProviderKey || selectedAgent.llm_provider_key || '';
-    if (!providerKey) {
-      notify('请先选择一个 LLM Provider', 'error');
-      return;
-    }
-    setLlmBusy(refresh ? 'refresh-single' : 'apply-single');
+    setLlmBusy('configure-single');
     setSingleLlmNotice(null);
     try {
-      await api.environment.applyAiAgentLlmProvider(
+      const result = await api.environment.batchConfigureAiAgents(
         projectId,
-        selectedAgent.agent_key,
-        selectedAgent.service_name,
-        selectedAgent.agent_id,
-        providerKey,
-        refresh,
+        draft,
+        [{
+          agent_key: selectedAgent.agent_key,
+          service_name: selectedAgent.service_name,
+          agent_id: selectedAgent.agent_id,
+        }],
       );
-      if (refresh) {
-        setSingleLlmNotice({ type: 'success', text: '已从配置中心刷新 LLM 配置。' });
-      } else {
-        notify('已将 LLM 配置应用到当前 AI Agent', 'success');
+      const first = Array.isArray(result?.results) ? result.results[0] : null;
+      if (first && first.success === false) {
+        throw new Error(String(first.error || '下发失败'));
       }
+      setSingleLlmNotice({ type: 'success', text: 'LLM 配置已成功下发。' });
+      notify('已将 LLM 配置应用到当前 AI Agent', 'success');
       await refreshAll();
-      if (!refresh) {
-        setShowSingleLlmModal(false);
-      }
+      setShowSingleLlmModal(false);
     } catch (error: any) {
-      if (refresh) {
-        setSingleLlmNotice({ type: 'error', text: `刷新失败：${error?.message || error}` });
-      } else {
-        notify(`应用 LLM 配置失败: ${error?.message || error}`, 'error');
-      }
+      setSingleLlmNotice({ type: 'error', text: `应用失败：${error?.message || error}` });
+      notify(`应用 LLM 配置失败: ${error?.message || error}`, 'error');
     } finally {
       setLlmBusy('');
     }
@@ -2093,8 +2633,7 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
         llm_provider_merge_strategy: 'overwrite',
       });
 
-      setSingleProviderKey('');
-      setSingleProviderDetail(null);
+      setSingleLlmDraft(null);
       setSingleLlmNotice({ type: 'success', text: `已清除映射（移除 ${mappedKeys.length} 个映射环境变量键）。` });
       notify('已清除当前 Agent 的 LLM 映射', 'success');
       await refreshAll();
@@ -2419,7 +2958,11 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
             helperRuntimeEnv={helperRuntimeEnv}
             helperRuntimeEnvLoading={helperRuntimeEnvLoading}
             onRefreshHelperRuntimeEnv={refreshHelperRuntimeEnv}
-            onOpenLlmModal={() => setShowSingleLlmModal(true)}
+            onOpenLlmModal={() => {
+              setSingleLlmDraft(null);
+              setSingleLlmDraftLoading(true);
+              setShowSingleLlmModal(true);
+            }}
             providerUpdatedAtMap={providerUpdatedAtMap}
           />
         </>
@@ -2440,18 +2983,21 @@ export const EnvAiAgentManagePage: React.FC<{ projectId: string }> = ({ projectI
 
       {showSingleLlmModal && selectedAgent ? (
         <SingleAgentLlmModal
+          projectId={projectId}
           agent={selectedAgent}
           providerOptions={llmProviders}
-          selectedProviderKey={singleProviderKey}
-          onProviderChange={setSingleProviderKey}
-          providerDetail={singleProviderDetail}
+          initialDraft={singleLlmDraft}
+          initialLoading={singleLlmDraftLoading}
           llmBusy={llmBusy}
           notice={singleLlmNotice}
+          notify={notify}
           onClose={() => {
             setShowSingleLlmModal(false);
+            setSingleLlmDraft(null);
+            setSingleLlmDraftLoading(false);
             setSingleLlmNotice(null);
           }}
-          onApply={applyProviderToSelectedAgent}
+          onApply={applyLlmConfigToSelectedAgent}
           onClear={clearProviderMappingForSelectedAgent}
         />
       ) : null}
