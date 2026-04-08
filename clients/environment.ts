@@ -87,10 +87,11 @@ export const environmentApi = {
   // Agents
   getAgents: async (
     projectId: string,
-    params: { page?: number; per_page?: number; workspace_id?: string } = {}
+    params: { page?: number; per_page?: number; workspace_id?: string } = {},
+    options: { signal?: AbortSignal } = {}
   ): Promise<{ agents: Agent[]; total: number; page?: number; per_page?: number }> => {
     const query = new URLSearchParams({ ...params as any, project_id: projectId }).toString();
-    return handleResponse(await fetch(`${API_BASE}/api/agent/agents?${query}`, { headers: getHeaders() }));
+    return handleResponse(await fetch(`${API_BASE}/api/agent/agents?${query}`, { headers: getHeaders(), signal: options.signal }));
   },
   getAgentStats: async (projectId: string): Promise<AgentStats> => 
     handleResponse(await fetch(`${API_BASE}/api/agent/agents/stats?project_id=${projectId}`, { headers: getHeaders() })),
@@ -373,14 +374,15 @@ export const environmentApi = {
 
   getGlobalServices: async (
     projectId: string,
-    params: { page?: number; per_page?: number; status?: string; q?: string; agent_key?: string; include_stale?: boolean } = {}
+    params: { page?: number; per_page?: number; status?: string; q?: string; agent_key?: string; include_stale?: boolean } = {},
+    options: { signal?: AbortSignal } = {}
   ): Promise<{ items: AgentService[]; total: number; page: number; per_page: number; project_id: string }> => {
     const query = new URLSearchParams({
       ...params as any,
       project_id: projectId,
       include_stale: params.include_stale ? 'true' : 'false'
     }).toString();
-    return handleResponse(await fetch(`${API_BASE}/api/agent/services/global?${query}`, { headers: getHeaders() }));
+    return handleResponse(await fetch(`${API_BASE}/api/agent/services/global?${query}`, { headers: getHeaders(), signal: options.signal }));
   },
   cleanupOfflineGlobalServices: async (projectId: string, dryRun = false): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/services/global/cleanup-offline`, {
@@ -390,13 +392,14 @@ export const environmentApi = {
     })),
   getGlobalIngress: async (
     projectId: string,
-    params: { include_deleted?: boolean } = {}
+    params: { include_deleted?: boolean } = {},
+    options: { signal?: AbortSignal } = {}
   ): Promise<{ project_id: string; items: any[]; stats: any }> => {
     const query = new URLSearchParams({
       project_id: projectId,
       include_deleted: params.include_deleted ? 'true' : 'false'
     }).toString();
-    return handleResponse(await fetch(`${API_BASE}/api/agent/services/global/ingress?${query}`, { headers: getHeaders() }));
+    return handleResponse(await fetch(`${API_BASE}/api/agent/services/global/ingress?${query}`, { headers: getHeaders(), signal: options.signal }));
   },
 
   listProcessMonitorNodes: async (
@@ -791,6 +794,71 @@ export const environmentApi = {
     }
   },
 
+  invokeAiHelper: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    payload: {
+      content: string;
+      agent_id?: string;
+      agent_ids?: string[];
+      messages?: Array<{ role: string; content: string }>;
+    }
+  ): Promise<any> =>
+    handleResponse(await fetch(
+      `${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/invoke?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...payload, project_id: projectId }) }
+    )),
+
+  invokeAiHelperStream: async (
+    projectId: string,
+    agentKey: string,
+    serviceName: string,
+    payload: {
+      content: string;
+      agent_id?: string;
+      agent_ids?: string[];
+      messages?: Array<{ role: string; content: string }>;
+    },
+    handlers: {
+      onEvent: (event: AiSessionStreamEvent) => void;
+      onDone?: () => void;
+      onError?: (error: Error) => void;
+    }
+  ): Promise<void> => {
+    const response = await fetch(
+      `${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/invoke?project_id=${encodeURIComponent(projectId)}&stream=true`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...payload, project_id: projectId }) }
+    );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(errorData?.detail || errorData?.error || errorData?.message || '经典模式流式发送失败');
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('浏览器当前不支持流式响应读取');
+    const decoder = new TextDecoder();
+    let buffer = '';
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        parts.forEach((part) => {
+          parseSseChunk(part + '\n\n').forEach((event) => handlers.onEvent(event as AiSessionStreamEvent));
+        });
+      }
+      if (buffer.trim()) {
+        parseSseChunk(buffer).forEach((event) => handlers.onEvent(event as AiSessionStreamEvent));
+      }
+      handlers.onDone?.();
+    } catch (error: any) {
+      handlers.onError?.(error);
+      throw error;
+    }
+  },
+
   createAiBatchSession: async (
     projectId: string,
     payload: {
@@ -912,7 +980,14 @@ export const environmentApi = {
       body: JSON.stringify({ project_id: projectId, include_deleted: includeDeleted })
     })),
 
-  syncGlobalServices: async (data?: { project_id?: string; agent_key?: string; stale_only?: boolean }): Promise<any> =>
+  syncGlobalServices: async (data?: {
+    project_id?: string;
+    agent_key?: string;
+    stale_only?: boolean;
+    leader_lock_timeout_sec?: number;
+    lock_poll_interval_sec?: number;
+    lock_wait_timeout_sec?: number;
+  }): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/services/global/sync`, {
       method: 'POST',
       headers: getHeaders(),

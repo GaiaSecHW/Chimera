@@ -309,6 +309,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const [searchTerm, setSearchTerm] = useState('');
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [dragHoverNodeId, setDragHoverNodeId] = useState<string | null>(null);
+  const [gatewayLoadingNodeIds, setGatewayLoadingNodeIds] = useState<Set<string>>(new Set());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<UnifiedExplorerNode | null>(null);
@@ -342,6 +343,23 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       previewUrlRef.current = null;
     }
     setPreview({ mode: 'empty' });
+  };
+
+  const withGatewayLoading = async <T,>(nodeId: string, runner: () => Promise<T>): Promise<T> => {
+    setGatewayLoadingNodeIds((prev) => {
+      const next = new Set(prev);
+      next.add(nodeId);
+      return next;
+    });
+    try {
+      return await runner();
+    } finally {
+      setGatewayLoadingNodeIds((prev) => {
+        const next = new Set(prev);
+        next.delete(nodeId);
+        return next;
+      });
+    }
   };
 
   const loadRoots = async (): Promise<RootLoadResult> => {
@@ -627,7 +645,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     if (node.nodeType === 'pvc' && node.resourceId) {
       setSelectedNodeId(node.id);
       clearPreview();
-      const payload = await api.resources.getPvcBrowserChildren(node.resourceId, '/');
+      const payload = await withGatewayLoading(node.id, () => api.resources.getPvcBrowserChildren(node.resourceId!, '/'));
       setExpandedNodes((prev) => new Set(prev).add(node.id));
       buildPvcListing(node, payload);
       return;
@@ -636,7 +654,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     if (node.nodeType === 'pvc-directory' && node.resourceId && node.path) {
       setSelectedNodeId(node.id);
       clearPreview();
-      const payload = await api.resources.getPvcBrowserChildren(node.resourceId, node.path);
+      const payload = await withGatewayLoading(node.id, () => api.resources.getPvcBrowserChildren(node.resourceId!, node.path!));
       setExpandedNodes((prev) => new Set(prev).add(node.id));
       buildPvcListing(node, payload);
       return;
@@ -975,6 +993,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const renderTree = (node: UnifiedExplorerNode, depth = 0): React.ReactNode => {
     const expanded = expandedNodes.has(node.id);
     const active = selectedNodeId === node.id;
+    const gatewayLoading = gatewayLoadingNodeIds.has(node.id);
 
     return (
       <div key={node.id}>
@@ -1029,7 +1048,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
               <ChevronRight size={12} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
             ) : <span className="w-3" />}
           </button>
-          {renderNodeIcon(node, expanded)}
+          {gatewayLoading ? <RefreshCw size={14} className="text-sky-500 animate-spin" /> : renderNodeIcon(node, expanded)}
           <span className="truncate flex-1">{node.name}</span>
           {node.specialBadge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{node.specialBadge}</span>}
         </div>

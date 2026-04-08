@@ -49,7 +49,9 @@ const pickRicherSession = (primary?: AiAgentSession | null, fallback?: AiAgentSe
 };
 
 const extractSendResultOutput = (result: any): string => {
-  const list = Array.isArray(result?.result?.results) ? result.result.results : [];
+  const list = Array.isArray(result?.result?.results)
+    ? result.result.results
+    : (Array.isArray(result?.results) ? result.results : []);
   for (const item of list) {
     const text = String(
       item?.output
@@ -192,6 +194,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     const raw = Number(localStorage.getItem(SESSION_AUTO_SYNC_INTERVAL_KEY) || '12000');
     return raw === 5000 || raw === 10000 || raw === 15000 ? raw : 12000;
   });
+  const isInvokeMode = sessionMode === 'invoke';
 
   useEffect(() => {
     if (!selectedHelperKey && helpers.length > 0) {
@@ -233,7 +236,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
         setSelectedAgentId('');
       }
       setSessions(sessionList.items || []);
-      if (currentSessionId) {
+      if (currentSessionId && !isInvokeMode) {
         try {
           const fetchedSession = await api.environment.getAiHelperSession(projectId, agentKey, serviceName, currentSessionId);
           setCurrentSession((prev) => {
@@ -302,6 +305,20 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
       notify('请先选择 helper 服务', 'error');
       return;
     }
+    if (isInvokeMode) {
+      const localId = `invoke-${Date.now()}`;
+      setCurrentSessionId(localId);
+      setCurrentSession({
+        session_id: localId,
+        session_mode: 'invoke',
+        status: 'ready',
+        backend: selectedAgentId || undefined,
+        agent_ids: selectedAgentId ? [selectedAgentId] : [],
+        messages: [],
+      } as AiAgentSession);
+      notify('经典模式已就绪，可直接发送消息', 'success');
+      return;
+    }
     setBusyAction('create');
     try {
       const session = await api.environment.createAiHelperSession(projectId, selectedHelper.agent_key, selectedHelper.service_name, {
@@ -362,13 +379,83 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   };
 
   const sendMessage = async () => {
-    if (!selectedHelper || !currentSessionId || !message.trim()) {
+    if (!selectedHelper || !message.trim()) {
+      notify('请先创建会话并输入消息', 'error');
+      return;
+    }
+    if (!isInvokeMode && !currentSessionId) {
       notify('请先创建会话并输入消息', 'error');
       return;
     }
     setBusyAction('send');
     const messageText = message.trim();
     try {
+      if (isInvokeMode) {
+        const localSessionId = currentSessionId || `invoke-${Date.now()}`;
+        if (!currentSessionId) setCurrentSessionId(localSessionId);
+        if (transportMode === 'stream') {
+          setCurrentSession((prev) => {
+            const base = prev
+              ? { ...prev, messages: [...(prev.messages || [])] }
+              : { session_id: localSessionId, session_mode: 'invoke', status: 'ready', messages: [] as Array<{ role: string; content: string }> };
+            base.messages = [...(base.messages || []), { role: 'user', content: messageText }, { role: 'assistant', content: '' }];
+            return base as AiAgentSession;
+          });
+          await api.environment.invokeAiHelperStream(
+            projectId,
+            selectedHelper.agent_key,
+            selectedHelper.service_name,
+            {
+              content: messageText,
+              agent_ids: selectedAgentId ? [selectedAgentId] : undefined,
+            },
+            {
+              onEvent: (event: AiSessionStreamEvent) => {
+                if (event.type === 'delta') {
+                  const readableDelta = extractReadableStreamDelta(event.delta);
+                  if (!readableDelta) return;
+                  setCurrentSession((prev) => {
+                    if (!prev) return prev;
+                    const messages = [...(prev.messages || [])];
+                    if (messages.length === 0 || messages[messages.length - 1].role !== 'assistant') {
+                      messages.push({ role: 'assistant', content: readableDelta });
+                    } else {
+                      messages[messages.length - 1] = {
+                        ...messages[messages.length - 1],
+                        content: `${messages[messages.length - 1].content}${readableDelta}`,
+                      };
+                    }
+                    return { ...prev, messages };
+                  });
+                }
+              },
+            }
+          );
+        } else {
+          const result = await api.environment.invokeAiHelper(
+            projectId,
+            selectedHelper.agent_key,
+            selectedHelper.service_name,
+            {
+              content: messageText,
+              agent_ids: selectedAgentId ? [selectedAgentId] : undefined,
+            }
+          );
+          const outputText = extractSendResultOutput(result);
+          setCurrentSession((prev) => {
+            const base = prev
+              ? { ...prev, messages: [...(prev.messages || [])] }
+              : { session_id: localSessionId, session_mode: 'invoke', status: 'ready', messages: [] as Array<{ role: string; content: string }> };
+            base.messages = [...(base.messages || []), { role: 'user', content: messageText }];
+            const patched = patchSessionWithOutput(base as AiAgentSession, outputText);
+            return patched;
+          });
+        }
+        setMessage('');
+        notify('消息已发送', 'success');
+        return;
+      }
+
       if (transportMode === 'stream') {
         let latestSession: AiAgentSession | null = null;
         setCurrentSession((prev) => {
@@ -526,7 +613,9 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                     刷新当前
                   </button>
                 </div>
-                <div className="text-xs text-slate-500">先选择参与 Agent，再创建会话。</div>
+                <div className="text-xs text-slate-500">
+                  {isInvokeMode ? '经典模式无需创建会话，选择 Agent 后可直接发送。' : '先选择参与 Agent，再创建会话。'}
+                </div>
                 <div className="mt-2 rounded-xl border border-slate-200 bg-white p-2.5">
                   <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">会话模式</div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs">
@@ -561,10 +650,12 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                     );
                   })}
                 </div>
-                <button onClick={() => void createSession()} className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white">
-                  {busyAction === 'create' ? <Loader2 size={14} className="animate-spin" /> : <Bot size={14} />}
-                  创建会话
-                </button>
+                {!isInvokeMode ? (
+                  <button onClick={() => void createSession()} className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white">
+                    {busyAction === 'create' ? <Loader2 size={14} className="animate-spin" /> : <Bot size={14} />}
+                    创建会话
+                  </button>
+                ) : null}
               </div>
 
               <div className="rounded-xl border border-slate-200 p-3">

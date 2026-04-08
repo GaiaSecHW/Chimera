@@ -890,6 +890,7 @@ export interface Agent {
   daemon_info?: DaemonAgentInfo;
   project_id?: string;
   last_seen?: string;
+  status_reason?: string | null;
   pod_id?: string;
   services?: any[];
   is_allowed?: boolean;

@@ -38,6 +38,7 @@ interface SyncHistoryItem {
   fail_count: number;
   message: string;
   created_at: string;
+  lock_wait_sec?: number;
   agent_key?: string;
   details?: Array<{
     ok?: boolean;
@@ -87,6 +88,16 @@ const LiveIndicator: React.FC<{ status: string }> = ({ status }) => {
       <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">{status?.toUpperCase() || 'UNKNOWN'}</span>
     </div>
   );
+};
+
+const syncStatusTone = (status: string) => {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'ok' || normalized === 'success') return 'bg-green-50 text-green-700 border-green-200';
+  if (normalized === 'partial') return 'bg-amber-50 text-amber-700 border-amber-200';
+  if (normalized === 'failed' || normalized === 'error') return 'bg-rose-50 text-rose-700 border-rose-200';
+  if (normalized === 'queued' || normalized === 'running') return 'bg-blue-50 text-blue-700 border-blue-200';
+  if (normalized === 'empty') return 'bg-slate-100 text-slate-600 border-slate-200';
+  return 'bg-slate-100 text-slate-600 border-slate-200';
 };
 
 export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => {
@@ -461,9 +472,13 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
         let ok = 0;
         let fail = 0;
         const failedReasons: string[] = [];
+        const syncRefs: string[] = [];
         for (const key of targets) {
           try {
             const res = await api.environment.syncGlobalServices({ agent_key: key });
+            if (res?.sync_id) {
+              syncRefs.push(`${key.slice(0, 12)}:${res.sync_id}`);
+            }
             if (res?.status === 'ok' || res?.result?.ok) {
               ok += 1;
             } else {
@@ -477,26 +492,31 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
           }
         }
         const failText = failedReasons.slice(0, 3).join(' | ');
-        const summary = `单Agent同步完成：成功 ${ok}，失败 ${fail}${failText ? `；失败原因：${failText}` : ''}`;
+        const refsText = syncRefs.length > 0 ? `；任务 ${syncRefs.slice(0, 2).join(' / ')}${syncRefs.length > 2 ? ` 等${syncRefs.length}个` : ''}` : '';
+        const summary = `单Agent同步完成：成功 ${ok}，失败 ${fail}${failText ? `；失败原因：${failText}` : ''}${refsText}`;
         setLastSyncMessage(summary);
         notify(summary, fail > 0 ? 'warning' : 'success');
       } else if (syncScope === 'project') {
         const result = await api.environment.syncGlobalServices({ project_id: projectId, stale_only: false });
         const reasons = buildFailureText((result?.results || []) as SyncResultItem[]);
+        const lockText = result?.lock_wait_sec !== undefined ? `；锁等待 ${result.lock_wait_sec}s` : '';
+        const syncText = result?.sync_id ? `；任务 ${result.sync_id}` : '';
         const summary = result?.status === 'empty'
-          ? `项目全量同步：当前无可同步的在线节点（候选 ${result?.candidate_total || 0}）`
+          ? `项目全量同步：当前无可同步的在线节点（候选 ${result?.candidate_total || 0}）${syncText}${lockText}`
           : result?.total !== undefined
-          ? `项目全量同步完成：总计 ${result.total}，成功 ${result.ok_count || 0}，失败 ${result.fail_count || 0}${reasons ? `；失败原因：${reasons}` : ''}`
+          ? `项目全量同步完成：总计 ${result.total}，成功 ${result.ok_count || 0}，失败 ${result.fail_count || 0}${reasons ? `；失败原因：${reasons}` : ''}${syncText}${lockText}`
           : (result?.message || '已触发项目全量同步');
         setLastSyncMessage(summary);
         notify(summary, (result?.status === 'empty' || (result?.fail_count || 0) > 0) ? 'warning' : 'success');
       } else {
         const result = await api.environment.syncGlobalServices({ project_id: projectId, stale_only: true });
         const reasons = buildFailureText((result?.results || []) as SyncResultItem[]);
+        const lockText = result?.lock_wait_sec !== undefined ? `；锁等待 ${result.lock_wait_sec}s` : '';
+        const syncText = result?.sync_id ? `；任务 ${result.sync_id}` : '';
         const summary = result?.status === 'empty'
-          ? `异常节点同步：当前无可同步的在线异常节点（候选 ${result?.candidate_total || 0}）`
+          ? `异常节点同步：当前无可同步的在线异常节点（候选 ${result?.candidate_total || 0}）${syncText}${lockText}`
           : result?.total !== undefined
-          ? `异常节点同步完成：总计 ${result.total}，成功 ${result.ok_count || 0}，失败 ${result.fail_count || 0}${reasons ? `；失败原因：${reasons}` : ''}`
+          ? `异常节点同步完成：总计 ${result.total}，成功 ${result.ok_count || 0}，失败 ${result.fail_count || 0}${reasons ? `；失败原因：${reasons}` : ''}${syncText}${lockText}`
           : (result?.message || '已触发异常节点同步');
         setLastSyncMessage(summary);
         notify(summary, (result?.status === 'empty' || (result?.fail_count || 0) > 0) ? 'warning' : 'success');
@@ -915,10 +935,19 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                     className="min-w-0 flex-1 text-left flex items-center gap-2"
                   >
                     <span className="text-[10px] font-black uppercase text-slate-500 shrink-0">{item.scope}</span>
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shrink-0 ${syncStatusTone(item.status)}`}>
+                      {item.status || 'unknown'}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                      {String(item.sync_id || '').slice(0, 12)}
+                    </span>
                     <span className="text-xs text-slate-700 truncate">{item.message || '-'}</span>
                     <span className="text-[11px] font-mono text-slate-500 shrink-0">
                       total={getDisplayTotal(item)} ok={item.ok_count} fail={item.fail_count}
                     </span>
+                    {item.lock_wait_sec !== undefined && (
+                      <span className="text-[10px] font-mono text-blue-600 shrink-0">wait={item.lock_wait_sec}s</span>
+                    )}
                     <span className="text-[10px] text-slate-400 shrink-0">{item.created_at}</span>
                   </button>
                   <button
@@ -1242,7 +1271,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <div className="flex items-center justify-end gap-4">
+                      <div className="flex items-center justify-end gap-3">
+                        {agent.status_reason && (
+                          <span
+                            className="max-w-[280px] truncate text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg"
+                            title={agent.status_reason}
+                          >
+                            {agent.status_reason}
+                          </span>
+                        )}
                         <LiveIndicator status={agent.status} />
                         <ChevronRight size={18} className="text-slate-200 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
                       </div>
@@ -1298,6 +1335,9 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
             </div>
             <div className="px-6 py-3 border-b border-slate-100 text-xs text-slate-600 flex flex-wrap gap-4">
               <span>status={selectedHistory.status}</span>
+              {selectedHistory.lock_wait_sec !== undefined && (
+                <span>lock_wait={selectedHistory.lock_wait_sec}s</span>
+              )}
               <span>total={getDisplayTotal(selectedHistory)}</span>
               <span>ok={selectedHistory.ok_count}</span>
               <span>fail={selectedHistory.fail_count}</span>
@@ -1320,11 +1360,15 @@ export const EnvAgentPage: React.FC<{ projectId: string }> = ({ projectId }) => 
                       <tr key={`${d.agent_key || 'na'}-${idx}`}>
                         <td className="px-3 py-2 font-mono text-slate-700">{d.agent_key || '-'}</td>
                         <td className="px-3 py-2">
-                          <span className={`font-black ${d.ok ? 'text-green-600' : 'text-red-600'}`}>{d.ok ? 'OK' : 'FAILED'}</span>
+                          {d.phase ? (
+                            <span className="font-black text-blue-600 uppercase">{String(d.phase)}</span>
+                          ) : (
+                            <span className={`font-black ${d.ok ? 'text-green-600' : 'text-red-600'}`}>{d.ok ? 'OK' : 'FAILED'}</span>
+                          )}
                         </td>
                         <td className="px-3 py-2">{d.seen ?? '-'}</td>
                         <td className="px-3 py-2">{d.upserted ?? '-'}</td>
-                        <td className="px-3 py-2 text-slate-500">{d.error || (d.status_code ? `status_code=${d.status_code}` : '-')}</td>
+                        <td className="px-3 py-2 text-slate-500">{d.error || d.message || (d.status_code ? `status_code=${d.status_code}` : '-')}</td>
                       </tr>
                     ))}
                   </tbody>

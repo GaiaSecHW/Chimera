@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   RefreshCw,
   Loader2,
@@ -39,6 +39,8 @@ const buildRandomIngressPrefix = (base: string) => {
 export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [syncRefreshing, setSyncRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [cleanupOfflineLoading, setCleanupOfflineLoading] = useState(false);
   const [allServices, setAllServices] = useState<AgentService[]>([]);
@@ -86,6 +88,8 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
   const [deployLlmBinding, setDeployLlmBinding] = useState<TemplateLlmProviderBinding | null>(null);
   const [deployModalTab, setDeployModalTab] = useState<DeployModalTab>('scope');
   const [openingAgentConsoleKey, setOpeningAgentConsoleKey] = useState('');
+  const listRequestSeqRef = useRef(0);
+  const listAbortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (projectId) {
@@ -93,22 +97,71 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     }
   }, [projectId]);
 
-  const loadAllServices = async () => {
+  useEffect(() => () => {
+    listAbortControllerRef.current?.abort();
+  }, []);
+
+  const fetchAllGlobalServices = async (pid: string, signal?: AbortSignal): Promise<AgentService[]> => {
+    const pageSize = 500;
+    let page = 1;
+    const merged: AgentService[] = [];
+    while (page <= 20) {
+      const data = await api.environment.getGlobalServices(pid, { page, per_page: pageSize, include_stale: true }, { signal });
+      const items = Array.isArray(data?.items) ? data.items : [];
+      merged.push(...items);
+      const total = Number(data?.total || merged.length);
+      if (items.length === 0 || merged.length >= total) break;
+      page += 1;
+    }
+    return merged;
+  };
+
+  const fetchAllAgents = async (pid: string, signal?: AbortSignal): Promise<Agent[]> => {
+    const pageSize = 500;
+    let page = 1;
+    const merged: Agent[] = [];
+    while (page <= 20) {
+      const data = await api.environment.getAgents(pid, { page, per_page: pageSize }, { signal });
+      const items = Array.isArray(data?.agents) ? data.agents : [];
+      merged.push(...items);
+      const total = Number(data?.total || merged.length);
+      if (items.length === 0 || merged.length >= total) break;
+      page += 1;
+    }
+    return merged;
+  };
+
+  const loadAllServices = async (options: { showFullLoading?: boolean } = {}) => {
     if (!projectId) return;
-    setLoading(true);
+    const showFullLoading = options.showFullLoading !== false;
+    const seq = ++listRequestSeqRef.current;
+    listAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    listAbortControllerRef.current = abortController;
+    if (showFullLoading) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     try {
-      const [data, agentData] = await Promise.all([
-        api.environment.getGlobalServices(projectId, { per_page: 2000, include_stale: true }),
-        api.environment.getAgents(projectId, { per_page: 2000 })
+      const [services, agentList] = await Promise.all([
+        fetchAllGlobalServices(projectId, abortController.signal),
+        fetchAllAgents(projectId, abortController.signal),
       ]);
-      setAllServices(data?.items || []);
-      setAgents(agentData?.agents || []);
+      if (seq !== listRequestSeqRef.current) return;
+      setAllServices(services);
+      setAgents(agentList);
       setSelectedServiceIds(new Set<string>());
-      await loadGlobalIngress();
+      await loadGlobalIngress(abortController.signal, seq);
     } catch (err) {
+      if ((err as any)?.name === 'AbortError') return;
       console.error('Failed to load global services', err);
+      notify('加载服务发现数据失败', 'error');
     } finally {
-      setLoading(false);
+      if (seq === listRequestSeqRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -144,20 +197,46 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
     }
   };
 
-  const loadGlobalIngress = async () => {
+  const loadGlobalIngress = async (signal?: AbortSignal, reqSeq?: number) => {
     if (!projectId) return;
     setGlobalIngressLoading(true);
     try {
-      const data = await api.environment.getGlobalIngress(projectId, { include_deleted: false });
+      const data = await api.environment.getGlobalIngress(projectId, { include_deleted: false }, { signal });
+      if (typeof reqSeq === 'number' && reqSeq !== listRequestSeqRef.current) return;
       setGlobalIngressItems(data?.items || []);
       setGlobalIngressStats(data?.stats || {});
       setSelectedIngressRouteIds(new Set<string>());
     } catch (err) {
+      if ((err as any)?.name === 'AbortError') return;
       console.error('Failed to load global ingress', err);
       setGlobalIngressItems([]);
       setGlobalIngressStats({});
     } finally {
-      setGlobalIngressLoading(false);
+      if (typeof reqSeq !== 'number' || reqSeq === listRequestSeqRef.current) {
+        setGlobalIngressLoading(false);
+      }
+    }
+  };
+
+  const forceSyncAndReloadServices = async () => {
+    if (!projectId) return;
+    setSyncRefreshing(true);
+    try {
+      const result = await api.environment.syncGlobalServices({
+        project_id: projectId,
+        lock_wait_timeout_sec: 120,
+        leader_lock_timeout_sec: 90,
+        lock_poll_interval_sec: 1,
+      });
+      const okCount = Number(result?.ok_count || 0);
+      const failCount = Number(result?.fail_count || 0);
+      const status = String(result?.status || '');
+      notify(`服务发现同步完成：状态 ${status || '-'}，成功 ${okCount}，失败 ${failCount}`, failCount > 0 ? 'warning' : 'success');
+      await loadAllServices({ showFullLoading: false });
+    } catch (err: any) {
+      notify(err?.message || '强制刷新服务发现失败', 'error');
+    } finally {
+      setSyncRefreshing(false);
     }
   };
 
@@ -987,11 +1066,21 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         </div>
         <div className="flex gap-4">
           <button
-            onClick={() => void loadAllServices()}
-            disabled={!projectId}
-            className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            onClick={() => void forceSyncAndReloadServices()}
+            disabled={!projectId || syncRefreshing}
+            className="px-4 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-all shadow-sm active:scale-95 disabled:opacity-50 text-xs font-black flex items-center gap-2"
+            title="调用后端服务发现同步，再回填页面"
           >
-            <RefreshCw size={20} />
+            {syncRefreshing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+            强制发现
+          </button>
+          <button
+            onClick={() => void loadAllServices({ showFullLoading: false })}
+            disabled={!projectId || refreshing}
+            className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            title="仅重新拉取当前服务快照"
+          >
+            {refreshing ? <Loader2 size={20} className="animate-spin" /> : <RefreshCw size={20} />}
           </button>
           <button
             onClick={() => void openDeployModal()}
@@ -1041,7 +1130,7 @@ export const ServiceMgmtPage: React.FC<{ projectId: string }> = ({ projectId }) 
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs font-black text-slate-700">Ingress 路由管理</p>
           <span className="text-[11px] text-slate-500">总计 {globalIngressStats?.total || 0} · 就绪 {globalIngressStats?.ready || 0} · 无效 {globalIngressStats?.stale_service_ingress || 0}</span>
-          <button onClick={loadGlobalIngress} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">刷新</button>
+          <button onClick={() => void loadGlobalIngress()} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-black hover:bg-slate-200">刷新</button>
           <button
             onClick={toggleSelectAllIngress}
             disabled={globalIngressItems.length === 0}
