@@ -44,6 +44,24 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
   const [selectedLiveTaskKeys, setSelectedLiveTaskKeys] = useState<Set<string>>(new Set());
 
   const selectedKeysArray = useMemo(() => Array.from(selectedAgentKeys), [selectedAgentKeys]);
+  const agentHostnameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    nodes.forEach((node) => {
+      const key = String(node?.agent_key || '').trim();
+      const hostname = String(node?.agent_hostname || '').trim();
+      if (key && hostname && !map.has(key)) {
+        map.set(key, hostname);
+      }
+    });
+    return map;
+  }, [nodes]);
+
+  const resolveNodeName = (agentKey: string, candidateName?: string) => {
+    const fallback = String(agentKey || '').trim();
+    const direct = String(candidateName || '').trim();
+    if (direct) return direct;
+    return agentHostnameMap.get(fallback) || fallback;
+  };
 
   const loadNodes = async () => {
     if (!projectId) {
@@ -352,7 +370,7 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                       {checked ? <CheckSquare size={14} className="text-blue-600" /> : <Square size={14} className="text-slate-400" />}
                       <div className="text-sm font-bold text-slate-700">{node.agent_key}</div>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">{node.service_name}</div>
+                    <div className="text-xs text-slate-500 mt-1">{resolveNodeName(node.agent_key, node.agent_hostname)} / {node.service_name}</div>
                   </button>
                 );
               })}
@@ -446,7 +464,10 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                       </button>
                     </td>
                     <td className="px-5 py-4 text-xs font-mono text-slate-700">{item.sync_id}</td>
-                    <td className="px-4 py-4 text-sm text-slate-700">{item.agent_key}</td>
+                    <td className="px-4 py-4">
+                      <div className="text-sm font-semibold text-slate-700">{resolveNodeName(item.agent_key, (item as any)?.agent_hostname)}</div>
+                      <div className="text-[11px] font-mono text-slate-500">{item.agent_key}</div>
+                    </td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.service_name}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.mode}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.status || '-'}</td>
@@ -490,7 +511,10 @@ export const EnvProcessMonitorTasksPage: React.FC<{ projectId: string }> = ({ pr
                         {selectedLiveTaskKeys.has(`${String(item?.agent_key || '')}:${String(item?.service_name || '')}:${String(item?.node_task_id || item?.task?.task_id || '')}`) ? <CheckSquare size={14} /> : <Square size={14} />}
                       </button>
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-700">{item.agent_key}</td>
+                    <td className="px-5 py-4">
+                      <div className="text-sm font-semibold text-slate-700">{resolveNodeName(String(item?.agent_key || ''), String(item?.agent_hostname || ''))}</div>
+                      <div className="text-[11px] font-mono text-slate-500">{item.agent_key}</div>
+                    </td>
                     <td className="px-4 py-4 text-sm text-slate-700">{item.service_name}</td>
                     <td className="px-4 py-4 text-xs font-mono text-slate-700">{item.node_task_id || '-'}</td>
                     <td className="px-4 py-4 text-xs uppercase text-slate-600">{item.task?.mode || '-'}</td>
