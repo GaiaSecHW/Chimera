@@ -87,6 +87,7 @@ export const AppInstancePage: React.FC<{
   const [isUninitModalOpen, setIsUninitModalOpen] = useState(false);
   const [uninitializingId, setUninitializingId] = useState<string | null>(null);
   const [isUninitializing, setIsUninitializing] = useState(false);
+  const [isRefreshingList, setIsRefreshingList] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'error' | 'warning' } | null>(null);
 
   const showToast = (message: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') => {
@@ -386,6 +387,31 @@ export const AppInstancePage: React.FC<{
     }
   };
 
+  const handleRefreshInstances = async () => {
+    if (isRefreshingList) return;
+    setIsRefreshingList(true);
+    try {
+      const syncTargets = instances.map((item) => item.id);
+      if (syncTargets.length > 0) {
+        const results = await Promise.allSettled(syncTargets.map((id) => api.workflow.syncAppWorkflowStatus(id)));
+        const failedCount = results.filter((result) => result.status === 'rejected').length;
+        if (failedCount > 0) {
+          showToast(`状态同步完成，成功 ${syncTargets.length - failedCount}，失败 ${failedCount}`, 'warning');
+        } else {
+          showToast(`状态同步完成，共 ${syncTargets.length} 个实例`, 'success');
+        }
+      }
+      await loadInstances();
+      if (syncTargets.length === 0) {
+        showToast('列表已刷新', 'success');
+      }
+    } catch (error: any) {
+      showToast(`刷新失败: ${error?.message || '未知错误'}`, 'error');
+    } finally {
+      setIsRefreshingList(false);
+    }
+  };
+
   const handleCreate = async () => {
     if (!formData.name.trim() || !formData.template_id || !formData.service_name.trim()) {
       alert('请填写实例名称、模板和 Service 名称');
@@ -506,10 +532,20 @@ export const AppInstancePage: React.FC<{
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">应用实例</h1>
           <p className="mt-1 text-sm text-slate-500">管理单应用工作流实例</p>
         </div>
-        <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500">
-          <Plus size={18} />
-          创建实例
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefreshInstances}
+            disabled={loading || isRefreshingList}
+            className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
+            刷新
+          </button>
+          <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500">
+            <Plus size={18} />
+            创建实例
+          </button>
+        </div>
       </div>
       <div className="mb-6 flex items-center gap-4">
         <div className="relative flex-1">

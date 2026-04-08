@@ -23,6 +23,7 @@ export const AppInstanceDetailPage: React.FC<{
   const [llmBindingsDraft, setLlmBindingsDraft] = useState<AppWorkflowLlmBindingRequest[]>([]);
   const [savingLlmBindings, setSavingLlmBindings] = useState(false);
   const [llmBindingsNotice, setLlmBindingsNotice] = useState<string | null>(null);
+  const [refreshingData, setRefreshingData] = useState(false);
 
   useEffect(() => {
     loadInstance();
@@ -186,6 +187,27 @@ export const AppInstanceDetailPage: React.FC<{
     }
   };
 
+  const handleRefreshDetail = async () => {
+    if (refreshingData) return;
+    setRefreshingData(true);
+    try {
+      try {
+        await api.workflow.syncAppWorkflowStatus(instanceId);
+      } catch (error) {
+        console.warn('Failed to sync app workflow status before refresh:', error);
+      }
+      await loadInstance();
+      if (activeTab === 'logs') {
+        await loadLogs();
+      }
+      if (activeTab === 'access') {
+        await loadAccessData();
+      }
+    } finally {
+      setRefreshingData(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
   }
@@ -221,6 +243,14 @@ export const AppInstanceDetailPage: React.FC<{
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleRefreshDetail}
+            disabled={!!operation || refreshingData}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={refreshingData ? 'animate-spin' : ''} />
+            刷新
+          </button>
           {actions.includes('initialize') && <button onClick={() => runOperation('初始化', () => api.workflow.initializeAppWorkflow(instanceId, false))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white hover:bg-blue-500 disabled:opacity-50">{operation === '初始化' ? <Loader2 className="animate-spin" size={16} /> : <Power size={16} />}初始化</button>}
           {actions.includes('start') && <button onClick={() => runOperation('启动', () => api.workflow.startAppWorkflow(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 font-bold text-white hover:bg-green-500 disabled:opacity-50">{operation === '启动' ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}启动</button>}
           {actions.includes('stop') && <button onClick={() => runOperation('停止', () => api.workflow.stopAppWorkflow(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 font-bold text-white hover:bg-orange-500 disabled:opacity-50">{operation === '停止' ? <Loader2 className="animate-spin" size={16} /> : <Square size={16} />}停止</button>}
