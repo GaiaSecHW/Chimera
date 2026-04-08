@@ -296,6 +296,7 @@ export interface AppWorkflowNode {
   ingress_host?: string;
   ingress_ip?: string;
   llm_binding?: AppWorkflowLlmBinding | null;
+  llm_bindings?: AppWorkflowLlmBinding[];
   started_at?: string;
   finished_at?: string;
   created_at: string;
@@ -339,6 +340,7 @@ export interface AppWorkflow {
   ingress_host?: string;
   ingress_ip?: string;
   llm_binding?: AppWorkflowLlmBinding | null;
+  llm_bindings?: AppWorkflowLlmBinding[];
   created_by?: string;
   created_at: string;
   updated_at?: string;

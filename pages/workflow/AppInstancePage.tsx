@@ -1,7 +1,8 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, Loader2, Play, Plus, RefreshCw, RotateCcw, Search, StopCircle, Trash2, XCircle } from 'lucide-react';
 import { api } from '../../clients/api';
-import { AppTemplate, AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, LlmProviderDetail, LlmProviderSummary, ServicePort } from '../../types/types';
+import { AppTemplate, AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, ServicePort } from '../../types/types';
+import { AppWorkflowLlmBindingsEditor } from '../../components/workflow/AppWorkflowLlmBindingsEditor';
 type CreateStep = 'select-template' | 'fill-form';
 
 type InputVolumeMountConfig = {
@@ -17,8 +18,7 @@ type AdditionalPvcMountDraft = {
   read_only: boolean;
 };
 
-type LlmBindingMode = 'none' | 'config_center' | 'custom';
-type HelpSectionKey = 'llm-binding' | 'ingress-binding';
+type HelpSectionKey = 'ingress-binding';
 type TemplateScopeFilter = 'global' | 'project';
 
 const createMountConfig = (readOnly = true): InputVolumeMountConfig => ({
@@ -32,28 +32,6 @@ const createAdditionalPvcMountDraft = (): AdditionalPvcMountDraft => ({
   mount_path: '',
   sub_path: '',
   read_only: true,
-});
-
-const createDefaultCustomLlmConfig = (): LlmProviderDetail => ({
-  provider_key: '',
-  display_name: '',
-  provider_type: '',
-  enabled: true,
-  is_default: false,
-  api_base: '',
-  model: '',
-  api_key: '',
-  organization: null,
-  api_version: null,
-  timeout_seconds: 60,
-  max_tokens: null,
-  temperature: null,
-  env_bindings: {},
-  file_bindings: [],
-  extra_config: {},
-  description: '',
-  created_at: null,
-  updated_at: null,
 });
 
 export const AppInstancePage: React.FC<{
@@ -100,15 +78,7 @@ export const AppInstancePage: React.FC<{
   const [additionalPvcMounts, setAdditionalPvcMounts] = useState<AdditionalPvcMountDraft[]>([]);
   const [pvcList, setPvcList] = useState<Array<{ pvc_name: string; resource_name?: string }>>([]);
   const [enableIngress, setEnableIngress] = useState(false);
-  const [llmBindingMode, setLlmBindingMode] = useState<LlmBindingMode>('none');
-  const [llmProviders, setLlmProviders] = useState<LlmProviderSummary[]>([]);
-  const [loadingLlmProviders, setLoadingLlmProviders] = useState(false);
-  const [selectedLlmProviderKey, setSelectedLlmProviderKey] = useState('');
-  const [selectedLlmProviderDetail, setSelectedLlmProviderDetail] = useState<LlmProviderDetail | null>(null);
-  const [customLlmConfig, setCustomLlmConfig] = useState<LlmProviderDetail>(createDefaultCustomLlmConfig());
-  const [customLlmJsonText, setCustomLlmJsonText] = useState(JSON.stringify(createDefaultCustomLlmConfig(), null, 2));
-  const [customLlmJsonError, setCustomLlmJsonError] = useState('');
-  const [isCustomLlmModalOpen, setIsCustomLlmModalOpen] = useState(false);
+  const [llmBindings, setLlmBindings] = useState<AppWorkflowLlmBindingRequest[]>([]);
   const [openHelpSection, setOpenHelpSection] = useState<HelpSectionKey | null>(null);
   const helpSectionRefs = useRef<Partial<Record<HelpSectionKey, HTMLDivElement | null>>>({});
 
@@ -140,48 +110,6 @@ export const AppInstancePage: React.FC<{
       setLoading(false);
     }
   };
-
-  const loadLlmProviders = async () => {
-    setLoadingLlmProviders(true);
-    try {
-      const data = await api.workflow.listAppWorkflowLlmProviders();
-      const items = data.items || [];
-      setLlmProviders(items);
-      setSelectedLlmProviderKey((current) => current || data.default_provider_key || items[0]?.provider_key || '');
-    } catch (error: any) {
-      console.error('Failed to load llm providers:', error);
-      showToast(`加载 LLM 配置列表失败: ${error.message || error}`, 'error');
-    } finally {
-      setLoadingLlmProviders(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!isModalOpen || createStep !== 'fill-form' || llmBindingMode !== 'config_center') {
-      return;
-    }
-    if (!llmProviders.length && !loadingLlmProviders) {
-      void loadLlmProviders();
-    }
-  }, [isModalOpen, createStep, llmBindingMode, llmProviders.length, loadingLlmProviders]);
-
-  useEffect(() => {
-    if (llmBindingMode !== 'config_center' || !selectedLlmProviderKey) {
-      setSelectedLlmProviderDetail(null);
-      return;
-    }
-    const loadProviderDetail = async () => {
-      try {
-        const detail = await api.workflow.getAppWorkflowLlmProvider(selectedLlmProviderKey);
-        setSelectedLlmProviderDetail(detail);
-      } catch (error: any) {
-        console.error('Failed to load llm provider detail:', error);
-        setSelectedLlmProviderDetail(null);
-        showToast(`加载 LLM 配置详情失败: ${error.message || error}`, 'error');
-      }
-    };
-    void loadProviderDetail();
-  }, [llmBindingMode, selectedLlmProviderKey]);
 
   useEffect(() => {
     if (!openHelpSection) return;
@@ -275,16 +203,7 @@ export const AppInstancePage: React.FC<{
     setAdditionalPvcMounts([]);
     setEnableIngress(false);
     setPvcList([]);
-    setLlmBindingMode('none');
-    setLlmProviders([]);
-    setLoadingLlmProviders(false);
-    setSelectedLlmProviderKey('');
-    setSelectedLlmProviderDetail(null);
-    const defaultCustomConfig = createDefaultCustomLlmConfig();
-    setCustomLlmConfig(defaultCustomConfig);
-    setCustomLlmJsonText(JSON.stringify(defaultCustomConfig, null, 2));
-    setCustomLlmJsonError('');
-    setIsCustomLlmModalOpen(false);
+    setLlmBindings([]);
     setOpenHelpSection(null);
   };
 
@@ -467,27 +386,6 @@ export const AppInstancePage: React.FC<{
     }
   };
 
-  const buildLlmBindingPayload = (): AppWorkflowLlmBindingRequest | undefined => {
-    if (llmBindingMode === 'none') return undefined;
-    if (llmBindingMode === 'config_center') {
-      return selectedLlmProviderKey ? { source: 'config_center', provider_key: selectedLlmProviderKey } : undefined;
-    }
-    return { source: 'custom', config: customLlmConfig };
-  };
-
-  const handleSaveCustomLlmConfig = () => {
-    try {
-      const parsed = JSON.parse(customLlmJsonText);
-      setCustomLlmConfig(parsed as LlmProviderDetail);
-      setCustomLlmJsonText(JSON.stringify(parsed, null, 2));
-      setCustomLlmJsonError('');
-      setIsCustomLlmModalOpen(false);
-      showToast('自定义 LLM 配置已保存到当前表单', 'success');
-    } catch (error: any) {
-      setCustomLlmJsonError(error.message || 'JSON 解析失败');
-    }
-  };
-
   const handleCreate = async () => {
     if (!formData.name.trim() || !formData.template_id || !formData.service_name.trim()) {
       alert('请填写实例名称、模板和 Service 名称');
@@ -521,17 +419,17 @@ export const AppInstancePage: React.FC<{
         return;
       }
     }
-    if (llmBindingMode === 'config_center' && !selectedLlmProviderKey) {
-      alert('请选择一个来自配置中心的 LLM 配置');
-      return;
-    }
-    if (llmBindingMode === 'custom') {
-      if (customLlmJsonError) {
-        alert(`请先修复自定义 LLM JSON: ${customLlmJsonError}`);
-        return;
+    for (const binding of llmBindings) {
+      if (binding.source === 'config_center') {
+        if (!String(binding.provider_key || '').trim()) {
+          alert('请为配置中心绑定选择一个 LLM Provider');
+          return;
+        }
+        continue;
       }
-      if (!customLlmConfig.provider_key || !customLlmConfig.api_base || !customLlmConfig.api_key || !customLlmConfig.display_name || !customLlmConfig.provider_type) {
-        alert('自定义 LLM 配置缺少必要字段，请在 JSON 弹窗中补全');
+      const config = binding.config;
+      if (!config?.provider_key || !config?.api_base || !config?.api_key || !config?.display_name || !config?.provider_type) {
+        alert('自定义 LLM 配置缺少必要字段，请补全 provider_key、display_name、provider_type、api_base、api_key');
         return;
       }
     }
@@ -566,7 +464,7 @@ export const AppInstancePage: React.FC<{
         volume_mounts: volumeMounts.length > 0 ? volumeMounts : undefined,
         create_ingress: enableIngress,
         ingress_type: enableIngress ? 'nginx' : undefined,
-        llm_binding: buildLlmBindingPayload(),
+        llm_bindings: llmBindings,
       });
       if (enableIngress) {
         await api.workflow.initializeAppWorkflow(created.id, false);
@@ -907,9 +805,9 @@ export const AppInstancePage: React.FC<{
                     <div>
                       <label className="mb-2 block text-xs font-black uppercase text-slate-500">Service 类型</label>
                       <select value={formData.service_type} onChange={(event) => setFormData({ ...formData, service_type: event.target.value as any })} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500">
-                        <option value="ClusterIP">ClusterIP</option>
-                        <option value="NodePort">NodePort</option>
-                        <option value="LoadBalancer">LoadBalancer</option>
+                        <option value="ClusterIP">集群内部访问</option>
+                        <option value="NodePort">节点端口访问</option>
+                        <option value="LoadBalancer">负载均衡访问</option>
                       </select>
                     </div>
                     <div>
@@ -1029,114 +927,10 @@ export const AppInstancePage: React.FC<{
                       </div>
                     )}
                   </div>
-                  <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5">
-                    <div className="mb-4 flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="text-sm font-black text-sky-700">LLM 配置绑定</div>
-                      </div>
-                      {renderHelpToggle(
-                        'llm-binding',
-                        '可选绑定。支持从配置中心选择，或以 JSON 方式录入一份与配置中心结构一致的自定义配置。',
-                        {
-                          button: 'border-sky-300 bg-white/90 text-sky-700 hover:border-sky-400 hover:bg-white focus:ring-sky-300',
-                          panel: 'border-sky-200 bg-white/95',
-                          text: 'text-sky-700',
-                        }
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                      <button
-                        type="button"
-                        onClick={() => setLlmBindingMode('none')}
-                        className={`rounded-xl border px-4 py-3 text-left text-sm transition-all ${llmBindingMode === 'none' ? 'border-sky-500 bg-white text-sky-700 shadow-sm' : 'border-sky-200 bg-white/70 text-slate-600 hover:border-sky-300'}`}
-                      >
-                        <div className="font-bold">不绑定</div>
-                        <div className="mt-1 text-xs">本次创建不附加 LLM 配置。</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLlmBindingMode('config_center')}
-                        className={`rounded-xl border px-4 py-3 text-left text-sm transition-all ${llmBindingMode === 'config_center' ? 'border-sky-500 bg-white text-sky-700 shadow-sm' : 'border-sky-200 bg-white/70 text-slate-600 hover:border-sky-300'}`}
-                      >
-                        <div className="font-bold">从配置中心选择</div>
-                        <div className="mt-1 text-xs">由工作流服务读取并固化当前已启用 Provider 快照。</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLlmBindingMode('custom')}
-                        className={`rounded-xl border px-4 py-3 text-left text-sm transition-all ${llmBindingMode === 'custom' ? 'border-sky-500 bg-white text-sky-700 shadow-sm' : 'border-sky-200 bg-white/70 text-slate-600 hover:border-sky-300'}`}
-                      >
-                        <div className="font-bold">自定义 JSON</div>
-                        <div className="mt-1 text-xs">打开独立弹窗编辑完整 JSON 配置。</div>
-                      </button>
-                    </div>
-
-                    {llmBindingMode === 'config_center' && (
-                      <div className="mt-4 rounded-xl border border-sky-200 bg-white p-4">
-                        {loadingLlmProviders ? (
-                          <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />正在加载可用 LLM 配置...</div>
-                        ) : (
-                          <>
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                              <select
-                                value={selectedLlmProviderKey}
-                                onChange={(event) => setSelectedLlmProviderKey(event.target.value)}
-                                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-sky-500"
-                              >
-                                <option value="">选择 LLM Provider</option>
-                                {llmProviders.map((provider) => (
-                                  <option key={provider.provider_key} value={provider.provider_key}>
-                                    {provider.display_name || provider.provider_key} · {provider.provider_type}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => void loadLlmProviders()}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:border-sky-300"
-                              >
-                                <RefreshCw size={16} />
-                                刷新配置中心列表
-                              </button>
-                            </div>
-                            {selectedLlmProviderDetail && (
-                              <div className="mt-4 rounded-xl bg-slate-50 p-4">
-                                <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                                  <div><div className="text-xs text-slate-400">Provider Key</div><div className="font-mono text-slate-800">{selectedLlmProviderDetail.provider_key}</div></div>
-                                  <div><div className="text-xs text-slate-400">模型</div><div className="text-slate-800">{selectedLlmProviderDetail.model || '-'}</div></div>
-                                  <div><div className="text-xs text-slate-400">渠道类型</div><div className="text-slate-800">{selectedLlmProviderDetail.provider_type}</div></div>
-                                  <div><div className="text-xs text-slate-400">API Base</div><div className="break-all text-slate-800">{selectedLlmProviderDetail.api_base}</div></div>
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    {llmBindingMode === 'custom' && (
-                      <div className="mt-4 rounded-xl border border-sky-200 bg-white p-4">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                          <div className="text-sm text-slate-600">
-                            当前将提交一份自定义快照，后端会按与配置中心一致的字段结构进行校验和存储。
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setIsCustomLlmModalOpen(true)}
-                            className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-sky-500"
-                          >
-                            编辑 JSON 配置
-                          </button>
-                        </div>
-                        <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
-                          <div><span className="font-bold">Provider Key：</span>{customLlmConfig.provider_key || '-'}</div>
-                          <div className="mt-1"><span className="font-bold">显示名：</span>{customLlmConfig.display_name || '-'}</div>
-                          <div className="mt-1"><span className="font-bold">模型：</span>{customLlmConfig.model || '-'}</div>
-                          <div className="mt-1 break-all"><span className="font-bold">API Base：</span>{customLlmConfig.api_base || '-'}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <AppWorkflowLlmBindingsEditor
+                    value={llmBindings}
+                    onChange={setLlmBindings}
+                  />
                   <div className="rounded-2xl border border-green-200 bg-green-50 p-5">
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex-1">
@@ -1176,55 +970,6 @@ export const AppInstancePage: React.FC<{
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
-      {isCustomLlmModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-6">
-          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="border-b border-slate-100 p-6">
-              <h3 className="text-2xl font-black text-slate-900">自定义 LLM JSON 配置</h3>
-              <p className="mt-1 text-sm text-slate-500">字段结构需与配置中心的 LLM 对接配置保持一致，保存后将作为本次实例创建的绑定快照。</p>
-            </div>
-            <div className="flex-1 overflow-auto p-6">
-              <textarea
-                value={customLlmJsonText}
-                onChange={(event) => {
-                  setCustomLlmJsonText(event.target.value);
-                  if (customLlmJsonError) setCustomLlmJsonError('');
-                }}
-                className="min-h-[420px] w-full rounded-2xl border border-slate-200 bg-slate-950 p-4 font-mono text-sm text-emerald-300 outline-none focus:border-sky-500"
-                spellCheck={false}
-              />
-              {customLlmJsonError && (
-                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                  {customLlmJsonError}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-between border-t border-slate-100 p-6">
-              <div className="text-xs text-slate-500">建议至少填写 `provider_key`、`display_name`、`provider_type`、`api_base`、`model`、`api_key`、`timeout_seconds`。</div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCustomLlmModalOpen(false);
-                    setCustomLlmJsonError('');
-                    setCustomLlmJsonText(JSON.stringify(customLlmConfig, null, 2));
-                  }}
-                  className="px-5 py-3 text-sm font-medium text-slate-600 hover:text-slate-800"
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveCustomLlmConfig}
-                  className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-bold text-white hover:bg-sky-500"
-                >
-                  保存当前 JSON
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
