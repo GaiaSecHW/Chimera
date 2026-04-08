@@ -1,9 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, FolderTree, Loader2, Play, Plus, RefreshCw, RotateCcw, Search, StopCircle, Trash2, XCircle } from 'lucide-react';
+import { Activity, AlertCircle, Box, CheckCircle, ChevronLeft, ChevronRight, Loader2, Play, Plus, RefreshCw, RotateCcw, Search, StopCircle, Trash2, XCircle } from 'lucide-react';
 import { api } from '../../clients/api';
 import { AppTemplate, AppWorkflow, AppWorkflowLlmBindingRequest, AppWorkflowStatus, LlmProviderDetail, LlmProviderSummary, ServicePort } from '../../types/types';
-import { ProjectDirectoryPickerModal, ProjectDirectorySelection } from '../../components/ProjectDirectoryPickerModal';
-
 type CreateStep = 'select-template' | 'fill-form';
 
 type InputVolumeMountConfig = {
@@ -12,18 +10,15 @@ type InputVolumeMountConfig = {
   read_only: boolean;
 };
 
-type ProjectFileMountDraft = {
+type AdditionalPvcMountDraft = {
+  pvc_name: string;
   mount_path: string;
-  subproject_id?: number | null;
-  directory_id?: number | null;
+  sub_path: string;
   read_only: boolean;
-  display_path?: string;
-  subproject_name?: string;
-  directory_name?: string | null;
 };
 
 type LlmBindingMode = 'none' | 'config_center' | 'custom';
-type HelpSectionKey = 'project-file-mounts' | 'llm-binding' | 'ingress-binding';
+type HelpSectionKey = 'llm-binding' | 'ingress-binding';
 type TemplateScopeFilter = 'global' | 'project';
 
 const createMountConfig = (readOnly = true): InputVolumeMountConfig => ({
@@ -32,14 +27,11 @@ const createMountConfig = (readOnly = true): InputVolumeMountConfig => ({
   read_only: readOnly,
 });
 
-const createProjectFileMountDraft = (): ProjectFileMountDraft => ({
+const createAdditionalPvcMountDraft = (): AdditionalPvcMountDraft => ({
+  pvc_name: '',
   mount_path: '',
-  subproject_id: null,
-  directory_id: null,
+  sub_path: '',
   read_only: true,
-  display_path: '',
-  subproject_name: '',
-  directory_name: null,
 });
 
 const createDefaultCustomLlmConfig = (): LlmProviderDetail => ({
@@ -105,10 +97,9 @@ export const AppInstancePage: React.FC<{
   });
   const [inputEnvVarValues, setInputEnvVarValues] = useState<Record<string, string>>({});
   const [inputVolumeMountConfigs, setInputVolumeMountConfigs] = useState<Record<string, InputVolumeMountConfig>>({});
-  const [projectFileMounts, setProjectFileMounts] = useState<ProjectFileMountDraft[]>([]);
+  const [additionalPvcMounts, setAdditionalPvcMounts] = useState<AdditionalPvcMountDraft[]>([]);
   const [pvcList, setPvcList] = useState<Array<{ pvc_name: string; resource_name?: string }>>([]);
   const [enableIngress, setEnableIngress] = useState(false);
-  const [directoryPickerTarget, setDirectoryPickerTarget] = useState<number | null>(null);
   const [llmBindingMode, setLlmBindingMode] = useState<LlmBindingMode>('none');
   const [llmProviders, setLlmProviders] = useState<LlmProviderSummary[]>([]);
   const [loadingLlmProviders, setLoadingLlmProviders] = useState(false);
@@ -281,10 +272,9 @@ export const AppInstancePage: React.FC<{
     });
     setInputEnvVarValues({});
     setInputVolumeMountConfigs({});
-    setProjectFileMounts([]);
+    setAdditionalPvcMounts([]);
     setEnableIngress(false);
     setPvcList([]);
-    setDirectoryPickerTarget(null);
     setLlmBindingMode('none');
     setLlmProviders([]);
     setLoadingLlmProviders(false);
@@ -521,13 +511,13 @@ export const AppInstancePage: React.FC<{
         }
       }
     }
-    for (const projectMount of projectFileMounts) {
-      if (!projectMount.mount_path.trim()) {
-        alert('请填写项目文件夹挂载路径');
+    for (const pvcMount of additionalPvcMounts) {
+      if (!pvcMount.pvc_name) {
+        alert('请选择要绑定的 PVC');
         return;
       }
-      if (!projectMount.subproject_id) {
-        alert(`请选择挂载路径 ${projectMount.mount_path || '(未填写路径)'} 对应的项目文件夹`);
+      if (!pvcMount.mount_path.trim()) {
+        alert('请填写 PVC 挂载路径');
         return;
       }
     }
@@ -561,21 +551,19 @@ export const AppInstancePage: React.FC<{
           }
         });
       });
-      const payloadProjectFileMounts = projectFileMounts.map((mount) => ({
-        subproject_id: mount.subproject_id as number,
-        directory_id: mount.directory_id ?? null,
-        mount_path: mount.mount_path.trim(),
-        read_only: mount.read_only,
-        display_path: mount.display_path,
-        subproject_name: mount.subproject_name,
-        directory_name: mount.directory_name ?? null,
-      }));
+      additionalPvcMounts.forEach((mount) => {
+        volumeMounts.push({
+          pvc_name: mount.pvc_name,
+          mount_path: mount.mount_path.trim(),
+          sub_path: mount.sub_path.trim(),
+          read_only: mount.read_only,
+        });
+      });
       const created = await api.workflow.createAppWorkflow({
         ...formData,
         project_id: projectId,
         env_vars: envVars.length > 0 ? envVars : undefined,
         volume_mounts: volumeMounts.length > 0 ? volumeMounts : undefined,
-        project_file_mounts: payloadProjectFileMounts.length > 0 ? payloadProjectFileMounts : undefined,
         create_ingress: enableIngress,
         ingress_type: enableIngress ? 'nginx' : undefined,
         llm_binding: buildLlmBindingPayload(),
@@ -971,39 +959,31 @@ export const AppInstancePage: React.FC<{
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                     <div className="mb-4 flex items-center justify-between gap-4">
                       <div className="flex-1">
-                        <div className="text-sm font-black text-amber-700">项目文件夹挂载</div>
+                        <div className="text-sm font-black text-amber-700">附加 PVC 挂载</div>
+                        <div className="mt-1 text-xs text-amber-700/80">从公共资源管理的 PVC 资源中选择，并绑定到实例容器路径。</div>
                       </div>
-                      {renderHelpToggle(
-                        'project-file-mounts',
-                        '这个区域用于额外附加项目文件目录，不影响模板自身定义的 PVC 挂载依赖。',
-                        {
-                          button: 'border-amber-300 bg-white/90 text-amber-700 hover:border-amber-400 hover:bg-white focus:ring-amber-300',
-                          panel: 'border-amber-200 bg-white/95',
-                          text: 'text-amber-700',
-                        }
-                      )}
                       <button
                         type="button"
-                        onClick={() => setProjectFileMounts([...projectFileMounts, createProjectFileMountDraft()])}
+                        onClick={() => setAdditionalPvcMounts([...additionalPvcMounts, createAdditionalPvcMountDraft()])}
                         className="flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-sm font-bold text-white hover:bg-amber-500"
                       >
                         <Plus size={16} />
-                        添加挂载
+                        添加 PVC
                       </button>
                     </div>
-                    {projectFileMounts.length === 0 ? (
+                    {additionalPvcMounts.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-amber-200 bg-white/80 px-4 py-4 text-sm text-amber-700">
-                        如果你希望额外挂载项目文件目录，可以在这里新增挂载路径并选择任意层级文件夹。
+                        如需额外挂载 PVC，可以在这里选择公共 PVC 资源并填写容器内挂载路径。
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {projectFileMounts.map((mount, index) => (
+                        {additionalPvcMounts.map((mount, index) => (
                           <div key={index} className="rounded-xl border border-amber-200 bg-white p-4">
                             <div className="mb-3 flex items-center justify-between gap-3">
-                              <div className="text-sm font-bold text-slate-700">项目文件夹挂载 #{index + 1}</div>
+                              <div className="text-sm font-bold text-slate-700">附加 PVC 挂载 #{index + 1}</div>
                               <button
                                 type="button"
-                                onClick={() => setProjectFileMounts(projectFileMounts.filter((_, itemIndex) => itemIndex !== index))}
+                                onClick={() => setAdditionalPvcMounts(additionalPvcMounts.filter((_, itemIndex) => itemIndex !== index))}
                                 className="rounded-lg p-2 text-red-500 hover:bg-red-50"
                                 title="删除挂载"
                               >
@@ -1011,20 +991,38 @@ export const AppInstancePage: React.FC<{
                               </button>
                             </div>
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                              <select
+                                value={mount.pvc_name}
+                                onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, pvc_name: event.target.value } : item))}
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
+                              >
+                                <option value="">选择 PVC 资源</option>
+                                {pvcList.map((pvc) => (
+                                  <option key={pvc.pvc_name} value={pvc.pvc_name}>
+                                    {pvc.pvc_name} {pvc.resource_name ? `(${pvc.resource_name})` : ''}
+                                  </option>
+                                ))}
+                              </select>
                               <input
                                 value={mount.mount_path}
-                                onChange={(event) => setProjectFileMounts(projectFileMounts.map((item, itemIndex) => itemIndex === index ? { ...item, mount_path: event.target.value } : item))}
-                                placeholder="容器内挂载路径，例如 /workspace/source"
+                                onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, mount_path: event.target.value } : item))}
+                                placeholder="容器内挂载路径，例如 /workspace/shared"
                                 className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
                               />
-                              <button
-                                type="button"
-                                onClick={() => setDirectoryPickerTarget(index)}
-                                className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition-all hover:border-amber-400"
-                              >
-                                <span className="truncate">{mount.subproject_id ? `${mount.subproject_name || '子项目'} ${mount.display_path || '/'}` : '选择项目文件夹'}</span>
-                                <FolderTree size={16} className="text-amber-500" />
-                              </button>
+                              <input
+                                value={mount.sub_path}
+                                onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, sub_path: event.target.value } : item))}
+                                placeholder="PVC 子路径，可留空"
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-500"
+                              />
+                              <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                                <input
+                                  type="checkbox"
+                                  checked={mount.read_only}
+                                  onChange={(event) => setAdditionalPvcMounts(additionalPvcMounts.map((item, itemIndex) => itemIndex === index ? { ...item, read_only: event.target.checked } : item))}
+                                />
+                                只读挂载
+                              </label>
                             </div>
                           </div>
                         ))}
@@ -1321,28 +1319,6 @@ export const AppInstancePage: React.FC<{
           </div>
         </div>
       )}
-
-      <ProjectDirectoryPickerModal
-        isOpen={directoryPickerTarget !== null}
-        projectId={projectId}
-        onClose={() => setDirectoryPickerTarget(null)}
-        onSelect={(selection: ProjectDirectorySelection) => {
-          if (directoryPickerTarget === null) return;
-          setProjectFileMounts(projectFileMounts.map((mount, index) => (
-            index === directoryPickerTarget
-              ? {
-                  ...mount,
-                  subproject_id: selection.subproject_id,
-                  directory_id: selection.directory_id ?? null,
-                  display_path: selection.display_path,
-                  subproject_name: selection.subproject_name,
-                  directory_name: selection.directory_name ?? null,
-                }
-              : mount
-          )));
-          setDirectoryPickerTarget(null);
-        }}
-      />
     </div>
   );
 };
