@@ -27,6 +27,7 @@ export const UserMgmtPage: React.FC = () => {
   const [resetData, setResetData] = useState({ old_password: '', new_password: '' });
   const [importFileName, setImportFileName] = useState('');
   const [importCsvContent, setImportCsvContent] = useState('');
+  const [importFileContentBase64, setImportFileContentBase64] = useState('');
   const [importPreview, setImportPreview] = useState<UserImportPreviewResponse | null>(null);
   const [importResult, setImportResult] = useState<UserImportCommitResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -51,6 +52,7 @@ export const UserMgmtPage: React.FC = () => {
     setImportStage('upload');
     setImportFileName('');
     setImportCsvContent('');
+    setImportFileContentBase64('');
     setImportPreview(null);
     setImportResult(null);
     setImportLoading(false);
@@ -126,12 +128,11 @@ export const UserMgmtPage: React.FC = () => {
 
   const handleDownloadTemplate = async () => {
     try {
-      const content = await authApi.downloadUserImportTemplate();
-      const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+      const blob = await authApi.downloadUserImportTemplate();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'secflow-user-import-template.csv';
+      link.download = 'secflow-user-import-template.xlsx';
       link.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
@@ -139,13 +140,32 @@ export const UserMgmtPage: React.FC = () => {
     }
   };
 
+  const readFileAsBase64 = (file: File): Promise<string> => (
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === 'string' ? reader.result : '';
+        const [, base64 = ''] = result.split(',', 2);
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('读取文件失败'));
+      reader.readAsDataURL(file);
+    })
+  );
+
   const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const text = await file.text();
       setImportFileName(file.name);
-      setImportCsvContent(text);
+      const suffix = file.name.split('.').pop()?.toLowerCase();
+      if (suffix === 'csv') {
+        const text = await file.text();
+        setImportCsvContent(text);
+      } else {
+        setImportCsvContent('');
+      }
+      setImportFileContentBase64(await readFileAsBase64(file));
       setImportPreview(null);
       setImportResult(null);
       setImportStage('upload');
@@ -155,14 +175,15 @@ export const UserMgmtPage: React.FC = () => {
   };
 
   const handlePreviewImport = async () => {
-    if (!importCsvContent.trim()) {
-      await showAlert({ title: '缺少文件', message: '请先选择一个 CSV 文件', tone: 'warning' });
+    if (!importFileName || (!importCsvContent.trim() && !importFileContentBase64)) {
+      await showAlert({ title: '缺少文件', message: '请先选择一个 Excel 或 CSV 文件', tone: 'warning' });
       return;
     }
     setImportLoading(true);
     try {
       const preview = await authApi.previewUserImport({
-        csv_content: importCsvContent,
+        csv_content: importCsvContent || undefined,
+        file_content_base64: importFileContentBase64 || undefined,
         filename: importFileName,
       });
       setImportPreview(preview);
@@ -197,7 +218,8 @@ export const UserMgmtPage: React.FC = () => {
     setImportLoading(true);
     try {
       const result = await authApi.commitUserImport({
-        csv_content: importCsvContent,
+        csv_content: importCsvContent || undefined,
+        file_content_base64: importFileContentBase64 || undefined,
         filename: importFileName,
       });
       setImportResult(result);
@@ -264,7 +286,7 @@ export const UserMgmtPage: React.FC = () => {
           </div>
           <div>
             <h4 className="text-lg font-black text-slate-800">最后入库</h4>
-            <p className="text-sm text-slate-400 mt-1 font-medium">支持单个创建和 CSV 批量导入。批量导入会先预校验用户名、角色和部门归属，再执行落库。</p>
+              <p className="text-sm text-slate-400 mt-1 font-medium">支持单个创建和 Excel/CSV 批量导入。批量导入会先预校验用户名、角色和部门归属，再执行落库。</p>
           </div>
         </div>
       </div>
@@ -451,7 +473,7 @@ export const UserMgmtPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-900">批量导入用户</h3>
-                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400 mt-1">Upload CSV / Preview / Commit</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400 mt-1">Upload Excel Or CSV / Preview / Commit</p>
                 </div>
               </div>
               <button onClick={closeImportModal} className="p-3 text-slate-300 hover:text-slate-600"><X size={28} /></button>
@@ -475,7 +497,7 @@ export const UserMgmtPage: React.FC = () => {
                   <div className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-8 space-y-6">
                     <div className="space-y-2">
                       <h4 className="text-xl font-black text-slate-900">1. 准备导入文件</h4>
-                      <p className="text-sm text-slate-500 font-medium">下载模板后填写用户名、平台角色、普通角色和部门归属，保存为 UTF-8 编码 CSV。</p>
+                      <p className="text-sm text-slate-500 font-medium">下载模板后直接按示例填写即可，支持上传 `.xlsx` 或 `.csv` 文件，系统会先预校验再导入。</p>
                     </div>
                     <div className="flex flex-wrap gap-4">
                       <button onClick={() => void handleDownloadTemplate()} className="px-6 py-4 rounded-2xl bg-white border border-slate-200 font-black text-slate-700 flex items-center gap-3 shadow-sm hover:bg-slate-50">
@@ -484,16 +506,16 @@ export const UserMgmtPage: React.FC = () => {
                       </button>
                       <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700">
                         <Upload size={18} />
-                        选择 CSV
+                        选择文件
                       </button>
-                      <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileSelected} />
+                      <input ref={fileInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={handleFileSelected} />
                     </div>
                     <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6">
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">当前文件</p>
                       <p className="mt-3 text-lg font-black text-slate-800">{importFileName || '尚未选择文件'}</p>
-                      <p className="mt-2 text-sm text-slate-500">支持字段：`username,password,platform_role,role_names,department_name,department_role,is_active`</p>
+                      <p className="mt-2 text-sm text-slate-500">模板已内置示例和填写说明，支持字段：`username,password,platform_role,role_names,department_name,department_role,is_active`</p>
                     </div>
-                    <button disabled={importLoading || !importCsvContent.trim()} onClick={() => void handlePreviewImport()} className="w-full py-5 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:opacity-50">
+                    <button disabled={importLoading || !importFileName} onClick={() => void handlePreviewImport()} className="w-full py-5 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:opacity-50">
                       {importLoading ? <Loader2 size={20} className="animate-spin" /> : <ShieldCheck size={20} />}
                       开始预校验
                     </button>
@@ -503,9 +525,9 @@ export const UserMgmtPage: React.FC = () => {
                     <h4 className="text-xl font-black text-slate-900">导入规则</h4>
                     <div className="space-y-3 text-sm font-medium text-slate-600">
                       <p>1. 只允许超级管理员执行导入。</p>
-                      <p>2. 平台角色只支持 `ordinary_admin` 和 `ordinary_user`。</p>
-                      <p>3. `role_names` 仅填写已存在的普通角色，多个角色用逗号分隔。</p>
-                      <p>4. `department_name` 必须是系统已存在部门，`department_role` 支持 `leader`、`vice_leader`、`member`。</p>
+                      <p>2. 推荐直接下载 Excel 模板，按示例替换数据即可；也兼容 CSV 文件。</p>
+                      <p>3. 平台角色只支持 `ordinary_admin` 和 `ordinary_user`，留空默认普通用户。</p>
+                      <p>4. `role_names` 仅填写已存在的普通角色，多个角色用逗号分隔；部门名称也必须已存在。</p>
                       <p>5. 密码为空时，系统会自动生成初始密码并在导入结果中仅展示一次。</p>
                     </div>
                   </div>
@@ -523,7 +545,7 @@ export const UserMgmtPage: React.FC = () => {
                   <div className="flex justify-between items-center gap-4">
                     <div>
                       <h4 className="text-xl font-black text-slate-900">2. 预校验结果</h4>
-                      <p className="text-sm text-slate-500 font-medium">错误行不会进入导入阶段。请修正 CSV 后重新预校验。</p>
+                      <p className="text-sm text-slate-500 font-medium">错误行不会进入导入阶段。请修正文件后重新预校验。</p>
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => setImportStage('upload')} className="px-5 py-3 rounded-2xl bg-white border border-slate-200 font-black text-slate-700">返回修改</button>

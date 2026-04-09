@@ -143,14 +143,17 @@ export const authApi = {
     return handleResponse(response);
   },
 
-  downloadUserImportTemplate: async (): Promise<string> => {
+  downloadUserImportTemplate: async (): Promise<Blob> => {
     const response = await fetch(`${API_BASE}/api/auth/users/import/template`, {
       headers: getHeaders(),
     });
-    return handleResponse(response);
+    if (!response.ok) {
+      await handleResponse(response);
+    }
+    return response.blob();
   },
 
-  previewUserImport: async (payload: { csv_content: string; filename?: string }): Promise<UserImportPreviewResponse> => {
+  previewUserImport: async (payload: { csv_content?: string; file_content_base64?: string; filename?: string }): Promise<UserImportPreviewResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/users/import/preview`, {
       method: 'POST',
       headers: getHeaders(),
@@ -159,7 +162,7 @@ export const authApi = {
     return handleResponse(response);
   },
 
-  commitUserImport: async (payload: { csv_content: string; filename?: string }): Promise<UserImportCommitResponse> => {
+  commitUserImport: async (payload: { csv_content?: string; file_content_base64?: string; filename?: string }): Promise<UserImportCommitResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/users/import/commit`, {
       method: 'POST',
       headers: getHeaders(),
