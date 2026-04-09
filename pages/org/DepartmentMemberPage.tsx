@@ -37,7 +37,7 @@ export const DepartmentMemberPage: React.FC = () => {
   const [moveDepartmentId, setMoveDepartmentId] = useState('');
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
   const [importFileName, setImportFileName] = useState('');
-  const [importCsvContent, setImportCsvContent] = useState('');
+  const [importFileContentBase64, setImportFileContentBase64] = useState('');
   const [importStage, setImportStage] = useState<ImportStage>('upload');
   const [importMode, setImportMode] = useState<ImportMode>('skip_existing');
   const [importPreview, setImportPreview] = useState<DepartmentMemberImportPreviewResponse | null>(null);
@@ -272,7 +272,7 @@ export const DepartmentMemberPage: React.FC = () => {
 
   const resetImportState = () => {
     setImportFileName('');
-    setImportCsvContent('');
+    setImportFileContentBase64('');
     setImportStage('upload');
     setImportMode(isAdmin() ? 'skip_existing' : 'skip_existing');
     setImportPreview(null);
@@ -294,12 +294,11 @@ export const DepartmentMemberPage: React.FC = () => {
 
   const handleDownloadImportTemplate = async () => {
     try {
-      const content = await orgApi.downloadDepartmentMemberImportTemplate();
-      const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+      const blob = await orgApi.downloadDepartmentMemberImportTemplate();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'secflow-department-member-import-template.csv';
+      link.download = 'secflow-department-member-import-template.xlsx';
       link.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
@@ -307,13 +306,24 @@ export const DepartmentMemberPage: React.FC = () => {
     }
   };
 
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+      const chunk = bytes.subarray(offset, offset + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    return btoa(binary);
+  };
+
   const handleImportFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const text = await file.text();
+      const contentBase64 = arrayBufferToBase64(await file.arrayBuffer());
       setImportFileName(file.name);
-      setImportCsvContent(text);
+      setImportFileContentBase64(contentBase64);
       setImportPreview(null);
       setImportResult(null);
       setImportStage('upload');
@@ -324,15 +334,15 @@ export const DepartmentMemberPage: React.FC = () => {
 
   const handlePreviewImport = async () => {
     if (!selectedDepartmentId) return;
-    if (!importCsvContent.trim()) {
-      await showAlert({ title: '缺少文件', message: '请先选择一个 CSV 文件', tone: 'warning' });
+    if (!importFileContentBase64.trim()) {
+      await showAlert({ title: '缺少文件', message: '请先选择一个 Excel 或 CSV 文件', tone: 'warning' });
       return;
     }
     setImportLoading(true);
     try {
       const preview = await orgApi.previewDepartmentMemberImport({
         department_id: selectedDepartmentId,
-        csv_content: importCsvContent,
+        file_content_base64: importFileContentBase64,
         filename: importFileName,
         mode: importMode,
       });
@@ -366,7 +376,7 @@ export const DepartmentMemberPage: React.FC = () => {
     try {
       const result = await orgApi.commitDepartmentMemberImport({
         department_id: selectedDepartmentId,
-        csv_content: importCsvContent,
+        file_content_base64: importFileContentBase64,
         filename: importFileName,
         mode: importMode,
       });
@@ -798,31 +808,32 @@ export const DepartmentMemberPage: React.FC = () => {
                       </button>
                       <button onClick={() => fileInputRef.current?.click()} className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700">
                         <Upload size={18} />
-                        选择 CSV
+                        选择 Excel / CSV
                       </button>
-                      <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImportFileSelected} />
+                      <input ref={fileInputRef} type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" className="hidden" onChange={handleImportFileSelected} />
                     </div>
 
                     <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6">
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">当前文件</p>
                       <p className="mt-3 text-lg font-black text-slate-800">{importFileName || '尚未选择文件'}</p>
-                      <p className="mt-2 text-sm text-slate-500">支持字段：`username,role`。目标部门固定为当前选中部门。</p>
+                      <p className="mt-2 text-sm text-slate-500">推荐直接下载 Excel 模板后填写。文件里只需要两列：`username` 必填，`role` 选填。</p>
                     </div>
 
-                    <button disabled={importLoading || !importCsvContent.trim()} onClick={() => void handlePreviewImport()} className="w-full py-5 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:opacity-50">
+                    <button disabled={importLoading || !importFileContentBase64.trim()} onClick={() => void handlePreviewImport()} className="w-full py-5 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:opacity-50">
                       {importLoading ? <Loader2 size={20} className="animate-spin" /> : <Shield size={20} />}
                       开始预校验
                     </button>
                   </div>
 
                   <div className="rounded-[2rem] border border-slate-200 bg-white p-8 space-y-5 shadow-sm">
-                    <h4 className="text-xl font-black text-slate-900">导入规则</h4>
+                    <h4 className="text-xl font-black text-slate-900">填写说明</h4>
                     <div className="space-y-3 text-sm font-medium text-slate-600">
-                      <p>1. 仅导入已有账号，不会自动创建用户。</p>
-                      <p>2. 目标部门固定为当前选中的部门：{selectedDepartment.name}。</p>
-                      <p>3. 普通管理员只能导入 `member`。</p>
-                      <p>4. 超级管理员可以选择“已存在则更新角色”。</p>
-                      <p>5. 每个部门同一时间只允许一个 `leader`。</p>
+                      <p>1. 下载模板后，第一列填用户名 `username`，第二列填角色 `role`。</p>
+                      <p>2. `username` 必填，且必须是系统里已经存在的账号。</p>
+                      <p>3. `role` 可以留空，留空时默认按 `member` 导入。</p>
+                      <p>4. 目标部门固定为当前选中的部门：{selectedDepartment.name}，文件里不用再写部门名。</p>
+                      <p>5. 普通管理员只能导入 `member`；超级管理员可以导入或更新 `leader / vice_leader / member`。</p>
+                      <p>6. 每个部门同一时间只允许一个 `leader`，预校验时会直接提示冲突。</p>
                     </div>
                   </div>
                 </div>

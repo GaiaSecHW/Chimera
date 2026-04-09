@@ -140,14 +140,17 @@ export const orgApi = {
     return handleResponse(response);
   },
 
-  downloadDepartmentMemberImportTemplate: async (): Promise<string> => {
+  downloadDepartmentMemberImportTemplate: async (): Promise<Blob> => {
     const response = await fetch(`${API_BASE}/api/auth/org/department-members/import/template`, {
       headers: getHeaders(),
     });
-    return handleResponse(response);
+    if (!response.ok) {
+      await handleResponse(response);
+    }
+    return response.blob();
   },
 
-  previewDepartmentMemberImport: async (payload: { department_id: number; csv_content: string; filename?: string; mode?: 'skip_existing' | 'update_role' }): Promise<DepartmentMemberImportPreviewResponse> => {
+  previewDepartmentMemberImport: async (payload: { department_id: number; csv_content?: string; file_content_base64?: string; filename?: string; mode?: 'skip_existing' | 'update_role' }): Promise<DepartmentMemberImportPreviewResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/org/department-members/import/preview`, {
       method: 'POST',
       headers: getHeaders(),
@@ -156,7 +159,7 @@ export const orgApi = {
     return handleResponse(response);
   },
 
-  commitDepartmentMemberImport: async (payload: { department_id: number; csv_content: string; filename?: string; mode?: 'skip_existing' | 'update_role' }): Promise<DepartmentMemberImportCommitResponse> => {
+  commitDepartmentMemberImport: async (payload: { department_id: number; csv_content?: string; file_content_base64?: string; filename?: string; mode?: 'skip_existing' | 'update_role' }): Promise<DepartmentMemberImportCommitResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/org/department-members/import/commit`, {
       method: 'POST',
       headers: getHeaders(),
