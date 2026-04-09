@@ -247,9 +247,10 @@ export const AppInstanceDetailPage: React.FC<{
             onClick={handleRefreshDetail}
             disabled={!!operation || refreshingData}
             className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-slate-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            title="刷新"
+            aria-label="刷新"
           >
             <RefreshCw size={16} className={refreshingData ? 'animate-spin' : ''} />
-            刷新
           </button>
           {actions.includes('initialize') && <button onClick={() => runOperation('初始化', () => api.workflow.initializeAppWorkflow(instanceId, false))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white hover:bg-blue-500 disabled:opacity-50">{operation === '初始化' ? <Loader2 className="animate-spin" size={16} /> : <Power size={16} />}初始化</button>}
           {actions.includes('start') && <button onClick={() => runOperation('启动', () => api.workflow.startAppWorkflow(instanceId))} disabled={!!operation} className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 font-bold text-white hover:bg-green-500 disabled:opacity-50">{operation === '启动' ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}启动</button>}

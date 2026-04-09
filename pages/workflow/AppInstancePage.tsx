@@ -537,9 +537,10 @@ export const AppInstancePage: React.FC<{
             onClick={handleRefreshInstances}
             disabled={loading || isRefreshingList}
             className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            title="刷新"
+            aria-label="刷新"
           >
             <RefreshCw size={16} className={isRefreshingList ? 'animate-spin' : ''} />
-            刷新
           </button>
           <button onClick={openCreateModal} className="flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500">
             <Plus size={18} />
