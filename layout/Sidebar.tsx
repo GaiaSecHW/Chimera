@@ -45,7 +45,9 @@ import {
   GitBranch,
   Building2,
   FolderOpen,
-  FileSearch
+  FileSearch,
+  Plus,
+  History
 } from 'lucide-react';
 import { UserInfo, ViewType } from '../types/types';
 import { getUserAccess } from '../utils/rbac';
@@ -68,6 +70,7 @@ interface SidebarProps {
   workflowHealth?: boolean | null;
   vulnHealth?: boolean | null;
   configCenterHealth?: boolean | null;
+  aiAgentFrameworkHealth?: boolean | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -80,7 +83,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   codeAuditHealth = null,
   workflowHealth = null,
   vulnHealth = null,
-  configCenterHealth = null
+  configCenterHealth = null,
+  aiAgentFrameworkHealth = null
 }) => {
   const isUserMgmtMode = currentView.startsWith('user-mgmt-') || currentView.startsWith('org-mgmt-');
 
@@ -206,6 +210,55 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ]}
           />
         )}
+
+        <SidebarItem
+          id="ai-agent-framework-root"
+          label="AI工作流"
+          icon={<Bot size={20} />}
+          disabled={!hasSelectedProject}
+          healthStatus={aiAgentFrameworkHealth}
+          applyHealth={true}
+          children={[
+            {
+              id: 'aiwf-definitions',
+              label: '工作流定义',
+              icon: <FileCode size={14} />,
+              children: [
+                { id: 'aiwf-definition-list', label: '定义列表', icon: <ListTodo size={12} /> },
+                { id: 'aiwf-definition-create', label: '新建定义', icon: <Plus size={12} /> },
+                { id: 'aiwf-definition-versions', label: '版本记录', icon: <History size={12} /> },
+              ],
+            },
+            {
+              id: 'aiwf-triggers',
+              label: '触发任务',
+              icon: <Play size={14} />,
+              children: [
+                { id: 'aiwf-trigger-create', label: '触发任务', icon: <Play size={12} /> },
+                { id: 'aiwf-trigger-list', label: '任务列表', icon: <Workflow size={12} /> },
+              ],
+            },
+            {
+              id: 'aiwf-executions',
+              label: '执行中心',
+              icon: <Activity size={14} />,
+              children: [
+                { id: 'aiwf-execution-list', label: '执行列表', icon: <ListTodo size={12} /> },
+                { id: 'aiwf-execution-events', label: '执行事件', icon: <FileText size={12} /> },
+                { id: 'aiwf-execution-artifacts', label: '执行工件', icon: <Archive size={12} /> },
+              ],
+            },
+            {
+              id: 'aiwf-scheduler',
+              label: '调度节点',
+              icon: <ServerCog size={14} />,
+              children: [
+                { id: 'aiwf-worker-list', label: 'Worker 状态', icon: <Activity size={12} /> },
+                { id: 'aiwf-worker-control', label: '运行控制', icon: <Settings size={12} /> },
+              ],
+            },
+          ]}
+        />
 
         <SidebarItem
           id="public-resource-management"

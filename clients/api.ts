@@ -16,6 +16,7 @@ import { menuApi } from './menu';
 import { configCenterApi } from './configcenter';
 import { systemAnalysisApi } from './systemAnalysis';
 import { binaryToSourceApi } from './binaryToSource';
+import { aiAgentFrameworkApi } from './aiAgentFramework';
 
 export const api = {
   auth: authApi,
@@ -35,4 +36,5 @@ export const api = {
   configCenter: configCenterApi,
   systemAnalysis: systemAnalysisApi,
   binaryToSource: binaryToSourceApi,
+  aiAgentFramework: aiAgentFrameworkApi,
 };

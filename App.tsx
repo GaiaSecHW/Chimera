@@ -75,6 +75,10 @@ import { VulnReproConfigPage } from './pages/pentest/VulnReproConfigPage';
 import { B2STaskListPage } from './pages/pentest/B2STaskListPage';
 import { B2STaskQueuePage } from './pages/pentest/B2STaskQueuePage';
 import { B2STaskResultPage } from './pages/pentest/B2STaskResultPage';
+import { AiwfDefinitionsPage } from './pages/aiwf/AiwfDefinitionsPage';
+import { AiwfTriggersPage } from './pages/aiwf/AiwfTriggersPage';
+import { AiwfExecutionsPage } from './pages/aiwf/AiwfExecutionsPage';
+import { AiwfSchedulerPage } from './pages/aiwf/AiwfSchedulerPage';
 
 // User & Auth Pages
 import { UserMgmtPage } from './pages/user/UserMgmtPage';
@@ -107,7 +111,11 @@ const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result',
   'pentest-report',
   'security-assessment',
-  'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-verification', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config'
+  'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-verification', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config',
+  'ai-agent-framework-root', 'aiwf-definitions', 'aiwf-definition-list', 'aiwf-definition-create', 'aiwf-definition-versions',
+  'aiwf-triggers', 'aiwf-trigger-create', 'aiwf-trigger-list',
+  'aiwf-executions', 'aiwf-execution-list', 'aiwf-execution-events', 'aiwf-execution-artifacts',
+  'aiwf-scheduler', 'aiwf-worker-list', 'aiwf-worker-control'
 ]);
 
 const App: React.FC = () => {
@@ -130,7 +138,7 @@ const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['test-input', 'pentest-root', 'pentest-system', 'system-analysis-runtime-root', 'env-mgmt', 'env-ai-agent-root', 'base-mgmt', 'pentest-exec', 'pentest-exec-b2s-root', 'user-mgmt-root', 'org-mgmt-root', 'workflow-root', 'vuln-root']));
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['test-input', 'pentest-root', 'pentest-system', 'system-analysis-runtime-root', 'env-mgmt', 'env-ai-agent-root', 'base-mgmt', 'pentest-exec', 'pentest-exec-b2s-root', 'user-mgmt-root', 'org-mgmt-root', 'workflow-root', 'vuln-root', 'ai-agent-framework-root']));
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
   // Data States
@@ -155,6 +163,9 @@ const App: React.FC = () => {
   const [workflowServiceHealthy, setWorkflowServiceHealthy] = useState<boolean | null>(null);
   const [vulnServiceHealthy, setVulnServiceHealthy] = useState<boolean | null>(null);
   const [configCenterServiceHealthy, setConfigCenterServiceHealthy] = useState<boolean | null>(null);
+  const [aiAgentFrameworkHealthy, setAiAgentFrameworkHealthy] = useState<boolean | null>(null);
+  const [activeAiwfDefinitionId, setActiveAiwfDefinitionId] = useState<string>('');
+  const [activeAiwfExecutionId, setActiveAiwfExecutionId] = useState<string>('');
 
   const normalizeServiceHealth = (status?: AggregatedServiceHealth | null): boolean | null => {
     if (status === 'healthy') return true;
@@ -228,6 +239,7 @@ const App: React.FC = () => {
       setWorkflowServiceHealthy(resolveMenuServiceHealth(services, ['secflow-workflow', 'secflow-platform-workflow', 'secflow-workflow-status']));
       setVulnServiceHealthy(resolveMenuServiceHealth(services, ['secflow-platform-vuln']));
       setConfigCenterServiceHealthy(resolveMenuServiceHealth(services, ['secflow-platform-configcenter']));
+      setAiAgentFrameworkHealthy(resolveMenuServiceHealth(services, ['secflow-platform-ai-agent-framework', 'secflow-ai-agent-framework']));
     } catch (e) {
       setResourceServiceHealthy(false);
       setStaticPackageHealthy(false);
@@ -237,6 +249,7 @@ const App: React.FC = () => {
       setWorkflowServiceHealthy(false);
       setVulnServiceHealthy(false);
       setConfigCenterServiceHealthy(false);
+      setAiAgentFrameworkHealthy(false);
     }
   };
 
@@ -442,6 +455,79 @@ const App: React.FC = () => {
           ? <AppInstanceDetailPage instanceId={activeAppWorkflowId} onBack={() => setCurrentView('workflow-app-instances')} />
           : <AppInstancePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveAppWorkflowId(id); setCurrentView('workflow-app-instance-detail'); }} />;
 
+      case 'ai-agent-framework-root':
+      case 'aiwf-definitions':
+      case 'aiwf-definition-list':
+        return (
+          <AiwfDefinitionsPage
+            projectId={selectedProjectId}
+            initialTab="list"
+            selectedDefinitionId={activeAiwfDefinitionId}
+            onDefinitionSelected={setActiveAiwfDefinitionId}
+            onNavigateToTriggers={(definitionId) => {
+              setActiveAiwfDefinitionId(definitionId);
+              setCurrentView('aiwf-trigger-create');
+            }}
+          />
+        );
+      case 'aiwf-definition-create':
+        return (
+          <AiwfDefinitionsPage
+            projectId={selectedProjectId}
+            initialTab="create"
+            selectedDefinitionId={activeAiwfDefinitionId}
+            onDefinitionSelected={setActiveAiwfDefinitionId}
+            onNavigateToTriggers={(definitionId) => {
+              setActiveAiwfDefinitionId(definitionId);
+              setCurrentView('aiwf-trigger-create');
+            }}
+          />
+        );
+      case 'aiwf-definition-versions':
+        return (
+          <AiwfDefinitionsPage
+            projectId={selectedProjectId}
+            initialTab="versions"
+            selectedDefinitionId={activeAiwfDefinitionId}
+            onDefinitionSelected={setActiveAiwfDefinitionId}
+            onNavigateToTriggers={(definitionId) => {
+              setActiveAiwfDefinitionId(definitionId);
+              setCurrentView('aiwf-trigger-create');
+            }}
+          />
+        );
+      case 'aiwf-triggers':
+      case 'aiwf-trigger-create':
+        return (
+          <AiwfTriggersPage
+            projectId={selectedProjectId}
+            initialTab="create"
+            selectedDefinitionId={activeAiwfDefinitionId}
+            onNavigateToExecutionCenter={() => setCurrentView('aiwf-execution-list')}
+          />
+        );
+      case 'aiwf-trigger-list':
+        return (
+          <AiwfTriggersPage
+            projectId={selectedProjectId}
+            initialTab="list"
+            selectedDefinitionId={activeAiwfDefinitionId}
+            onNavigateToExecutionCenter={() => setCurrentView('aiwf-execution-list')}
+          />
+        );
+      case 'aiwf-executions':
+      case 'aiwf-execution-list':
+        return <AiwfExecutionsPage projectId={selectedProjectId} initialTab="list" selectedExecutionId={activeAiwfExecutionId} />;
+      case 'aiwf-execution-events':
+        return <AiwfExecutionsPage projectId={selectedProjectId} initialTab="events" selectedExecutionId={activeAiwfExecutionId} />;
+      case 'aiwf-execution-artifacts':
+        return <AiwfExecutionsPage projectId={selectedProjectId} initialTab="artifacts" selectedExecutionId={activeAiwfExecutionId} />;
+      case 'aiwf-scheduler':
+      case 'aiwf-worker-list':
+        return <AiwfSchedulerPage initialTab="workers" />;
+      case 'aiwf-worker-control':
+        return <AiwfSchedulerPage initialTab="control" />;
+
       case 'engine-validation': return <WorkflowPlaceholder title="安全验证" icon={<ShieldCheck />} />;
       case 'pentest-risk': return <WorkflowPlaceholder title="风险评估" icon={<ShieldAlert />} />;
       case 'pentest-system': return <WorkflowPlaceholder title="系统分析" icon={<FileSearch />} />;
@@ -558,6 +644,7 @@ const App: React.FC = () => {
           workflowHealth={workflowServiceHealthy}
           vulnHealth={vulnServiceHealthy}
           configCenterHealth={configCenterServiceHealthy}
+          aiAgentFrameworkHealth={aiAgentFrameworkHealthy}
         />
         <main className="flex-1 flex flex-col min-w-0">
           <Header 
