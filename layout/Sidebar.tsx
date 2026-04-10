@@ -46,8 +46,7 @@ import {
   Building2,
   FolderOpen,
   FileSearch,
-  Plus,
-  History
+  Plus
 } from 'lucide-react';
 import { UserInfo, ViewType } from '../types/types';
 import { getUserAccess } from '../utils/rbac';
@@ -221,13 +220,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           children={[
             {
               id: 'aiwf-definitions',
-              label: '工作流定义',
-              icon: <FileCode size={14} />,
-              children: [
-                { id: 'aiwf-definition-list', label: '定义列表', icon: <ListTodo size={12} /> },
-                { id: 'aiwf-definition-create', label: '新建定义', icon: <Plus size={12} /> },
-                { id: 'aiwf-definition-versions', label: '版本记录', icon: <History size={12} /> },
-              ],
+              label: '创建工作流',
+              icon: <Plus size={14} />,
             },
             {
               id: 'aiwf-triggers',

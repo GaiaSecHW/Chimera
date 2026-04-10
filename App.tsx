@@ -112,7 +112,7 @@ const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-report',
   'security-assessment',
   'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-verification', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config',
-  'ai-agent-framework-root', 'aiwf-definitions', 'aiwf-definition-list', 'aiwf-definition-create', 'aiwf-definition-versions',
+  'ai-agent-framework-root', 'aiwf-definitions',
   'aiwf-triggers', 'aiwf-trigger-create', 'aiwf-trigger-list',
   'aiwf-executions', 'aiwf-execution-list', 'aiwf-execution-events', 'aiwf-execution-artifacts',
   'aiwf-scheduler', 'aiwf-worker-list', 'aiwf-worker-control'
@@ -458,36 +458,11 @@ const App: React.FC = () => {
       case 'ai-agent-framework-root':
       case 'aiwf-definitions':
       case 'aiwf-definition-list':
-        return (
-          <AiwfDefinitionsPage
-            projectId={selectedProjectId}
-            initialTab="list"
-            selectedDefinitionId={activeAiwfDefinitionId}
-            onDefinitionSelected={setActiveAiwfDefinitionId}
-            onNavigateToTriggers={(definitionId) => {
-              setActiveAiwfDefinitionId(definitionId);
-              setCurrentView('aiwf-trigger-create');
-            }}
-          />
-        );
       case 'aiwf-definition-create':
-        return (
-          <AiwfDefinitionsPage
-            projectId={selectedProjectId}
-            initialTab="create"
-            selectedDefinitionId={activeAiwfDefinitionId}
-            onDefinitionSelected={setActiveAiwfDefinitionId}
-            onNavigateToTriggers={(definitionId) => {
-              setActiveAiwfDefinitionId(definitionId);
-              setCurrentView('aiwf-trigger-create');
-            }}
-          />
-        );
       case 'aiwf-definition-versions':
         return (
           <AiwfDefinitionsPage
             projectId={selectedProjectId}
-            initialTab="versions"
             selectedDefinitionId={activeAiwfDefinitionId}
             onDefinitionSelected={setActiveAiwfDefinitionId}
             onNavigateToTriggers={(definitionId) => {
@@ -501,7 +476,6 @@ const App: React.FC = () => {
         return (
           <AiwfTriggersPage
             projectId={selectedProjectId}
-            initialTab="create"
             selectedDefinitionId={activeAiwfDefinitionId}
             onNavigateToExecutionCenter={() => setCurrentView('aiwf-execution-list')}
           />
@@ -510,7 +484,6 @@ const App: React.FC = () => {
         return (
           <AiwfTriggersPage
             projectId={selectedProjectId}
-            initialTab="list"
             selectedDefinitionId={activeAiwfDefinitionId}
             onNavigateToExecutionCenter={() => setCurrentView('aiwf-execution-list')}
           />

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CirclePlus, Eye, FolderUp, Play, RefreshCw, RotateCcw, Square, Trash2, Upload, Workflow } from 'lucide-react';
+import { CirclePlus, Eye, FolderUp, Play, RefreshCw, RotateCcw, Square, Trash2, Upload } from 'lucide-react';
 import { api } from '../../clients/api';
 import { AiwfTriggerTask, AiwfTriggerTaskInput, AiwfWorkflowDefinition } from '../../clients/aiAgentFramework';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { AiwfCard, AiwfEmpty, AiwfPageShell, AiwfTabs, formatDateTime } from './AiwfShared';
+import { AiwfCard, AiwfEmpty, AiwfPageShell, formatDateTime } from './AiwfShared';
 
 type MetadataEntry = {
   id: string;
@@ -13,8 +13,6 @@ type MetadataEntry = {
 
 type TaskDraft = {
   localId: string;
-  task_id: string;
-  task_type: string;
   title: string;
   task_markdown: string;
   upstream_refs: string;
@@ -40,8 +38,6 @@ const newMetadataEntry = (): MetadataEntry => ({
 
 const newTaskDraft = (index: number): TaskDraft => ({
   localId: `draft-${Date.now()}-${index}`,
-  task_id: '',
-  task_type: '',
   title: '',
   task_markdown: '',
   upstream_refs: '',
@@ -60,12 +56,10 @@ const toMetadataObject = (entries: MetadataEntry[]) =>
 
 export const AiwfTriggersPage: React.FC<{
   projectId: string;
-  initialTab?: 'create' | 'list';
   selectedDefinitionId?: string;
   onNavigateToExecutionCenter?: () => void;
-}> = ({ projectId, initialTab = 'create', selectedDefinitionId, onNavigateToExecutionCenter }) => {
+}> = ({ projectId, selectedDefinitionId, onNavigateToExecutionCenter }) => {
   const { notify, feedbackNodes } = useUiFeedback();
-  const [activeTab, setActiveTab] = useState(initialTab);
   const [definitions, setDefinitions] = useState<AiwfWorkflowDefinition[]>([]);
   const [triggers, setTriggers] = useState<AiwfTriggerTask[]>([]);
   const [selectedDefinitionIdState, setSelectedDefinitionIdState] = useState(selectedDefinitionId || '');
@@ -79,10 +73,6 @@ export const AiwfTriggersPage: React.FC<{
   const [activeUploadTaskId, setActiveUploadTaskId] = useState<string | null>(null);
   const fileUploadRef = useRef<HTMLInputElement | null>(null);
   const folderUploadRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
 
   useEffect(() => {
     if (selectedDefinitionId) setSelectedDefinitionIdState(selectedDefinitionId);
@@ -134,10 +124,6 @@ export const AiwfTriggersPage: React.FC<{
 
   const buildPayload = (): AiwfTriggerTaskInput[] | null => {
     const payload = taskDrafts.map((draft, index) => {
-      if (!draft.task_type.trim()) {
-        notify(`任务 ${index + 1} 缺少任务类型`, 'warning');
-        return null;
-      }
       if (!draft.title.trim()) {
         notify(`任务 ${index + 1} 缺少标题`, 'warning');
         return null;
@@ -156,8 +142,6 @@ export const AiwfTriggersPage: React.FC<{
         }));
       }
       return {
-        task_id: draft.task_id.trim() || undefined,
-        task_type: draft.task_type.trim(),
         title: draft.title.trim(),
         task_markdown: draft.task_markdown,
         metadata: metadataObj,
@@ -294,7 +278,17 @@ export const AiwfTriggersPage: React.FC<{
   const handlePreviewJson = () => {
     const payload = buildPayload();
     if (!payload) return;
-    setPreviewJson(JSON.stringify({ input_tasks: payload, priority: priority.trim() ? Number(priority) : undefined }, null, 2));
+    setPreviewJson(
+      JSON.stringify(
+        {
+          input_tasks: payload,
+          priority: priority.trim() ? Number(priority) : undefined,
+          system_injected_task_type: selectedDefinition?.entry_input_task_type || null,
+        },
+        null,
+        2
+      )
+    );
     setPreviewOpen(true);
   };
 
@@ -313,7 +307,6 @@ export const AiwfTriggersPage: React.FC<{
       notify('触发任务已创建，任务输入会自动落盘到项目 AI_AGENT_FRAMEWORK 目录', 'success');
       setTaskDrafts([newTaskDraft(1)]);
       setPriority('');
-      setActiveTab('list');
       await loadTriggers();
     } catch (error: any) {
       notify(error.message || '创建触发任务失败', 'error');
@@ -343,70 +336,47 @@ export const AiwfTriggersPage: React.FC<{
   return (
     <AiwfPageShell
       title="AI工作流触发任务"
-      description="通过表单化方式组织任务内容、元数据和上下游引用。后端会自动创建项目级 AI_AGENT_FRAMEWORK 工作区，并为每个任务准备独立目录。"
+      description=""
       actions={
         <button onClick={() => void loadTriggers()} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all">
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       }
     >
-      <AiwfTabs
-        tabs={[
-          { id: 'create', label: '触发任务' },
-          { id: 'list', label: '任务列表' },
-        ]}
-        activeTab={activeTab}
-        onChange={(tabId) => setActiveTab(tabId as 'create' | 'list')}
-      />
-
-      {activeTab === 'create' && (
-        <div className="space-y-3">
-          <AiwfCard className="p-4 space-y-4">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-black tracking-widest uppercase text-slate-500">目标工作流定义</label>
-                  <select
-                    value={selectedDefinitionIdState}
-                    onChange={(e) => setSelectedDefinitionIdState(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200"
-                  >
-                    <option value="">请选择</option>
-                    {definitions.map((definition) => (
-                      <option key={definition.id} value={definition.id}>
-                        {definition.name}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedDefinition ? (
-                    <p className="text-xs text-slate-500 mt-2">
-                      根工作流：{selectedDefinition.root_workflow_id}，默认优先级：{selectedDefinition.priority_default}
-                    </p>
-                  ) : null}
-                </div>
-                <div>
-                  <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务优先级</label>
-                  <input
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                    placeholder="留空则使用 definition 默认优先级"
-                    className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200"
-                  />
-                </div>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-200 xl:col-span-2">
-                <div className="flex items-center gap-2 text-slate-700 font-black">
-                  <Workflow size={16} />
-                  任务目录策略
-                </div>
-                <ul className="mt-2 text-xs text-slate-600 space-y-1">
-                  <li>工作流和任务都绑定当前项目，不再依赖手工填写 markdown 文件路径。</li>
-                  <li>服务会自动确保 fileserver 共享目录下存在 `AI_AGENT_FRAMEWORK` 子项目。</li>
-                  <li>每个 trigger task 和每个输入任务都会生成独立目录，输入文件和执行工件统一落在那里。</li>
-                </ul>
-              </div>
+      <div className="space-y-3">
+        <AiwfCard className="p-4 space-y-4">
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-black tracking-widest uppercase text-slate-500">目标工作流定义</label>
+              <select
+                value={selectedDefinitionIdState}
+                onChange={(e) => setSelectedDefinitionIdState(e.target.value)}
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200"
+              >
+                <option value="">请选择</option>
+                {definitions.map((definition) => (
+                  <option key={definition.id} value={definition.id}>
+                    {definition.name}
+                  </option>
+                ))}
+              </select>
+              {selectedDefinition ? (
+                <p className="text-xs text-slate-500 mt-2">
+                  根工作流：{selectedDefinition.root_workflow_id}，入口任务类型：{selectedDefinition.entry_input_task_type}，终态输出类型：{selectedDefinition.final_output_task_type}
+                </p>
+              ) : null}
             </div>
-          </AiwfCard>
+            <div>
+              <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务优先级</label>
+              <input
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                placeholder="留空则使用 definition 默认优先级"
+                className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200"
+              />
+            </div>
+          </div>
+        </AiwfCard>
 
           <AiwfCard className="p-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -415,10 +385,6 @@ export const AiwfTriggersPage: React.FC<{
                 <div className="text-xs text-slate-500 mt-1">逐条填写任务描述，支持上传文件/文件夹到任务输入目录。</div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={handlePreviewJson} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">
-                  <Eye size={14} />
-                  预览 JSON
-                </button>
                 <button onClick={addTaskDraft} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800">
                   <CirclePlus size={14} />
                   新增任务
@@ -440,25 +406,7 @@ export const AiwfTriggersPage: React.FC<{
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务 ID</label>
-                      <input
-                        value={draft.task_id}
-                        onChange={(e) => updateTaskDraft(draft.localId, (current) => ({ ...current, task_id: e.target.value }))}
-                        placeholder="可选，留空则自动生成"
-                        className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务类型</label>
-                      <input
-                        value={draft.task_type}
-                        onChange={(e) => updateTaskDraft(draft.localId, (current) => ({ ...current, task_type: e.target.value }))}
-                        placeholder="如 package_list / unpacked_path / suspicious_vuln"
-                        className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200"
-                      />
-                    </div>
+                  <div className="grid grid-cols-1 gap-3">
                     <div>
                       <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务标题</label>
                       <input
@@ -600,7 +548,11 @@ export const AiwfTriggersPage: React.FC<{
               ))}
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <button onClick={handlePreviewJson} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50">
+                <Eye size={14} />
+                任务预览
+              </button>
               <button onClick={() => void handleCreateTrigger()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800">
                 <Play size={16} />
                 创建触发任务
@@ -622,10 +574,6 @@ export const AiwfTriggersPage: React.FC<{
             {...({ webkitdirectory: 'true', directory: 'true' } as any)}
             onChange={(event) => void handleUploadFiles(event.target.files, true)}
           />
-        </div>
-      )}
-
-      {activeTab === 'list' && (
         <AiwfCard className="overflow-hidden">
           {triggers.length === 0 ? (
             <AiwfEmpty title="暂无触发任务" description="从上方创建 trigger task，或从定义页一键跳转过来发起执行。" />
@@ -679,7 +627,7 @@ export const AiwfTriggersPage: React.FC<{
             </div>
           )}
         </AiwfCard>
-      )}
+      </div>
       {previewOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
           <div className="w-full max-w-4xl bg-white rounded-2xl border border-slate-200 shadow-2xl">

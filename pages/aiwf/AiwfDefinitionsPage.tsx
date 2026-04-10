@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Copy, Eye, FileCode2, History, PauseCircle, PlayCircle, Plus, RefreshCw, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, Eye, FileCode2, PauseCircle, PlayCircle, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { AiwfWorkflowDefinition, AiwfWorkflowDefinitionVersion } from '../../clients/aiAgentFramework';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { AiwfCard, AiwfEmpty, AiwfPageShell, AiwfTabs, formatDateTime, prettyJson } from './AiwfShared';
+import { AiwfCard, AiwfEmpty, AiwfPageShell, formatDateTime, prettyJson } from './AiwfShared';
+import { AiwfWorkflowGraphPreview } from './AiwfWorkflowGraphPreview';
 
 const EMPTY_DEFINITION = `{
   "schema_version": "v1",
@@ -26,17 +27,19 @@ const EMPTY_DEFINITION = `{
 
 export const AiwfDefinitionsPage: React.FC<{
   projectId: string;
-  initialTab?: 'list' | 'create' | 'versions';
   selectedDefinitionId?: string;
   onDefinitionSelected?: (definitionId: string) => void;
   onNavigateToTriggers?: (definitionId: string) => void;
-}> = ({ projectId, initialTab = 'list', selectedDefinitionId, onDefinitionSelected, onNavigateToTriggers }) => {
+}> = ({ projectId, selectedDefinitionId, onDefinitionSelected, onNavigateToTriggers }) => {
   const { notify, confirm, feedbackNodes } = useUiFeedback();
-  const [activeTab, setActiveTab] = useState(initialTab);
   const [definitions, setDefinitions] = useState<AiwfWorkflowDefinition[]>([]);
   const [versions, setVersions] = useState<AiwfWorkflowDefinitionVersion[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState(selectedDefinitionId || '');
+  const [selectedVersionNo, setSelectedVersionNo] = useState<number | null>(null);
+  const [detailTab, setDetailTab] = useState<'overview' | 'json'>('overview');
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createTab, setCreateTab] = useState<'basic' | 'json'>('basic');
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -52,10 +55,6 @@ export const AiwfDefinitionsPage: React.FC<{
   });
 
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
-  useEffect(() => {
     if (selectedDefinitionId) {
       setSelectedId(selectedDefinitionId);
     }
@@ -68,10 +67,14 @@ export const AiwfDefinitionsPage: React.FC<{
   }, [projectId]);
 
   useEffect(() => {
-    if (activeTab === 'versions' && selectedId) {
+    if (selectedId) {
       void loadVersions(selectedId);
+      setDetailTab('overview');
+    } else {
+      setVersions([]);
+      setSelectedVersionNo(null);
     }
-  }, [activeTab, selectedId]);
+  }, [selectedId]);
 
   const selectedDefinition = useMemo(
     () => definitions.find((item) => item.id === selectedId) || null,
@@ -93,7 +96,9 @@ export const AiwfDefinitionsPage: React.FC<{
   const loadVersions = async (definitionId: string) => {
     try {
       setLoading(true);
-      setVersions(await api.aiAgentFramework.listDefinitionVersions(definitionId));
+      const items = await api.aiAgentFramework.listDefinitionVersions(definitionId);
+      setVersions(items);
+      setSelectedVersionNo(items.length > 0 ? items[0].version_no : null);
     } catch (error: any) {
       notify(error.message || '加载版本列表失败', 'error');
     } finally {
@@ -120,7 +125,8 @@ export const AiwfDefinitionsPage: React.FC<{
       });
       notify('工作流定义已创建', 'success');
       setForm({ ...form, name: '', description: '' });
-      setActiveTab('list');
+      setCreateDialogOpen(false);
+      setCreateTab('basic');
       await loadDefinitions();
     } catch (error: any) {
       notify(error.message || '创建工作流定义失败', 'error');
@@ -178,40 +184,37 @@ export const AiwfDefinitionsPage: React.FC<{
         execution_timeout_seconds: detail.execution_timeout_seconds,
         definition_json: prettyJson(payload?.definition_json || {}),
       }));
-      setActiveTab('create');
+      setCreateDialogOpen(true);
+      setCreateTab('json');
       notify('已复制当前定义 JSON，可直接修改后创建', 'success');
     } catch (error: any) {
       notify(error.message || '复制定义失败', 'error');
     }
   };
 
+  const selectedVersion = useMemo(() => {
+    if (versions.length === 0) return null;
+    if (selectedVersionNo === null) return versions[0];
+    return versions.find((item) => item.version_no === selectedVersionNo) || versions[0];
+  }, [versions, selectedVersionNo]);
+
   return (
     <AiwfPageShell
       title="AI工作流定义"
-      description="管理多智能体工作流 definition JSON，配置触发方式、启停状态、并发上限和版本快照。"
+      description=""
       actions={
         <>
           <button onClick={() => void loadDefinitions()} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={() => setActiveTab('create')} className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all">
+          <button onClick={() => { setCreateDialogOpen(true); setCreateTab('basic'); }} className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all">
             <Plus size={18} />
             新建定义
           </button>
         </>
       }
     >
-      <AiwfTabs
-        tabs={[
-          { id: 'list', label: '定义列表' },
-          { id: 'create', label: '新建定义' },
-          { id: 'versions', label: '版本记录' },
-        ]}
-        activeTab={activeTab}
-        onChange={(tabId) => setActiveTab(tabId as 'list' | 'create' | 'versions')}
-      />
-
-      {activeTab === 'list' && (
+      {!selectedDefinition ? (
         <AiwfCard className="overflow-hidden">
           {definitions.length === 0 ? (
             <AiwfEmpty title="暂无工作流定义" description="先创建一个 definition JSON，再触发任务执行。" />
@@ -222,19 +225,16 @@ export const AiwfDefinitionsPage: React.FC<{
                   <tr className="text-xs uppercase tracking-wider text-slate-500">
                     <th className="px-6 py-4">名称</th>
                     <th className="px-6 py-4">根工作流</th>
+                    <th className="px-6 py-4">入口/终态类型</th>
                     <th className="px-6 py-4">触发</th>
                     <th className="px-6 py-4">状态</th>
-                    <th className="px-6 py-4">并发</th>
                     <th className="px-6 py-4">更新时间</th>
                     <th className="px-6 py-4 text-right">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {definitions.map((definition) => (
-                    <tr
-                      key={definition.id}
-                      className={`border-t border-slate-100 ${selectedId === definition.id ? 'bg-blue-50/60' : 'hover:bg-slate-50'}`}
-                    >
+                    <tr key={definition.id} className="border-t border-slate-100 hover:bg-slate-50">
                       <td className="px-6 py-4">
                         <button
                           onClick={() => {
@@ -248,6 +248,10 @@ export const AiwfDefinitionsPage: React.FC<{
                         </button>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600">{definition.root_workflow_id}</td>
+                      <td className="px-6 py-4 text-xs text-slate-600">
+                        <div>入口: {definition.entry_input_task_type}</div>
+                        <div className="mt-1">终态: {definition.final_output_task_type}</div>
+                      </td>
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {definition.trigger_type}
                         <span className={`ml-2 inline-flex px-2 py-1 rounded-full text-[11px] font-bold ${definition.trigger_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -259,17 +263,9 @@ export const AiwfDefinitionsPage: React.FC<{
                           {definition.is_active ? '运行中' : '未激活'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{definition.max_concurrency}</td>
                       <td className="px-6 py-4 text-sm text-slate-500">{formatDateTime(definition.updated_at)}</td>
                       <td className="px-6 py-4">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => {
-                            setSelectedId(definition.id);
-                            setActiveTab('versions');
-                            onDefinitionSelected?.(definition.id);
-                          }} className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50" title="查看版本">
-                            <History size={16} />
-                          </button>
                           <button onClick={() => void handleToggleActive(definition)} className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50" title={definition.is_active ? '停用' : '启用'}>
                             {definition.is_active ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
                           </button>
@@ -288,126 +284,184 @@ export const AiwfDefinitionsPage: React.FC<{
             </div>
           )}
         </AiwfCard>
-      )}
-
-      {activeTab === 'create' && (
-        <AiwfCard className="p-8 space-y-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-black tracking-widest uppercase text-slate-500">定义名称</label>
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200" placeholder="例如：漏洞流水线 v1" />
-              </div>
-              <div>
-                <label className="text-xs font-black tracking-widest uppercase text-slate-500">描述</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 min-h-[110px]" placeholder="描述工作流用途和适用范围" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-black tracking-widest uppercase text-slate-500">触发类型</label>
-                  <select value={form.trigger_type} onChange={(e) => setForm({ ...form, trigger_type: e.target.value })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200">
-                    <option value="manual">manual</option>
-                    <option value="http">http</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-black tracking-widest uppercase text-slate-500">最大并发</label>
-                  <input type="number" min={1} value={form.max_concurrency} onChange={(e) => setForm({ ...form, max_concurrency: Number(e.target.value || 1) })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <label className="flex items-center gap-3 p-4 rounded-2xl border border-slate-200">
-                  <input type="checkbox" checked={form.trigger_enabled} onChange={(e) => setForm({ ...form, trigger_enabled: e.target.checked })} />
-                  <span className="text-sm font-semibold text-slate-700">启用 HTTP Trigger</span>
-                </label>
-                <label className="flex items-center gap-3 p-4 rounded-2xl border border-slate-200">
-                  <input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
-                  <span className="text-sm font-semibold text-slate-700">定义可用</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black tracking-widest uppercase text-slate-500">Definition JSON</label>
-                {selectedDefinition && (
-                  <button onClick={() => void handleCloneJson()} className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700">
-                    <Copy size={14} />
-                    复制当前定义
-                  </button>
-                )}
-              </div>
-              <textarea
-                value={form.definition_json}
-                onChange={(e) => setForm({ ...form, definition_json: e.target.value })}
-                className="w-full min-h-[420px] px-4 py-3 rounded-[1.5rem] border border-slate-200 font-mono text-xs leading-6"
-                spellCheck={false}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button onClick={() => void handleCreate()} className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800">
-              <Save size={18} />
-              创建定义
-            </button>
-          </div>
-        </AiwfCard>
-      )}
-
-      {activeTab === 'versions' && (
-        <div className="grid grid-cols-1 xl:grid-cols-[320px,minmax(0,1fr)] gap-6">
-          <AiwfCard className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <FileCode2 size={18} className="text-slate-500" />
-              <h3 className="font-black text-slate-800">定义选择</h3>
-            </div>
-            <div className="space-y-2">
-              {definitions.map((definition) => (
-                <button
-                  key={definition.id}
-                  onClick={() => {
-                    setSelectedId(definition.id);
-                    onDefinitionSelected?.(definition.id);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-2xl border transition-all ${selectedId === definition.id ? 'bg-blue-50 border-blue-200' : 'border-slate-200 hover:bg-slate-50'}`}
-                >
-                  <div className="font-bold text-slate-800">{definition.name}</div>
-                  <div className="text-xs text-slate-500 mt-1">{definition.id}</div>
-                </button>
-              ))}
-            </div>
-          </AiwfCard>
-
+      ) : (
+        <div className="space-y-4">
+          <button
+            onClick={() => {
+              setSelectedId('');
+              onDefinitionSelected?.('');
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold"
+          >
+            <ArrowLeft size={16} />
+            返回工作流列表
+          </button>
           <AiwfCard className="overflow-hidden">
-            {!selectedId ? (
-              <AiwfEmpty title="请选择工作流定义" description="选择左侧定义后查看版本快照和 JSON 内容。" />
-            ) : versions.length === 0 ? (
-              <AiwfEmpty title="暂无版本记录" description="当前定义还没有可展示的版本快照。" />
-            ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-[360px,minmax(0,1fr)] min-h-[620px]">
-                <div className="border-r border-slate-100">
-                  {versions.map((version) => (
-                    <div key={version.id} className="px-6 py-4 border-b border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-black text-slate-800">版本 #{version.version_no}</div>
-                          <div className="text-xs text-slate-500 mt-1">{formatDateTime(version.created_at)}</div>
-                        </div>
-                        <button onClick={() => void navigator.clipboard.writeText(prettyJson(version.definition_json))} className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100">
-                          <Eye size={16} />
-                        </button>
+            <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/60">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-black tracking-widest uppercase text-slate-500">工作流详情</div>
+                  <div className="mt-1 text-xl font-black text-slate-900">{selectedDefinition.name}</div>
+                  <div className="text-xs text-slate-500 mt-1">{selectedDefinition.id}</div>
+                </div>
+                <button onClick={() => void handleCloneJson()} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-blue-700 hover:bg-blue-50">
+                  <Copy size={13} />
+                  复制为新定义
+                </button>
+              </div>
+            </div>
+            <div className="px-5 pt-4">
+              <div className="inline-flex rounded-xl border border-slate-200 p-1 bg-slate-50">
+                <button
+                  onClick={() => setDetailTab('overview')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold ${detailTab === 'overview' ? 'bg-white border border-slate-200 text-slate-900' : 'text-slate-600'}`}
+                >
+                  概览与流程图
+                </button>
+                <button
+                  onClick={() => setDetailTab('json')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold ${detailTab === 'json' ? 'bg-white border border-slate-200 text-slate-900' : 'text-slate-600'}`}
+                >
+                  JSON 文件
+                </button>
+              </div>
+            </div>
+            <div className="p-5">
+              {detailTab === 'overview' ? (
+                <div className="grid grid-cols-1 xl:grid-cols-[320px,minmax(0,1fr)] gap-4">
+                  <AiwfCard className="p-4 h-fit">
+                    <div className="text-xs font-black tracking-widest uppercase text-slate-500">基础信息</div>
+                    <div className="mt-3 text-xs text-slate-600 space-y-2">
+                      <div>根工作流: {selectedDefinition.root_workflow_id}</div>
+                      <div>入口任务类型: {selectedDefinition.entry_input_task_type}</div>
+                      <div>终态输出类型: {selectedDefinition.final_output_task_type}</div>
+                      <div>最大并发: {selectedDefinition.max_concurrency}</div>
+                    </div>
+                    <div className="pt-3 mt-3 border-t border-slate-100">
+                      <div className="text-xs font-black tracking-widest uppercase text-slate-500">版本记录</div>
+                      <div className="mt-2 max-h-[280px] overflow-auto space-y-2">
+                        {versions.length === 0 ? (
+                          <div className="text-xs text-slate-500">暂无版本</div>
+                        ) : (
+                          versions.map((version) => (
+                            <button
+                              key={version.id}
+                              onClick={() => setSelectedVersionNo(version.version_no)}
+                              className={`w-full text-left px-3 py-2 rounded-xl border ${selectedVersionNo === version.version_no ? 'bg-blue-50 border-blue-200' : 'border-slate-200 hover:bg-slate-50'}`}
+                            >
+                              <div className="font-bold text-slate-800 text-sm">版本 #{version.version_no}</div>
+                              <div className="text-xs text-slate-500 mt-1">{formatDateTime(version.created_at)}</div>
+                            </button>
+                          ))
+                        )}
                       </div>
                     </div>
-                  ))}
+                  </AiwfCard>
+                  <AiwfWorkflowGraphPreview definitionJson={selectedVersion?.definition_json || null} />
                 </div>
-                <div className="p-6">
-                  <pre className="w-full h-full min-h-[560px] whitespace-pre-wrap break-words rounded-[1.5rem] bg-slate-950 text-slate-100 p-5 text-xs leading-6 overflow-auto">
-                    {prettyJson(versions[0]?.definition_json || {})}
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-black text-slate-700">版本 JSON</div>
+                    {selectedVersion && (
+                      <button onClick={() => void navigator.clipboard.writeText(prettyJson(selectedVersion.definition_json))} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200" title="复制 JSON">
+                        <Eye size={16} />
+                      </button>
+                    )}
+                  </div>
+                  <pre className="w-full min-h-[520px] whitespace-pre-wrap break-words rounded-[1rem] bg-slate-950 text-slate-100 p-4 text-xs leading-6 overflow-auto">
+                    {prettyJson(selectedVersion?.definition_json || {})}
                   </pre>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </AiwfCard>
+        </div>
+      )}
+
+      {createDialogOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/45 flex items-center justify-center p-4">
+          <div className="w-full max-w-6xl bg-white rounded-2xl border border-slate-200 shadow-2xl">
+            <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+              <div className="font-black text-slate-800">新建工作流定义</div>
+              <button
+                onClick={() => setCreateDialogOpen(false)}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="px-5 pt-4">
+              <div className="inline-flex rounded-xl border border-slate-200 p-1 bg-slate-50">
+                <button
+                  onClick={() => setCreateTab('basic')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold ${createTab === 'basic' ? 'bg-white border border-slate-200 text-slate-900' : 'text-slate-600'}`}
+                >
+                  基础配置
+                </button>
+                <button
+                  onClick={() => setCreateTab('json')}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold ${createTab === 'json' ? 'bg-white border border-slate-200 text-slate-900' : 'text-slate-600'}`}
+                >
+                  Definition JSON
+                </button>
+              </div>
+            </div>
+            <div className="px-5 py-4">
+              {createTab === 'basic' ? (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-black tracking-widest uppercase text-slate-500">定义名称</label>
+                    <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200" placeholder="例如：漏洞流水线 v1" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black tracking-widest uppercase text-slate-500">描述</label>
+                    <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200" placeholder="描述工作流用途和适用范围" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black tracking-widest uppercase text-slate-500">触发类型</label>
+                    <select value={form.trigger_type} onChange={(e) => setForm({ ...form, trigger_type: e.target.value })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200">
+                      <option value="manual">manual</option>
+                      <option value="http">http</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-black tracking-widest uppercase text-slate-500">最大并发</label>
+                    <input type="number" min={1} value={form.max_concurrency} onChange={(e) => setForm({ ...form, max_concurrency: Number(e.target.value || 1) })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black tracking-widest uppercase text-slate-500">默认优先级</label>
+                    <input type="number" value={form.priority_default} onChange={(e) => setForm({ ...form, priority_default: Number(e.target.value || 100) })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-black tracking-widest uppercase text-slate-500">超时时间(秒)</label>
+                    <input type="number" min={60} value={form.execution_timeout_seconds} onChange={(e) => setForm({ ...form, execution_timeout_seconds: Number(e.target.value || 7200) })} className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200" />
+                  </div>
+                  <label className="flex items-center gap-3 p-4 rounded-2xl border border-slate-200">
+                    <input type="checkbox" checked={form.trigger_enabled} onChange={(e) => setForm({ ...form, trigger_enabled: e.target.checked })} />
+                    <span className="text-sm font-semibold text-slate-700">启用 HTTP Trigger</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-4 rounded-2xl border border-slate-200">
+                    <input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
+                    <span className="text-sm font-semibold text-slate-700">定义可用</span>
+                  </label>
+                </div>
+              ) : (
+                <textarea
+                  value={form.definition_json}
+                  onChange={(e) => setForm({ ...form, definition_json: e.target.value })}
+                  className="w-full min-h-[460px] px-4 py-3 rounded-[1.2rem] border border-slate-200 font-mono text-xs leading-6"
+                  spellCheck={false}
+                />
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+              <button onClick={() => void handleCreate()} className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800">
+                <Save size={16} />
+                创建定义
+              </button>
+            </div>
+          </div>
         </div>
       )}
       {feedbackNodes}

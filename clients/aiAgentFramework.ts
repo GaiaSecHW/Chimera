@@ -14,6 +14,8 @@ export interface AiwfWorkflowDefinition {
   priority_default: number;
   workspace_base_dir?: string | null;
   execution_timeout_seconds: number;
+  entry_input_task_type: string;
+  final_output_task_type: string;
   created_by: string;
   updated_by: string;
   created_at: string;
@@ -31,7 +33,7 @@ export interface AiwfWorkflowDefinitionVersion {
 
 export interface AiwfTriggerTaskInput {
   task_id?: string;
-  task_type: string;
+  task_type?: string;
   title: string;
   task_markdown?: string;
   task_md_path?: string;
