@@ -29,11 +29,12 @@ export interface AiwfWorkflowDefinitionVersion {
   definition_json: Record<string, any>;
 }
 
-export interface AiwfTaskItem {
-  task_id: string;
+export interface AiwfTriggerTaskInput {
+  task_id?: string;
   task_type: string;
   title: string;
-  task_md_path: string;
+  task_markdown?: string;
+  task_md_path?: string;
   metadata: Record<string, any>;
   upstream_refs: string[];
 }
@@ -142,7 +143,7 @@ export const aiAgentFrameworkApi = {
       headers: getHeaders(),
     })),
 
-  createTriggerTask: async (definitionId: string, payload: { input_tasks: AiwfTaskItem[]; priority?: number | null }): Promise<AiwfTriggerTask> =>
+  createTriggerTask: async (definitionId: string, payload: { input_tasks: AiwfTriggerTaskInput[]; priority?: number | null }): Promise<AiwfTriggerTask> =>
     handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${definitionId}/trigger-tasks`, {
       method: 'POST',
       headers: getHeaders(),

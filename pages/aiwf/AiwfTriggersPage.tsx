@@ -1,20 +1,48 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Play, RefreshCw, RotateCcw, Square, Workflow } from 'lucide-react';
+import { CirclePlus, Play, RefreshCw, RotateCcw, Square, Trash2, Workflow } from 'lucide-react';
 import { api } from '../../clients/api';
-import { AiwfTaskItem, AiwfTriggerTask, AiwfWorkflowDefinition } from '../../clients/aiAgentFramework';
+import { AiwfTriggerTask, AiwfTriggerTaskInput, AiwfWorkflowDefinition } from '../../clients/aiAgentFramework';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { AiwfCard, AiwfEmpty, AiwfPageShell, AiwfTabs, formatDateTime, prettyJson } from './AiwfShared';
+import { AiwfCard, AiwfEmpty, AiwfPageShell, AiwfTabs, formatDateTime } from './AiwfShared';
 
-const DEFAULT_TASKS_JSON = `[
-  {
-    "task_id": "task-001",
-    "task_type": "package_list",
-    "title": "样例输入任务",
-    "task_md_path": "/workspace/input/task-001.md",
-    "metadata": {},
-    "upstream_refs": []
-  }
-]`;
+type MetadataEntry = {
+  id: string;
+  key: string;
+  value: string;
+};
+
+type TaskDraft = {
+  localId: string;
+  task_id: string;
+  task_type: string;
+  title: string;
+  task_markdown: string;
+  upstream_refs: string;
+  metadataEntries: MetadataEntry[];
+};
+
+const newMetadataEntry = (): MetadataEntry => ({
+  id: `meta-${Math.random().toString(36).slice(2, 10)}`,
+  key: '',
+  value: '',
+});
+
+const newTaskDraft = (index: number): TaskDraft => ({
+  localId: `draft-${Date.now()}-${index}`,
+  task_id: '',
+  task_type: '',
+  title: '',
+  task_markdown: '',
+  upstream_refs: '',
+  metadataEntries: [newMetadataEntry()],
+});
+
+const toMetadataObject = (entries: MetadataEntry[]) =>
+  entries.reduce<Record<string, string>>((acc, entry) => {
+    const key = entry.key.trim();
+    if (key) acc[key] = entry.value;
+    return acc;
+  }, {});
 
 export const AiwfTriggersPage: React.FC<{
   projectId: string;
@@ -28,7 +56,7 @@ export const AiwfTriggersPage: React.FC<{
   const [triggers, setTriggers] = useState<AiwfTriggerTask[]>([]);
   const [selectedDefinitionIdState, setSelectedDefinitionIdState] = useState(selectedDefinitionId || '');
   const [priority, setPriority] = useState<string>('');
-  const [tasksJson, setTasksJson] = useState(DEFAULT_TASKS_JSON);
+  const [taskDrafts, setTaskDrafts] = useState<TaskDraft[]>([newTaskDraft(1)]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -71,18 +99,63 @@ export const AiwfTriggersPage: React.FC<{
     [definitions, selectedDefinitionIdState]
   );
 
+  const updateTaskDraft = (localId: string, updater: (current: TaskDraft) => TaskDraft) => {
+    setTaskDrafts((current) => current.map((item) => (item.localId === localId ? updater(item) : item)));
+  };
+
+  const addTaskDraft = () => {
+    setTaskDrafts((current) => [...current, newTaskDraft(current.length + 1)]);
+  };
+
+  const removeTaskDraft = (localId: string) => {
+    setTaskDrafts((current) => (current.length > 1 ? current.filter((item) => item.localId !== localId) : current));
+  };
+
+  const buildPayload = (): AiwfTriggerTaskInput[] | null => {
+    const payload = taskDrafts.map((draft, index) => {
+      if (!draft.task_type.trim()) {
+        notify(`任务 ${index + 1} 缺少任务类型`, 'warning');
+        return null;
+      }
+      if (!draft.title.trim()) {
+        notify(`任务 ${index + 1} 缺少标题`, 'warning');
+        return null;
+      }
+      if (!draft.task_markdown.trim()) {
+        notify(`任务 ${index + 1} 缺少任务描述`, 'warning');
+        return null;
+      }
+      return {
+        task_id: draft.task_id.trim() || undefined,
+        task_type: draft.task_type.trim(),
+        title: draft.title.trim(),
+        task_markdown: draft.task_markdown,
+        metadata: toMetadataObject(draft.metadataEntries),
+        upstream_refs: draft.upstream_refs
+          .split('\n')
+          .map((item) => item.trim())
+          .filter(Boolean),
+      };
+    });
+    if (payload.some((item) => item === null)) return null;
+    return payload as AiwfTriggerTaskInput[];
+  };
+
   const handleCreateTrigger = async () => {
     if (!selectedDefinitionIdState) {
       notify('请先选择一个工作流定义', 'warning');
       return;
     }
+    const input_tasks = buildPayload();
+    if (!input_tasks) return;
     try {
-      const input_tasks = JSON.parse(tasksJson) as AiwfTaskItem[];
       await api.aiAgentFramework.createTriggerTask(selectedDefinitionIdState, {
         input_tasks,
         priority: priority.trim() ? Number(priority) : undefined,
       });
-      notify('触发任务已创建', 'success');
+      notify('触发任务已创建，任务输入会自动落盘到项目 AI_AGENT_FRAMEWORK 目录', 'success');
+      setTaskDrafts([newTaskDraft(1)]);
+      setPriority('');
       setActiveTab('list');
       await loadTriggers();
     } catch (error: any) {
@@ -113,7 +186,7 @@ export const AiwfTriggersPage: React.FC<{
   return (
     <AiwfPageShell
       title="AI工作流触发任务"
-      description="基于 definition 创建 trigger task，统一管理 pending、running、cancel_requested 和 retry 生命周期。"
+      description="通过表单化方式组织任务内容、元数据和上下游引用。后端会自动创建项目级 AI_AGENT_FRAMEWORK 工作区，并为每个任务准备独立目录。"
       actions={
         <button onClick={() => void loadTriggers()} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all">
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -130,67 +203,201 @@ export const AiwfTriggersPage: React.FC<{
       />
 
       {activeTab === 'create' && (
-        <AiwfCard className="p-8 space-y-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-black tracking-widest uppercase text-slate-500">目标工作流定义</label>
-                <select
-                  value={selectedDefinitionIdState}
-                  onChange={(e) => setSelectedDefinitionIdState(e.target.value)}
-                  className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200"
-                >
-                  <option value="">请选择</option>
-                  {definitions.map((definition) => (
-                    <option key={definition.id} value={definition.id}>
-                      {definition.name}
-                    </option>
-                  ))}
-                </select>
-                {selectedDefinition ? (
-                  <p className="text-xs text-slate-500 mt-2">
-                    根工作流：{selectedDefinition.root_workflow_id}，默认优先级：{selectedDefinition.priority_default}
-                  </p>
-                ) : null}
-              </div>
-              <div>
-                <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务优先级</label>
-                <input
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  placeholder="留空则使用 definition 默认优先级"
-                  className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200"
-                />
+        <div className="space-y-6">
+          <AiwfCard className="p-8 space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-black tracking-widest uppercase text-slate-500">目标工作流定义</label>
+                  <select
+                    value={selectedDefinitionIdState}
+                    onChange={(e) => setSelectedDefinitionIdState(e.target.value)}
+                    className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200"
+                  >
+                    <option value="">请选择</option>
+                    {definitions.map((definition) => (
+                      <option key={definition.id} value={definition.id}>
+                        {definition.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedDefinition ? (
+                    <p className="text-xs text-slate-500 mt-2">
+                      根工作流：{selectedDefinition.root_workflow_id}，默认优先级：{selectedDefinition.priority_default}
+                    </p>
+                  ) : null}
+                </div>
+                <div>
+                  <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务优先级</label>
+                  <input
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    placeholder="留空则使用 definition 默认优先级"
+                    className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200"
+                  />
+                </div>
               </div>
               <div className="rounded-[1.5rem] bg-slate-50 p-5 border border-slate-200">
                 <div className="flex items-center gap-2 text-slate-700 font-black">
                   <Workflow size={16} />
-                  触发说明
+                  任务目录策略
                 </div>
                 <ul className="mt-3 text-sm text-slate-600 space-y-2">
-                  <li>输入载荷使用 `TaskItem[]`，和后端 `tasks.json` manifest 保持一致。</li>
-                  <li>创建后会同步生成对应 execution，等待调度器抢占执行。</li>
-                  <li>建议先在定义页启用 definition，再发起触发任务。</li>
+                  <li>工作流和任务都绑定当前项目，不再依赖手工填写 markdown 文件路径。</li>
+                  <li>服务会自动确保 fileserver 共享目录下存在 `AI_AGENT_FRAMEWORK` 子项目。</li>
+                  <li>每个 trigger task 和每个输入任务都会生成独立目录，输入文件和执行工件统一落在那里。</li>
                 </ul>
               </div>
             </div>
-            <div>
-              <label className="text-xs font-black tracking-widest uppercase text-slate-500">输入任务 JSON</label>
-              <textarea
-                value={tasksJson}
-                onChange={(e) => setTasksJson(e.target.value)}
-                className="mt-2 w-full min-h-[360px] px-4 py-3 rounded-[1.5rem] border border-slate-200 font-mono text-xs leading-6"
-                spellCheck={false}
-              />
+          </AiwfCard>
+
+          <AiwfCard className="p-8 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-black tracking-widest uppercase text-slate-500">输入任务</div>
+                <div className="text-sm text-slate-500 mt-2">逐条填写任务描述，系统会自动生成 `tasks.json` 和任务输入文件。</div>
+              </div>
+              <button onClick={addTaskDraft} className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800">
+                <CirclePlus size={16} />
+                新增任务
+              </button>
             </div>
-          </div>
-          <div className="flex justify-end">
-            <button onClick={() => void handleCreateTrigger()} className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800">
-              <Play size={18} />
-              创建触发任务
-            </button>
-          </div>
-        </AiwfCard>
+
+            <div className="space-y-6">
+              {taskDrafts.map((draft, index) => (
+                <div key={draft.localId} className="rounded-[1.5rem] border border-slate-200 p-6 bg-white space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-black text-slate-800">任务 {index + 1}</div>
+                    <button
+                      onClick={() => removeTaskDraft(draft.localId)}
+                      disabled={taskDrafts.length === 1}
+                      className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 disabled:opacity-40"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务 ID</label>
+                      <input
+                        value={draft.task_id}
+                        onChange={(e) => updateTaskDraft(draft.localId, (current) => ({ ...current, task_id: e.target.value }))}
+                        placeholder="可选，留空则自动生成"
+                        className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务类型</label>
+                      <input
+                        value={draft.task_type}
+                        onChange={(e) => updateTaskDraft(draft.localId, (current) => ({ ...current, task_type: e.target.value }))}
+                        placeholder="如 package_list / unpacked_path / suspicious_vuln"
+                        className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务标题</label>
+                      <input
+                        value={draft.title}
+                        onChange={(e) => updateTaskDraft(draft.localId, (current) => ({ ...current, title: e.target.value }))}
+                        placeholder="如 待分析固件包"
+                        className="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务描述 Markdown</label>
+                    <textarea
+                      value={draft.task_markdown}
+                      onChange={(e) => updateTaskDraft(draft.localId, (current) => ({ ...current, task_markdown: e.target.value }))}
+                      className="mt-2 w-full min-h-[220px] px-4 py-3 rounded-[1.5rem] border border-slate-200 text-sm leading-6"
+                      placeholder={'# 任务说明\n\n- 输入对象\n- 目标范围\n- 约束条件'}
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-black tracking-widest uppercase text-slate-500">上游任务引用</label>
+                      <textarea
+                        value={draft.upstream_refs}
+                        onChange={(e) => updateTaskDraft(draft.localId, (current) => ({ ...current, upstream_refs: e.target.value }))}
+                        className="mt-2 w-full min-h-[120px] px-4 py-3 rounded-[1.5rem] border border-slate-200 text-sm leading-6"
+                        placeholder={'每行一个上游 task_id\n如:\npackage-001\nanalysis-002'}
+                        spellCheck={false}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-black tracking-widest uppercase text-slate-500">任务元数据</label>
+                      <div className="mt-2 space-y-3">
+                        {draft.metadataEntries.map((entry) => (
+                          <div key={entry.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                            <input
+                              value={entry.key}
+                              onChange={(e) =>
+                                updateTaskDraft(draft.localId, (current) => ({
+                                  ...current,
+                                  metadataEntries: current.metadataEntries.map((item) => item.id === entry.id ? { ...item, key: e.target.value } : item),
+                                }))
+                              }
+                              placeholder="键"
+                              className="px-4 py-3 rounded-2xl border border-slate-200"
+                            />
+                            <input
+                              value={entry.value}
+                              onChange={(e) =>
+                                updateTaskDraft(draft.localId, (current) => ({
+                                  ...current,
+                                  metadataEntries: current.metadataEntries.map((item) => item.id === entry.id ? { ...item, value: e.target.value } : item),
+                                }))
+                              }
+                              placeholder="值"
+                              className="px-4 py-3 rounded-2xl border border-slate-200"
+                            />
+                            <button
+                              onClick={() =>
+                                updateTaskDraft(draft.localId, (current) => ({
+                                  ...current,
+                                  metadataEntries: current.metadataEntries.length > 1
+                                    ? current.metadataEntries.filter((item) => item.id !== entry.id)
+                                    : current.metadataEntries,
+                                }))
+                              }
+                              className="px-3 rounded-2xl bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            >
+                              删除
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() =>
+                            updateTaskDraft(draft.localId, (current) => ({
+                              ...current,
+                              metadataEntries: [...current.metadataEntries, newMetadataEntry()],
+                            }))
+                          }
+                          className="px-4 py-2 rounded-2xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200"
+                        >
+                          添加元数据
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end">
+              <button onClick={() => void handleCreateTrigger()} className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800">
+                <Play size={18} />
+                创建触发任务
+              </button>
+            </div>
+          </AiwfCard>
+        </div>
       )}
 
       {activeTab === 'list' && (
