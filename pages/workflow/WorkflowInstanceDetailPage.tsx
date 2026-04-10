@@ -1292,6 +1292,15 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
     window.open(url, '_blank');
   };
 
+  const handleOpenIngressUrl = (item: any) => {
+    const host = String(item?.host || '').trim();
+    if (!host) return;
+    const path = String(item?.path || '/').trim() || '/';
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    const url = item?.url || `http://${host}${normalizedPath}`;
+    window.open(url, '_blank');
+  };
+
   const handleModifyNode = async (nodeId: string) => {
     setMenu(null);
     try {
@@ -1376,6 +1385,25 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
   }
 
   const workflowStatus = (instance?.status || '').toLowerCase();
+  const ingressAccessItems = (() => {
+    if (serviceAccessInfo?.ingress_accesses?.length > 0) {
+      return serviceAccessInfo.ingress_accesses;
+    }
+    const fallbackUrl = serviceAccessInfo?.access_urls?.find((item: any) => item.type === 'Ingress');
+    if (serviceAccessInfo?.configured_ingress) {
+      return [{
+        ingress_name: fallbackUrl?.ingress_name || serviceAccessInfo.configured_ingress.ingress_type || 'Ingress',
+        ingress_class_name: serviceAccessInfo.configured_ingress.ingress_type || 'Ingress',
+        host: serviceAccessInfo.configured_ingress.ingress_host || fallbackUrl?.host || '',
+        path: fallbackUrl?.path || '/',
+        selected_ip: serviceAccessInfo.configured_ingress.ingress_ip || fallbackUrl?.selected_ip || '',
+        url: fallbackUrl?.url || (serviceAccessInfo.configured_ingress.ingress_host
+          ? `http://${serviceAccessInfo.configured_ingress.ingress_host}${fallbackUrl?.path || '/'}`
+          : ''),
+      }];
+    }
+    return [];
+  })();
 
   return (
     <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-500">
@@ -2738,6 +2766,12 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       <div className="text-[10px] font-black text-slate-400 uppercase">Namespace</div>
                       <div className="text-lg font-bold text-slate-800">{serviceAccessInfo.namespace}</div>
                     </div>
+                    <div className="p-4 bg-slate-50 rounded-xl col-span-2">
+                      <div className="text-[10px] font-black text-slate-400 uppercase">访问域名</div>
+                      <div className="text-sm font-mono font-bold text-slate-800 break-all">
+                        {ingressAccessItems[0]?.host || '-'}
+                      </div>
+                    </div>
                   </div>
                   
                   {/* 端口信息 */}
@@ -2772,34 +2806,27 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                       </div>
                     </div>
                   )}
-                  
-                  {/* 访问方式 */}
-                  {serviceAccessInfo.ingress_accesses?.length > 0 && (
+
+                  {ingressAccessItems.length > 0 && (
                     <div>
-                      <div className="text-xs font-black text-slate-400 uppercase mb-3">域名访问</div>
+                      <div className="text-xs font-black text-slate-400 uppercase mb-3">访问服务</div>
                       <div className="space-y-3">
-                        {serviceAccessInfo.ingress_accesses.map((item: any, i: number) => (
+                        {ingressAccessItems.map((item: any, i: number) => (
                           <div key={i} className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">
-                                {item.ingress_class_name || 'Ingress'}
-                              </span>
-                              <span className="text-xs text-slate-500">{item.ingress_name}</span>
-                            </div>
-                            <div className="font-mono text-sm text-slate-800 break-all">{item.host || '-'}</div>
-                            <div className="mt-2 text-xs text-slate-600">
-                              {item.selected_ip ? `hosts: ${item.selected_ip} ${item.host}` : '未记录所选 Ingress IP'}
-                            </div>
-                            {item.url && (
-                              <div className="mt-2 text-xs text-emerald-700 break-all">{item.url}</div>
-                            )}
+                            <button
+                              onClick={() => handleOpenIngressUrl(item)}
+                              disabled={!String(item.host || '').trim()}
+                              className="w-full py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-all text-sm disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+                            >
+                              访问服务
+                            </button>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {serviceAccessInfo.ingress_accesses?.length === 0 && serviceAccessInfo.access_urls?.length > 0 && (
+                  {ingressAccessItems.length === 0 && serviceAccessInfo.access_urls?.length > 0 && (
                     <div>
                       <div className="text-xs font-black text-slate-400 uppercase mb-3">访问方式</div>
                       <div className="space-y-3">
@@ -2829,9 +2856,9 @@ export const WorkflowInstanceDetailPage: React.FC<{ instanceId: string, onBack: 
                   )}
                   
                   {/* 代理访问说明 */}
-                  {serviceAccessInfo.ingress_accesses?.length > 0 ? (
+                  {ingressAccessItems.length > 0 ? (
                     <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                      <div className="text-xs font-black text-emerald-700 mb-2">域名访问说明</div>
+                      <div className="text-xs font-black text-emerald-700 mb-2">访问服务说明</div>
                       <ul className="text-xs text-emerald-700 space-y-1 list-disc list-inside">
                         <li>优先使用上方已绑定的域名访问节点服务。</li>
                         <li>请先在本机 `hosts` 文件中配置 `Ingress IP 域名` 的映射。</li>
