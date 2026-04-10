@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRightLeft, Building2, Download, Edit3, FileSpreadsheet, Loader2, Lock, Plus, RefreshCw, Search, Shield, Trash2, Upload, UserCheck, UserCircle, Users } from 'lucide-react';
+import { ArrowRightLeft, Building2, ChevronDown, ChevronUp, Download, Edit3, FileSpreadsheet, Loader2, Lock, Plus, RefreshCw, Search, Shield, Trash2, Upload, UserCheck, UserCircle, Users } from 'lucide-react';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
 import { authApi } from '../../clients/auth';
 import { showAlert, showConfirm } from '../../components/DialogService';
@@ -22,6 +22,7 @@ export const DepartmentMemberPage: React.FC = () => {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDepartmentFilterOpen, setIsDepartmentFilterOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
@@ -43,6 +44,7 @@ export const DepartmentMemberPage: React.FC = () => {
   const [importPreview, setImportPreview] = useState<DepartmentMemberImportPreviewResponse | null>(null);
   const [importResult, setImportResult] = useState<DepartmentMemberImportCommitResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const departmentFilterRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void fetchDepartments();
@@ -60,6 +62,19 @@ export const DepartmentMemberPage: React.FC = () => {
       void fetchMembers(selectedDepartmentId);
     }
   }, [selectedDepartmentId]);
+
+  useEffect(() => {
+    if (!isDepartmentFilterOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!departmentFilterRef.current?.contains(event.target as Node)) {
+        setIsDepartmentFilterOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handlePointerDown);
+    return () => window.removeEventListener('mousedown', handlePointerDown);
+  }, [isDepartmentFilterOpen]);
 
   const fetchUserPermissions = async () => {
     try {
@@ -481,15 +496,44 @@ export const DepartmentMemberPage: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <select
-            className="px-8 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm min-w-[200px]"
-            value={selectedDepartmentId || ''}
-            onChange={(e) => setSelectedDepartmentId(parseInt(e.target.value, 10))}
-          >
-            {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>{dept.name}</option>
-            ))}
-          </select>
+          <div ref={departmentFilterRef} className="relative min-w-[200px]">
+            <button
+              type="button"
+              className="w-full px-8 pr-14 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm text-slate-700"
+              onClick={() => setIsDepartmentFilterOpen((open) => !open)}
+            >
+              {selectedDepartment?.name || '请选择部门'}
+            </button>
+            <span className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 text-slate-400">
+              {isDepartmentFilterOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </span>
+            {isDepartmentFilterOpen && (
+              <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-200/60">
+                <div className="max-h-72 overflow-y-auto py-1">
+                  {departments.map((dept) => {
+                    const isSelected = dept.id === selectedDepartmentId;
+                    return (
+                      <button
+                        key={dept.id}
+                        type="button"
+                        className={`flex w-full items-center rounded-2xl px-5 py-3 text-left text-sm font-semibold transition-all ${
+                          isSelected
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                        onClick={() => {
+                          setSelectedDepartmentId(dept.id);
+                          setIsDepartmentFilterOpen(false);
+                        }}
+                      >
+                        {dept.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
