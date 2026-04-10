@@ -5,6 +5,9 @@ import {
   FileDirectory,
   FileSubproject,
   ManagedFile,
+  ProjectFilesystemChildrenResponse,
+  ProjectFilesystemEntry,
+  ProjectFilesystemRootResponse,
   ProjectPathChildrenResponse,
 } from '../types/types';
 import { trackUploadTask } from '../services/uploadCenter';
@@ -35,6 +38,129 @@ export const fileserverApi = {
       headers: getHeaders(),
     });
     return handleResponse(response);
+  },
+
+  getProjectFilesystemRoot: async (projectId: string): Promise<ProjectFilesystemRootResponse> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/root?project_id=${encodeURIComponent(projectId)}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getProjectFilesystemChildren: async (projectId: string, path: string): Promise<ProjectFilesystemChildrenResponse> => {
+    const query = new URLSearchParams({ project_id: projectId, path }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/children?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  createProjectFilesystemDirectory: async (payload: {
+    project_id: string;
+    path: string;
+  }): Promise<ProjectFilesystemEntry> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/directories`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  uploadProjectFilesystemFile: async (payload: {
+    project_id: string;
+    path: string;
+    file: File;
+  }, options?: {
+    onProgress?: (progress: FileserverUploadProgress) => void;
+    signal?: AbortSignal;
+    trackGlobal?: boolean;
+    sourceLabel?: string;
+  }): Promise<ProjectFilesystemEntry> => {
+    const formData = new FormData();
+    formData.append('project_id', payload.project_id);
+    formData.append('path', payload.path);
+    formData.append('file', payload.file);
+    const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: FileserverUploadProgress) => void }) => xhrUpload<ProjectFilesystemEntry>({
+      url: `${API_BASE}/api/fileserver/project-filesystem/files/upload`,
+      method: 'POST',
+      headers: getUploadHeaders(),
+      formData,
+      signal: params?.signal ?? options?.signal,
+      onProgress: (event) => {
+        const progress = toUploadProgress(event);
+        options?.onProgress?.(progress);
+        params?.onProgress?.(progress);
+      },
+    });
+    if (options?.trackGlobal === false) return execute();
+    return trackUploadTask({
+      source: options?.sourceLabel || '项目文件上传',
+      name: payload.file.name || 'file',
+      size: payload.file.size || 0,
+      run: ({ signal, onProgress }) => execute({ signal, onProgress }),
+    });
+  },
+
+  renameProjectFilesystemNode: async (payload: {
+    project_id: string;
+    path: string;
+    name: string;
+  }): Promise<ProjectFilesystemEntry> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/rename`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  moveProjectFilesystemNode: async (payload: {
+    project_id: string;
+    source_path: string;
+    target_directory_path: string;
+  }): Promise<ProjectFilesystemEntry> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/move`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  deleteProjectFilesystemNode: async (projectId: string, path: string, recursive = true): Promise<{ message: string }> => {
+    const query = new URLSearchParams({
+      project_id: projectId,
+      path,
+      recursive: String(recursive),
+    }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem?${query}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  fetchProjectFilesystemPreviewBlob: async (projectId: string, path: string): Promise<Blob> => {
+    const query = new URLSearchParams({ project_id: projectId, path }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/preview?${query}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      await handleResponse(response);
+    }
+    return response.blob();
+  },
+
+  fetchProjectFilesystemDownloadBlob: async (projectId: string, path: string): Promise<Blob> => {
+    const query = new URLSearchParams({ project_id: projectId, path }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/download?${query}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      await handleResponse(response);
+    }
+    return response.blob();
   },
 
   getSubprojectChildren: async (projectId: string, subprojectId: number): Promise<DirectoryChildrenResponse> => {

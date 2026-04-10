@@ -859,6 +859,39 @@ export interface ProjectPathChildrenResponse {
   files: ProjectPathFileEntry[];
 }
 
+export interface ProjectFilesystemBreadcrumbItem {
+  node_type: 'project' | 'subproject' | 'directory';
+  name: string;
+  path: string;
+}
+
+export interface ProjectFilesystemEntry {
+  node_type: 'subproject' | 'directory' | 'file';
+  name: string;
+  path: string;
+  content_type?: string | null;
+  size?: number | null;
+  updated_at?: string | null;
+  has_children: boolean;
+  special_badge?: string | null;
+}
+
+export interface ProjectFilesystemRootResponse {
+  project_id: string;
+  root_name: string;
+  total: number;
+  items: ProjectFilesystemEntry[];
+}
+
+export interface ProjectFilesystemChildrenResponse {
+  project_id: string;
+  current_path: string;
+  current_name: string;
+  breadcrumbs: ProjectFilesystemBreadcrumbItem[];
+  directories: ProjectFilesystemEntry[];
+  files: ProjectFilesystemEntry[];
+}
+
 export interface VulnFileserverRoot {
   root_path: string;
   root_name: string;

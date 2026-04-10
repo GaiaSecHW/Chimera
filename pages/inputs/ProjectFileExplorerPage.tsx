@@ -22,11 +22,11 @@ import {
   Database,
 } from 'lucide-react';
 import {
-  DirectoryChildrenResponse,
-  ExplorerBreadcrumbItem,
-  ManagedFile,
   PvcBrowserChildrenResponse,
   PvcBrowserNode,
+  ProjectFilesystemChildrenResponse,
+  ProjectFilesystemEntry,
+  ProjectFilesystemRootResponse,
   ProjectResource,
   SecurityProject,
 } from '../../types/types';
@@ -58,10 +58,6 @@ interface UnifiedExplorerNode {
   updatedAt?: string | null;
 
   projectId?: string;
-
-  subprojectId?: number | null;
-  directoryId?: number | null;
-  fileId?: number | null;
 
   resourceId?: number;
   resourceType?: ProjectResource['resource_type'];
@@ -205,46 +201,34 @@ const inferPreviewModeByName = (filename: string, contentType?: string | null): 
   return 'binary';
 };
 
-const toFsSubprojectNode = (projectId: string, raw: any): UnifiedExplorerNode => ({
-  id: `fs:subproject:${raw.subproject_id}`,
-  source: 'fileserver',
-  nodeType: 'subproject',
-  name: raw.name,
-  hasChildren: true,
-  children: [],
-  projectId,
-  subprojectId: raw.subproject_id,
-  updatedAt: raw.updated_at || null,
-  specialBadge: raw.special_badge || null,
-});
+const buildFsPathNodeId = (path: string) => `fs:path:${encodeURIComponent(path)}`;
+const parentFsPath = (path: string) => {
+  const raw = (path || '/').trim() || '/';
+  if (raw === '/') return '/';
+  const parts = raw.split('/').filter(Boolean);
+  parts.pop();
+  return parts.length ? `/${parts.join('/')}` : '/';
+};
 
-const toFsDirectoryNode = (projectId: string, directory: DirectoryChildrenResponse['directories'][number]): UnifiedExplorerNode => ({
-  id: `fs:directory:${directory.id}`,
-  source: 'fileserver',
-  nodeType: 'directory',
-  name: directory.name,
-  hasChildren: true,
-  children: [],
-  projectId,
-  subprojectId: directory.subproject_id,
-  directoryId: directory.id,
-  updatedAt: directory.updated_at,
-});
+const buildFsChildPath = (parentPath: string, name: string) => {
+  const trimmed = name.trim();
+  if (!trimmed) return parentPath;
+  return parentPath === '/' ? `/${trimmed}` : `${parentPath.replace(/\/+$/, '')}/${trimmed}`;
+};
 
-const toFsFileNode = (projectId: string, file: ManagedFile): UnifiedExplorerNode => ({
-  id: `fs:file:${file.id}`,
+const toFsPathNode = (projectId: string, entry: ProjectFilesystemEntry): UnifiedExplorerNode => ({
+  id: buildFsPathNodeId(entry.path),
   source: 'fileserver',
-  nodeType: 'file',
-  name: file.filename,
-  hasChildren: false,
+  nodeType: entry.node_type,
+  name: entry.name,
+  hasChildren: entry.has_children,
   children: [],
   projectId,
-  subprojectId: file.subproject_id,
-  directoryId: file.directory_id ?? null,
-  fileId: file.id,
-  contentType: file.content_type,
-  size: file.size,
-  updatedAt: file.updated_at,
+  path: entry.path,
+  contentType: entry.content_type,
+  size: entry.size ?? null,
+  updatedAt: entry.updated_at || null,
+  specialBadge: entry.special_badge || null,
 });
 
 const toPvcResourceNode = (resource: ProjectResource): UnifiedExplorerNode => ({
@@ -286,6 +270,16 @@ const toPvcFileNode = (resourceId: number, node: PvcBrowserNode): UnifiedExplore
   size: node.size ?? 0,
   updatedAt: node.updated_at ? new Date(node.updated_at * 1000).toISOString() : null,
 });
+
+const isFileserverDirectoryLike = (node: UnifiedExplorerNode | null | undefined) =>
+  Boolean(node && (node.nodeType === 'fileserver-root' || node.nodeType === 'subproject' || node.nodeType === 'directory'));
+
+const getFileserverDirectoryPath = (node: UnifiedExplorerNode | null | undefined) => {
+  if (!node) return null;
+  if (node.nodeType === 'fileserver-root') return '/';
+  if ((node.nodeType === 'subproject' || node.nodeType === 'directory') && node.path) return node.path;
+  return null;
+};
 
 export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: SecurityProject[] }> = ({ projectId, projects }) => {
   const projectName = projects.find((item) => item.id === projectId)?.name || projectId;
@@ -364,7 +358,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
 
   const loadRoots = async (): Promise<RootLoadResult> => {
     const [fsRoot, resources] = await Promise.all([
-      api.fileserver.getRoot(projectId),
+      api.fileserver.getProjectFilesystemRoot(projectId),
       api.resources.list(projectId),
     ]);
 
@@ -374,7 +368,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       nodeType: 'fileserver-root',
       name: '项目文件（Fileserver）',
       hasChildren: true,
-      children: sortNodes((fsRoot.items || []).map((item: any) => toFsSubprojectNode(projectId, item))),
+      children: sortNodes((fsRoot.items || []).map((item: ProjectFilesystemRootResponse['items'][number]) => toFsPathNode(projectId, item))),
       projectId,
     };
 
@@ -421,11 +415,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         }
       }
 
-      if (fileserverRoot.children[0]) {
-        await openNode(fileserverRoot.children[0], loadedRoot);
-      } else {
-        await openNode(fileserverRoot, loadedRoot);
-      }
+      await openNode(fileserverRoot, loadedRoot);
     } catch (error: any) {
       alert(error?.message || '加载项目文件资源失败');
       setListing({ title: '项目文件资源', directories: [], files: [], breadcrumbs: [] });
@@ -456,33 +446,17 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     });
   };
 
-  const buildFsListing = (node: UnifiedExplorerNode, payload: DirectoryChildrenResponse) => {
-    const directories = payload.directories.map((item) => toFsDirectoryNode(projectId, item));
-    const files = payload.files.map((item) => toFsFileNode(projectId, item));
+  const buildFsListing = (node: UnifiedExplorerNode, payload: ProjectFilesystemChildrenResponse) => {
+    const directories = payload.directories.map((item) => toFsPathNode(projectId, item));
+    const files = payload.files.map((item) => toFsPathNode(projectId, item));
     const merged = sortNodes(directories.concat(files));
     updateNodeChildren(node.id, merged);
 
-    const breadcrumbs = payload.breadcrumbs.map((item: ExplorerBreadcrumbItem) => {
-      if (item.node_type === 'subproject' && item.subproject_id) {
-        return {
-          id: `fs:subproject:${item.subproject_id}`,
-          name: item.name,
-          node: null,
-        };
-      }
-      if (item.node_type === 'directory' && item.directory_id) {
-        return {
-          id: `fs:directory:${item.directory_id}`,
-          name: item.name,
-          node: null,
-        };
-      }
-      return {
-        id: `fs:root:${projectId}`,
-        name: '项目文件（Fileserver）',
-        node: null,
-      };
-    });
+    const breadcrumbs = payload.breadcrumbs.map((item) => ({
+      id: item.path === '/' ? `fs:root:${projectId}` : buildFsPathNodeId(item.path),
+      name: item.path === '/' ? '项目文件（Fileserver）' : item.name,
+      node: item.path === '/' ? null : nodeMap[buildFsPathNodeId(item.path)] || null,
+    }));
 
     setListing({
       title: payload.current_name,
@@ -544,24 +518,27 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
 
     try {
       let blob: Blob;
-      if (node.source === 'fileserver' && node.fileId) {
-        const parentPayload = node.directoryId
-          ? await api.fileserver.getDirectoryChildren(projectId, node.directoryId)
-          : await api.fileserver.getSubprojectChildren(projectId, node.subprojectId || 0);
-        const actualFile = parentPayload.files.find((item) => item.id === node.fileId);
+      if (node.source === 'fileserver' && node.path) {
+        const parentPath = parentFsPath(node.path);
+        const parentPayload = await api.fileserver.getProjectFilesystemChildren(projectId, parentPath);
+        const actualFile = parentPayload.files.find((item) => item.path === node.path);
+        const directories = sortNodes(parentPayload.directories.map((item) => toFsPathNode(projectId, item)));
+        const files = sortNodes(parentPayload.files.map((item) => toFsPathNode(projectId, item)));
+        const parentNodeId = parentPath === '/' ? `fs:root:${projectId}` : buildFsPathNodeId(parentPath);
+        updateNodeChildren(parentNodeId, sortNodes(directories.concat(files)));
         if (actualFile) {
-          fileState.filename = actualFile.filename;
-          fileState.contentType = actualFile.content_type;
-          fileState.size = actualFile.size;
+          fileState.filename = actualFile.name;
+          fileState.contentType = actualFile.content_type || null;
+          fileState.size = actualFile.size || 0;
           fileState.updatedAt = actualFile.updated_at;
           setPreviewFile({ ...fileState });
           setListing((prev) => ({
             ...prev,
-            directories: sortNodes(parentPayload.directories.map((item) => toFsDirectoryNode(projectId, item))),
-            files: sortNodes(parentPayload.files.map((item) => toFsFileNode(projectId, item))),
+            directories,
+            files,
           }));
         }
-        blob = await api.fileserver.fetchPreviewBlob(node.fileId);
+        blob = await api.fileserver.fetchProjectFilesystemPreviewBlob(projectId, node.path);
       } else if (node.source === 'pvc' && node.resourceId && node.path) {
         blob = await api.resources.fetchPvcBrowserPreviewBlob(node.resourceId, node.path);
       } else {
@@ -619,24 +596,39 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const openNode = async (node: UnifiedExplorerNode, maybeRoot?: UnifiedExplorerNode) => {
     setContextMenu(null);
 
-    if (node.nodeType === 'workspace' || node.nodeType === 'fileserver-root' || node.nodeType === 'pvc-root') {
+    if (node.nodeType === 'workspace' || node.nodeType === 'pvc-root') {
       setListingForRootNode(node, maybeRoot);
       return;
     }
 
-    if (node.nodeType === 'subproject' && node.subprojectId) {
+    if (node.nodeType === 'fileserver-root') {
       setSelectedNodeId(node.id);
       clearPreview();
-      const payload = await api.fileserver.getSubprojectChildren(projectId, node.subprojectId);
+      const payload = await api.fileserver.getProjectFilesystemChildren(projectId, '/');
+      const directories = payload.directories.map((item) => toFsPathNode(projectId, item));
+      const files = payload.files.map((item) => toFsPathNode(projectId, item));
+      updateNodeChildren(node.id, sortNodes(directories.concat(files)));
       setExpandedNodes((prev) => new Set(prev).add(node.id));
-      buildFsListing(node, payload);
+      setListing({
+        title: node.name,
+        directories: sortNodes(directories),
+        files: sortNodes(files),
+        breadcrumbs: [
+          {
+            id: `workspace:${projectId}`,
+            name: projectName,
+            node: (maybeRoot || rootNode).id === `workspace:${projectId}` ? (maybeRoot || rootNode) : nodeMap[`workspace:${projectId}`] || null,
+          },
+          { id: node.id, name: node.name, node },
+        ],
+      });
       return;
     }
 
-    if (node.nodeType === 'directory' && node.directoryId) {
+    if ((node.nodeType === 'subproject' || node.nodeType === 'directory') && node.path) {
       setSelectedNodeId(node.id);
       clearPreview();
-      const payload = await api.fileserver.getDirectoryChildren(projectId, node.directoryId);
+      const payload = await api.fileserver.getProjectFilesystemChildren(projectId, node.path);
       setExpandedNodes((prev) => new Set(prev).add(node.id));
       buildFsListing(node, payload);
       return;
@@ -701,13 +693,35 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
 
   const resolveUploadTarget = (node: UnifiedExplorerNode | null): UnifiedExplorerNode | null => {
     if (!node) return null;
-    if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
+    if (isFileserverDirectoryLike(node) || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
       return node;
     }
     if (node.nodeType === 'file' || node.nodeType === 'pvc-file') {
       if (node.source === 'fileserver') {
-        if (node.directoryId) return nodeMap[`fs:directory:${node.directoryId}`] || null;
-        if (node.subprojectId) return nodeMap[`fs:subproject:${node.subprojectId}`] || null;
+        if (!node.path) return null;
+        const parent = parentFsPath(node.path);
+        if (parent === '/') {
+          return nodeMap[`fs:root:${projectId}`] || {
+            id: `fs:root:${projectId}`,
+            source: 'virtual',
+            nodeType: 'fileserver-root',
+            name: '项目文件（Fileserver）',
+            hasChildren: true,
+            children: [],
+            projectId,
+          };
+        }
+        const parentNodeType = parent.split('/').filter(Boolean).length === 1 ? 'subproject' : 'directory';
+        return nodeMap[buildFsPathNodeId(parent)] || {
+          id: buildFsPathNodeId(parent),
+          source: 'fileserver',
+          nodeType: parentNodeType,
+          name: parent.split('/').pop() || '/',
+          hasChildren: true,
+          children: [],
+          projectId,
+          path: parent,
+        };
       }
       if (node.source === 'pvc' && node.resourceId && node.path) {
         const parent = parentPvcPath(node.path);
@@ -732,7 +746,10 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     if (!name) return;
     setBusyAction('create-subproject');
     try {
-      await api.fileserver.createSubproject({ project_id: projectId, name });
+      await api.fileserver.createProjectFilesystemDirectory({
+        project_id: projectId,
+        path: buildFsChildPath('/', name),
+      });
       await initialize({ source: 'fileserver' });
     } catch (error: any) {
       alert(error?.message || '创建子项目失败');
@@ -753,13 +770,12 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
 
     setBusyAction('create-directory');
     try {
-      if (targetNode.source === 'fileserver') {
-        if (!targetNode.subprojectId) throw new Error('无效的目标子项目');
-        await api.fileserver.createDirectory({
+      if (isFileserverDirectoryLike(targetNode)) {
+        const targetPath = getFileserverDirectoryPath(targetNode);
+        if (!targetPath) throw new Error('无效的目标目录');
+        await api.fileserver.createProjectFilesystemDirectory({
           project_id: projectId,
-          subproject_id: targetNode.subprojectId,
-          parent_id: targetNode.nodeType === 'directory' ? targetNode.directoryId || null : null,
-          name,
+          path: buildFsChildPath(targetPath, name),
         });
         await initialize({ source: 'fileserver' });
       } else {
@@ -781,14 +797,12 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
 
     setBusyAction(`rename:${node.id}`);
     try {
-      if (node.source === 'fileserver') {
-        if (node.nodeType === 'subproject' && node.subprojectId) {
-          await api.fileserver.renameSubproject(projectId, node.subprojectId, { name });
-        } else if (node.nodeType === 'directory' && node.directoryId) {
-          await api.fileserver.renameDirectory(node.directoryId, name);
-        } else if (node.nodeType === 'file' && node.fileId) {
-          await api.fileserver.renameFile(node.fileId, name);
-        }
+      if (node.source === 'fileserver' && node.path) {
+        await api.fileserver.renameProjectFilesystemNode({
+          project_id: projectId,
+          path: node.path,
+          name,
+        });
         await initialize({ source: 'fileserver' });
       } else if (node.source === 'pvc' && node.resourceId && node.path) {
         await api.resources.renamePvcBrowserNode(node.resourceId, node.path, name);
@@ -813,14 +827,8 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
 
     setBusyAction(`delete:${node.id}`);
     try {
-      if (node.source === 'fileserver') {
-        if (node.nodeType === 'subproject' && node.subprojectId) {
-          await api.fileserver.deleteSubproject(projectId, node.subprojectId, true);
-        } else if (node.nodeType === 'directory' && node.directoryId) {
-          await api.fileserver.deleteDirectory(projectId, node.directoryId, true);
-        } else if (node.nodeType === 'file' && node.fileId) {
-          await api.fileserver.deleteFile(node.fileId);
-        }
+      if (node.source === 'fileserver' && node.path) {
+        await api.fileserver.deleteProjectFilesystemNode(projectId, node.path, true);
         await initialize({ source: 'fileserver' });
       } else if (node.source === 'pvc' && node.resourceId && node.path) {
         await api.resources.deletePvcBrowserNode(node.resourceId, node.path);
@@ -849,13 +857,13 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
 
     setBusyAction('upload');
     try {
-      if (target.source === 'fileserver') {
-        if (!target.subprojectId) throw new Error('无效的子项目');
+      if (isFileserverDirectoryLike(target)) {
+        const targetPath = getFileserverDirectoryPath(target);
+        if (!targetPath) throw new Error('无效的目标目录');
         for (const file of list) {
-          await api.fileserver.uploadFile({
+          await api.fileserver.uploadProjectFilesystemFile({
             project_id: projectId,
-            subproject_id: target.subprojectId,
-            directory_id: target.nodeType === 'directory' ? target.directoryId || null : null,
+            path: targetPath,
             file,
           });
         }
@@ -881,8 +889,8 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     try {
       let blob: Blob;
       let filename: string;
-      if (sourceNode.source === 'fileserver' && sourceNode.fileId) {
-        blob = await api.fileserver.fetchDownloadBlob(sourceNode.fileId);
+      if (sourceNode.source === 'fileserver' && sourceNode.path) {
+        blob = await api.fileserver.fetchProjectFilesystemDownloadBlob(projectId, sourceNode.path);
         filename = sourceNode.name;
       } else if (sourceNode.source === 'pvc' && sourceNode.resourceId && sourceNode.path) {
         blob = await api.resources.fetchPvcBrowserDownloadBlob(sourceNode.resourceId, sourceNode.path);
@@ -920,22 +928,16 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
         if (dragNode.nodeType === 'subproject') {
           throw new Error('子项目不支持拖拽移动');
         }
-        if (dragNode.nodeType === 'file' && dragNode.fileId) {
-          if ((targetNode.nodeType === 'subproject' || targetNode.nodeType === 'directory') && dragNode.subprojectId === targetNode.subprojectId) {
-            const targetDirectoryId = targetNode.nodeType === 'directory' ? targetNode.directoryId || null : null;
-            await api.fileserver.moveFile(dragNode.fileId, targetDirectoryId);
-          } else {
-            throw new Error('暂不支持跨子项目移动文件');
-          }
+        const targetDirectoryPath = getFileserverDirectoryPath(targetNode);
+        if (!dragNode.path || !targetDirectoryPath) throw new Error('无效的拖拽目标');
+        if (dragNode.nodeType !== 'file' && dragNode.nodeType !== 'directory') {
+          throw new Error('仅文件/目录支持拖拽移动');
         }
-        if (dragNode.nodeType === 'directory' && dragNode.directoryId) {
-          if ((targetNode.nodeType === 'subproject' || targetNode.nodeType === 'directory') && dragNode.subprojectId === targetNode.subprojectId) {
-            const targetParentId = targetNode.nodeType === 'directory' ? targetNode.directoryId || null : null;
-            await api.fileserver.moveDirectory(dragNode.directoryId, targetParentId);
-          } else {
-            throw new Error('暂不支持跨子项目移动目录');
-          }
-        }
+        await api.fileserver.moveProjectFilesystemNode({
+          project_id: projectId,
+          source_path: dragNode.path,
+          target_directory_path: targetDirectoryPath,
+        });
         await initialize({ source: 'fileserver' });
       } else if (dragNode.source === 'pvc') {
         if (!dragNode.resourceId || !dragNode.path) throw new Error('无效PVC节点');
@@ -1003,13 +1005,13 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
             active ? 'bg-sky-100 text-sky-900' : dragHoverNodeId === node.id ? 'bg-amber-100' : 'text-slate-700 hover:bg-slate-100'
           }`}
           style={{ paddingLeft: `${depth * 14 + 8}px` }}
-          draggable={node.nodeType !== 'workspace' && node.nodeType !== 'fileserver-root' && node.nodeType !== 'pvc-root' && node.nodeType !== 'pvc'}
+          draggable={node.nodeType !== 'workspace' && node.nodeType !== 'fileserver-root' && node.nodeType !== 'pvc-root' && node.nodeType !== 'pvc' && node.nodeType !== 'subproject'}
           onDragStart={(event) => {
             event.dataTransfer.setData('application/secflow-node', node.id);
             event.dataTransfer.effectAllowed = 'move';
           }}
           onDragOver={(event) => {
-            if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
+            if (isFileserverDirectoryLike(node) || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
               event.preventDefault();
               setDragHoverNodeId(node.id);
             }
@@ -1125,6 +1127,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     } else if (node.nodeType === 'fileserver-root') {
       actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
       actions.push({ label: '新建子项目', icon: <HardDrive size={14} />, onClick: () => void handleCreateSubproject() });
+      actions.push({ label: '上传文件', icon: <Upload size={14} />, onClick: () => triggerUpload(node) });
     } else if (node.nodeType === 'pvc-root') {
       actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
     } else if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
