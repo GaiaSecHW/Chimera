@@ -50,7 +50,7 @@ export const DepartmentMemberPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (userPermissions?.can_manage_users) {
+    if (userPermissions?.can_manage_department_members) {
       void fetchUsers();
     }
   }, [userPermissions]);
@@ -105,29 +105,29 @@ export const DepartmentMemberPage: React.FC = () => {
   };
 
   const canEditRole = (): boolean => {
-    return !!userPermissions?.can_manage_users;
+    return !!userPermissions?.can_manage_department_members && canManageCurrentDepartment();
   };
 
   const getAvailableRoles = (): { value: string; label: string }[] => {
-    const allRoles = [
+    if (!userPermissions?.can_manage_department_members || !canManageCurrentDepartment()) {
+      return [];
+    }
+
+    return [
       { value: 'member', label: '成员' },
       { value: 'vice_leader', label: '副组长' },
       { value: 'leader', label: '组长' },
     ];
-
-    if (userPermissions?.can_manage_users) return allRoles;
-    return [{ value: 'member', label: '成员' }];
   };
 
   const canRemoveMember = (_member: DepartmentMember): boolean => {
-    return !!userPermissions?.can_manage_users && canManageCurrentDepartment();
+    return !!userPermissions?.can_manage_department_members && canManageCurrentDepartment();
   };
 
   const canMoveMember = (member: DepartmentMember): boolean => {
     if (!userPermissions?.can_manage_department_members) return false;
     if (!canManageDepartment(member.department_id)) return false;
-    if (userPermissions.is_admin) return true;
-    return member.role === 'member';
+    return true;
   };
 
   const fetchDepartments = async () => {
@@ -434,7 +434,7 @@ export const DepartmentMemberPage: React.FC = () => {
               <Upload size={18} /> 导入成员
             </button>
           )}
-          {userPermissions?.can_manage_users && canManageCurrentDepartment() && (
+          {userPermissions?.can_manage_department_members && canManageCurrentDepartment() && (
             <button onClick={openAddModal} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
               <Plus size={20} /> 添加成员
             </button>
@@ -571,7 +571,7 @@ export const DepartmentMemberPage: React.FC = () => {
         </div>
       </div>
 
-      {isAddModalOpen && userPermissions?.can_manage_users && (
+      {isAddModalOpen && userPermissions?.can_manage_department_members && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
           <div className="bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
@@ -726,7 +726,7 @@ export const DepartmentMemberPage: React.FC = () => {
         </div>
       )}
 
-      {isEditModalOpen && selectedMember && userPermissions?.can_manage_users && (
+      {isEditModalOpen && selectedMember && userPermissions?.can_manage_department_members && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-10 pb-4 border-b border-slate-50 flex items-center justify-between">
