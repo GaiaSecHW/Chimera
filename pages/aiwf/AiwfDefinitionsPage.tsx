@@ -7,22 +7,97 @@ import { AiwfCard, AiwfEmpty, AiwfPageShell, formatDateTime, prettyJson } from '
 import { AiwfWorkflowGraphPreview } from './AiwfWorkflowGraphPreview';
 
 const EMPTY_DEFINITION = `{
-  "schema_version": "v1",
-  "run": {
-    "next_task_generator": {
-      "agent_instance_id": "codex-worker",
-      "system_prompt_ref": "next_task_generator_system",
-      "user_prompt_ref": "next_task_generator_user",
-      "allow_empty": true
-    }
+  "version": "1.0",
+  "global": {
+    "workspace_root": "/workspace",
+    "log_level": "INFO",
+    "max_workflow_retry": 2,
+    "max_review_cycles": 3,
+    "default_context_reset": false,
+    "parallel_result_review": true,
+    "env_vars": {}
   },
-  "prompts": {},
-  "agent_types": [],
-  "agent_instances": [],
+  "agents": [],
   "plugins": [],
-  "atomic_workflows": [],
-  "composite_workflows": [],
-  "root_workflow_id": ""
+  "workflows": {
+    "atomic": [
+      {
+        "id": "sample_atomic",
+        "name": "Sample Atomic Workflow",
+        "type": "atomic",
+        "description": "",
+        "input_task_type": "atomic:sample_atomic:input",
+        "output_task_type": "atomic:sample_atomic:output",
+        "working_dir_template": "sample_atomic_{task_id}",
+        "start_plugins": [],
+        "end_plugins": [],
+        "engine": {
+          "max_review_cycles": 2,
+          "max_worker_turns_per_cycle": 5
+        },
+        "roles": {
+          "worker": {
+            "agent_id": "",
+            "new_session": true,
+            "reset_context_override": null,
+            "prompts": {
+              "work": {
+                "system_prompt_file": "prompts/worker_system.md",
+                "user_prompt_file": "prompts/worker_user.md"
+              },
+              "reflection": [],
+              "summary": {
+                "prompt_file": "prompts/summary.md",
+                "output_summary_filename": "summary.md",
+                "output_results_dir": "results"
+              }
+            }
+          },
+          "advisors": {
+            "global_review": [],
+            "result_review": []
+          }
+        }
+      }
+    ],
+    "composite": [
+      {
+        "id": "sample_pipeline",
+        "name": "Sample Pipeline",
+        "type": "composite",
+        "description": "",
+        "working_dir_template": "sample_pipeline_{execution_id}",
+        "stages": [
+          {
+            "stage_id": "stage_01",
+            "name": "Stage 01",
+            "sequence": 1,
+            "workflow_ref": "sample_atomic",
+            "workflow_type": "atomic",
+            "on_error": "skip_task",
+            "description": ""
+          }
+        ]
+      }
+    ]
+  },
+  "execution": {
+    "entry_workflow": "sample_pipeline",
+    "entry_workflow_type": "composite",
+    "input_task": {
+      "task_file": "input/task.md",
+      "task_id": "sample-task"
+    },
+    "output_dir": "output",
+    "execution_id": "sample-run",
+    "runtime_mode": "rest_service",
+    "on_completion": {
+      "exit_code_on_success": 0,
+      "exit_code_on_failure": 1,
+      "write_summary": true,
+      "summary_file": "output/execution_summary.json"
+    }
+  }
 }`;
 
 export const AiwfDefinitionsPage: React.FC<{
@@ -300,8 +375,7 @@ export const AiwfDefinitionsPage: React.FC<{
             <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/60">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-xs font-black tracking-widest uppercase text-slate-500">工作流详情</div>
-                  <div className="mt-1 text-xl font-black text-slate-900">{selectedDefinition.name}</div>
+                  <div className="text-xl font-black text-slate-900">{selectedDefinition.name}</div>
                   <div className="text-xs text-slate-500 mt-1">{selectedDefinition.id}</div>
                 </div>
                 <button onClick={() => void handleCloneJson()} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-blue-700 hover:bg-blue-50">
@@ -328,48 +402,59 @@ export const AiwfDefinitionsPage: React.FC<{
             </div>
             <div className="p-5">
               {detailTab === 'overview' ? (
-                <div className="grid grid-cols-1 xl:grid-cols-[320px,minmax(0,1fr)] gap-4">
-                  <AiwfCard className="p-4 h-fit">
-                    <div className="text-xs font-black tracking-widest uppercase text-slate-500">基础信息</div>
-                    <div className="mt-3 text-xs text-slate-600 space-y-2">
-                      <div>根工作流: {selectedDefinition.root_workflow_id}</div>
-                      <div>入口任务类型: {selectedDefinition.entry_input_task_type}</div>
-                      <div>终态输出类型: {selectedDefinition.final_output_task_type}</div>
-                      <div>最大并发: {selectedDefinition.max_concurrency}</div>
-                    </div>
-                    <div className="pt-3 mt-3 border-t border-slate-100">
-                      <div className="text-xs font-black tracking-widest uppercase text-slate-500">版本记录</div>
-                      <div className="mt-2 max-h-[280px] overflow-auto space-y-2">
-                        {versions.length === 0 ? (
-                          <div className="text-xs text-slate-500">暂无版本</div>
-                        ) : (
-                          versions.map((version) => (
-                            <button
-                              key={version.id}
-                              onClick={() => setSelectedVersionNo(version.version_no)}
-                              className={`w-full text-left px-3 py-2 rounded-xl border ${selectedVersionNo === version.version_no ? 'bg-blue-50 border-blue-200' : 'border-slate-200 hover:bg-slate-50'}`}
-                            >
-                              <div className="font-bold text-slate-800 text-sm">版本 #{version.version_no}</div>
-                              <div className="text-xs text-slate-500 mt-1">{formatDateTime(version.created_at)}</div>
-                            </button>
-                          ))
-                        )}
+                <div className="space-y-4">
+                  <AiwfCard className="p-3">
+                    <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[11px] text-slate-500">根工作流</div>
+                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{selectedDefinition.root_workflow_id}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[11px] text-slate-500">入口类型</div>
+                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{selectedDefinition.entry_input_task_type}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[11px] text-slate-500">终态类型</div>
+                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{selectedDefinition.final_output_task_type}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[11px] text-slate-500">最大并发</div>
+                        <div className="text-xs font-bold text-slate-800 mt-1">{selectedDefinition.max_concurrency}</div>
                       </div>
                     </div>
                   </AiwfCard>
+
+                  <AiwfCard className="p-3">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {versions.length === 0 ? (
+                        <div className="text-xs text-slate-500">暂无版本</div>
+                      ) : (
+                        versions.map((version) => (
+                          <button
+                            key={version.id}
+                            onClick={() => setSelectedVersionNo(version.version_no)}
+                            className={`shrink-0 text-left px-3 py-2 rounded-xl border ${selectedVersionNo === version.version_no ? 'bg-blue-50 border-blue-200' : 'border-slate-200 hover:bg-slate-50'}`}
+                          >
+                            <div className="font-bold text-slate-800 text-sm">v{version.version_no}</div>
+                            <div className="text-[11px] text-slate-500 mt-1">{formatDateTime(version.created_at)}</div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </AiwfCard>
+
                   <AiwfWorkflowGraphPreview definitionJson={selectedVersion?.definition_json || null} />
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-black text-slate-700">版本 JSON</div>
+                <div>
+                  <div className="flex justify-end mb-2">
                     {selectedVersion && (
                       <button onClick={() => void navigator.clipboard.writeText(prettyJson(selectedVersion.definition_json))} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200" title="复制 JSON">
                         <Eye size={16} />
                       </button>
                     )}
                   </div>
-                  <pre className="w-full min-h-[520px] whitespace-pre-wrap break-words rounded-[1rem] bg-slate-950 text-slate-100 p-4 text-xs leading-6 overflow-auto">
+                  <pre className="w-full min-h-[680px] whitespace-pre-wrap break-words rounded-[1rem] bg-slate-950 text-slate-100 p-4 text-xs leading-6 overflow-auto">
                     {prettyJson(selectedVersion?.definition_json || {})}
                   </pre>
                 </div>
