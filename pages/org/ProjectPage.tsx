@@ -238,13 +238,6 @@ export const ProjectPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      {isOrdinaryAdmin && (
-        <div className="bg-amber-50 border border-amber-100 text-amber-700 px-6 py-4 rounded-[2rem] text-sm font-semibold">
-          普通管理员仅可管理所属部门及下级部门已绑定的项目，且创建项目时必须绑定本部门树内的部门。
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
           <FolderOpen className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
