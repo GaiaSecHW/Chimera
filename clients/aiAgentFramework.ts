@@ -5,7 +5,7 @@ export interface AiwfWorkflowDefinition {
   name: string;
   description?: string | null;
   project_id: string;
-  root_workflow_id: string;
+  root_workflow_id?: string | null;
   trigger_type: string;
   trigger_enabled: boolean;
   is_active: boolean;
@@ -14,8 +14,10 @@ export interface AiwfWorkflowDefinition {
   priority_default: number;
   workspace_base_dir?: string | null;
   execution_timeout_seconds: number;
-  entry_input_task_type: string;
-  final_output_task_type: string;
+  entry_input_task_type?: string | null;
+  final_output_task_type?: string | null;
+  definition_valid: boolean;
+  validation_error?: string | null;
   created_by: string;
   updated_by: string;
   created_at: string;
