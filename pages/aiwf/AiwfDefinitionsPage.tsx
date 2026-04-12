@@ -156,8 +156,6 @@ export const AiwfDefinitionsPage: React.FC<{
     [definitions, selectedId]
   );
 
-  const displayValue = (value?: string | null) => value && value.trim() ? value : '-';
-
   const loadDefinitions = async () => {
     try {
       setLoading(true);
@@ -324,10 +322,10 @@ export const AiwfDefinitionsPage: React.FC<{
                           <div className="text-xs text-slate-500 mt-1">{definition.id}</div>
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{displayValue(definition.root_workflow_id)}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{definition.root_workflow_id}</td>
                       <td className="px-6 py-4 text-xs text-slate-600">
-                        <div>入口: {displayValue(definition.entry_input_task_type)}</div>
-                        <div className="mt-1">终态: {displayValue(definition.final_output_task_type)}</div>
+                        <div>入口: {definition.entry_input_task_type}</div>
+                        <div className="mt-1">终态: {definition.final_output_task_type}</div>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {definition.trigger_type}
@@ -336,20 +334,17 @@ export const AiwfDefinitionsPage: React.FC<{
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-[11px] font-bold ${definition.definition_valid ? (definition.is_active ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700') : 'bg-rose-100 text-rose-700'}`}>
-                          {definition.definition_valid ? (definition.is_active ? '运行中' : '未激活') : '配置无效'}
+                        <span className={`inline-flex px-2 py-1 rounded-full text-[11px] font-bold ${definition.is_active ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {definition.is_active ? '运行中' : '未激活'}
                         </span>
-                        {!definition.definition_valid && definition.validation_error ? (
-                          <div className="mt-1 text-[11px] text-rose-600 line-clamp-2 max-w-[320px]">{definition.validation_error}</div>
-                        ) : null}
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-500">{formatDateTime(definition.updated_at)}</td>
                       <td className="px-6 py-4">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => void handleToggleActive(definition)} disabled={!definition.definition_valid} className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed" title={definition.is_active ? '停用' : '启用'}>
+                          <button onClick={() => void handleToggleActive(definition)} className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50" title={definition.is_active ? '停用' : '启用'}>
                             {definition.is_active ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
                           </button>
-                          <button onClick={() => onNavigateToTriggers?.(definition.id)} disabled={!definition.definition_valid} className="px-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed">
+                          <button onClick={() => onNavigateToTriggers?.(definition.id)} className="px-3 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800">
                             去触发
                           </button>
                           <button onClick={() => void handleDelete(definition)} className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100" title="删除">
@@ -412,28 +407,21 @@ export const AiwfDefinitionsPage: React.FC<{
                     <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                       <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                         <div className="text-[11px] text-slate-500">根工作流</div>
-                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{displayValue(selectedDefinition.root_workflow_id)}</div>
+                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{selectedDefinition.root_workflow_id}</div>
                       </div>
                       <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                         <div className="text-[11px] text-slate-500">入口类型</div>
-                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{displayValue(selectedDefinition.entry_input_task_type)}</div>
+                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{selectedDefinition.entry_input_task_type}</div>
                       </div>
                       <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                         <div className="text-[11px] text-slate-500">终态类型</div>
-                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{displayValue(selectedDefinition.final_output_task_type)}</div>
+                        <div className="text-xs font-bold text-slate-800 mt-1 break-all">{selectedDefinition.final_output_task_type}</div>
                       </div>
                       <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                         <div className="text-[11px] text-slate-500">最大并发</div>
                         <div className="text-xs font-bold text-slate-800 mt-1">{selectedDefinition.max_concurrency}</div>
                       </div>
                     </div>
-                    {!selectedDefinition.definition_valid && selectedDefinition.validation_error ? (
-                      <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 whitespace-pre-wrap break-words">
-                        当前 definition 无法按 `pi-vuln` 新 schema 解析：
-                        {'\n'}
-                        {selectedDefinition.validation_error}
-                      </div>
-                    ) : null}
                   </AiwfCard>
 
                   <AiwfCard className="p-3">

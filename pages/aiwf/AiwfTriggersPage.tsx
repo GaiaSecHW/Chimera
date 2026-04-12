@@ -109,10 +109,6 @@ export const AiwfTriggersPage: React.FC<{
     () => definitions.find((item) => item.id === selectedDefinitionIdState) || null,
     [definitions, selectedDefinitionIdState]
   );
-  const triggerableDefinitions = useMemo(
-    () => definitions.filter((item) => item.definition_valid),
-    [definitions]
-  );
 
   const updateTaskDraft = (localId: string, updater: (current: TaskDraft) => TaskDraft) => {
     setTaskDrafts((current) => current.map((item) => (item.localId === localId ? updater(item) : item)));
@@ -358,7 +354,7 @@ export const AiwfTriggersPage: React.FC<{
                 className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200"
               >
                 <option value="">请选择</option>
-                {triggerableDefinitions.map((definition) => (
+                {definitions.map((definition) => (
                   <option key={definition.id} value={definition.id}>
                     {definition.name}
                   </option>
@@ -366,12 +362,7 @@ export const AiwfTriggersPage: React.FC<{
               </select>
               {selectedDefinition ? (
                 <p className="text-xs text-slate-500 mt-2">
-                  根工作流：{selectedDefinition.root_workflow_id || '-'}，入口任务类型：{selectedDefinition.entry_input_task_type || '-'}，终态输出类型：{selectedDefinition.final_output_task_type || '-'}
-                </p>
-              ) : null}
-              {definitions.length > triggerableDefinitions.length ? (
-                <p className="text-[11px] text-amber-600 mt-2">
-                  检测到 {definitions.length - triggerableDefinitions.length} 个旧格式或无效定义，已在触发下拉框中自动隐藏，请先在定义页修复。
+                  根工作流：{selectedDefinition.root_workflow_id}，入口任务类型：{selectedDefinition.entry_input_task_type}，终态输出类型：{selectedDefinition.final_output_task_type}
                 </p>
               ) : null}
             </div>
