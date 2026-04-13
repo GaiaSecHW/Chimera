@@ -66,7 +66,8 @@ export const orgApi = {
         owner_department_id: p.owner_department_id,
         owner_department_name: p.owner_department_name,
         roles: p.roles || [],
-        departments: toProjectDepartment(p.department_id, p.department_name)
+        departments: p.org_departments?.length ? p.org_departments : toProjectDepartment(p.department_id, p.department_name),
+        org_id: p.org_id ?? undefined,
       }))
     };
   },
