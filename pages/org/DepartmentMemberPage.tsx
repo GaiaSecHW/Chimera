@@ -426,12 +426,20 @@ export const DepartmentMemberPage: React.FC = () => {
     return users.filter((user) => user.username.toLowerCase().includes(keyword));
   }, [users, userPickerSearchTerm]);
 
+  const memberStats = useMemo(() => {
+    const total = members.length;
+    const leaderCount = members.filter((member) => member.role === 'leader').length;
+    const viceLeaderCount = members.filter((member) => member.role === 'vice_leader').length;
+    const memberCount = members.filter((member) => member.role === 'member').length;
+    return { total, leaderCount, viceLeaderCount, memberCount };
+  }, [members]);
+
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
+    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.07),_transparent_24%),linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(255,255,255,1))]">
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20">
+            <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl shadow-xl shadow-blue-500/20">
               <Users size={28} />
             </div>
             <div>
@@ -441,11 +449,11 @@ export const DepartmentMemberPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+          <button onClick={() => selectedDepartmentId && void fetchMembers(selectedDepartmentId)} className="p-4 bg-white/80 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-white transition-all shadow-sm active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
           {canImportMembers() && (
-            <button onClick={openImportModal} className="bg-white text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 shadow-sm hover:bg-slate-50 transition-all active:scale-95">
+            <button onClick={openImportModal} className="bg-white/85 backdrop-blur text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 shadow-sm hover:bg-white transition-all active:scale-95">
               <Upload size={18} /> 导入成员
             </button>
           )}
@@ -458,23 +466,36 @@ export const DepartmentMemberPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+        <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
           <Users className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest relative z-10">当前部门成员</p>
-          <h3 className="text-5xl font-black mt-4 relative z-10">{members.length}</h3>
-          <p className="text-blue-400 text-[10px] font-black uppercase mt-4 relative z-10 flex items-center gap-2">
+          <p className="text-slate-200 text-[10px] font-black uppercase tracking-widest relative z-10">当前部门成员</p>
+          <h3 className="text-5xl font-black mt-4 relative z-10">{memberStats.total}</h3>
+          <p className="text-sky-100 text-[10px] font-black uppercase mt-4 relative z-10 flex items-center gap-2">
             <UserCheck size={12} /> Team Members
           </p>
         </div>
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-amber-100 shadow-sm flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">组长数量</p>
-          <h3 className="text-4xl font-black mt-4 text-amber-600">{members.filter((m) => m.role === 'leader').length}</h3>
+          <h3 className="text-4xl font-black mt-4 text-amber-600">{memberStats.leaderCount}</h3>
           <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
-            <div className="h-full bg-amber-500" style={{ width: `${members.length ? (members.filter((m) => m.role === 'leader').length / members.length) * 100 : 0}%` }} />
+            <div className="h-full bg-amber-500" style={{ width: `${memberStats.total ? (memberStats.leaderCount / memberStats.total) * 100 : 0}%` }} />
           </div>
         </div>
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm col-span-2 flex items-center gap-8">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center shrink-0">
+        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-indigo-100 shadow-sm flex flex-col justify-between">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">角色结构</p>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="rounded-[1.75rem] bg-indigo-50 px-5 py-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">副组长</p>
+              <p className="mt-2 text-3xl font-black text-indigo-700">{memberStats.viceLeaderCount}</p>
+            </div>
+            <div className="rounded-[1.75rem] bg-blue-50 px-5 py-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">普通成员</p>
+              <p className="mt-2 text-3xl font-black text-blue-700">{memberStats.memberCount}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-slate-200 shadow-sm flex items-center gap-8">
+          <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-3xl flex items-center justify-center shrink-0">
             <Shield size={32} />
           </div>
           <div>
@@ -491,7 +512,7 @@ export const DepartmentMemberPage: React.FC = () => {
             <input
               type="text"
               placeholder="搜索成员名称..."
-              className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+              className="w-full pl-16 pr-8 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -499,7 +520,7 @@ export const DepartmentMemberPage: React.FC = () => {
           <div ref={departmentFilterRef} className="relative min-w-[200px]">
             <button
               type="button"
-              className="w-full px-8 pr-14 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm text-slate-700"
+              className="w-full px-8 pr-14 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm text-left outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm text-slate-700"
               onClick={() => setIsDepartmentFilterOpen((open) => !open)}
             >
               {selectedDepartment?.name || '请选择部门'}
@@ -508,7 +529,7 @@ export const DepartmentMemberPage: React.FC = () => {
               {isDepartmentFilterOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </span>
             {isDepartmentFilterOpen && (
-              <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-200/60">
+              <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-full overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white/95 backdrop-blur p-2 shadow-2xl shadow-slate-200/60">
                 <div className="max-h-72 overflow-y-auto py-1">
                   {departments.map((dept) => {
                     const isSelected = dept.id === selectedDepartmentId;
@@ -536,7 +557,7 @@ export const DepartmentMemberPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
+        <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
@@ -556,7 +577,13 @@ export const DepartmentMemberPage: React.FC = () => {
                 <tr key={member.id} className="hover:bg-slate-50 transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black shadow-inner">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-inner ${
+                        member.role === 'leader'
+                          ? 'bg-amber-50 text-amber-600'
+                          : member.role === 'vice_leader'
+                            ? 'bg-indigo-50 text-indigo-600'
+                            : 'bg-blue-50 text-blue-600'
+                      }`}>
                         {member.username[0].toUpperCase()}
                       </div>
                       <div>
@@ -566,7 +593,9 @@ export const DepartmentMemberPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-6">
-                    <span className="text-sm font-bold text-slate-600">{member.department_name}</span>
+                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
+                      {member.department_name}
+                    </span>
                   </td>
                   <td className="px-6 py-6 text-center">
                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase border transition-all ${getRoleBadgeStyle(member.role)}`}>
