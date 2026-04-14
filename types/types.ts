@@ -14,6 +14,7 @@ export interface UserInfo {
   is_active: boolean;
   role: string[];
   platform_role?: 'super_admin' | 'ordinary_admin' | 'ordinary_user';
+  must_change_password?: boolean;
   department_member_id?: number | null;
   department_id?: number | null;
   department_name?: string | null;
@@ -29,6 +30,7 @@ export interface UserImportNormalizedRow {
   department_name?: string | null;
   department_role?: 'leader' | 'vice_leader' | 'member' | null;
   is_active: boolean;
+  force_password_change?: boolean;
 }
 
 export interface UserImportRowResult {

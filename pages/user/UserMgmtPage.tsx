@@ -29,6 +29,8 @@ export const UserMgmtPage: React.FC = () => {
   const [importFileName, setImportFileName] = useState('');
   const [importCsvContent, setImportCsvContent] = useState('');
   const [importFileContentBase64, setImportFileContentBase64] = useState('');
+  const [importDefaultPassword, setImportDefaultPassword] = useState('');
+  const [importForcePasswordChange, setImportForcePasswordChange] = useState(true);
   const [importPreview, setImportPreview] = useState<UserImportPreviewResponse | null>(null);
   const [importResult, setImportResult] = useState<UserImportCommitResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -54,6 +56,8 @@ export const UserMgmtPage: React.FC = () => {
     setImportFileName('');
     setImportCsvContent('');
     setImportFileContentBase64('');
+    setImportDefaultPassword('');
+    setImportForcePasswordChange(true);
     setImportPreview(null);
     setImportResult(null);
     setImportLoading(false);
@@ -192,6 +196,8 @@ export const UserMgmtPage: React.FC = () => {
         csv_content: importCsvContent || undefined,
         file_content_base64: importFileContentBase64 || undefined,
         filename: importFileName,
+        default_password: importDefaultPassword || undefined,
+        force_password_change: importForcePasswordChange,
       });
       setImportPreview(preview);
       setImportStage('preview');
@@ -228,6 +234,8 @@ export const UserMgmtPage: React.FC = () => {
         csv_content: importCsvContent || undefined,
         file_content_base64: importFileContentBase64 || undefined,
         filename: importFileName,
+        default_password: importDefaultPassword || undefined,
+        force_password_change: importForcePasswordChange,
       });
       setImportResult(result);
       setImportStage('result');
@@ -547,6 +555,30 @@ export const UserMgmtPage: React.FC = () => {
                       <h4 className="text-xl font-black text-slate-900">1. 准备导入文件</h4>
                       <p className="text-sm text-slate-500 font-medium">下载模板后直接按示例填写即可，支持上传 `.xlsx` 或 `.csv` 文件，系统会先预校验再导入。</p>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">统一初始密码</label>
+                        <input
+                          type="password"
+                          placeholder="可选，不填则按行密码或随机密码"
+                          className="w-full px-5 py-4 rounded-2xl bg-white border border-slate-200 outline-none focus:ring-4 ring-blue-500/10 font-semibold text-slate-800"
+                          value={importDefaultPassword}
+                          onChange={(e) => setImportDefaultPassword(e.target.value)}
+                        />
+                        <p className="text-xs text-slate-400 font-medium">当某一行没有填写 `password` 时，会优先使用这里的统一初始密码。</p>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">首次登录策略</label>
+                        <button
+                          type="button"
+                          onClick={() => setImportForcePasswordChange((value) => !value)}
+                          className={`w-full rounded-2xl border px-5 py-4 text-left transition-all ${importForcePasswordChange ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-700'}`}
+                        >
+                          <span className="block text-sm font-black">{importForcePasswordChange ? '已启用首次登录强制改密' : '不强制首次登录改密'}</span>
+                          <span className="mt-1 block text-xs font-medium opacity-80">启用后，用户登录后必须先修改密码，才能继续访问其他页面。</span>
+                        </button>
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-4">
                       <button onClick={() => void handleDownloadTemplate()} className="px-6 py-4 rounded-2xl bg-white border border-slate-200 font-black text-slate-700 flex items-center gap-3 shadow-sm hover:bg-slate-50">
                         <Download size={18} />
@@ -561,7 +593,7 @@ export const UserMgmtPage: React.FC = () => {
                     <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-6">
                       <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">当前文件</p>
                       <p className="mt-3 text-lg font-black text-slate-800">{importFileName || '尚未选择文件'}</p>
-                      <p className="mt-2 text-sm text-slate-500">模板已内置示例和填写说明，支持字段：`username,password,platform_role,role_names,department_name,department_role,is_active`</p>
+                      <p className="mt-2 text-sm text-slate-500">模板已内置示例和填写说明，支持字段：`username,password,platform_role,role_names,department_name,department_role,is_active`。如果行内不填密码，可用上面的“统一初始密码”或随机密码。</p>
                     </div>
                     <button disabled={importLoading || !importFileName} onClick={() => void handlePreviewImport()} className="w-full py-5 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:opacity-50">
                       {importLoading ? <Loader2 size={20} className="animate-spin" /> : <ShieldCheck size={20} />}
@@ -576,7 +608,8 @@ export const UserMgmtPage: React.FC = () => {
                       <p>2. 推荐直接下载 Excel 模板，按示例替换数据即可；也兼容 CSV 文件。</p>
                       <p>3. 平台角色只支持 `ordinary_admin` 和 `ordinary_user`，留空默认普通用户。</p>
                       <p>4. `role_names` 仅填写已存在的普通角色，多个角色用逗号分隔；部门名称也必须已存在。</p>
-                      <p>5. 密码为空时，系统会自动生成初始密码并在导入结果中仅展示一次。</p>
+                      <p>5. 行内密码为空时，系统会优先使用“统一初始密码”；如果统一密码也为空，则自动生成随机密码并在导入结果中仅展示一次。</p>
+                      <p>6. 勾选“首次登录强制改密”后，测试账号首次登录会被要求先完成改密。</p>
                     </div>
                   </div>
                 </div>

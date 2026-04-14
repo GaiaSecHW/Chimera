@@ -149,6 +149,9 @@ const App: React.FC = () => {
   const [selectedStaticPkgIds, setSelectedStaticPkgIds] = useState<Set<string>>(new Set());
   const [packageStats, setPackageStats] = useState<PackageStats | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [forcedPasswordForm, setForcedPasswordForm] = useState({ old_password: '', new_password: '', confirm_password: '' });
+  const [forcedPasswordLoading, setForcedPasswordLoading] = useState(false);
+  const [forcedPasswordError, setForcedPasswordError] = useState<string | null>(null);
   const [dashboardServicesCount, setDashboardServicesCount] = useState(0);
   const [adminStats, setAdminStats] = useState<AdminDashboardStats | null>(null);
   const [adminStatsLoading, setAdminStatsLoading] = useState(false);
@@ -217,9 +220,13 @@ const App: React.FC = () => {
   useEffect(() => {
     if (token) {
       api.auth.validateToken()
-        .then(setUser)
+        .then((validatedUser) => {
+          setUser(validatedUser);
+          if (!validatedUser.must_change_password) {
+            fetchProjects();
+          }
+        })
         .catch(() => handleLogout());
-      fetchProjects();
       
       checkAllHealth();
       const healthInterval = setInterval(checkAllHealth, 30000);
@@ -362,6 +369,30 @@ const App: React.FC = () => {
     setProjects([]);
     setSelectedProjectId('');
     setCurrentView('dashboard');
+  };
+
+  const handleForcedPasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setForcedPasswordError(null);
+    if (forcedPasswordForm.new_password !== forcedPasswordForm.confirm_password) {
+      setForcedPasswordError('两次输入的新密码不一致');
+      return;
+    }
+    setForcedPasswordLoading(true);
+    try {
+      await api.auth.changeOwnPassword({
+        old_password: forcedPasswordForm.old_password,
+        new_password: forcedPasswordForm.new_password,
+      });
+      setForcedPasswordForm({ old_password: '', new_password: '', confirm_password: '' });
+      const refreshedUser = await api.auth.validateToken();
+      setUser(refreshedUser);
+      await fetchProjects(true);
+    } catch (err: any) {
+      setForcedPasswordError(err.message || '修改密码失败');
+    } finally {
+      setForcedPasswordLoading(false);
+    }
   };
 
   const renderContent = () => {
@@ -635,7 +666,65 @@ const App: React.FC = () => {
             handleLogout={handleLogout}
           />
           <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-            {renderContent()}
+            {user?.must_change_password ? (
+              <div className="min-h-full flex items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_30%),linear-gradient(180deg,_rgba(248,250,252,0.98),_rgba(255,255,255,1))] p-8">
+                <div className="w-full max-w-lg rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl p-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-3xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                      <Lock size={26} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900">首次登录请先修改密码</h2>
+                      <p className="mt-1 text-sm font-medium text-slate-500">账号 <span className="font-black text-slate-700">{user.username}</span> 当前被设置为首次登录强制改密，修改完成后才可继续使用系统。</p>
+                    </div>
+                  </div>
+                  {forcedPasswordError && (
+                    <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                      {forcedPasswordError}
+                    </div>
+                  )}
+                  <form onSubmit={handleForcedPasswordChange} className="mt-8 space-y-5">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">当前密码</label>
+                      <input
+                        type="password"
+                        required
+                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                        value={forcedPasswordForm.old_password}
+                        onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, old_password: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">新密码</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                        value={forcedPasswordForm.new_password}
+                        onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, new_password: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">确认新密码</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                        value={forcedPasswordForm.confirm_password}
+                        onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, confirm_password: e.target.value })}
+                      />
+                    </div>
+                    <button disabled={forcedPasswordLoading} className="w-full py-4 rounded-2xl bg-amber-600 text-white font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center">
+                      {forcedPasswordLoading ? <Loader2 className="animate-spin" size={20} /> : '修改密码并进入系统'}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ) : (
+              renderContent()
+            )}
           </div>
         </main>
         <style>{`

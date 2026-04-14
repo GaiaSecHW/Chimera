@@ -153,7 +153,7 @@ export const authApi = {
     return response.blob();
   },
 
-  previewUserImport: async (payload: { csv_content?: string; file_content_base64?: string; filename?: string }): Promise<UserImportPreviewResponse> => {
+  previewUserImport: async (payload: { csv_content?: string; file_content_base64?: string; filename?: string; default_password?: string; force_password_change?: boolean }): Promise<UserImportPreviewResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/users/import/preview`, {
       method: 'POST',
       headers: getHeaders(),
@@ -162,8 +162,17 @@ export const authApi = {
     return handleResponse(response);
   },
 
-  commitUserImport: async (payload: { csv_content?: string; file_content_base64?: string; filename?: string }): Promise<UserImportCommitResponse> => {
+  commitUserImport: async (payload: { csv_content?: string; file_content_base64?: string; filename?: string; default_password?: string; force_password_change?: boolean }): Promise<UserImportCommitResponse> => {
     const response = await fetch(`${API_BASE}/api/auth/users/import/commit`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  changeOwnPassword: async (payload: { old_password: string; new_password: string }): Promise<any> => {
+    const response = await fetch(`${API_BASE}/api/auth/users/password/self`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
