@@ -391,7 +391,6 @@ export const UserPermissionPage: React.FC = () => {
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
                 <Building2 size={14} />
-                Department Scope + Platform Role
               </div>
             </div>
           </div>
