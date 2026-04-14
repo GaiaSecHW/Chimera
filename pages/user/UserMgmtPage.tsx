@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Clock, Download, FileSpreadsheet, Key, Loader2, Plus, RefreshCw, Search, Shield, ShieldCheck, Trash2, Upload, UserCircle, Users } from 'lucide-react';
 import { authApi } from '../../clients/auth';
 import { showAlert, showConfirm } from '../../components/DialogService';
@@ -33,7 +33,10 @@ export const UserMgmtPage: React.FC = () => {
   const [importForcePasswordChange, setImportForcePasswordChange] = useState(true);
   const [importPreview, setImportPreview] = useState<UserImportPreviewResponse | null>(null);
   const [importResult, setImportResult] = useState<UserImportCommitResponse | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
 
   useEffect(() => {
     void fetchUsers();
@@ -114,15 +117,24 @@ export const UserMgmtPage: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter((u) =>
-    [
-      u.username,
-      ...(u.role || []),
-      u.department_name || '',
-      getPlatformRoleLabel((u.platform_role || 'ordinary_user') as any),
-      u.is_active ? 'active' : 'disabled',
-    ].some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredUsers = useMemo(() => {
+    const keyword = deferredSearchTerm.trim().toLowerCase();
+    return users.filter((u) =>
+      [
+        u.username,
+        ...(u.role || []),
+        u.department_name || '',
+        getPlatformRoleLabel((u.platform_role || 'ordinary_user') as any),
+        u.is_active ? 'active' : 'disabled',
+      ].some((value) => value.toLowerCase().includes(keyword))
+    );
+  }, [deferredSearchTerm, users]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const paginatedUsers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, page, pageSize]);
 
   const handleDeleteUser = async (user: UserInfo) => {
     const confirmed = await showConfirm({
@@ -260,6 +272,14 @@ export const UserMgmtPage: React.FC = () => {
     return { total, active, ordinaryAdmin, departmentBound };
   }, [users]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [deferredSearchTerm, pageSize]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
   return (
     <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.07),_transparent_24%),linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(255,255,255,1))]">
       <div className="flex justify-between items-end">
@@ -355,7 +375,7 @@ export const UserMgmtPage: React.FC = () => {
                 <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={40} /></td></tr>
               ) : filteredUsers.length === 0 ? (
                 <tr><td colSpan={5} className="py-32 text-center text-slate-400 font-bold">暂无匹配的用户数据</td></tr>
-              ) : filteredUsers.map((user) => (
+              ) : paginatedUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50 transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
@@ -423,6 +443,49 @@ export const UserMgmtPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+          {!loading && filteredUsers.length > 0 && (
+            <div className="flex flex-col gap-4 border-t border-slate-100 px-8 py-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
+                <span>每页显示</span>
+                <select
+                  value={pageSize}
+                  onChange={(event) => setPageSize(Number(event.target.value))}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>
+                  第 {page} / {totalPages} 页
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 md:justify-end">
+                <span className="text-sm font-medium text-slate-500">
+                  当前展示 {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filteredUsers.length)} / {filteredUsers.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    disabled={page <= 1}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    上一页
+                  </button>
+                  <button
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    disabled={page >= totalPages}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    下一页
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
