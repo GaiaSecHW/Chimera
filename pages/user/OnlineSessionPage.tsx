@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
-import { Globe, RefreshCw, Loader2, UserX, Monitor, Shield, Activity, Clock, Search, ExternalLink, MapPin, Hash, ShieldCheck, Zap } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Activity, Clock, Globe, Loader2, MapPin, Monitor, RefreshCw, Search, ShieldCheck, UserX, Zap } from 'lucide-react';
 import { authApi } from '../../clients/auth';
 import { showConfirm } from '../../components/DialogService';
 import { UserSession } from '../../types/types';
@@ -11,10 +10,14 @@ export const OnlineSessionPage: React.FC = () => {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
-    fetchSessions();
-    const interval = setInterval(fetchSessions, 15000); // 15秒自动同步
+    void fetchSessions();
+    const interval = setInterval(() => {
+      void fetchSessions();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -24,8 +27,8 @@ export const OnlineSessionPage: React.FC = () => {
       const data = await authApi.listOnlineSessions();
       setSessions(data || []);
       setLastRefreshed(new Date());
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -40,169 +43,298 @@ export const OnlineSessionPage: React.FC = () => {
       danger: true,
     });
     if (!confirmed) return;
+
     setIsActionLoading(true);
     try {
       await authApi.revokeUserSessions(userId);
-      fetchSessions();
-    } catch (err: any) {
-      alert(err.message);
+      await fetchSessions();
+    } catch (error: any) {
+      alert(error.message);
     } finally {
       setIsActionLoading(false);
     }
   };
 
-  const filteredSessions = sessions.filter(s => 
-    s.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.ip_address.includes(searchTerm)
+  const filteredSessions = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return sessions;
+    return sessions.filter((session) =>
+      [session.username, session.ip_address, session.user_agent || '', ...(session.role || [])]
+        .some((value) => (value || '').toLowerCase().includes(keyword))
+    );
+  }, [searchTerm, sessions]);
+
+  const roleCount = useMemo(
+    () => sessions.reduce((count, session) => count + (session.role?.length || 0), 0),
+    [sessions]
   );
 
+  const totalPages = Math.max(1, Math.ceil(filteredSessions.length / pageSize));
+  const paginatedSessions = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredSessions.slice(start, start + pageSize);
+  }, [filteredSessions, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, pageSize]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-             <div className="p-3 bg-green-600 text-white rounded-[1.25rem] shadow-xl shadow-green-500/20">
-               <Globe size={28} />
-             </div>
-             <div>
-               <h2 className="text-3xl font-black text-slate-800 tracking-tight">在线会话监控</h2>
-               <div className="flex items-center gap-2 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Real-time Session Audit & Intelligence</p>
-               </div>
-             </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden md:block">
-             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Last Update</p>
-             <p className="text-[10px] font-mono font-bold text-slate-600">{lastRefreshed.toLocaleTimeString()}</p>
-          </div>
-          <button onClick={fetchSessions} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl min-h-[180px]">
-           <Activity className="absolute right-[-10px] top-[-10px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest relative z-10">活跃人机会话</p>
-           <h3 className="text-6xl font-black mt-4 relative z-10">{sessions.length}</h3>
-           <div className="mt-4 flex items-center gap-2 text-green-400 text-[10px] font-black uppercase tracking-widest relative z-10">
-             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Monitoring Active
-           </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm col-span-3 flex items-center gap-10">
-           <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center shrink-0 shadow-inner">
-             <Monitor size={40} />
-           </div>
-           <div className="space-y-4">
-             <div>
-                <h4 className="text-lg font-black text-slate-800 tracking-tight">安全治理策略已生效</h4>
-                <p className="text-sm text-slate-400 mt-1 font-medium leading-relaxed max-w-2xl">
-                   系统自动捕获所有成功登录的 JWT 句柄。您可以根据地理位置 (IP)、终端设备标识及活跃度进行安全风险研判，必要时可执行秒级「强制下线」。
-                </p>
-             </div>
-             <div className="flex gap-4">
-                <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase">
-                   <ShieldCheck size={14} className="text-green-500" /> Identity Verified
+    <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#f0fdf4_100%)] px-6 py-8 md:px-8 xl:px-10">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 pb-24">
+        <section className="relative overflow-hidden rounded-[2rem] border border-emerald-950/10 bg-[linear-gradient(135deg,_#052e2b,_#065f46_55%,_#0f766e)] px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(6,95,70,0.9)] md:px-10">
+          <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(110,231,183,0.18),_transparent_58%)]" />
+          <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-emerald-100">
+                <Activity size={14} />
+                Session Intelligence
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-white/10 text-emerald-100 shadow-inner shadow-white/5">
+                  <Globe size={30} />
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase">
-                   <Zap size={14} className="text-amber-500" /> Adaptive Kick Enabled
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-black tracking-tight md:text-4xl">在线会话监控</h2>
+                  <p className="max-w-2xl text-sm font-medium leading-7 text-emerald-50/85">
+                    聚合当前在线用户会话、终端指纹和网络地址，便于快速研判异常登录并执行强制下线。
+                  </p>
                 </div>
-             </div>
-           </div>
-        </div>
-      </div>
+              </div>
+            </div>
 
-      <div className="space-y-4">
-        <div className="relative group">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
-          <input 
-            type="text" placeholder="快速检索在线用户名、IP 地址或终端标识..." 
-            className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
-            value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
+            <div className="flex items-center gap-3 self-start xl:self-auto">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/70">最近同步</p>
+                <p className="mt-1 text-sm font-black text-white">{lastRefreshed.toLocaleTimeString()}</p>
+              </div>
+              <button
+                onClick={() => void fetchSessions()}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                刷新
+              </button>
+            </div>
+          </div>
+        </section>
 
-        <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden min-h-[500px]">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
-              <tr>
-                <th className="px-8 py-6">在线身份与角色</th>
-                <th className="px-6 py-6">网络配置 (IP)</th>
-                <th className="px-6 py-6">设备指纹 (User-Agent)</th>
-                <th className="px-6 py-6">建立时间</th>
-                <th className="px-8 py-6 text-right">强制阻断</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading && sessions.length === 0 ? (
-                <tr><td colSpan={5} className="py-40 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={48} /></td></tr>
-              ) : filteredSessions.length > 0 ? filteredSessions.map((session, idx) => (
-                <tr key={`${session.user_id}-${idx}`} className="hover:bg-slate-50 transition-all group border-l-4 border-transparent hover:border-blue-500">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 bg-white border-2 border-slate-100 text-blue-600 rounded-2xl flex items-center justify-center font-black shadow-sm group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all">
-                        {session.username[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-800">{session.username}</p>
-                        <div className="flex gap-1.5 mt-1">
-                          {session.role?.map(r => (
-                             <span key={r} className="text-[8px] font-black uppercase text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">{r}</span>
-                          ))}
-                          {(!session.role || session.role.length === 0) && <span className="text-[8px] font-black uppercase text-slate-300 border border-slate-100 px-1.5 rounded">Guest</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2 text-xs font-mono font-black text-blue-600 bg-blue-50/50 w-fit px-2 py-1 rounded-lg">
-                        <MapPin size={12} className="text-blue-300" /> {session.ip_address}
-                      </div>
-                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter ml-1">Verified Location</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="max-w-[240px]">
-                      <p className="text-[10px] font-medium text-slate-400 line-clamp-1 italic group-hover:text-slate-600 transition-colors">"{session.user_agent}"</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="flex flex-col">
-                       <div className="flex items-center gap-2 text-[10px] font-black text-slate-700">
-                          <Clock size={12} className="text-slate-300" /> {session.login_at?.split('T')[1]?.split('.')[0] || '12:00:00'}
-                       </div>
-                       <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{session.login_at?.split('T')[0] || '2024-01-01'}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <button 
-                      onClick={() => handleKick(session.user_id, session.username)}
-                      disabled={isActionLoading}
-                      className="px-6 py-3 bg-red-50 text-red-600 rounded-2xl font-black text-[10px] uppercase hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-2 ml-auto group/kick"
-                    >
-                       <UserX size={14} className="group-hover/kick:rotate-12 transition-transform" /> 吊销会话
-                    </button>
-                  </td>
-                </tr>
-              )) : (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[1.8rem] bg-slate-950 px-6 py-6 text-white shadow-lg shadow-slate-900/10">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">在线会话</p>
+            <p className="mt-4 text-5xl font-black">{sessions.length}</p>
+            <p className="mt-4 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-emerald-300">
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Live Stream
+            </p>
+          </div>
+          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">唯一用户</p>
+            <p className="mt-4 text-4xl font-black text-slate-900">{new Set(sessions.map((session) => session.user_id)).size}</p>
+            <p className="mt-4 text-sm font-medium text-slate-500">按用户维度统计当前活跃登录主体。</p>
+          </div>
+          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">角色标签</p>
+            <p className="mt-4 text-4xl font-black text-slate-900">{roleCount}</p>
+            <p className="mt-4 text-sm font-medium text-slate-500">已附加到在线会话上的角色数量总和。</p>
+          </div>
+          <div className="rounded-[1.8rem] border border-emerald-100 bg-emerald-50/80 px-6 py-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-white text-emerald-700 shadow-sm">
+                <Zap size={22} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-500">治理能力</p>
+                <p className="mt-1 text-lg font-black text-emerald-900">支持秒级强制下线</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm font-medium leading-6 text-emerald-800/80">对疑似异常会话可直接吊销活跃 JWT，快速阻断风险扩散。</p>
+          </div>
+        </section>
+
+        <section className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-emerald-100 text-emerald-700">
+                <Search size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">检索会话</h3>
+                <p className="text-sm font-medium text-slate-500">支持按用户名、IP、角色和终端信息快速搜索。</p>
+              </div>
+            </div>
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+              匹配结果 {filteredSessions.length}
+            </div>
+          </div>
+
+          <label className="mt-5 flex items-center gap-3 rounded-[1.6rem] border border-slate-200 bg-slate-50 px-5 py-4">
+            <Search size={18} className="text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="搜索用户名、IP 地址、角色或终端标识..."
+              className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+            />
+          </label>
+        </section>
+
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-sm">
+          <div className="border-b border-slate-100 px-6 py-5 md:px-8">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-sky-50 text-sky-700">
+                  <Monitor size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">会话列表</h3>
+                  <p className="text-sm font-medium text-slate-500">展示当前在线的人机会话，包括网络信息与登录时间。</p>
+                </div>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+                <ShieldCheck size={14} />
+                Realtime Audit
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left">
+              <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
                 <tr>
-                  <td colSpan={5} className="py-40 text-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-200">
-                      <ShieldCheck size={40} />
-                    </div>
-                    <p className="text-sm font-black text-slate-300 uppercase tracking-widest">目前暂无匹配的在线会话</p>
-                  </td>
+                  <th className="px-8 py-4">在线身份</th>
+                  <th className="px-6 py-4">网络地址</th>
+                  <th className="px-6 py-4">设备指纹</th>
+                  <th className="px-6 py-4">建立时间</th>
+                  <th className="px-8 py-4 text-right">风险处置</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading && sessions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-32 text-center">
+                      <Loader2 className="mx-auto animate-spin text-emerald-600" size={38} />
+                    </td>
+                  </tr>
+                ) : filteredSessions.length > 0 ? (
+                  paginatedSessions.map((session, index) => (
+                    <tr key={`${session.user_id}-${index}`} className="transition hover:bg-emerald-50/30">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-emerald-100 font-black text-emerald-700 shadow-inner">
+                            {session.username.slice(0, 1).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900">{session.username}</p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {session.role?.length ? session.role.map((role) => (
+                                <span key={role} className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase text-slate-500">
+                                  {role}
+                                </span>
+                              )) : (
+                                <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase text-slate-400">
+                                  Guest
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="inline-flex items-center gap-2 rounded-xl bg-sky-50 px-3 py-2 text-xs font-black text-sky-700">
+                          <MapPin size={12} className="text-sky-400" />
+                          {session.ip_address}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="max-w-[280px] rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium leading-6 text-slate-500">
+                          {session.user_agent || '未知设备'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-1">
+                          <div className="inline-flex items-center gap-2 text-xs font-black text-slate-700">
+                            <Clock size={12} className="text-slate-300" />
+                            {session.login_at?.split('T')[1]?.split('.')[0] || '12:00:00'}
+                          </div>
+                          <span className="text-[11px] font-medium text-slate-400">{session.login_at?.split('T')[0] || '2024-01-01'}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <button
+                          onClick={() => void handleKick(session.user_id, session.username)}
+                          disabled={isActionLoading}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-5 py-3 text-sm font-black text-rose-600 transition hover:bg-rose-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <UserX size={15} />
+                          吊销会话
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-32 text-center">
+                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-300">
+                        <ShieldCheck size={36} />
+                      </div>
+                      <p className="mt-5 text-base font-black text-slate-500">暂无匹配的在线会话</p>
+                      <p className="mt-2 text-sm font-medium text-slate-400">可以尝试调整搜索条件，或等待下一轮自动同步。</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {!loading && filteredSessions.length > 0 && (
+            <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">
+              <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
+                <span>每页显示</span>
+                <select
+                  value={pageSize}
+                  onChange={(event) => setPageSize(Number(event.target.value))}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>
+                  第 {page} / {totalPages} 页
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 md:justify-end">
+                <span className="text-sm font-medium text-slate-500">
+                  当前展示 {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filteredSessions.length)} / {filteredSessions.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    disabled={page <= 1}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    上一页
+                  </button>
+                  <button
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    disabled={page >= totalPages}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    下一页
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

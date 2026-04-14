@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
-import { Cpu, Plus, Search, RefreshCw, Loader2, Trash2, Key, ShieldCheck, Clock, Check, Copy, AlertCircle, X, Server, Power, PowerOff, Zap } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, Copy, Cpu, Key, Loader2, Plus, Power, PowerOff, RefreshCw, Search, Server, ShieldCheck, Trash2, X, Zap } from 'lucide-react';
 import { authApi } from '../../clients/auth';
 import { showConfirm } from '../../components/DialogService';
 import { MachineToken } from '../../types/types';
@@ -14,9 +13,11 @@ export const MachineTokenPage: React.FC = () => {
   const [formData, setFormData] = useState({ machine_code: '', description: '', expires_at: '' });
   const [lastCreatedToken, setLastCreatedToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
-    fetchTokens();
+    void fetchTokens();
   }, []);
 
   const fetchTokens = async () => {
@@ -24,26 +25,26 @@ export const MachineTokenPage: React.FC = () => {
     try {
       const data = await authApi.listMachineTokens();
       setTokens(data || []);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault();
     setFormLoading(true);
     try {
-      const res = await authApi.createMachineToken({
+      const response = await authApi.createMachineToken({
         ...formData,
-        expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null
+        expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
       });
-      setLastCreatedToken(res.token || 'Token created successfully');
+      setLastCreatedToken(response.token || 'Token created successfully');
       setFormData({ machine_code: '', description: '', expires_at: '' });
-      fetchTokens();
-    } catch (err: any) {
-      alert(err.message);
+      await fetchTokens();
+    } catch (error: any) {
+      alert(error.message);
     } finally {
       setFormLoading(false);
     }
@@ -56,9 +57,9 @@ export const MachineTokenPage: React.FC = () => {
       } else {
         await authApi.enableMachineToken(token.id);
       }
-      fetchTokens();
-    } catch (err: any) {
-      alert(err.message);
+      await fetchTokens();
+    } catch (error: any) {
+      alert(error.message);
     }
   };
 
@@ -71,13 +72,14 @@ export const MachineTokenPage: React.FC = () => {
       danger: true,
     });
     if (!confirmed) return;
+
     try {
-      const res = await authApi.regenerateMachineToken(token.id);
-      setLastCreatedToken(res.token);
-      setIsCreateModalOpen(true); // 借用创建模态框显示新生成的 Token
-      fetchTokens();
-    } catch (err: any) {
-      alert(err.message);
+      const response = await authApi.regenerateMachineToken(token.id);
+      setLastCreatedToken(response.token);
+      setIsCreateModalOpen(true);
+      await fetchTokens();
+    } catch (error: any) {
+      alert(error.message);
     }
   };
 
@@ -87,10 +89,37 @@ export const MachineTokenPage: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const filteredTokens = tokens.filter(t => 
-    t.machine_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (t.description && t.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredTokens = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return tokens;
+    return tokens.filter((token) =>
+      [token.machine_code, token.description || ''].some((value) => value.toLowerCase().includes(keyword))
+    );
+  }, [searchTerm, tokens]);
+
+  const activeTokens = useMemo(
+    () => tokens.filter((token) => token.is_active).length,
+    [tokens]
   );
+
+  const permanentTokens = useMemo(
+    () => tokens.filter((token) => !token.expires_at).length,
+    [tokens]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filteredTokens.length / pageSize));
+  const paginatedTokens = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredTokens.slice(start, start + pageSize);
+  }, [filteredTokens, page, pageSize]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, pageSize]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   const handleDeleteToken = async (token: MachineToken) => {
     const confirmed = await showConfirm({
@@ -106,208 +135,359 @@ export const MachineTokenPage: React.FC = () => {
   };
 
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto custom-scrollbar">
-      <div className="flex justify-between items-end">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-             <div className="p-3 bg-slate-900 text-white rounded-2xl shadow-xl shadow-slate-900/10">
-               <Cpu size={28} />
-             </div>
-             <div>
-               <h2 className="text-3xl font-black text-slate-800 tracking-tight">机机 Token 管理</h2>
-               <p className="text-slate-500 font-medium mt-1 uppercase tracking-widest text-[10px]">Machine-to-Machine Credentials Vault</p>
-             </div>
+    <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(15,23,42,0.16),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-6 py-8 md:px-8 xl:px-10">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 pb-24">
+        <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,_#0f172a,_#1e293b_55%,_#1d4ed8)] px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(15,23,42,0.95)] md:px-10">
+          <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(147,197,253,0.18),_transparent_58%)]" />
+          <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-sky-100">
+                <ShieldCheck size={14} />
+                Machine Credential Vault
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-[1.75rem] bg-white/10 text-sky-100 shadow-inner shadow-white/5">
+                  <Cpu size={30} />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-black tracking-tight md:text-4xl">机机 Token 管理</h2>
+                  <p className="max-w-2xl text-sm font-medium leading-7 text-sky-50/85">
+                    统一管理服务间调用凭证，支持创建、启停、重新签发与撤销，便于控制节点级访问身份。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 self-start xl:self-auto">
+              <button
+                onClick={() => void fetchTokens()}
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white transition hover:bg-white/15"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                刷新
+              </button>
+              <button
+                onClick={() => { setLastCreatedToken(null); setIsCreateModalOpen(true); }}
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-900 transition hover:bg-slate-100"
+              >
+                <Plus size={16} />
+                申请新 Token
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-4">
-          <button onClick={fetchTokens} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
-            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-          </button>
-          <button onClick={() => { setLastCreatedToken(null); setIsCreateModalOpen(true); }} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-slate-900/20 hover:bg-slate-800 transition-all active:scale-95">
-            <Plus size={20} /> 申请新 Token
-          </button>
-        </div>
-      </div>
+        </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-blue-600 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
-           <Key className="absolute right-[-10px] top-[-10px] w-32 h-32 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-           <p className="text-blue-100 text-[10px] font-black uppercase tracking-widest relative z-10">已签发凭证</p>
-           <h3 className="text-5xl font-black mt-4 relative z-10">{tokens.length}</h3>
-           <p className="text-blue-200 text-[10px] font-black uppercase mt-4 relative z-10 flex items-center gap-2">
-             <ShieldCheck size={12} /> Service Verified
-           </p>
-        </div>
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm col-span-2 flex items-center gap-8">
-           <div className="w-16 h-16 bg-blue-50 text-blue-400 rounded-3xl flex items-center justify-center shrink-0">
-             <Server size={32} />
-           </div>
-           <div>
-             <h4 className="text-lg font-black text-slate-800 tracking-tight">安全调用说明</h4>
-             <p className="text-sm text-slate-400 mt-1 font-medium leading-relaxed">
-               机机 Token 专用于服务间调用。建议为每个独立节点申请唯一的 <code className="bg-slate-100 px-1.5 py-0.5 rounded font-black text-slate-600">machine_code</code>，并根据合规要求设置合理的有效期。
-             </p>
-           </div>
-        </div>
-      </div>
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[1.8rem] bg-blue-600 px-6 py-6 text-white shadow-lg shadow-blue-500/20">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-100/80">已签发凭证</p>
+            <p className="mt-4 text-5xl font-black">{tokens.length}</p>
+            <p className="mt-4 text-sm font-medium text-blue-100/80">当前已登记的全部机器凭证数量。</p>
+          </div>
+          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">活跃凭证</p>
+            <p className="mt-4 text-4xl font-black text-slate-900">{activeTokens}</p>
+            <p className="mt-4 text-sm font-medium text-slate-500">当前处于启用状态、允许服务调用的凭证。</p>
+          </div>
+          <div className="rounded-[1.8rem] border border-slate-200 bg-white/90 px-6 py-6 shadow-sm">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">永久凭证</p>
+            <p className="mt-4 text-4xl font-black text-slate-900">{permanentTokens}</p>
+            <p className="mt-4 text-sm font-medium text-slate-500">未设置过期时间、需要重点治理的常驻凭证。</p>
+          </div>
+          <div className="rounded-[1.8rem] border border-sky-100 bg-sky-50/80 px-6 py-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-white text-sky-700 shadow-sm">
+                <Server size={22} />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-500">使用建议</p>
+                <p className="mt-1 text-lg font-black text-sky-900">每个节点独立申请</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm font-medium leading-6 text-sky-800/80">建议为每个服务节点使用唯一 `machine_code`，方便审计、轮换和故障隔离。</p>
+          </div>
+        </section>
 
-      <div className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-          <input 
-            type="text" placeholder="搜索机器码或描述..." 
-            className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
-            value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
+        <section className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-blue-100 text-blue-700">
+                <Search size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">检索凭证</h3>
+                <p className="text-sm font-medium text-slate-500">支持按机器码或用途描述快速过滤。</p>
+              </div>
+            </div>
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+              匹配结果 {filteredTokens.length}
+            </div>
+          </div>
 
-        <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden min-h-[500px]">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
-              <tr>
-                <th className="px-8 py-6">机器码 / 标识</th>
-                <th className="px-6 py-6">描述</th>
-                <th className="px-6 py-6">过期时间</th>
-                <th className="px-6 py-6 text-center">状态控制</th>
-                <th className="px-8 py-6 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading && tokens.length === 0 ? (
-                <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-slate-400" size={40} /></td></tr>
-              ) : filteredTokens.map(token => (
-                <tr key={token.id} className="hover:bg-slate-50 transition-all group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 bg-slate-900 text-white rounded-xl flex items-center justify-center font-mono text-xs shadow-lg">
-                        <Key size={16} />
-                      </div>
-                      <span className="text-sm font-black text-slate-800">{token.machine_code}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-xs font-bold text-slate-500 italic max-w-[200px] truncate">
-                    {token.description || 'No description provided'}
-                  </td>
-                  <td className="px-6 py-6">
-                    <div className="flex items-center gap-2">
-                       <Clock size={12} className="text-slate-300" />
-                       <span className={`text-[10px] font-black uppercase ${!token.expires_at ? 'text-green-500' : 'text-slate-500'}`}>
-                         {token.expires_at ? token.expires_at.split('T')[0] : 'PERMANENT'}
-                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-6 text-center">
-                    <button 
-                      onClick={() => handleToggleStatus(token)}
-                      className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all flex items-center gap-2 mx-auto ${token.is_active ? 'bg-green-50 text-green-600 border-green-100 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-100' : 'bg-red-50 text-red-600 border-red-100 hover:bg-green-50 hover:text-green-600 hover:border-green-100'}`}
-                    >
-                      {token.is_active ? <><Power size={12} /> Enabled</> : <><PowerOff size={12} /> Disabled</>}
-                    </button>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                       <button 
-                         onClick={() => handleRegenerate(token)}
-                         className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-blue-600 rounded-xl transition-all shadow-sm"
-                         title="重新生成凭证值"
-                       >
-                          <Zap size={16} />
-                       </button>
-                       <button 
-                         onClick={() => void handleDeleteToken(token)}
-                         className="p-3 bg-red-50 text-red-400 border border-transparent hover:border-red-100 rounded-xl transition-all shadow-sm"
-                         title="彻底删除"
-                       >
-                          <Trash2 size={16} />
-                       </button>
-                    </div>
-                  </td>
+          <label className="mt-5 flex items-center gap-3 rounded-[1.6rem] border border-slate-200 bg-slate-50 px-5 py-4">
+            <Search size={18} className="text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="搜索机器码或描述..."
+              className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+            />
+          </label>
+        </section>
+
+        <section className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/95 shadow-sm">
+          <div className="border-b border-slate-100 px-6 py-5 md:px-8">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-[1.25rem] bg-slate-100 text-slate-700">
+                  <Key size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Token 列表</h3>
+                  <p className="text-sm font-medium text-slate-500">展示机器凭证的标识、过期策略、状态和治理操作。</p>
+                </div>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+                <ShieldCheck size={14} />
+                Credential Controls
+              </div>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left">
+              <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                <tr>
+                  <th className="px-8 py-4">机器标识</th>
+                  <th className="px-6 py-4">用途描述</th>
+                  <th className="px-6 py-4">过期策略</th>
+                  <th className="px-6 py-4 text-center">状态</th>
+                  <th className="px-8 py-4 text-right">操作</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loading && tokens.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-32 text-center">
+                      <Loader2 className="mx-auto animate-spin text-slate-500" size={38} />
+                    </td>
+                  </tr>
+                ) : filteredTokens.length > 0 ? (
+                  paginatedTokens.map((token) => (
+                    <tr key={token.id} className="transition hover:bg-blue-50/20">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-slate-900 text-white shadow-md">
+                            <Key size={16} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900">{token.machine_code}</p>
+                            <p className="mt-1 text-[11px] font-medium text-slate-400">Token ID: #{token.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="max-w-[280px] rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium leading-6 text-slate-500">
+                          {token.description || '未填写用途描述'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black ${token.expires_at ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                          {token.expires_at ? (
+                            <>
+                              <Zap size={12} className="text-amber-400" />
+                              {token.expires_at.split('T')[0]}
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck size={12} className="text-emerald-400" />
+                              PERMANENT
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <button
+                          onClick={() => void handleToggleStatus(token)}
+                          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition ${
+                            token.is_active
+                              ? 'bg-emerald-50 text-emerald-700 hover:bg-amber-50 hover:text-amber-700'
+                              : 'bg-rose-50 text-rose-700 hover:bg-emerald-50 hover:text-emerald-700'
+                          }`}
+                        >
+                          {token.is_active ? <Power size={12} /> : <PowerOff size={12} />}
+                          {token.is_active ? 'Enabled' : 'Disabled'}
+                        </button>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => void handleRegenerate(token)}
+                            className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700"
+                            title="重新生成凭证值"
+                          >
+                            <Zap size={14} />
+                            重签发
+                          </button>
+                          <button
+                            onClick={() => void handleDeleteToken(token)}
+                            className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-black text-rose-600 transition hover:bg-rose-600 hover:text-white"
+                            title="彻底删除"
+                          >
+                            <Trash2 size={14} />
+                            撤销
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-32 text-center">
+                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-300">
+                        <Key size={34} />
+                      </div>
+                      <p className="mt-5 text-base font-black text-slate-500">暂无匹配的机机凭证</p>
+                      <p className="mt-2 text-sm font-medium text-slate-400">可以尝试调整搜索条件，或先创建新的机器 Token。</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-      {/* Create Modal (Reuse for Regenerated Token Display) */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in">
-           <div className="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col">
-              <div className="p-10 pb-6 border-b border-slate-50 flex items-center justify-between">
+          {!loading && filteredTokens.length > 0 && (
+            <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">
+              <div className="flex items-center gap-3 text-sm font-medium text-slate-500">
+                <span>每页显示</span>
+                <select
+                  value={pageSize}
+                  onChange={(event) => setPageSize(Number(event.target.value))}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-500/10"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>
+                  第 {page} / {totalPages} 页
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 md:justify-end">
+                <span className="text-sm font-medium text-slate-500">
+                  当前展示 {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, filteredTokens.length)} / {filteredTokens.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    disabled={page <= 1}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    上一页
+                  </button>
+                  <button
+                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    disabled={page >= totalPages}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-600 transition hover:border-blue-200 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    下一页
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {isCreateModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/60 p-6 backdrop-blur-md animate-in fade-in">
+            <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-2xl animate-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-100 px-8 py-7">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl">
-                    {lastCreatedToken ? <ShieldCheck size={24} /> : <Plus size={24} />}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-lg">
+                    {lastCreatedToken ? <ShieldCheck size={22} /> : <Plus size={22} />}
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-800">{lastCreatedToken ? '新凭据已生成' : '申请机器 Token'}</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Automated Identity Provisioning</p>
+                    <h3 className="text-xl font-black text-slate-900">{lastCreatedToken ? '新凭据已生成' : '申请机器 Token'}</h3>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Automated Identity Provisioning</p>
                   </div>
                 </div>
-                <button onClick={() => setIsCreateModalOpen(false)} className="p-3 text-slate-300 hover:text-slate-600"><X size={28} /></button>
+                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 text-slate-300 transition hover:text-slate-600">
+                  <X size={26} />
+                </button>
               </div>
 
               {lastCreatedToken ? (
-                <div className="p-10 space-y-8 animate-in slide-in-from-bottom-2">
-                   <div className="p-6 bg-green-50 border border-green-100 rounded-[2rem] flex items-start gap-4">
-                      <ShieldCheck className="text-green-600 shrink-0 mt-1" size={20} />
-                      <div>
-                        <h4 className="text-sm font-black text-green-800">凭证托管就绪</h4>
-                        <p className="text-xs text-green-600/80 mt-1">请立即保存下方原始 Token 值，此窗口关闭后将无法再次通过界面获取。</p>
-                      </div>
-                   </div>
-                   <div className="relative group">
-                      <div className="bg-slate-900 p-8 rounded-[2rem] font-mono text-xs text-blue-300 break-all leading-relaxed shadow-inner">
-                         {lastCreatedToken}
-                      </div>
-                      <button 
-                        onClick={() => handleCopy(lastCreatedToken)}
-                        className={`absolute top-4 right-4 p-3 rounded-xl transition-all ${copied ? 'bg-green-50 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
-                      >
-                         {copied ? <Check size={18} /> : <Copy size={18} />}
-                      </button>
-                   </div>
-                   <button 
-                     onClick={() => { setLastCreatedToken(null); setIsCreateModalOpen(false); }}
-                     className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black shadow-xl hover:bg-slate-800 transition-all"
-                   >
-                     我已安全保存凭据
-                   </button>
+                <div className="space-y-6 overflow-y-auto px-8 py-8">
+                  <div className="flex items-start gap-4 rounded-[1.8rem] border border-emerald-100 bg-emerald-50 p-5">
+                    <ShieldCheck className="mt-1 shrink-0 text-emerald-600" size={20} />
+                    <div>
+                      <h4 className="text-sm font-black text-emerald-800">凭证托管就绪</h4>
+                      <p className="mt-1 text-sm font-medium leading-6 text-emerald-700/80">请立即保存下方原始 Token 值，此窗口关闭后将无法再次通过界面获取。</p>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <div className="break-all rounded-[1.8rem] bg-slate-950 p-6 font-mono text-sm leading-7 text-sky-300 shadow-inner">
+                      {lastCreatedToken}
+                    </div>
+                    <button
+                      onClick={() => handleCopy(lastCreatedToken)}
+                      className={`absolute right-4 top-4 rounded-xl p-3 transition ${copied ? 'bg-emerald-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                    >
+                      {copied ? <Check size={18} /> : <Copy size={18} />}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => { setLastCreatedToken(null); setIsCreateModalOpen(false); }}
+                    className="w-full rounded-2xl bg-slate-900 py-4 text-sm font-black text-white transition hover:bg-slate-800"
+                  >
+                    我已安全保存凭据
+                  </button>
                 </div>
               ) : (
-                <form onSubmit={handleCreate} className="p-10 space-y-6">
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">机器唯一标识码 *</label>
-                      <input 
-                        required placeholder="e.g. scanner-node-beijing-01"
-                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-slate-500/10 font-bold text-slate-800"
-                        value={formData.machine_code} onChange={e => setFormData({...formData, machine_code: e.target.value})}
-                      />
-                   </div>
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">用途描述</label>
-                      <input 
-                        placeholder="例如：分布式漏洞扫描引擎专用接入凭证"
-                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-slate-500/10 font-bold text-slate-800"
-                        value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
-                      />
-                   </div>
-                   <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">有效截止日期 (可选)</label>
-                      <input 
-                        type="date"
-                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-slate-500/10 font-bold text-slate-800"
-                        value={formData.expires_at} onChange={e => setFormData({...formData, expires_at: e.target.value})}
-                      />
-                   </div>
-                   <button disabled={formLoading} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black shadow-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-3">
-                      {formLoading ? <Loader2 className="animate-spin" size={20} /> : <Key size={20} />}
-                      提交签发申请
-                   </button>
+                <form onSubmit={handleCreate} className="space-y-6 overflow-y-auto px-8 py-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">机器唯一标识码 *</label>
+                    <input
+                      required
+                      placeholder="e.g. scanner-node-beijing-01"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      value={formData.machine_code}
+                      onChange={(event) => setFormData({ ...formData, machine_code: event.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">用途描述</label>
+                    <input
+                      placeholder="例如：分布式漏洞扫描引擎专用接入凭证"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      value={formData.description}
+                      onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">有效截止日期 (可选)</label>
+                    <input
+                      type="date"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      value={formData.expires_at}
+                      onChange={(event) => setFormData({ ...formData, expires_at: event.target.value })}
+                    />
+                  </div>
+                  <button
+                    disabled={formLoading}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {formLoading ? <Loader2 className="animate-spin" size={18} /> : <Key size={18} />}
+                    提交签发申请
+                  </button>
                 </form>
               )}
-           </div>
-        </div>
-      )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
