@@ -3,6 +3,7 @@ import { Clock, Download, FileSpreadsheet, Key, Loader2, Plus, RefreshCw, Search
 import { authApi } from '../../clients/auth';
 import { showAlert, showConfirm } from '../../components/DialogService';
 import { UserImportCommitResponse, UserImportPreviewResponse, UserInfo } from '../../types/types';
+import { getPlatformRoleLabel } from '../../utils/rbac';
 
 type ImportStage = 'upload' | 'preview' | 'result';
 
@@ -110,7 +111,13 @@ export const UserMgmtPage: React.FC = () => {
   };
 
   const filteredUsers = users.filter((u) =>
-    u.username.toLowerCase().includes(searchTerm.toLowerCase())
+    [
+      u.username,
+      ...(u.role || []),
+      u.department_name || '',
+      getPlatformRoleLabel((u.platform_role || 'ordinary_user') as any),
+      u.is_active ? 'active' : 'disabled',
+    ].some((value) => value.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleDeleteUser = async (user: UserInfo) => {
@@ -237,12 +244,20 @@ export const UserMgmtPage: React.FC = () => {
     [importResult]
   );
 
+  const userStats = useMemo(() => {
+    const total = users.length;
+    const active = users.filter((user) => user.is_active).length;
+    const ordinaryAdmin = users.filter((user) => user.platform_role === 'ordinary_admin').length;
+    const departmentBound = users.filter((user) => !!user.department_name).length;
+    return { total, active, ordinaryAdmin, departmentBound };
+  }, [users]);
+
   return (
-    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto">
+    <div className="p-10 space-y-8 animate-in fade-in duration-500 pb-24 h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.07),_transparent_24%),linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(255,255,255,1))]">
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/20">
+            <div className="p-3 bg-gradient-to-br from-blue-600 via-cyan-500 to-sky-500 text-white rounded-2xl shadow-xl shadow-blue-500/20">
               <Users size={28} />
             </div>
             <div>
@@ -252,10 +267,10 @@ export const UserMgmtPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
-          <button onClick={() => void fetchUsers()} className="p-4 bg-white border border-slate-200 text-slate-500 rounded-2xl hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+          <button onClick={() => void fetchUsers()} className="p-4 bg-white/80 backdrop-blur border border-slate-200 text-slate-500 rounded-2xl hover:bg-white transition-all shadow-sm active:scale-95">
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button onClick={openImportModal} className="bg-white text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 shadow-sm hover:bg-slate-50 transition-all active:scale-95">
+          <button onClick={openImportModal} className="bg-white/85 backdrop-blur text-slate-700 px-6 py-4 rounded-2xl font-black flex items-center gap-3 border border-slate-200 shadow-sm hover:bg-white transition-all active:scale-95">
             <Upload size={18} /> 批量导入
           </button>
           <button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
@@ -265,28 +280,41 @@ export const UserMgmtPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
+        <div className="bg-[linear-gradient(135deg,_#0f172a,_#1d4ed8_65%,_#38bdf8)] p-8 rounded-[3rem] text-white flex flex-col justify-between group overflow-hidden relative shadow-2xl">
           <Shield className="absolute right-[-20px] top-[-20px] w-32 h-32 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700" />
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest relative z-10">总用户数</p>
-          <h3 className="text-5xl font-black mt-4 relative z-10">{users.length}</h3>
-          <p className="text-blue-400 text-[10px] font-black uppercase mt-4 relative z-10 flex items-center gap-2">
+          <p className="text-slate-200 text-[10px] font-black uppercase tracking-widest relative z-10">总用户数</p>
+          <h3 className="text-5xl font-black mt-4 relative z-10">{userStats.total}</h3>
+          <p className="text-sky-100 text-[10px] font-black uppercase mt-4 relative z-10 flex items-center gap-2">
             <ShieldCheck size={12} /> Data Protected
           </p>
         </div>
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col justify-between">
+        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-emerald-100 shadow-sm flex flex-col justify-between">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">活跃账号</p>
-          <h3 className="text-4xl font-black mt-4 text-green-600">{users.filter((u) => u.is_active).length}</h3>
+          <h3 className="text-4xl font-black mt-4 text-green-600">{userStats.active}</h3>
           <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
-            <div className="h-full bg-green-500" style={{ width: `${users.length ? (users.filter((u) => u.is_active).length / users.length) * 100 : 0}%` }} />
+            <div className="h-full bg-green-500" style={{ width: `${userStats.total ? (userStats.active / userStats.total) * 100 : 0}%` }} />
           </div>
         </div>
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm col-span-2 flex items-center gap-8">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center shrink-0">
+        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-indigo-100 shadow-sm flex flex-col justify-between">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">账号分布</p>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="rounded-[1.75rem] bg-indigo-50 px-5 py-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">普通管理员</p>
+              <p className="mt-2 text-3xl font-black text-indigo-700">{userStats.ordinaryAdmin}</p>
+            </div>
+            <div className="rounded-[1.75rem] bg-blue-50 px-5 py-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">已绑定部门</p>
+              <p className="mt-2 text-3xl font-black text-blue-700">{userStats.departmentBound}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white/90 backdrop-blur p-8 rounded-[3rem] border border-slate-200 shadow-sm flex items-center gap-8">
+          <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-3xl flex items-center justify-center shrink-0">
             <Clock size={32} />
           </div>
           <div>
-            <h4 className="text-lg font-black text-slate-800">最后入库</h4>
-              <p className="text-sm text-slate-400 mt-1 font-medium">支持单个创建和 Excel/CSV 批量导入。批量导入会先预校验用户名、角色和部门归属，再执行落库。</p>
+            <h4 className="text-lg font-black text-slate-800">导入与身份治理</h4>
+            <p className="text-sm text-slate-400 mt-1 font-medium">支持单个创建和 Excel/CSV 批量导入。批量导入会先预校验用户名、角色和部门归属，再执行落库。</p>
           </div>
         </div>
       </div>
@@ -296,19 +324,19 @@ export const UserMgmtPage: React.FC = () => {
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
           <input
             type="text"
-            placeholder="搜索用户名或角色标识..."
-            className="w-full pl-16 pr-8 py-5 bg-white border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
+            placeholder="搜索用户名、部门、角色或状态..."
+            className="w-full pl-16 pr-8 py-5 bg-white/90 backdrop-blur border border-slate-200 rounded-[2.5rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
+        <div className="bg-white/90 backdrop-blur border border-slate-200 rounded-[3rem] shadow-sm overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-slate-50/50 border-b border-slate-100 font-black text-[10px] text-slate-400 uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-6">用户信息</th>
-                <th className="px-6 py-6">所属角色</th>
+                <th className="px-6 py-6">身份与归属</th>
                 <th className="px-6 py-6">注册日期</th>
                 <th className="px-6 py-6 text-center">状态</th>
                 <th className="px-8 py-6 text-right">操作</th>
@@ -317,6 +345,8 @@ export const UserMgmtPage: React.FC = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr><td colSpan={5} className="py-32 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" size={40} /></td></tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr><td colSpan={5} className="py-32 text-center text-slate-400 font-bold">暂无匹配的用户数据</td></tr>
               ) : filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50 transition-all group">
                   <td className="px-8 py-6">
@@ -331,10 +361,28 @@ export const UserMgmtPage: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-6">
-                    <div className="flex flex-wrap gap-1">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-1">
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg border uppercase ${
+                          user.platform_role === 'super_admin'
+                            ? 'bg-rose-50 text-rose-700 border-rose-100'
+                            : user.platform_role === 'ordinary_admin'
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                              : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}>
+                          {getPlatformRoleLabel((user.platform_role || 'ordinary_user') as any)}
+                        </span>
+                        {user.department_name && (
+                          <span className="text-[10px] font-black bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-lg border border-cyan-100">
+                            {user.department_name}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
                       {user.role?.length > 0 ? user.role.map((r) => (
                         <span key={r} className="text-[10px] font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg border border-blue-100 uppercase">{r}</span>
                       )) : <span className="text-[10px] font-bold text-slate-300 italic">None Assigned</span>}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-6 text-xs font-bold text-slate-500">
