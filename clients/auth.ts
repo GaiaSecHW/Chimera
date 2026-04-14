@@ -147,14 +147,14 @@ export const authApi = {
     const response = await fetch(`${API_BASE}/api/auth/users/import/template`, {
       headers: {
         ...getAuthHeaders(),
-        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Accept': 'text/csv',
       },
     });
     if (!response.ok) {
       await handleResponse(response);
     }
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
-    if (!contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+    if (!contentType.includes('text/csv')) {
       await handleResponse(response);
     }
     return response.blob();

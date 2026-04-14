@@ -313,7 +313,7 @@ export const DepartmentMemberPage: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'secflow-department-member-import-template.xlsx';
+      link.download = 'secflow-department-member-import-template.csv';
       link.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
