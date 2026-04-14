@@ -8,6 +8,11 @@ export const getHeaders = () => {
   };
 };
 
+export const getAuthHeaders = () => {
+  const token = localStorage.getItem('secflow_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
 const stringifyErrorPart = (value: any): string => {
   if (value == null) return '';
   if (typeof value === 'string') return value;

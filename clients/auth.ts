@@ -1,5 +1,5 @@
 
-import { API_BASE, handleResponse, getHeaders } from './base';
+import { API_BASE, handleResponse, getAuthHeaders, getHeaders } from './base';
 import { UserInfo, Role, UserSession, DetailedSession, MachineToken, UserImportPreviewResponse, UserImportCommitResponse } from '../types/types';
 
 export const authApi = {
@@ -145,9 +145,16 @@ export const authApi = {
 
   downloadUserImportTemplate: async (): Promise<Blob> => {
     const response = await fetch(`${API_BASE}/api/auth/users/import/template`, {
-      headers: getHeaders(),
+      headers: {
+        ...getAuthHeaders(),
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
     });
     if (!response.ok) {
+      await handleResponse(response);
+    }
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
       await handleResponse(response);
     }
     return response.blob();
