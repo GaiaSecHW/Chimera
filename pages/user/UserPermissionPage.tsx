@@ -274,12 +274,12 @@ export const UserPermissionPage: React.FC = () => {
 
   return (
     <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(245,158,11,0.14),_transparent_28%),linear-gradient(180deg,_#f8fafc_0%,_#eef4ff_100%)] px-6 py-8 md:px-8 xl:px-10">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 pb-24">
+      <div className="flex w-full flex-col gap-6 pb-24">
         <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/80 bg-slate-950 px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(15,23,42,0.9)] md:px-10">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(56,189,248,0.22),_transparent_56%)]" />
           <div className="absolute -left-16 top-0 h-40 w-40 rounded-full bg-sky-400/10 blur-3xl" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl space-y-4">
+            <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.28em] text-sky-200">
                 <Sparkles size={14} />
                 User Permission Center
