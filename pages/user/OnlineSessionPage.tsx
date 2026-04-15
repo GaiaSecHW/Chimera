@@ -85,11 +85,11 @@ export const OnlineSessionPage: React.FC = () => {
 
   return (
     <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#f0fdf4_100%)] px-6 py-8 md:px-8 xl:px-10">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-6 pb-24">
+      <div className="flex w-full flex-col gap-6 pb-24">
         <section className="relative overflow-hidden rounded-[2rem] border border-emerald-950/10 bg-[linear-gradient(135deg,_#052e2b,_#065f46_55%,_#0f766e)] px-8 py-8 text-white shadow-[0_32px_80px_-48px_rgba(6,95,70,0.9)] md:px-10">
           <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(110,231,183,0.18),_transparent_58%)]" />
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl space-y-4">
+            <div className="space-y-4 xl:max-w-[48rem] 2xl:max-w-[60rem]">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.26em] text-emerald-100">
                 <Activity size={14} />
                 Session Intelligence
