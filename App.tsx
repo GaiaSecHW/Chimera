@@ -67,6 +67,7 @@ import { ReportsPage } from './pages/pentest/ReportsPage';
 import { VulnOverviewPage } from './pages/pentest/VulnOverviewPage';
 import { VulnIntakePage } from './pages/pentest/VulnIntakePage';
 import { VulnAnalysisPage } from './pages/pentest/VulnAnalysisPage';
+import { VulnAnalysisDetailPage } from './pages/pentest/VulnAnalysisDetailPage';
 import { VulnVerificationPage } from './pages/pentest/VulnVerificationPage';
 import { VulnDecisionPage } from './pages/pentest/VulnDecisionPage';
 import { VulnQueuePage } from './pages/pentest/VulnQueuePage';
@@ -111,7 +112,7 @@ const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result',
   'pentest-report',
   'security-assessment',
-  'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-verification', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config',
+  'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-analysis-detail', 'vuln-verification', 'vuln-decision', 'vuln-queue', 'vuln-services', 'vuln-repro-config',
   'ai-agent-framework-root', 'aiwf-definitions',
   'aiwf-triggers', 'aiwf-trigger-create', 'aiwf-trigger-list',
   'aiwf-executions', 'aiwf-execution-list', 'aiwf-execution-events', 'aiwf-execution-artifacts',
@@ -551,6 +552,7 @@ const App: React.FC = () => {
       case 'vuln-overview': return <VulnOverviewPage projectId={selectedProjectId} />;
       case 'vuln-intake': return <VulnIntakePage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-analysis': return <VulnAnalysisPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
+      case 'vuln-analysis-detail': return <VulnAnalysisDetailPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-verification': return <VulnVerificationPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-decision': return <VulnDecisionPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
       case 'vuln-queue': return <VulnQueuePage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
