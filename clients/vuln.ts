@@ -112,6 +112,13 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
+  updateReceiveStatus: async (caseId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/receive/status`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    })),
+
   finishCase: async (caseId: string, payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/finish`, {
       method: 'POST',
