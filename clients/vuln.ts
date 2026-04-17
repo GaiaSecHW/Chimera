@@ -86,6 +86,14 @@ export const vulnApi = {
     return handleResponse(await fetch(`${API_BASE}/api/vuln/actions/ops/queue?${query}`, { headers: getHeaders() }));
   },
 
+  reconcileActionTimeouts: async (params: { project_id?: string } = {}): Promise<{ status: string; count: number; items: any[] }> => {
+    const query = new URLSearchParams(params as any).toString();
+    return handleResponse(await fetch(`${API_BASE}/api/vuln/actions/ops/queue/reconcile-timeouts?${query}`, {
+      method: 'POST',
+      headers: getHeaders()
+    }));
+  },
+
   listManualTasks: async (params: { project_id?: string; status?: string } = {}): Promise<{ items: any[]; total: number }> => {
     const query = new URLSearchParams(params as any).toString();
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases/ops/manual-tasks?${query}`, { headers: getHeaders() }));
