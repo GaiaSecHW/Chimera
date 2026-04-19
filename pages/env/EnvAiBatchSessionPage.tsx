@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { api } from '../../clients/api';
-import { AiAgentItem, AiBatchRound, AiBatchSession, AiBatchSessionSummary, AiBatchStreamEvent, AiHelperService } from '../../types/types';
+import { AgentResponse, AgentTraceEvent, AiAgentItem, AiBatchRound, AiBatchSession, AiBatchSessionSummary, AiBatchStreamEvent, AiHelperService } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, prettyJson, useAiHelpers } from './ai-agent/shared';
 
@@ -79,25 +79,63 @@ const readText = (value: any): string => {
   return '';
 };
 
+const getAgentResponse = (value: any): AgentResponse | null => {
+  if (value && typeof value === 'object' && value.object === 'agent.response') return value as AgentResponse;
+  if (value?.response && typeof value.response === 'object' && value.response.object === 'agent.response') return value.response as AgentResponse;
+  return null;
+};
+
 const collectBatchItemOutputs = (item: any): string[] => {
   const outputs: string[] = [];
   const directError = readText(item?.error);
   if (directError) outputs.push(`错误：${directError}`);
-  const response = item?.response || {};
-  const result = response?.result || {};
-  const resultItems = Array.isArray(result?.results) ? result.results : [];
+  const response = getAgentResponse(item?.response);
+  if (response) {
+    const outputText = readText(response.output_text);
+    const errorText = readText(response.error);
+    if (outputText) outputs.push(outputText);
+    if (!outputText && errorText) outputs.push(`错误：${errorText}`);
+    if (outputs.length > 0) return outputs;
+  }
+  const rawResponse = item?.response || {};
+  const result = rawResponse?.result || {};
+  const resultItems = Array.isArray(rawResponse?.results)
+    ? rawResponse.results
+    : (Array.isArray(result?.results) ? result.results : []);
   resultItems.forEach((resultItem: any) => {
     const output = readText(resultItem?.output);
     const error = readText(resultItem?.error);
+    const rawObject = resultItem?.raw || {};
     const fallback = readText(resultItem?.raw?.error) || readText(resultItem?.raw?.stderr) || readText(resultItem?.raw?.stdout);
     if (output) outputs.push(output);
     if (error) outputs.push(`错误：${error}`);
     if (!output && !error && fallback) outputs.push(fallback);
+    if (!output && !error && !fallback && Object.keys(rawObject).length > 0) outputs.push(prettyJson(rawObject));
   });
   if (outputs.length > 0) return outputs;
-  const fallbackOutput = readText(result?.output) || readText(response?.output) || readText(response?.error_message) || readText(response?.error);
+  const fallbackOutput = readText(rawResponse?.output)
+    || readText(result?.output)
+    || readText(rawResponse?.raw?.stdout)
+    || readText(rawResponse?.raw?.stderr)
+    || readText(rawResponse?.error_message)
+    || readText(rawResponse?.error);
   if (fallbackOutput) outputs.push(fallbackOutput);
   return outputs;
+};
+
+const collectBatchItemReasoning = (item: any): string => {
+  const response = getAgentResponse(item?.response);
+  if (!Array.isArray(response?.output)) return '';
+  return response!.output
+    .filter((part) => String(part?.type || '').toLowerCase() === 'reasoning')
+    .map((part) => readText(part?.text))
+    .join('')
+    .trim();
+};
+
+const collectBatchItemTrace = (item: any): AgentTraceEvent[] => {
+  const response = getAgentResponse(item?.response);
+  return Array.isArray(response?.trace) ? response!.trace.filter(Boolean) : [];
 };
 
 const agentLabel = (agent: AiAgentItem) => `${agent.agent_id}${agent.backend_type ? ` · ${agent.backend_type}` : ''}`;
@@ -408,11 +446,13 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
   }, [batchDetail, activeHelperKey]);
 
   const helperRounds = useMemo(() => {
-    if (!activeHelperItem) return [] as Array<{ round: AiBatchRound; result: any | null; outputs: string[] }>;
+    if (!activeHelperItem) return [] as Array<{ round: AiBatchRound; result: any | null; outputs: string[]; reasoning: string; trace: AgentTraceEvent[] }>;
     return batchRounds.map((round) => {
       const result = resolveRoundResultForHelper(round, activeHelperItem);
       const outputs = result ? collectBatchItemOutputs(result) : [];
-      return { round, result, outputs };
+      const reasoning = result ? collectBatchItemReasoning(result) : '';
+      const trace = result ? collectBatchItemTrace(result) : [];
+      return { round, result, outputs, reasoning, trace };
     });
   }, [batchRounds, activeHelperItem]);
 
@@ -751,7 +791,7 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                     会话记录（{activeHelperItem ? `${activeHelperItem.service_name} / ${activeHelperItem.agent_key}` : '未选择 Agent'}）
                   </div>
                   <div className="mt-3 space-y-3 max-h-[50vh] overflow-auto pr-1">
-                    {helperRounds.length === 0 ? <div className="text-sm text-slate-500">暂无多轮记录。</div> : helperRounds.map(({ round, result, outputs }) => (
+                    {helperRounds.length === 0 ? <div className="text-sm text-slate-500">暂无多轮记录。</div> : helperRounds.map(({ round, result, outputs, reasoning, trace }) => (
                       <div key={round.round_no} className="rounded-xl border border-slate-200 p-3">
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Round {round.round_no}</div>
                         <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -777,6 +817,28 @@ export const EnvAiBatchSessionPage: React.FC<{ projectId: string }> = ({ project
                         <div className="mt-2 text-xs text-slate-500">
                           执行状态：{result ? (result.success === true ? '成功' : result.success === false ? '失败' : '未知') : '未命中结果'}
                         </div>
+                        {reasoning ? (
+                          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">Reasoning</div>
+                            <div className="mt-2 whitespace-pre-wrap text-sm text-amber-950">{reasoning}</div>
+                          </div>
+                        ) : null}
+                        {trace.length > 0 ? (
+                          <details className="mt-3">
+                            <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看 Trace（{trace.length}）</summary>
+                            <div className="mt-2 space-y-2">
+                              {trace.map((item, index) => (
+                                <div key={item.id || `${item.category}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                                  <div className="font-semibold text-slate-900">{item.category}</div>
+                                  {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
+                                  {item.payload !== undefined ? (
+                                    <pre className="mt-2 overflow-auto rounded-lg bg-slate-950 p-3 text-[11px] text-slate-100">{prettyJson(item.payload)}</pre>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        ) : null}
                         <details className="mt-3">
                           <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">查看该 Agent 原始结果 JSON</summary>
                           <pre className="mt-2 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-100">{prettyJson(result || {})}</pre>

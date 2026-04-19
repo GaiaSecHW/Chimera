@@ -1639,11 +1639,56 @@ export interface AiSingleSession {
   vendor_last_error?: string | null;
   claude_session_id?: string | null;
   claude_workdir?: string | null;
+  last_response?: AgentResponse | null;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface AiAgentSession extends AiSingleSession {}
+
+export interface AgentTraceEvent {
+  id: string;
+  category: string;
+  message?: string;
+  severity?: string;
+  created?: number;
+  source?: string;
+  payload?: any;
+}
+
+export interface AgentResponseOutputItem {
+  type: 'message' | 'reasoning' | 'trace_summary' | string;
+  role?: string;
+  text?: string;
+}
+
+export interface AgentResponse {
+  id: string;
+  object: 'agent.response';
+  created: number;
+  agent_id?: string;
+  backend?: string;
+  session_id?: string | null;
+  mode?: 'invoke' | 'pipe' | 'pty' | string;
+  status?: 'completed' | 'in_progress' | 'failed' | string;
+  output_text?: string;
+  output?: AgentResponseOutputItem[];
+  trace?: AgentTraceEvent[];
+  trace_truncated?: boolean;
+  error?: string | null;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    reasoning_tokens?: number;
+    total_tokens?: number;
+  };
+  success?: boolean;
+  partial_success?: boolean;
+  agent_count?: number;
+  success_count?: number;
+  results?: any[];
+  session?: AiAgentSession;
+}
 
 export interface ProjectAiAgentSessionItem extends AiAgentSession {
   project_id: string;
@@ -1751,7 +1796,17 @@ export interface AiBatchSession {
 }
 
 export interface AiSessionStreamEvent {
-  type: 'start' | 'delta' | 'done' | 'error';
+  type:
+    | 'start'
+    | 'delta'
+    | 'done'
+    | 'error'
+    | 'response.created'
+    | 'response.output_text.delta'
+    | 'response.reasoning.delta'
+    | 'response.trace.item'
+    | 'response.completed'
+    | 'response.failed';
   session_id?: string;
   agent_id?: string;
   delta?: string;
@@ -1759,6 +1814,9 @@ export interface AiSessionStreamEvent {
   session?: AiAgentSession;
   result?: any;
   error_message?: string;
+  response_id?: string;
+  response?: AgentResponse;
+  item?: AgentTraceEvent;
 }
 
 export interface AiBatchStreamEvent {

@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { api } from '../../clients/api';
-import { AiAgentSession, AiHelperService, AiSessionStreamEvent } from '../../types/types';
+import { AgentResponse, AgentTraceEvent, AiAgentSession, AiHelperService, AiSessionStreamEvent } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { EmptyState, buildHelperKey, navigateToAppView, parseHelperKey, useAiHelpers } from './ai-agent/shared';
 
@@ -48,55 +48,36 @@ const pickRicherSession = (primary?: AiAgentSession | null, fallback?: AiAgentSe
   return sessionMessageScore(primary) >= sessionMessageScore(fallback) ? primary : fallback;
 };
 
+const getAgentResponse = (value: any): AgentResponse | null => {
+  if (value && typeof value === 'object' && value.object === 'agent.response') return value as AgentResponse;
+  if (value?.response && typeof value.response === 'object' && value.response.object === 'agent.response') return value.response as AgentResponse;
+  return null;
+};
+
 const extractSendResultOutput = (result: any): string => {
+  const response = getAgentResponse(result);
+  if (response) return String(response.output_text || '').trim();
   const list = Array.isArray(result?.result?.results)
     ? result.result.results
     : (Array.isArray(result?.results) ? result.results : []);
   for (const item of list) {
-    const text = String(
-      item?.output
-      || item?.raw?.output
-      || item?.raw?.raw?.stdout
-      || ''
-    ).trim();
+    const text = String(item?.output || item?.raw?.output || item?.raw?.raw?.stdout || '').trim();
     if (text) return text;
   }
   return '';
 };
 
-const extractReadableStreamDelta = (rawDelta: any): string => {
-  const text = String(rawDelta || '');
-  const trimmed = text.trim();
-  if (!trimmed) return '';
-  if (!(trimmed.startsWith('{') && trimmed.endsWith('}'))) return text;
+const extractResponseReasoning = (response?: AgentResponse | null): string =>
+  Array.isArray(response?.output)
+    ? response!.output
+        .filter((item) => String(item?.type || '').toLowerCase() === 'reasoning')
+        .map((item) => String(item?.text || ''))
+        .join('')
+        .trim()
+    : '';
 
-  try {
-    const payload = JSON.parse(trimmed);
-    if (!payload || typeof payload !== 'object') return text;
-    const eventType = String((payload as any).type || '').toLowerCase();
-    if (eventType === 'system' || eventType === 'result') return '';
-    if (eventType === 'assistant') {
-      const parts: string[] = [];
-      const content = (payload as any)?.message?.content;
-      if (Array.isArray(content)) {
-        content.forEach((item: any) => {
-          if (!item || typeof item !== 'object') return;
-          const itemType = String(item.type || '').toLowerCase();
-          if (itemType === 'text' && typeof item.text === 'string' && item.text) {
-            parts.push(item.text);
-          }
-          if (itemType === 'thinking' && typeof item.thinking === 'string' && item.thinking.trim()) {
-            parts.push(`\n<reasoning_content>\n${item.thinking}\n</reasoning_content>\n`);
-          }
-        });
-      }
-      return parts.join('');
-    }
-    return text;
-  } catch {
-    return text;
-  }
-};
+const extractResponseTrace = (response?: AgentResponse | null): AgentTraceEvent[] =>
+  Array.isArray(response?.trace) ? response!.trace.filter(Boolean) : [];
 
 const patchSessionWithOutput = (session?: AiAgentSession | null, outputText = ''): AiAgentSession | null => {
   if (!session) return null;
@@ -185,6 +166,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   const [helperSearch, setHelperSearch] = useState('');
   const [errorDialog, setErrorDialog] = useState<{ title: string; content: string } | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string>('');
+  const [currentReasoning, setCurrentReasoning] = useState('');
+  const [currentTrace, setCurrentTrace] = useState<AgentTraceEvent[]>([]);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => {
     const raw = localStorage.getItem(SESSION_AUTO_SYNC_ENABLED_KEY);
     if (raw === null) return true;
@@ -273,6 +256,12 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
   }, [sessionMode]);
 
   useEffect(() => {
+    const response = getAgentResponse(currentSession?.last_response);
+    setCurrentReasoning(extractResponseReasoning(response));
+    setCurrentTrace(extractResponseTrace(response));
+  }, [currentSession]);
+
+  useEffect(() => {
     if (!selectedHelperKey) return;
     if (!autoSyncEnabled) return;
     const { agentKey, serviceName } = parseHelperKey(selectedHelperKey);
@@ -308,6 +297,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     if (isInvokeMode) {
       const localId = `invoke-${Date.now()}`;
       setCurrentSessionId(localId);
+      setCurrentReasoning('');
+      setCurrentTrace([]);
       setCurrentSession({
         session_id: localId,
         session_mode: 'invoke',
@@ -390,6 +381,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
     setBusyAction('send');
     const messageText = message.trim();
     try {
+      setCurrentReasoning('');
+      setCurrentTrace([]);
       if (isInvokeMode) {
         const localSessionId = currentSessionId || `invoke-${Date.now()}`;
         if (!currentSessionId) setCurrentSessionId(localSessionId);
@@ -411,8 +404,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
             },
             {
               onEvent: (event: AiSessionStreamEvent) => {
-                if (event.type === 'delta') {
-                  const readableDelta = extractReadableStreamDelta(event.delta);
+                if (event.type === 'response.output_text.delta' || event.type === 'delta') {
+                  const readableDelta = String(event.delta || '');
                   if (!readableDelta) return;
                   setCurrentSession((prev) => {
                     if (!prev) return prev;
@@ -428,6 +421,32 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                     return { ...prev, messages };
                   });
                 }
+                if (event.type === 'response.reasoning.delta') {
+                  setCurrentReasoning((prev) => `${prev}${String(event.delta || '')}`);
+                }
+                if (event.type === 'response.trace.item' && event.item) {
+                  setCurrentTrace((prev) => [...prev, event.item as AgentTraceEvent]);
+                }
+                if (event.type === 'response.completed' || event.type === 'response.failed') {
+                  const response = getAgentResponse(event.response);
+                  if (response) {
+                    setCurrentReasoning(extractResponseReasoning(response));
+                    setCurrentTrace(extractResponseTrace(response));
+                    setCurrentSession((prev) => (prev ? { ...prev, last_response: response } : prev));
+                    if (event.type === 'response.failed' && !String(response.output_text || '').trim() && String(response.error || '').trim()) {
+                      setCurrentSession((prev) => {
+                        if (!prev) return prev;
+                        const messages = [...(prev.messages || [])];
+                        if (messages.length === 0 || messages[messages.length - 1].role !== 'assistant') {
+                          messages.push({ role: 'assistant', content: String(response.error || '') });
+                        } else if (!String(messages[messages.length - 1].content || '').trim()) {
+                          messages[messages.length - 1] = { ...messages[messages.length - 1], content: String(response.error || '') };
+                        }
+                        return { ...prev, messages };
+                      });
+                    }
+                  }
+                }
               },
             }
           );
@@ -442,10 +461,16 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
             }
           );
           const outputText = extractSendResultOutput(result);
+          const response = getAgentResponse(result);
+          setCurrentReasoning(extractResponseReasoning(response));
+          setCurrentTrace(extractResponseTrace(response));
           setCurrentSession((prev) => {
             const base = prev
               ? { ...prev, messages: [...(prev.messages || [])] }
               : { session_id: localSessionId, session_mode: 'invoke', status: 'ready', messages: [] as Array<{ role: string; content: string }> };
+            if (response) {
+              (base as AiAgentSession).last_response = response;
+            }
             base.messages = [...(base.messages || []), { role: 'user', content: messageText }];
             const patched = patchSessionWithOutput(base as AiAgentSession, outputText);
             return patched;
@@ -471,8 +496,8 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
           messageText,
           {
             onEvent: (event: AiSessionStreamEvent) => {
-              if (event.type === 'delta') {
-                const readableDelta = extractReadableStreamDelta(event.delta);
+              if (event.type === 'response.output_text.delta' || event.type === 'delta') {
+                const readableDelta = String(event.delta || '');
                 if (!readableDelta) return;
                 setCurrentSession((prev) => {
                   if (!prev) return prev;
@@ -488,9 +513,23 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                   return { ...prev, messages };
                 });
               }
-              if (event.type === 'done' && event.session) {
+              if (event.type === 'response.reasoning.delta') {
+                setCurrentReasoning((prev) => `${prev}${String(event.delta || '')}`);
+              }
+              if (event.type === 'response.trace.item' && event.item) {
+                setCurrentTrace((prev) => [...prev, event.item as AgentTraceEvent]);
+              }
+              if ((event.type === 'response.completed' || event.type === 'response.failed') && event.session) {
                 latestSession = event.session;
                 setCurrentSession(event.session);
+              }
+              if (event.type === 'response.completed' || event.type === 'response.failed') {
+                const response = getAgentResponse(event.response);
+                if (response) {
+                  setCurrentReasoning(extractResponseReasoning(response));
+                  setCurrentTrace(extractResponseTrace(response));
+                  setCurrentSession((prev) => (prev ? { ...prev, last_response: response } : prev));
+                }
               }
             },
           }
@@ -499,7 +538,10 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
       } else {
         const result = await api.environment.sendAiHelperSessionMessage(projectId, selectedHelper.agent_key, selectedHelper.service_name, currentSessionId, messageText);
         const outputText = extractSendResultOutput(result);
-        const patchedSession = patchSessionWithOutput(result.session, outputText);
+        const response = getAgentResponse(result);
+        setCurrentReasoning(extractResponseReasoning(response));
+        setCurrentTrace(extractResponseTrace(response));
+        const patchedSession = patchSessionWithOutput((result as AgentResponse)?.session, outputText);
         setCurrentSession(patchedSession);
         await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name, { silent: false, preferredSession: patchedSession });
         setMessage('');
@@ -772,25 +814,49 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 </div>
 
                 {currentSession ? (
-                  <div className="rounded-xl border border-slate-200 p-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="text-sm font-black text-slate-900">当前会话消息</div>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{(currentSession.messages || []).length}</span>
-                    </div>
-                    <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
-                      {(currentSession.messages || []).map((item, index) => (
-                        <div key={`${item.role}-${index}`} className={`rounded-lg border px-3 py-2 text-sm ${item.role === 'assistant' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 bg-blue-50'}`}>
-                          <div className="mb-1 flex items-center gap-2">
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${item.role === 'assistant' ? 'bg-slate-200 text-slate-700' : 'bg-blue-200 text-blue-700'}`}>
-                              {item.role}
-                            </span>
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-slate-200 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="text-sm font-black text-slate-900">当前会话消息</div>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{(currentSession.messages || []).length}</span>
+                      </div>
+                      <div className="space-y-2 max-h-[560px] overflow-auto pr-1">
+                        {(currentSession.messages || []).map((item, index) => (
+                          <div key={`${item.role}-${index}`} className={`rounded-lg border px-3 py-2 text-sm ${item.role === 'assistant' ? 'border-slate-200 bg-slate-50' : 'border-blue-200 bg-blue-50'}`}>
+                            <div className="mb-1 flex items-center gap-2">
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${item.role === 'assistant' ? 'bg-slate-200 text-slate-700' : 'bg-blue-200 text-blue-700'}`}>
+                                {item.role}
+                              </span>
+                            </div>
+                            {item.role === 'assistant'
+                              ? <MarkdownContent content={String(item.content || '')} />
+                              : <div className="whitespace-pre-wrap">{item.content}</div>}
                           </div>
-                          {item.role === 'assistant'
-                            ? <MarkdownContent content={String(item.content || '')} />
-                            : <div className="whitespace-pre-wrap">{item.content}</div>}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
+                    {currentReasoning ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                        <div className="text-xs font-black uppercase tracking-[0.16em] text-amber-700">当前轮思考</div>
+                        <div className="mt-2 whitespace-pre-wrap text-sm text-amber-950">{currentReasoning}</div>
+                      </div>
+                    ) : null}
+                    {currentTrace.length > 0 ? (
+                      <div className="rounded-xl border border-slate-200 p-3">
+                        <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">当前轮 Trace</div>
+                        <div className="mt-2 max-h-[240px] space-y-2 overflow-auto pr-1">
+                          {currentTrace.map((item, index) => (
+                            <div key={item.id || `${item.category}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700">
+                              <div className="font-semibold text-slate-900">{item.category}</div>
+                              {item.message ? <div className="mt-1 whitespace-pre-wrap">{item.message}</div> : null}
+                              {item.payload !== undefined ? (
+                                <pre className="mt-2 overflow-auto rounded bg-slate-950 p-2 text-[11px] text-slate-100">{JSON.stringify(item.payload, null, 2)}</pre>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ) : <EmptyState text="还没有选中的会话消息。" />}
               </div>

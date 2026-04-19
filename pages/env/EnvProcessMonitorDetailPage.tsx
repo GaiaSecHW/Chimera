@@ -212,6 +212,11 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
 
   const selectedService = useMemo(() => nodes.find((item) => `${item.agent_key}:${item.service_name}` === selectedServiceKey) || null, [nodes, selectedServiceKey]);
   const treeNodes = useMemo(() => buildProcessTree(processes), [processes]);
+  const allProcessPids = useMemo(() => Array.from(new Set(processes.map((item) => item.pid).filter((pid) => Number.isFinite(pid)))), [processes]);
+  const isAllProcessesSelected = useMemo(
+    () => allProcessPids.length > 0 && allProcessPids.every((pid) => selectedPids.has(pid)),
+    [allProcessPids, selectedPids],
+  );
 
   const loadNodes = async () => {
     if (!projectId) {
@@ -413,6 +418,14 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
     });
   };
 
+  const toggleSelectAllPids = () => {
+    setSelectedPids((prev) => {
+      if (!allProcessPids.length) return new Set();
+      if (allProcessPids.every((pid) => prev.has(pid))) return new Set();
+      return new Set(allProcessPids);
+    });
+  };
+
   const proc = processDetailData?.process || {};
   const procEntries = processDetailData?.proc_entries || {};
   const procTextSections = [
@@ -476,14 +489,24 @@ export const EnvProcessMonitorDetailPage: React.FC<{ projectId: string; initialS
                 ? `${selectedService.agent_hostname || selectedService.agent_key} / ${selectedService.service_name} / 节点ID: ${selectedService.agent_key}`
                 : '未选择节点'}
             </div>
-            <button
-              onClick={() => void openSyncPreview({ mode: 'pid_files', pids: Array.from(selectedPids) })}
-              disabled={syncing || !selectedService || selectedPids.size === 0}
-              className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center gap-2"
-            >
-              {syncing ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
-              同步选中进程 ({selectedPids.size})
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleSelectAllPids}
+                disabled={loadingProcesses || !selectedService || allProcessPids.length === 0}
+                className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center gap-2 hover:bg-slate-50"
+              >
+                {isAllProcessesSelected ? <Square size={14} /> : <CheckSquare size={14} />}
+                {isAllProcessesSelected ? '清空全部选择' : `全选全部进程 (${allProcessPids.length})`}
+              </button>
+              <button
+                onClick={() => void openSyncPreview({ mode: 'pid_files', pids: Array.from(selectedPids) })}
+                disabled={syncing || !selectedService || selectedPids.size === 0}
+                className="px-3 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase tracking-wider disabled:opacity-50 flex items-center gap-2"
+              >
+                {syncing ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
+                同步选中进程 ({selectedPids.size})
+              </button>
+            </div>
           </div>
 
           <div className="relative" style={{ height: '68vh' }}>

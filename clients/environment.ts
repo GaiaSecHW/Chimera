@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders, xhrUpload, XhrUploadProgress, fetchWithRetry } from './base';
-import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics, ProcessMonitorNode, ProcessItem, ProcessSyncCandidateTreeNode, ProcessSyncPreviewResponse, ProcessSyncTaskDetailResponse, ProcessSyncTaskHistoryItem } from '../types/types';
+import { Agent, AgentStats, EnvTemplate, AsyncTask, TaskLog, AgentService, Workspace, DaemonServicesResponse, DaemonServiceLogs, AgentTtydConnectionInfo, AgentIngressRouteInfo, AiHelperService, AiHelperRuntimeEnv, AiAgentItem, AiAgentSession, AiBatchSession, AiBatchRound, AiBatchSessionSummary, ProjectAiAgentItem, AiAgentLlmProviderSummary, AiAgentLlmProviderDetail, AiAgentLlmApplyResult, AiAgentLlmBatchApplyResult, AiAgentBatchConfigureResult, AiAgentLlmConfigDraft, TemplateLlmProviderSummary, TemplateLlmProviderDetail, TemplateLlmBindingPreview, TemplateLlmProviderBinding, TemplateComposeSourceInfo, AiSessionStreamEvent, AiBatchStreamEvent, ProjectAiAgentSessionGlobalListResponse, ProjectAiAgentSessionBatchTerminateResult, ProjectAiAgentSessionTerminateTarget, AgentStatusEvent, AgentDiagnostics, ProcessMonitorNode, ProcessItem, ProcessSyncCandidateTreeNode, ProcessSyncPreviewResponse, ProcessSyncTaskDetailResponse, ProcessSyncTaskHistoryItem, AgentResponse } from '../types/types';
 import { trackUploadTask } from '../services/uploadCenter';
 
 const normalizeTask = (raw: any): AsyncTask => ({
@@ -746,7 +746,7 @@ export const environmentApi = {
   deleteAiHelperSession: async (projectId: string, agentKey: string, serviceName: string, sessionId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions/${encodeURIComponent(sessionId)}?project_id=${encodeURIComponent(projectId)}`, { method: 'DELETE', headers: getHeaders(), body: JSON.stringify({ project_id: projectId }) })),
 
-  sendAiHelperSessionMessage: async (projectId: string, agentKey: string, serviceName: string, sessionId: string, content: string): Promise<any> =>
+  sendAiHelperSessionMessage: async (projectId: string, agentKey: string, serviceName: string, sessionId: string, content: string): Promise<AgentResponse> =>
     handleResponse(await fetch(`${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/sessions/${encodeURIComponent(sessionId)}/messages?project_id=${encodeURIComponent(projectId)}`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ project_id: projectId, role: 'user', content }) })),
 
   sendAiHelperSessionMessageStream: async (
@@ -804,7 +804,7 @@ export const environmentApi = {
       agent_ids?: string[];
       messages?: Array<{ role: string; content: string }>;
     }
-  ): Promise<any> =>
+  ): Promise<AgentResponse> =>
     handleResponse(await fetch(
       `${API_BASE}/api/agent/ai-helpers/${encodeURIComponent(agentKey)}/${encodeURIComponent(serviceName)}/invoke?project_id=${encodeURIComponent(projectId)}`,
       { method: 'POST', headers: getHeaders(), body: JSON.stringify({ ...payload, project_id: projectId }) }
