@@ -336,9 +336,20 @@ const App: React.FC = () => {
     try {
       if (refresh) setIsRefreshing(true);
       const data = await api.projects.list();
-      setProjects(data.projects || []);
-      if (data.projects && data.projects.length > 0 && !selectedProjectId) {
-        setSelectedProjectId(data.projects[0].id);
+      const nextProjects = data.projects || [];
+      setProjects(nextProjects);
+      if (nextProjects.length > 0) {
+        const storedProjectId = localStorage.getItem('last_project_id') || '';
+        const hasSelected = !!selectedProjectId && nextProjects.some((project) => project.id === selectedProjectId);
+        const hasStored = !!storedProjectId && nextProjects.some((project) => project.id === storedProjectId);
+        const resolvedProjectId = hasSelected
+          ? selectedProjectId
+          : hasStored
+            ? storedProjectId
+            : nextProjects[0].id;
+        if (resolvedProjectId && resolvedProjectId !== selectedProjectId) {
+          setSelectedProjectId(resolvedProjectId);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch projects", err);

@@ -45,7 +45,12 @@ const pickRicherSession = (primary?: AiAgentSession | null, fallback?: AiAgentSe
   if (!primary && !fallback) return null;
   if (!primary) return fallback || null;
   if (!fallback) return primary;
-  return sessionMessageScore(primary) >= sessionMessageScore(fallback) ? primary : fallback;
+  const preferred = sessionMessageScore(primary) >= sessionMessageScore(fallback) ? primary : fallback;
+  const alternative = preferred === primary ? fallback : primary;
+  if (!preferred?.last_response && alternative?.last_response) {
+    return { ...preferred, last_response: alternative.last_response };
+  }
+  return preferred;
 };
 
 const getAgentResponse = (value: any): AgentResponse | null => {
@@ -528,6 +533,7 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
                 if (response) {
                   setCurrentReasoning(extractResponseReasoning(response));
                   setCurrentTrace(extractResponseTrace(response));
+                  latestSession = latestSession ? { ...latestSession, last_response: response } : latestSession;
                   setCurrentSession((prev) => (prev ? { ...prev, last_response: response } : prev));
                 }
               }
@@ -535,22 +541,35 @@ export const EnvAiSessionPage: React.FC<{ projectId: string }> = ({ projectId })
           }
         );
         if (latestSession) setCurrentSession(latestSession);
+        setMessage('');
+        await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name, { silent: false, preferredSession: latestSession });
+        notify('消息已发送', 'success');
+        return;
       } else {
         const result = await api.environment.sendAiHelperSessionMessage(projectId, selectedHelper.agent_key, selectedHelper.service_name, currentSessionId, messageText);
         const outputText = extractSendResultOutput(result);
         const response = getAgentResponse(result);
         setCurrentReasoning(extractResponseReasoning(response));
         setCurrentTrace(extractResponseTrace(response));
-        const patchedSession = patchSessionWithOutput((result as AgentResponse)?.session, outputText);
+        const localBaseSession: AiAgentSession = currentSession
+          ? { ...currentSession, messages: [...(currentSession.messages || [])] }
+          : {
+              session_id: currentSessionId,
+              session_mode: sessionMode,
+              status: 'ready',
+              messages: [],
+            };
+        localBaseSession.messages = [...(localBaseSession.messages || []), { role: 'user', content: messageText }];
+        const patchedSessionBase = patchSessionWithOutput(localBaseSession, outputText) || localBaseSession;
+        const patchedSession: AiAgentSession = response
+          ? { ...patchedSessionBase, last_response: response }
+          : patchedSessionBase;
         setCurrentSession(patchedSession);
         await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name, { silent: false, preferredSession: patchedSession });
         setMessage('');
         notify('消息已发送', 'success');
         return;
       }
-      setMessage('');
-      await loadHelperData(selectedHelper.agent_key, selectedHelper.service_name, { silent: false });
-      notify('消息已发送', 'success');
     } catch (error: any) {
       notify(`发送消息失败: ${error?.message || error}`, 'error');
     } finally {
