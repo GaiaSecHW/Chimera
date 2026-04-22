@@ -121,6 +121,74 @@ const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'aiwf-scheduler', 'aiwf-worker-list', 'aiwf-worker-control'
 ]);
 
+type TopLevelNavKey = 'dashboard' | 'projects' | 'environment' | 'workflow' | 'security' | 'system';
+
+const getTopLevelNavForView = (view: string): TopLevelNavKey => {
+  if (view === 'dashboard') return 'dashboard';
+
+  if (
+    view === 'project-mgmt' ||
+    view === 'project-detail' ||
+    view === 'project-file-explorer' ||
+    view === 'static-packages' ||
+    view === 'static-package-detail' ||
+    view === 'deploy-script-mgmt' ||
+    view === 'public-resource-management' ||
+    view === 'public-resource-pvc-management' ||
+    view === 'public-resource-task-management' ||
+    view === 'pvc-management' ||
+    view.startsWith('test-input-')
+  ) {
+    return 'projects';
+  }
+
+  if (view.startsWith('env-')) {
+    return 'environment';
+  }
+
+  if (view.startsWith('workflow-') || view.startsWith('aiwf-') || view === 'ai-agent-framework-root') {
+    return 'workflow';
+  }
+
+  if (
+    view === 'engine-validation' ||
+    view === 'security-assessment' ||
+    view === 'vuln-engine' ||
+    view.startsWith('vuln-') ||
+    view.startsWith('pentest-') ||
+    view.startsWith('system-analysis-')
+  ) {
+    return 'security';
+  }
+
+  return 'system';
+};
+
+const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | null): string => {
+  const access = getUserAccess(user);
+
+  switch (nav) {
+    case 'dashboard':
+      return 'dashboard';
+    case 'projects':
+      return 'project-mgmt';
+    case 'environment':
+      return 'env-agent';
+    case 'workflow':
+      return 'workflow-apps';
+    case 'security':
+      return 'vuln-overview';
+    case 'system':
+      if (access.canAccessAdminDashboard) return 'admin-dashboard';
+      if (access.canAccessConfigCenter) return 'config-center-llm';
+      if (access.canAccessUserCenter) return String(getUserCenterDefaultView(user));
+      return 'sys-settings';
+    default:
+      return 'dashboard';
+  }
+};
+
+
 const App: React.FC = () => {
   const queryParams = new URLSearchParams(window.location.search);
   const isServiceTerminalWindow = queryParams.get('service_terminal') === '1';
@@ -141,7 +209,6 @@ const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['test-input', 'pentest-root', 'pentest-system', 'system-analysis-runtime-root', 'env-mgmt', 'env-ai-agent-root', 'base-mgmt', 'pentest-exec', 'pentest-exec-b2s-root', 'user-mgmt-root', 'org-mgmt-root', 'workflow-root', 'vuln-root', 'ai-agent-framework-root']));
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
   // Data States
@@ -266,6 +333,7 @@ const App: React.FC = () => {
   // UID=1 is always admin, or has admin role
   const userAccess = getUserAccess(user);
   const isAdmin = userAccess.canAccessAdminDashboard;
+  const activeTopLevelNav = getTopLevelNavForView(String(currentView));
 
   const fetchAdminStats = async () => {
     if (!user || !isAdmin) return;
@@ -646,104 +714,108 @@ const App: React.FC = () => {
 
   return (
     <UploadCenterProvider>
-      <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden font-sans">
-        <Sidebar 
+      <div className="flex h-screen flex-col bg-slate-50 text-slate-900 overflow-hidden font-sans">
+        <Header 
           user={user} 
-          currentView={currentView} 
-          hasSelectedProject={!!selectedProjectId}
-          isSidebarCollapsed={isSidebarCollapsed} 
-          setIsSidebarCollapsed={setIsSidebarCollapsed} 
-          expandedMenus={expandedMenus} 
-          setExpandedMenus={setExpandedMenus} 
-          setCurrentView={setCurrentView} 
+          currentTopLevelNav={activeTopLevelNav}
+          onSelectTopLevelNav={(nav) => setCurrentView(getTopLevelDefaultView(nav, user))}
+          projects={projects} 
+          selectedProjectId={selectedProjectId} 
+          setSelectedProjectId={setSelectedProjectId} 
+          isProjectDropdownOpen={isProjectDropdownOpen} 
+          setIsProjectDropdownOpen={setIsProjectDropdownOpen} 
+          searchQuery={searchQuery} 
+          setSearchQuery={setSearchQuery} 
+          fetchProjects={fetchProjects} 
+          isRefreshing={isRefreshing}
+          setCurrentView={setCurrentView}
           handleLogout={handleLogout}
-          resourceHealth={resourceServiceHealthy}
-          staticPackageHealth={staticPackageHealthy}
-          projectHealth={projectServiceHealthy}
-          envHealth={envServiceHealthy}
-          codeAuditHealth={codeAuditServiceHealthy}
-          workflowHealth={workflowServiceHealthy}
-          vulnHealth={vulnServiceHealthy}
-          configCenterHealth={configCenterServiceHealthy}
-          aiAgentFrameworkHealth={aiAgentFrameworkHealthy}
         />
-        <main className="flex-1 flex flex-col min-w-0">
-          <Header 
+
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <Sidebar 
             user={user} 
-            projects={projects} 
-            selectedProjectId={selectedProjectId} 
-            setSelectedProjectId={setSelectedProjectId} 
-            isProjectDropdownOpen={isProjectDropdownOpen} 
-            setIsProjectDropdownOpen={setIsProjectDropdownOpen} 
-            searchQuery={searchQuery} 
-            setSearchQuery={setSearchQuery} 
-            fetchProjects={fetchProjects} 
-            isRefreshing={isRefreshing}
-            setCurrentView={setCurrentView}
-            handleLogout={handleLogout}
+            currentView={currentView} 
+            activeTopLevelNav={activeTopLevelNav}
+            hasSelectedProject={!!selectedProjectId}
+            isSidebarCollapsed={isSidebarCollapsed} 
+            setIsSidebarCollapsed={setIsSidebarCollapsed} 
+            setCurrentView={setCurrentView} 
+            resourceHealth={resourceServiceHealthy}
+            staticPackageHealth={staticPackageHealthy}
+            projectHealth={projectServiceHealthy}
+            envHealth={envServiceHealthy}
+            codeAuditHealth={codeAuditServiceHealthy}
+            workflowHealth={workflowServiceHealthy}
+            vulnHealth={vulnServiceHealthy}
+            configCenterHealth={configCenterServiceHealthy}
+            aiAgentFrameworkHealth={aiAgentFrameworkHealthy}
           />
-          <div className="flex-1 overflow-y-auto custom-scrollbar relative">
-            {user?.must_change_password ? (
-              <div className="min-h-full flex items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_30%),linear-gradient(180deg,_rgba(248,250,252,0.98),_rgba(255,255,255,1))] p-8">
-                <div className="w-full max-w-lg rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl p-10">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-3xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
-                      <Lock size={26} />
+
+          <main className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+              {user?.must_change_password ? (
+                <div className="min-h-full flex items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_30%),linear-gradient(180deg,_rgba(248,250,252,0.98),_rgba(255,255,255,1))] p-8">
+                  <div className="w-full max-w-lg rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl p-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-3xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                        <Lock size={26} />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-black text-slate-900">首次登录请先修改密码</h2>
+                        <p className="mt-1 text-sm font-medium text-slate-500">账号 <span className="font-black text-slate-700">{user.username}</span> 当前被设置为首次登录强制改密，修改完成后才可继续使用系统。</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-black text-slate-900">首次登录请先修改密码</h2>
-                      <p className="mt-1 text-sm font-medium text-slate-500">账号 <span className="font-black text-slate-700">{user.username}</span> 当前被设置为首次登录强制改密，修改完成后才可继续使用系统。</p>
-                    </div>
+                    {forcedPasswordError && (
+                      <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                        {forcedPasswordError}
+                      </div>
+                    )}
+                    <form onSubmit={handleForcedPasswordChange} className="mt-8 space-y-5">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">当前密码</label>
+                        <input
+                          type="password"
+                          required
+                          className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                          value={forcedPasswordForm.old_password}
+                          onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, old_password: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">新密码</label>
+                        <input
+                          type="password"
+                          required
+                          minLength={6}
+                          className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                          value={forcedPasswordForm.new_password}
+                          onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, new_password: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">确认新密码</label>
+                        <input
+                          type="password"
+                          required
+                          minLength={6}
+                          className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                          value={forcedPasswordForm.confirm_password}
+                          onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, confirm_password: e.target.value })}
+                        />
+                      </div>
+                      <button disabled={forcedPasswordLoading} className="w-full py-4 rounded-2xl bg-amber-600 text-white font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center">
+                        {forcedPasswordLoading ? <Loader2 className="animate-spin" size={20} /> : '修改密码并进入系统'}
+                      </button>
+                    </form>
                   </div>
-                  {forcedPasswordError && (
-                    <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-                      {forcedPasswordError}
-                    </div>
-                  )}
-                  <form onSubmit={handleForcedPasswordChange} className="mt-8 space-y-5">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">当前密码</label>
-                      <input
-                        type="password"
-                        required
-                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
-                        value={forcedPasswordForm.old_password}
-                        onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, old_password: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">新密码</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={6}
-                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
-                        value={forcedPasswordForm.new_password}
-                        onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, new_password: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">确认新密码</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={6}
-                        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
-                        value={forcedPasswordForm.confirm_password}
-                        onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, confirm_password: e.target.value })}
-                      />
-                    </div>
-                    <button disabled={forcedPasswordLoading} className="w-full py-4 rounded-2xl bg-amber-600 text-white font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center">
-                      {forcedPasswordLoading ? <Loader2 className="animate-spin" size={20} /> : '修改密码并进入系统'}
-                    </button>
-                  </form>
                 </div>
-              </div>
-            ) : (
-              renderContent()
-            )}
-          </div>
-        </main>
+              ) : (
+                renderContent()
+              )}
+            </div>
+          </main>
+        </div>
         <style>{`
           .custom-scrollbar::-webkit-scrollbar { width: 6px; } 
           .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
