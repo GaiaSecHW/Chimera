@@ -1,0 +1,85 @@
+import React, { useMemo, useState } from 'react';
+import { api } from '../../clients/api';
+
+interface Props {
+  projectId: string;
+}
+
+export const B2STaskCreatePage: React.FC<Props> = ({ projectId }) => {
+  const executionApi = api.domains.execution;
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState(5);
+  const [elfLines, setElfLines] = useState('');
+  const [subdir, setSubdir] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
+  const parsedElfTasks = useMemo(() => {
+    return elfLines
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((elfPath) => ({
+        elf_path: elfPath,
+        file_list: [],
+        output_subdir: subdir || undefined,
+        metadata: {},
+      }));
+  }, [elfLines, subdir]);
+
+  const onSubmit = async () => {
+    setError('');
+    setResult('');
+    if (!projectId) {
+      setError('请选择项目');
+      return;
+    }
+    if (!name.trim()) {
+      setError('请输入任务名称');
+      return;
+    }
+    if (parsedElfTasks.length === 0) {
+      setError('请至少输入一个ELF路径');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const resp = await executionApi.binaryToSource.createTask(projectId, {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        priority,
+        tags: ['reverse', 'binary-to-source'],
+        elf_tasks: parsedElfTasks,
+      });
+      setResult(`创建成功: ${resp.task_id}`);
+    } catch (e: any) {
+      setError(e?.message || '创建失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="p-4 space-y-3">
+      <h2 className="text-sm font-bold text-slate-800">代码逆向还原引擎 / 创建任务</h2>
+      <div className="grid grid-cols-4 gap-2 text-xs">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称" className="col-span-2 px-2 py-2 border rounded" />
+        <input value={priority} onChange={(e) => setPriority(Number(e.target.value) || 5)} placeholder="优先级" className="px-2 py-2 border rounded" />
+        <input value={subdir} onChange={(e) => setSubdir(e.target.value)} placeholder="输出子目录(可选)" className="px-2 py-2 border rounded" />
+      </div>
+      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="描述(可选)" className="w-full px-2 py-2 border rounded text-xs" />
+      <textarea value={elfLines} onChange={(e) => setElfLines(e.target.value)} rows={10} placeholder="每行一个 ELF 绝对路径" className="w-full px-2 py-2 border rounded text-xs font-mono" />
+      <div className="flex items-center gap-2">
+        <button onClick={() => void onSubmit()} disabled={submitting} className="px-3 py-1.5 rounded bg-blue-600 text-white text-xs font-semibold disabled:opacity-60">
+          {submitting ? '提交中...' : '提交任务'}
+        </button>
+        <span className="text-xs text-slate-500">共 {parsedElfTasks.length} 个 ELF</span>
+      </div>
+      {error && <div className="text-xs text-red-600">{error}</div>}
+      {result && <div className="text-xs text-green-700">{result}</div>}
+    </div>
+  );
+};

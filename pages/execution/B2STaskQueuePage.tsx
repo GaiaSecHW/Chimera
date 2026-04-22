@@ -1,0 +1,58 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { B2STask } from '../../clients/binaryToSource';
+import { api } from '../../clients/api';
+import { B2SCompactTable } from './B2SCompactTable';
+import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
+
+interface Props {
+  projectId: string;
+}
+
+export const B2STaskQueuePage: React.FC<Props> = ({ projectId }) => {
+  const executionApi = api.domains.execution;
+  const [items, setItems] = useState<B2STask[]>([]);
+  const [error, setError] = useState<string>('');
+
+  const load = async () => {
+    if (!projectId) return;
+    setError('');
+    try {
+      const [running, pending] = await Promise.all([
+        executionApi.binaryToSource.listTasks(projectId, 'running'),
+        executionApi.binaryToSource.listTasks(projectId, 'pending'),
+      ]);
+      setItems([...(running.items || []), ...(pending.items || [])]);
+    } catch (e: any) {
+      setError(e?.message || '加载失败');
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => { void load(); }, 4000);
+    return () => window.clearInterval(timer);
+  }, [projectId]);
+
+  const rows = useMemo(() => items.map((t) => [
+    t.id,
+    t.name,
+    t.status,
+    t.pending_items,
+    t.queued_items,
+    t.running_items,
+    t.updated_at || '-',
+  ]), [items]);
+  const stats = useMemo(() => summarizeB2STasks(items), [items]);
+
+  return (
+    <div className="p-4 space-y-3">
+      <h2 className="text-sm font-bold text-slate-800">代码逆向还原引擎 / 执行队列</h2>
+      <B2SStatsHeader stats={stats} title="执行队列统计" />
+      {error && <div className="text-xs text-red-600">{error}</div>}
+      <B2SCompactTable
+        headers={['任务ID', '任务名', '状态', '待处理', '排队', '运行中', '更新时间']}
+        rows={rows}
+      />
+    </div>
+  );
+};

@@ -1,195 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ShieldAlert, FileSearch, Zap, Workflow, Loader2, AlertCircle, Shield, ClipboardCheck, FileBox, HardDrive, Settings, UserCog, Lock, Globe, Users, UserCheck } from 'lucide-react';
-import { ViewType, SecurityProject, FileItem, UserInfo, Agent, EnvTemplate, AsyncTask, StaticPackage, PackageStats, AdminDashboardStats } from './types/types';
+import { Loader2, AlertCircle, Shield, Lock } from 'lucide-react';
+import { ViewType, SecurityProject, UserInfo, Agent, EnvTemplate, StaticPackage, PackageStats, AdminDashboardStats } from './types/types';
 import { api } from './clients/api';
+import { getTopLevelDefaultView, getTopLevelNavForView, PROJECT_REQUIRED_VIEWS } from './app/navigation';
+import { renderCurrentView } from './app/viewRegistry';
 import { Sidebar } from './layout/Sidebar';
 import { Header } from './layout/Header';
-import { WorkflowPlaceholder } from './components/WorkflowPlaceholder';
 import { DialogViewport } from './components/DialogService';
 import { GlobalUploadWidget } from './components/upload-center/GlobalUploadWidget';
 import { UploadCenterProvider } from './services/uploadCenter';
-import { DashboardPage } from './pages/DashboardPage';
-import { ProjectMgmtPage } from './pages/ProjectMgmtPage';
-import { ProjectDetailPage } from './pages/ProjectDetailPage';
-import { StaticPackagesPage } from './pages/StaticPackagesPage';
-import { StaticPackageDetailPage } from './pages/StaticPackageDetailPage';
-import { DeployScriptPage } from './pages/DeployScriptPage';
-import { SecurityAssessmentPage } from './pages/SecurityAssessmentPage';
-import { ConfigCenterLlmPage } from './pages/ConfigCenterLlmPage';
-import { ConfigCenterLlmChatPage } from './pages/ConfigCenterLlmChatPage';
-
-// Input Pages
-import { ReleasePackagePage } from './pages/inputs/ReleasePackagePage';
-import { CodeAuditPage } from './pages/inputs/CodeAuditPage';
-import { DocAnalysisPage } from './pages/inputs/DocAnalysisPage';
-import { TaskMgmtPage } from './pages/inputs/TaskMgmtPage';
-import { OtherInputPage } from './pages/inputs/OtherInputPage';
-import { PvcManagementPage } from './pages/inputs/PvcManagementPage';
-import { PublicResourceManagementPage } from './pages/inputs/PublicResourceManagementPage';
-import { ProjectFileExplorerPage } from './pages/inputs/ProjectFileExplorerPage';
-
-// Env Pages
-import { EnvAgentPage } from './pages/env/EnvAgentPage';
-import { EnvTemplatePage } from './pages/env/EnvTemplatePage';
-import { EnvTasksPage } from './pages/env/EnvTasksPage';
-import { ServiceMgmtPage } from './pages/env/ServiceMgmtPage';
-import { EnvAiHelperPage } from './pages/env/EnvAiHelperPage';
-import { EnvAiAgentManagePage } from './pages/env/EnvAiAgentManagePage';
-import { EnvAiAgentSessionManagePage } from './pages/env/EnvAiAgentSessionManagePage';
-import { EnvAiSessionPage } from './pages/env/EnvAiSessionPage';
-import { EnvAiBatchSessionPage } from './pages/env/EnvAiBatchSessionPage';
-import { EnvProcessMonitorOverviewPage } from './pages/env/EnvProcessMonitorOverviewPage';
-import { EnvProcessMonitorDetailPage } from './pages/env/EnvProcessMonitorDetailPage';
-import { EnvProcessMonitorTasksPage } from './pages/env/EnvProcessMonitorTasksPage';
-import { ServiceTerminalWindowPage } from './pages/env/ServiceTerminalWindowPage';
-import { SystemAnalysisOverviewPage } from './pages/system-analysis/SystemAnalysisOverviewPage';
-import { SystemAnalysisTaskPage } from './pages/system-analysis/SystemAnalysisTaskPage';
-import { SystemAnalysisHistoryPage } from './pages/system-analysis/SystemAnalysisHistoryPage';
-import { SystemAnalysisPromptPage } from './pages/system-analysis/SystemAnalysisPromptPage';
-
-// Workflow Pages
-import { WorkflowInstancePage } from './pages/workflow/WorkflowInstancePage';
-import { WorkflowInstanceDetailPage } from './pages/workflow/WorkflowInstanceDetailPage';
-import { WorkflowInstanceLogsPage } from './pages/workflow/WorkflowInstanceLogsPage';
-import { JobTemplatePage } from './pages/workflow/JobTemplatePage';
-import { JobTemplateDetailPage } from './pages/workflow/JobTemplateDetailPage';
-import { AppTemplatePage } from './pages/workflow/AppTemplatePage';
-import { AppTemplateDetailPage } from './pages/workflow/AppTemplateDetailPage';
-import { AppInstancePage } from './pages/workflow/AppInstancePage';
-import { AppInstanceDetailPage } from './pages/workflow/AppInstanceDetailPage';
-
-// Pentest Pages
-import { ExecutionCodeAuditPage } from './pages/pentest/ExecutionCodeAuditPage';
-import { ExecutionWorkPlatformPage } from './pages/pentest/ExecutionWorkPlatformPage';
-import { SecMateNGPage } from './pages/pentest/SecMateNGPage';
-import { ReportsPage } from './pages/pentest/ReportsPage';
-import { VulnOverviewPage } from './pages/pentest/VulnOverviewPage';
-import { VulnIntakePage } from './pages/pentest/VulnIntakePage';
-import { VulnAnalysisPage } from './pages/pentest/VulnAnalysisPage';
-import { VulnAnalysisDetailPage } from './pages/pentest/VulnAnalysisDetailPage';
-import { VulnVerificationPage } from './pages/pentest/VulnVerificationPage';
-import { VulnVerificationDetailPage } from './pages/pentest/VulnVerificationDetailPage';
-import { VulnDecisionPage } from './pages/pentest/VulnDecisionPage';
-import { VulnDecisionDetailPage } from './pages/pentest/VulnDecisionDetailPage';
-import { VulnQueuePage } from './pages/pentest/VulnQueuePage';
-import { VulnServicesPage } from './pages/pentest/VulnServicesPage';
-import { VulnReproConfigPage } from './pages/pentest/VulnReproConfigPage';
-import { B2STaskListPage } from './pages/pentest/B2STaskListPage';
-import { B2STaskQueuePage } from './pages/pentest/B2STaskQueuePage';
-import { B2STaskResultPage } from './pages/pentest/B2STaskResultPage';
-import { AiwfDefinitionsPage } from './pages/aiwf/AiwfDefinitionsPage';
-import { AiwfTriggersPage } from './pages/aiwf/AiwfTriggersPage';
-import { AiwfExecutionsPage } from './pages/aiwf/AiwfExecutionsPage';
-import { AiwfSchedulerPage } from './pages/aiwf/AiwfSchedulerPage';
-
-// User & Auth Pages
-import { UserMgmtPage } from './pages/user/UserMgmtPage';
-import { RoleMgmtPage } from './pages/user/RoleMgmtPage';
-import { PermMgmtPage } from './pages/user/PermMgmtPage';
-import { OnlineSessionPage } from './pages/user/OnlineSessionPage';
-import { MachineTokenPage } from './pages/user/MachineTokenPage';
-import { UserPermissionPage } from './pages/user/UserPermissionPage';
-
-// Organization Pages
-import { DepartmentPage } from './pages/org/DepartmentPage';
-import { DepartmentMemberPage } from './pages/org/DepartmentMemberPage';
-import { ProjectPage } from './pages/org/ProjectPage';
-import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { ServiceTerminalWindowPage } from './pages/environment/ServiceTerminalWindowPage';
 import { canAccessView, getUserAccess, getUserCenterDefaultView } from './utils/rbac';
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
 
-const PROJECT_REQUIRED_VIEWS = new Set<string>([
-  'env-agent', 'env-service', 'env-ai-agent', 'env-ai-helper', 'env-ai-agent-manage', 'env-ai-agent-session-manage', 'env-ai-session', 'env-ai-batch-session', 'env-template', 'env-tasks',
-  'env-process-monitor-overview', 'env-process-monitor-detail', 'env-process-monitor-tasks',
-  'system-analysis-overview', 'system-analysis-task', 'system-analysis-history', 'system-analysis-prompt',
-  'workflow-apps', 'workflow-app-detail',
-  'workflow-app-instances', 'workflow-app-instance-detail',
-  'workflow-jobs', 'workflow-job-detail',
-  'workflow-instances', 'workflow-instance-detail', 'workflow-instance-logs',
-  'project-file-explorer', 'pvc-management', 'public-resource-management', 'public-resource-pvc-management', 'public-resource-task-management',
-  'engine-validation',
-  'pentest-risk', 'pentest-system', 'pentest-threat', 'pentest-orch',
-  'pentest-exec-code', 'pentest-exec-work', 'pentest-exec-secmate',
-  'pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result',
-  'pentest-report',
-  'security-assessment',
-  'vuln-engine', 'vuln-overview', 'vuln-intake', 'vuln-analysis', 'vuln-analysis-detail', 'vuln-verification', 'vuln-verification-detail', 'vuln-decision', 'vuln-decision-detail', 'vuln-queue', 'vuln-services', 'vuln-repro-config',
-  'ai-agent-framework-root', 'aiwf-definitions',
-  'aiwf-triggers', 'aiwf-trigger-create', 'aiwf-trigger-list',
-  'aiwf-executions', 'aiwf-execution-list', 'aiwf-execution-events', 'aiwf-execution-artifacts',
-  'aiwf-scheduler', 'aiwf-worker-list', 'aiwf-worker-control'
-]);
-
-type TopLevelNavKey = 'dashboard' | 'projects' | 'environment' | 'workflow' | 'security' | 'system';
-
-const getTopLevelNavForView = (view: string): TopLevelNavKey => {
-  if (view === 'dashboard') return 'dashboard';
-
-  if (
-    view === 'project-mgmt' ||
-    view === 'project-detail' ||
-    view === 'project-file-explorer' ||
-    view === 'static-packages' ||
-    view === 'static-package-detail' ||
-    view === 'deploy-script-mgmt' ||
-    view === 'public-resource-management' ||
-    view === 'public-resource-pvc-management' ||
-    view === 'public-resource-task-management' ||
-    view === 'pvc-management' ||
-    view.startsWith('test-input-')
-  ) {
-    return 'projects';
-  }
-
-  if (view.startsWith('env-')) {
-    return 'environment';
-  }
-
-  if (view.startsWith('workflow-') || view.startsWith('aiwf-') || view === 'ai-agent-framework-root') {
-    return 'workflow';
-  }
-
-  if (
-    view === 'engine-validation' ||
-    view === 'security-assessment' ||
-    view === 'vuln-engine' ||
-    view.startsWith('vuln-') ||
-    view.startsWith('pentest-') ||
-    view.startsWith('system-analysis-')
-  ) {
-    return 'security';
-  }
-
-  return 'system';
-};
-
-const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | null): string => {
-  const access = getUserAccess(user);
-
-  switch (nav) {
-    case 'dashboard':
-      return 'dashboard';
-    case 'projects':
-      return 'project-mgmt';
-    case 'environment':
-      return 'env-agent';
-    case 'workflow':
-      return 'workflow-apps';
-    case 'security':
-      return 'vuln-overview';
-    case 'system':
-      if (access.canAccessAdminDashboard) return 'admin-dashboard';
-      if (access.canAccessConfigCenter) return 'config-center-llm';
-      if (access.canAccessUserCenter) return String(getUserCenterDefaultView(user));
-      return 'sys-settings';
-    default:
-      return 'dashboard';
-  }
-};
-
 
 const App: React.FC = () => {
+  const platformApi = api.domains.platform;
+  const projectApi = api.domains.project;
+  const assetApi = api.domains.assets;
+  const environmentApi = api.domains.environment;
   const queryParams = new URLSearchParams(window.location.search);
   const isServiceTerminalWindow = queryParams.get('service_terminal') === '1';
 
@@ -289,7 +119,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (token) {
-      api.auth.validateToken()
+      platformApi.auth.validateToken()
         .then((validatedUser) => {
           setUser(validatedUser);
           if (!validatedUser.must_change_password) {
@@ -306,7 +136,7 @@ const App: React.FC = () => {
 
   const checkAllHealth = async () => {
     try {
-      const summary = await api.menu.getServiceHealthSummary();
+      const summary = await platformApi.menu.getServiceHealthSummary();
       const services = summary.services || {};
       setResourceServiceHealthy(resolveMenuServiceHealth(services, ['secflow-resource', 'secflow-platform-resource']));
       setStaticPackageHealthy(resolveMenuServiceHealth(services, ['secflow-static-binary', 'secflow-platform-static-binary']));
@@ -339,7 +169,7 @@ const App: React.FC = () => {
     if (!user || !isAdmin) return;
     setAdminStatsLoading(true);
     try {
-      const stats = await api.admin.getStatistics();
+      const stats = await platformApi.admin.getStatistics();
       setAdminStats(stats);
     } catch (e) {
       console.error('Failed to fetch admin statistics', e);
@@ -375,7 +205,7 @@ const App: React.FC = () => {
   const fetchDashboardServicesCount = async (onlineAgents: Agent[]) => {
     if (onlineAgents.length === 0) return;
     try {
-      const promises = onlineAgents.map(a => api.environment.getAgentServices(a.key).catch(() => ({ services: [] })));
+      const promises = onlineAgents.map(a => environmentApi.environment.getAgentServices(a.key).catch(() => ({ services: [] })));
       const results = await Promise.all(promises);
       const total = results.reduce((acc, curr) => acc + (curr.services?.length || 0), 0);
       setDashboardServicesCount(total);
@@ -387,15 +217,15 @@ const App: React.FC = () => {
   useEffect(() => {
     if (token) {
       if (currentView === 'dashboard' && selectedProjectId) {
-        api.environment.getAgents(selectedProjectId).then(d => {
+        environmentApi.environment.getAgents(selectedProjectId).then(d => {
           const agentList = d.agents || [];
           setAgents(agentList);
           fetchDashboardServicesCount(agentList.filter(a => a.status === 'online'));
         }).catch(e => console.error(e));
         
-        api.environment.getTemplates().then(d => setTemplates(d.templates || [])).catch(e => console.error(e));
-        api.staticPackages.list().then(d => setStaticPackages(d.packages || [])).catch(e => console.error(e));
-        api.staticPackages.getStats().then(d => setPackageStats(d.statistics)).catch(e => console.error(e));
+        environmentApi.environment.getTemplates().then(d => setTemplates(d.templates || [])).catch(e => console.error(e));
+        assetApi.staticPackages.list().then(d => setStaticPackages(d.packages || [])).catch(e => console.error(e));
+        assetApi.staticPackages.getStats().then(d => setPackageStats(d.statistics)).catch(e => console.error(e));
       }
     }
   }, [selectedProjectId, currentView, token]);
@@ -403,7 +233,7 @@ const App: React.FC = () => {
   const fetchProjects = async (refresh = false) => {
     try {
       if (refresh) setIsRefreshing(true);
-      const data = await api.projects.list();
+      const data = await projectApi.projects.list();
       const nextProjects = data.projects || [];
       setProjects(nextProjects);
       if (nextProjects.length > 0) {
@@ -434,7 +264,7 @@ const App: React.FC = () => {
     const credentials = Object.fromEntries(formData);
     
     try {
-      const data = await api.auth.login(credentials);
+      const data = await platformApi.auth.login(credentials);
       localStorage.setItem('secflow_token', data.access_token);
       setToken(data.access_token);
     } catch (err: any) {
@@ -462,202 +292,18 @@ const App: React.FC = () => {
     }
     setForcedPasswordLoading(true);
     try {
-      await api.auth.changeOwnPassword({
+      await platformApi.auth.changeOwnPassword({
         old_password: forcedPasswordForm.old_password,
         new_password: forcedPasswordForm.new_password,
       });
       setForcedPasswordForm({ old_password: '', new_password: '', confirm_password: '' });
-      const refreshedUser = await api.auth.validateToken();
+      const refreshedUser = await platformApi.auth.validateToken();
       setUser(refreshedUser);
       await fetchProjects(true);
     } catch (err: any) {
       setForcedPasswordError(err.message || '修改密码失败');
     } finally {
       setForcedPasswordLoading(false);
-    }
-  };
-
-  const renderContent = () => {
-    if (user && !canAccessView(user, currentView)) {
-      return <div className="p-20 text-center"><h3 className="text-xl font-black text-slate-400">当前账号无权访问该页面。</h3></div>;
-    }
-
-    switch (currentView) {
-      case 'dashboard': return (
-        <DashboardPage 
-          projects={projects} 
-          agents={agents} 
-          staticPackages={staticPackages} 
-          templates={templates}
-          servicesCount={dashboardServicesCount}
-          setCurrentView={setCurrentView} 
-        />
-      );
-      case 'admin-dashboard': return (
-        <AdminDashboardPage
-          adminStats={adminStats}
-          loading={adminStatsLoading}
-          onRefresh={fetchAdminStats}
-          setCurrentView={setCurrentView}
-        />
-      );
-      case 'project-mgmt': return (
-        <ProjectMgmtPage 
-          projects={projects} 
-          setActiveProjectId={(id) => { setActiveProjectId(id); }} 
-          setCurrentView={setCurrentView} 
-          refreshProjects={fetchProjects}
-        />
-      );
-      case 'project-detail': return <ProjectDetailPage projectId={activeProjectId} projects={projects} onBack={() => setCurrentView('project-mgmt')} />;
-      case 'static-packages': return <StaticPackagesPage staticPackages={staticPackages} packageStats={packageStats} fetchStaticPackages={() => api.staticPackages.list().then(d => setStaticPackages(d.packages))} setActivePackageId={setActivePackageId} setCurrentView={setCurrentView} selectedIds={selectedStaticPkgIds} setSelectedIds={setSelectedStaticPkgIds} />;
-      case 'static-package-detail': return <StaticPackageDetailPage packageId={activePackageId} onBack={() => setCurrentView('static-packages')} />;
-      case 'deploy-script-mgmt': return <DeployScriptPage />;
-      case 'config-center-root':
-      case 'config-center-llm':
-        return <ConfigCenterLlmPage onOpenChat={() => setCurrentView('config-center-llm-chat')} />;
-      case 'config-center-llm-chat':
-        return <ConfigCenterLlmChatPage onBack={() => setCurrentView('config-center-llm')} />;
-      
-      // Resource Management Pages
-      case 'public-resource-management': return <PublicResourceManagementPage projectId={selectedProjectId} />;
-      case 'public-resource-pvc-management': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
-      case 'public-resource-task-management': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="tasks" />;
-      // legacy aliases
-      case 'test-input-release': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
-      case 'test-input-code': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
-      case 'test-input-doc': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
-      case 'test-input-tasks': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="tasks" />;
-      case 'test-input-other': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
-      case 'pvc-management': return <PublicResourceManagementPage projectId={selectedProjectId} initialTab="pvc" />;
-      case 'project-file-explorer': return <ProjectFileExplorerPage projectId={selectedProjectId} projects={projects} />;
-      
-      case 'env-agent': return <EnvAgentPage projectId={selectedProjectId} />;
-      case 'env-service': return <ServiceMgmtPage projectId={selectedProjectId} />;
-      case 'env-ai-agent':
-      case 'env-ai-agent-overview':
-        return <EnvAiAgentManagePage projectId={selectedProjectId} />;
-      case 'env-ai-helper': return <EnvAiHelperPage projectId={selectedProjectId} initialHelperKey={activeAiHelperKey} />;
-      case 'env-ai-agent-manage': return <EnvAiAgentManagePage projectId={selectedProjectId} />;
-      case 'env-ai-agent-session-manage': return <EnvAiAgentSessionManagePage projectId={selectedProjectId} />;
-      case 'env-ai-session': return <EnvAiSessionPage projectId={selectedProjectId} />;
-      case 'env-ai-batch-session': return <EnvAiBatchSessionPage projectId={selectedProjectId} />;
-      case 'env-process-monitor-root':
-      case 'env-process-monitor-overview': return <EnvProcessMonitorOverviewPage projectId={selectedProjectId} />;
-      case 'env-process-monitor-detail': return <EnvProcessMonitorDetailPage projectId={selectedProjectId} initialServiceKey={activeProcessMonitorServiceKey} />;
-      case 'env-process-monitor-tasks': return <EnvProcessMonitorTasksPage projectId={selectedProjectId} />;
-      case 'env-template': return <EnvTemplatePage projectId={selectedProjectId} />;
-      case 'env-tasks': return <EnvTasksPage projectId={selectedProjectId} />;
-      case 'system-analysis-root':
-      case 'system-analysis-overview': return <SystemAnalysisOverviewPage projectId={selectedProjectId} />;
-      case 'system-analysis-task': return <SystemAnalysisTaskPage projectId={selectedProjectId} />;
-      case 'system-analysis-history': return <SystemAnalysisHistoryPage projectId={selectedProjectId} />;
-      case 'system-analysis-prompt': return <SystemAnalysisPromptPage projectId={selectedProjectId} />;
-
-      // Workflow Management
-      case 'workflow-instances': return <WorkflowInstancePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveInstanceId(id); setCurrentView('workflow-instance-detail'); }} onNavigateToLogs={(id) => { setActiveInstanceId(id); setCurrentView('workflow-instance-logs'); }} />;
-      case 'workflow-instance-detail': return <WorkflowInstanceDetailPage instanceId={activeInstanceId} onBack={() => setCurrentView('workflow-instances')} />;
-      case 'workflow-instance-logs': return <WorkflowInstanceLogsPage instanceId={activeInstanceId} onBack={() => setCurrentView('workflow-instances')} />;
-      case 'workflow-jobs': return <JobTemplatePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveJobTemplateId(id); setCurrentView('workflow-job-detail'); }} />;
-      case 'workflow-job-detail': return <JobTemplateDetailPage templateId={activeJobTemplateId} onBack={() => setCurrentView('workflow-jobs')} />;
-      case 'workflow-apps': return <AppTemplatePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveAppTemplateId(id); setCurrentView('workflow-app-detail'); }} />;
-      case 'workflow-app-detail': return <AppTemplateDetailPage templateId={activeAppTemplateId} onBack={() => setCurrentView('workflow-apps')} />;
-      case 'workflow-app-instances': return <AppInstancePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveAppWorkflowId(id); setCurrentView('workflow-app-instance-detail'); }} />;
-      case 'workflow-app-instance-detail':
-        return activeAppWorkflowId
-          ? <AppInstanceDetailPage instanceId={activeAppWorkflowId} onBack={() => setCurrentView('workflow-app-instances')} />
-          : <AppInstancePage projectId={selectedProjectId} onNavigateToDetail={(id) => { setActiveAppWorkflowId(id); setCurrentView('workflow-app-instance-detail'); }} />;
-
-      case 'ai-agent-framework-root':
-      case 'aiwf-definitions':
-      case 'aiwf-definition-list':
-      case 'aiwf-definition-create':
-      case 'aiwf-definition-versions':
-        return (
-          <AiwfDefinitionsPage
-            projectId={selectedProjectId}
-            selectedDefinitionId={activeAiwfDefinitionId}
-            onDefinitionSelected={setActiveAiwfDefinitionId}
-            onNavigateToTriggers={(definitionId) => {
-              setActiveAiwfDefinitionId(definitionId);
-              setCurrentView('aiwf-trigger-create');
-            }}
-          />
-        );
-      case 'aiwf-triggers':
-      case 'aiwf-trigger-create':
-        return (
-          <AiwfTriggersPage
-            projectId={selectedProjectId}
-            selectedDefinitionId={activeAiwfDefinitionId}
-            onNavigateToExecutionCenter={() => setCurrentView('aiwf-execution-list')}
-          />
-        );
-      case 'aiwf-trigger-list':
-        return (
-          <AiwfTriggersPage
-            projectId={selectedProjectId}
-            selectedDefinitionId={activeAiwfDefinitionId}
-            onNavigateToExecutionCenter={() => setCurrentView('aiwf-execution-list')}
-          />
-        );
-      case 'aiwf-executions':
-      case 'aiwf-execution-list':
-        return <AiwfExecutionsPage projectId={selectedProjectId} initialTab="list" selectedExecutionId={activeAiwfExecutionId} />;
-      case 'aiwf-execution-events':
-        return <AiwfExecutionsPage projectId={selectedProjectId} initialTab="events" selectedExecutionId={activeAiwfExecutionId} />;
-      case 'aiwf-execution-artifacts':
-        return <AiwfExecutionsPage projectId={selectedProjectId} initialTab="artifacts" selectedExecutionId={activeAiwfExecutionId} />;
-      case 'aiwf-scheduler':
-      case 'aiwf-worker-list':
-        return <AiwfSchedulerPage initialTab="workers" />;
-      case 'aiwf-worker-control':
-        return <AiwfSchedulerPage initialTab="control" />;
-
-      case 'engine-validation': return <WorkflowPlaceholder title="安全验证" icon={<ShieldCheck />} />;
-      case 'pentest-risk': return <WorkflowPlaceholder title="风险评估" icon={<ShieldAlert />} />;
-      case 'pentest-system': return <WorkflowPlaceholder title="系统分析" icon={<FileSearch />} />;
-      case 'pentest-threat': return <WorkflowPlaceholder title="威胁分析" icon={<Zap />} />;
-      case 'pentest-orch': return <WorkflowPlaceholder title="测试编排" icon={<Workflow />} />;
-      case 'pentest-exec-code': return <ExecutionCodeAuditPage projectId={selectedProjectId} />;
-      case 'pentest-exec-work': return <ExecutionWorkPlatformPage projectId={selectedProjectId} />;
-      case 'pentest-exec-secmate': return <SecMateNGPage projectId={selectedProjectId} />;
-      case 'pentest-exec-b2s-root':
-      case 'pentest-exec-b2s-task-list':
-      case 'pentest-exec-b2s-create': return <B2STaskListPage projectId={selectedProjectId} />;
-      case 'pentest-exec-b2s-queue': return <B2STaskQueuePage projectId={selectedProjectId} />;
-      case 'pentest-exec-b2s-result': return <B2STaskResultPage projectId={selectedProjectId} />;
-      case 'pentest-report': return <ReportsPage />;
-      case 'security-assessment': return <SecurityAssessmentPage />;
-      case 'vuln-engine':
-      case 'vuln-overview': return <VulnOverviewPage projectId={selectedProjectId} />;
-      case 'vuln-intake': return <VulnIntakePage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-analysis': return <VulnAnalysisPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-analysis-detail': return <VulnAnalysisDetailPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-verification': return <VulnVerificationPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-verification-detail': return <VulnVerificationDetailPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-decision': return <VulnDecisionPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-decision-detail': return <VulnDecisionDetailPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-queue': return <VulnQueuePage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-services': return <VulnServicesPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-      case 'vuln-repro-config': return <VulnReproConfigPage projectId={selectedProjectId} onNavigateToView={setCurrentView} />;
-
-      // Admin Pages
-      case 'sys-settings': return <WorkflowPlaceholder title="系统设置" icon={<Settings />} />;
-      case 'change-password': return <WorkflowPlaceholder title="修改密码" icon={<Lock />} />;
-      case 'user-mgmt-users': return <UserMgmtPage />;
-      case 'user-mgmt-access': return <UserPermissionPage />;
-      case 'user-mgmt-roles': return <RoleMgmtPage />;
-      case 'user-mgmt-perms': return <PermMgmtPage />;
-      case 'user-mgmt-online': return <OnlineSessionPage />;
-      case 'user-mgmt-machine': return <MachineTokenPage />;
-
-      // Organization Pages
-      case 'org-mgmt-departments': return <DepartmentPage />;
-      case 'org-mgmt-members': return <DepartmentMemberPage />;
-      case 'org-mgmt-projects': return <ProjectPage />;
-
-      default: return <div className="p-20 text-center"><h3 className="text-xl font-black text-slate-400">模块 "{currentView}" 开发中...</h3></div>;
     }
   };
 
@@ -811,7 +457,48 @@ const App: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                renderContent()
+                user && !canAccessView(user, currentView) ? (
+                  <div className="p-20 text-center"><h3 className="text-xl font-black text-slate-400">当前账号无权访问该页面。</h3></div>
+                ) : (
+                  renderCurrentView({
+                    currentView: String(currentView),
+                    projects,
+                    agents,
+                    templates,
+                    staticPackages,
+                    packageStats,
+                    dashboardServicesCount,
+                    adminStats,
+                    adminStatsLoading,
+                    selectedProjectId,
+                    activeProjectId,
+                    activePackageId,
+                    activeInstanceId,
+                    activeAppTemplateId,
+                    activeJobTemplateId,
+                    activeAppWorkflowId,
+                    activeAiHelperKey,
+                    activeProcessMonitorServiceKey,
+                    activeAiwfDefinitionId,
+                    activeAiwfExecutionId,
+                    selectedStaticPkgIds,
+                    setCurrentView: (view) => setCurrentView(view),
+                    setActiveProjectId: (id) => setActiveProjectId(id),
+                    setActivePackageId: (id) => setActivePackageId(id),
+                    setActiveInstanceId: (id) => setActiveInstanceId(id),
+                    setActiveAppTemplateId: (id) => setActiveAppTemplateId(id),
+                    setActiveJobTemplateId: (id) => setActiveJobTemplateId(id),
+                    setActiveAppWorkflowId: (id) => setActiveAppWorkflowId(id),
+                    setActiveAiwfDefinitionId: (id) => setActiveAiwfDefinitionId(id),
+                    setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
+                    fetchProjects,
+                    fetchAdminStats,
+                    refreshStaticPackages: async () => {
+                      const data = await assetApi.staticPackages.list();
+                      setStaticPackages(data.packages || []);
+                    },
+                  })
+                )
               )}
             </div>
           </main>

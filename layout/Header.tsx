@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Lock, LogOut, RotateCw, Settings, Shield, UserCog } from 'lucide-react';
+import { TopLevelNavKey, TOP_LEVEL_NAV_ITEMS } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 
 interface HeaderProps {
   user: UserInfo | null;
-  currentTopLevelNav: string;
-  onSelectTopLevelNav: (nav: string) => void;
+  currentTopLevelNav: TopLevelNavKey;
+  onSelectTopLevelNav: (nav: TopLevelNavKey) => void;
   projects: SecurityProject[];
   selectedProjectId: string;
   setSelectedProjectId: (id: string) => void;
@@ -39,14 +40,6 @@ export const Header: React.FC<HeaderProps> = ({
   const userAccess = getUserAccess(user);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
-  const topNavItems = [
-    { id: 'dashboard', label: '控制台' },
-    { id: 'projects', label: '项目与资源' },
-    { id: 'environment', label: '环境与服务' },
-    { id: 'workflow', label: '工作流' },
-    { id: 'security', label: '安全测试' },
-    { id: 'system', label: '系统管理' },
-  ];
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
@@ -77,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex justify-center min-w-0">
           <nav className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
-            {topNavItems.map((item) => {
+            {TOP_LEVEL_NAV_ITEMS.map((item) => {
               const isActive = currentTopLevelNav === item.id;
               return (
                 <button

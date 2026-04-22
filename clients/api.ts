@@ -1,40 +1,41 @@
-
-import { authApi } from './auth';
-import { projectsApi } from './projects';
-import { resourcesApi } from './resources';
-import { staticPackagesApi } from './staticPackages';
-import { environmentApi } from './environment';
-import { codeServerApi } from './codeServer';
-import { secmateNGApi } from './secmateNG';
-import { deployScriptApi } from './deployScript';
-import { workflowApi } from './workflow';
-import { k8sApi } from './k8s';
-import { adminApi } from './admin';
-import { vulnApi } from './vuln';
-import { fileserverApi } from './fileserver';
-import { menuApi } from './menu';
-import { configCenterApi } from './configcenter';
-import { systemAnalysisApi } from './systemAnalysis';
-import { binaryToSourceApi } from './binaryToSource';
-import { aiAgentFrameworkApi } from './aiAgentFramework';
+import { assetClients } from './assets';
+import { environmentClients } from './environment-domain';
+import { executionClients } from './execution';
+import { orchestrationClients } from './orchestration';
+import { platformClients } from './platform';
+import { projectClients } from './project';
+import { vulnClients } from './vuln-domain';
 
 export const api = {
-  auth: authApi,
-  projects: projectsApi,
-  resources: resourcesApi,
-  staticPackages: staticPackagesApi,
-  environment: environmentApi,
-  codeServer: codeServerApi,
-  secmateNG: secmateNGApi,
-  deployScript: deployScriptApi,
-  workflow: workflowApi,
-  menu: menuApi,
-  k8s: k8sApi,
-  admin: adminApi,
-  vuln: vulnApi,
-  fileserver: fileserverApi,
-  configCenter: configCenterApi,
-  systemAnalysis: systemAnalysisApi,
-  binaryToSource: binaryToSourceApi,
-  aiAgentFramework: aiAgentFrameworkApi,
+  // Prefer grouped domain entrypoints in new code.
+  domains: {
+    project: projectClients,
+    assets: assetClients,
+    environment: environmentClients,
+    orchestration: orchestrationClients,
+    execution: executionClients,
+    vuln: vulnClients,
+    platform: platformClients,
+  },
+
+  // Legacy flat entrypoints kept for compatibility during migration.
+  auth: platformClients.auth,
+  admin: platformClients.admin,
+  menu: platformClients.menu,
+  configCenter: platformClients.configCenter,
+  org: platformClients.org,
+  projects: projectClients.projects,
+  resources: assetClients.resources,
+  staticPackages: assetClients.staticPackages,
+  deployScript: assetClients.deployScript,
+  fileserver: assetClients.fileserver,
+  environment: environmentClients.environment,
+  k8s: environmentClients.k8s,
+  workflow: orchestrationClients.workflow,
+  aiAgentFramework: orchestrationClients.aiAgentFramework,
+  systemAnalysis: executionClients.systemAnalysis,
+  codeServer: executionClients.codeServer,
+  secmateNG: executionClients.secmateNG,
+  binaryToSource: executionClients.binaryToSource,
+  vuln: vulnClients.vuln,
 };

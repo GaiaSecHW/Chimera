@@ -1,0 +1,2394 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  ArrowUpDown,
+  BookOpen,
+  Check,
+  Copy,
+  Download,
+  FileCode2,
+  Filter,
+  FolderOpen,
+  Key,
+  Loader2,
+  Plus,
+  Puzzle,
+  RefreshCw,
+  Search,
+  Send,
+  ShieldAlert,
+  Sparkles,
+  TerminalSquare,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { api } from '../../clients/api';
+import { authApi } from '../../clients/auth';
+import { API_BASE } from '../../clients/base';
+
+const vulnApi = api.domains.vuln;
+const assetApi = api.domains.assets;
+
+interface VulnPageProps {
+  projectId: string;
+  onNavigateToView?: (view: string) => void;
+}
+
+type PublicKind = 'cli' | 'plugin' | 'skill' | 'openapi';
+type AuthExampleMode = 'simple' | 'normal';
+type SortField = 'title' | 'current_stage' | 'severity' | 'reporter' | 'subject' | 'updated_at' | 'confidence' | 'cvss_score';
+type SortDirection = 'asc' | 'desc';
+
+const METHOD_ICONS: Record<PublicKind, React.ReactNode> = {
+  cli: <TerminalSquare size={18} />,
+  plugin: <Puzzle size={18} />,
+  skill: <Sparkles size={18} />,
+  openapi: <FileCode2 size={18} />,
+};
+
+const DEFAULT_SUSPICION_FORM = {
+  title: '',
+  summary: '',
+  severity: 'medium',
+  cvss_score: 5.0,
+  confidence: 60,
+  source_service: 'manual-intake',
+  asset_type: 'http',
+  asset_locator: '',
+};
+
+const SIMPLE_AUTH_PAYLOAD = {
+  project_id: '',
+  report_id: 'auth-simple-001',
+  title: 'Authenticated simple intake example',
+  summary: 'Simple mode without file artifacts',
+  severity: 'medium',
+  cvss_score: 5.3,
+  confidence: 60,
+  state: 'suspected',
+  category: 'generic_issue',
+  rule_id: 'DEMO-SIMPLE-001',
+  rule_name: 'Frontend Demo Simple Rule',
+  fingerprint: 'demo-simple-fingerprint-001',
+  reporter: {
+    name: 'frontend-demo',
+    version: '1.0.0',
+    type: 'api',
+    endpoint: `${API_BASE}/api/vuln/public/intake/submissions`,
+  },
+  subject: {
+    type: 'http_endpoint',
+    locator: 'https://demo.example/api',
+    name: 'demo api',
+  },
+  evidence: {
+    summary: 'Simple suspicion generated from frontend dialog',
+    reproduction_hint: 'Use curl to replay the request against the demo endpoint',
+    references: [],
+  },
+  metadata: {
+    source: {
+      source_service: 'frontend-demo',
+      source_kind: 'authenticated-docs',
+    },
+    tool_output: {
+      note: 'simple mode payload',
+    },
+  },
+};
+
+const NORMAL_AUTH_PAYLOAD = {
+  project_id: '',
+  report_id: 'auth-normal-001',
+  title: 'Authenticated normal intake example',
+  summary: 'Normal mode with file and folder artifacts',
+  severity: 'medium',
+  cvss_score: 5.3,
+  confidence: 60,
+  state: 'suspected',
+  category: 'generic_issue',
+  rule_id: 'DEMO-NORMAL-001',
+  rule_name: 'Frontend Demo Normal Rule',
+  fingerprint: 'demo-normal-fingerprint-001',
+  reporter: {
+    name: 'frontend-demo',
+    version: '1.0.0',
+    type: 'api',
+    endpoint: `${API_BASE}/api/vuln/public/intake/submissions`,
+  },
+  subject: {
+    type: 'http_endpoint',
+    locator: 'https://demo.example/api',
+    name: 'demo api',
+  },
+  evidence: {
+    summary: 'Demo suspicion generated from frontend dialog',
+    reproduction_hint: 'Use curl to replay the request against the demo endpoint',
+    references: [],
+  },
+  artifacts: [
+    {
+      kind: 'json',
+      name: 'raw-result.json',
+      content: '{"note":"demo payload"}',
+      encoding: 'utf-8',
+      media_type: 'application/json',
+    },
+    {
+      kind: 'tree',
+      name: 'evidence',
+      children: [
+        {
+          kind: 'file',
+          name: 'request.txt',
+          path: 'evidence/http/request.txt',
+          content_ref: 'artifact://evidence/http/request.txt',
+        },
+      ],
+    },
+  ],
+  metadata: {
+    source: {
+      source_service: 'frontend-demo',
+      source_kind: 'authenticated-docs',
+    },
+    tool_output: {
+      note: 'normal mode payload',
+    },
+  },
+};
+
+const STAGE_LABELS: Record<string, string> = {
+  all: '全部阶段',
+  receive: '接收阶段',
+  triage: '研判阶段',
+  validation: '验证阶段',
+  finished: '已结束',
+};
+
+const PUBLIC_FIELDS = [
+  { name: 'project_id', required: true, description: '目标项目标识，正式上报时用于项目绑定与项目级权限校验。' },
+  { name: 'report_id', required: false, description: '上报方自己的唯一编号，用于追踪、复核与后续回调。' },
+  { name: 'title', required: true, description: '疑点标题。' },
+  { name: 'summary', required: false, description: '疑点摘要与简要说明。' },
+  { name: 'severity', required: true, description: '风险等级，只支持严重、高危、中危、低危四档。' },
+  { name: 'cvss_score', required: true, description: 'CVSS 基础分最终分，用于统一量化风险。' },
+  { name: 'confidence', required: true, description: '置信度，0 到 100。' },
+  { name: 'state', required: true, description: '上报方当前判断，默认建议为 suspected。' },
+  { name: 'category', required: false, description: '通用问题类别，例如 sql_injection。' },
+  { name: 'rule_id / rule_name', required: false, description: '插件或工具自身规则标识。' },
+  { name: 'fingerprint', required: false, description: '上报方自己的指纹，平台只保留不做去重。' },
+  { name: 'reported_at', required: false, description: '来源实际发现时间。' },
+  { name: 'reporter', required: true, description: '上报者身份，必须包含 name、version、type，建议同时带 endpoint。' },
+  { name: 'subject', required: true, description: '被上报对象，必须包含 type 与 locator。' },
+  { name: 'evidence', required: false, description: '轻量证据摘要、复现提示、引用列表。' },
+  { name: 'artifacts', required: false, description: '文件、目录、脚本、截图、原始结果等产物清单。' },
+  { name: 'metadata', required: false, description: '所有非统一字段统一放入这里。' },
+];
+
+const METADATA_GUIDE = [
+  { key: 'metadata.source', value: '来源特有字段，例如扫描模式、插件配置、执行入口。' },
+  { key: 'metadata.runtime', value: '运行环境、容器、节点、账号、网络上下文等。' },
+  { key: 'metadata.tool_output', value: '原始扫描输出、回包摘要、AST/IR 摘要等。' },
+  { key: 'metadata.custom', value: '上报方完全自定义的字段，平台原样保存。' },
+];
+
+const ARTIFACT_GUIDE = [
+  { title: '单文件上报', detail: '使用 kind=file/text/json/binary，支持 content 内联内容或 content_ref 外部引用。' },
+  { title: '文件夹结构上报', detail: '使用 kind=directory 或 tree，并通过 children 递归表达目录树结构。' },
+  { title: '压缩包或外部文件', detail: '使用 kind=archive，并通过 content_ref 指向外部文件或对象存储引用。' },
+  { title: '二进制内容', detail: '使用 kind=binary，encoding=base64，将内容以内联 base64 传递。' },
+  { title: '清单与引用混合', detail: '可以在一个 artifacts 数组中同时放目录清单、文本文件和 content_ref 引用。' },
+];
+
+const ANALYSIS_DETAIL_TARGET_KEY = 'secflow-vuln-open-case-id';
+
+type EditableCaseIntake = {
+  title: string;
+  summary: string;
+  severity: string;
+  cvss_score: number;
+  confidence: number;
+  state: string;
+  category: string;
+  rule_id: string;
+  rule_name: string;
+  fingerprint: string;
+  reported_at: string;
+  reporter: Record<string, any>;
+  subject: Record<string, any>;
+  evidence_summary: string;
+  evidence_reproduction_hint: string;
+  evidence_references_text: string;
+  artifacts_text: string;
+  metadata_text: string;
+};
+
+const toPrettyJson = (value: any) => JSON.stringify(value ?? {}, null, 2);
+
+const makeEditableCaseIntake = (detail: any): EditableCaseIntake => {
+  const references = Array.isArray(detail?.evidence?.references) ? detail.evidence.references : [];
+  return {
+    title: detail?.title || '',
+    summary: detail?.summary || '',
+    severity: detail?.severity || 'medium',
+    cvss_score: Number(detail?.cvss_score || 0),
+    confidence: Number(detail?.confidence || 0),
+    state: detail?.state || 'suspected',
+    category: detail?.category || '',
+    rule_id: detail?.rule_id || '',
+    rule_name: detail?.rule_name || '',
+    fingerprint: detail?.fingerprint || '',
+    reported_at: detail?.reported_at ? String(detail.reported_at).slice(0, 19) : '',
+    reporter: detail?.reporter || {},
+    subject: detail?.subject || {},
+    evidence_summary: detail?.evidence?.summary || '',
+    evidence_reproduction_hint: detail?.evidence?.reproduction_hint || '',
+    evidence_references_text: toPrettyJson(references),
+    artifacts_text: toPrettyJson(Array.isArray(detail?.artifacts) ? detail.artifacts : []),
+    metadata_text: toPrettyJson(detail?.metadata || {}),
+  };
+};
+
+const toneOf = (value?: string) => {
+  if (!value) return 'bg-slate-100 text-slate-600';
+  if (['critical', 'high', 'confirmed'].includes(value)) return 'bg-rose-100 text-rose-700';
+  if (['medium', 'triage', 'issue'].includes(value)) return 'bg-amber-100 text-amber-700';
+  if (['low', 'validation', 'non_issue'].includes(value)) return 'bg-emerald-100 text-emerald-700';
+  if (['receive', 'observe'].includes(value)) return 'bg-blue-100 text-blue-700';
+  return 'bg-slate-100 text-slate-600';
+};
+
+const formatTime = (value?: string) => {
+  if (!value) return 'n/a';
+  try {
+    return new Date(value).toLocaleString('zh-CN', { hour12: false });
+  } catch {
+    return value;
+  }
+};
+
+const STAGE_TEXT: Record<string, string> = {
+  receive: '接收阶段',
+  triage: '研判阶段',
+  validation: '验证阶段',
+  finished: '已结束',
+};
+
+const STATUS_TEXT: Record<string, string> = {
+  intake_created: '已接收',
+  files_collecting: '文件收集中',
+  ready_for_triage: '待研判',
+  waiting: '等待中',
+  ai_assessing: 'AI 研判中',
+  manual_assessing: '人工研判中',
+  awaiting_manual_gate: '待人工确认',
+  triage_completed: '研判完成',
+  queued: '待验证',
+  poc_generating: 'POC 生成中',
+  exp_generating: 'EXP 生成中',
+  reproducing: '漏洞复现中',
+  evidence_collecting: '证据收集中',
+  validation_completed: '验证完成',
+  finished: '已结束',
+};
+
+const DECISION_TEXT: Record<string, string> = {
+  pending: '待定',
+  issue: '问题',
+  non_issue: '非问题',
+  observe: '观察',
+  unknown: '未知',
+};
+
+const toStageText = (value?: string) => (value ? STAGE_TEXT[value] || value : '未知');
+const toStatusText = (value?: string) => (value ? STATUS_TEXT[value] || value : '未知');
+const toDecisionText = (value?: string) => (value ? DECISION_TEXT[value] || value : '未知');
+
+const TEXT_FILE_EXTENSIONS = [
+  '.txt', '.log', '.md', '.markdown', '.json', '.yaml', '.yml', '.xml', '.csv', '.ts', '.tsx', '.js', '.jsx',
+  '.py', '.java', '.go', '.rs', '.c', '.cc', '.cpp', '.h', '.hpp', '.sh', '.bash', '.zsh', '.sql', '.ini',
+  '.toml', '.conf', '.cfg', '.properties', '.env', '.http', '.proto', '.dockerfile',
+];
+
+const isLikelyTextFile = (file: any): boolean => {
+  const contentType = String(file?.content_type || '').toLowerCase();
+  if (contentType.startsWith('text/')) return true;
+  if (
+    contentType.includes('json') ||
+    contentType.includes('xml') ||
+    contentType.includes('yaml') ||
+    contentType.includes('javascript') ||
+    contentType.includes('typescript')
+  ) {
+    return true;
+  }
+  const name = String(file?.filename || '').toLowerCase();
+  return TEXT_FILE_EXTENSIONS.some((ext) => name.endsWith(ext));
+};
+
+const hasArtifactFiles = (artifacts: any): boolean => {
+  if (!Array.isArray(artifacts) || artifacts.length === 0) return false;
+  const stack = [...artifacts];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current || typeof current !== 'object') continue;
+    const kind = String(current.kind || '').toLowerCase();
+    if (
+      [
+        'file',
+        'directory',
+        'tree',
+        'json',
+        'text',
+        'binary',
+        'archive',
+        'screenshot',
+        'pcap',
+        'request_response',
+        'report',
+        'script',
+      ].includes(kind)
+    ) {
+      return true;
+    }
+    if (Array.isArray(current.children) && current.children.length > 0) {
+      stack.push(...current.children);
+    }
+  }
+  return false;
+};
+
+const DialogShell: React.FC<{
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ title, subtitle, onClose, children }) => (
+  <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
+    <div className="w-full max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+      <div className="flex items-start justify-between gap-6 border-b border-slate-100 px-8 py-6">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">漏洞上报中心</div>
+          <h3 className="mt-2 text-2xl font-black text-slate-900">{title}</h3>
+          {subtitle ? <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{subtitle}</p> : null}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-500 transition hover:bg-slate-50"
+        >
+          <X size={18} />
+        </button>
+      </div>
+      <div className="max-h-[80vh] overflow-y-auto px-8 py-8">{children}</div>
+    </div>
+  </div>
+);
+
+export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
+  const [loading, setLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [suspicions, setSuspicions] = useState<any[]>([]);
+  const [selectedSuspicionId, setSelectedSuspicionId] = useState('');
+  const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
+  const [selectedTimeline, setSelectedTimeline] = useState<any[]>([]);
+  const [linkedFiles, setLinkedFiles] = useState<any | null>(null);
+  const [linkedFilesLoading, setLinkedFilesLoading] = useState(false);
+  const [linkedFileSearch, setLinkedFileSearch] = useState('');
+  const [selectedLinkedFile, setSelectedLinkedFile] = useState<any | null>(null);
+  const [linkedFilePreview, setLinkedFilePreview] = useState<string>('');
+  const [linkedFilePreviewLoading, setLinkedFilePreviewLoading] = useState(false);
+  const [linkedFilePreviewError, setLinkedFilePreviewError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [severityFilter, setSeverityFilter] = useState('all');
+  const [cvssBandFilter, setCvssBandFilter] = useState('all');
+  const [reporterTypeFilter, setReporterTypeFilter] = useState('all');
+  const [sortField, setSortField] = useState<SortField>('updated_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [showSdkDialog, setShowSdkDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [catalog, setCatalog] = useState<any | null>(null);
+  const [examples, setExamples] = useState<Record<string, any>>({});
+  const [selectedExample, setSelectedExample] = useState<PublicKind>('cli');
+  const [authExampleMode, setAuthExampleMode] = useState<AuthExampleMode>('simple');
+  const [authPayloadText, setAuthPayloadText] = useState(() =>
+    JSON.stringify({ ...SIMPLE_AUTH_PAYLOAD, project_id: projectId || '' }, null, 2),
+  );
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authResult, setAuthResult] = useState<any | null>(null);
+  const [projectToken, setProjectToken] = useState<any | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [suspicionForm, setSuspicionForm] = useState(DEFAULT_SUSPICION_FORM);
+  const [creating, setCreating] = useState(false);
+  const [processingAction, setProcessingAction] = useState<'analyze' | 'ready_for_triage' | 'false_positive' | 'delete' | null>(null);
+  const [selectedSuspicionIds, setSelectedSuspicionIds] = useState<string[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [rowDeletingId, setRowDeletingId] = useState<string | null>(null);
+  const [detailEditMode, setDetailEditMode] = useState(false);
+  const [detailSaving, setDetailSaving] = useState(false);
+  const [editableDetail, setEditableDetail] = useState<EditableCaseIntake | null>(null);
+
+  const stageScopedSuspicions = useMemo(() => suspicions, [suspicions]);
+
+  const filteredSuspicions = useMemo(() => {
+    const filtered = stageScopedSuspicions.filter((item) => {
+      if (stageFilter !== 'all' && item.current_stage !== stageFilter) return false;
+      if (severityFilter !== 'all' && item.severity !== severityFilter) return false;
+      if (reporterTypeFilter !== 'all' && item.reporter?.type !== reporterTypeFilter) return false;
+      if (cvssBandFilter !== 'all') {
+        const cvss = Number(item.cvss_score || 0);
+        const band = cvss >= 9.0 ? 'critical' : cvss >= 7.0 ? 'high' : cvss >= 4.0 ? 'medium' : 'low';
+        if (band !== cvssBandFilter) return false;
+      }
+      if (!search.trim()) return true;
+      const keyword = search.trim().toLowerCase();
+      return [
+        item.title,
+        item.summary,
+        item.subject?.locator,
+        item.reporter?.name,
+        item.reporter?.type,
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(keyword));
+    });
+    const getSortValue = (item: any) => {
+      switch (sortField) {
+        case 'title':
+          return item.title || '';
+        case 'current_stage':
+          return item.current_stage || '';
+        case 'severity':
+          return item.severity || '';
+        case 'reporter':
+          return item.reporter?.name || '';
+        case 'subject':
+          return item.subject?.locator || '';
+        case 'confidence':
+          return Number(item.confidence || 0);
+        case 'cvss_score':
+          return Number(item.cvss_score || 0);
+        case 'updated_at':
+        default:
+          return new Date(item.updated_at || item.created_at || 0).getTime();
+      }
+    };
+    return [...filtered].sort((left, right) => {
+      const a = getSortValue(left);
+      const b = getSortValue(right);
+      const direction = sortDirection === 'asc' ? 1 : -1;
+      if (typeof a === 'number' && typeof b === 'number') {
+        return (a - b) * direction;
+      }
+      return String(a).localeCompare(String(b), 'zh-CN') * direction;
+    });
+  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, stageScopedSuspicions, sortField, sortDirection]);
+
+  const selectedExamplePayload = useMemo(() => examples[selectedExample], [examples, selectedExample]);
+
+  const linkedDirectoryItems = useMemo(() => {
+    const directories = Array.isArray(linkedFiles?.directories) ? linkedFiles.directories : [];
+    const keyword = linkedFileSearch.trim().toLowerCase();
+    if (!keyword) return directories;
+    return directories.filter((item: any) => {
+      const pool = [item?.name, item?.path].filter(Boolean).map((v) => String(v).toLowerCase());
+      return pool.some((v) => v.includes(keyword));
+    });
+  }, [linkedFiles, linkedFileSearch]);
+
+  const linkedFileItems = useMemo(() => {
+    const files = Array.isArray(linkedFiles?.files) ? linkedFiles.files : [];
+    const keyword = linkedFileSearch.trim().toLowerCase();
+    if (!keyword) return files;
+    return files.filter((item: any) => {
+      const pool = [item?.filename, item?.path, item?.content_type].filter(Boolean).map((v) => String(v).toLowerCase());
+      return pool.some((v) => v.includes(keyword));
+    });
+  }, [linkedFiles, linkedFileSearch]);
+
+  const totalFiltered = filteredSuspicions.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / Math.max(1, pageSize)));
+  const normalizedPage = Math.min(Math.max(1, currentPage), totalPages);
+  const pageStart = (normalizedPage - 1) * pageSize;
+  const pagedSuspicions = useMemo(
+    () => filteredSuspicions.slice(pageStart, pageStart + pageSize),
+    [filteredSuspicions, pageStart, pageSize],
+  );
+
+  const stats = useMemo(() => {
+    const openTasks = (selectedDetail?.manual_tasks || []).filter(
+      (item: any) => !['completed', 'closed'].includes(item.status),
+    ).length;
+    return {
+      total: stageScopedSuspicions.length,
+      highRisk: stageScopedSuspicions.filter((item) => ['critical', 'high'].includes(item.severity)).length,
+      pendingAnalyze: stageScopedSuspicions.filter((item) => item.current_stage === 'triage').length,
+      authenticated: stageScopedSuspicions.filter((item) => item.created_by_type === 'human').length,
+      openTasks,
+    };
+  }, [selectedDetail, stageScopedSuspicions]);
+
+  const loadSuspicions = async () => {
+    if (!projectId) {
+      setSuspicions([]);
+      setSelectedSuspicionIds([]);
+      setSelectedSuspicionId('');
+      setSelectedDetail(null);
+      setSelectedTimeline([]);
+      setLinkedFiles(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await vulnApi.vuln.listCases({ project_id: projectId });
+      setSuspicions(response.items || []);
+    } catch (err: any) {
+      setError(err?.message || '加载疑点列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSuspicionDetail = async (suspicionId: string) => {
+    if (!suspicionId) {
+      setSelectedDetail(null);
+      setSelectedTimeline([]);
+      setLinkedFiles(null);
+      return;
+    }
+    setDetailLoading(true);
+    setError(null);
+    try {
+      const [detail, timeline] = await Promise.all([
+        vulnApi.vuln.getCaseDetail(suspicionId),
+        vulnApi.vuln.getCaseTimeline(suspicionId),
+      ]);
+      setSelectedDetail(detail);
+      setSelectedTimeline(timeline.items || []);
+      if (detail?.files_root_path) {
+        setLinkedFilesLoading(true);
+        try {
+          const filesPayload = await assetApi.fileserver.getVulnProjectPathChildren(detail.project_id, detail.files_root_path);
+          setLinkedFiles(filesPayload);
+          setSelectedLinkedFile(null);
+          setLinkedFilePreview('');
+          setLinkedFilePreviewError(null);
+        } finally {
+          setLinkedFilesLoading(false);
+        }
+      } else {
+        setLinkedFiles(null);
+        setSelectedLinkedFile(null);
+        setLinkedFilePreview('');
+        setLinkedFilePreviewError(null);
+      }
+    } catch (err: any) {
+      setError(err?.message || '加载疑点详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openLinkedFilesPath = async (path: string) => {
+    const targetProjectId = selectedDetail?.project_id || linkedFiles?.project_id || projectId;
+    if (!targetProjectId || !path) return;
+    setLinkedFilesLoading(true);
+    setError(null);
+    try {
+      const payload = await assetApi.fileserver.getVulnProjectPathChildren(targetProjectId, path);
+      setLinkedFiles(payload);
+      setSelectedLinkedFile(null);
+      setLinkedFilePreview('');
+      setLinkedFilePreviewError(null);
+    } catch (err: any) {
+      setError(err?.message || '加载疑点文件失败');
+    } finally {
+      setLinkedFilesLoading(false);
+    }
+  };
+
+  const openLinkedTextPreview = async (file: any) => {
+    if (!file?.id) return;
+    setSelectedLinkedFile(file);
+    setLinkedFilePreview('');
+    setLinkedFilePreviewError(null);
+    if (!isLikelyTextFile(file)) {
+      setLinkedFilePreviewError('该文件不是常见文本类型，暂不支持在线预览，请使用下载。');
+      return;
+    }
+    setLinkedFilePreviewLoading(true);
+    try {
+      const blob = await assetApi.fileserver.fetchPreviewBlob(file.id);
+      if (blob.size > 1024 * 1024) {
+        setLinkedFilePreviewError(`文件大小 ${Math.round(blob.size / 1024)}KB，超出在线预览上限（1024KB），请下载查看。`);
+        return;
+      }
+      const text = await blob.text();
+      setLinkedFilePreview(text);
+    } catch (err: any) {
+      setLinkedFilePreviewError(err?.message || '文件预览加载失败');
+    } finally {
+      setLinkedFilePreviewLoading(false);
+    }
+  };
+
+  const handleLinkedFileDownload = async (fileId: number, filename: string) => {
+    try {
+      const blob = await assetApi.fileserver.fetchDownloadBlob(fileId);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err?.message || '下载疑点文件失败');
+    }
+  };
+
+  const loadProjectToken = async () => {
+    if (!projectId) {
+      setProjectToken(null);
+      setTokenError('当前未选择项目，无法获取项目 Token');
+      return;
+    }
+    setTokenLoading(true);
+    setTokenError(null);
+    try {
+      const token = await authApi.getProjectMachineToken(projectId);
+      setProjectToken(token);
+    } catch (err: any) {
+      setProjectToken(null);
+      setTokenError(err?.message || '加载项目 SDK Token 失败');
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
+  const refreshProjectToken = async () => {
+    if (!projectId) return;
+    if (projectToken?.token) {
+      const confirmed = window.confirm(
+        '刷新 Token 将导致当前 Token 立即失效。\n请先完成其他系统/脚本中的 Token 替换准备，再继续刷新。\n是否确认刷新？',
+      );
+      if (!confirmed) return;
+    }
+    setTokenLoading(true);
+    setTokenError(null);
+    try {
+      const token = await authApi.refreshProjectMachineToken(projectId);
+      setProjectToken(token);
+    } catch (err: any) {
+      setTokenError(err?.message || '刷新项目 SDK Token 失败');
+    } finally {
+      setTokenLoading(false);
+    }
+  };
+
+  const copyProjectToken = async () => {
+    if (!projectToken?.token) return;
+    await navigator.clipboard.writeText(projectToken.token);
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2000);
+  };
+
+  const loadPublicAssets = async () => {
+    try {
+      const [catalogPayload, cliExample, pluginExample, skillExample, openApiExample] = await Promise.all([
+        vulnApi.vuln.getPublicIntakeCatalog(),
+        vulnApi.vuln.getPublicIntakeExample('cli'),
+        vulnApi.vuln.getPublicIntakeExample('plugin'),
+        vulnApi.vuln.getPublicIntakeExample('skill'),
+        vulnApi.vuln.getPublicIntakeExample('openapi'),
+      ]);
+      setCatalog(catalogPayload);
+      setExamples({
+        cli: cliExample,
+        plugin: pluginExample,
+        skill: skillExample,
+        openapi: openApiExample,
+      });
+    } catch (err: any) {
+      setError(err?.message || '加载 SDK 目录失败');
+    }
+  };
+
+  useEffect(() => {
+    loadSuspicions();
+  }, [projectId]);
+
+  useEffect(() => {
+    setSelectedSuspicionId('');
+    setSelectedDetail(null);
+    setSelectedTimeline([]);
+    setLinkedFiles(null);
+    setSelectedLinkedFile(null);
+    setLinkedFilePreview('');
+    setLinkedFilePreviewError(null);
+    setSelectedSuspicionIds([]);
+    setCurrentPage(1);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (selectedSuspicionId) {
+      loadSuspicionDetail(selectedSuspicionId);
+    }
+  }, [selectedSuspicionId]);
+
+  useEffect(() => {
+    const pendingCaseId = localStorage.getItem(ANALYSIS_DETAIL_TARGET_KEY);
+    if (!pendingCaseId) return;
+    setSelectedSuspicionId(pendingCaseId);
+    localStorage.removeItem(ANALYSIS_DETAIL_TARGET_KEY);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDetail) {
+      setEditableDetail(null);
+      setDetailEditMode(false);
+      return;
+    }
+    setEditableDetail(makeEditableCaseIntake(selectedDetail));
+    setDetailEditMode(false);
+  }, [selectedDetail?.id]);
+
+  useEffect(() => {
+    setSelectedSuspicionIds((previous) => previous.filter((id) => suspicions.some((item) => item.id === id)));
+  }, [suspicions]);
+
+  useEffect(() => {
+    if (showSdkDialog && !catalog) {
+      loadPublicAssets();
+    }
+  }, [showSdkDialog, catalog]);
+
+  useEffect(() => {
+    if (showSdkDialog) {
+      void loadProjectToken();
+    }
+  }, [showSdkDialog, projectId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, stageFilter, severityFilter, reporterTypeFilter, cvssBandFilter, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const applyAuthExampleMode = (mode: AuthExampleMode) => {
+    const template = mode === 'simple' ? SIMPLE_AUTH_PAYLOAD : NORMAL_AUTH_PAYLOAD;
+    setAuthExampleMode(mode);
+    setAuthPayloadText(JSON.stringify({ ...template, project_id: projectId || '' }, null, 2));
+  };
+
+  useEffect(() => {
+    setAuthPayloadText((prev) => {
+      try {
+        const parsed = JSON.parse(prev);
+        parsed.project_id = projectId || parsed.project_id || '';
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        const template = authExampleMode === 'simple' ? SIMPLE_AUTH_PAYLOAD : NORMAL_AUTH_PAYLOAD;
+        return JSON.stringify({ ...template, project_id: projectId || '' }, null, 2);
+      }
+    });
+  }, [projectId, authExampleMode]);
+
+  const handleCreateSuspicion = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setCreating(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const created = await vulnApi.vuln.createCase({
+        project_id: projectId,
+        report_id: `manual-${Date.now()}`,
+        title: suspicionForm.title,
+        summary: suspicionForm.summary,
+        severity: suspicionForm.severity,
+        cvss_score: Number(suspicionForm.cvss_score),
+        confidence: Number(suspicionForm.confidence),
+        state: 'suspected',
+        category: 'manual_suspicion',
+        reporter: {
+          name: suspicionForm.source_service || 'manual-intake',
+          version: '1.0.0',
+          type: 'human',
+        },
+        subject: {
+          type: suspicionForm.asset_type,
+          locator: suspicionForm.asset_locator,
+        },
+        evidence: {
+          summary: suspicionForm.summary,
+          references: [],
+        },
+        artifacts: [],
+        metadata: {
+          source: {
+            source_service: suspicionForm.source_service,
+            source_kind: 'manual',
+          },
+          custom: {
+            entity_label: '疑点',
+          },
+        },
+      });
+      setSuspicionForm(DEFAULT_SUSPICION_FORM);
+      setShowCreateDialog(false);
+      await loadSuspicions();
+      setSelectedSuspicionId(created.id);
+      setSuccessMessage(`疑点 "${created.title}" 已创建。`);
+    } catch (err: any) {
+      setError(err?.message || '创建疑点失败');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleSaveDetailEdit = async () => {
+    if (!selectedDetail?.id || !editableDetail) return;
+    setDetailSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      let evidenceReferences: any[] = [];
+      let artifacts: any[] = [];
+      let metadata: Record<string, any> = {};
+      try {
+        evidenceReferences = JSON.parse(editableDetail.evidence_references_text || '[]');
+      } catch {
+        throw new Error('evidence.references JSON 格式不正确');
+      }
+      try {
+        artifacts = JSON.parse(editableDetail.artifacts_text || '[]');
+      } catch {
+        throw new Error('artifacts JSON 格式不正确');
+      }
+      try {
+        metadata = JSON.parse(editableDetail.metadata_text || '{}');
+      } catch {
+        throw new Error('metadata JSON 格式不正确');
+      }
+      if (!Array.isArray(evidenceReferences)) {
+        throw new Error('evidence.references 必须是数组');
+      }
+      if (!Array.isArray(artifacts)) {
+        throw new Error('artifacts 必须是数组');
+      }
+      const payload = {
+        title: editableDetail.title,
+        summary: editableDetail.summary || null,
+        severity: editableDetail.severity,
+        cvss_score: Number(editableDetail.cvss_score),
+        confidence: Number(editableDetail.confidence),
+        state: editableDetail.state,
+        category: editableDetail.category || null,
+        rule_id: editableDetail.rule_id || null,
+        rule_name: editableDetail.rule_name || null,
+        fingerprint: editableDetail.fingerprint || null,
+        reported_at: editableDetail.reported_at ? new Date(editableDetail.reported_at).toISOString() : null,
+        reporter: editableDetail.reporter,
+        subject: editableDetail.subject,
+        evidence: {
+          summary: editableDetail.evidence_summary || null,
+          reproduction_hint: editableDetail.evidence_reproduction_hint || null,
+          references: evidenceReferences,
+        },
+        artifacts,
+        metadata,
+      };
+      await vulnApi.vuln.updateCase(selectedDetail.id, payload);
+      await loadSuspicions();
+      await loadSuspicionDetail(selectedDetail.id);
+      setDetailEditMode(false);
+      setSuccessMessage('疑点上报字段已更新。');
+    } catch (err: any) {
+      setError(err?.message || '保存疑点失败');
+    } finally {
+      setDetailSaving(false);
+    }
+  };
+
+  const handleCancelDetailEdit = () => {
+    if (!selectedDetail) return;
+    setEditableDetail(makeEditableCaseIntake(selectedDetail));
+    setDetailEditMode(false);
+  };
+
+  const handleAuthenticatedSubmit = async () => {
+    setAuthSubmitting(true);
+    setError(null);
+    setAuthResult(null);
+    try {
+      const payload = JSON.parse(authPayloadText);
+      const result = await vulnApi.vuln.submitAuthenticatedIntake(payload);
+      setAuthResult(result);
+      await loadSuspicions();
+    } catch (err: any) {
+      setError(err?.message || '认证正式上报失败');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handlePromoteToAnalyze = async () => {
+    if (!selectedDetail?.id) return;
+    setProcessingAction('analyze');
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.transitionStage(selectedDetail.id, {
+        to_stage: 'triage',
+        reason: 'manual_enter_triage',
+      });
+      await loadSuspicions();
+      await loadSuspicionDetail(selectedDetail.id);
+      setSuccessMessage('疑点已手动转入研判阶段。');
+    } catch (err: any) {
+      setError(err?.message || '手动转入研判阶段失败');
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleMarkReadyForTriage = async () => {
+    if (!selectedDetail?.id) return;
+    setProcessingAction('ready_for_triage');
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.updateReceiveStatus(selectedDetail.id, {
+        receive_status: 'ready_for_triage',
+        summary: '接收阶段信息已补齐，标记为待研判',
+      });
+      await loadSuspicions();
+      await loadSuspicionDetail(selectedDetail.id);
+      setSuccessMessage('疑点已标记为待研判。');
+    } catch (err: any) {
+      setError(err?.message || '标记待研判失败');
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleMarkFalsePositive = async () => {
+    if (!selectedDetail?.id) return;
+    setProcessingAction('false_positive');
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.submitDecision(selectedDetail.id, {
+        decision_status: 'non_issue',
+        summary: '在疑点上报中心手动判定为非问题',
+      });
+      await loadSuspicions();
+      await loadSuspicionDetail(selectedDetail.id);
+      setSuccessMessage('疑点已手动标记为非问题。');
+    } catch (err: any) {
+      setError(err?.message || '标记非问题失败');
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleDeleteSuspicion = async () => {
+    if (!selectedDetail?.id) return;
+    const confirmed = window.confirm(`确认删除疑点“${selectedDetail.title}”吗？此操作不可恢复。`);
+    if (!confirmed) return;
+    setProcessingAction('delete');
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.deleteCase(selectedDetail.id);
+      const deletedTitle = selectedDetail.title;
+      setSelectedSuspicionId('');
+      setSelectedDetail(null);
+      setSelectedTimeline([]);
+      await loadSuspicions();
+      setSuccessMessage(`疑点“${deletedTitle}”已删除。`);
+    } catch (err: any) {
+      setError(err?.message || '删除疑点失败');
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleDeleteSingleFromList = async (caseId: string, title: string) => {
+    const confirmed = window.confirm(`确认删除疑点“${title}”吗？此操作不可恢复。`);
+    if (!confirmed) return;
+    setRowDeletingId(caseId);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await vulnApi.vuln.deleteCase(caseId);
+      await loadSuspicions();
+      setSelectedSuspicionIds((previous) => previous.filter((id) => id !== caseId));
+      setSuccessMessage(`疑点“${title}”已删除。`);
+    } catch (err: any) {
+      setError(err?.message || '删除疑点失败');
+    } finally {
+      setRowDeletingId(null);
+    }
+  };
+
+  const handleDeleteSelectedFromList = async () => {
+    if (selectedSuspicionIds.length === 0) return;
+    const confirmed = window.confirm(`确认删除已选择的 ${selectedSuspicionIds.length} 条疑点吗？此操作不可恢复。`);
+    if (!confirmed) return;
+    setBulkDeleting(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await Promise.all(selectedSuspicionIds.map((id) => vulnApi.vuln.deleteCase(id)));
+      const deletedCount = selectedSuspicionIds.length;
+      setSelectedSuspicionIds([]);
+      await loadSuspicions();
+      setSuccessMessage(`已删除 ${deletedCount} 条疑点。`);
+    } catch (err: any) {
+      setError(err?.message || '批量删除疑点失败');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleSortChange = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDirection(field === 'updated_at' || field === 'confidence' ? 'desc' : 'asc');
+  };
+
+  const visibleSuspicionIds = pagedSuspicions.map((item) => item.id);
+  const allVisibleSelected =
+    visibleSuspicionIds.length > 0 && visibleSuspicionIds.every((id) => selectedSuspicionIds.includes(id));
+
+  const toggleSuspicionSelection = (caseId: string) => {
+    setSelectedSuspicionIds((previous) =>
+      previous.includes(caseId) ? previous.filter((id) => id !== caseId) : [...previous, caseId],
+    );
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedSuspicionIds((previous) => {
+      if (allVisibleSelected) {
+        return previous.filter((id) => !visibleSuspicionIds.includes(id));
+      }
+      return Array.from(new Set([...previous, ...visibleSuspicionIds]));
+    });
+  };
+
+  const renderSortHeader = (label: string, field: SortField) => (
+    <button
+      type="button"
+      onClick={() => handleSortChange(field)}
+      className="inline-flex items-center gap-2 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500 hover:text-slate-800"
+    >
+      {label}
+      <ArrowUpDown size={12} className={sortField === field ? 'text-slate-800' : 'text-slate-300'} />
+    </button>
+  );
+
+  const renderDetailView = () => {
+    if (!selectedDetail) {
+      return (
+        <div className="rounded-[2rem] border border-dashed border-slate-200 bg-white px-8 py-10 text-center text-sm text-slate-400 shadow-sm">
+          从左侧选择疑点查看详情。
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_35%),linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] px-5 py-4 xl:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedSuspicionId('')}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600"
+            >
+              <ArrowLeft size={14} />
+              返回疑点列表
+            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(selectedDetail.severity)}`}>
+                {selectedDetail.severity}
+              </span>
+              <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(selectedDetail.current_stage)}`}>
+                {toStageText(selectedDetail.current_stage)}
+              </span>
+              <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(selectedDetail.decision_status)}`}>
+                {toDecisionText(selectedDetail.decision_status)}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="truncate text-xl font-black tracking-tight text-slate-900 xl:text-2xl">{selectedDetail.title}</h3>
+              <div className="mt-1 text-xs font-mono font-semibold text-slate-500">ID: {selectedDetail.id}</div>
+              <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-600">{selectedDetail.summary || '暂无摘要'}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {!detailEditMode ? (
+                <button
+                  type="button"
+                  onClick={() => setDetailEditMode(true)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                >
+                  编辑上报字段
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleSaveDetailEdit}
+                    disabled={detailSaving}
+                    className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white disabled:opacity-50"
+                  >
+                    {detailSaving ? '保存中...' : '保存'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelDetailEdit}
+                    disabled={detailSaving}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50"
+                  >
+                    取消
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">阶段</div>
+              <div className="mt-1 text-sm font-black text-slate-800">{toStageText(selectedDetail.current_stage)}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">状态</div>
+              <div className="mt-1 text-sm font-black text-slate-800">{toStatusText(selectedDetail.current_status)}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">置信度</div>
+              <div className="mt-1 text-sm font-black text-slate-800">{selectedDetail.confidence}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">CVSS</div>
+              <div className="mt-1 text-sm font-black text-slate-800">{Number(selectedDetail.cvss_score || 0).toFixed(1)}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">开放任务</div>
+              <div className="mt-1 text-sm font-black text-slate-800">{stats.openTasks}</div>
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            <button
+              type="button"
+              onClick={handleMarkReadyForTriage}
+              disabled={processingAction !== null || selectedDetail.current_stage !== 'receive'}
+              className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2.5 text-sm font-black text-blue-700 disabled:opacity-50"
+            >
+              <Check size={15} />
+              {processingAction === 'ready_for_triage' ? '处理中...' : '标记待研判'}
+            </button>
+            <button
+              type="button"
+              onClick={handlePromoteToAnalyze}
+              disabled={processingAction !== null || selectedDetail.current_stage !== 'receive'}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2.5 text-sm font-black text-white disabled:opacity-50"
+            >
+              <FolderOpen size={15} />
+              {processingAction === 'analyze' ? '处理中...' : '进入研判阶段'}
+            </button>
+            <button
+              type="button"
+              onClick={handleMarkFalsePositive}
+              disabled={processingAction !== null || selectedDetail.current_stage !== 'triage'}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm font-black text-amber-700 disabled:opacity-50"
+            >
+              <ShieldAlert size={15} />
+              {processingAction === 'false_positive' ? '处理中...' : '标记非问题'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteSuspicion}
+              disabled={processingAction !== null}
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-sm font-black text-rose-700 disabled:opacity-50"
+            >
+              <X size={15} />
+              {processingAction === 'delete' ? '删除中...' : '删除疑点'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 p-6 xl:grid-cols-[1.25fr_0.75fr] xl:p-8">
+          <div className="space-y-4">
+            <div className="rounded-[1.5rem] border border-slate-200 p-4">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">上报字段</div>
+              <div className="mt-3 grid gap-2.5 md:grid-cols-2">
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">标题</span>
+                  <input
+                    value={editableDetail?.title || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, title: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">严重程度</span>
+                  <select
+                    value={editableDetail?.severity || 'medium'}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, severity: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  >
+                    <option value="critical">critical</option>
+                    <option value="high">high</option>
+                    <option value="medium">medium</option>
+                    <option value="low">low</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-[11px] font-black text-slate-500">摘要</span>
+                  <textarea
+                    value={editableDetail?.summary || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, summary: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="min-h-[76px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">CVSS</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    value={editableDetail?.cvss_score ?? 0}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, cvss_score: Number(event.target.value) } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">置信度</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={editableDetail?.confidence ?? 0}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, confidence: Number(event.target.value) } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">状态</span>
+                  <select
+                    value={editableDetail?.state || 'suspected'}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, state: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  >
+                    <option value="suspected">suspected</option>
+                    <option value="confirmed">confirmed</option>
+                    <option value="rejected">rejected</option>
+                  </select>
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">上报时间</span>
+                  <input
+                    type="datetime-local"
+                    value={editableDetail?.reported_at || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reported_at: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">分类</span>
+                  <input
+                    value={editableDetail?.category || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, category: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">规则 ID</span>
+                  <input
+                    value={editableDetail?.rule_id || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, rule_id: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">规则名称</span>
+                  <input
+                    value={editableDetail?.rule_name || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, rule_name: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-[11px] font-black text-slate-500">指纹</span>
+                  <input
+                    value={editableDetail?.fingerprint || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, fingerprint: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 md:col-span-2">
+                  <span className="font-black text-slate-700">疑点 ID:</span> <span className="font-mono">{selectedDetail.id}</span>
+                  <span className="ml-3 font-black text-slate-700">创建:</span> {formatTime(selectedDetail.created_at)}
+                  <span className="ml-3 font-black text-slate-700">更新:</span> {formatTime(selectedDetail.updated_at)}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-slate-200 p-4">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">时间线</div>
+              <div className="mt-3 space-y-2.5">
+                {selectedTimeline.length === 0 ? (
+                  <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-400">暂无时间线数据</div>
+                ) : (
+                  selectedTimeline.map((item: any) => (
+                    <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-black text-slate-800">
+                          {item.payload?.summary || item.payload?.event_type || item.item_type}
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-400">{formatTime(item.created_at)}</div>
+                      </div>
+                      <div className="mt-1.5 text-xs text-slate-500">
+                        类型：{item.item_type}
+                        {item.payload?.status ? ` · 状态：${item.payload.status}` : ''}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-slate-200 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">疑点文件</div>
+                  <div className="mt-1 text-xs font-semibold text-slate-500">{selectedDetail.files_root_path || '未分配文件根路径'}</div>
+                </div>
+                {linkedFiles?.root_path ? (
+                  <button
+                    type="button"
+                    onClick={() => openLinkedFilesPath(linkedFiles.root_path)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                  >
+                    根目录
+                  </button>
+                ) : null}
+              </div>
+              <div className="mt-3 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
+                {linkedFilesLoading ? (
+                  <div className="px-4 py-8 text-sm text-slate-400">正在加载关联文件...</div>
+                ) : !linkedFiles ? (
+                  <div className="px-4 py-8 text-sm text-slate-400">当前疑点还没有可展示的文件目录。</div>
+                ) : (
+                  <div className="flex h-full min-h-[360px] flex-col">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
+                      <div className="truncate text-xs font-bold text-slate-500">当前路径：{linkedFiles.current_path}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+                          <Search size={12} className="text-slate-400" />
+                          <input
+                            value={linkedFileSearch}
+                            onChange={(event) => setLinkedFileSearch(event.target.value)}
+                            placeholder="搜索文件名/路径"
+                            className="w-36 bg-transparent text-xs font-semibold text-slate-700 outline-none placeholder:text-slate-400"
+                          />
+                        </div>
+                        {linkedFiles.current_path !== linkedFiles.root_path && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = String(linkedFiles.current_path || '');
+                              const parts = current.split('/').filter(Boolean);
+                              const parent = parts.length <= 2 ? linkedFiles.root_path : `/${parts.slice(0, -1).join('/')}`;
+                              openLinkedFilesPath(parent);
+                            }}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
+                          >
+                            上级目录
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => openLinkedFilesPath(linkedFiles.current_path)}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
+                        >
+                          刷新
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)]">
+                      <div className="min-h-0 overflow-auto border-r border-slate-100 p-3">
+                        <div className="grid grid-cols-[minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          <div>名称</div>
+                          <div>大小</div>
+                        </div>
+                        <div className="mt-2 space-y-1">
+                          {linkedDirectoryItems.map((directory: any) => (
+                            <button
+                              key={directory.id}
+                              type="button"
+                              onClick={() => openLinkedFilesPath(directory.path)}
+                              className="grid w-full grid-cols-[minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-50"
+                            >
+                              <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-slate-800">
+                                <FolderOpen size={14} className="shrink-0 text-amber-500" />
+                                <span className="truncate">{directory.name}</span>
+                              </span>
+                              <span className="text-xs text-slate-400">--</span>
+                            </button>
+                          ))}
+                          {linkedFileItems.map((file: any) => {
+                            const active = selectedLinkedFile?.id === file.id;
+                            return (
+                              <div
+                                key={file.id}
+                                className={`grid grid-cols-[minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => openLinkedTextPreview(file)}
+                                  className="min-w-0 text-left"
+                                >
+                                  <div className="inline-flex min-w-0 items-center gap-2">
+                                    <FileCode2 size={13} className="shrink-0 text-slate-500" />
+                                    <span className="truncate text-sm font-semibold text-slate-800">{file.filename}</span>
+                                  </div>
+                                  <div className="mt-0.5 truncate text-[10px] text-slate-400">{file.path}</div>
+                                </button>
+                                <span className="text-xs text-slate-500">{Math.max(0, Math.round((Number(file.size || 0)) / 1024))}KB</span>
+                              </div>
+                            );
+                          })}
+                          {linkedDirectoryItems.length === 0 && linkedFileItems.length === 0 && (
+                            <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-400">
+                              当前目录没有匹配的文件或文件夹
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="min-h-0">
+                        {selectedLinkedFile ? (
+                          <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_240px]">
+                            <div className="min-h-0 border-r border-slate-100 p-4">
+                              <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                                <FileCode2 size={13} />
+                                {selectedLinkedFile.filename}
+                              </div>
+                              <div className="h-[calc(100%-1.5rem)] min-h-[260px] overflow-auto">
+                                {linkedFilePreviewLoading ? (
+                                  <div className="text-sm text-slate-400">正在加载文件内容...</div>
+                                ) : linkedFilePreviewError ? (
+                                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{linkedFilePreviewError}</div>
+                                ) : (
+                                  <pre className="h-full overflow-auto rounded-2xl bg-slate-950 p-5 font-mono text-[12px] whitespace-pre-wrap text-slate-100">{linkedFilePreview || ''}</pre>
+                                )}
+                              </div>
+                            </div>
+                            <div className="p-4 text-sm text-slate-600">
+                              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">文件信息</div>
+                              <div className="mt-4 space-y-3">
+                                <div><div className="text-xs text-slate-400">文件名</div><div className="font-bold text-slate-900 break-all">{selectedLinkedFile.filename}</div></div>
+                                <div><div className="text-xs text-slate-400">内容类型</div><div className="font-semibold">{selectedLinkedFile.content_type || '未知类型'}</div></div>
+                                <div><div className="text-xs text-slate-400">大小</div><div className="font-semibold">{Number(selectedLinkedFile.size || 0)} bytes</div></div>
+                                <div><div className="text-xs text-slate-400">路径</div><div className="font-semibold break-all">{selectedLinkedFile.path || '-'}</div></div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleLinkedFileDownload(selectedLinkedFile.id, selectedLinkedFile.filename)}
+                                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
+                              >
+                                <Download size={14} />
+                                下载文件
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-slate-400">
+                            从左侧列表选择文件进行预览
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-[1.5rem] border border-slate-200 p-4">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">上报者 / 目标对象 / 证据</div>
+              <div className="mt-3 grid gap-2.5">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="grid gap-1">
+                    <span className="text-[11px] font-black text-slate-500">上报者名称（reporter.name）</span>
+                    <input
+                      value={editableDetail?.reporter?.name || ''}
+                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, name: event.target.value } } : prev))}
+                      disabled={!detailEditMode || detailSaving}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                    />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-[11px] font-black text-slate-500">上报者版本（reporter.version）</span>
+                    <input
+                      value={editableDetail?.reporter?.version || ''}
+                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, version: event.target.value } } : prev))}
+                      disabled={!detailEditMode || detailSaving}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                    />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-[11px] font-black text-slate-500">上报方式（reporter.type）</span>
+                    <input
+                      value={editableDetail?.reporter?.type || ''}
+                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, type: event.target.value } } : prev))}
+                      disabled={!detailEditMode || detailSaving}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                    />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-[11px] font-black text-slate-500">上报入口（reporter.endpoint）</span>
+                    <input
+                      value={editableDetail?.reporter?.endpoint || ''}
+                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, reporter: { ...prev.reporter, endpoint: event.target.value } } : prev))}
+                      disabled={!detailEditMode || detailSaving}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="grid gap-1">
+                    <span className="text-[11px] font-black text-slate-500">对象类型（subject.type）</span>
+                    <input
+                      value={editableDetail?.subject?.type || ''}
+                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, type: event.target.value } } : prev))}
+                      disabled={!detailEditMode || detailSaving}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                    />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-[11px] font-black text-slate-500">对象名称（subject.name）</span>
+                    <input
+                      value={editableDetail?.subject?.name || ''}
+                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, name: event.target.value } } : prev))}
+                      disabled={!detailEditMode || detailSaving}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                    />
+                  </label>
+                  <label className="grid gap-1 col-span-2">
+                    <span className="text-[11px] font-black text-slate-500">对象定位（subject.locator）</span>
+                    <input
+                      value={editableDetail?.subject?.locator || ''}
+                      onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, subject: { ...prev.subject, locator: event.target.value } } : prev))}
+                      disabled={!detailEditMode || detailSaving}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                    />
+                  </label>
+                </div>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">证据摘要（evidence.summary）</span>
+                  <textarea
+                    value={editableDetail?.evidence_summary || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_summary: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">复现提示（evidence.reproduction_hint）</span>
+                  <textarea
+                    value={editableDetail?.evidence_reproduction_hint || ''}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_reproduction_hint: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="min-h-[66px] rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none disabled:bg-slate-50"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-slate-200 p-4">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">JSON 字段</div>
+              <div className="mt-3 space-y-2.5">
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">证据引用（evidence.references，JSON 数组）</span>
+                  <textarea
+                    value={editableDetail?.evidence_references_text || '[]'}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, evidence_references_text: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="min-h-[90px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">文件清单（artifacts，JSON 数组）</span>
+                  <textarea
+                    value={editableDetail?.artifacts_text || '[]'}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, artifacts_text: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[11px] font-black text-slate-500">扩展元数据（metadata，JSON 对象）</span>
+                  <textarea
+                    value={editableDetail?.metadata_text || '{}'}
+                    onChange={(event) => setEditableDetail((prev) => (prev ? { ...prev, metadata_text: event.target.value } : prev))}
+                    disabled={!detailEditMode || detailSaving}
+                    className="min-h-[120px] rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-5 text-slate-200 outline-none disabled:opacity-80"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-slate-200 p-4">
+              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">完整原始数据</div>
+              <div className="mt-3 rounded-xl bg-slate-950 p-3 text-xs leading-5 text-slate-200">
+                <pre className="max-h-[18rem] overflow-auto whitespace-pre-wrap break-all">
+                  {JSON.stringify(
+                    {
+                      reporter: editableDetail?.reporter || selectedDetail.reporter,
+                      subject: editableDetail?.subject || selectedDetail.subject,
+                      evidence: {
+                        summary: editableDetail?.evidence_summary ?? selectedDetail?.evidence?.summary,
+                        reproduction_hint: editableDetail?.evidence_reproduction_hint ?? selectedDetail?.evidence?.reproduction_hint,
+                      },
+                      artifacts: (() => {
+                        try {
+                          return JSON.parse(editableDetail?.artifacts_text || '[]');
+                        } catch {
+                          return selectedDetail.artifacts;
+                        }
+                      })(),
+                      metadata: (() => {
+                        try {
+                          return JSON.parse(editableDetail?.metadata_text || '{}');
+                        } catch {
+                          return selectedDetail.metadata;
+                        }
+                      })(),
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="animate-in fade-in space-y-5 p-6 pb-16 duration-500 xl:p-8 xl:pb-20">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <h2 className="text-2xl font-black tracking-tight text-slate-900 xl:text-3xl">疑点上报中心</h2>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setShowSdkDialog(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm"
+          >
+            <BookOpen size={16} />
+            SDK / 上报方式
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreateDialog(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-slate-900/10"
+          >
+            <Plus size={16} />
+            手动创建疑点
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-[1.5rem] border border-rose-200 bg-rose-50 px-6 py-4 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 px-6 py-4 text-sm text-emerald-700">
+          {successMessage}
+        </div>
+      )}
+
+      {!selectedSuspicionId ? (
+        <>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">疑点总数</div>
+              <div className="mt-2 text-3xl font-black text-slate-900">{stats.total}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">高风险疑点</div>
+              <div className="mt-2 text-3xl font-black text-rose-600">{stats.highRisk}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">待研判</div>
+              <div className="mt-2 text-3xl font-black text-amber-600">{stats.pendingAnalyze}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">认证接入上报</div>
+              <div className="mt-2 text-3xl font-black text-blue-600">{stats.authenticated}</div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="border-b border-slate-100 px-5 py-4 xl:px-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">疑点列表</div>
+                  <h3 className="mt-1 text-xl font-black text-slate-900">待纳管疑点池</h3>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    {filteredSuspicions.length} / {stats.total}
+                  </div>
+                  <div className="rounded-xl bg-emerald-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">
+                    第 {normalizedPage}/{totalPages} 页
+                  </div>
+                  <div className="rounded-xl bg-blue-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-blue-700">
+                    已选 {selectedSuspicionIds.length}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelectedFromList}
+                    disabled={selectedSuspicionIds.length === 0 || bulkDeleting}
+                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:opacity-50"
+                  >
+                    <Trash2 size={14} />
+                    {bulkDeleting ? '删除中...' : `删除选中 (${selectedSuspicionIds.length})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={loadSuspicions}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                  >
+                    <Send size={14} />
+                    刷新
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 px-5 py-4 xl:px-6">
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_auto_auto_auto_auto]">
+                <div className="relative min-w-0">
+                  <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="搜索标题、摘要、资产定位、来源服务"
+                    className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {Object.entries(STAGE_LABELS).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setStageFilter(key)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] ${
+                        stageFilter === key ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      <Filter size={12} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <select
+                  value={severityFilter}
+                  onChange={(event) => setSeverityFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"
+                >
+                  <option value="all">全部等级</option>
+                  <option value="critical">critical</option>
+                  <option value="high">high</option>
+                  <option value="medium">medium</option>
+                  <option value="low">low</option>
+                </select>
+                <select
+                  value={reporterTypeFilter}
+                  onChange={(event) => setReporterTypeFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"
+                >
+                  <option value="all">全部来源方式</option>
+                  <option value="plugin">plugin</option>
+                  <option value="service">service</option>
+                  <option value="cli">cli</option>
+                  <option value="skill">skill</option>
+                  <option value="api">api</option>
+                  <option value="human">human</option>
+                  <option value="other">other</option>
+                </select>
+                <select
+                  value={cvssBandFilter}
+                  onChange={(event) => setCvssBandFilter(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none"
+                >
+                  <option value="all">全部 CVSS 档位</option>
+                  <option value="critical">critical (9.0-10.0)</option>
+                  <option value="high">high (7.0-8.9)</option>
+                  <option value="medium">medium (4.0-6.9)</option>
+                  <option value="low">low (0.1-3.9)</option>
+                </select>
+              </div>
+
+              <div className="overflow-hidden rounded-[1.25rem] border border-slate-200">
+                  <div className="grid grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleSelectAllVisible}
+                      aria-label="全选当前页"
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                    />
+                  </div>
+                  {renderSortHeader('标题 / 摘要', 'title')}
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">文件</div>
+                  {renderSortHeader('阶段 / 状态', 'current_stage')}
+                  {renderSortHeader('等级', 'severity')}
+                  {renderSortHeader('CVSS', 'cvss_score')}
+                  {renderSortHeader('上报者', 'reporter')}
+                  {renderSortHeader('对象', 'subject')}
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">来源方式</div>
+                  {renderSortHeader('更新时间', 'updated_at')}
+                  {renderSortHeader('置信度', 'confidence')}
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">操作</div>
+                </div>
+                {loading ? (
+                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">正在加载疑点列表...</div>
+                ) : filteredSuspicions.length === 0 ? (
+                  <div className="bg-slate-50 px-4 py-8 text-sm text-slate-400">当前筛选条件下没有疑点。</div>
+                ) : (
+                  pagedSuspicions.map((item) => (
+                    <div
+                      key={item.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedSuspicionId(item.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedSuspicionId(item.id);
+                        }
+                      }}
+                      className="grid cursor-pointer grid-cols-[0.45fr_2.1fr_0.6fr_1.2fr_0.8fr_0.8fr_1fr_1.5fr_0.9fr_1.1fr_0.7fr_0.9fr] gap-3 border-b border-slate-100 bg-white px-4 py-3.5 text-left transition hover:bg-slate-50 last:border-b-0"
+                    >
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedSuspicionIds.includes(item.id)}
+                          onChange={() => toggleSuspicionSelection(item.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          aria-label={`选择疑点 ${item.title}`}
+                          className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-black text-slate-900">{item.title}</div>
+                        <div className="mt-1 font-mono text-[11px] text-slate-400">{item.id}</div>
+                        <div className="mt-1.5 line-clamp-2 text-xs leading-5 text-slate-500">{item.summary || '暂无摘要'}</div>
+                      </div>
+                      <div className="flex items-start justify-center">
+                        {hasArtifactFiles(item.artifacts) ? (
+                          <span title="含文件/文件夹" className="inline-flex items-center justify-center rounded-md bg-emerald-100 p-1 text-emerald-700">
+                            <FolderOpen size={14} />
+                          </span>
+                        ) : (
+                          <span title="无文件" className="inline-flex items-center justify-center rounded-md bg-slate-100 p-1 text-slate-400">
+                            <FolderOpen size={14} />
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-black text-slate-700">{toStageText(item.current_stage)}</div>
+                        <div className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600">
+                          {toStatusText(item.current_status)}
+                        </div>
+                        {item.finished_reason ? (
+                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                            结论: {item.finished_reason}
+                          </div>
+                        ) : item.decision_status ? (
+                          <div className="mt-1 text-[10px] font-semibold text-slate-500">
+                            结论: {item.decision_status}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div>
+                        <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(item.severity)}`}>
+                          {item.severity}
+                        </span>
+                      </div>
+                      <div className="text-sm font-black text-slate-800">{Number(item.cvss_score || 0).toFixed(1)}</div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-slate-800">{item.reporter?.name || 'unknown'}</div>
+                        <div className="mt-0.5 text-xs text-slate-400">{item.reporter?.version || 'n/a'}</div>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-slate-800">{item.subject?.locator || 'unscoped asset'}</div>
+                        <div className="mt-0.5 text-xs text-slate-400">{item.subject?.type || 'generic'}</div>
+                      </div>
+                      <div className="text-sm font-semibold text-slate-700">{item.reporter?.type || 'other'}</div>
+                      <div className="text-sm text-slate-500">{formatTime(item.updated_at || item.created_at)}</div>
+                      <div className="text-right text-xl font-black text-slate-900">{item.confidence}</div>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteSingleFromList(item.id, item.title);
+                          }}
+                          disabled={bulkDeleting || rowDeletingId === item.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[11px] font-black text-rose-700 disabled:opacity-50"
+                        >
+                          <Trash2 size={12} />
+                          {rowDeletingId === item.id ? '删除中' : '删除'}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <div className="text-xs font-semibold text-slate-600">
+                  当前显示 {totalFiltered === 0 ? 0 : pageStart + 1} - {Math.min(pageStart + pageSize, totalFiltered)} / {totalFiltered}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-600">
+                    每页
+                    <select
+                      value={pageSize}
+                      onChange={(event) => {
+                        const value = Math.min(1000, Math.max(10, Number(event.target.value) || 20));
+                        setPageSize(value);
+                      }}
+                      className="ml-2 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold outline-none"
+                    >
+                      {[20, 50, 100, 200, 500, 1000].map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={normalizedPage <= 1}
+                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                  >
+                    首页
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={normalizedPage <= 1}
+                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                  >
+                    上一页
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={normalizedPage >= totalPages}
+                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                  >
+                    下一页
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={normalizedPage >= totalPages}
+                    className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+                  >
+                    末页
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        renderDetailView()
+      )}
+
+      {showSdkDialog && (
+        <DialogShell
+          title="SDK 下载与认证上报方式"
+          onClose={() => setShowSdkDialog(false)}
+        >
+          <div className="space-y-8">
+            <div className="grid gap-5 xl:grid-cols-2 2xl:grid-cols-4">
+              {(catalog?.items || []).map((item: any) => (
+                <div key={item.kind} className="rounded-[1.75rem] border border-slate-200 bg-slate-50/80 p-6 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                        {METHOD_ICONS[item.kind as PublicKind]}
+                      </div>
+                      <div>
+                        <div className="text-sm font-black text-slate-900">{item.title}</div>
+                        <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-emerald-600">需要认证</div>
+                      </div>
+                    </div>
+                    <a
+                      href={item.download_url}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-xs font-black text-white"
+                    >
+                      <Download size={14} />
+                      下载
+                    </a>
+                  </div>
+                  <p className="mt-4 min-h-[66px] text-sm leading-6 text-slate-600">{item.description}</p>
+                  <div className="mt-4 space-y-2 text-xs text-slate-500">
+                    <div><span className="font-black text-slate-700">版本</span> {catalog?.version || '1.0.0'}</div>
+                    <div><span className="font-black text-slate-700">文件</span> {item.filename}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedExample(item.kind)}
+                    className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700"
+                  >
+                    查看示例
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">公共字段</div>
+                <div className="mt-4 overflow-hidden rounded-[1.5rem] border border-slate-200">
+                  <div className="grid grid-cols-[1.3fr_0.7fr_2.5fr] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                    <div>字段</div>
+                    <div>是否必填</div>
+                    <div>说明</div>
+                  </div>
+                  {PUBLIC_FIELDS.map((item) => (
+                    <div key={item.name} className="grid grid-cols-[1.3fr_0.7fr_2.5fr] gap-4 border-b border-slate-100 px-5 py-4 text-sm last:border-b-0">
+                      <div className="font-mono font-bold text-slate-800">{item.name}</div>
+                      <div>
+                        <span className={`rounded-xl px-2 py-1 text-[10px] font-black uppercase tracking-widest ${item.required ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {item.required ? '必填' : '可选'}
+                        </span>
+                      </div>
+                      <div className="leading-6 text-slate-600">{item.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">自定义元数据</div>
+                  <div className="mt-4 space-y-3">
+                    {METADATA_GUIDE.map((item) => (
+                      <div key={item.key} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
+                        <div className="font-mono text-xs font-black text-slate-800">{item.key}</div>
+                        <div className="mt-2 text-sm leading-6 text-slate-600">{item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">文件与文件夹上报</div>
+                  <div className="mt-4 space-y-3">
+                    {ARTIFACT_GUIDE.map((item) => (
+                      <div key={item.title} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/80 px-4 py-4">
+                        <div className="text-sm font-black text-slate-800">{item.title}</div>
+                        <div className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 rounded-[1.25rem] border border-dashed border-slate-300 bg-white px-4 py-4 text-sm leading-6 text-slate-600">
+                    目录结构请使用 <span className="font-mono font-bold text-slate-800">artifacts[].children</span> 递归表达；
+                    外部文件、压缩包、大文件或已有上传对象请放在 <span className="font-mono font-bold text-slate-800">content_ref</span>；
+                    文本、JSON、二进制小文件可直接通过 <span className="font-mono font-bold text-slate-800">content</span> 内联传递。
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  {(['cli', 'plugin', 'skill', 'openapi'] as PublicKind[]).map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      onClick={() => setSelectedExample(kind)}
+                      className={`rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-widest ${
+                        selectedExample === kind ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {kind}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-5 rounded-[1.5rem] bg-slate-950 p-5 text-xs leading-6 text-slate-200">
+                  <pre className="overflow-auto whitespace-pre-wrap break-all">
+                    {JSON.stringify(selectedExamplePayload || {}, null, 2)}
+                  </pre>
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">认证正式上报</div>
+                <div className="mt-3 text-lg font-black text-slate-900">公开 API 说明</div>
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Key size={14} className="text-blue-600" />
+                      <span className="font-black text-slate-900">当前项目 Token</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={refreshProjectToken}
+                      disabled={tokenLoading || !projectId}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-black text-slate-700 disabled:opacity-50"
+                    >
+                      {tokenLoading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      刷新
+                    </button>
+                  </div>
+                  <div className="mt-3 rounded-xl bg-slate-900 p-3 pr-12 font-mono text-[11px] leading-5 text-blue-200 break-all min-h-[68px] relative">
+                    {tokenLoading && !projectToken ? '正在加载项目 Token...' : (projectToken?.token || '当前 Token 不可用')}
+                    {!!projectToken?.token && (
+                      <button
+                        type="button"
+                        onClick={copyProjectToken}
+                        className="absolute right-2 top-2 rounded-lg bg-white/10 p-2 text-white hover:bg-white/20"
+                      >
+                        {tokenCopied ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                    <span>标识: <span className="font-black text-slate-700">{projectToken?.machine_code || `project-sdk:${projectId || 'n/a'}`}</span></span>
+                    <span>作用域: <span className="font-black text-slate-700">{projectToken?.token_scope || 'project'}</span></span>
+                    <span>过期: <span className="font-black text-slate-700">{projectToken?.expires_at ? String(projectToken.expires_at).replace('T', ' ') : '永不过期'}</span></span>
+                  </div>
+                  {tokenError ? <div className="mt-2 text-[11px] font-black text-rose-600">{tokenError}</div> : null}
+                </div>
+                <div className="mt-4 rounded-2xl bg-white p-4 text-xs text-slate-600">
+                  <div className="font-black text-slate-900">POST {API_BASE}/api/vuln/public/intake/submissions</div>
+                  <ul className="mt-3 space-y-2">
+                    <li><span className="font-black text-slate-800">必填</span> `project_id`、`title`、`severity`、`cvss_score`、`confidence`、`reporter`、`subject`</li>
+                    <li><span className="font-black text-slate-800">定位</span> `project_id` 标识目标项目，并执行项目级权限校验</li>
+                    <li><span className="font-black text-slate-800">认证</span> 请求必须携带 Bearer Token（复用 auth 微服务登录态）</li>
+                    <li><span className="font-black text-slate-800">限制</span> 不支持匿名上报</li>
+                    <li><span className="font-black text-slate-800">行为</span> 后端会自动记为 `created_by_type=human`，`created_by` 取认证身份</li>
+                    <li><span className="font-black text-slate-800">关联</span> 请在 `reporter.name`、`reporter.version` 中明确上报者身份，便于后续验证复现回调</li>
+                    <li><span className="font-black text-slate-800">文件</span> 简易上报可不传 `artifacts`；正常上报建议通过 `artifacts` 传递文件和目录结构</li>
+                  </ul>
+                </div>
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-500">推荐上报流程</div>
+                  <ol className="mt-3 list-decimal space-y-2 pl-5">
+                    <li>先获取项目级认证 Token（auth 微服务登录态）。</li>
+                    <li>选择模式：简易上报（不带文件）或正常上报（带文件/目录）。</li>
+                    <li>组装 payload 并调用认证接口，后续可按返回疑点 ID 继续补充资料。</li>
+                  </ol>
+                </div>
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-xs font-black uppercase tracking-widest text-slate-500">示例模式</div>
+                    <button
+                      type="button"
+                      onClick={() => applyAuthExampleMode('simple')}
+                      className={`rounded-xl px-3 py-1.5 text-[11px] font-black ${authExampleMode === 'simple' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      简易上报（不带文件）
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyAuthExampleMode('normal')}
+                      className={`rounded-xl px-3 py-1.5 text-[11px] font-black ${authExampleMode === 'normal' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      正常上报（带文件）
+                    </button>
+                  </div>
+                  <pre className="mt-3 overflow-auto whitespace-pre-wrap text-[11px] leading-6 text-slate-700">{`curl -X POST "${API_BASE}/api/vuln/public/intake/submissions" \\
+  -H 'Authorization: Bearer <token>' \\
+  -H 'Content-Type: application/json' \\
+  --data @${authExampleMode === 'simple' ? 'payload-simple.json' : 'payload-with-files.json'}`}</pre>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">认证联调</div>
+                  <div className="mt-2 text-xl font-black text-slate-900">测试认证正式上报</div>
+                </div>
+                {authResult && (
+                  <div className="rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">
+                    已创建疑点 {authResult.id}
+                  </div>
+                )}
+              </div>
+              <textarea
+                value={authPayloadText}
+                onChange={(event) => setAuthPayloadText(event.target.value)}
+                className="mt-5 h-72 w-full rounded-[1.5rem] border border-slate-200 bg-slate-950 p-5 font-mono text-xs leading-6 text-slate-100 outline-none"
+              />
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleAuthenticatedSubmit}
+                  disabled={authSubmitting}
+                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+                >
+                  {authSubmitting ? '提交中...' : '测试认证正式上报'}
+                </button>
+                <a
+                  href={vulnApi.vuln.getPublicOpenApiSpecUrl()}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
+                >
+                  获取 OpenAPI 模板
+                </a>
+              </div>
+            </div>
+          </div>
+        </DialogShell>
+      )}
+
+      {showCreateDialog && (
+        <DialogShell
+          title="手动创建疑点"
+          onClose={() => setShowCreateDialog(false)}
+        >
+          <form onSubmit={handleCreateSuspicion} className="grid gap-4">
+            <input
+              value={suspicionForm.title}
+              onChange={(event) => setSuspicionForm({ ...suspicionForm, title: event.target.value })}
+              placeholder="疑点标题"
+              className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+              required
+            />
+            <textarea
+              value={suspicionForm.summary}
+              onChange={(event) => setSuspicionForm({ ...suspicionForm, summary: event.target.value })}
+              placeholder="疑点摘要"
+              className="min-h-[8rem] rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+            />
+            <div className="grid gap-4 md:grid-cols-2">
+                <select
+                  value={suspicionForm.severity}
+                  onChange={(event) => setSuspicionForm({ ...suspicionForm, severity: event.target.value })}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+                >
+                  <option value="critical">critical</option>
+                  <option value="high">high</option>
+                  <option value="medium">medium</option>
+                  <option value="low">low</option>
+                </select>
+                <input
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  value={suspicionForm.cvss_score}
+                  onChange={(event) => setSuspicionForm({ ...suspicionForm, cvss_score: Number(event.target.value) })}
+                  placeholder="CVSS 基础分"
+                  className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  type="number"
+                  min={0}
+                max={100}
+                value={suspicionForm.confidence}
+                onChange={(event) => setSuspicionForm({ ...suspicionForm, confidence: Number(event.target.value) })}
+                placeholder="置信度"
+                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <input
+                value={suspicionForm.source_service}
+                onChange={(event) => setSuspicionForm({ ...suspicionForm, source_service: event.target.value })}
+                placeholder="来源服务"
+                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+              />
+              <input
+                value={suspicionForm.asset_type}
+                onChange={(event) => setSuspicionForm({ ...suspicionForm, asset_type: event.target.value })}
+                placeholder="资产类型"
+                className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+              />
+            </div>
+            <input
+              value={suspicionForm.asset_locator}
+              onChange={(event) => setSuspicionForm({ ...suspicionForm, asset_locator: event.target.value })}
+              placeholder="资产定位"
+              className="rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+            />
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={creating}
+                className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+              >
+                {creating ? '创建中...' : '创建疑点'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateDialog(false)}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700"
+              >
+                取消
+              </button>
+            </div>
+          </form>
+        </DialogShell>
+      )}
+    </div>
+  );
+};
