@@ -70,10 +70,12 @@ import { DepartmentPage } from '../pages/platform/DepartmentPage';
 import { DepartmentMemberPage } from '../pages/platform/DepartmentMemberPage';
 import { ProjectPage } from '../pages/platform/ProjectPage';
 import { AdminDashboardPage } from '../pages/platform/AdminDashboardPage';
-import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats } from '../types/types';
+import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
+import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
 
 export interface ViewRegistryContext {
   currentView: string;
+  user: UserInfo | null;
   projects: SecurityProject[];
   agents: Agent[];
   templates: EnvTemplate[];
@@ -370,7 +372,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'sys-settings':
       return <WorkflowPlaceholder title="系统设置" icon={<Settings />} />;
     case 'change-password':
-      return <WorkflowPlaceholder title="修改密码" icon={<Lock />} />;
+      return <ChangePasswordPage user={ctx.user} />;
     case 'user-mgmt-users':
       return <UserMgmtPage />;
     case 'user-mgmt-access':

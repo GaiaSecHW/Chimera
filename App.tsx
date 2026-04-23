@@ -462,6 +462,7 @@ const App: React.FC = () => {
                 ) : (
                   renderCurrentView({
                     currentView: String(currentView),
+                    user,
                     projects,
                     agents,
                     templates,
