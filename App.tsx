@@ -535,8 +535,18 @@ const AppShell: React.FC = () => {
         <style>{`
           .custom-scrollbar::-webkit-scrollbar { width: 6px; } 
           .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
-          @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-          .animate-in { animation: fade-in 0.3s ease-out; }
+          @keyframes zoom-fade-in {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          .animate-in {
+            animation: zoom-fade-in 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+            transform-origin: center;
+          }
+          .animate-in.duration-100 { animation-duration: 0.1s; }
+          .animate-in.duration-200 { animation-duration: 0.2s; }
+          .animate-in.duration-300 { animation-duration: 0.3s; }
+          .animate-in.duration-500 { animation-duration: 0.5s; }
         `}</style>
       </div>
       <GlobalUploadWidget />
