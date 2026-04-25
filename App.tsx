@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
+import { HashRouter, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, AlertCircle, Shield, Lock } from 'lucide-react';
 import { ViewType, SecurityProject, UserInfo, Agent, EnvTemplate, StaticPackage, PackageStats, AdminDashboardStats } from './types/types';
 import { api } from './clients/api';
@@ -14,8 +15,13 @@ import { ServiceTerminalWindowPage } from './pages/environment/ServiceTerminalWi
 import { canAccessView, getUserAccess, getUserCenterDefaultView } from './utils/rbac';
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
 
+const DEFAULT_VIEW = 'dashboard';
 
-const App: React.FC = () => {
+const AppShell: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { view } = useParams<{ view?: string }>();
+  const routeView = view || DEFAULT_VIEW;
   const platformApi = api.domains.platform;
   const projectApi = api.domains.project;
   const assetApi = api.domains.assets;
@@ -25,7 +31,7 @@ const App: React.FC = () => {
 
   const [token, setToken] = useState<string | null>(localStorage.getItem('secflow_token'));
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [currentView, setCurrentView] = useState<ViewType | string>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewType | string>(routeView);
   const [projects, setProjects] = useState<SecurityProject[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(localStorage.getItem('last_project_id') || '');
   const [activeProjectId, setActiveProjectId] = useState<string>(''); 
@@ -70,6 +76,14 @@ const App: React.FC = () => {
   const [activeAiwfDefinitionId, setActiveAiwfDefinitionId] = useState<string>('');
   const [activeAiwfExecutionId, setActiveAiwfExecutionId] = useState<string>('');
 
+  const navigateToView = useCallback((nextView: ViewType | string) => {
+    const normalizedView = String(nextView || DEFAULT_VIEW);
+    setCurrentView(normalizedView);
+    if (!isServiceTerminalWindow && location.pathname !== `/${normalizedView}`) {
+      navigate(`/${normalizedView}`);
+    }
+  }, [isServiceTerminalWindow, location.pathname, navigate]);
+
   const normalizeServiceHealth = (status?: AggregatedServiceHealth | null): boolean | null => {
     if (status === 'healthy') return true;
     if (status === 'unhealthy' || status === 'degraded' || status === 'stale') return false;
@@ -98,11 +112,25 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (isServiceTerminalWindow) return;
+    if (routeView !== currentView) {
+      setCurrentView(routeView);
+    }
+  }, [currentView, isServiceTerminalWindow, routeView]);
+
+  useEffect(() => {
+    if (isServiceTerminalWindow) return;
+    if (location.pathname === '/') {
+      navigate(`/${DEFAULT_VIEW}`, { replace: true });
+    }
+  }, [isServiceTerminalWindow, location.pathname, navigate]);
+
+  useEffect(() => {
     const handleNavigateView = (event: Event) => {
       const detail = (event as CustomEvent<{ view?: string; helperKey?: string; processMonitorServiceKey?: string }>).detail;
       const nextView = String(detail?.view || '').trim();
       if (nextView) {
-        setCurrentView(nextView);
+        navigateToView(nextView);
       }
       const helperKey = String(detail?.helperKey || '').trim();
       if (helperKey) {
@@ -115,7 +143,7 @@ const App: React.FC = () => {
     };
     window.addEventListener('secflow-navigate-view', handleNavigateView as EventListener);
     return () => window.removeEventListener('secflow-navigate-view', handleNavigateView as EventListener);
-  }, []);
+  }, [navigateToView]);
 
   useEffect(() => {
     if (token) {
@@ -187,8 +215,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
     if (canAccessView(user, currentView)) return;
-    setCurrentView(getUserCenterDefaultView(user));
-  }, [user, currentView]);
+    navigateToView(getUserCenterDefaultView(user));
+  }, [user, currentView, navigateToView]);
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -198,9 +226,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!selectedProjectId && PROJECT_REQUIRED_VIEWS.has(currentView)) {
-      setCurrentView('dashboard');
+      navigateToView('dashboard');
     }
-  }, [selectedProjectId, currentView]);
+  }, [selectedProjectId, currentView, navigateToView]);
 
   const fetchDashboardServicesCount = async (onlineAgents: Agent[]) => {
     if (onlineAgents.length === 0) return;
@@ -280,7 +308,7 @@ const App: React.FC = () => {
     setUser(null);
     setProjects([]);
     setSelectedProjectId('');
-    setCurrentView('dashboard');
+    navigateToView('dashboard');
   };
 
   const handleForcedPasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -364,7 +392,7 @@ const App: React.FC = () => {
         <Header 
           user={user} 
           currentTopLevelNav={activeTopLevelNav}
-          onSelectTopLevelNav={(nav) => setCurrentView(getTopLevelDefaultView(nav, user))}
+          onSelectTopLevelNav={(nav) => navigateToView(getTopLevelDefaultView(nav, user))}
           projects={projects} 
           selectedProjectId={selectedProjectId} 
           setSelectedProjectId={setSelectedProjectId} 
@@ -374,7 +402,7 @@ const App: React.FC = () => {
           setSearchQuery={setSearchQuery} 
           fetchProjects={fetchProjects} 
           isRefreshing={isRefreshing}
-          setCurrentView={setCurrentView}
+          setCurrentView={navigateToView}
           handleLogout={handleLogout}
         />
 
@@ -386,7 +414,7 @@ const App: React.FC = () => {
             hasSelectedProject={!!selectedProjectId}
             isSidebarCollapsed={isSidebarCollapsed} 
             setIsSidebarCollapsed={setIsSidebarCollapsed} 
-            setCurrentView={setCurrentView} 
+            setCurrentView={navigateToView} 
             resourceHealth={resourceServiceHealthy}
             staticPackageHealth={staticPackageHealthy}
             projectHealth={projectServiceHealthy}
@@ -483,7 +511,7 @@ const App: React.FC = () => {
                     activeAiwfDefinitionId,
                     activeAiwfExecutionId,
                     selectedStaticPkgIds,
-                    setCurrentView: (view) => setCurrentView(view),
+                    setCurrentView: navigateToView,
                     setActiveProjectId: (id) => setActiveProjectId(id),
                     setActivePackageId: (id) => setActivePackageId(id),
                     setActiveInstanceId: (id) => setActiveInstanceId(id),
@@ -516,5 +544,14 @@ const App: React.FC = () => {
     </UploadCenterProvider>
   );
 };
+
+const App: React.FC = () => (
+  <HashRouter>
+    <Routes>
+      <Route path="/" element={<AppShell />} />
+      <Route path="/:view" element={<AppShell />} />
+    </Routes>
+  </HashRouter>
+);
 
 export default App;
