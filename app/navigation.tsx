@@ -99,7 +99,6 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
 
 export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'project-file-explorer',
-  'public-resource-management',
   'public-resource-pvc-management',
   'public-resource-task-management',
   'pvc-management',
@@ -173,21 +172,26 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'dashboard') return 'dashboard';
 
-  if (view === 'project-mgmt' || view === 'project-detail' || view === 'project-file-explorer') {
+  if (view === 'project-mgmt' || view === 'project-detail') {
     return 'project';
   }
 
   if (
-    view === 'static-packages' ||
-    view === 'static-package-detail' ||
-    view === 'deploy-script-mgmt' ||
-    view === 'public-resource-management' ||
+    view === 'project-file-explorer' ||
     view === 'public-resource-pvc-management' ||
     view === 'public-resource-task-management' ||
     view === 'pvc-management' ||
     view.startsWith('test-input-')
   ) {
     return 'assets';
+  }
+
+  if (
+    view === 'static-packages' ||
+    view === 'static-package-detail' ||
+    view === 'deploy-script-mgmt'
+  ) {
+    return 'platform';
   }
 
   if (view.startsWith('env-')) {
@@ -223,7 +227,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'project':
       return 'project-mgmt';
     case 'assets':
-      return 'public-resource-management';
+      return 'public-resource-pvc-management';
     case 'environment':
       return 'env-agent';
     case 'orchestration':
@@ -254,7 +258,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '项目空间',
       items: [
         { id: 'project-mgmt', label: '项目管理', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
-        { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
       ],
     },
   ],
@@ -262,11 +265,9 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '资产供应',
       items: [
-        { id: 'public-resource-management', label: '公共资源总览', icon: FileBox, requiresProject: true, healthKey: 'resourceHealth' },
+        { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
         { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
         { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
-        { id: 'static-packages', label: '静态软件包', icon: Package, aliases: ['static-package-detail'], healthKey: 'staticPackageHealth' },
-        { id: 'deploy-script-mgmt', label: '部署脚本', icon: Terminal },
       ],
     },
   ],
@@ -381,6 +382,8 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'admin-dashboard', label: '管理员控制台', icon: ShieldAlert },
         { id: 'config-center-llm', label: '配置中心', icon: Key, aliases: ['config-center-root', 'config-center-llm-chat'], healthKey: 'configCenterHealth' },
+        { id: 'static-packages', label: '静态软件包', icon: Package, aliases: ['static-package-detail'], healthKey: 'staticPackageHealth' },
+        { id: 'deploy-script-mgmt', label: '部署脚本', icon: Terminal },
         { id: 'sys-settings', label: '系统设置', icon: Settings },
         { id: 'change-password', label: '修改密码', icon: Lock },
       ],

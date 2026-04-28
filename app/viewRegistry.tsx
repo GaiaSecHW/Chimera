@@ -164,8 +164,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ConfigCenterLlmPage onOpenChat={() => ctx.setCurrentView('config-center-llm-chat')} />;
     case 'config-center-llm-chat':
       return <ConfigCenterLlmChatPage onBack={() => ctx.setCurrentView('config-center-llm')} />;
-    case 'public-resource-management':
-      return <PublicResourceManagementPage projectId={ctx.selectedProjectId} />;
     case 'public-resource-pvc-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
     case 'public-resource-task-management':
