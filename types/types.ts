@@ -1864,7 +1864,7 @@ export type ViewType =
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
-  | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-history' | 'system-analysis-prompt'
+  | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-history' | 'system-analysis-prompt' | 'system-analysis-config'
   | 'workflow-instances' | 'workflow-instance-detail' | 'workflow-instance-logs' | 'workflow-jobs' | 'workflow-job-detail' | 'workflow-apps' | 'workflow-app-detail' | 'workflow-app-instances' | 'workflow-app-instance-detail'
   | 'engine-validation' | 'pentest-root' | 'pentest-risk' | 'pentest-system' 
   | 'pentest-threat' | 'pentest-orch' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-exec-secmate' | 'pentest-exec-firmware-unpacker' | 'pentest-report'
@@ -2031,6 +2031,72 @@ export interface SystemAnalysisPromptTemplate {
   updated_by?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SystemAnalysisStageLoopConfig {
+  min_rounds: number;
+  max_rounds: number;
+  pass_mode: 'majority' | 'all';
+}
+
+export interface SystemAnalysisAgentInstance {
+  model: string;
+  tools?: string[] | null;
+  thinking_level?: string | null;
+}
+
+export interface SystemAnalysisRoleConfig {
+  default_model?: string;
+  default_tools?: string[];
+  system_prompt_dir: string;
+  default_thinking_level: string;
+  agents?: SystemAnalysisAgentInstance[];
+  stage_models?: Record<string, string>;
+}
+
+export interface SystemAnalysisStagesConfig {
+  classify: SystemAnalysisStageLoopConfig;
+  refine: SystemAnalysisStageLoopConfig;
+  analyse: SystemAnalysisStageLoopConfig;
+  final_check: SystemAnalysisStageLoopConfig;
+}
+
+export interface SystemAnalysisServiceConfig {
+  project_id: string;
+  analyse_targets: string[];
+  binary_arch: string[];
+  parallel_modules: number;
+  parallel_sub_workers: number;
+  agent_max_retries: number;
+  agent_retry_delay: number;
+  pi_max_retries: number;
+  pi_retry_delay: number;
+  stages: SystemAnalysisStagesConfig;
+  workers: SystemAnalysisRoleConfig;
+  judges: SystemAnalysisRoleConfig;
+  output_dir: string;
+  archive_dir: string;
+  result_dir: string;
+  start_stage: number;
+  resume_workspace: string;
+  updated_at?: string | null;
+}
+
+export interface SystemAnalysisModelEntry {
+  id: string;
+  reasoning: boolean;
+}
+
+export interface SystemAnalysisProviderConfig {
+  baseUrl: string;
+  api: string;
+  apiKey: string;
+  models: SystemAnalysisModelEntry[];
+}
+
+export interface SystemAnalysisModelsConfig {
+  providers: Record<string, SystemAnalysisProviderConfig>;
+  updated_at?: string | null;
 }
 
 export interface LlmProviderSummary {
@@ -2266,4 +2332,225 @@ export interface AgentIngressRouteInfo {
   created_at?: string | null;
   updated_at?: string | null;
   deleted_at?: string | null;
+}
+
+// ─── App System Analyse types ────────────────────────────────────────────────
+
+export interface AppSaTaskItem {
+  task_id: string;
+  project_id: string;
+  task_name: string;
+  task_description?: string | null;
+  input_path: string;
+  output_path?: string | null;
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
+  error?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export interface AppSaTaskDetail extends AppSaTaskItem {
+  prompt_template_id?: string | null;
+  prompt_content: string;
+  result_json?: Record<string, any> | null;
+}
+
+export interface AppSaTaskCreateRequest {
+  project_id: string;
+  task_name: string;
+  input_path: string;
+  output_path?: string;
+  task_description?: string;
+  prompt_template_id?: string;
+  prompt_content?: string;
+}
+
+
+// ─── Entry Analysis Types ─────────────────────────────────────────────────────
+
+export interface AppEaTaskItem {
+  task_id: string;
+  project_id: string;
+  task_name: string;
+  task_description?: string | null;
+  input_path: string;
+  output_path?: string | null;
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
+  error?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export interface AppEaTaskDetail extends AppEaTaskItem {
+  prompt_template_id?: string | null;
+  prompt_content: string;
+  result_json?: Record<string, any> | null;
+}
+
+export interface AppEaTaskCreateRequest {
+  project_id: string;
+  task_name: string;
+  input_path: string;
+  output_path?: string;
+  task_description?: string;
+  prompt_template_id?: string;
+  prompt_content?: string;
+}
+
+export interface EntryAnalysisPromptTemplate {
+  prompt_id: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  content: string;
+  variables_json?: string[] | null;
+  version: number;
+  is_default: boolean;
+  is_enabled: boolean;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EntryAnalysisAgentInstance {
+  model: string;
+  tools?: string[] | null;
+  system_prompt?: string | null;
+  thinking_level?: string | null;
+}
+
+export interface EntryAnalysisRoleConfig {
+  default_model?: string;
+  default_tools?: string[];
+  system_prompt_dir?: string;
+  default_thinking_level?: string;
+  agents?: EntryAnalysisAgentInstance[];
+  stage_models?: Record<string, string>;
+}
+
+export interface EntryAnalysisServiceConfig {
+  project_id: string;
+  max_rounds: number;
+  min_rounds: number;
+  pass_threshold: number;
+  agent_max_retries: number;
+  agent_retry_delay: number;
+  pi_max_retries: number;
+  pi_retry_delay: number;
+  workers: EntryAnalysisRoleConfig;
+  judges: EntryAnalysisRoleConfig;
+  output_dir: string;
+  archive_dir: string;
+  result_dir: string;
+  updated_at?: string | null;
+}
+
+export interface EntryAnalysisModelEntry {
+  id: string;
+  reasoning: boolean;
+}
+
+export interface EntryAnalysisProviderConfig {
+  baseUrl: string;
+  api: string;
+  apiKey: string;
+  models: EntryAnalysisModelEntry[];
+}
+
+export interface EntryAnalysisModelsConfig {
+  providers: Record<string, EntryAnalysisProviderConfig>;
+  updated_at?: string | null;
+}
+
+
+// ─── Dataflow Analysis Types ──────────────────────────────────────────────────
+
+export interface AppDfaTaskItem {
+  task_id: string;
+  project_id: string;
+  task_name: string;
+  task_description?: string | null;
+  input_path: string;
+  output_path?: string | null;
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
+  error?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export interface AppDfaTaskDetail extends AppDfaTaskItem {
+  prompt_content: string;
+  result_json?: Record<string, any> | null;
+}
+
+export interface AppDfaTaskCreateRequest {
+  project_id: string;
+  task_name: string;
+  input_path: string;
+  output_path?: string;
+  task_description?: string;
+  prompt_content?: string;
+}
+
+
+// ─── Dataflow Analysis Config/Models Types ────────────────────────────────────
+
+export interface AppDfaAgentInstance {
+  model: string;
+  tools?: string[] | null;
+  thinking_level?: string | null;
+}
+
+export interface AppDfaRoleConfig {
+  default_tools?: string[];
+  system_prompt_dir?: string;
+  default_thinking_level?: string;
+  agents?: AppDfaAgentInstance[];
+  stage_models?: Record<string, string>;
+}
+
+export interface AppDfaServiceConfig {
+  project_id: string;
+  max_rounds: number;
+  min_rounds: number;
+  pass_threshold: number;
+  agent_max_retries: number;
+  agent_retry_delay: number;
+  pi_max_retries: number;
+  pi_retry_delay: number;
+  max_trace_depth: number;
+  callee_concurrency: number;
+  workers: AppDfaRoleConfig;
+  judges: AppDfaRoleConfig;
+  output_dir: string;
+  archive_dir: string;
+  result_dir: string;
+  updated_at?: string | null;
+}
+
+export interface AppDfaModelEntry {
+  id: string;
+  reasoning: boolean;
+}
+
+export interface AppDfaProviderConfig {
+  baseUrl: string;
+  api: string;
+  apiKey: string;
+  models: AppDfaModelEntry[];
+}
+
+export interface AppDfaModelsConfig {
+  providers: Record<string, AppDfaProviderConfig>;
+  updated_at?: string | null;
 }

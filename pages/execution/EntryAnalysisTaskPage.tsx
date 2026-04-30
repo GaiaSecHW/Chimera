@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, X } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppSaTaskDetail, AppSaTaskItem } from '../../types/types';
+import { AppEaTaskDetail, AppEaTaskItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 
@@ -41,24 +41,23 @@ const emptyForm = {
   prompt_content: '',
 };
 
-// Right-panel mode: 'none' | 'create' | 'detail'
 type PanelMode = 'none' | 'create' | 'detail';
 
-export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projectId }) => {
-  const appApi = api.domains.execution.appSystemAnalyse;
+export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const appApi = api.domains.execution.appEntryAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
-  const [tasks, setTasks] = useState<AppSaTaskItem[]>([]);
+  const [tasks, setTasks] = useState<AppEaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const PER_PAGE = 20;
 
   const [panelMode, setPanelMode] = useState<PanelMode>('none');
   const [selectedTaskId, setSelectedTaskId] = useState('');
-  const [detail, setDetail] = useState<AppSaTaskDetail | null>(null);
+  const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   const [form, setForm] = useState(emptyForm);
@@ -67,11 +66,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
 
-  // ── Pre-fill input_path from FileExplorer right-click "用作分析路径" ──────
   useEffect(() => {
-    const stored = sessionStorage.getItem('secflow:systemAnalysisInputPath');
+    const stored = sessionStorage.getItem('secflow:entryAnalysisInputPath');
     if (stored) {
-      sessionStorage.removeItem('secflow:systemAnalysisInputPath');
+      sessionStorage.removeItem('secflow:entryAnalysisInputPath');
       setPanelMode('create');
       setSelectedTaskId('');
       setForm({ ...emptyForm, input_path: stored });
@@ -79,8 +77,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── Load task list ────────────────────────────────────────────────────────
 
   const loadTasks = useCallback(async (p = page) => {
     if (!projectId) return;
@@ -97,8 +93,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
   }, [projectId, page]);
 
   useEffect(() => { void loadTasks(page); }, [projectId, page]);
-
-  // ── Load task detail ──────────────────────────────────────────────────────
 
   const loadDetail = async (taskId: string) => {
     setDetailLoading(true);
@@ -118,20 +112,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
     void loadDetail(taskId);
   };
 
-  // ── Auto-poll when tasks are running or pending ───────────────────────────
-  const hasActiveTasks = tasks.some((t) => t.status === 'running' || t.status === 'pending');
-  useEffect(() => {
-    if (!hasActiveTasks) return;
-    const timer = setInterval(() => {
-      void loadTasks(page);
-      if (selectedTaskId) void loadDetail(selectedTaskId);
-    }, 8000);
-    return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasActiveTasks, projectId, page, selectedTaskId]);
-
-  // ── Auto-generate prompt from input_path ─────────────────────────────────
-
   const handleInputPathChange = (value: string) => {
     setForm((prev) => ({ ...prev, input_path: value }));
     if (promptGenTimer.current) clearTimeout(promptGenTimer.current);
@@ -148,8 +128,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
       }
     }, 600);
   };
-
-  // ── Create task ───────────────────────────────────────────────────────────
 
   const handleCreate = async () => {
     if (!form.task_name.trim()) { notify('任务名称不能为空', 'error'); return; }
@@ -222,9 +200,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
         }}
       />
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
-        <p className="mt-2 text-sm text-slate-500">指定分析路径，自动生成 Prompt 并启动安全分析任务。</p>
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">入口分析任务</h1>
+        <p className="mt-2 text-sm text-slate-500">指定目标模块路径，自动生成 Prompt 并启动入口点分析任务。</p>
       </section>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -253,7 +231,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
                 <button
                   key={t.task_id}
                   onClick={() => handleSelectTask(t.task_id)}
-                  className={`w-full rounded-xl border p-4 text-left transition-colors ${selectedTaskId === t.task_id ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
+                  className={`w-full rounded-xl border p-4 text-left transition-colors ${selectedTaskId === t.task_id ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -282,7 +260,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
           ) : null}
         </section>
 
-        {/* ── Right panel: new task form or task detail ─────────────────── */}
+        {/* ── Right panel ───────────────────────────────────────────────── */}
         {panelMode === 'none' ? (
           <div className="hidden xl:flex items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white/50 text-sm text-slate-400">
             选择任务查看详情，或点击「新建任务」
@@ -300,18 +278,18 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 value={form.task_name}
                 onChange={(e) => setForm((p) => ({ ...p, task_name: e.target.value }))}
-                placeholder="例：固件安全分析-2025"
+                placeholder="例：分析IPSec模块入口-2025"
               />
             </label>
 
             <label className="block text-sm text-slate-600">
-              输入路径 <span className="text-red-500">*</span>
+              目标模块路径 <span className="text-red-500">*</span>
               <div className="mt-1 flex gap-1">
                 <input
                   className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
                   value={form.input_path}
                   onChange={(e) => handleInputPathChange(e.target.value)}
-                  placeholder="/data/fileserver/files/<project>/<subproject>"
+                  placeholder="/data/fileserver/files/<project>/<module>"
                 />
                 <button
                   type="button"
@@ -331,7 +309,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
                   className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
                   value={form.output_path}
                   onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
-                  placeholder="/data/fileserver/files/<project>/<subproject>"
+                  placeholder="/data/fileserver/files/<project>/output"
                 />
                 <button
                   type="button"
@@ -357,13 +335,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
             <label className="block text-sm text-slate-600">
               <span className="flex items-center gap-2">
                 分析 Prompt
-                {generatingPrompt ? <Loader2 size={12} className="animate-spin text-blue-500" /> : <span className="text-xs text-slate-400">(根据输入路径自动生成，可手动修改)</span>}
+                {generatingPrompt ? <Loader2 size={12} className="animate-spin text-violet-500" /> : <span className="text-xs text-slate-400">(根据路径自动生成，可手动修改)</span>}
               </span>
               <textarea
                 className="mt-1 min-h-[120px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 value={form.prompt_content}
                 onChange={(e) => setForm((p) => ({ ...p, prompt_content: e.target.value }))}
-                placeholder="留空将根据输入路径自动生成"
+                placeholder="留空将根据路径自动生成"
               />
             </label>
 
@@ -377,7 +355,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
             </button>
           </section>
         ) : (
-          /* ── Task detail panel ─────────────────────────────────────────── */
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4 overflow-auto">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">任务详情</h2>
@@ -390,7 +367,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
                   <button
                     onClick={() => void handleRestart(detail.task_id)}
                     disabled={restarting}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700 hover:bg-cyan-100 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50"
                   >
                     {restarting ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
                     重新运行
@@ -415,7 +392,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
                 </div>
 
                 <InfoRow label="任务 ID" value={<span className="font-mono text-xs">{detail.task_id}</span>} />
-                <InfoRow label="输入路径" value={<span className="font-mono text-xs break-all">{detail.input_path}</span>} />
+                <InfoRow label="目标路径" value={<span className="font-mono text-xs break-all">{detail.input_path}</span>} />
                 {detail.output_path ? <InfoRow label="输出路径" value={<span className="font-mono text-xs break-all">{detail.output_path}</span>} /> : null}
                 {detail.task_description ? <InfoRow label="描述" value={detail.task_description} /> : null}
                 <InfoRow label="创建时间" value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />

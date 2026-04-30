@@ -29,7 +29,7 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
   const loadData = async () => {
     setLoading(true);
     try {
-      const resp = await executionApi.systemAnalysis.listPrompts({ page: 1, per_page: 200 });
+      const resp = await executionApi.appSystemAnalyse.listPrompts({ page: 1, per_page: 200 });
       const list = (resp.items || []) as SystemAnalysisPromptTemplate[];
       setItems(list);
       if (!selectedId && list.length > 0) setSelectedId(list[0].prompt_id);
@@ -64,7 +64,7 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
     }
     setSaving(true);
     try {
-      const created = await executionApi.systemAnalysis.createPrompt({
+      const created = await executionApi.appSystemAnalyse.createPrompt({
         name: form.name.trim(),
         category: form.category,
         description: form.description.trim(),
@@ -87,7 +87,7 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
     if (!selectedId) return;
     setSaving(true);
     try {
-      await executionApi.systemAnalysis.updatePrompt(selectedId, {
+      await executionApi.appSystemAnalyse.updatePrompt(selectedId, {
         name: form.name.trim(),
         category: form.category,
         description: form.description.trim(),
@@ -110,7 +110,7 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
     if (!window.confirm('确认删除该 Prompt？')) return;
     setSaving(true);
     try {
-      await executionApi.systemAnalysis.deletePrompt(selectedId);
+      await executionApi.appSystemAnalyse.deletePrompt(selectedId);
       notify('Prompt 已删除', 'success');
       setSelectedId('');
       setForm(emptyForm);

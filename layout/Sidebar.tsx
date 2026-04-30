@@ -1,5 +1,5 @@
-import React from 'react';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { SIDEBAR_SECTIONS, SidebarHealthStatus } from '../app/navigation';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
@@ -61,6 +61,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
     items: section.items.filter((item) => canAccessView(user, item.id)),
   })).filter((section) => section.items.length > 0);
 
+  // Compute which items with subItems should be auto-expanded based on current view
+  const autoExpanded = new Set<string>();
+  sections.forEach((section) => {
+    section.items.forEach((item) => {
+      if (item.subItems?.some((sub) => [sub.id, ...(sub.aliases || [])].includes(String(currentView)))) {
+        autoExpanded.add(item.id);
+      }
+    });
+  });
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(autoExpanded);
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <aside className={`${isSidebarCollapsed ? 'w-24' : 'w-60'} bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-30 shadow-2xl shrink-0`}>
       <nav className="flex-1 px-4 py-5 overflow-y-auto custom-scrollbar">
@@ -78,25 +98,73 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   const healthStatus = item.healthKey ? healthStatusMap[item.healthKey] : null;
                   const healthColor = healthStatus === true ? 'text-green-400' : healthStatus === false ? 'text-rose-400' : '';
                   const isActive = [item.id, ...(item.aliases || [])].includes(String(currentView));
+                  const hasSubItems = !!(item.subItems && item.subItems.length > 0);
+                  const isExpanded = expandedItems.has(item.id);
+                  const hasActiveSubItem = hasSubItems && item.subItems!.some((sub) =>
+                    [sub.id, ...(sub.aliases || [])].includes(String(currentView))
+                  );
                   const Icon = item.icon;
+
                   return (
-                    <button
-                      key={item.id}
-                      onClick={() => !disabled && setCurrentView(item.id)}
-                      title={disabled ? projectGuardTitle : undefined}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all ${
-                        disabled
-                          ? 'bg-slate-900/50 text-slate-600 cursor-not-allowed opacity-60'
-                          : isActive
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                      }`}
-                    >
-                      <span className={`shrink-0 ${!isActive ? healthColor : ''}`}><Icon size={16} /></span>
-                      {!isSidebarCollapsed && (
-                        <span className={`text-sm font-bold truncate ${isActive ? 'text-white' : ''}`}>{item.label}</span>
+                    <div key={item.id}>
+                      <button
+                        onClick={() => {
+                          if (disabled) return;
+                          if (hasSubItems) toggleExpand(item.id);
+                          else setCurrentView(item.id);
+                        }}
+                        title={disabled ? projectGuardTitle : undefined}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all ${
+                          disabled
+                            ? 'bg-slate-900/50 text-slate-600 cursor-not-allowed opacity-60'
+                            : hasActiveSubItem
+                              ? 'bg-slate-800 text-white'
+                              : isActive
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <span className={`shrink-0 ${!isActive && !hasActiveSubItem ? healthColor : ''}`}><Icon size={16} /></span>
+                        {!isSidebarCollapsed && (
+                          <>
+                            <span className={`flex-1 text-sm font-bold truncate ${isActive || hasActiveSubItem ? 'text-white' : ''}`}>{item.label}</span>
+                            {hasSubItems && (
+                              <span className="shrink-0 text-slate-500">
+                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </button>
+
+                      {/* Sub-items */}
+                      {hasSubItems && isExpanded && !isSidebarCollapsed && (
+                        <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
+                          {item.subItems!
+                            .filter((sub) => canAccessView(user, sub.id))
+                            .map((sub) => {
+                              const subDisabled = !!sub.requiresProject && projectGuard;
+                              const subActive = [sub.id, ...(sub.aliases || [])].includes(String(currentView));
+                              return (
+                                <button
+                                  key={sub.id}
+                                  onClick={() => !subDisabled && setCurrentView(sub.id)}
+                                  title={subDisabled ? projectGuardTitle : undefined}
+                                  className={`w-full flex items-center px-3 py-2 rounded-xl text-left text-sm transition-all ${
+                                    subDisabled
+                                      ? 'text-slate-600 cursor-not-allowed opacity-60'
+                                      : subActive
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 font-semibold'
+                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
+                                  }`}
+                                >
+                                  {sub.label}
+                                </button>
+                              );
+                            })}
+                        </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>

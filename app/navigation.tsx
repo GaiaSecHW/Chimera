@@ -58,6 +58,13 @@ export interface TopLevelNavItem {
   label: string;
 }
 
+export interface SubNavItem {
+  id: string;
+  label: string;
+  aliases?: string[];
+  requiresProject?: boolean;
+}
+
 export interface NavItem {
   id: string;
   label: string;
@@ -65,6 +72,7 @@ export interface NavItem {
   aliases?: string[];
   requiresProject?: boolean;
   healthKey?: HealthStatusKey;
+  subItems?: SubNavItem[];
 }
 
 export interface NavSection {
@@ -136,10 +144,16 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'aiwf-scheduler',
   'aiwf-worker-list',
   'aiwf-worker-control',
-  'system-analysis-overview',
   'system-analysis-task',
-  'system-analysis-history',
-  'system-analysis-prompt',
+  'system-analysis-config',
+  'system-analysis-models',
+  'dataflow-analysis-task',
+  'dataflow-analysis-config',
+  'dataflow-analysis-models',
+  'entry-analysis-root',
+  'entry-analysis-task',
+  'entry-analysis-config',
+  'entry-analysis-models',
   'engine-validation',
   'security-assessment',
   'pentest-risk',
@@ -209,7 +223,9 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'engine-validation' ||
     view === 'security-assessment' ||
     view.startsWith('pentest-') ||
-    view.startsWith('system-analysis-')
+    view.startsWith('entry-analysis-') ||
+    view.startsWith('system-analysis-') ||
+    view.startsWith('dataflow-analysis-')
   ) {
     return 'execution';
   }
@@ -332,15 +348,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
   ],
   execution: [
     {
-      title: '系统分析',
-      items: [
-        { id: 'system-analysis-overview', label: '概览', icon: Activity, aliases: ['system-analysis-root'], requiresProject: true },
-        { id: 'system-analysis-task', label: '任务', icon: Play, requiresProject: true },
-        { id: 'system-analysis-history', label: '历史', icon: FileText, requiresProject: true },
-        { id: 'system-analysis-prompt', label: 'Prompt', icon: Settings, requiresProject: true },
-      ],
-    },
-    {
       title: '安全执行',
       items: [
         { id: 'pentest-exec-code', label: '在线代码审计', icon: Code2, requiresProject: true, healthKey: 'codeAuditHealth' },
@@ -359,8 +366,21 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'engine-validation', label: '安全验证', icon: ShieldCheck, requiresProject: true },
         { id: 'pentest-risk', label: '风险评估', icon: ShieldAlert, requiresProject: true },
-        { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true },
-        { id: 'pentest-threat', label: '威胁分析', icon: Zap, requiresProject: true },
+        { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true, subItems: [
+          { id: 'system-analysis-task', label: '任务队列', requiresProject: true },
+          { id: 'system-analysis-config', label: '分析配置', requiresProject: true },
+          { id: 'system-analysis-models', label: '模型配置', requiresProject: true },
+        ] },
+        { id: 'pentest-threat', label: '入口分析', icon: Zap, requiresProject: true, subItems: [
+          { id: 'entry-analysis-task', label: '任务队列', requiresProject: true },
+          { id: 'entry-analysis-config', label: '分析配置', requiresProject: true },
+          { id: 'entry-analysis-models', label: '模型配置', requiresProject: true },
+        ] },
+        { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, requiresProject: true, subItems: [
+          { id: 'dataflow-analysis-task', label: '任务队列', requiresProject: true },
+          { id: 'dataflow-analysis-config', label: '分析配置', requiresProject: true },
+          { id: 'dataflow-analysis-models', label: '模型配置', requiresProject: true },
+        ] },
         { id: 'pentest-orch', label: '测试编排', icon: Workflow, requiresProject: true },
       ],
     },

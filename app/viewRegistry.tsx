@@ -25,10 +25,15 @@ import { EnvAiBatchSessionPage } from '../pages/environment/EnvAiBatchSessionPag
 import { EnvProcessMonitorOverviewPage } from '../pages/environment/EnvProcessMonitorOverviewPage';
 import { EnvProcessMonitorDetailPage } from '../pages/environment/EnvProcessMonitorDetailPage';
 import { EnvProcessMonitorTasksPage } from '../pages/environment/EnvProcessMonitorTasksPage';
-import { SystemAnalysisOverviewPage } from '../pages/execution/SystemAnalysisOverviewPage';
 import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPage';
-import { SystemAnalysisHistoryPage } from '../pages/execution/SystemAnalysisHistoryPage';
-import { SystemAnalysisPromptPage } from '../pages/execution/SystemAnalysisPromptPage';
+import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
+import { SystemAnalysisModelsPage } from '../pages/execution/SystemAnalysisModelsPage';
+import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
+import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
+import { DataflowAnalysisModelsPage } from '../pages/execution/DataflowAnalysisModelsPage';
+import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
+import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
+import { EntryAnalysisModelsPage } from '../pages/execution/EntryAnalysisModelsPage';
 import { WorkflowInstancePage } from '../pages/orchestration/WorkflowInstancePage';
 import { WorkflowInstanceDetailPage } from '../pages/orchestration/WorkflowInstanceDetailPage';
 import { WorkflowInstanceLogsPage } from '../pages/orchestration/WorkflowInstanceLogsPage';
@@ -206,15 +211,18 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <EnvTemplatePage projectId={ctx.selectedProjectId} />;
     case 'env-tasks':
       return <EnvTasksPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-root':
-    case 'system-analysis-overview':
-      return <SystemAnalysisOverviewPage projectId={ctx.selectedProjectId} />;
     case 'system-analysis-task':
       return <SystemAnalysisTaskPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-history':
-      return <SystemAnalysisHistoryPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-prompt':
-      return <SystemAnalysisPromptPage projectId={ctx.selectedProjectId} />;
+    case 'system-analysis-config':
+      return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'system-analysis-models':
+      return <SystemAnalysisModelsPage />;
+    case 'dataflow-analysis-task':
+      return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+    case 'dataflow-analysis-config':
+      return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'dataflow-analysis-models':
+      return <DataflowAnalysisModelsPage />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
@@ -324,7 +332,13 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-system':
       return <WorkflowPlaceholder title="系统分析" icon={<FileSearch />} />;
     case 'pentest-threat':
-      return <WorkflowPlaceholder title="威胁分析" icon={<Zap />} />;
+    case 'entry-analysis-root':
+    case 'entry-analysis-task':
+      return <EntryAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+    case 'entry-analysis-config':
+      return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'entry-analysis-models':
+      return <EntryAnalysisModelsPage />;
     case 'pentest-orch':
       return <WorkflowPlaceholder title="测试编排" icon={<Workflow />} />;
     case 'pentest-exec-code':

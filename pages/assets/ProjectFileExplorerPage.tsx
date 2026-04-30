@@ -20,6 +20,7 @@ import {
   Search,
   X,
   Database,
+  Crosshair,
 } from 'lucide-react';
 import {
   PvcBrowserChildrenResponse,
@@ -1129,6 +1130,18 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
       actions.push({ label: '新建子项目', icon: <HardDrive size={14} />, onClick: () => void handleCreateSubproject() });
       actions.push({ label: '上传文件', icon: <Upload size={14} />, onClick: () => triggerUpload(node) });
+      actions.push({
+        label: '用作分析路径',
+        icon: <Crosshair size={14} />,
+        onClick: () => {
+          const dirPath = getFileserverDirectoryPath(node);
+          if (dirPath !== null) {
+            const containerPath = `/data/fileserver/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+            sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
+            window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
+          }
+        },
+      });
     } else if (node.nodeType === 'pvc-root') {
       actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
     } else if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
@@ -1138,6 +1151,20 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       if (node.nodeType !== 'pvc') {
         actions.push({ label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRename(node) });
         actions.push({ label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDelete(node) });
+      }
+      if (node.nodeType === 'subproject' || node.nodeType === 'directory') {
+        actions.push({
+          label: '用作分析路径',
+          icon: <Crosshair size={14} />,
+          onClick: () => {
+            const dirPath = getFileserverDirectoryPath(node);
+            if (dirPath !== null) {
+              const containerPath = `/data/fileserver/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+              sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
+              window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
+            }
+          },
+        });
       }
     } else if (node.nodeType === 'file' || node.nodeType === 'pvc-file') {
       actions.push({ label: '打开预览', icon: <FileText size={14} />, onClick: () => void openNode(node) });
