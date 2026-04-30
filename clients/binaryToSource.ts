@@ -24,13 +24,50 @@ export interface B2STask {
   updated_at?: string;
 }
 
+export interface B2SProgress {
+  phase?: string;
+  raw_phase?: string;
+  phase_label?: string;
+  message?: string;
+  total_functions?: number;
+  completed_functions?: number;
+  total_bytes?: number;
+  completed_bytes?: number;
+  total_batches?: number;
+  completed_batches?: number;
+  current_batch?: number;
+  current_attempt?: number;
+  current_function?: string;
+  percent?: number;
+  bytes_percent?: number;
+  batches_percent?: number;
+}
+
+export interface B2SOverallProgress {
+  total_items: number;
+  completed_items: number;
+  total_functions?: number;
+  completed_functions?: number;
+  total_bytes?: number;
+  completed_bytes?: number;
+  total_batches?: number;
+  completed_batches?: number;
+  percent?: number;
+  phase_summary?: Record<string, number>;
+}
+
 export interface B2STaskDetail extends B2STask {
+  overall_progress?: B2SOverallProgress;
   items: Array<{
     id: string;
     sequence_no: number;
     elf_path: string;
     output_dir: string;
     status: string;
+    phase?: string;
+    phase_label?: string;
+    phase_message?: string;
+    progress?: B2SProgress;
     failure_type?: string;
     error_reason?: string;
     generated_files: string[];
