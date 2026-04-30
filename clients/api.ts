@@ -35,6 +35,7 @@ export const api = {
   aiAgentFramework: orchestrationClients.aiAgentFramework,
   systemAnalysis: executionClients.systemAnalysis,
   codeServer: executionClients.codeServer,
+  firmwareUnpacker: executionClients.firmwareUnpacker,
   secmateNG: executionClients.secmateNG,
   binaryToSource: executionClients.binaryToSource,
   vuln: vulnClients.vuln,

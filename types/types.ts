@@ -1867,7 +1867,7 @@ export type ViewType =
   | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-history' | 'system-analysis-prompt'
   | 'workflow-instances' | 'workflow-instance-detail' | 'workflow-instance-logs' | 'workflow-jobs' | 'workflow-job-detail' | 'workflow-apps' | 'workflow-app-detail' | 'workflow-app-instances' | 'workflow-app-instance-detail'
   | 'engine-validation' | 'pentest-root' | 'pentest-risk' | 'pentest-system' 
-  | 'pentest-threat' | 'pentest-orch' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-exec-secmate' | 'pentest-report'
+  | 'pentest-threat' | 'pentest-orch' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-exec-secmate' | 'pentest-exec-firmware-unpacker' | 'pentest-report'
   | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config'
   | 'sys-settings' | 'change-password'
   | 'user-mgmt-users' | 'user-mgmt-roles' | 'user-mgmt-perms' | 'user-mgmt-access' | 'user-mgmt-online' | 'user-mgmt-machine'
