@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock,
-  FolderOpen, Loader2, Package, Play, RefreshCw, Server,
-  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Briefcase, Plus,
+  FolderOpen, Loader2, Package, Play, RefreshCw,
+  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
-import { StatusBadge } from '../../components/StatusBadge';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 interface Props {
@@ -175,22 +174,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
   // Submit form
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createProjectId, setCreateProjectId] = useState(projectId);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'firmware' | 'output'>('firmware');
   const [firmwarePath, setFirmwarePath] = useState('');
   const [outputPath, setOutputPath]     = useState(DEFAULT_OUTPUT_PATH);
   const [submitting, setSubmitting]     = useState(false);
-
-  // Projects
-  const [projectItems, setProjectItems] = useState<SecurityProject[]>(projects);
-  const [projectLoading, setProjectLoading] = useState(false);
-  const [projectError, setProjectError] = useState('');
-  const [activeProjectId, setActiveProjectId] = useState(projectId);
-
-  // Health
-  const [health, setHealth] = useState<'checking' | 'healthy' | 'error'>('checking');
-  const [healthMsg, setHealthMsg] = useState('检查中...');
 
   // Task list
   const [tasks,        setTasks]        = useState<FirmwareUnpackTask[]>([]);
@@ -208,62 +196,24 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const taskItems = Array.isArray(tasks) ? tasks : [];
-  const hasPropProjects = Array.isArray(projects) && projects.length > 0;
   const activeProject = useMemo(
-    () => projectItems.find((item) => item.id === activeProjectId) || null,
-    [projectItems, activeProjectId],
-  );
-  const createProject = useMemo(
-    () => projectItems.find((item) => item.id === createProjectId) || null,
-    [projectItems, createProjectId],
+    () => projects.find((item) => item.id === projectId) || null,
+    [projects, projectId],
   );
 
-  const resetCreateForm = useCallback((nextProjectId?: string) => {
-    const resolvedProjectId = nextProjectId || activeProjectId || projectId || projectItems[0]?.id || '';
-    setCreateProjectId(resolvedProjectId);
+  const resetCreateForm = useCallback(() => {
     setFirmwarePath('');
     setOutputPath(DEFAULT_OUTPUT_PATH);
-  }, [activeProjectId, projectId, projectItems]);
+  }, []);
 
   const openCreateModal = useCallback(() => {
     resetCreateForm();
     setCreateModalOpen(true);
   }, [resetCreateForm]);
 
-  const loadProjects = useCallback(async () => {
-    if (hasPropProjects) {
-      setProjectItems(projects);
-      setProjectError('');
-      return;
-    }
-    setProjectLoading(true);
-    setProjectError('');
-    try {
-      const res = await api.domains.project.projects.list();
-      setProjectItems(Array.isArray(res.projects) ? res.projects : []);
-    } catch (e: any) {
-      setProjectError(e?.message || '加载项目列表失败');
-    } finally {
-      setProjectLoading(false);
-    }
-  }, [hasPropProjects, projects]);
-
-  // ── health ──────────────────────────────────────────────
-  const checkHealth = async () => {
-    setHealth('checking');
-    try {
-      const r = await fwApi.getHealth();
-      setHealth(r.status === 'ok' ? 'healthy' : 'error');
-      setHealthMsg(r.status === 'ok' ? `服务可用 (Worker: ${r.worker_id || '?'})` : `状态异常: ${r.status}`);
-    } catch (e: any) {
-      setHealth('error');
-      setHealthMsg(e?.message || '服务不可用');
-    }
-  };
-
   // ── task list ────────────────────────────────────────────
   const fetchTasks = useCallback(async (resetPage = false) => {
-    if (!activeProjectId) {
+    if (!projectId) {
       if (resetPage) setPage(0);
       setTasks([]);
       setTotal(0);
@@ -279,7 +229,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     if (resetPage) setPage(0);
     try {
       const q: TaskListQuery = {
-        project_id: activeProjectId,
+        project_id: projectId,
         limit: PAGE_SIZE,
         offset: p * PAGE_SIZE,
       };
@@ -294,7 +244,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     } finally {
       setLoading(false);
     }
-  }, [page, activeProjectId, filterStatus, filterSearch, filterWorker]);
+  }, [page, projectId, filterStatus, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string) => {
     try {
@@ -318,58 +268,16 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   }, [hasRunning, taskItems, refreshOne]);
 
   useEffect(() => {
-    setProjectItems(projects);
-  }, [projects]);
-
-  useEffect(() => {
-    setActiveProjectId(projectId);
-  }, [projectId]);
-
-  useEffect(() => {
-    if (projectItems.length === 0) {
-      if (activeProjectId) {
-        setActiveProjectId('');
-      }
-      return;
-    }
-
-    const matchedActiveProject = projectItems.some((item) => item.id === activeProjectId);
-    if (matchedActiveProject) {
-      return;
-    }
-
-    const matchedPropProject = projectItems.find((item) => item.id === projectId);
-    setActiveProjectId(matchedPropProject?.id || projectItems[0].id);
-  }, [activeProjectId, projectId, projectItems]);
-
-  useEffect(() => {
-    if (!createModalOpen) return;
-    if (projectItems.length === 0) {
-      if (createProjectId) setCreateProjectId('');
-      return;
-    }
-    if (projectItems.some((item) => item.id === createProjectId)) {
-      return;
-    }
-    setCreateProjectId(activeProjectId || projectItems[0].id);
-  }, [createModalOpen, createProjectId, projectItems, activeProjectId]);
-
-  useEffect(() => {
-    checkHealth();
-    loadProjects();
-  }, [loadProjects]);
-
-  useEffect(() => {
     fetchTasks(true);
     setSelected(new Set());
-  }, [activeProjectId]);
+  }, [projectId]);
 
   useEffect(() => { fetchTasks(); }, [page]);
 
   // ── submit ───────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createProjectId) {
+    if (!projectId) {
       notify('请先选择项目', 'error');
       return;
     }
@@ -383,20 +291,15 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     }
     setSubmitting(true);
     try {
-      const targetProjectId = createProjectId;
       const r = await fwApi.unpack({
         firmware_path: firmwarePath.trim(),
         output_path: outputPath.trim(),
-        project_id: targetProjectId || undefined,
+        project_id: projectId || undefined,
       });
       notify(`任务已提交！ID: ${r.task_id}`, 'success');
       setCreateModalOpen(false);
-      resetCreateForm(targetProjectId);
-      if (targetProjectId !== activeProjectId) {
-        setActiveProjectId(targetProjectId);
-      } else {
-        setTimeout(() => fetchTasks(true), 800);
-      }
+      resetCreateForm();
+      setTimeout(() => fetchTasks(true), 800);
     } catch (e: any) {
       notify(e?.message || '提交失败', 'error');
     } finally {
@@ -476,7 +379,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     <div className="p-4 space-y-4">
       {feedbackNodes}
       <FileServerPickerModal
-        projectId={createProjectId}
+        projectId={projectId}
         isOpen={pickerOpen}
         mode={pickerTarget === 'firmware' ? 'file' : 'directory'}
         containerRoot={FILESERVER_CONTAINER_ROOT}
@@ -500,7 +403,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Firmware Unpacker</p>
                 <h3 className="mt-2 text-2xl font-black text-slate-900">新建解包任务</h3>
-                <p className="mt-2 text-sm text-slate-500">先选择项目，再从该项目的文件系统中选择待解包固件文件。</p>
+                <p className="mt-2 text-sm text-slate-500">使用右上角当前项目，从该项目文件系统中选择待解包固件文件。</p>
               </div>
               <button
                 type="button"
@@ -515,30 +418,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             </div>
 
             <form className="space-y-5 px-6 py-6" onSubmit={handleSubmit}>
-              <label className="block text-sm font-semibold text-slate-700">
-                所属项目
-                <select
-                  value={createProjectId}
-                  onChange={(e) => {
-                    const nextProjectId = e.target.value;
-                    setCreateProjectId(nextProjectId);
-                    setFirmwarePath('');
-                  }}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="">请选择项目</option>
-                  {projectItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-                {createProject && (
-                  <span className="mt-2 block text-xs font-normal text-slate-500">
-                    当前项目 ID: <span className="font-mono text-slate-600">{createProject.id}</span>
-                  </span>
-                )}
-              </label>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-sm font-semibold text-slate-700">所属项目</p>
+                <p className="mt-2 text-sm font-bold text-slate-900">{activeProject?.name || '未选择项目'}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  项目 ID: <span className="font-mono text-slate-600">{projectId || '-'}</span>
+                </p>
+              </div>
 
               <label className="block text-sm font-semibold text-slate-700">
                 固件文件
@@ -554,9 +440,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                   </div>
                   <button
                     type="button"
-                    disabled={!createProjectId}
+                    disabled={!projectId}
                     onClick={() => {
-                      if (!createProjectId) {
+                      if (!projectId) {
                         notify('请先选择项目', 'error');
                         return;
                       }
@@ -585,9 +471,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                   </div>
                   <button
                     type="button"
-                    disabled={!createProjectId}
+                    disabled={!projectId}
                     onClick={() => {
-                      if (!createProjectId) {
+                      if (!projectId) {
                         notify('请先选择项目', 'error');
                         return;
                       }
@@ -615,7 +501,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting || !createProjectId || !firmwarePath.trim() || !outputPath.trim()}
+                  disabled={submitting || !projectId || !firmwarePath.trim() || !outputPath.trim()}
                   className="inline-flex items-center gap-1.5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   {submitting ? <><Loader2 size={14} className="animate-spin" />提交中...</> : <><Play size={14} />提交任务</>}
@@ -635,247 +521,187 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={checkHealth} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">
-            <Server size={12} /> 刷新状态
+          <button onClick={() => fetchTasks(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">
+            <RefreshCw size={12} /> 刷新列表
           </button>
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Briefcase size={14} className="text-indigo-600" />
-              <span className="text-xs font-bold text-slate-700">项目列表</span>
-            </div>
-            {!hasPropProjects && (
-              <button
-                type="button"
-                onClick={loadProjects}
-                disabled={projectLoading}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-              >
-                {projectLoading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-                刷新
-              </button>
-            )}
+      <div className="space-y-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="grid grid-cols-4 gap-1 text-center">
+            {[
+              ['总计', total, 'text-slate-700'],
+              ['运行', taskItems.filter((t) => t.status === 'running').length, 'text-blue-600'],
+              ['成功', taskItems.filter((t) => t.status === 'success').length, 'text-emerald-600'],
+              ['失败', taskItems.filter((t) => t.status === 'failed').length, 'text-red-600'],
+            ].map(([label, count, color]) => (
+              <div key={String(label)} className="rounded-xl bg-slate-50 py-1.5">
+                <p className={`text-base font-black ${color}`}>{count}</p>
+                <p className="text-[10px] text-slate-400">{label}</p>
+              </div>
+            ))}
           </div>
-
-          {projectError && (
-            <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {projectError}
-            </div>
-          )}
-
-          {projectItems.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
-              {projectLoading ? '项目加载中...' : '暂无项目'}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {projectItems.map((item) => {
-                const selectedProject = item.id === activeProjectId;
-                const isCurrentProject = item.id === projectId;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setActiveProjectId(item.id)}
-                    className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
-                      selectedProject
-                        ? 'border-blue-300 bg-blue-50 shadow-sm'
-                        : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                    }`}
-                  >
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className={`truncate text-sm font-bold ${selectedProject ? 'text-blue-700' : 'text-slate-800'}`}>
-                        {item.name}
-                      </span>
-                      {selectedProject && (
-                        <span className="shrink-0 rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                          已选中
-                        </span>
-                      )}
-                      {isCurrentProject && !selectedProject && (
-                        <span className="shrink-0 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-                          当前项目
-                        </span>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <p className="truncate text-[11px] text-slate-500">
-                        {item.description || '无项目描述'}
-                      </p>
-                      <p className="font-mono text-[10px] text-slate-400">{item.id}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
-        <div className="space-y-4">
-          <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                <Server size={13} className="text-emerald-600" />服务状态
-              </p>
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <StatusBadge status={health} />
-                <span className="text-xs text-slate-600">{healthMsg}</span>
+                <ListTodo size={14} className="shrink-0 text-violet-600" />
+                <h3 className="text-lg font-black text-slate-900">任务列表</h3>
+                <span className="text-sm font-normal text-slate-400">({total})</span>
               </div>
+              <p className="mt-1 text-xs text-slate-500">
+                {activeProject?.name ? `当前项目：${activeProject.name}` : projectId ? `当前项目 ID：${projectId}` : '当前未选择项目'}
+              </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="grid grid-cols-4 gap-1 text-center">
-                {[
-                  ['总计', total, 'text-slate-700'],
-                  ['运行', taskItems.filter(t => t.status === 'running').length, 'text-blue-600'],
-                  ['成功', taskItems.filter(t => t.status === 'success').length, 'text-emerald-600'],
-                  ['失败', taskItems.filter(t => t.status === 'failed').length, 'text-red-600'],
-                ].map(([l, n, c]) => (
-                  <div key={String(l)} className="rounded-xl bg-slate-50 py-1.5">
-                    <p className={`text-base font-black ${c}`}>{n}</p>
-                    <p className="text-[10px] text-slate-400">{l}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchTasks(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <RefreshCw size={12} /> 刷新列表
+              </button>
+              <button
+                onClick={openCreateModal}
+                disabled={!projectId}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                <Plus size={13} /> 新建任务
+              </button>
             </div>
           </div>
 
-          {/* Task list */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <ListTodo size={14} className="shrink-0 text-violet-600" />
-                  <h3 className="text-lg font-black text-slate-900">任务列表</h3>
-                  <span className="text-sm font-normal text-slate-400">({total})</span>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">
-                  {activeProject?.name ? `当前项目：${activeProject.name}` : '当前未选择项目，右侧任务列表为空'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => fetchTasks(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  <RefreshCw size={12} /> 刷新列表
-                </button>
-                <button
-                  onClick={openCreateModal}
-                  disabled={projectItems.length === 0}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  <Plus size={13} /> 新建任务
-                </button>
-              </div>
-            </div>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <select
+              value={filterStatus}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                fetchTasks(true);
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
 
-            {/* Filter bar */}
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); fetchTasks(true); }}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none">
-                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-
-              <div className="relative">
-                <Search size={11} className="absolute left-2.5 top-2 text-slate-400 pointer-events-none" />
-                <input value={filterSearch}
-                  onChange={e => setFilterSearch(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && fetchTasks(true)}
-                  placeholder="搜索固件路径..."
-                  className="rounded-lg border border-slate-200 bg-white pl-7 pr-8 py-1.5 text-xs text-slate-700 outline-none w-44 focus:border-blue-300"
-                />
-                {filterSearch && (
-                  <button onClick={() => { setFilterSearch(''); fetchTasks(true); }} className="absolute right-2 top-2 text-slate-400 hover:text-slate-600">
-                    <X size={11} />
-                  </button>
-                )}
-              </div>
-
-              <input value={filterWorker}
-                onChange={e => setFilterWorker(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && fetchTasks(true)}
-                placeholder="Worker ID 过滤..."
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none w-36 focus:border-blue-300"
+            <div className="relative">
+              <Search size={11} className="pointer-events-none absolute left-2.5 top-2 text-slate-400" />
+              <input
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true)}
+                placeholder="搜索固件路径..."
+                className="w-44 rounded-lg border border-slate-200 bg-white py-1.5 pl-7 pr-8 text-xs text-slate-700 outline-none focus:border-blue-300"
               />
-
-              <button onClick={() => fetchTasks(true)}
-                className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-white">
-                <Search size={11} /> 查询
-              </button>
-
-              {selected.size > 0 && (
-                <button onClick={handleBatchDelete}
-                  className="ml-auto inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100">
-                  <Trash2 size={11} /> 批量删除 ({selected.size})
+              {filterSearch && (
+                <button
+                  onClick={() => {
+                    setFilterSearch('');
+                    fetchTasks(true);
+                  }}
+                  className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={11} />
                 </button>
               )}
             </div>
 
-            {listError && (
-              <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                <AlertCircle size={13} /> {listError}
-              </div>
-            )}
+            <input
+              value={filterWorker}
+              onChange={(e) => setFilterWorker(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true)}
+              placeholder="Worker ID 过滤..."
+              className="w-36 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-300"
+            />
 
-            {/* Select all */}
-            {taskItems.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-slate-50 rounded-xl">
-                <input type="checkbox"
-                  checked={selected.size === taskItems.length && taskItems.length > 0}
-                  onChange={e => toggleAll(e.target.checked)}
-                  className="rounded border-slate-300 text-blue-600"
-                />
-                <span className="text-xs text-slate-500">全选当前页 ({taskItems.length} 条)</span>
-              </div>
-            )}
+            <button
+              onClick={() => fetchTasks(true)}
+              className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-white"
+            >
+              <Search size={11} /> 查询
+            </button>
 
-            {!activeProjectId ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
-                请先在左侧选择项目，再查看该项目下的固件解包任务
-              </div>
-            ) : loading && taskItems.length === 0 ? (
-              <div className="flex items-center justify-center py-12 text-slate-400">
-                <Loader2 size={20} className="animate-spin mr-2" /> 加载中...
-              </div>
-            ) : taskItems.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
-                暂无任务记录
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {taskItems.map(t => (
-                  <TaskRow key={t.id} task={t}
-                    selected={selected.has(t.id)}
-                    onSelect={toggleSelect}
-                    onRefresh={refreshOne}
-                    onCancel={handleCancel}
-                    onDelete={handleDelete}
-                    onRetry={handleRetry}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50">
-                  上一页
-                </button>
-                <span className="text-xs text-slate-500">{page + 1} / {totalPages}</span>
-                <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50">
-                  下一页
-                </button>
-              </div>
+            {selected.size > 0 && (
+              <button
+                onClick={handleBatchDelete}
+                className="ml-auto inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100"
+              >
+                <Trash2 size={11} /> 批量删除 ({selected.size})
+              </button>
             )}
           </div>
+
+          {listError && (
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <AlertCircle size={13} /> {listError}
+            </div>
+          )}
+
+          {taskItems.length > 0 && (
+            <div className="mb-2 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5">
+              <input
+                type="checkbox"
+                checked={selected.size === taskItems.length && taskItems.length > 0}
+                onChange={(e) => toggleAll(e.target.checked)}
+                className="rounded border-slate-300 text-blue-600"
+              />
+              <span className="text-xs text-slate-500">全选当前页 ({taskItems.length} 条)</span>
+            </div>
+          )}
+
+          {!projectId ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
+              请先在右上角选择项目，再查看该项目下的固件解包任务
+            </div>
+          ) : loading && taskItems.length === 0 ? (
+            <div className="flex items-center justify-center py-12 text-slate-400">
+              <Loader2 size={20} className="mr-2 animate-spin" /> 加载中...
+            </div>
+          ) : taskItems.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
+              暂无任务记录
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {taskItems.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  selected={selected.has(task.id)}
+                  onSelect={toggleSelect}
+                  onRefresh={refreshOne}
+                  onCancel={handleCancel}
+                  onDelete={handleDelete}
+                  onRetry={handleRetry}
+                />
+              ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-center gap-2">
+              <button
+                disabled={page === 0}
+                onClick={() => setPage((current) => current - 1)}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              >
+                上一页
+              </button>
+              <span className="text-xs text-slate-500">{page + 1} / {totalPages}</span>
+              <button
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage((current) => current + 1)}
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              >
+                下一页
+              </button>
+            </div>
+          )}
         </div>
+      </div>
       </div>
     </div>
   );
