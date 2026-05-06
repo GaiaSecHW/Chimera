@@ -7,6 +7,15 @@ export interface B2SElfTaskInput {
   metadata?: Record<string, any>;
 }
 
+export interface B2SLlmProviderSummary {
+  provider_key: string;
+  display_name?: string;
+  provider_type?: string;
+  enabled: boolean;
+  is_default: boolean;
+  model?: string;
+}
+
 export interface B2STask {
   id: string;
   project_id: string;
@@ -92,7 +101,22 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  createTask: async (projectId: string, payload: { name: string; description?: string; priority?: number; tags?: string[]; elf_tasks: B2SElfTaskInput[] }) => {
+  listLlmProviders: async (projectId: string): Promise<{ items: B2SLlmProviderSummary[]; total: number; default_provider_key?: string | null }> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/llm-providers`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  prepareTask: async (projectId: string): Promise<{ task_id: string }> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/prepare`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  createTask: async (projectId: string, payload: { task_id?: string; name: string; description?: string; priority?: number; tags?: string[]; llm_provider_key?: string; elf_tasks: B2SElfTaskInput[] }) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks`, {
       method: 'POST',
       headers: getHeaders(),

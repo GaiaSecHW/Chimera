@@ -89,6 +89,12 @@ export const appSystemAnalyseApi = {
       headers: getHeaders(),
     })),
 
+  resumeTask: async (taskId: string): Promise<AppSaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/resume`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
   getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: AppSaStagesJson }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
 

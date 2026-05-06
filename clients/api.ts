@@ -36,6 +36,7 @@ export const api = {
   systemAnalysis: executionClients.systemAnalysis,
   codeServer: executionClients.codeServer,
   firmwareUnpacker: executionClients.firmwareUnpacker,
+  binarySecurity: executionClients.binarySecurity,
   binaryToSource: executionClients.binaryToSource,
   vuln: vulnClients.vuln,
 };

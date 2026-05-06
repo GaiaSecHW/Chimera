@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Clock3, Loader2, Plus, RefreshCw } from 'lucide-react';
 
-import { B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
@@ -11,8 +11,10 @@ interface Props {
   onOpenTask: (taskId: string) => void;
 }
 
-const B2S_UPLOAD_SUBPROJECT_NAME = 'binary-to-source-uploads';
+const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
+
+const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
 
 const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
   const total = task.total_items || 0;
@@ -50,6 +52,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState(5);
   const [subdir, setSubdir] = useState('');
+  const [llmProviderKey, setLlmProviderKey] = useState('');
+  const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
+  const [llmProvidersLoading, setLlmProvidersLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string>('');
@@ -116,15 +121,32 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     setDescription('');
     setPriority(5);
     setSubdir('');
+    setLlmProviderKey('');
     setSelectedFiles([]);
     setCreateError('');
     setUploadProgress('');
+  };
+
+  const loadLlmProviders = async () => {
+    if (!projectId) return;
+    setLlmProvidersLoading(true);
+    try {
+      const data = await executionApi.binaryToSource.listLlmProviders(projectId);
+      const providers = (data.items || []).filter((item) => item.enabled);
+      setLlmProviders(providers);
+      setLlmProviderKey((current) => current || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
+    } catch (e: any) {
+      setCreateError(e?.message || '加载LLM Provider失败');
+    } finally {
+      setLlmProvidersLoading(false);
+    }
   };
 
   const openCreateDialog = () => {
     setCreateResult('');
     resetCreateForm();
     setShowCreateDialog(true);
+    void loadLlmProviders();
   };
 
   const closeCreateDialog = () => {
@@ -133,24 +155,28 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     resetCreateForm();
   };
 
-  const ensureUploadSubproject = async (): Promise<number> => {
-    const root = await assetApi.fileserver.getRoot(projectId);
-    const existing = (root.items || []).find((node: any) =>
-      node.node_type === 'subproject' && node.name === B2S_UPLOAD_SUBPROJECT_NAME && node.subproject_id
-    );
-    if (existing?.subproject_id) return Number(existing.subproject_id);
-
-    const created = await assetApi.fileserver.createSubproject({
-      project_id: projectId,
-      name: B2S_UPLOAD_SUBPROJECT_NAME,
-      description: 'ELF uploaded for binary-to-source tasks',
-    });
-    return created.id;
+  const ensureDirectoryPath = async (path: string) => {
+    const parts = path.split('/').filter(Boolean);
+    let current = '';
+    for (const part of parts) {
+      current = `${current}/${part}`;
+      try {
+        await assetApi.fileserver.createProjectFilesystemDirectory({
+          project_id: projectId,
+          path: current,
+        });
+      } catch (e: any) {
+        const message = String(e?.message || '');
+        if (!message.includes('已存在')) {
+          throw e;
+        }
+      }
+    }
   };
 
-  const toAbsoluteElfPath = (storageKey: string): string => {
-    const safeStorageKey = storageKey.replace(/^\/+/, '');
-    return `${FILESERVER_STORAGE_ROOT}/${safeStorageKey}`.replace(/\/{2,}/g, '/');
+  const toAbsoluteProjectPath = (projectPath: string): string => {
+    const safeProjectPath = projectPath.replace(/^\/+/, '');
+    return `${FILESERVER_STORAGE_ROOT}/files/${projectId}/${safeProjectPath}`.replace(/\/{2,}/g, '/');
   };
 
   const submitCreateTask = async () => {
@@ -173,42 +199,40 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
     setSubmitting(true);
     try {
-      const subprojectId = await ensureUploadSubproject();
-      const uploadDirName = `task-${Date.now()}`;
-      const uploadDir = await assetApi.fileserver.createDirectory({
-        project_id: projectId,
-        subproject_id: subprojectId,
-        parent_id: null,
-        name: uploadDirName,
-      });
-
+      setUploadProgress('准备任务目录...');
+      const { task_id: taskId } = await executionApi.binaryToSource.prepareTask(projectId);
       const elfTasks: Array<{ elf_path: string; file_list: string[]; output_subdir?: string; metadata: Record<string, any> }> = [];
       for (let i = 0; i < selectedFiles.length; i += 1) {
+        const sequenceNo = i + 1;
         const file = selectedFiles[i];
-        setUploadProgress(`上传中 ${i + 1}/${selectedFiles.length}: ${file.name}`);
-        const uploaded = await assetApi.fileserver.uploadFile({
+        const inputPath = standardInputPath(taskId, sequenceNo);
+        await ensureDirectoryPath(inputPath);
+        setUploadProgress(`上传中 ${sequenceNo}/${selectedFiles.length}: ${file.name}`);
+        const uploaded = await assetApi.fileserver.uploadProjectFilesystemFile({
           project_id: projectId,
-          subproject_id: subprojectId,
-          directory_id: uploadDir.id,
+          path: inputPath,
           file,
+          overwrite: true,
         });
         elfTasks.push({
-          elf_path: toAbsoluteElfPath(uploaded.storage_key),
+          elf_path: toAbsoluteProjectPath(uploaded.path),
           file_list: [],
           output_subdir: subdir.trim() || undefined,
           metadata: {
-            uploaded_file_id: uploaded.id,
-            uploaded_filename: uploaded.filename,
-            uploaded_storage_key: uploaded.storage_key,
+            uploaded_filename: uploaded.name,
+            uploaded_project_path: uploaded.path,
+            standard_input_dir: inputPath,
           },
         });
       }
 
       const resp = await executionApi.binaryToSource.createTask(projectId, {
+        task_id: taskId,
         name: name.trim(),
         description: description.trim() || undefined,
         priority,
         tags: ['reverse', 'binary-to-source'],
+        llm_provider_key: llmProviderKey || undefined,
         elf_tasks: elfTasks,
       });
       setShowCreateDialog(false);
@@ -398,6 +422,26 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   className="md:col-span-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm"
                 />
               </div>
+
+              <label className="block text-sm font-bold text-slate-700">
+                LLM Provider（任务级动态切换，无需重启服务）
+                <select
+                  value={llmProviderKey}
+                  onChange={(e) => setLlmProviderKey(e.target.value)}
+                  disabled={llmProvidersLoading || llmProviders.length === 0}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                >
+                  {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
+                  {llmProviders.map((provider) => (
+                    <option key={provider.provider_key} value={provider.provider_key}>
+                      {(provider.display_name || provider.provider_key)} · {provider.model || '-'}{provider.is_default ? ' · 默认' : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-2 block text-xs font-normal text-slate-500">
+                  当前任务会使用所选 Provider；其它运行中任务不受影响。
+                </span>
+              </label>
 
               <input
                 value={description}

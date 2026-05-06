@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   ChevronRight,
   Folder,
@@ -1406,6 +1408,39 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
       return <div className="flex h-full items-center justify-center text-slate-500">正在加载预览...</div>;
     }
     if (preview.mode === 'text') {
+      const isMd = previewFile.filename.endsWith('.md') || previewFile.filename.endsWith('.markdown');
+      if (isMd && preview.text) {
+        return (
+          <div className="h-full overflow-auto rounded-2xl bg-white p-6">
+            <div className="prose prose-sm max-w-none text-slate-800">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0 text-sm leading-relaxed">{children}</p>,
+                  a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="text-blue-600 underline underline-offset-2">{children}</a>,
+                  ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-4 last:mb-0 text-sm">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-4 last:mb-0 text-sm">{children}</ol>,
+                  li: ({ children }) => <li className="text-sm">{children}</li>,
+                  h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-slate-900 border-b border-slate-200 pb-1">{children}</h1>,
+                  h2: ({ children }) => <h2 className="mb-2 text-base font-bold text-slate-800 mt-4">{children}</h2>,
+                  h3: ({ children }) => <h3 className="mb-1 text-sm font-bold text-slate-700 mt-3">{children}</h3>,
+                  blockquote: ({ children }) => <blockquote className="mb-2 border-l-4 border-cyan-300 bg-cyan-50 px-3 py-1.5 italic text-sm last:mb-0">{children}</blockquote>,
+                  table: ({ children }) => <div className="mb-2 overflow-x-auto last:mb-0"><table className="min-w-full border-collapse text-left text-sm">{children}</table></div>,
+                  thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
+                  th: ({ children }) => <th className="border border-slate-300 px-3 py-1.5 font-bold text-slate-700">{children}</th>,
+                  td: ({ children }) => <td className="border border-slate-300 px-3 py-1.5 align-top text-sm">{children}</td>,
+                  code: ({ children, className }) => className
+                    ? <code className="block overflow-x-auto rounded-lg bg-slate-950 px-3 py-2 font-mono text-[12px] text-slate-100">{children}</code>
+                    : <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[0.9em] text-slate-800">{children}</code>,
+                  pre: ({ children }) => <pre className="mb-2 last:mb-0">{children}</pre>,
+                }}
+              >
+                {preview.text}
+              </ReactMarkdown>
+            </div>
+          </div>
+        );
+      }
       return <pre className="h-full overflow-auto rounded-2xl bg-slate-950 p-5 text-[12px] text-slate-100 whitespace-pre-wrap">{preview.text || ''}</pre>;
     }
     if (preview.mode === 'image' && preview.url) {

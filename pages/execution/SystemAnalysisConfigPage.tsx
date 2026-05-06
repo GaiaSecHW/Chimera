@@ -109,7 +109,19 @@ const StageCard: React.FC<{ label: string; desc?: string; value: SystemAnalysisS
   </div>
 );
 
-const AgentInstanceList: React.FC<{ agents: SystemAnalysisAgentInstance[]; onChange: (agents: SystemAnalysisAgentInstance[]) => void }> = ({ agents, onChange }) => {
+const ModelSelect: React.FC<{ value: string; options: string[]; allowEmpty?: boolean; emptyLabel?: string; onChange: (v: string) => void }> = ({ value, options, allowEmpty, emptyLabel = '留空则使用 agents[0].model', onChange }) => {
+  // Ensure current value is always visible even if not in options list
+  const allOpts = value && !options.includes(value) ? [value, ...options] : options;
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+      {allowEmpty && <option value="">{emptyLabel}</option>}
+      {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+    </select>
+  );
+};
+
+const AgentInstanceList: React.FC<{ agents: SystemAnalysisAgentInstance[]; modelOptions: string[]; onChange: (agents: SystemAnalysisAgentInstance[]) => void }> = ({ agents, modelOptions, onChange }) => {
   const add = () => onChange([...agents, { model: '', tools: null, thinking_level: null }]);
   const remove = (i: number) => onChange(agents.filter((_, idx) => idx !== i));
   const update = (i: number, patch: Partial<SystemAnalysisAgentInstance>) => onChange(agents.map((a, idx) => idx === i ? { ...a, ...patch } : a));
@@ -117,7 +129,7 @@ const AgentInstanceList: React.FC<{ agents: SystemAnalysisAgentInstance[]; onCha
     <div className="space-y-2">
       {agents.map((agent, i) => (
         <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 items-start">
-          <FieldRow label="模型" desc="模型标识符，如 claude-3-5-sonnet / gpt-4o，或 vllm 代理地址/模型名"><TextInput value={agent.model} placeholder="vllm/org/Model" onChange={(v) => update(i, { model: v })} /></FieldRow>
+          <FieldRow label="模型" desc="选择模型（来自模型配置页面），或手动输入模型标识符"><ModelSelect value={agent.model} options={modelOptions} allowEmpty onChange={(v) => update(i, { model: v })} emptyLabel="— 选择模型 —" /></FieldRow>
           <FieldRow label="thinking_level" hint="覆盖角色默认值" desc="null/off=沿用角色默认；low/medium/high=为此实例单独启用链式推理">
             <select value={agent.thinking_level ?? 'off'} onChange={(e) => update(i, { thinking_level: e.target.value })}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
@@ -138,18 +150,18 @@ const AgentInstanceList: React.FC<{ agents: SystemAnalysisAgentInstance[]; onCha
   );
 };
 
-const StageModelsEditor: React.FC<{ stageNames: string[]; value: Record<string, string>; onChange: (v: Record<string, string>) => void }> = ({ stageNames, value, onChange }) => (
+const StageModelsEditor: React.FC<{ stageNames: string[]; modelOptions: string[]; value: Record<string, string>; onChange: (v: Record<string, string>) => void }> = ({ stageNames, modelOptions, value, onChange }) => (
   <div className="grid grid-cols-2 gap-3">
     {stageNames.map((stage) => (
       <FieldRow key={stage} label={stage}>
-        <TextInput value={value[stage] ?? ''} placeholder="留空则使用 agents[0].model"
+        <ModelSelect value={value[stage] ?? ''} options={modelOptions} allowEmpty
           onChange={(v) => { const next = { ...value }; if (v) next[stage] = v; else delete next[stage]; onChange(next); }} />
       </FieldRow>
     ))}
   </div>
 );
 
-const RoleConfigBlock: React.FC<{ title: string; subtitle?: string; stageNames: string[]; value: SystemAnalysisRoleConfig; onChange: (v: SystemAnalysisRoleConfig) => void }> = ({ title, subtitle, stageNames, value, onChange }) => (
+const RoleConfigBlock: React.FC<{ title: string; subtitle?: string; stageNames: string[]; modelOptions: string[]; value: SystemAnalysisRoleConfig; onChange: (v: SystemAnalysisRoleConfig) => void }> = ({ title, subtitle, stageNames, modelOptions, value, onChange }) => (
   <SectionCard title={title} subtitle={subtitle}>
     <FieldRow label="default_thinking_level"
       desc="该角色所有实例的默认推理深度。off=直接生成回答（速度最快，适合 explore/classify 等简单阶段）；low/medium/high=启用链式推理（更准确，速度更慢、费用更高），推荐 analyse 阶段使用 medium 或 high。">
@@ -169,11 +181,11 @@ const RoleConfigBlock: React.FC<{ title: string; subtitle?: string; stageNames: 
     </FieldRow>
     <FieldRow label="各阶段模型覆盖（stage_models）" hint="留空则使用 agents[0]"
       desc="为特定阶段单独指定模型，实现按阶段差异化配置。例如：用轻量模型处理 explore 阶段（快速探索），用高性能模型处理 analyse 和 report 阶段（深度分析），在效果与成本间取得平衡。">
-      <StageModelsEditor stageNames={stageNames} value={value.stage_models ?? {}} onChange={(v) => onChange({ ...value, stage_models: v })} />
+      <StageModelsEditor stageNames={stageNames} modelOptions={modelOptions} value={value.stage_models ?? {}} onChange={(v) => onChange({ ...value, stage_models: v })} />
     </FieldRow>
     <FieldRow label="Agent 实例列表"
       desc="定义此角色的模型实例列表。可添加多个实例以实现并行运行或多模型对比；第一个实例（agents[0]）为默认模型，stage_models 中未指定的阶段均使用此模型。">
-      <AgentInstanceList agents={value.agents ?? []} onChange={(agents) => onChange({ ...value, agents })} />
+      <AgentInstanceList agents={value.agents ?? []} modelOptions={modelOptions} onChange={(agents) => onChange({ ...value, agents })} />
     </FieldRow>
   </SectionCard>
 );
@@ -187,11 +199,26 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proj
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
+  const [modelOptions, setModelOptions] = useState<string[]>([]);
 
   const patch = (p: Partial<SystemAnalysisServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
 
   const patchStage = (key: keyof SystemAnalysisStagesConfig, p: Partial<SystemAnalysisStageLoopConfig>) =>
     setConfig((prev) => ({ ...prev, stages: { ...prev.stages, [key]: { ...prev.stages[key], ...p } } }));
+
+  useEffect(() => {
+    systemAnalysis.getModels()
+      .then((modelsConfig) => {
+        const opts: string[] = [];
+        for (const [providerKey, provider] of Object.entries(modelsConfig.providers ?? {})) {
+          for (const m of (provider as any).models ?? []) {
+            opts.push(`${providerKey}/${m.id}`);
+          }
+        }
+        setModelOptions(opts);
+      })
+      .catch(() => { /* silently ignore; TextInput still works */ });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -333,6 +360,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proj
             title="Workers 配置"
             subtitle="负责执行分析任务的 Agent 角色。Worker 在每轮中调用工具（读文件、执行命令等）完成实际分析工作，结果提交给 Judge 评审。支持多实例以并行处理不同模块。可用阶段：explore / classify / refine / sub_read / analyse / report"
             stageNames={WORKER_STAGES}
+            modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
           />
@@ -342,37 +370,10 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proj
             title="Judges 配置"
             subtitle="负责评审 Worker 输出质量的 Agent 角色。Judge 对 Worker 的分析结果进行独立评估，判断是否足够准确完整，并决定当前阶段是否可以推进。多 Judge 可提高评审可靠性。可用阶段：classify / refine / analyse / completeness / report"
             stageNames={JUDGE_STAGES}
+            modelOptions={modelOptions}
             value={config.judges}
             onChange={(v) => patch({ judges: v })}
           />
-
-          {/* 6. 路径与高级配置 */}
-          <SectionCard title="路径与高级配置" subtitle="任务输出路径及断点续跑参数，一般保持默认值即可">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <FieldRow label="output_dir"
-                desc="任务输出根目录。每个任务会在此目录下自动创建 {task_id}/ 子目录，内含 workspace/（Agent 工作区）、sessions/（会话记录）等。">
-                <TextInput value={config.output_dir} onChange={(v) => patch({ output_dir: v })} />
-              </FieldRow>
-              <FieldRow label="archive_dir"
-                desc="分析结果归档目录，通常与 output_dir 相同。如需将最终报告单独归档到 NFS / 对象存储等位置，可设置为不同路径。">
-                <TextInput value={config.archive_dir} onChange={(v) => patch({ archive_dir: v })} />
-              </FieldRow>
-              <FieldRow label="result_dir"
-                desc="任务结果标志文件（flag）的存放目录。flag 文件内容为 1（成功）或 0（失败），可供外部系统轮询监控任务完成状态。">
-                <TextInput value={config.result_dir} onChange={(v) => patch({ result_dir: v })} />
-              </FieldRow>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FieldRow label="start_stage" hint="1=完整流程（默认）"
-                desc="跳过前 N-1 个阶段直接从第 N 阶段开始。1=完整流程；2=跳过文件过滤；3=跳过探索+过滤；4=直接进入安全分析。配合 resume_workspace 使用可实现断点续跑。">
-                <NumberInput value={config.start_stage} min={1} max={10} onChange={(v) => patch({ start_stage: v })} />
-              </FieldRow>
-              <FieldRow label="resume_workspace" hint="断点续跑时填写，正常留空"
-                desc="指定已有 workspace 目录路径以断点续跑（如 /data/output/sat_xxxx/workspace）。需同时将 start_stage 设为 ≥3 才能跳过已完成阶段、从中断处继续。">
-                <TextInput value={config.resume_workspace} placeholder="/data/output/sat_xxxx/workspace" onChange={(v) => patch({ resume_workspace: v })} />
-              </FieldRow>
-            </div>
-          </SectionCard>
 
           {/* 操作按钮 */}
           <div className="flex items-center gap-3">
