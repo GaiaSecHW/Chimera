@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, X } from 'lucide-react';
+import { Activity, BarChart3, CheckCircle2, FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppDfaTaskDetail, AppDfaTaskItem } from '../../types/types';
@@ -66,6 +66,8 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
 
+  const [taskStats, setTaskStats] = useState({ total: 0, running: 0, passed: 0, failed: 0 });
+
   // ── Pre-fill input_path from FileExplorer right-click ──────────────────
   useEffect(() => {
     const stored = sessionStorage.getItem('secflow:dataflowAnalysisInputPath');
@@ -95,7 +97,27 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
     }
   }, [projectId, page]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page]);
+  const loadStats = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const [allResp, runResp, pendResp, passResp, failResp, errResp] = await Promise.all([
+        appApi.listTasks({ project_id: projectId, page: 1, per_page: 1 }),
+        appApi.listTasks({ project_id: projectId, page: 1, per_page: 1, status: 'running' }),
+        appApi.listTasks({ project_id: projectId, page: 1, per_page: 1, status: 'pending' }),
+        appApi.listTasks({ project_id: projectId, page: 1, per_page: 1, status: 'passed' }),
+        appApi.listTasks({ project_id: projectId, page: 1, per_page: 1, status: 'failed' }),
+        appApi.listTasks({ project_id: projectId, page: 1, per_page: 1, status: 'error' }),
+      ]);
+      setTaskStats({
+        total: allResp.total,
+        running: runResp.total + pendResp.total,
+        passed: passResp.total,
+        failed: failResp.total + errResp.total,
+      });
+    } catch { /* ignore stats errors */ }
+  }, [projectId]);
+
+  useEffect(() => { void loadTasks(page); void loadStats(); }, [projectId, page]);
 
   // ── Load task detail ──────────────────────────────────────────────────────
 
@@ -157,6 +179,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
       setPanelMode('none');
       setPage(1);
       await loadTasks(1);
+      void loadStats();
     } catch (err: any) {
       notify(`任务创建失败: ${err?.message || err}`, 'error');
     } finally {
@@ -170,6 +193,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
       notify('任务已取消', 'success');
       if (selectedTaskId === taskId) void loadDetail(taskId);
       await loadTasks(page);
+      void loadStats();
     } catch (err: any) {
       notify(`取消失败: ${err?.message || err}`, 'error');
     }
@@ -182,6 +206,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
       notify(`已创建新任务: ${newTask.task_id}`, 'success');
       setPage(1);
       await loadTasks(1);
+      void loadStats();
       handleSelectTask(newTask.task_id);
     } catch (err: any) {
       notify(`重启失败: ${err?.message || err}`, 'error');
@@ -216,6 +241,38 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
         <p className="mt-2 text-sm text-slate-500">
           追踪程序中的污点传播路径，识别敏感数据流向危险函数的安全风险。
         </p>
+      </section>
+
+      {/* ── Task stats panel ─────────────────────────────────────────────── */}
+      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <TaskStatCard
+          label="全部任务"
+          value={taskStats.total}
+          icon={<BarChart3 size={16} />}
+          colorClass="text-slate-500"
+          valueClass="text-slate-900"
+        />
+        <TaskStatCard
+          label="进行中"
+          value={taskStats.running}
+          icon={<Activity size={16} />}
+          colorClass="text-blue-500"
+          valueClass="text-blue-700"
+        />
+        <TaskStatCard
+          label="已通过"
+          value={taskStats.passed}
+          icon={<CheckCircle2 size={16} />}
+          colorClass="text-emerald-500"
+          valueClass="text-emerald-700"
+        />
+        <TaskStatCard
+          label="失败/错误"
+          value={taskStats.failed}
+          icon={<XCircle size={16} />}
+          colorClass="text-red-500"
+          valueClass="text-red-700"
+        />
       </section>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -512,6 +569,26 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
     <div className="flex gap-2">
       <span className="w-20 shrink-0 text-xs text-slate-400">{label}</span>
       <span className="text-xs text-slate-700">{value}</span>
+    </div>
+  );
+}
+
+function TaskStatCard({
+  label, value, icon, colorClass, valueClass,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  colorClass: string;
+  valueClass: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className={`inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500`}>
+        <span className={colorClass}>{icon}</span>
+        {label}
+      </div>
+      <div className={`mt-4 text-3xl font-black ${valueClass}`}>{value}</div>
     </div>
   );
 }
