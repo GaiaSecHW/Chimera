@@ -48,6 +48,8 @@ import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatf
 import { FirmwareUnpackConfigPage } from '../pages/execution/FirmwareUnpackConfigPage';
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
+import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
+import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
@@ -100,6 +102,7 @@ export interface ViewRegistryContext {
   activeAiHelperKey: string;
   activeProcessMonitorServiceKey: string;
   activeB2STaskId: string;
+  activeBinarySecurityTaskId: string;
   activeAiwfDefinitionId: string;
   activeAiwfExecutionId: string;
   selectedStaticPkgIds: Set<string>;
@@ -111,6 +114,7 @@ export interface ViewRegistryContext {
   setActiveJobTemplateId: (id: string) => void;
   setActiveAppWorkflowId: (id: string) => void;
   setActiveB2STaskId: (id: string) => void;
+  setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveAiwfDefinitionId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
@@ -370,6 +374,26 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeB2STaskId}
           onBack={() => ctx.setCurrentView('pentest-exec-b2s')}
+        />
+      );
+    case 'binary-security':
+    case 'binary-security-root':
+    case 'binary-security-task-list':
+      return (
+        <BinarySecurityOverviewPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveBinarySecurityTaskId(taskId);
+            ctx.setCurrentView('binary-security-detail');
+          }}
+        />
+      );
+    case 'binary-security-detail':
+      return (
+        <BinarySecurityTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeBinarySecurityTaskId}
+          onBack={() => ctx.setCurrentView('binary-security')}
         />
       );
     case 'pentest-report':

@@ -154,6 +154,10 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'entry-analysis-task',
   'entry-analysis-config',
   'entry-analysis-models',
+  'binary-security',
+  'binary-security-root',
+  'binary-security-task-list',
+  'binary-security-detail',
   'security-assessment',
   'pentest-system',
   'pentest-threat',
@@ -219,6 +223,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
 
   if (
     view === 'security-assessment' ||
+    view.startsWith('binary-security') ||
     view.startsWith('pentest-') ||
     view.startsWith('entry-analysis-') ||
     view.startsWith('system-analysis-') ||
@@ -354,6 +359,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           { id: 'pentest-exec-firmware-config', label: '解包配置', requiresProject: true },
         ] },
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail'], requiresProject: true },
+        { id: 'binary-security', label: '二进制安全', icon: ShieldAlert, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
         { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
         { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true, subItems: [
