@@ -71,6 +71,7 @@ export const fileserverApi = {
     project_id: string;
     path: string;
     file: File;
+    overwrite?: boolean;
   }, options?: {
     onProgress?: (progress: FileserverUploadProgress) => void;
     signal?: AbortSignal;
@@ -80,6 +81,7 @@ export const fileserverApi = {
     const formData = new FormData();
     formData.append('project_id', payload.project_id);
     formData.append('path', payload.path);
+    formData.append('overwrite', payload.overwrite ? 'true' : 'false');
     formData.append('file', payload.file);
     const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: FileserverUploadProgress) => void }) => xhrUpload<ProjectFilesystemEntry>({
       url: `${API_BASE}/api/fileserver/project-filesystem/files/upload`,

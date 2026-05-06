@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, Copy, Eye, FileCode2, PauseCircle, PlayCircle, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { AiwfWorkflowDefinition, AiwfWorkflowDefinitionVersion } from '../../clients/aiAgentFramework';
@@ -105,7 +106,8 @@ export const AiwfDefinitionsPage: React.FC<{
   selectedDefinitionId?: string;
   onDefinitionSelected?: (definitionId: string) => void;
   onNavigateToTriggers?: (definitionId: string) => void;
-}> = ({ projectId, selectedDefinitionId, onDefinitionSelected, onNavigateToTriggers }) => {
+  onOpenExamplePage?: () => void;
+}> = ({ projectId, selectedDefinitionId, onDefinitionSelected, onNavigateToTriggers, onOpenExamplePage }) => {
   const orchestrationApi = api.domains.orchestration;
   const { notify, confirm, feedbackNodes } = useUiFeedback();
   const [definitions, setDefinitions] = useState<AiwfWorkflowDefinition[]>([]);
@@ -129,6 +131,7 @@ export const AiwfDefinitionsPage: React.FC<{
     execution_timeout_seconds: 7200,
     definition_json: EMPTY_DEFINITION,
   });
+  const portalHost = typeof document !== 'undefined' ? document.body : null;
 
   useEffect(() => {
     if (selectedDefinitionId) {
@@ -141,6 +144,17 @@ export const AiwfDefinitionsPage: React.FC<{
       void loadDefinitions();
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (!createDialogOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCreateDialogOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [createDialogOpen]);
 
   useEffect(() => {
     if (selectedId) {
@@ -282,6 +296,10 @@ export const AiwfDefinitionsPage: React.FC<{
         <>
           <button onClick={() => void loadDefinitions()} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button onClick={() => onOpenExamplePage?.()} className="flex items-center gap-2 px-5 py-3 bg-white text-slate-800 border border-slate-200 rounded-2xl font-bold hover:bg-slate-50 transition-all">
+            <FileCode2 size={18} />
+            Example
           </button>
           <button onClick={() => { setCreateDialogOpen(true); setCreateTab('basic'); }} className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all">
             <Plus size={18} />
@@ -465,9 +483,9 @@ export const AiwfDefinitionsPage: React.FC<{
         </div>
       )}
 
-      {createDialogOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/45 flex items-center justify-center p-4">
-          <div className="w-full max-w-6xl bg-white rounded-2xl border border-slate-200 shadow-2xl">
+      {createDialogOpen && portalHost && createPortal((
+        <div className="fixed inset-0 z-[260] bg-slate-900/45 flex items-center justify-center p-4" onClick={() => setCreateDialogOpen(false)}>
+          <div className="w-full max-w-6xl max-h-[90vh] bg-white rounded-2xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden" onClick={(event) => event.stopPropagation()}>
             <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
               <div className="font-black text-slate-800">新建工作流定义</div>
               <button
@@ -493,7 +511,7 @@ export const AiwfDefinitionsPage: React.FC<{
                 </button>
               </div>
             </div>
-            <div className="px-5 py-4">
+            <div className="px-5 py-4 overflow-auto">
               {createTab === 'basic' ? (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                   <div>
@@ -542,6 +560,9 @@ export const AiwfDefinitionsPage: React.FC<{
               )}
             </div>
             <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+              <button onClick={() => setCreateDialogOpen(false)} className="px-5 py-2.5 rounded-2xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 mr-3">
+                取消
+              </button>
               <button onClick={() => void handleCreate()} className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800">
                 <Save size={16} />
                 创建定义
@@ -549,7 +570,7 @@ export const AiwfDefinitionsPage: React.FC<{
             </div>
           </div>
         </div>
-      )}
+      ), portalHost)}
       {feedbackNodes}
     </AiwfPageShell>
   );

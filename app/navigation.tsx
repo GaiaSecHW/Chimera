@@ -335,7 +335,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: 'AI 工作流',
       items: [
-        { id: 'aiwf-definitions', label: '工作流定义', icon: Bot, aliases: ['ai-agent-framework-root', 'aiwf-definition-list', 'aiwf-definition-create', 'aiwf-definition-versions'], requiresProject: true, healthKey: 'aiAgentFrameworkHealth' },
+        { id: 'aiwf-definitions', label: '工作流定义', icon: Bot, aliases: ['ai-agent-framework-root', 'aiwf-definition-list', 'aiwf-definition-create', 'aiwf-definition-versions', 'aiwf-definition-example'], requiresProject: true, healthKey: 'aiAgentFrameworkHealth' },
         { id: 'aiwf-trigger-create', label: '触发任务', icon: Play, aliases: ['aiwf-triggers'], requiresProject: true },
         { id: 'aiwf-trigger-list', label: '任务列表', icon: ListTodo, requiresProject: true },
         { id: 'aiwf-execution-list', label: '执行列表', icon: Activity, aliases: ['aiwf-executions'], requiresProject: true },

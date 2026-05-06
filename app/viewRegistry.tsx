@@ -63,6 +63,7 @@ import { B2STaskListPage } from '../pages/execution/B2STaskListPage';
 import { B2STaskQueuePage } from '../pages/execution/B2STaskQueuePage';
 import { B2STaskResultPage } from '../pages/execution/B2STaskResultPage';
 import { AiwfDefinitionsPage } from '../pages/orchestration/AiwfDefinitionsPage';
+import { AiwfDefinitionExamplePage } from '../pages/orchestration/AiwfDefinitionExamplePage';
 import { AiwfTriggersPage } from '../pages/orchestration/AiwfTriggersPage';
 import { AiwfExecutionsPage } from '../pages/orchestration/AiwfExecutionsPage';
 import { AiwfSchedulerPage } from '../pages/orchestration/AiwfSchedulerPage';
@@ -297,12 +298,15 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           selectedDefinitionId={ctx.activeAiwfDefinitionId}
           onDefinitionSelected={ctx.setActiveAiwfDefinitionId}
+          onOpenExamplePage={() => ctx.setCurrentView('aiwf-definition-example')}
           onNavigateToTriggers={(definitionId) => {
             ctx.setActiveAiwfDefinitionId(definitionId);
             ctx.setCurrentView('aiwf-trigger-create');
           }}
         />
       );
+    case 'aiwf-definition-example':
+      return <AiwfDefinitionExamplePage onBack={() => ctx.setCurrentView('aiwf-definitions')} />;
     case 'aiwf-triggers':
     case 'aiwf-trigger-create':
     case 'aiwf-trigger-list':
