@@ -48,17 +48,17 @@ interface Props {
 }
 
 const StatCard: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-    <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</div>
-    <div className="mt-2 text-2xl font-black tracking-tight text-slate-900">{value}</div>
+  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+    <div className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400" title={label}>{label}</div>
+    <div className="mt-1 text-lg font-black tracking-tight text-slate-900">{value}</div>
   </div>
 );
 
 export const B2SStatsHeader: React.FC<Props> = ({ stats, title = '基础统计' }) => {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="text-sm font-black text-slate-800">{title}</div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-5 xl:grid-cols-10">
         <StatCard label="任务数" value={stats.taskCount} />
         <StatCard label="总ELF" value={stats.totalItems} />
         <StatCard label="待处理" value={stats.pendingItems} />
