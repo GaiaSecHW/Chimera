@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 
-import { fileserverApi } from '../../clients/fileserver';
 import {
   DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
   DataflowFileserverRunFile,
   DataflowFileserverRunOverview,
   DataflowFileserverRunSession,
   DataflowFileserverRunSummary,
+  getDataflowFileserverRunFile,
   getDataflowFileserverRunLog,
+  getDataflowFileserverRunSessionFile,
   inspectDataflowFileserverRunCycle,
   inspectDataflowFileserverRunOverview,
   listDataflowFileserverRunFiles,
@@ -58,7 +59,6 @@ const DASHBOARD_HTML = `
         <button class="tab" data-tab="sessions">会话记录</button>
         <button class="tab" data-tab="files">文件浏览</button>
         <button class="tab" data-tab="log">运行日志</button>
-        <button class="tab tab-danger" data-action="delete-open">🗑 删除</button>
       </nav>
 
       <div id="tabOverview" class="tab-content active">
@@ -691,7 +691,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const cycleTimeline = this.$('cycleTimeline');
       if (scoreChart) scoreChart.innerHTML = errorCard;
       if (issuesCard) issuesCard.innerHTML = errorCard;
-      if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台和项目 fileserver 路径配置。</div>';
+      if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及历史 Run 后端对 /data 的挂载和索引配置。</div>';
       if (cycleTimeline) cycleTimeline.innerHTML = '<div class="card-title">运行状态</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示轮次和结果信息。</div>';
     },
 
@@ -1162,33 +1162,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (runCache.fileText[path] !== undefined) {
         return runCache.fileText[path];
       }
-      const data = await this.ensureRunData(runName);
-      const rawPath = String(path || '');
-      const candidates = uniqueValues([
-        rawPath.startsWith('/') ? normalizeProjectPath(rawPath) : '',
-        data.atomic_work_path ? joinPath(data.atomic_work_path, rawPath) : '',
-        (data as any).atomic_work_dir ? joinPath((data as any).atomic_work_dir, rawPath) : '',
-        data.path ? joinPath(data.path, rawPath) : '',
-        this.runsRootPath && runName ? joinPath(this.runsRootPath, runName, rawPath) : '',
-      ]);
-      let lastError: any = null;
-      for (const candidate of candidates) {
-        try {
-          const blob = await fileserverApi.fetchProjectFilesystemPreviewBlob(projectId, candidate);
-          const text = await blob.text();
-          runCache.fileText[path] = text;
-          return text;
-        } catch (error) {
-          lastError = error;
-        }
-      }
-      throw lastError || new Error(`file not found: ${path}`);
+      const payload = await getDataflowFileserverRunFile(projectId, this.runsRootPath, runName, path);
+      runCache.fileText[path] = payload.content || '';
+      return runCache.fileText[path];
     },
 
     async openSessionFile(runName: string, path: string) {
       try {
         const runCache = this.getRunCache(runName);
-        const data = runCache.sessionViews[path] || parseSessionJsonl(await this.readRunFileText(runName, path), path);
+        const data = runCache.sessionViews[path] || await getDataflowFileserverRunSessionFile(projectId, this.runsRootPath, runName, path);
         runCache.sessionViews[path] = data;
         const title = this.$('fileModalTitle');
         if (title) title.textContent = data.path || path;
@@ -1603,34 +1585,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
     async confirmDeleteRun() {
-      if (!this.currentRun) return;
-      const name = this.currentRun;
-      const btn = this.$('confirmDeleteBtn') as HTMLButtonElement | null;
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = '删除中...';
-      }
-      try {
-        await fileserverApi.deleteProjectFilesystemNode(projectId, joinPath(this.runsRootPath, name), true);
-        this.currentRun = null;
-        this.currentRunData = null;
-        if (this._durationTimer) clearInterval(this._durationTimer);
-        const detail = this.$('runDetail');
-        const welcome = this.$('welcomeView');
-        if (detail) detail.style.display = 'none';
-        if (welcome) welcome.style.display = 'flex';
-        this.closeDeleteModal();
-        if (typeof onBack === 'function') {
-          onBack();
-        }
-      } catch (e: any) {
-        alert('删除失败: ' + (e?.message || '未知错误'));
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = '删除';
-        }
-      }
+      this.closeDeleteModal();
+      alert('历史 Run 删除能力已禁用');
     },
 
     esc(s: any) {

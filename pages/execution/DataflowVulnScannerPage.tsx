@@ -241,7 +241,7 @@ const buildFileserverSyntheticTask = (
     : '';
   const taskMarkdown = typeof run.raw?.task_markdown === 'string' && run.raw.task_markdown.trim()
     ? run.raw.task_markdown
-    : summaryText || `# Fileserver 历史 Run\n\n- Run: ${run.name}\n- Root: ${runsRootPath}\n- Atomic: ${run.atomic_work_path || '-'}`;
+    : summaryText || `# 历史 Run\n\n- Run: ${run.name}\n- Root: ${runsRootPath}\n- Atomic: ${run.atomic_work_path || '-'}`;
 
   return {
     task_id: fileserverTaskId(run.name),
@@ -253,18 +253,18 @@ const buildFileserverSyntheticTask = (
     retry_count: 0,
     max_retry_count: 0,
     priority: 0,
-    created_by: 'fileserver',
+    created_by: 'history-runs',
     created_at: startedAt || new Date().toISOString(),
     started_at: startedAt,
     finished_at: finishedAt,
-    message: `Fileserver 历史 Run：${run.name}`,
+    message: `历史 Run：${run.name}`,
     latest_execution_id: run.name,
     title: run.name,
     task_markdown: taskMarkdown,
     artifact_refs: [],
     runtime_overrides: {},
     task_metadata: {
-      source: 'fileserver_runs',
+      source: 'history_runs',
       runs_root_path: runsRootPath,
       atomic_work_path: run.atomic_work_path,
       files_count: run.files.length,
@@ -279,12 +279,13 @@ const buildFileserverSyntheticTask = (
         task_id: fileserverTaskId(run.name),
         attempt_no: 1,
         status: run.status,
+        history_run_id: run.history_run_id || null,
         owner_pod_id: null,
         lease_expires_at: null,
         started_at: startedAt,
         finished_at: finishedAt,
         recovery_reason: null,
-        message: `读取 Fileserver 历史目录 ${run.name}`,
+        message: `读取历史 Run 目录 ${run.name}`,
         workspace_root: run.atomic_work_path || run.path,
         output_manifest_path: '',
         output_task_count: run.result_count,
@@ -296,12 +297,18 @@ const buildFileserverSyntheticTask = (
 };
 
 const buildFileserverRunDetailPlaceholder = (
+  projectId: string,
   runName: string,
   runRootPath: string,
   summary?: Partial<DataflowFileserverRunSummary> | null
 ): DataflowFileserverRunDetail => ({
+  history_run_id: String(summary?.history_run_id || ''),
+  project_id: projectId,
+  source_type: String(summary?.source_type || 'legacy_runs_root'),
+  source_key: String(summary?.source_key || `${normalizeProjectPath(runRootPath)}/${runName}`),
   name: runName,
   path: `${normalizeProjectPath(runRootPath)}/${runName}`,
+  root_path: normalizeProjectPath(runRootPath),
   status: String(summary?.status || 'running'),
   start_time: '',
   start_epoch: Number(summary?.start_epoch || 0),
@@ -334,7 +341,7 @@ const buildFileserverRunDetailPlaceholder = (
   sessions: [],
   run_log: '',
   raw: {
-    task_markdown: `# Fileserver 历史 Run\n\n- Run: ${runName}\n- Root: ${runRootPath}\n\n解析详情加载中...`,
+    task_markdown: `# 历史 Run\n\n- Run: ${runName}\n- Root: ${runRootPath}\n\n后端正在从 /data 和数据库索引加载详情...`,
     summary_markdown: '',
   },
 });
@@ -347,9 +354,10 @@ const buildFileserverSyntheticRun = (run: DataflowFileserverRunDetail): Dataflow
     task_id: fileserverTaskId(run.name),
     attempt_no: 1,
     status: run.status,
+    history_run_id: run.history_run_id || null,
     started_at: startedAt,
     finished_at: finishedAt,
-    message: `Fileserver 历史 Run：${run.name}`,
+    message: `历史 Run：${run.name}`,
     workspace_root: run.atomic_work_path || run.path,
     output_manifest_path: '',
     output_task_count: run.result_count,
@@ -519,10 +527,10 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const openFileserverRunDetail = (run: DataflowFileserverRunSummary) => {
-    const params = new URLSearchParams({
-      fileserver_run: run.name,
-      fileserver_root: fileserverRunsRoot || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
-    });
+    const params = new URLSearchParams();
+    if (run.history_run_id) params.set('history_run_id', run.history_run_id);
+    params.set('fileserver_run', run.name);
+    params.set('fileserver_root', run.root_path || fileserverRunsRoot || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
     navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`, {
       state: {
         fileserverRunSummary: run,
@@ -867,8 +875,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <div className="text-sm font-black text-slate-900">Fileserver 历史 Runs</div>
-                  <div className="mt-1 text-xs text-slate-500">直接解析项目文件系统中的 `{fileserverRunsRoot || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT}`，用于验证历史 run 与中间过程文件的前端展示。</div>
+                  <div className="text-sm font-black text-slate-900">历史 Runs</div>
+                  <div className="mt-1 text-xs text-slate-500">由漏洞挖掘服务后端直接读取 `/data` 并同步数据库，用于统一展示历史 run 与中间过程文件。</div>
                 </div>
                 <div className="text-xs font-bold text-slate-500">{fileserverRuns.length} 个历史 run</div>
               </div>
@@ -899,7 +907,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       key={run.name}
                       onClick={() => openFileserverRunDetail(run)}
                       className="cursor-pointer border-t border-slate-100 bg-white hover:bg-cyan-50/50"
-                      title="查看 Fileserver run 解析详情"
+                      title="查看历史 run 解析详情"
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -931,7 +939,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
               {!loading && !fileserverError && filteredFileserverRuns.length === 0 ? (
                 <div className="p-6">
-                  <EmptyPanel title="暂无历史 Runs" description="当前筛选条件下没有从 Fileserver 解析到的历史 run 目录。" icon={<Archive size={22} />} />
+                  <EmptyPanel title="暂无历史 Runs" description="当前筛选条件下没有解析到可展示的历史 run。" icon={<Archive size={22} />} />
                 </div>
               ) : null}
             </div>
@@ -964,6 +972,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
 
   const taskId = routeTaskId || '';
   const requestedRunId = useMemo(() => new URLSearchParams(location.search).get('run_id') || '', [location.search]);
+  const historyRunId = useMemo(() => new URLSearchParams(location.search).get('history_run_id') || '', [location.search]);
   const fileserverRunName = useMemo(() => new URLSearchParams(location.search).get('fileserver_run') || '', [location.search]);
   const fileserverRootPath = useMemo(
     () => new URLSearchParams(location.search).get('fileserver_root') || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
@@ -971,6 +980,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   );
   const fileserverRouteSummary = (location.state as { fileserverRunSummary?: DataflowFileserverRunSummary } | null)?.fileserverRunSummary || null;
   const isFileserverMode = Boolean(fileserverRunName);
+  const isHistoryBootstrapMode = Boolean(historyRunId && !fileserverRunName);
   const [profiles, setProfiles] = useState<DataflowScanProfile[]>([]);
   const [detail, setDetail] = useState<DataflowScanTaskDetail | null>(null);
   const [events, setEvents] = useState<DataflowScanTaskEvent[]>([]);
@@ -996,7 +1006,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
 
   const applyFileserverPlaceholder = (runName: string, rootPath: string, summary?: Partial<DataflowFileserverRunSummary> | null) => {
     if (!projectId || !runName) return;
-    const placeholder = buildFileserverRunDetailPlaceholder(runName, rootPath, summary);
+    const placeholder = buildFileserverRunDetailPlaceholder(projectId, runName, rootPath, summary);
     const syntheticTask = buildFileserverSyntheticTask(projectId, placeholder, rootPath);
     setDetail(syntheticTask);
     setEvents([]);
@@ -1056,9 +1066,9 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
       setRunFiles(run.files);
       setRunLog(run.run_log || '');
     } catch (error: any) {
-      const message = error?.message || '加载 Fileserver run 详情失败';
+      const message = error?.message || '加载历史 run 详情失败';
       setLoadError(message);
-      notify(`加载 Fileserver run 详情失败: ${message}`, 'error');
+      notify(`加载历史 run 详情失败: ${message}`, 'error');
     } finally {
       setDetailLoading(false);
       setRunLoading(false);
@@ -1110,9 +1120,40 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
 
   useEffect(() => {
     setActiveTab('runs');
-    if (isFileserverMode) return;
+    if (isFileserverMode || isHistoryBootstrapMode) return;
     void loadTaskDetail(taskId, requestedRunId);
-  }, [taskId, requestedRunId, isFileserverMode, fileserverRunName, fileserverRootPath, projectId]);
+  }, [taskId, requestedRunId, isFileserverMode, isHistoryBootstrapMode, fileserverRunName, fileserverRootPath, projectId]);
+
+  useEffect(() => {
+    if (!historyRunId || fileserverRunName) return;
+    let cancelled = false;
+    setDetailLoading(true);
+    setLoadError('');
+    executionApi.getHistoryRun(historyRunId)
+      .then((run) => {
+        if (cancelled) return;
+        const params = new URLSearchParams(location.search);
+        params.set('history_run_id', historyRunId);
+        params.set('fileserver_run', run.name);
+        params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
+        navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`, {
+          replace: true,
+          state: fileserverRouteSummary ? { fileserverRunSummary: fileserverRouteSummary } : undefined,
+        });
+      })
+      .catch((error: any) => {
+        if (cancelled) return;
+        const message = error?.message || '解析历史 Run 失败';
+        setLoadError(message);
+        notify(`解析历史 Run 失败: ${message}`, 'error');
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [executionApi, fileserverRouteSummary, fileserverRunName, historyRunId, location.search, navigate, notify]);
 
   useEffect(() => {
     if (isFileserverMode || !taskId || detailLoading || !isActiveTaskStatus(detail?.status)) return undefined;
@@ -1177,6 +1218,22 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     );
   }
 
+  if (isHistoryBootstrapMode) {
+    return (
+      <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
+        {feedbackNodes}
+        <div className="mx-auto max-w-[960px]">
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3 text-sm font-bold text-slate-600">
+              <Loader2 size={16} className={detailLoading ? 'animate-spin' : ''} />
+              {loadError ? `解析历史 Run 失败: ${loadError}` : '正在解析历史 Run...'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
       {feedbackNodes}
@@ -1196,7 +1253,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
           eyebrow="Dataflow Vulnerability Mining"
           title="漏洞挖掘任务详情"
           description={isFileserverMode
-            ? '当前详情由 Fileserver 历史 runs 目录前端直读解析生成，用于验证 run、cycle、结果、会话和日志的展示效果。'
+            ? '当前详情由微服务后端统一读取 /data 历史目录并结合数据库索引返回，页面为只读模式。'
             : '集中查看当前任务的执行状态、当前 run 过程、事件流、尝试记录、产物文件与输入上下文。'}
         >
           <button
@@ -1211,7 +1268,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             {detailLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            {isFileserverMode ? '刷新 Fileserver 解析' : '刷新详情'}
+            {isFileserverMode ? '刷新历史 Run' : '刷新详情'}
           </button>
         </PageHeader>
 
@@ -1247,7 +1304,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
             loading={detailLoading}
             runLoading={runLoading}
             fullPage
-            profileName={isFileserverMode ? `Fileserver 历史解析 · ${fileserverRootPath}` : undefined}
+            profileName={isFileserverMode ? `历史 Runs · ${fileserverRootPath}` : undefined}
             readOnly={isFileserverMode}
             onTabChange={setActiveTab}
             onAction={runTaskAction}
@@ -1393,7 +1450,7 @@ const TaskDetailPanel: React.FC<{
           </div>
         ) : (
           <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">
-            当前详情由 Fileserver 历史目录前端解析生成，为只读视图。
+            当前详情来自历史 Run 索引，只读展示；原始正文和日志由后端按需从 `/data` 读取。
           </div>
         )}
       </div>
@@ -1453,7 +1510,7 @@ const TaskOverview: React.FC<{
   artifacts: DataflowTaskArtifacts | null;
 }> = ({ task, detail, events, artifacts }) => {
   const latestEvent = events[events.length - 1];
-  const isFileserverDetail = detail?.task_metadata?.source === 'fileserver_runs';
+  const isFileserverDetail = detail?.task_metadata?.source === 'history_runs';
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">

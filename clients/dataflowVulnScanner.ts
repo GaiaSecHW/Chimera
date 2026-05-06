@@ -92,6 +92,7 @@ export interface DataflowScanTaskAttempt {
   task_id: string;
   attempt_no: number;
   status: string;
+  history_run_id?: string | null;
   owner_pod_id?: string | null;
   lease_expires_at?: string | null;
   started_at?: string | null;
@@ -197,6 +198,7 @@ export interface DataflowTaskRun {
   task_id: string;
   attempt_no: number;
   status: string;
+  history_run_id?: string | null;
   started_at?: string | null;
   finished_at?: string | null;
   message?: string | null;
@@ -215,6 +217,79 @@ export interface DataflowRunFile {
   size: number;
   mtime: number;
   type: string;
+}
+
+export interface DataflowHistoryRunSummary {
+  history_run_id: string;
+  project_id: string;
+  source_type: string;
+  source_key: string;
+  linked_task_id?: string | null;
+  linked_execution_id?: string | null;
+  profile_id?: string | null;
+  name: string;
+  path: string;
+  root_path: string;
+  status: string;
+  start_time: string;
+  start_epoch: number;
+  duration_seconds: number;
+  last_activity: string;
+  model: string;
+  provider: string;
+  thinking: string;
+  max_cycles: number;
+  cycles_used: number;
+  result_count: number;
+  passed_count: number;
+  failed_count: number;
+  workflow_mode: string;
+  updated_at?: string | null;
+}
+
+export interface DataflowHistoryRunFile extends DataflowRunFile {}
+
+export interface DataflowHistoryRunSession {
+  session_id: string;
+  format: string;
+  worker_id?: string;
+  jsonl_path?: string;
+  size: number;
+  mtime: number;
+  calls: Record<string, any>[];
+}
+
+export interface DataflowHistoryRunDetail extends DataflowHistoryRunSummary {
+  config: Record<string, any>;
+  error?: string | null;
+  cycles: Record<string, any>[];
+  results: Record<string, any>[];
+  removed_results: Record<string, any>[];
+  manifests: Record<string, any>;
+  latest_issues: Record<string, any>[];
+  atomic_work_path: string;
+  files: DataflowHistoryRunFile[];
+  sessions: DataflowHistoryRunSession[];
+  run_log: string;
+  raw: Record<string, any>;
+}
+
+export interface DataflowHistoryRunCycle {
+  cycle: number;
+  global_reviews: Record<string, any>[];
+  result_reviews: Record<string, any>[];
+  summary_snapshot: string;
+  metrics: Record<string, any>;
+}
+
+export interface DataflowHistoryRunResolve {
+  history_run_id: string;
+  project_id: string;
+  run_name: string;
+  root_path: string;
+  source_type: string;
+  linked_task_id?: string | null;
+  linked_execution_id?: string | null;
 }
 
 const withQuery = (path: string, params: Record<string, string | number | undefined | null>) => {
@@ -337,6 +412,55 @@ export const dataflowVulnScannerApi = {
 
   getTaskRunLog: async (taskId: string, executionId: string, lines = 300): Promise<{ content: string }> => {
     const response = await fetch(withQuery(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/runs/${encodeURIComponent(executionId)}/log`, { lines }), { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  listHistoryRuns: async (projectId: string): Promise<DataflowHistoryRunSummary[]> => {
+    const response = await fetch(withQuery(`${PREFIX}/history-runs`, { project_id: projectId }), { headers: getHeaders() });
+    return unwrapList<DataflowHistoryRunSummary>(await handleResponse(response));
+  },
+
+  resolveHistoryRun: async (projectId: string, runName: string, rootPath: string): Promise<DataflowHistoryRunResolve> => {
+    const response = await fetch(withQuery(`${PREFIX}/history-runs/resolve`, {
+      project_id: projectId,
+      run_name: runName,
+      root_path: rootPath,
+    }), { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunDetail> => {
+    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getHistoryRunCycle: async (historyRunId: string, cycle: number): Promise<DataflowHistoryRunCycle> => {
+    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/cycles/${cycle}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  listHistoryRunSessions: async (historyRunId: string): Promise<DataflowHistoryRunSession[]> => {
+    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/sessions`, { headers: getHeaders() });
+    return unwrapList<DataflowHistoryRunSession>(await handleResponse(response));
+  },
+
+  listHistoryRunFiles: async (historyRunId: string, limit = 1200): Promise<DataflowHistoryRunFile[]> => {
+    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/files`, { limit }), { headers: getHeaders() });
+    return unwrapList<DataflowHistoryRunFile>(await handleResponse(response));
+  },
+
+  getHistoryRunFile: async (historyRunId: string, path: string): Promise<{ path: string; type: string; content: string }> => {
+    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/file`, { path }), { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getHistoryRunSessionFile: async (historyRunId: string, path: string): Promise<Record<string, any>> => {
+    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/session-file`, { path }), { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getHistoryRunLog: async (historyRunId: string, lines = 300): Promise<{ content: string }> => {
+    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/log`, { lines }), { headers: getHeaders() });
     return handleResponse(response);
   },
 
