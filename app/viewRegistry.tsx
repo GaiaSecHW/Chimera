@@ -59,9 +59,8 @@ import { VulnDecisionDetailPage } from '../pages/vuln/VulnDecisionDetailPage';
 import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
-import { B2STaskListPage } from '../pages/execution/B2STaskListPage';
-import { B2STaskQueuePage } from '../pages/execution/B2STaskQueuePage';
-import { B2STaskResultPage } from '../pages/execution/B2STaskResultPage';
+import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
+import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
 import { AiwfDefinitionsPage } from '../pages/orchestration/AiwfDefinitionsPage';
 import { AiwfDefinitionExamplePage } from '../pages/orchestration/AiwfDefinitionExamplePage';
 import { AiwfTriggersPage } from '../pages/orchestration/AiwfTriggersPage';
@@ -100,6 +99,7 @@ export interface ViewRegistryContext {
   activeAppWorkflowId: string;
   activeAiHelperKey: string;
   activeProcessMonitorServiceKey: string;
+  activeB2STaskId: string;
   activeAiwfDefinitionId: string;
   activeAiwfExecutionId: string;
   selectedStaticPkgIds: Set<string>;
@@ -110,6 +110,7 @@ export interface ViewRegistryContext {
   setActiveAppTemplateId: (id: string) => void;
   setActiveJobTemplateId: (id: string) => void;
   setActiveAppWorkflowId: (id: string) => void;
+  setActiveB2STaskId: (id: string) => void;
   setActiveAiwfDefinitionId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
@@ -357,14 +358,29 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <FirmwareUnpackerWorkspacePage projectId={ctx.selectedProjectId} initialTab="config" />;
     case 'pentest-exec-secmate':
       return <SecMateNGPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-exec-b2s':
     case 'pentest-exec-b2s-root':
     case 'pentest-exec-b2s-task-list':
     case 'pentest-exec-b2s-create':
-      return <B2STaskListPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s-queue':
-      return <B2STaskQueuePage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s-result':
-      return <B2STaskResultPage projectId={ctx.selectedProjectId} />;
+      return (
+        <B2SOverviewPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveB2STaskId(taskId);
+            ctx.setCurrentView('pentest-exec-b2s-detail');
+          }}
+        />
+      );
+    case 'pentest-exec-b2s-detail':
+      return (
+        <B2STaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeB2STaskId}
+          onBack={() => ctx.setCurrentView('pentest-exec-b2s')}
+        />
+      );
     case 'pentest-report':
       return <ReportsPage />;
     case 'security-assessment':
