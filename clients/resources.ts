@@ -23,6 +23,7 @@ export interface PvcFolderUploadProgress {
 export interface PvcFolderUploadFailure {
   path: string;
   error: string;
+  operation?: 'create_directory' | 'upload_file';
 }
 
 export interface PvcUploadProgress {
@@ -42,6 +43,11 @@ export interface PvcFolderUploadResult {
   canceled: boolean;
   elapsed_ms: number;
   failures: PvcFolderUploadFailure[];
+}
+
+export interface PvcFolderUploadEntry {
+  relativePath: string;
+  file: File;
 }
 
 const normalizeBrowserPath = (value: string) => {
@@ -436,6 +442,8 @@ export const resourcesApi = {
     resourceId: number;
     basePath: string;
     files: File[];
+    entries?: PvcFolderUploadEntry[];
+    directories?: string[];
     onProgress?: (progress: PvcFolderUploadProgress) => void;
     shouldCancel?: () => boolean;
   }): Promise<PvcFolderUploadResult> => {
@@ -443,20 +451,39 @@ export const resourcesApi = {
       const startedAt = Date.now();
       const basePath = normalizeBrowserPath(params.basePath || '/');
       const files = params.files || [];
+      const entries = (params.entries || []).map((entry) => ({
+        relativePath: entry.relativePath.replace(/^\/+/, '').trim(),
+        file: entry.file,
+      })).filter((entry) => entry.relativePath);
       const failures: PvcFolderUploadFailure[] = [];
       let createdDirectories = 0;
       let skippedDirectories = 0;
       let uploadedFiles = 0;
       let processedFiles = 0;
       let canceled = false;
-      const totalBytes = files.reduce((sum, item) => sum + (item.size || 0), 0);
+      const uploadEntries = entries.length > 0
+        ? entries
+        : files.map((file) => ({
+            relativePath: getRelativePath(file).replace(/^\/+/, ''),
+            file,
+          })).filter((entry) => entry.relativePath);
+      const totalBytes = uploadEntries.reduce((sum, item) => sum + (item.file.size || 0), 0);
       let uploadedBytesCompleted = 0;
       let activeFileLoaded = 0;
       let activeFileSpeed = 0;
 
       const directoryPaths = new Set<string>();
-      const fileTargets = files.map((file) => {
-        const relative = getRelativePath(file).replace(/^\/+/, '');
+      for (const directory of params.directories || []) {
+        const normalizedDirectory = directory.replace(/^\/+/, '').trim();
+        if (!normalizedDirectory) continue;
+        let cursor = basePath;
+        for (const segment of normalizedDirectory.split('/').filter(Boolean)) {
+          cursor = joinBrowserPath(cursor, segment);
+          directoryPaths.add(cursor);
+        }
+      }
+
+      const fileTargets = uploadEntries.map(({ file, relativePath: relative }) => {
         const segments = relative.split('/').filter(Boolean);
         segments.pop();
         const relativeDir = segments.join('/');
@@ -507,7 +534,7 @@ export const resourcesApi = {
           if (message.includes('File exists') || message.includes('already exists')) {
             skippedDirectories += 1;
           } else {
-            failures.push({ path: fullPath, error: message || '创建目录失败' });
+            failures.push({ path: fullPath, error: message || '创建目录失败', operation: 'create_directory' });
           }
         }
       }
@@ -557,6 +584,7 @@ export const resourcesApi = {
           failures.push({
             path: current.relative,
             error: String(error?.message || error || '上传失败'),
+            operation: 'upload_file',
           });
         } finally {
           uploadedBytesCompleted += uploadSucceeded ? current.file.size || currentFileLoaded : currentFileLoaded;

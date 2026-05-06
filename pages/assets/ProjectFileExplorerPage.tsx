@@ -886,11 +886,21 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     return null;
   };
 
-  const ensureFileserverDirectoryUploadSupport = () => {
-    if (!isDirectoryUploadSupported()) {
-      throw new Error('当前浏览器不支持文件夹上传，仅支持 Chromium/WebKit 浏览器。');
-    }
-  };
+const ensureFileserverDirectoryUploadSupport = () => {
+  if (!isDirectoryUploadSupported()) {
+    throw new Error('当前浏览器不支持文件夹上传，仅支持 Chromium/WebKit 浏览器。');
+  }
+};
+
+const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
+  if (target.nodeType === 'pvc-directory') {
+    return normalizePvcPath(target.path || '/');
+  }
+  if (target.nodeType === 'pvc') {
+    return '/';
+  }
+  return null;
+};
 
   const buildTargetPath = (basePath: string, relativePath: string) => buildFsChildPath(basePath, normalizeUploadRelativePath(relativePath));
 
@@ -932,6 +942,46 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       } catch (error: any) {
         throw new Error(`文件上传失败: ${normalizedFilePath}，${error?.message || '未知错误'}`);
       }
+    }
+  };
+
+  const uploadPvcDirectoryTree = async (tree: UploadDirectoryTree, target: UnifiedExplorerNode) => {
+    if (!target.resourceId) {
+      throw new Error('无效的PVC资源');
+    }
+
+    const basePath = getPvcDirectoryPath(target);
+    if (!basePath) {
+      throw new Error('无效的PVC目标目录');
+    }
+
+    const result = await assetApi.resources.uploadPvcBrowserFolder({
+      resourceId: target.resourceId,
+      basePath,
+      files: [],
+      directories: tree.directories,
+      entries: tree.files.map((entry) => ({
+        relativePath: normalizeUploadRelativePath(entry.relativePath),
+        file: entry.file,
+      })),
+    });
+
+    if (result.failed_files > 0) {
+      const failure = result.failures[0];
+      if (failure?.operation === 'create_directory') {
+        throw new Error(`PVC目录创建失败: ${failure.path}，${failure.error || '未知错误'}`);
+      }
+      throw new Error(`PVC文件上传失败: ${failure?.path || '未知文件'}，${failure?.error || '未知错误'}`);
+    }
+  };
+
+  const refreshUploadTarget = async (target: UnifiedExplorerNode) => {
+    if (isFileserverDirectoryLike(target)) {
+      await initialize({ source: 'fileserver' });
+      return;
+    }
+    if (target.resourceId) {
+      await initialize({ source: 'pvc', resourceId: target.resourceId });
     }
   };
 
@@ -1051,18 +1101,18 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       alert('请先选择可上传的目录节点');
       return;
     }
-    if (!isFileserverDirectoryLike(target)) {
-      alert('文件夹上传仅支持项目 Fileserver 目录');
-      return;
-    }
 
     setBusyAction('upload-directory');
     try {
       ensureFileserverDirectoryUploadSupport();
       const directoryHandle = await window.showDirectoryPicker();
       const tree = await collectTreeFromDirectoryHandle(directoryHandle);
-      await uploadDirectoryTree(tree, target);
-      await initialize({ source: 'fileserver' });
+      if (isFileserverDirectoryLike(target)) {
+        await uploadDirectoryTree(tree, target);
+      } else {
+        await uploadPvcDirectoryTree(tree, target);
+      }
+      await refreshUploadTarget(target);
     } catch (error: any) {
       if (error?.name === 'AbortError') {
         return;
@@ -1106,9 +1156,6 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   };
 
   const uploadDroppedDirectories = async (items: DataTransferItemList, target: UnifiedExplorerNode) => {
-    if (!isFileserverDirectoryLike(target)) {
-      throw new Error('文件夹上传仅支持项目 Fileserver 目录。');
-    }
     if (!isDragDirectoryUploadSupported(items)) {
       throw new Error('当前浏览器不支持拖拽文件夹上传，仅支持 Chromium/WebKit 浏览器。');
     }
@@ -1134,13 +1181,16 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       throw new Error('未检测到可上传的文件夹。');
     }
 
-    await uploadDirectoryTree(
-      {
-        directories: uniqueSortedDirectories(directories),
-        files,
-      },
-      target
-    );
+    const tree = {
+      directories: uniqueSortedDirectories(directories),
+      files,
+    };
+
+    if (isFileserverDirectoryLike(target)) {
+      await uploadDirectoryTree(tree, target);
+      return;
+    }
+    await uploadPvcDirectoryTree(tree, target);
   };
 
   const handleDownload = async (node: UnifiedExplorerNode | PreviewFileState) => {
@@ -1563,12 +1613,12 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
             onDrop={async (event) => {
               const target = resolveUploadTarget(selectedNode || null);
               if (!target) return;
-              if (isFileserverDirectoryLike(target) && hasDraggedDirectoryItems(event.dataTransfer.items)) {
+              if (hasDraggedDirectoryItems(event.dataTransfer.items)) {
                 event.preventDefault();
                 setBusyAction('upload-directory');
                 try {
                   await uploadDroppedDirectories(event.dataTransfer.items, target);
-                  await initialize({ source: 'fileserver' });
+                  await refreshUploadTarget(target);
                 } catch (error: any) {
                   alert(error?.message || '文件夹上传失败');
                 } finally {
@@ -1647,11 +1697,11 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
                             await handleNodeDrop(nodeId, item);
                             return;
                           }
-                          if (isFileserverDirectoryLike(item) && hasDraggedDirectoryItems(event.dataTransfer.items)) {
+                          if ((isFileserverDirectoryLike(item) || item.nodeType === 'pvc' || item.nodeType === 'pvc-directory') && hasDraggedDirectoryItems(event.dataTransfer.items)) {
                             setBusyAction('upload-directory');
                             try {
                               await uploadDroppedDirectories(event.dataTransfer.items, item);
-                              await initialize({ source: 'fileserver' });
+                              await refreshUploadTarget(item);
                             } catch (error: any) {
                               alert(error?.message || '文件夹上传失败');
                             } finally {
