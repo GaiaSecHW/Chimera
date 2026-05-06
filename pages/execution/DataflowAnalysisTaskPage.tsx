@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, BarChart3, CheckCircle2, FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, X, XCircle } from 'lucide-react';
+import { Activity, BarChart3, CheckCircle2, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppDfaTaskDetail, AppDfaTaskItem } from '../../types/types';
@@ -50,6 +50,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [resuming, setResuming] = useState(false);
   const [tasks, setTasks] = useState<AppDfaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -196,6 +197,21 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
       void loadStats();
     } catch (err: any) {
       notify(`取消失败: ${err?.message || err}`, 'error');
+    }
+  };
+
+  const handleResume = async (taskId: string) => {
+    setResuming(true);
+    try {
+      await appApi.resumeTask(taskId);
+      notify('已从断点继续', 'success');
+      await loadTasks(page);
+      void loadStats();
+      if (selectedTaskId === taskId) void loadDetail(taskId);
+    } catch (err: any) {
+      notify(`断点续跑失败: ${err?.message || err}`, 'error');
+    } finally {
+      setResuming(false);
     }
   };
 
@@ -471,14 +487,26 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                   </button>
                 ) : null}
                 {detail && !['pending', 'running'].includes(detail.status) ? (
-                  <button
-                    onClick={() => void handleRestart(detail.task_id)}
-                    disabled={restarting}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50"
-                  >
-                    {restarting ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
-                    重新运行
-                  </button>
+                  <>
+                    <button
+                      onClick={() => void handleRestart(detail.task_id)}
+                      disabled={restarting}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+                    >
+                      {restarting ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                      重新运行
+                    </button>
+                    {detail.started_at ? (
+                      <button
+                        onClick={() => void handleResume(detail.task_id)}
+                        disabled={resuming}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+                      >
+                        {resuming ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
+                        断点续跑
+                      </button>
+                    ) : null}
+                  </>
                 ) : null}
                 <button
                   onClick={() => detail && void loadDetail(detail.task_id)}
