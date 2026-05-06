@@ -11,7 +11,6 @@ export interface FirmwareUnpackerHealth {
 
 export interface FirmwareUnpackPayload {
   firmware_path: string;
-  output_path: string;
   project_id?: string;
 }
 
@@ -19,6 +18,9 @@ export interface FirmwareUnpackSubmitResult {
   task_id: string;
   status: string;
   message: string;
+  input_path?: string;
+  output_path?: string;
+  run_path?: string;
 }
 
 export interface FirmwareUnpackTask {
@@ -226,6 +228,9 @@ const normalizeSubmitResult = (value: unknown): FirmwareUnpackSubmitResult => {
     task_id: asString(record.task_id),
     status: asString(record.status, 'pending'),
     message: asString(record.message, '任务已提交'),
+    input_path: record.input_path == null ? undefined : asString(record.input_path),
+    output_path: record.output_path == null ? undefined : asString(record.output_path),
+    run_path: record.run_path == null ? undefined : asString(record.run_path),
   };
 };
 

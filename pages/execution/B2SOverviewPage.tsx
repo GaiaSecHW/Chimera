@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock3, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { ChevronRight, Clock3, Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
 
-import { B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
@@ -13,8 +13,13 @@ interface Props {
 
 const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
-
 const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
+
+const formatBytes = (value: number): string => {
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${value} B`;
+};
 
 const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
   const total = task.total_items || 0;
@@ -49,9 +54,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState(5);
-  const [subdir, setSubdir] = useState('');
+  const [concurrency, setConcurrency] = useState(4);
   const [llmProviderKey, setLlmProviderKey] = useState('');
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
   const [llmProvidersLoading, setLlmProvidersLoading] = useState(false);
@@ -118,9 +121,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   const resetCreateForm = () => {
     setName('');
-    setDescription('');
-    setPriority(5);
-    setSubdir('');
+    setConcurrency(4);
     setLlmProviderKey('');
     setSelectedFiles([]);
     setCreateError('');
@@ -199,9 +200,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
     setSubmitting(true);
     try {
+      const safeConcurrency = Math.max(1, Math.min(16, Number.isFinite(concurrency) ? concurrency : 4));
+
       setUploadProgress('准备任务目录...');
       const { task_id: taskId } = await executionApi.binaryToSource.prepareTask(projectId);
-      const elfTasks: Array<{ elf_path: string; file_list: string[]; output_subdir?: string; metadata: Record<string, any> }> = [];
+      const elfTasks: B2SElfTaskInput[] = [];
       for (let i = 0; i < selectedFiles.length; i += 1) {
         const sequenceNo = i + 1;
         const file = selectedFiles[i];
@@ -217,11 +220,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         elfTasks.push({
           elf_path: toAbsoluteProjectPath(uploaded.path),
           file_list: [],
-          output_subdir: subdir.trim() || undefined,
           metadata: {
             uploaded_filename: uploaded.name,
             uploaded_project_path: uploaded.path,
             standard_input_dir: inputPath,
+            original_size: file.size,
+            sequence_no: sequenceNo,
           },
         });
       }
@@ -229,10 +233,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       const resp = await executionApi.binaryToSource.createTask(projectId, {
         task_id: taskId,
         name: name.trim(),
-        description: description.trim() || undefined,
-        priority,
+        priority: 5,
         tags: ['reverse', 'binary-to-source'],
         llm_provider_key: llmProviderKey || undefined,
+        concurrency: safeConcurrency,
         elf_tasks: elfTasks,
       });
       setShowCreateDialog(false);
@@ -402,29 +406,32 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
               </button>
             </div>
             <div className="space-y-5 p-6">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="任务名称"
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-                />
-                <input
-                  value={priority}
-                  onChange={(e) => setPriority(Number(e.target.value) || 5)}
-                  placeholder="优先级"
-                  className="rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-                />
-                <input
-                  value={subdir}
-                  onChange={(e) => setSubdir(e.target.value)}
-                  placeholder="输出子目录(可选)"
-                  className="md:col-span-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-                />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className="block text-sm font-bold text-slate-700">
+                  任务名称
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="例如：libcrypto 逆向还原"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                  />
+                </label>
+                <label className="block text-sm font-bold text-slate-700">
+                  并行度
+                  <input
+                    type="number"
+                    min={1}
+                    max={16}
+                    value={concurrency}
+                    onChange={(e) => setConcurrency(Number(e.target.value) || 4)}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                  />
+                  <span className="mt-2 block text-xs font-normal text-slate-500">控制 pi-re-agent 同时处理的 batch 数，建议 1-8。</span>
+                </label>
               </div>
 
               <label className="block text-sm font-bold text-slate-700">
-                LLM Provider（任务级动态切换，无需重启服务）
+                Provider
                 <select
                   value={llmProviderKey}
                   onChange={(e) => setLlmProviderKey(e.target.value)}
@@ -438,33 +445,40 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     </option>
                   ))}
                 </select>
-                <span className="mt-2 block text-xs font-normal text-slate-500">
-                  当前任务会使用所选 Provider；其它运行中任务不受影响。
-                </span>
               </label>
 
-              <input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="描述(可选)"
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
-              />
-
               <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-700">ELF 文件（支持批量上传）</label>
-                <input
-                  type="file"
-                  multiple
-                  accept=".elf,.bin,application/octet-stream"
-                  onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
-                  className="block w-full text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2.5 file:font-semibold file:text-white"
-                />
-                <div className="max-h-56 overflow-auto rounded-2xl border border-slate-200">
-                  {selectedFiles.length === 0 && <div className="px-4 py-4 text-sm text-slate-400">未选择文件</div>}
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm font-bold text-slate-700">上传 ELF</label>
+                  <span className="text-xs font-semibold text-slate-500">{selectedFiles.length} 个文件</span>
+                </div>
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center hover:border-slate-400 hover:bg-slate-100">
+                  <UploadCloud size={28} className="text-slate-500" />
+                  <span className="mt-3 text-sm font-black text-slate-800">选择文件</span>
+                  <span className="mt-1 text-xs text-slate-500">默认显示所有文件，支持批量上传；任务 ID 与标准工作目录由后端和服务端自动处理。</span>
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                    className="hidden"
+                  />
+                </label>
+                <div className="max-h-56 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                  {selectedFiles.length === 0 && <div className="px-4 py-5 text-center text-sm text-slate-400">未选择文件</div>}
                   {selectedFiles.map((file, idx) => (
                     <div key={`${file.name}-${idx}`} className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm first:border-t-0">
-                      <span className="truncate text-slate-700">{file.name}</span>
-                      <span className="ml-3 whitespace-nowrap text-slate-500">{(file.size / 1024).toFixed(1)} KB</span>
+                      <div className="min-w-0">
+                        <div className="truncate font-bold text-slate-800">{file.name}</div>
+                        <div className="mt-1 text-xs text-slate-500">sequence #{idx + 1} · {formatBytes(file.size)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFiles((current) => current.filter((_, fileIdx) => fileIdx !== idx))}
+                        disabled={submitting}
+                        className="ml-3 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        移除
+                      </button>
                     </div>
                   ))}
                 </div>

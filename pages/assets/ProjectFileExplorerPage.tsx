@@ -509,6 +509,23 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const selectedNode = selectedNodeId ? nodeMap[selectedNodeId] || null : null;
 
   useEffect(() => {
+    if (!projectId) {
+      setLoading(false);
+      setRootNode({
+        id: 'workspace:unselected',
+        source: 'virtual',
+        nodeType: 'workspace',
+        name: '未选择项目',
+        hasChildren: true,
+        children: [],
+        projectId: '',
+      });
+      setExpandedNodes(new Set());
+      setSelectedNodeId(null);
+      setListing({ title: '项目文件资源', directories: [], files: [], breadcrumbs: [] });
+      clearPreview();
+      return;
+    }
     void initialize();
   }, [projectId, projectName]);
 
@@ -553,6 +570,9 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   };
 
   const loadRoots = async (): Promise<RootLoadResult> => {
+    if (!projectId) {
+      throw new Error('请先选择项目');
+    }
     const [fsRoot, resources] = await Promise.all([
       assetApi.fileserver.getProjectFilesystemRoot(projectId),
       assetApi.resources.list(projectId),
@@ -596,6 +616,9 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   };
 
   const initialize = async (preferred?: { source: 'fileserver' } | { source: 'pvc'; resourceId: number }) => {
+    if (!projectId) {
+      return;
+    }
     setLoading(true);
     try {
       const { rootNode: loadedRoot, fileserverRoot, pvcRoot } = await loadRoots();
