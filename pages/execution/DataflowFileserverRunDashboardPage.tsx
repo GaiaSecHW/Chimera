@@ -1723,20 +1723,45 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
     if (!host) return;
     const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
     shadow.innerHTML = `<style>${DATAFLOW_DASHBOARD_MIRROR_CSS}</style>${DASHBOARD_HTML}`;
-    const app = createDashboardApp({
-      projectId,
-      initialRunName,
-      initialSummary: initialSummaryRef.current || null,
-      onBack: () => onBackRef.current?.(),
-      rootPath: rootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
-      root: shadow,
-    });
-    (window as any).App = app;
-    void app.init();
+    let app: ReturnType<typeof createDashboardApp> | null = null;
+    const renderInitError = (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error || 'unknown error');
+      console.error('DataflowFileserverRunDashboardPage init failed', error);
+      shadow.innerHTML = `
+        <style>${DATAFLOW_DASHBOARD_MIRROR_CSS}</style>
+        <div class="dfv-dashboard-root">
+          <div id="mainContent">
+            <div class="card">
+              <div class="card-title">历史 Run 详情加载失败</div>
+              <div class="empty-state text-error">${message.replace(/[&<>"]/g, (ch) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+              }[ch] || ch))}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+    try {
+      app = createDashboardApp({
+        projectId,
+        initialRunName,
+        initialSummary: initialSummaryRef.current || null,
+        onBack: () => onBackRef.current?.(),
+        rootPath: rootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
+        root: shadow,
+      });
+      (window as any).App = app;
+      void app.init().catch(renderInitError);
+    } catch (error) {
+      renderInitError(error);
+    }
 
     return () => {
-      app.destroy();
-      if ((window as any).App === app) {
+      app?.destroy();
+      if (app && (window as any).App === app) {
         delete (window as any).App;
       }
       shadow.innerHTML = '';

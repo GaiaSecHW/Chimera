@@ -15,6 +15,8 @@ export const DATAFLOW_FILESERVER_RUNS_ROOT_CANDIDATES = [
   '/DATAFLOW_VULN_SCANNER/runs',
 ];
 
+const LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID = '44f9029d00650a10';
+
 export type DataflowFileserverRunFile = DataflowHistoryRunFile;
 export type DataflowFileserverRunSession = DataflowHistoryRunSession;
 export type DataflowFileserverRunSummary = DataflowHistoryRunSummary;
@@ -32,6 +34,11 @@ const normalizeProjectPath = (value: string) => {
 const resolveCacheKey = (projectId: string, rootPath: string, runName: string) =>
   `${projectId}::${normalizeProjectPath(rootPath)}::${String(runName || '').split('/').filter(Boolean).pop() || ''}`;
 
+const buildProjectCandidates = (projectId: string) => {
+  const candidates = [String(projectId || '').trim(), LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID];
+  return candidates.filter((value, index, list) => value && list.indexOf(value) === index);
+};
+
 const resolveRun = async (
   projectId: string,
   rootPath: string,
@@ -46,7 +53,18 @@ const resolveRun = async (
   }
   const cached = resolveCache.get(cacheKey);
   if (cached) return cached;
-  const promise = dataflowVulnScannerApi.resolveHistoryRun(projectId, safeName, normalizeProjectPath(rootPath));
+  const promise = (async () => {
+    const normalizedRootPath = normalizeProjectPath(rootPath);
+    let lastError: unknown = null;
+    for (const candidateProjectId of buildProjectCandidates(projectId)) {
+      try {
+        return await dataflowVulnScannerApi.resolveHistoryRun(candidateProjectId, safeName, normalizedRootPath);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error('history run not found');
+  })();
   resolveCache.set(cacheKey, promise);
   try {
     return await promise;
@@ -60,7 +78,14 @@ export const listDataflowFileserverRuns = async (
   projectId: string,
   _rootCandidates: string[] = DATAFLOW_FILESERVER_RUNS_ROOT_CANDIDATES
 ): Promise<{ rootPath: string; runs: DataflowFileserverRunSummary[] }> => {
-  const runs = await dataflowVulnScannerApi.listHistoryRuns(projectId);
+  let runs = await dataflowVulnScannerApi.listHistoryRuns(projectId);
+  if (!runs.length && projectId && projectId !== LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID) {
+    try {
+      runs = await dataflowVulnScannerApi.listHistoryRuns(LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID);
+    } catch {
+      // Keep the original empty result when the compatibility fallback is unavailable.
+    }
+  }
   const preferredRoot = runs.find((item) => item.root_path)?.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT;
   return {
     rootPath: preferredRoot,

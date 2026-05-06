@@ -563,6 +563,7 @@ const App: React.FC = () => (
     <Routes>
       <Route path="/" element={<AppShell />} />
       <Route path="/:view" element={<AppShell />} />
+      <Route path="/:view/:taskId" element={<AppShell />} />
     </Routes>
   </HashRouter>
 );
