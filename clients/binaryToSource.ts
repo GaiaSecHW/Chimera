@@ -14,6 +14,7 @@ export interface B2STaskCreatePayload {
   priority?: number;
   tags?: string[];
   llm_provider_key?: string;
+  concurrency?: number;
   elf_tasks: B2SElfTaskInput[];
 }
 
