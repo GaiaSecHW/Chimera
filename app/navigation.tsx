@@ -154,15 +154,11 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'entry-analysis-task',
   'entry-analysis-config',
   'entry-analysis-models',
-  'engine-validation',
   'security-assessment',
-  'pentest-risk',
   'pentest-system',
   'pentest-threat',
-  'pentest-orch',
   'pentest-exec-code',
   'pentest-exec-work',
-  'pentest-exec-secmate',
   'pentest-exec-firmware-unpacker',
   'pentest-exec-firmware-task-list',
   'pentest-exec-firmware-config',
@@ -222,7 +218,6 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   }
 
   if (
-    view === 'engine-validation' ||
     view === 'security-assessment' ||
     view.startsWith('pentest-') ||
     view.startsWith('entry-analysis-') ||
@@ -254,7 +249,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'orchestration':
       return 'workflow-apps';
     case 'execution':
-      return 'system-analysis-overview';
+      return 'pentest-exec-code';
     case 'vuln':
       return 'vuln-overview';
     case 'platform':
@@ -354,18 +349,10 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'pentest-exec-code', label: '在线代码审计', icon: Code2, requiresProject: true, healthKey: 'codeAuditHealth' },
         { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
-        { id: 'pentest-exec-secmate', label: 'SecMate-NG', icon: Sparkles, requiresProject: true },
-                { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, aliases: ['pentest-exec-firmware-task-list', 'pentest-exec-firmware-config'], requiresProject: true },
+        { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, aliases: ['pentest-exec-firmware-task-list', 'pentest-exec-firmware-config'], requiresProject: true },
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail'], requiresProject: true },
         { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
         { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
-      ],
-    },
-    {
-      title: '保留入口',
-      items: [
-        { id: 'engine-validation', label: '安全验证', icon: ShieldCheck, requiresProject: true },
-        { id: 'pentest-risk', label: '风险评估', icon: ShieldAlert, requiresProject: true },
         { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true, subItems: [
           { id: 'system-analysis-task', label: '任务队列', requiresProject: true },
           { id: 'system-analysis-config', label: '分析配置', requiresProject: true },
@@ -381,7 +368,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           { id: 'dataflow-analysis-config', label: '分析配置', requiresProject: true },
           { id: 'dataflow-analysis-models', label: '模型配置', requiresProject: true },
         ] },
-        { id: 'pentest-orch', label: '测试编排', icon: Workflow, requiresProject: true },
       ],
     },
   ],

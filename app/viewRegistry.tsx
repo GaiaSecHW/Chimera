@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileSearch, Lock, Settings, ShieldAlert, ShieldCheck, Workflow, Zap } from 'lucide-react';
+import { FileSearch, Lock, Settings, Zap } from 'lucide-react';
 import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { DashboardPage } from '../pages/DashboardPage';
@@ -46,7 +46,6 @@ import { AppInstanceDetailPage } from '../pages/orchestration/AppInstanceDetailP
 import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPage';
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
 import { FirmwareUnpackerWorkspacePage } from '../pages/execution/FirmwareUnpackerWorkspacePage';
-import { SecMateNGPage } from '../pages/execution/SecMateNGPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
@@ -330,10 +329,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <AiwfSchedulerPage initialTab="workers" />;
     case 'aiwf-worker-control':
       return <AiwfSchedulerPage initialTab="control" />;
-    case 'engine-validation':
-      return <WorkflowPlaceholder title="安全验证" icon={<ShieldCheck />} />;
-    case 'pentest-risk':
-      return <WorkflowPlaceholder title="风险评估" icon={<ShieldAlert />} />;
     case 'pentest-system':
       return <WorkflowPlaceholder title="系统分析" icon={<FileSearch />} />;
     case 'pentest-threat':
@@ -344,8 +339,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'entry-analysis-models':
       return <EntryAnalysisModelsPage />;
-    case 'pentest-orch':
-      return <WorkflowPlaceholder title="测试编排" icon={<Workflow />} />;
     case 'pentest-exec-code':
       return <ExecutionCodeAuditPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-work':
@@ -356,8 +349,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <FirmwareUnpackerWorkspacePage projectId={ctx.selectedProjectId} initialTab="tasks" />;
     case 'pentest-exec-firmware-config':
       return <FirmwareUnpackerWorkspacePage projectId={ctx.selectedProjectId} initialTab="config" />;
-    case 'pentest-exec-secmate':
-      return <SecMateNGPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s':
     case 'pentest-exec-b2s-root':
     case 'pentest-exec-b2s-task-list':

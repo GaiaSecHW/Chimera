@@ -39,7 +39,6 @@ const SERVICE_CATALOG: ServiceCatalogItem[] = [
   { id: 'secflow-platform-agent', displayName: 'Agent 中心', endpoint: '/api/agent/health' },
   { id: 'secflow-platform-vuln', displayName: '漏洞生命周期引擎', endpoint: '/api/vuln/health' },
   { id: 'secflow-app-code-server', displayName: 'Code Server', endpoint: '/api/app/code-server/health' },
-  { id: 'secflow-app-secmate-ng', displayName: 'SecMate-NG', endpoint: '/api/app/secmate-ng/health' },
 ];
 
 const HEALTHY_STATUS_HTTP_CODES = new Set([200]);
