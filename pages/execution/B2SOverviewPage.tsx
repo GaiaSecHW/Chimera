@@ -454,12 +454,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 </div>
                 <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center hover:border-slate-400 hover:bg-slate-100">
                   <UploadCloud size={28} className="text-slate-500" />
-                  <span className="mt-3 text-sm font-black text-slate-800">选择 ELF 文件</span>
-                  <span className="mt-1 text-xs text-slate-500">支持批量上传，任务 ID 与标准工作目录由后端和服务端自动处理。</span>
+                  <span className="mt-3 text-sm font-black text-slate-800">选择文件</span>
+                  <span className="mt-1 text-xs text-slate-500">默认显示所有文件，支持批量上传；任务 ID 与标准工作目录由后端和服务端自动处理。</span>
                   <input
                     type="file"
                     multiple
-                    accept=".elf,.bin,.so,application/octet-stream"
                     onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
                     className="hidden"
                   />
