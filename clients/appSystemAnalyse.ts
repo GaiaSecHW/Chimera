@@ -1,5 +1,6 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppSaStagesJson,
   AppSaTaskCreateRequest,
   AppSaTaskDetail,
   AppSaTaskItem,
@@ -87,6 +88,9 @@ export const appSystemAnalyseApi = {
       method: 'POST',
       headers: getHeaders(),
     })),
+
+  getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: AppSaStagesJson }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
 
   generatePrompt: async (inputPath: string): Promise<{ prompt: string }> =>
     handleResponse(await fetch(`${BASE}/generate-prompt`, {
