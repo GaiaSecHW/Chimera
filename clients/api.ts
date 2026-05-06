@@ -32,10 +32,10 @@ export const api = {
   environment: environmentClients.environment,
   k8s: environmentClients.k8s,
   workflow: orchestrationClients.workflow,
-  aiAgentFramework: orchestrationClients.aiAgentFramework,
   systemAnalysis: executionClients.systemAnalysis,
   codeServer: executionClients.codeServer,
   secmateNG: executionClients.secmateNG,
   binaryToSource: executionClients.binaryToSource,
+  dataflowVulnScanner: executionClients.dataflowVulnScanner,
   vuln: vulnClients.vuln,
 };

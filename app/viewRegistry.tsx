@@ -42,6 +42,7 @@ import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPag
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
 import { SecMateNGPage } from '../pages/execution/SecMateNGPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
+import { DataflowVulnConfigPage, DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
@@ -56,10 +57,6 @@ import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
 import { B2STaskListPage } from '../pages/execution/B2STaskListPage';
 import { B2STaskQueuePage } from '../pages/execution/B2STaskQueuePage';
 import { B2STaskResultPage } from '../pages/execution/B2STaskResultPage';
-import { AiwfDefinitionsPage } from '../pages/orchestration/AiwfDefinitionsPage';
-import { AiwfTriggersPage } from '../pages/orchestration/AiwfTriggersPage';
-import { AiwfExecutionsPage } from '../pages/orchestration/AiwfExecutionsPage';
-import { AiwfSchedulerPage } from '../pages/orchestration/AiwfSchedulerPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
 import { PermMgmtPage } from '../pages/platform/PermMgmtPage';
@@ -93,8 +90,6 @@ export interface ViewRegistryContext {
   activeAppWorkflowId: string;
   activeAiHelperKey: string;
   activeProcessMonitorServiceKey: string;
-  activeAiwfDefinitionId: string;
-  activeAiwfExecutionId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setActiveProjectId: (id: string) => void;
@@ -103,7 +98,6 @@ export interface ViewRegistryContext {
   setActiveAppTemplateId: (id: string) => void;
   setActiveJobTemplateId: (id: string) => void;
   setActiveAppWorkflowId: (id: string) => void;
-  setActiveAiwfDefinitionId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -278,44 +272,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           }}
         />
       );
-    case 'ai-agent-framework-root':
-    case 'aiwf-definitions':
-    case 'aiwf-definition-list':
-    case 'aiwf-definition-create':
-    case 'aiwf-definition-versions':
-      return (
-        <AiwfDefinitionsPage
-          projectId={ctx.selectedProjectId}
-          selectedDefinitionId={ctx.activeAiwfDefinitionId}
-          onDefinitionSelected={ctx.setActiveAiwfDefinitionId}
-          onNavigateToTriggers={(definitionId) => {
-            ctx.setActiveAiwfDefinitionId(definitionId);
-            ctx.setCurrentView('aiwf-trigger-create');
-          }}
-        />
-      );
-    case 'aiwf-triggers':
-    case 'aiwf-trigger-create':
-    case 'aiwf-trigger-list':
-      return (
-        <AiwfTriggersPage
-          projectId={ctx.selectedProjectId}
-          selectedDefinitionId={ctx.activeAiwfDefinitionId}
-          onNavigateToExecutionCenter={() => ctx.setCurrentView('aiwf-execution-list')}
-        />
-      );
-    case 'aiwf-executions':
-    case 'aiwf-execution-list':
-      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="list" selectedExecutionId={ctx.activeAiwfExecutionId} />;
-    case 'aiwf-execution-events':
-      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="events" selectedExecutionId={ctx.activeAiwfExecutionId} />;
-    case 'aiwf-execution-artifacts':
-      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="artifacts" selectedExecutionId={ctx.activeAiwfExecutionId} />;
-    case 'aiwf-scheduler':
-    case 'aiwf-worker-list':
-      return <AiwfSchedulerPage initialTab="workers" />;
-    case 'aiwf-worker-control':
-      return <AiwfSchedulerPage initialTab="control" />;
     case 'engine-validation':
       return <WorkflowPlaceholder title="安全验证" icon={<ShieldCheck />} />;
     case 'pentest-risk':
@@ -340,6 +296,12 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <B2STaskQueuePage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s-result':
       return <B2STaskResultPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-exec-dataflow-vuln-task-list':
+      return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-exec-dataflow-vuln-task-detail':
+      return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln-task-list')} />;
+    case 'pentest-exec-dataflow-vuln-system-config':
+      return <DataflowVulnConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-report':
       return <ReportsPage />;
     case 'security-assessment':

@@ -32,6 +32,11 @@ const getUploadHeaders = () => {
   return headers;
 };
 
+const uploadFilename = (file: File) => {
+  const name = file.name || 'upload.bin';
+  return name.split(/[\\/]/).filter(Boolean).pop() || 'upload.bin';
+};
+
 export const fileserverApi = {
   getRoot: async (projectId: string): Promise<ExplorerRootResponse> => {
     const response = await fetch(`${API_BASE}/api/fileserver/explorer/root?project_id=${encodeURIComponent(projectId)}`, {
@@ -80,7 +85,7 @@ export const fileserverApi = {
     const formData = new FormData();
     formData.append('project_id', payload.project_id);
     formData.append('path', payload.path);
-    formData.append('file', payload.file);
+    formData.append('file', payload.file, uploadFilename(payload.file));
     const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: FileserverUploadProgress) => void }) => xhrUpload<ProjectFilesystemEntry>({
       url: `${API_BASE}/api/fileserver/project-filesystem/files/upload`,
       method: 'POST',
@@ -283,7 +288,7 @@ export const fileserverApi = {
     if (payload.directory_id !== undefined && payload.directory_id !== null) {
       formData.append('directory_id', String(payload.directory_id));
     }
-    formData.append('file', payload.file);
+    formData.append('file', payload.file, uploadFilename(payload.file));
     const execute = (params?: { signal?: AbortSignal; onProgress?: (progress: FileserverUploadProgress) => void }) => xhrUpload<ManagedFile>({
       url: `${API_BASE}/api/fileserver/files/upload`,
       method: 'POST',
