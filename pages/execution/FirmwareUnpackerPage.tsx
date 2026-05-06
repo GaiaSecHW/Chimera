@@ -702,7 +702,6 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           )}
         </div>
       </div>
-      </div>
     </div>
   );
 };

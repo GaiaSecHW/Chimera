@@ -92,7 +92,15 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  createTask: async (projectId: string, payload: { name: string; description?: string; priority?: number; tags?: string[]; elf_tasks: B2SElfTaskInput[] }) => {
+  prepareTask: async (projectId: string): Promise<{ task_id: string }> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/prepare`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  createTask: async (projectId: string, payload: { task_id?: string; name: string; description?: string; priority?: number; tags?: string[]; elf_tasks: B2SElfTaskInput[] }) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks`, {
       method: 'POST',
       headers: getHeaders(),

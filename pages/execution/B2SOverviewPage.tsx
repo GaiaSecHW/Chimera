@@ -11,8 +11,10 @@ interface Props {
   onOpenTask: (taskId: string) => void;
 }
 
-const B2S_UPLOAD_SUBPROJECT_NAME = 'binary-to-source-uploads';
+const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
+
+const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
 
 const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
   const total = task.total_items || 0;
@@ -133,24 +135,28 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     resetCreateForm();
   };
 
-  const ensureUploadSubproject = async (): Promise<number> => {
-    const root = await assetApi.fileserver.getRoot(projectId);
-    const existing = (root.items || []).find((node: any) =>
-      node.node_type === 'subproject' && node.name === B2S_UPLOAD_SUBPROJECT_NAME && node.subproject_id
-    );
-    if (existing?.subproject_id) return Number(existing.subproject_id);
-
-    const created = await assetApi.fileserver.createSubproject({
-      project_id: projectId,
-      name: B2S_UPLOAD_SUBPROJECT_NAME,
-      description: 'ELF uploaded for binary-to-source tasks',
-    });
-    return created.id;
+  const ensureDirectoryPath = async (path: string) => {
+    const parts = path.split('/').filter(Boolean);
+    let current = '';
+    for (const part of parts) {
+      current = `${current}/${part}`;
+      try {
+        await assetApi.fileserver.createProjectFilesystemDirectory({
+          project_id: projectId,
+          path: current,
+        });
+      } catch (e: any) {
+        const message = String(e?.message || '');
+        if (!message.includes('已存在')) {
+          throw e;
+        }
+      }
+    }
   };
 
-  const toAbsoluteElfPath = (storageKey: string): string => {
-    const safeStorageKey = storageKey.replace(/^\/+/, '');
-    return `${FILESERVER_STORAGE_ROOT}/${safeStorageKey}`.replace(/\/{2,}/g, '/');
+  const toAbsoluteProjectPath = (projectPath: string): string => {
+    const safeProjectPath = projectPath.replace(/^\/+/, '');
+    return `${FILESERVER_STORAGE_ROOT}/files/${projectId}/${safeProjectPath}`.replace(/\/{2,}/g, '/');
   };
 
   const submitCreateTask = async () => {
@@ -173,38 +179,35 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
     setSubmitting(true);
     try {
-      const subprojectId = await ensureUploadSubproject();
-      const uploadDirName = `task-${Date.now()}`;
-      const uploadDir = await assetApi.fileserver.createDirectory({
-        project_id: projectId,
-        subproject_id: subprojectId,
-        parent_id: null,
-        name: uploadDirName,
-      });
-
+      setUploadProgress('准备任务目录...');
+      const { task_id: taskId } = await executionApi.binaryToSource.prepareTask(projectId);
       const elfTasks: Array<{ elf_path: string; file_list: string[]; output_subdir?: string; metadata: Record<string, any> }> = [];
       for (let i = 0; i < selectedFiles.length; i += 1) {
+        const sequenceNo = i + 1;
         const file = selectedFiles[i];
-        setUploadProgress(`上传中 ${i + 1}/${selectedFiles.length}: ${file.name}`);
-        const uploaded = await assetApi.fileserver.uploadFile({
+        const inputPath = standardInputPath(taskId, sequenceNo);
+        await ensureDirectoryPath(inputPath);
+        setUploadProgress(`上传中 ${sequenceNo}/${selectedFiles.length}: ${file.name}`);
+        const uploaded = await assetApi.fileserver.uploadProjectFilesystemFile({
           project_id: projectId,
-          subproject_id: subprojectId,
-          directory_id: uploadDir.id,
+          path: inputPath,
           file,
+          overwrite: true,
         });
         elfTasks.push({
-          elf_path: toAbsoluteElfPath(uploaded.storage_key),
+          elf_path: toAbsoluteProjectPath(uploaded.path),
           file_list: [],
           output_subdir: subdir.trim() || undefined,
           metadata: {
-            uploaded_file_id: uploaded.id,
-            uploaded_filename: uploaded.filename,
-            uploaded_storage_key: uploaded.storage_key,
+            uploaded_filename: uploaded.name,
+            uploaded_project_path: uploaded.path,
+            standard_input_dir: inputPath,
           },
         });
       }
 
       const resp = await executionApi.binaryToSource.createTask(projectId, {
+        task_id: taskId,
         name: name.trim(),
         description: description.trim() || undefined,
         priority,
