@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Play, RefreshCw, ShieldAlert } from 'lucide-react';
+import { ChevronRight, Loader2, Play, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 
 import { BinarySecurityTask } from '../../clients/binarySecurity';
 import { api } from '../../clients/api';
@@ -48,6 +48,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createResult, setCreateResult] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [firmwarePath, setFirmwarePath] = useState('');
@@ -80,9 +82,55 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
     return () => window.clearInterval(timer);
   }, [hasActive, projectId]);
 
+  useEffect(() => {
+    if (!showCreateDialog) return;
+    if (name.trim()) return;
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    setName(`binary-security-${ts}`);
+  }, [showCreateDialog, name]);
+
+  const stats = useMemo(() => {
+    const total = items.length;
+    const running = items.filter((item) => !TERMINAL.has(item.status)).length;
+    return {
+      total,
+      running,
+      success: items.filter((item) => item.status === 'success').length,
+      partial: items.filter((item) => item.status === 'partial_success').length,
+      failed: items.filter((item) => item.status === 'failed').length,
+      modules: items.reduce((sum, item) => sum + (item.high_risk_module_count || 0), 0),
+      entries: items.reduce((sum, item) => sum + (item.entry_count || 0), 0),
+      vulns: items.reduce((sum, item) => sum + (item.vuln_result_count || 0), 0),
+    };
+  }, [items]);
+
+  const resetCreateForm = () => {
+    setName('');
+    setDescription('');
+    setFirmwarePath('');
+    setMaxParallel(4);
+    setMaxRetries(2);
+    setContinueOnFailure(true);
+    setCreateError(null);
+  };
+
+  const openCreateDialog = () => {
+    setCreateResult(null);
+    resetCreateForm();
+    setShowCreateDialog(true);
+  };
+
+  const closeCreateDialog = () => {
+    if (submitting) return;
+    setShowCreateDialog(false);
+    resetCreateForm();
+  };
+
   const submitTask = async () => {
     if (!projectId) return;
     setCreateError(null);
+    setCreateResult(null);
     if (!name.trim()) {
       setCreateError('请输入任务名称');
       return;
@@ -108,9 +156,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
           continue_on_item_failure: continueOnFailure,
         },
       });
-      setName('');
-      setDescription('');
-      setFirmwarePath('');
+      setShowCreateDialog(false);
+      resetCreateForm();
+      setCreateResult(`创建成功: ${prepared.task_id}`);
       await load();
     } catch (e: any) {
       setCreateError(e?.message || '创建失败');
@@ -130,44 +178,59 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
               为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流分析和漏洞扫描，聚合查看各阶段状态与结果。
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            <RefreshCw size={16} />
-            刷新
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={openCreateDialog}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
+            >
+              <Plus size={16} />
+              创建任务
+            </button>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              <RefreshCw size={16} />
+              刷新
+            </button>
+          </div>
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+      {createResult && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          {createResult}
+        </div>
+      )}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
         <div className="flex items-center gap-2">
           <ShieldAlert size={18} className="text-rose-600" />
-          <h2 className="text-xl font-black text-slate-900">创建统一任务</h2>
+          <h2 className="text-xl font-black text-slate-900">当前项目统计</h2>
         </div>
-        <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-          <input value={firmwarePath} onChange={(e) => setFirmwarePath(e.target.value)} placeholder="固件项目路径，例如 /uploads/fw.bin" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述（可选）" className="rounded-xl border border-slate-200 px-4 py-3 text-sm xl:col-span-2" />
-          <input type="number" min={1} max={16} value={maxParallel} onChange={(e) => setMaxParallel(Number(e.target.value || 1))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-          <input type="number" min={0} max={10} value={maxRetries} onChange={(e) => setMaxRetries(Number(e.target.value || 0))} className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-        </div>
-        <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-700">
-          <input type="checkbox" checked={continueOnFailure} onChange={(e) => setContinueOnFailure(e.target.checked)} />
-          子任务失败时继续推进其他子任务
-        </label>
-        {createError && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{createError}</div>}
-        <div className="mt-5">
-          <button
-            type="button"
-            onClick={() => void submitTask()}
-            disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
-          >
-            <Play size={16} />
-            {submitting ? '提交中...' : '创建任务'}
-          </button>
+        <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="rounded-2xl bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务总数</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{stats.total}</div>
+            <div className="mt-1 text-sm text-slate-500">运行中 {stats.running}</div>
+          </div>
+          <div className="rounded-2xl bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">执行结果</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{stats.success}</div>
+            <div className="mt-1 text-sm text-slate-500">成功任务</div>
+          </div>
+          <div className="rounded-2xl bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">局部成功</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{stats.partial}</div>
+            <div className="mt-1 text-sm text-slate-500">失败 {stats.failed}</div>
+          </div>
+          <div className="rounded-2xl bg-white px-4 py-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">漏洞结果</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{stats.vulns}</div>
+            <div className="mt-1 text-sm text-slate-500">入口 {stats.entries} · 模块 {stats.modules}</div>
+          </div>
         </div>
       </section>
 
@@ -225,6 +288,57 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
           </div>
         )}
       </section>
+
+      {showCreateDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+          <div className="w-full max-w-3xl rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+              <div>
+                <h3 className="text-xl font-black text-slate-900">创建二进制安全任务</h3>
+                <p className="mt-1 text-sm text-slate-500">发起统一编排任务，顺序执行固件解包、系统分析、反编译、入口分析、数据流分析和漏洞扫描。</p>
+              </div>
+              <button type="button" onClick={closeCreateDialog} disabled={submitting} className="text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50">
+                关闭
+              </button>
+            </div>
+            <div className="space-y-5 p-6">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                <input value={firmwarePath} onChange={(e) => setFirmwarePath(e.target.value)} placeholder="固件项目路径，例如 /uploads/fw.bin" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述（可选）" className="rounded-xl border border-slate-200 px-4 py-3 text-sm xl:col-span-2" />
+                <div>
+                  <div className="mb-2 text-sm font-bold text-slate-700">阶段并发上限</div>
+                  <input type="number" min={1} max={16} value={maxParallel} onChange={(e) => setMaxParallel(Number(e.target.value || 1))} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                </div>
+                <div>
+                  <div className="mb-2 text-sm font-bold text-slate-700">子任务重试次数</div>
+                  <input type="number" min={0} max={10} value={maxRetries} onChange={(e) => setMaxRetries(Number(e.target.value || 0))} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                </div>
+              </div>
+              <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <input type="checkbox" checked={continueOnFailure} onChange={(e) => setContinueOnFailure(e.target.checked)} />
+                子任务失败时继续推进其他子任务
+              </label>
+              {createError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{createError}</div>}
+              <div className="flex items-center justify-end gap-3">
+                <button type="button" onClick={closeCreateDialog} disabled={submitting} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700">
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void submitTask()}
+                  disabled={submitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+                >
+                  {submitting && <Loader2 size={16} className="animate-spin" />}
+                  <Play size={16} />
+                  {submitting ? '提交中...' : '创建任务'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
