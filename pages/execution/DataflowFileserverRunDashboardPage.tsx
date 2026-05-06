@@ -26,7 +26,7 @@ const DASHBOARD_HTML = `
   </div>
   <div class="header-right">
     <label class="toggle-label">
-      <input type="checkbox" id="autoRefresh" checked>
+      <input type="checkbox" id="autoRefresh">
       <span class="toggle-slider"></span>
       自动刷新
     </label>
@@ -294,6 +294,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       logLoaded: boolean;
       log: string;
       cycleDetails: Record<string, Record<string, any>>;
+      cycleDetailPromises: Record<string, Promise<Record<string, any>>>;
+      allCycleDetailsLoaded: boolean;
+      allCycleDetailsPromise: Promise<void> | null;
       fileText: Record<string, string>;
       sessionViews: Record<string, Record<string, any>>;
     }>,
@@ -331,6 +334,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           logLoaded: false,
           log: '',
           cycleDetails: {},
+          cycleDetailPromises: {},
+          allCycleDetailsLoaded: false,
+          allCycleDetailsPromise: null,
           fileText: {},
           sessionViews: {},
         };
@@ -520,11 +526,45 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return (this.root.querySelector('.tab.active[data-tab]') as HTMLElement | null)?.dataset.tab || 'overview';
     },
 
-    refreshActiveTabContent(force = false) {
+    refreshActiveTabContent() {
       const activeTab = this.getActiveTab();
-      if (activeTab === 'sessions') this.loadSessions(force);
-      if (activeTab === 'files') this.loadFiles(force);
-      if (activeTab === 'log') this.loadLog(force);
+      if (activeTab === 'sessions') this.loadSessions();
+      if (activeTab === 'files') this.loadFiles();
+      if (activeTab === 'log') this.loadLog();
+    },
+
+    async preloadAllCycleDetails(name: string, data: DataflowFileserverRunOverview, force = false) {
+      const runCache = this.getRunCache(name);
+      const cycles = Array.isArray(data.cycles) ? data.cycles : [];
+      if (force) {
+        runCache.cycleDetails = {};
+        runCache.cycleDetailPromises = {};
+        runCache.allCycleDetailsLoaded = false;
+        runCache.allCycleDetailsPromise = null;
+      }
+      if (!cycles.length) {
+        runCache.allCycleDetailsLoaded = true;
+        return;
+      }
+      if (!force && runCache.allCycleDetailsLoaded) return;
+      if (!force && runCache.allCycleDetailsPromise) {
+        await runCache.allCycleDetailsPromise;
+        return;
+      }
+      const promise = (async () => {
+        await Promise.allSettled(
+          cycles.map((cycle: any) => this.loadCycleDetail(name, Number(cycle?.cycle || 0), force))
+        );
+        runCache.allCycleDetailsLoaded = true;
+      })();
+      runCache.allCycleDetailsPromise = promise;
+      try {
+        await promise;
+      } finally {
+        if (runCache.allCycleDetailsPromise === promise) {
+          runCache.allCycleDetailsPromise = null;
+        }
+      }
     },
 
     async loadRuns() {
@@ -705,6 +745,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const runCache = this.getRunCache(name);
         runCache.overview = data;
+        runCache.sessionsLoaded = true;
+        runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
+        runCache.filesLoaded = true;
+        runCache.files = Array.isArray(data.files) ? data.files : [];
+        runCache.logLoaded = true;
+        runCache.log = data.run_log || '';
         this.currentRunData = data;
         this.currentSummary = {
           name: data.name,
@@ -732,7 +778,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const detail = this.$('runDetail');
         if (welcome) welcome.style.display = 'none';
         if (detail) detail.style.display = 'block';
-        this.refreshActiveTabContent(forceActiveTabReload);
+        void this.preloadAllCycleDetails(name, data, forceActiveTabReload);
+        this.refreshActiveTabContent();
       } catch (e: any) {
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const message = e?.message || '加载 Run 失败';
@@ -940,21 +987,42 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     async loadCycleDetail(name: string, cycle: number, force = false) {
       const bodyEl = this.$(`cycle-body-${cycle}`) as HTMLElement | null;
-      if (!bodyEl) return;
       const runCache = this.getRunCache(name);
       const cycleKey = String(cycle);
       if (!force && runCache.cycleDetails[cycleKey]) {
-        bodyEl.dataset.loaded = '1';
-        this.renderCycleContent(bodyEl, runCache.cycleDetails[cycleKey], name);
-        return;
+        if (bodyEl) {
+          bodyEl.dataset.loaded = '1';
+          this.renderCycleContent(bodyEl, runCache.cycleDetails[cycleKey], name);
+        }
+        return runCache.cycleDetails[cycleKey];
       }
-      if (!force && bodyEl.dataset.loaded) return;
+      if (!force && runCache.cycleDetailPromises[cycleKey]) {
+        const data = await runCache.cycleDetailPromises[cycleKey];
+        if (bodyEl) {
+          bodyEl.dataset.loaded = '1';
+          this.renderCycleContent(bodyEl, data, name);
+        }
+        return data;
+      }
+      if (!force && bodyEl?.dataset.loaded) return runCache.cycleDetails[cycleKey];
+      const promise = inspectDataflowFileserverRunCycle(projectId, this.runsRootPath, name, cycle);
+      runCache.cycleDetailPromises[cycleKey] = promise;
       try {
-        const data = await inspectDataflowFileserverRunCycle(projectId, this.runsRootPath, name, cycle);
+        const data = await promise;
         runCache.cycleDetails[cycleKey] = data;
-        bodyEl.dataset.loaded = '1';
-        this.renderCycleContent(bodyEl, data, name);
-      } catch (e) { bodyEl.innerHTML = '<div class="text-error">加载失败</div>'; }
+        if (bodyEl) {
+          bodyEl.dataset.loaded = '1';
+          this.renderCycleContent(bodyEl, data, name);
+        }
+        return data;
+      } catch (e) {
+        if (bodyEl) bodyEl.innerHTML = '<div class="text-error">加载失败</div>';
+        throw e;
+      } finally {
+        if (runCache.cycleDetailPromises[cycleKey] === promise) {
+          delete runCache.cycleDetailPromises[cycleKey];
+        }
+      }
     },
 
     renderCycleContent(el: HTMLElement, data: Record<string, any>, runName: string) {
