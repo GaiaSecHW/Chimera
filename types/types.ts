@@ -2353,10 +2353,23 @@ export interface AppSaTaskItem {
   finished_at?: string | null;
 }
 
+export interface AppSaStageEvent {
+  ts: number;
+  type: string;
+  data: Record<string, any>;
+}
+
+export interface AppSaStagesJson {
+  events: AppSaStageEvent[];
+  final?: boolean;
+}
+
 export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
   result_json?: Record<string, any> | null;
+  stages_json?: AppSaStagesJson | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[] } | null;
 }
 
 export interface AppSaTaskCreateRequest {
@@ -2367,6 +2380,8 @@ export interface AppSaTaskCreateRequest {
   task_description?: string;
   prompt_template_id?: string;
   prompt_content?: string;
+  analyse_targets?: string[];
+  binary_arch?: string[];
 }
 
 
