@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronRight, Folder, FolderOpen, FolderPlus, Loader2, X } from 'lucide-react';
+import { ChevronRight, File, Folder, FolderOpen, FolderPlus, Loader2, X } from 'lucide-react';
 import { api } from '../../clients/api';
 import { ProjectFilesystemEntry } from '../../types/types';
 import { showPrompt } from '../DialogService';
@@ -10,22 +10,39 @@ interface TreeNode {
   isLoading: boolean;
 }
 
-const buildContainerPath = (projectId: string, apiPath: string): string => {
+const buildContainerPath = (projectId: string, apiPath: string, containerRoot: string): string => {
   const rel = apiPath === '/' ? '' : apiPath;
-  return `/data/fileserver/files/${projectId}${rel}`;
+  return `${containerRoot.replace(/\/+$/, '')}/${projectId}${rel}`;
 };
 
-export const FileServerPickerModal: React.FC<{
+interface FileServerPickerModalProps {
   projectId: string;
   isOpen: boolean;
   onClose: () => void;
   onSelect: (containerPath: string) => void;
-}> = ({ projectId, isOpen, onClose, onSelect }) => {
+  mode?: 'directory' | 'file';
+  title?: string;
+  description?: string;
+  confirmText?: string;
+  containerRoot?: string;
+}
+
+export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
+  projectId,
+  isOpen,
+  onClose,
+  onSelect,
+  mode = 'directory',
+  title,
+  description,
+  confirmText,
+  containerRoot = '/data/fileserver/files',
+}) => {
   const fileserverApi = api.domains.assets.fileserver;
 
   const [roots, setRoots] = useState<TreeNode[]>([]);
   const [loadingRoots, setLoadingRoots] = useState(true);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null); // API path
+  const [selectedEntry, setSelectedEntry] = useState<ProjectFilesystemEntry | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
 
   const loadRoots = async () => {
@@ -46,7 +63,7 @@ export const FileServerPickerModal: React.FC<{
 
   useEffect(() => {
     if (isOpen && projectId) {
-      setSelectedPath(null);
+      setSelectedEntry(null);
       setExpandedPaths(new Set());
       void loadRoots();
     }
@@ -65,8 +82,8 @@ export const FileServerPickerModal: React.FC<{
     updateFn((prev) => updateNodeInTree(prev, path, (n) => ({ ...n, isLoading: true })));
     try {
       const resp = await fileserverApi.getProjectFilesystemChildren(projectId, path);
-      const childNodes: TreeNode[] = resp.directories.map((d) => ({
-        entry: d,
+      const childNodes: TreeNode[] = [...resp.directories, ...resp.files].map((entry) => ({
+        entry,
         children: null,
         isLoading: false,
       }));
@@ -85,7 +102,11 @@ export const FileServerPickerModal: React.FC<{
   };
 
   const handleCreateDirectory = async (parentPath: string) => {
-    const name = await showPrompt('新建文件夹', '请输入文件夹名称');
+    const name = await showPrompt({
+      title: '新建文件夹',
+      message: '请输入文件夹名称',
+      placeholder: '例如：firmware-output',
+    });
     if (!name?.trim()) return;
     const newPath = parentPath === '/' ? `/${name.trim()}` : `${parentPath}/${name.trim()}`;
     try {
@@ -121,8 +142,9 @@ export const FileServerPickerModal: React.FC<{
   const renderTree = (nodes: TreeNode[], depth = 0): React.ReactNode => {
     return nodes.map((node) => {
       const path = node.entry.path;
+      const isFile = node.entry.node_type === 'file';
       const isExpanded = expandedPaths.has(path);
-      const isSelected = selectedPath === path;
+      const isSelected = selectedEntry?.path === path;
 
       return (
         <div key={path}>
@@ -131,33 +153,45 @@ export const FileServerPickerModal: React.FC<{
               isSelected ? 'bg-blue-100 text-blue-800' : 'hover:bg-slate-100 text-slate-700'
             }`}
             style={{ paddingLeft: `${8 + depth * 16}px` }}
-            onClick={() => setSelectedPath(path)}
-            onDoubleClick={() => void toggleExpand(node, setRoots)}
+            onClick={() => setSelectedEntry(node.entry)}
+            onDoubleClick={() => { if (!isFile) void toggleExpand(node, setRoots); }}
           >
-            <button
-              type="button"
-              className="shrink-0 text-slate-400 hover:text-slate-600 p-0.5"
-              onClick={(e) => { e.stopPropagation(); void toggleExpand(node, setRoots); }}
-            >
-              {node.isLoading ? (
-                <Loader2 size={12} className="animate-spin" />
-              ) : (
-                <ChevronRight size={12} className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-              )}
-            </button>
-            {isExpanded ? <FolderOpen size={14} className="shrink-0 text-amber-500" /> : <Folder size={14} className="shrink-0 text-amber-400" />}
+            {isFile ? (
+              <span className="h-[18px] w-[18px] shrink-0" />
+            ) : (
+              <button
+                type="button"
+                className="shrink-0 text-slate-400 hover:text-slate-600 p-0.5"
+                onClick={(e) => { e.stopPropagation(); void toggleExpand(node, setRoots); }}
+              >
+                {node.isLoading ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <ChevronRight size={12} className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                )}
+              </button>
+            )}
+            {isFile ? (
+              <File size={14} className="shrink-0 text-slate-500" />
+            ) : isExpanded ? (
+              <FolderOpen size={14} className="shrink-0 text-amber-500" />
+            ) : (
+              <Folder size={14} className="shrink-0 text-amber-400" />
+            )}
             <span className="ml-1 truncate font-medium">{node.entry.name}</span>
             {node.entry.special_badge ? (
               <span className="ml-1 shrink-0 rounded px-1 text-[10px] bg-amber-100 text-amber-700">{node.entry.special_badge}</span>
             ) : null}
-            <button
-              type="button"
-              title="在此目录下新建文件夹"
-              className="ml-auto shrink-0 text-slate-300 hover:text-slate-600 p-0.5 rounded"
-              onClick={(e) => { e.stopPropagation(); void handleCreateDirectory(path); }}
-            >
-              <FolderPlus size={12} />
-            </button>
+            {!isFile && mode === 'directory' && (
+              <button
+                type="button"
+                title="在此目录下新建文件夹"
+                className="ml-auto shrink-0 text-slate-300 hover:text-slate-600 p-0.5 rounded"
+                onClick={(e) => { e.stopPropagation(); void handleCreateDirectory(path); }}
+              >
+                <FolderPlus size={12} />
+              </button>
+            )}
           </div>
           {isExpanded && node.children && node.children.length > 0 && renderTree(node.children, depth + 1)}
           {isExpanded && node.children && node.children.length === 0 && (
@@ -172,7 +206,13 @@ export const FileServerPickerModal: React.FC<{
 
   if (!isOpen) return null;
 
-  const containerPath = selectedPath ? buildContainerPath(projectId, selectedPath) : null;
+  const containerPath = selectedEntry ? buildContainerPath(projectId, selectedEntry.path, containerRoot) : null;
+  const isSelectionValid = mode === 'file'
+    ? selectedEntry?.node_type === 'file'
+    : !!selectedEntry && selectedEntry.node_type !== 'file';
+  const modalTitle = title || (mode === 'file' ? '选择文件' : '选择分析目录');
+  const modalDescription = description || (mode === 'file' ? '从项目文件系统中选择文件' : '选择目录');
+  const modalConfirmText = confirmText || (mode === 'file' ? '选择文件' : '确认选择');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -181,7 +221,8 @@ export const FileServerPickerModal: React.FC<{
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div>
             <div className="text-xs font-black uppercase tracking-widest text-sky-600">FileServer</div>
-            <h3 className="text-base font-black text-slate-900">选择分析目录</h3>
+            <h3 className="text-base font-black text-slate-900">{modalTitle}</h3>
+            <p className="mt-1 text-xs text-slate-500">{modalDescription}</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100">
             <X size={16} />
@@ -220,11 +261,11 @@ export const FileServerPickerModal: React.FC<{
           </button>
           <button
             type="button"
-            disabled={!containerPath}
+            disabled={!containerPath || !isSelectionValid}
             onClick={() => containerPath && onSelect(containerPath)}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 hover:bg-slate-700"
           >
-            确认选择
+            {modalConfirmText}
           </button>
         </div>
       </div>

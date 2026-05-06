@@ -45,7 +45,8 @@ import { AppInstancePage } from '../pages/orchestration/AppInstancePage';
 import { AppInstanceDetailPage } from '../pages/orchestration/AppInstanceDetailPage';
 import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPage';
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
-import { FirmwareUnpackerWorkspacePage } from '../pages/execution/FirmwareUnpackerWorkspacePage';
+import { FirmwareUnpackConfigPage } from '../pages/execution/FirmwareUnpackConfigPage';
+import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
@@ -344,11 +345,10 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-work':
       return <ExecutionWorkPlatformPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-firmware-unpacker':
-      return <FirmwareUnpackerWorkspacePage projectId={ctx.selectedProjectId} initialTab="tasks" />;
     case 'pentest-exec-firmware-task-list':
-      return <FirmwareUnpackerWorkspacePage projectId={ctx.selectedProjectId} initialTab="tasks" />;
+      return <FirmwareUnpackerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'pentest-exec-firmware-config':
-      return <FirmwareUnpackerWorkspacePage projectId={ctx.selectedProjectId} initialTab="config" />;
+      return <FirmwareUnpackConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s':
     case 'pentest-exec-b2s-root':
     case 'pentest-exec-b2s-task-list':
