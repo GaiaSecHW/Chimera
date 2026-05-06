@@ -1,60 +1,53 @@
 import React from 'react';
 
-export const AiwfPageShell: React.FC<{
-  title: string;
-  description: string;
-  actions?: React.ReactNode;
-  children: React.ReactNode;
-}> = ({ title, description, actions, children }) => (
-  <div className="p-10 space-y-8 animate-in fade-in duration-500">
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h2 className="text-3xl font-black text-slate-800 tracking-tight">{title}</h2>
-        <p className="text-slate-500 mt-1 font-medium italic">{description}</p>
-      </div>
-      {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
-    </div>
-    {children}
-  </div>
-);
-
-export const AiwfTabs: React.FC<{
-  tabs: Array<{ id: string; label: string }>;
-  activeTab: string;
-  onChange: (tabId: string) => void;
-}> = ({ tabs, activeTab, onChange }) => (
-  <div className="flex flex-wrap gap-3">
-    {tabs.map((tab) => (
-      <button
-        key={tab.id}
-        onClick={() => onChange(tab.id)}
-        className={`px-4 py-2.5 rounded-2xl text-sm font-bold transition-all ${
-          activeTab === tab.id
-            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/15'
-            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-        }`}
-      >
-        {tab.label}
-      </button>
-    ))}
-  </div>
-);
-
-export const AiwfCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={`bg-white border border-slate-200 rounded-[2rem] shadow-sm ${className}`}>{children}</div>
-);
-
-export const AiwfEmpty: React.FC<{ title: string; description: string }> = ({ title, description }) => (
-  <div className="p-10 text-center">
-    <h3 className="text-xl font-black text-slate-700">{title}</h3>
-    <p className="text-sm text-slate-500 mt-2">{description}</p>
-  </div>
-);
-
 export const formatDateTime = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString();
 };
 
-export const prettyJson = (value: any) => JSON.stringify(value ?? {}, null, 2);
+export const prettyJson = (value: unknown) => JSON.stringify(value ?? {}, null, 2);
+
+export const AiwfPageShell: React.FC<{
+  title: string;
+  description?: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, description = '', actions, children }) => {
+  return (
+    <div className="space-y-5">
+      <div className="rounded-[1.75rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(148,163,184,0.12),_transparent_45%),linear-gradient(135deg,_#f8fafc,_#eef2ff)] p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="text-xs font-black uppercase tracking-[0.28em] text-slate-500">AI Agent Framework</div>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">{title}</h1>
+            {description ? <p className="mt-2 max-w-3xl text-sm text-slate-600">{description}</p> : null}
+          </div>
+          {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+};
+
+export const AiwfCard: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className = '', children, ...props }) => {
+  return (
+    <div
+      {...props}
+      className={`rounded-[1.5rem] border border-slate-200 bg-white shadow-sm ${className}`.trim()}
+    >
+      {children}
+    </div>
+  );
+};
+
+export const AiwfEmpty: React.FC<{ title: string; description?: string }> = ({ title, description = '' }) => {
+  return (
+    <div className="px-6 py-12 text-center">
+      <div className="text-lg font-black text-slate-900">{title}</div>
+      {description ? <div className="mx-auto mt-2 max-w-xl text-sm text-slate-500">{description}</div> : null}
+    </div>
+  );
+};

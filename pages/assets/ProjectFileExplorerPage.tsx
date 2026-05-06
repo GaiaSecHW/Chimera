@@ -140,9 +140,27 @@ interface WebkitDirectoryEntryLike {
 
 type WebkitEntryLike = WebkitFileEntryLike | WebkitDirectoryEntryLike;
 
-interface DataTransferItemWithWebkitEntry extends DataTransferItem {
+type DataTransferItemWithWebkitEntry = DataTransferItem & {
   webkitGetAsEntry?: () => WebkitEntryLike | null;
+};
+
+interface DirectoryPickerFileHandleLike {
+  kind: 'file';
+  getFile: () => Promise<File>;
 }
+
+interface DirectoryPickerDirectoryHandleLike {
+  kind: 'directory';
+  name: string;
+  entries: () => AsyncIterableIterator<[string, DirectoryPickerHandleLike]>;
+}
+
+type DirectoryPickerHandleLike = DirectoryPickerFileHandleLike | DirectoryPickerDirectoryHandleLike;
+
+type WindowWithDirectoryPicker = Window &
+  typeof globalThis & {
+    showDirectoryPicker?: () => Promise<DirectoryPickerDirectoryHandleLike>;
+  };
 
 const TEXT_EXTENSIONS = new Set(['txt', 'json', 'yaml', 'yml', 'md', 'log', 'xml', 'csv', 'js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'sh', 'sql']);
 const BINARY_PREVIEW_MAX_BYTES = 1024 * 1024;
@@ -338,14 +356,45 @@ const uniqueSortedDirectories = (directories: Iterable<string>) =>
 const isDirectoryUploadSupported = () =>
   typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
+const hasDataTransferItemEntryGetter = (item: DataTransferItem): item is DataTransferItemWithWebkitEntry =>
+  typeof (item as unknown as DataTransferItemWithWebkitEntry).webkitGetAsEntry === 'function';
+
+const isWebkitDirectoryEntry = (entry: unknown): entry is WebkitDirectoryEntryLike =>
+  Boolean(
+    entry &&
+      typeof entry === 'object' &&
+      'isDirectory' in entry &&
+      'createReader' in entry &&
+      typeof (entry as { createReader?: unknown }).createReader === 'function'
+  );
+
+const isWebkitFileEntry = (entry: unknown): entry is WebkitFileEntryLike =>
+  Boolean(
+    entry &&
+      typeof entry === 'object' &&
+      'isFile' in entry &&
+      'file' in entry &&
+      typeof (entry as { file?: unknown }).file === 'function'
+  );
+
+const isWebkitEntry = (entry: unknown): entry is WebkitEntryLike => isWebkitFileEntry(entry) || isWebkitDirectoryEntry(entry);
+
+const getDataTransferItemEntry = (item: DataTransferItem) => {
+  if (!hasDataTransferItemEntryGetter(item)) {
+    return null;
+  }
+  const entry = (item as unknown as { webkitGetAsEntry?: () => unknown }).webkitGetAsEntry?.() ?? null;
+  return isWebkitEntry(entry) ? entry : null;
+};
+
 const isDragDirectoryUploadSupported = (items: DataTransferItemList | null | undefined) =>
-  Boolean(items && Array.from(items).some((item) => typeof (item as DataTransferItemWithWebkitEntry).webkitGetAsEntry === 'function'));
+  Boolean(items && Array.from(items).some(hasDataTransferItemEntryGetter));
 
 const hasDraggedDirectoryItems = (items: DataTransferItemList | null | undefined) =>
   Boolean(
     items &&
       Array.from(items).some((item) => {
-        const entry = (item as DataTransferItemWithWebkitEntry).webkitGetAsEntry?.();
+        const entry = getDataTransferItemEntry(item);
         return Boolean(entry?.isDirectory);
       })
   );
@@ -376,7 +425,7 @@ const collectTreeFromWebkitEntry = async (
 ): Promise<UploadDirectoryTree> => {
   const currentPath = normalizeUploadRelativePath(parentPath ? `${parentPath}/${entry.name}` : entry.name);
 
-  if (entry.isFile) {
+  if (isWebkitFileEntry(entry)) {
     const file = await readWebkitFile(entry);
     return {
       directories: [],
@@ -400,7 +449,7 @@ const collectTreeFromWebkitEntry = async (
 };
 
 const collectTreeFromDirectoryHandle = async (
-  directoryHandle: FileSystemDirectoryHandle,
+  directoryHandle: DirectoryPickerDirectoryHandleLike,
   parentPath = ''
 ): Promise<UploadDirectoryTree> => {
   const currentPath = normalizeUploadRelativePath(parentPath ? `${parentPath}/${directoryHandle.name}` : directoryHandle.name);
@@ -1130,7 +1179,10 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     setBusyAction('upload-directory');
     try {
       ensureFileserverDirectoryUploadSupport();
-      const directoryHandle = await window.showDirectoryPicker();
+      const directoryHandle = await (window as WindowWithDirectoryPicker).showDirectoryPicker?.();
+      if (!directoryHandle) {
+        throw new Error('当前浏览器不支持文件夹选择。');
+      }
       const tree = await collectTreeFromDirectoryHandle(directoryHandle);
       if (isFileserverDirectoryLike(target)) {
         await uploadDirectoryTree(tree, target);
@@ -1190,7 +1242,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     let sawDirectory = false;
 
     for (const item of Array.from(items)) {
-      const entry = (item as DataTransferItemWithWebkitEntry).webkitGetAsEntry?.();
+      const entry = getDataTransferItemEntry(item);
       if (!entry) {
         continue;
       }

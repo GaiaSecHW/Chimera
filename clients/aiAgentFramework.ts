@@ -1,5 +1,18 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 
+const PREFIX = `${API_BASE}/api/ai-agent-framework`;
+
+const withQuery = (path: string, params: Record<string, string | number | undefined | null>) => {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      query.set(key, String(value));
+    }
+  });
+  const text = query.toString();
+  return text ? `${path}?${text}` : path;
+};
+
 export interface AiwfWorkflowDefinition {
   id: string;
   name: string;
@@ -37,8 +50,23 @@ export interface AiwfTriggerTaskInput {
   title: string;
   task_markdown?: string;
   task_md_path?: string;
-  metadata: Record<string, any>;
-  upstream_refs: string[];
+  metadata?: Record<string, any>;
+  upstream_refs?: string[];
+}
+
+export interface AiwfCreateDefinitionPayload {
+  name: string;
+  description?: string;
+  project_id: string;
+  definition_json: Record<string, any>;
+  trigger_type?: string;
+  trigger_enabled?: boolean;
+  is_active?: boolean;
+  enabled?: boolean;
+  max_concurrency?: number;
+  priority_default?: number;
+  workspace_base_dir?: string | null;
+  execution_timeout_seconds?: number;
 }
 
 export interface AiwfTriggerTask {
@@ -56,7 +84,7 @@ export interface AiwfTriggerTask {
   updated_at: string;
 }
 
-export interface AiwfExecution {
+export interface AiwfWorkflowExecution {
   id: string;
   trigger_task_id: string;
   workflow_definition_id: string;
@@ -75,7 +103,7 @@ export interface AiwfExecution {
   updated_at: string;
 }
 
-export interface AiwfExecutionEvent {
+export interface AiwfWorkflowExecutionEvent {
   id: string;
   execution_id: string;
   event_type: string;
@@ -98,108 +126,150 @@ export interface AiwfSchedulerWorker {
 }
 
 export const aiAgentFrameworkApi = {
-  getHealth: async (): Promise<{ status: string; pod_id: string; database: string; scheduler: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/health`, { headers: getHeaders() })),
+  listDefinitions: async (): Promise<AiwfWorkflowDefinition[]> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  listDefinitions: async (): Promise<AiwfWorkflowDefinition[]> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions`, { headers: getHeaders() })),
-
-  getDefinition: async (id: string): Promise<AiwfWorkflowDefinition> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${id}`, { headers: getHeaders() })),
-
-  createDefinition: async (payload: Record<string, any>): Promise<AiwfWorkflowDefinition> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions`, {
+  createDefinition: async (payload: AiwfCreateDefinitionPayload): Promise<AiwfWorkflowDefinition> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  updateDefinition: async (id: string, payload: Record<string, any>): Promise<AiwfWorkflowDefinition> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
-    })),
+  getDefinition: async (definitionId: string): Promise<AiwfWorkflowDefinition> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions/${encodeURIComponent(definitionId)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  deleteDefinition: async (id: string): Promise<{ success: boolean; message: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${id}`, {
+  deleteDefinition: async (definitionId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions/${encodeURIComponent(definitionId)}`, {
       method: 'DELETE',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  listDefinitionVersions: async (id: string): Promise<AiwfWorkflowDefinitionVersion[]> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${id}/versions`, { headers: getHeaders() })),
+  listDefinitionVersions: async (definitionId: string): Promise<AiwfWorkflowDefinitionVersion[]> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions/${encodeURIComponent(definitionId)}/versions`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  getDefinitionVersion: async (id: string, versionNo: number): Promise<AiwfWorkflowDefinitionVersion> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${id}/versions/${versionNo}`, { headers: getHeaders() })),
+  getDefinitionVersion: async (definitionId: string, versionNo: number): Promise<AiwfWorkflowDefinitionVersion> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions/${encodeURIComponent(definitionId)}/versions/${versionNo}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  activateDefinition: async (id: string): Promise<AiwfWorkflowDefinition> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${id}/activate`, {
+  activateDefinition: async (definitionId: string): Promise<AiwfWorkflowDefinition> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions/${encodeURIComponent(definitionId)}/activate`, {
       method: 'POST',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  deactivateDefinition: async (id: string): Promise<AiwfWorkflowDefinition> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${id}/deactivate`, {
+  deactivateDefinition: async (definitionId: string): Promise<AiwfWorkflowDefinition> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions/${encodeURIComponent(definitionId)}/deactivate`, {
       method: 'POST',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  createTriggerTask: async (definitionId: string, payload: { input_tasks: AiwfTriggerTaskInput[]; priority?: number | null }): Promise<AiwfTriggerTask> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/workflow-definitions/${definitionId}/trigger-tasks`, {
+  createTriggerTask: async (definitionId: string, payload: { input_tasks: AiwfTriggerTaskInput[]; priority?: number }): Promise<AiwfTriggerTask> => {
+    const response = await fetch(`${PREFIX}/workflow-definitions/${encodeURIComponent(definitionId)}/trigger-tasks`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  listTriggerTasks: async (): Promise<AiwfTriggerTask[]> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/trigger-tasks`, { headers: getHeaders() })),
+  listTriggerTasks: async (): Promise<AiwfTriggerTask[]> => {
+    const response = await fetch(`${PREFIX}/trigger-tasks`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  getTriggerTask: async (id: string): Promise<AiwfTriggerTask> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/trigger-tasks/${id}`, { headers: getHeaders() })),
+  getTriggerTask: async (triggerTaskId: string): Promise<AiwfTriggerTask> => {
+    const response = await fetch(`${PREFIX}/trigger-tasks/${encodeURIComponent(triggerTaskId)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  cancelTriggerTask: async (id: string): Promise<{ success: boolean; message: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/trigger-tasks/${id}/cancel`, {
+  cancelTriggerTask: async (triggerTaskId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${PREFIX}/trigger-tasks/${encodeURIComponent(triggerTaskId)}/cancel`, {
       method: 'POST',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  retryTriggerTask: async (id: string): Promise<AiwfTriggerTask> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/trigger-tasks/${id}/retry`, {
+  retryTriggerTask: async (triggerTaskId: string): Promise<AiwfTriggerTask> => {
+    const response = await fetch(`${PREFIX}/trigger-tasks/${encodeURIComponent(triggerTaskId)}/retry`, {
       method: 'POST',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  listExecutions: async (): Promise<AiwfExecution[]> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/executions`, { headers: getHeaders() })),
+  listExecutions: async (): Promise<AiwfWorkflowExecution[]> => {
+    const response = await fetch(`${PREFIX}/executions`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  getExecution: async (id: string): Promise<AiwfExecution> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/executions/${id}`, { headers: getHeaders() })),
+  getExecution: async (executionId: string): Promise<AiwfWorkflowExecution> => {
+    const response = await fetch(`${PREFIX}/executions/${encodeURIComponent(executionId)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  listExecutionEvents: async (id: string): Promise<AiwfExecutionEvent[]> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/executions/${id}/events`, { headers: getHeaders() })),
+  getExecutionEvents: async (executionId: string): Promise<AiwfWorkflowExecutionEvent[]> => {
+    const response = await fetch(`${PREFIX}/executions/${encodeURIComponent(executionId)}/events`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  getExecutionArtifacts: async (id: string): Promise<{ execution_id: string; workspace_root?: string | null; output_manifest_path?: string | null; files: Array<{ path: string; size: number }> }> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/executions/${id}/artifacts`, { headers: getHeaders() })),
+  getExecutionArtifacts: async (executionId: string): Promise<Record<string, any>> => {
+    const response = await fetch(`${PREFIX}/executions/${encodeURIComponent(executionId)}/artifacts`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  cancelExecution: async (id: string): Promise<{ success: boolean; message: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/executions/${id}/cancel`, {
+  cancelExecution: async (executionId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${PREFIX}/executions/${encodeURIComponent(executionId)}/cancel`, {
       method: 'POST',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  listWorkers: async (): Promise<AiwfSchedulerWorker[]> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/scheduler/workers`, { headers: getHeaders() })),
+  listWorkers: async (): Promise<AiwfSchedulerWorker[]> => {
+    const response = await fetch(`${PREFIX}/scheduler/workers`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
 
-  drainWorker: async (podId: string): Promise<{ success: boolean; message: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/scheduler/workers/${encodeURIComponent(podId)}/drain`, {
+  getWorker: async (podId: string): Promise<AiwfSchedulerWorker> => {
+    const response = await fetch(`${PREFIX}/scheduler/workers/${encodeURIComponent(podId)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  drainWorker: async (podId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${PREFIX}/scheduler/workers/${encodeURIComponent(podId)}/drain`, {
       method: 'POST',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
 
-  activateWorker: async (podId: string): Promise<{ success: boolean; message: string }> =>
-    handleResponse(await fetch(`${API_BASE}/api/ai-agent-framework/scheduler/workers/${encodeURIComponent(podId)}/activate`, {
+  activateWorker: async (podId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${PREFIX}/scheduler/workers/${encodeURIComponent(podId)}/activate`, {
       method: 'POST',
       headers: getHeaders(),
-    })),
+    });
+    return handleResponse(response);
+  },
+
+  health: async (): Promise<Record<string, any>> => {
+    const response = await fetch(withQuery(`${PREFIX}/health`, {}), { headers: getHeaders() });
+    return handleResponse(response);
+  },
 };

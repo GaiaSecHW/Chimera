@@ -173,6 +173,10 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-b2s-queue',
   'pentest-exec-b2s-result',
   'pentest-exec-b2s-detail',
+  'pentest-exec-dataflow-vuln',
+  'pentest-exec-dataflow-vuln-task-list',
+  'pentest-exec-dataflow-vuln-task-detail',
+  'pentest-exec-dataflow-vuln-system-config',
   'pentest-report',
   'vuln-engine',
   'vuln-overview',
@@ -382,6 +386,15 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
         { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
         { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
+      ],
+    },
+    {
+      title: '漏洞挖掘',
+      items: [
+        { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, requiresProject: true, subItems: [
+          { id: 'pentest-exec-dataflow-vuln-task-list', label: '任务列表', aliases: ['pentest-exec-dataflow-vuln', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
+          { id: 'pentest-exec-dataflow-vuln-system-config', label: '系统配置', requiresProject: true },
+        ] },
       ],
     },
   ],
