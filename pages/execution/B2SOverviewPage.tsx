@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Clock3, Loader2, Plus, RefreshCw } from 'lucide-react';
 
-import { B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
@@ -52,6 +52,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState(5);
   const [subdir, setSubdir] = useState('');
+  const [llmProviderKey, setLlmProviderKey] = useState('');
+  const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
+  const [llmProvidersLoading, setLlmProvidersLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string>('');
@@ -118,15 +121,32 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     setDescription('');
     setPriority(5);
     setSubdir('');
+    setLlmProviderKey('');
     setSelectedFiles([]);
     setCreateError('');
     setUploadProgress('');
+  };
+
+  const loadLlmProviders = async () => {
+    if (!projectId) return;
+    setLlmProvidersLoading(true);
+    try {
+      const data = await executionApi.binaryToSource.listLlmProviders(projectId);
+      const providers = (data.items || []).filter((item) => item.enabled);
+      setLlmProviders(providers);
+      setLlmProviderKey((current) => current || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
+    } catch (e: any) {
+      setCreateError(e?.message || '加载LLM Provider失败');
+    } finally {
+      setLlmProvidersLoading(false);
+    }
   };
 
   const openCreateDialog = () => {
     setCreateResult('');
     resetCreateForm();
     setShowCreateDialog(true);
+    void loadLlmProviders();
   };
 
   const closeCreateDialog = () => {
@@ -212,6 +232,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         description: description.trim() || undefined,
         priority,
         tags: ['reverse', 'binary-to-source'],
+        llm_provider_key: llmProviderKey || undefined,
         elf_tasks: elfTasks,
       });
       setShowCreateDialog(false);
@@ -401,6 +422,26 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   className="md:col-span-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm"
                 />
               </div>
+
+              <label className="block text-sm font-bold text-slate-700">
+                LLM Provider（任务级动态切换，无需重启服务）
+                <select
+                  value={llmProviderKey}
+                  onChange={(e) => setLlmProviderKey(e.target.value)}
+                  disabled={llmProvidersLoading || llmProviders.length === 0}
+                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                >
+                  {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
+                  {llmProviders.map((provider) => (
+                    <option key={provider.provider_key} value={provider.provider_key}>
+                      {(provider.display_name || provider.provider_key)} · {provider.model || '-'}{provider.is_default ? ' · 默认' : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="mt-2 block text-xs font-normal text-slate-500">
+                  当前任务会使用所选 Provider；其它运行中任务不受影响。
+                </span>
+              </label>
 
               <input
                 value={description}
