@@ -22,6 +22,12 @@ const statusTone = (status: string) => {
       return 'bg-rose-50 text-rose-700 border-rose-200';
     case 'cancelled':
       return 'bg-slate-100 text-slate-500 border-slate-200';
+    case 'pending_upload':
+      return 'bg-violet-50 text-violet-700 border-violet-200';
+    case 'uploading':
+      return 'bg-sky-50 text-sky-700 border-sky-200';
+    case 'ready_to_start':
+      return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     default:
       return 'bg-blue-50 text-blue-700 border-blue-200';
   }
@@ -125,13 +131,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">创建时间：<span className="font-bold text-slate-900">{fmt(detail.created_at)}</span></div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">完成时间：<span className="font-bold text-slate-900">{fmt(detail.finished_at)}</span></div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">固件数量：<span className="font-bold text-slate-900">{detail.firmware_item_count}</span></div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">已解包/失败：<span className="font-bold text-slate-900">{detail.unpacked_firmware_count} / {detail.failed_firmware_count}</span></div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">高危模块：<span className="font-bold text-slate-900">{detail.high_risk_module_count}</span></div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">漏洞结果：<span className="font-bold text-slate-900">{detail.vuln_result_count}</span></div>
               </div>
             </div>
             <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">固件路径</div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">输入目录</div>
                 <div className="mt-2 break-all font-mono text-xs text-slate-700">{detail.firmware_path}</div>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
