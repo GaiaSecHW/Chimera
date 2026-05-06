@@ -7,6 +7,15 @@ export interface B2SElfTaskInput {
   metadata?: Record<string, any>;
 }
 
+export interface B2SLlmProviderSummary {
+  provider_key: string;
+  display_name?: string;
+  provider_type?: string;
+  enabled: boolean;
+  is_default: boolean;
+  model?: string;
+}
+
 export interface B2STask {
   id: string;
   project_id: string;
@@ -24,13 +33,50 @@ export interface B2STask {
   updated_at?: string;
 }
 
+export interface B2SProgress {
+  phase?: string;
+  raw_phase?: string;
+  phase_label?: string;
+  message?: string;
+  total_functions?: number;
+  completed_functions?: number;
+  total_bytes?: number;
+  completed_bytes?: number;
+  total_batches?: number;
+  completed_batches?: number;
+  current_batch?: number;
+  current_attempt?: number;
+  current_function?: string;
+  percent?: number;
+  bytes_percent?: number;
+  batches_percent?: number;
+}
+
+export interface B2SOverallProgress {
+  total_items: number;
+  completed_items: number;
+  total_functions?: number;
+  completed_functions?: number;
+  total_bytes?: number;
+  completed_bytes?: number;
+  total_batches?: number;
+  completed_batches?: number;
+  percent?: number;
+  phase_summary?: Record<string, number>;
+}
+
 export interface B2STaskDetail extends B2STask {
+  overall_progress?: B2SOverallProgress;
   items: Array<{
     id: string;
     sequence_no: number;
     elf_path: string;
     output_dir: string;
     status: string;
+    phase?: string;
+    phase_label?: string;
+    phase_message?: string;
+    progress?: B2SProgress;
     failure_type?: string;
     error_reason?: string;
     generated_files: string[];
@@ -55,7 +101,22 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  createTask: async (projectId: string, payload: { name: string; description?: string; priority?: number; tags?: string[]; elf_tasks: B2SElfTaskInput[] }) => {
+  listLlmProviders: async (projectId: string): Promise<{ items: B2SLlmProviderSummary[]; total: number; default_provider_key?: string | null }> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/llm-providers`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  prepareTask: async (projectId: string): Promise<{ task_id: string }> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/prepare`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  createTask: async (projectId: string, payload: { task_id?: string; name: string; description?: string; priority?: number; tags?: string[]; llm_provider_key?: string; elf_tasks: B2SElfTaskInput[] }) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks`, {
       method: 'POST',
       headers: getHeaders(),

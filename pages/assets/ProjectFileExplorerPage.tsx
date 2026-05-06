@@ -20,6 +20,8 @@ import {
   Search,
   X,
   Database,
+  Crosshair,
+  FolderUp,
 } from 'lucide-react';
 import {
   PvcBrowserChildrenResponse,
@@ -101,6 +103,43 @@ interface RootLoadResult {
   rootNode: UnifiedExplorerNode;
   fileserverRoot: UnifiedExplorerNode;
   pvcRoot: UnifiedExplorerNode;
+}
+
+interface UploadDirectoryFileEntry {
+  relativePath: string;
+  file: File;
+}
+
+interface UploadDirectoryTree {
+  directories: string[];
+  files: UploadDirectoryFileEntry[];
+}
+
+interface WebkitFileEntryLike {
+  isFile: boolean;
+  isDirectory: boolean;
+  name: string;
+  fullPath?: string;
+  file: (success: (file: File) => void, error?: (error: DOMException) => void) => void;
+}
+
+interface WebkitDirectoryEntryLike {
+  isFile: boolean;
+  isDirectory: boolean;
+  name: string;
+  fullPath?: string;
+  createReader: () => {
+    readEntries: (
+      success: (entries: Array<WebkitFileEntryLike | WebkitDirectoryEntryLike>) => void,
+      error?: (error: DOMException) => void
+    ) => void;
+  };
+}
+
+type WebkitEntryLike = WebkitFileEntryLike | WebkitDirectoryEntryLike;
+
+interface DataTransferItemWithWebkitEntry extends DataTransferItem {
+  webkitGetAsEntry?: () => WebkitEntryLike | null;
 }
 
 const TEXT_EXTENSIONS = new Set(['txt', 'json', 'yaml', 'yml', 'md', 'log', 'xml', 'csv', 'js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'sh', 'sql']);
@@ -279,6 +318,111 @@ const getFileserverDirectoryPath = (node: UnifiedExplorerNode | null | undefined
   if (node.nodeType === 'fileserver-root') return '/';
   if ((node.nodeType === 'subproject' || node.nodeType === 'directory') && node.path) return node.path;
   return null;
+};
+
+const normalizeUploadRelativePath = (value: string) =>
+  value
+    .split('/')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join('/');
+
+const uniqueSortedDirectories = (directories: Iterable<string>) =>
+  Array.from(new Set(Array.from(directories).map(normalizeUploadRelativePath).filter(Boolean))).sort((a, b) => {
+    const depthDiff = a.split('/').length - b.split('/').length;
+    return depthDiff || a.localeCompare(b, 'zh-CN');
+  });
+
+const isDirectoryUploadSupported = () =>
+  typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+
+const isDragDirectoryUploadSupported = (items: DataTransferItemList | null | undefined) =>
+  Boolean(items && Array.from(items).some((item) => typeof (item as DataTransferItemWithWebkitEntry).webkitGetAsEntry === 'function'));
+
+const hasDraggedDirectoryItems = (items: DataTransferItemList | null | undefined) =>
+  Boolean(
+    items &&
+      Array.from(items).some((item) => {
+        const entry = (item as DataTransferItemWithWebkitEntry).webkitGetAsEntry?.();
+        return Boolean(entry?.isDirectory);
+      })
+  );
+
+const readAllWebkitEntries = async (directory: WebkitDirectoryEntryLike): Promise<WebkitEntryLike[]> => {
+  const reader = directory.createReader();
+  const entries: WebkitEntryLike[] = [];
+
+  while (true) {
+    const batch = await new Promise<WebkitEntryLike[]>((resolve, reject) => {
+      reader.readEntries(resolve, reject);
+    });
+    if (!batch.length) break;
+    entries.push(...batch);
+  }
+
+  return entries;
+};
+
+const readWebkitFile = (entry: WebkitFileEntryLike): Promise<File> =>
+  new Promise((resolve, reject) => {
+    entry.file(resolve, reject);
+  });
+
+const collectTreeFromWebkitEntry = async (
+  entry: WebkitEntryLike,
+  parentPath = ''
+): Promise<UploadDirectoryTree> => {
+  const currentPath = normalizeUploadRelativePath(parentPath ? `${parentPath}/${entry.name}` : entry.name);
+
+  if (entry.isFile) {
+    const file = await readWebkitFile(entry);
+    return {
+      directories: [],
+      files: [{ relativePath: currentPath, file }],
+    };
+  }
+
+  const directories = [currentPath];
+  const files: UploadDirectoryFileEntry[] = [];
+  const childEntries = await readAllWebkitEntries(entry as WebkitDirectoryEntryLike);
+  for (const child of childEntries) {
+    const childTree = await collectTreeFromWebkitEntry(child, currentPath);
+    directories.push(...childTree.directories);
+    files.push(...childTree.files);
+  }
+
+  return {
+    directories: uniqueSortedDirectories(directories),
+    files,
+  };
+};
+
+const collectTreeFromDirectoryHandle = async (
+  directoryHandle: FileSystemDirectoryHandle,
+  parentPath = ''
+): Promise<UploadDirectoryTree> => {
+  const currentPath = normalizeUploadRelativePath(parentPath ? `${parentPath}/${directoryHandle.name}` : directoryHandle.name);
+  const directories = [currentPath];
+  const files: UploadDirectoryFileEntry[] = [];
+
+  for await (const [, handle] of directoryHandle.entries()) {
+    if (handle.kind === 'directory') {
+      const childTree = await collectTreeFromDirectoryHandle(handle, currentPath);
+      directories.push(...childTree.directories);
+      files.push(...childTree.files);
+      continue;
+    }
+    const file = await handle.getFile();
+    files.push({
+      relativePath: normalizeUploadRelativePath(`${currentPath}/${file.name}`),
+      file,
+    });
+  }
+
+  return {
+    directories: uniqueSortedDirectories(directories),
+    files,
+  };
 };
 
 export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: SecurityProject[] }> = ({ projectId, projects }) => {
@@ -742,6 +886,105 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     return null;
   };
 
+const ensureFileserverDirectoryUploadSupport = () => {
+  if (!isDirectoryUploadSupported()) {
+    throw new Error('当前浏览器不支持文件夹上传，仅支持 Chromium/WebKit 浏览器。');
+  }
+};
+
+const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
+  if (target.nodeType === 'pvc-directory') {
+    return normalizePvcPath(target.path || '/');
+  }
+  if (target.nodeType === 'pvc') {
+    return '/';
+  }
+  return null;
+};
+
+  const buildTargetPath = (basePath: string, relativePath: string) => buildFsChildPath(basePath, normalizeUploadRelativePath(relativePath));
+
+  const uploadDirectoryTree = async (tree: UploadDirectoryTree, target: UnifiedExplorerNode) => {
+    if (!isFileserverDirectoryLike(target)) {
+      throw new Error('文件夹上传仅支持项目 Fileserver 目录。');
+    }
+
+    const targetPath = getFileserverDirectoryPath(target);
+    if (!targetPath) {
+      throw new Error('无效的目标目录');
+    }
+
+    for (const directory of uniqueSortedDirectories(tree.directories)) {
+      try {
+        await assetApi.fileserver.createProjectFilesystemDirectory({
+          project_id: projectId,
+          path: buildTargetPath(targetPath, directory),
+        });
+      } catch (error: any) {
+        if (String(error?.message || '').includes('目录已存在')) {
+          continue;
+        }
+        throw new Error(`目录创建失败: ${directory}，${error?.message || '未知错误'}`);
+      }
+    }
+
+    for (const entry of tree.files) {
+      const normalizedFilePath = normalizeUploadRelativePath(entry.relativePath);
+      const parentPath = parentFsPath(`/${normalizedFilePath}`);
+      const uploadPath = buildTargetPath(targetPath, parentPath === '/' ? '' : parentPath.slice(1));
+      try {
+        await assetApi.fileserver.uploadProjectFilesystemFile({
+          project_id: projectId,
+          path: uploadPath,
+          file: entry.file,
+          overwrite: true,
+        });
+      } catch (error: any) {
+        throw new Error(`文件上传失败: ${normalizedFilePath}，${error?.message || '未知错误'}`);
+      }
+    }
+  };
+
+  const uploadPvcDirectoryTree = async (tree: UploadDirectoryTree, target: UnifiedExplorerNode) => {
+    if (!target.resourceId) {
+      throw new Error('无效的PVC资源');
+    }
+
+    const basePath = getPvcDirectoryPath(target);
+    if (!basePath) {
+      throw new Error('无效的PVC目标目录');
+    }
+
+    const result = await assetApi.resources.uploadPvcBrowserFolder({
+      resourceId: target.resourceId,
+      basePath,
+      files: [],
+      directories: tree.directories,
+      entries: tree.files.map((entry) => ({
+        relativePath: normalizeUploadRelativePath(entry.relativePath),
+        file: entry.file,
+      })),
+    });
+
+    if (result.failed_files > 0) {
+      const failure = result.failures[0];
+      if (failure?.operation === 'create_directory') {
+        throw new Error(`PVC目录创建失败: ${failure.path}，${failure.error || '未知错误'}`);
+      }
+      throw new Error(`PVC文件上传失败: ${failure?.path || '未知文件'}，${failure?.error || '未知错误'}`);
+    }
+  };
+
+  const refreshUploadTarget = async (target: UnifiedExplorerNode) => {
+    if (isFileserverDirectoryLike(target)) {
+      await initialize({ source: 'fileserver' });
+      return;
+    }
+    if (target.resourceId) {
+      await initialize({ source: 'pvc', resourceId: target.resourceId });
+    }
+  };
+
   const handleCreateSubproject = async () => {
     const name = (await askName('请输入子项目名称'))?.trim() || '';
     if (!name) return;
@@ -852,6 +1095,34 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     fileInputRef.current?.click();
   };
 
+  const triggerDirectoryUpload = async (targetNode: UnifiedExplorerNode | null) => {
+    const target = resolveUploadTarget(targetNode);
+    if (!target) {
+      alert('请先选择可上传的目录节点');
+      return;
+    }
+
+    setBusyAction('upload-directory');
+    try {
+      ensureFileserverDirectoryUploadSupport();
+      const directoryHandle = await window.showDirectoryPicker();
+      const tree = await collectTreeFromDirectoryHandle(directoryHandle);
+      if (isFileserverDirectoryLike(target)) {
+        await uploadDirectoryTree(tree, target);
+      } else {
+        await uploadPvcDirectoryTree(tree, target);
+      }
+      await refreshUploadTarget(target);
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        return;
+      }
+      alert(error?.message || '文件夹上传失败');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const uploadFiles = async (files: FileList | File[], target: UnifiedExplorerNode) => {
     const list = Array.from(files);
     if (list.length === 0) return;
@@ -882,6 +1153,44 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     } finally {
       setBusyAction('');
     }
+  };
+
+  const uploadDroppedDirectories = async (items: DataTransferItemList, target: UnifiedExplorerNode) => {
+    if (!isDragDirectoryUploadSupported(items)) {
+      throw new Error('当前浏览器不支持拖拽文件夹上传，仅支持 Chromium/WebKit 浏览器。');
+    }
+
+    const directories: string[] = [];
+    const files: UploadDirectoryFileEntry[] = [];
+    let sawDirectory = false;
+
+    for (const item of Array.from(items)) {
+      const entry = (item as DataTransferItemWithWebkitEntry).webkitGetAsEntry?.();
+      if (!entry) {
+        continue;
+      }
+      if (entry.isDirectory) {
+        sawDirectory = true;
+      }
+      const tree = await collectTreeFromWebkitEntry(entry);
+      directories.push(...tree.directories);
+      files.push(...tree.files);
+    }
+
+    if (!sawDirectory) {
+      throw new Error('未检测到可上传的文件夹。');
+    }
+
+    const tree = {
+      directories: uniqueSortedDirectories(directories),
+      files,
+    };
+
+    if (isFileserverDirectoryLike(target)) {
+      await uploadDirectoryTree(tree, target);
+      return;
+    }
+    await uploadPvcDirectoryTree(tree, target);
   };
 
   const handleDownload = async (node: UnifiedExplorerNode | PreviewFileState) => {
@@ -1129,6 +1438,18 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
       actions.push({ label: '新建子项目', icon: <HardDrive size={14} />, onClick: () => void handleCreateSubproject() });
       actions.push({ label: '上传文件', icon: <Upload size={14} />, onClick: () => triggerUpload(node) });
+      actions.push({
+        label: '用作分析路径',
+        icon: <Crosshair size={14} />,
+        onClick: () => {
+          const dirPath = getFileserverDirectoryPath(node);
+          if (dirPath !== null) {
+            const containerPath = `/data/fileserver/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+            sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
+            window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
+          }
+        },
+      });
     } else if (node.nodeType === 'pvc-root') {
       actions.push({ label: '刷新', icon: <RefreshCw size={14} />, onClick: () => void refreshCurrentView() });
     } else if (node.nodeType === 'subproject' || node.nodeType === 'directory' || node.nodeType === 'pvc' || node.nodeType === 'pvc-directory') {
@@ -1138,6 +1459,20 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       if (node.nodeType !== 'pvc') {
         actions.push({ label: '重命名', icon: <Pencil size={14} />, onClick: () => void handleRename(node) });
         actions.push({ label: '删除', icon: <Trash2 size={14} />, onClick: () => void handleDelete(node) });
+      }
+      if (node.nodeType === 'subproject' || node.nodeType === 'directory') {
+        actions.push({
+          label: '用作分析路径',
+          icon: <Crosshair size={14} />,
+          onClick: () => {
+            const dirPath = getFileserverDirectoryPath(node);
+            if (dirPath !== null) {
+              const containerPath = `/data/fileserver/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+              sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
+              window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
+            }
+          },
+        });
       }
     } else if (node.nodeType === 'file' || node.nodeType === 'pvc-file') {
       actions.push({ label: '打开预览', icon: <FileText size={14} />, onClick: () => void openNode(node) });
@@ -1191,6 +1526,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
               <div className="text-[11px] font-black uppercase tracking-[0.35em] text-sky-600">Project File Explorer</div>
               <h2 className="mt-2 text-3xl font-black text-slate-900">项目文件资源管理</h2>
               <p className="mt-1 text-sm text-slate-500">{projectName}</p>
+              <p className="mt-1 text-xs text-slate-400">文件夹上传仅支持 Chromium/WebKit 浏览器，支持递归子目录与空文件夹。</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
@@ -1218,6 +1554,9 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
               </button>
               <button type="button" onClick={() => triggerUpload(selectedNode || null)} className="rounded-2xl bg-slate-900 px-4 py-2 text-xs font-black text-white">
                 <span className="inline-flex items-center gap-2"><Upload size={14} /> 上传文件</span>
+              </button>
+              <button type="button" onClick={() => void triggerDirectoryUpload(selectedNode || null)} className="rounded-2xl bg-sky-600 px-4 py-2 text-xs font-black text-white">
+                <span className="inline-flex items-center gap-2"><FolderUp size={14} /> 上传文件夹</span>
               </button>
             </div>
           </div>
@@ -1273,7 +1612,21 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
             }}
             onDrop={async (event) => {
               const target = resolveUploadTarget(selectedNode || null);
-              if (target && event.dataTransfer.files.length > 0) {
+              if (!target) return;
+              if (hasDraggedDirectoryItems(event.dataTransfer.items)) {
+                event.preventDefault();
+                setBusyAction('upload-directory');
+                try {
+                  await uploadDroppedDirectories(event.dataTransfer.items, target);
+                  await refreshUploadTarget(target);
+                } catch (error: any) {
+                  alert(error?.message || '文件夹上传失败');
+                } finally {
+                  setBusyAction('');
+                }
+                return;
+              }
+              if (event.dataTransfer.files.length > 0) {
                 event.preventDefault();
                 await uploadFiles(event.dataTransfer.files, target);
               }
@@ -1342,6 +1695,18 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
                           setDragHoverNodeId(null);
                           if (nodeId) {
                             await handleNodeDrop(nodeId, item);
+                            return;
+                          }
+                          if ((isFileserverDirectoryLike(item) || item.nodeType === 'pvc' || item.nodeType === 'pvc-directory') && hasDraggedDirectoryItems(event.dataTransfer.items)) {
+                            setBusyAction('upload-directory');
+                            try {
+                              await uploadDroppedDirectories(event.dataTransfer.items, item);
+                              await refreshUploadTarget(item);
+                            } catch (error: any) {
+                              alert(error?.message || '文件夹上传失败');
+                            } finally {
+                              setBusyAction('');
+                            }
                             return;
                           }
                           if (event.dataTransfer.files.length > 0) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileSearch, Lock, Settings, ShieldAlert, ShieldCheck, Workflow, Zap } from 'lucide-react';
+import { FileSearch, Lock, Settings, Zap } from 'lucide-react';
 import { api } from '../clients/api';
 import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { DashboardPage } from '../pages/DashboardPage';
@@ -25,10 +25,15 @@ import { EnvAiBatchSessionPage } from '../pages/environment/EnvAiBatchSessionPag
 import { EnvProcessMonitorOverviewPage } from '../pages/environment/EnvProcessMonitorOverviewPage';
 import { EnvProcessMonitorDetailPage } from '../pages/environment/EnvProcessMonitorDetailPage';
 import { EnvProcessMonitorTasksPage } from '../pages/environment/EnvProcessMonitorTasksPage';
-import { SystemAnalysisOverviewPage } from '../pages/execution/SystemAnalysisOverviewPage';
 import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPage';
-import { SystemAnalysisHistoryPage } from '../pages/execution/SystemAnalysisHistoryPage';
-import { SystemAnalysisPromptPage } from '../pages/execution/SystemAnalysisPromptPage';
+import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
+import { SystemAnalysisModelsPage } from '../pages/execution/SystemAnalysisModelsPage';
+import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
+import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
+import { DataflowAnalysisModelsPage } from '../pages/execution/DataflowAnalysisModelsPage';
+import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
+import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
+import { EntryAnalysisModelsPage } from '../pages/execution/EntryAnalysisModelsPage';
 import { WorkflowInstancePage } from '../pages/orchestration/WorkflowInstancePage';
 import { WorkflowInstanceDetailPage } from '../pages/orchestration/WorkflowInstanceDetailPage';
 import { WorkflowInstanceLogsPage } from '../pages/orchestration/WorkflowInstanceLogsPage';
@@ -40,7 +45,8 @@ import { AppInstancePage } from '../pages/orchestration/AppInstancePage';
 import { AppInstanceDetailPage } from '../pages/orchestration/AppInstanceDetailPage';
 import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPage';
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
-import { SecMateNGPage } from '../pages/execution/SecMateNGPage';
+import { FirmwareUnpackConfigPage } from '../pages/execution/FirmwareUnpackConfigPage';
+import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { DataflowVulnConfigPage, DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
@@ -54,9 +60,13 @@ import { VulnDecisionDetailPage } from '../pages/vuln/VulnDecisionDetailPage';
 import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
-import { B2STaskListPage } from '../pages/execution/B2STaskListPage';
-import { B2STaskQueuePage } from '../pages/execution/B2STaskQueuePage';
-import { B2STaskResultPage } from '../pages/execution/B2STaskResultPage';
+import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
+import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
+import { AiwfDefinitionsPage } from '../pages/orchestration/AiwfDefinitionsPage';
+import { AiwfDefinitionExamplePage } from '../pages/orchestration/AiwfDefinitionExamplePage';
+import { AiwfTriggersPage } from '../pages/orchestration/AiwfTriggersPage';
+import { AiwfExecutionsPage } from '../pages/orchestration/AiwfExecutionsPage';
+import { AiwfSchedulerPage } from '../pages/orchestration/AiwfSchedulerPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
 import { PermMgmtPage } from '../pages/platform/PermMgmtPage';
@@ -90,6 +100,9 @@ export interface ViewRegistryContext {
   activeAppWorkflowId: string;
   activeAiHelperKey: string;
   activeProcessMonitorServiceKey: string;
+  activeB2STaskId: string;
+  activeAiwfDefinitionId: string;
+  activeAiwfExecutionId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setActiveProjectId: (id: string) => void;
@@ -98,6 +111,8 @@ export interface ViewRegistryContext {
   setActiveAppTemplateId: (id: string) => void;
   setActiveJobTemplateId: (id: string) => void;
   setActiveAppWorkflowId: (id: string) => void;
+  setActiveB2STaskId: (id: string) => void;
+  setActiveAiwfDefinitionId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -199,15 +214,18 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <EnvTemplatePage projectId={ctx.selectedProjectId} />;
     case 'env-tasks':
       return <EnvTasksPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-root':
-    case 'system-analysis-overview':
-      return <SystemAnalysisOverviewPage projectId={ctx.selectedProjectId} />;
     case 'system-analysis-task':
       return <SystemAnalysisTaskPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-history':
-      return <SystemAnalysisHistoryPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-prompt':
-      return <SystemAnalysisPromptPage projectId={ctx.selectedProjectId} />;
+    case 'system-analysis-config':
+      return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'system-analysis-models':
+      return <SystemAnalysisModelsPage />;
+    case 'dataflow-analysis-task':
+      return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+    case 'dataflow-analysis-config':
+      return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'dataflow-analysis-models':
+      return <DataflowAnalysisModelsPage />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
@@ -272,30 +290,90 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           }}
         />
       );
-    case 'engine-validation':
-      return <WorkflowPlaceholder title="安全验证" icon={<ShieldCheck />} />;
-    case 'pentest-risk':
-      return <WorkflowPlaceholder title="风险评估" icon={<ShieldAlert />} />;
+    case 'ai-agent-framework-root':
+    case 'aiwf-definitions':
+    case 'aiwf-definition-list':
+    case 'aiwf-definition-create':
+    case 'aiwf-definition-versions':
+      return (
+        <AiwfDefinitionsPage
+          projectId={ctx.selectedProjectId}
+          selectedDefinitionId={ctx.activeAiwfDefinitionId}
+          onDefinitionSelected={ctx.setActiveAiwfDefinitionId}
+          onOpenExamplePage={() => ctx.setCurrentView('aiwf-definition-example')}
+          onNavigateToTriggers={(definitionId) => {
+            ctx.setActiveAiwfDefinitionId(definitionId);
+            ctx.setCurrentView('aiwf-trigger-create');
+          }}
+        />
+      );
+    case 'aiwf-definition-example':
+      return <AiwfDefinitionExamplePage onBack={() => ctx.setCurrentView('aiwf-definitions')} />;
+    case 'aiwf-triggers':
+    case 'aiwf-trigger-create':
+    case 'aiwf-trigger-list':
+      return (
+        <AiwfTriggersPage
+          projectId={ctx.selectedProjectId}
+          selectedDefinitionId={ctx.activeAiwfDefinitionId}
+          onNavigateToExecutionCenter={() => ctx.setCurrentView('aiwf-execution-list')}
+        />
+      );
+    case 'aiwf-executions':
+    case 'aiwf-execution-list':
+      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="list" selectedExecutionId={ctx.activeAiwfExecutionId} />;
+    case 'aiwf-execution-events':
+      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="events" selectedExecutionId={ctx.activeAiwfExecutionId} />;
+    case 'aiwf-execution-artifacts':
+      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="artifacts" selectedExecutionId={ctx.activeAiwfExecutionId} />;
+    case 'aiwf-scheduler':
+    case 'aiwf-worker-list':
+      return <AiwfSchedulerPage initialTab="workers" />;
+    case 'aiwf-worker-control':
+      return <AiwfSchedulerPage initialTab="control" />;
     case 'pentest-system':
       return <WorkflowPlaceholder title="系统分析" icon={<FileSearch />} />;
     case 'pentest-threat':
-      return <WorkflowPlaceholder title="威胁分析" icon={<Zap />} />;
-    case 'pentest-orch':
-      return <WorkflowPlaceholder title="测试编排" icon={<Workflow />} />;
+    case 'entry-analysis-root':
+    case 'entry-analysis-task':
+      return <EntryAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+    case 'entry-analysis-config':
+      return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'entry-analysis-models':
+      return <EntryAnalysisModelsPage />;
     case 'pentest-exec-code':
       return <ExecutionCodeAuditPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-work':
       return <ExecutionWorkPlatformPage projectId={ctx.selectedProjectId} />;
-    case 'pentest-exec-secmate':
-      return <SecMateNGPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-exec-firmware-unpacker':
+    case 'pentest-exec-firmware-task-list':
+      return <FirmwareUnpackerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+    case 'pentest-exec-firmware-config':
+      return <FirmwareUnpackConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-exec-b2s':
     case 'pentest-exec-b2s-root':
     case 'pentest-exec-b2s-task-list':
     case 'pentest-exec-b2s-create':
-      return <B2STaskListPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s-queue':
-      return <B2STaskQueuePage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s-result':
-      return <B2STaskResultPage projectId={ctx.selectedProjectId} />;
+      return (
+        <B2SOverviewPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveB2STaskId(taskId);
+            ctx.setCurrentView('pentest-exec-b2s-detail');
+          }}
+        />
+      );
+    case 'pentest-exec-b2s-detail':
+      return (
+        <B2STaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeB2STaskId}
+          onBack={() => ctx.setCurrentView('pentest-exec-b2s')}
+        />
+      );
+    case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln-task-detail':

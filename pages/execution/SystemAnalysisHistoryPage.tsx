@@ -5,6 +5,15 @@ import { api } from '../../clients/api';
 import { SystemAnalysisTaskDetail, SystemAnalysisTaskItem, SystemAnalysisTaskNodeItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
+function formatDuration(createdAt: string | null | undefined, finishedAt: string | null | undefined): string {
+  if (!createdAt || !finishedAt) return '-';
+  const secs = Math.round((new Date(finishedAt).getTime() - new Date(createdAt).getTime()) / 1000);
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}m${s}s`;
+}
+
 export const SystemAnalysisHistoryPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -86,7 +95,7 @@ export const SystemAnalysisHistoryPage: React.FC<{ projectId: string }> = ({ pro
                 >
                   <div className="text-sm font-bold text-slate-900 truncate">{task.task_name}</div>
                   <div className="mt-1 text-xs text-slate-500">{task.task_id}</div>
-                  <div className="mt-2 text-xs text-slate-600">{task.status} · risk {task.risk_level} · {task.success_nodes}/{task.total_nodes}</div>
+                  <div className="mt-2 text-xs text-slate-600">{task.status} · risk {task.risk_level} · {task.success_nodes}/{task.total_nodes} · 执行时间: {formatDuration(task.created_at, task.finished_at)}</div>
                 </button>
               ))}
               {tasks.length === 0 ? <div className="text-sm text-slate-500">暂无任务记录</div> : null}

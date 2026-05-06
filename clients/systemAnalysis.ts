@@ -3,6 +3,7 @@ import {
   SystemAnalysisCapabilitiesResponse,
   SystemAnalysisPromptTemplate,
   SystemAnalysisReport,
+  SystemAnalysisServiceConfig,
   SystemAnalysisTaskDetail,
   SystemAnalysisTaskItem,
   SystemAnalysisTaskNodesResponse,
@@ -134,6 +135,16 @@ export const systemAnalysisApi = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ agent_key: agentKey }),
+    })),
+
+  getConfig: async (projectId: string): Promise<SystemAnalysisServiceConfig> =>
+    handleResponse(await fetch(`${API_BASE}/api/system-analysis/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
+  saveConfig: async (config: SystemAnalysisServiceConfig): Promise<SystemAnalysisServiceConfig> =>
+    handleResponse(await fetch(`${API_BASE}/api/system-analysis/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(config),
     })),
 };
 

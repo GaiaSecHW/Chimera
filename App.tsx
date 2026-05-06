@@ -41,6 +41,7 @@ const AppShell: React.FC = () => {
   const [activeAppWorkflowId, setActiveAppWorkflowId] = useState<string>('');
   const [activeAiHelperKey, setActiveAiHelperKey] = useState<string>('');
   const [activeProcessMonitorServiceKey, setActiveProcessMonitorServiceKey] = useState<string>('');
+  const [activeB2STaskId, setActiveB2STaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +73,9 @@ const AppShell: React.FC = () => {
   const [workflowServiceHealthy, setWorkflowServiceHealthy] = useState<boolean | null>(null);
   const [vulnServiceHealthy, setVulnServiceHealthy] = useState<boolean | null>(null);
   const [configCenterServiceHealthy, setConfigCenterServiceHealthy] = useState<boolean | null>(null);
+  const [aiAgentFrameworkHealthy, setAiAgentFrameworkHealthy] = useState<boolean | null>(null);
+  const [activeAiwfDefinitionId, setActiveAiwfDefinitionId] = useState<string>('');
+  const [activeAiwfExecutionId, setActiveAiwfExecutionId] = useState<string>('');
 
   const navigateToView = useCallback((nextView: ViewType | string) => {
     const normalizedView = String(nextView || DEFAULT_VIEW);
@@ -171,6 +175,7 @@ const AppShell: React.FC = () => {
       setWorkflowServiceHealthy(resolveMenuServiceHealth(services, ['secflow-workflow', 'secflow-platform-workflow', 'secflow-workflow-status']));
       setVulnServiceHealthy(resolveMenuServiceHealth(services, ['secflow-platform-vuln']));
       setConfigCenterServiceHealthy(resolveMenuServiceHealth(services, ['secflow-platform-configcenter']));
+      setAiAgentFrameworkHealthy(resolveMenuServiceHealth(services, ['secflow-platform-ai-agent-framework', 'secflow-ai-agent-framework']));
     } catch (e) {
       setResourceServiceHealthy(false);
       setStaticPackageHealthy(false);
@@ -180,6 +185,7 @@ const AppShell: React.FC = () => {
       setWorkflowServiceHealthy(false);
       setVulnServiceHealthy(false);
       setConfigCenterServiceHealthy(false);
+      setAiAgentFrameworkHealthy(false);
     }
   };
 
@@ -418,6 +424,7 @@ const AppShell: React.FC = () => {
             workflowHealth={workflowServiceHealthy}
             vulnHealth={vulnServiceHealthy}
             configCenterHealth={configCenterServiceHealthy}
+            aiAgentFrameworkHealth={aiAgentFrameworkHealthy}
           />
 
           <main className="flex-1 flex flex-col min-w-0">
@@ -502,6 +509,9 @@ const AppShell: React.FC = () => {
                     activeAppWorkflowId,
                     activeAiHelperKey,
                     activeProcessMonitorServiceKey,
+                    activeB2STaskId,
+                    activeAiwfDefinitionId,
+                    activeAiwfExecutionId,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
                     setActiveProjectId: (id) => setActiveProjectId(id),
@@ -510,6 +520,8 @@ const AppShell: React.FC = () => {
                     setActiveAppTemplateId: (id) => setActiveAppTemplateId(id),
                     setActiveJobTemplateId: (id) => setActiveJobTemplateId(id),
                     setActiveAppWorkflowId: (id) => setActiveAppWorkflowId(id),
+                    setActiveB2STaskId: (id) => setActiveB2STaskId(id),
+                    setActiveAiwfDefinitionId: (id) => setActiveAiwfDefinitionId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,
                     fetchAdminStats,
@@ -551,7 +563,6 @@ const App: React.FC = () => (
     <Routes>
       <Route path="/" element={<AppShell />} />
       <Route path="/:view" element={<AppShell />} />
-      <Route path="/:view/:taskId" element={<AppShell />} />
     </Routes>
   </HashRouter>
 );

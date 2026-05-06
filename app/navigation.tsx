@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Activity,
+  Archive,
   Bot,
   Box,
   Briefcase,
@@ -57,14 +58,21 @@ export interface TopLevelNavItem {
   label: string;
 }
 
+export interface SubNavItem {
+  id: string;
+  label: string;
+  aliases?: string[];
+  requiresProject?: boolean;
+}
+
 export interface NavItem {
   id: string;
   label: string;
   icon: LucideIcon;
   aliases?: string[];
-  children?: NavItem[];
   requiresProject?: boolean;
   healthKey?: HealthStatusKey;
+  subItems?: SubNavItem[];
 }
 
 export interface NavSection {
@@ -81,6 +89,7 @@ export interface SidebarHealthStatus {
   workflowHealth?: boolean | null;
   vulnHealth?: boolean | null;
   configCenterHealth?: boolean | null;
+  aiAgentFrameworkHealth?: boolean | null;
 }
 
 export type HealthStatusKey = keyof SidebarHealthStatus;
@@ -123,27 +132,47 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'workflow-instances',
   'workflow-instance-detail',
   'workflow-instance-logs',
-  'system-analysis-overview',
+  'ai-agent-framework-root',
+  'aiwf-definitions',
+  'aiwf-triggers',
+  'aiwf-trigger-create',
+  'aiwf-trigger-list',
+  'aiwf-executions',
+  'aiwf-execution-list',
+  'aiwf-execution-events',
+  'aiwf-execution-artifacts',
+  'aiwf-scheduler',
+  'aiwf-worker-list',
+  'aiwf-worker-control',
   'system-analysis-task',
-  'system-analysis-history',
-  'system-analysis-prompt',
-  'engine-validation',
+  'system-analysis-config',
+  'system-analysis-models',
+  'dataflow-analysis-task',
+  'dataflow-analysis-config',
+  'dataflow-analysis-models',
+  'entry-analysis-root',
+  'entry-analysis-task',
+  'entry-analysis-config',
+  'entry-analysis-models',
   'security-assessment',
-  'pentest-risk',
   'pentest-system',
   'pentest-threat',
-  'pentest-orch',
   'pentest-exec-code',
   'pentest-exec-work',
-  'pentest-exec-secmate',
-  'pentest-exec-dataflow-vuln-task-list',
-  'pentest-exec-dataflow-vuln-task-detail',
-  'pentest-exec-dataflow-vuln-system-config',
+  'pentest-exec-firmware-unpacker',
+  'pentest-exec-firmware-task-list',
+  'pentest-exec-firmware-config',
+  'pentest-exec-b2s',
   'pentest-exec-b2s-root',
   'pentest-exec-b2s-task-list',
   'pentest-exec-b2s-create',
   'pentest-exec-b2s-queue',
   'pentest-exec-b2s-result',
+  'pentest-exec-b2s-detail',
+  'pentest-exec-dataflow-vuln',
+  'pentest-exec-dataflow-vuln-task-list',
+  'pentest-exec-dataflow-vuln-task-detail',
+  'pentest-exec-dataflow-vuln-system-config',
   'pentest-report',
   'vuln-engine',
   'vuln-overview',
@@ -188,15 +217,16 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     return 'environment';
   }
 
-  if (view.startsWith('workflow-')) {
+  if (view.startsWith('workflow-') || view.startsWith('aiwf-') || view === 'ai-agent-framework-root') {
     return 'orchestration';
   }
 
   if (
-    view === 'engine-validation' ||
     view === 'security-assessment' ||
     view.startsWith('pentest-') ||
-    view.startsWith('system-analysis-')
+    view.startsWith('entry-analysis-') ||
+    view.startsWith('system-analysis-') ||
+    view.startsWith('dataflow-analysis-')
   ) {
     return 'execution';
   }
@@ -223,7 +253,7 @@ export const getTopLevelDefaultView = (nav: TopLevelNavKey, user: UserInfo | nul
     case 'orchestration':
       return 'workflow-apps';
     case 'execution':
-      return 'system-analysis-overview';
+      return 'pentest-exec-code';
     case 'vuln':
       return 'vuln-overview';
     case 'platform':
@@ -303,53 +333,57 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'workflow-instances', label: '工作流实例', icon: Workflow, aliases: ['workflow-instance-detail', 'workflow-instance-logs'], requiresProject: true },
       ],
     },
-  ],
-  execution: [
     {
-      title: '系统分析',
+      title: 'AI 工作流',
       items: [
-        { id: 'system-analysis-overview', label: '概览', icon: Activity, aliases: ['system-analysis-root'], requiresProject: true },
-        { id: 'system-analysis-task', label: '任务', icon: Play, requiresProject: true },
-        { id: 'system-analysis-history', label: '历史', icon: FileText, requiresProject: true },
-        { id: 'system-analysis-prompt', label: 'Prompt', icon: Settings, requiresProject: true },
+        { id: 'aiwf-definitions', label: '工作流定义', icon: Bot, aliases: ['ai-agent-framework-root', 'aiwf-definition-list', 'aiwf-definition-create', 'aiwf-definition-versions', 'aiwf-definition-example'], requiresProject: true, healthKey: 'aiAgentFrameworkHealth' },
+        { id: 'aiwf-trigger-create', label: '触发任务', icon: Play, aliases: ['aiwf-triggers'], requiresProject: true },
+        { id: 'aiwf-trigger-list', label: '任务列表', icon: ListTodo, requiresProject: true },
+        { id: 'aiwf-execution-list', label: '执行列表', icon: Activity, aliases: ['aiwf-executions'], requiresProject: true },
+        { id: 'aiwf-execution-events', label: '执行事件', icon: FileText, requiresProject: true },
+        { id: 'aiwf-execution-artifacts', label: '执行工件', icon: Archive, requiresProject: true },
+        { id: 'aiwf-worker-list', label: 'Worker 状态', icon: ServerCog, aliases: ['aiwf-scheduler'], requiresProject: true },
+        { id: 'aiwf-worker-control', label: '运行控制', icon: Settings, requiresProject: true },
       ],
     },
+  ],
+  execution: [
     {
       title: '安全执行',
       items: [
         { id: 'pentest-exec-code', label: '在线代码审计', icon: Code2, requiresProject: true, healthKey: 'codeAuditHealth' },
         { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
-        { id: 'pentest-exec-secmate', label: 'SecMate-NG', icon: Sparkles, requiresProject: true },
-        { id: 'pentest-exec-b2s-task-list', label: 'B2S 任务列表', icon: ListTodo, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-create'], requiresProject: true },
-        { id: 'pentest-exec-b2s-queue', label: 'B2S 执行队列', icon: Workflow, requiresProject: true },
-        { id: 'pentest-exec-b2s-result', label: 'B2S 结果查询', icon: FileSearch, requiresProject: true },
+        { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, requiresProject: true, subItems: [
+          { id: 'pentest-exec-firmware-task-list', label: '任务列表', aliases: ['pentest-exec-firmware-unpacker'], requiresProject: true },
+          { id: 'pentest-exec-firmware-config', label: '解包配置', requiresProject: true },
+        ] },
+        { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail'], requiresProject: true },
         { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
         { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
+        { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true, subItems: [
+          { id: 'system-analysis-task', label: '任务队列', requiresProject: true },
+          { id: 'system-analysis-config', label: '分析配置', requiresProject: true },
+          { id: 'system-analysis-models', label: '模型配置', requiresProject: true },
+        ] },
+        { id: 'pentest-threat', label: '入口分析', icon: Zap, requiresProject: true, subItems: [
+          { id: 'entry-analysis-task', label: '任务队列', requiresProject: true },
+          { id: 'entry-analysis-config', label: '分析配置', requiresProject: true },
+          { id: 'entry-analysis-models', label: '模型配置', requiresProject: true },
+        ] },
+        { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, requiresProject: true, subItems: [
+          { id: 'dataflow-analysis-task', label: '任务队列', requiresProject: true },
+          { id: 'dataflow-analysis-config', label: '分析配置', requiresProject: true },
+          { id: 'dataflow-analysis-models', label: '模型配置', requiresProject: true },
+        ] },
       ],
     },
     {
       title: '二进制安全测试',
       items: [
-        {
-          id: 'pentest-exec-dataflow-vuln',
-          label: '数据流漏洞挖掘',
-          icon: Shield,
-          requiresProject: true,
-          children: [
-            { id: 'pentest-exec-dataflow-vuln-task-list', label: '漏洞挖掘任务列表', icon: ListTodo, aliases: ['pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
-            { id: 'pentest-exec-dataflow-vuln-system-config', label: '漏洞挖掘系统配置', icon: Settings, requiresProject: true },
-          ],
-        },
-      ],
-    },
-    {
-      title: '保留入口',
-      items: [
-        { id: 'engine-validation', label: '安全验证', icon: ShieldCheck, requiresProject: true },
-        { id: 'pentest-risk', label: '风险评估', icon: ShieldAlert, requiresProject: true },
-        { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true },
-        { id: 'pentest-threat', label: '威胁分析', icon: Zap, requiresProject: true },
-        { id: 'pentest-orch', label: '测试编排', icon: Workflow, requiresProject: true },
+        { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, requiresProject: true, subItems: [
+          { id: 'pentest-exec-dataflow-vuln-task-list', label: '任务列表', aliases: ['pentest-exec-dataflow-vuln', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
+          { id: 'pentest-exec-dataflow-vuln-system-config', label: '系统配置', requiresProject: true },
+        ] },
       ],
     },
   ],

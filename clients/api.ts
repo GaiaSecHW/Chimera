@@ -34,7 +34,7 @@ export const api = {
   workflow: orchestrationClients.workflow,
   systemAnalysis: executionClients.systemAnalysis,
   codeServer: executionClients.codeServer,
-  secmateNG: executionClients.secmateNG,
+  firmwareUnpacker: executionClients.firmwareUnpacker,
   binaryToSource: executionClients.binaryToSource,
   dataflowVulnScanner: executionClients.dataflowVulnScanner,
   vuln: vulnClients.vuln,

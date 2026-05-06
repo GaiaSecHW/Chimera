@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { NavItem, SIDEBAR_SECTIONS, SidebarHealthStatus } from '../app/navigation';
+import { SIDEBAR_SECTIONS, SidebarHealthStatus } from '../app/navigation';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
 
@@ -20,6 +20,7 @@ interface SidebarProps {
   workflowHealth?: SidebarHealthStatus['workflowHealth'];
   vulnHealth?: SidebarHealthStatus['vulnHealth'];
   configCenterHealth?: SidebarHealthStatus['configCenterHealth'];
+  aiAgentFrameworkHealth?: SidebarHealthStatus['aiAgentFrameworkHealth'];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -38,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   workflowHealth = null,
   vulnHealth = null,
   configCenterHealth = null,
+  aiAgentFrameworkHealth = null,
 }) => {
   const projectGuard = !hasSelectedProject;
   const projectGuardTitle = '请先选择项目';
@@ -51,115 +53,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
     workflowHealth,
     vulnHealth,
     configCenterHealth,
+    aiAgentFrameworkHealth,
   };
 
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const sections = (SIDEBAR_SECTIONS[activeTopLevelNav as keyof typeof SIDEBAR_SECTIONS] || []).map((section) => ({
+    ...section,
+    items: section.items.filter((item) => canAccessView(user, item.id)),
+  })).filter((section) => section.items.length > 0);
 
-  const matchesSelf = (item: NavItem) => [item.id, ...(item.aliases || [])].includes(String(currentView));
-
-  const matchesItem = (item: NavItem): boolean => {
-    if (matchesSelf(item)) return true;
-    return (item.children || []).some(matchesItem);
-  };
-
-  const filterNavItem = (item: NavItem): NavItem | null => {
-    const children = item.children?.map(filterNavItem).filter(Boolean) as NavItem[] | undefined;
-    if (item.children) {
-      return children && children.length > 0 ? { ...item, children } : null;
-    }
-    return canAccessView(user, item.id) ? item : null;
-  };
-
-  const sections = useMemo(() => (
-    (SIDEBAR_SECTIONS[activeTopLevelNav as keyof typeof SIDEBAR_SECTIONS] || [])
-      .map((section) => ({
-        ...section,
-        items: section.items.map(filterNavItem).filter(Boolean) as NavItem[],
-      }))
-      .filter((section) => section.items.length > 0)
-  ), [activeTopLevelNav, user]);
-
-  useEffect(() => {
-    setExpandedGroups((prev) => {
-      const next = { ...prev };
-      let changed = false;
-
-      const ensureActiveBranchExpanded = (item: NavItem): boolean => {
-        const hasActiveDescendant = (item.children || []).some(ensureActiveBranchExpanded);
-        const isActive = matchesSelf(item) || hasActiveDescendant;
-        if (item.children?.length && isActive && !next[item.id]) {
-          next[item.id] = true;
-          changed = true;
-        }
-        return isActive;
-      };
-
-      sections.forEach((section) => section.items.forEach(ensureActiveBranchExpanded));
-      return changed ? next : prev;
-    });
-  }, [currentView, sections]);
-
-  const renderNavItem = (item: NavItem, depth = 0): React.ReactNode => {
-    const disabled = !!item.requiresProject && projectGuard;
-    const healthStatus = item.healthKey ? healthStatusMap[item.healthKey] : null;
-    const healthColor = healthStatus === true ? 'text-green-400' : healthStatus === false ? 'text-rose-400' : '';
-    const hasChildren = !!item.children?.length;
-    const isCurrent = matchesSelf(item);
-    const hasActiveChild = hasChildren && (item.children || []).some(matchesItem);
-    const isExpanded = hasChildren ? (expandedGroups[item.id] ?? hasActiveChild) : false;
-    const Icon = item.icon;
-    const indentation = depth === 0 ? 'px-3' : 'pl-11 pr-3';
-    const toneClass = disabled
-      ? 'bg-slate-900/50 text-slate-600 cursor-not-allowed opacity-60'
-      : isCurrent
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-        : hasChildren && (hasActiveChild || isExpanded)
-          ? 'bg-slate-800 text-white'
-          : depth > 0
-            ? 'text-slate-400 hover:bg-slate-800/70 hover:text-white'
-            : 'text-slate-300 hover:bg-slate-800 hover:text-white';
-
-    const handleClick = () => {
-      if (disabled) return;
-      if (hasChildren) {
-        if (isSidebarCollapsed) {
-          setIsSidebarCollapsed(false);
-          setExpandedGroups((prev) => ({ ...prev, [item.id]: true }));
-          return;
-        }
-        setExpandedGroups((prev) => ({ ...prev, [item.id]: !isExpanded }));
-        return;
+  // Compute which items with subItems should be auto-expanded based on current view
+  const autoExpanded = new Set<string>();
+  sections.forEach((section) => {
+    section.items.forEach((item) => {
+      if (item.subItems?.some((sub) => [sub.id, ...(sub.aliases || [])].includes(String(currentView)))) {
+        autoExpanded.add(item.id);
       }
-      setCurrentView(item.id);
-    };
+    });
+  });
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(autoExpanded);
 
-    return (
-      <div key={item.id} className="space-y-1">
-        <button
-          onClick={handleClick}
-          title={disabled ? projectGuardTitle : undefined}
-          className={`w-full flex items-center gap-3 ${indentation} py-2.5 rounded-2xl text-left transition-all ${toneClass}`}
-        >
-          <span className={`shrink-0 ${!isCurrent ? healthColor : ''}`}><Icon size={16} /></span>
-          {!isSidebarCollapsed && (
-            <>
-              <span className={`text-sm font-bold truncate ${isCurrent ? 'text-white' : ''}`}>{item.label}</span>
-              {hasChildren ? (
-                <span className="ml-auto shrink-0 text-slate-400">
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </span>
-              ) : null}
-            </>
-          )}
-        </button>
-
-        {!isSidebarCollapsed && hasChildren && isExpanded ? (
-          <div className="space-y-1">
-            {(item.children || []).map((child) => renderNavItem(child, depth + 1))}
-          </div>
-        ) : null}
-      </div>
-    );
+  const toggleExpand = (id: string) => {
+    setExpandedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   return (
@@ -173,7 +92,82 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {section.title}
                 </div>
               )}
-              <div className="space-y-1">{section.items.map((item) => renderNavItem(item))}</div>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const disabled = !!item.requiresProject && projectGuard;
+                  const healthStatus = item.healthKey ? healthStatusMap[item.healthKey] : null;
+                  const healthColor = healthStatus === true ? 'text-green-400' : healthStatus === false ? 'text-rose-400' : '';
+                  const isActive = [item.id, ...(item.aliases || [])].includes(String(currentView));
+                  const hasSubItems = !!(item.subItems && item.subItems.length > 0);
+                  const isExpanded = expandedItems.has(item.id);
+                  const hasActiveSubItem = hasSubItems && item.subItems!.some((sub) =>
+                    [sub.id, ...(sub.aliases || [])].includes(String(currentView))
+                  );
+                  const Icon = item.icon;
+
+                  return (
+                    <div key={item.id}>
+                      <button
+                        onClick={() => {
+                          if (disabled) return;
+                          if (hasSubItems) toggleExpand(item.id);
+                          else setCurrentView(item.id);
+                        }}
+                        title={disabled ? projectGuardTitle : undefined}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-left transition-all ${
+                          disabled
+                            ? 'bg-slate-900/50 text-slate-600 cursor-not-allowed opacity-60'
+                            : hasActiveSubItem
+                              ? 'bg-slate-800 text-white'
+                              : isActive
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <span className={`shrink-0 ${!isActive && !hasActiveSubItem ? healthColor : ''}`}><Icon size={16} /></span>
+                        {!isSidebarCollapsed && (
+                          <>
+                            <span className={`flex-1 text-sm font-bold truncate ${isActive || hasActiveSubItem ? 'text-white' : ''}`}>{item.label}</span>
+                            {hasSubItems && (
+                              <span className="shrink-0 text-slate-500">
+                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </button>
+
+                      {/* Sub-items */}
+                      {hasSubItems && isExpanded && !isSidebarCollapsed && (
+                        <div className="mt-1 ml-4 space-y-0.5 border-l border-slate-700 pl-3">
+                          {item.subItems!
+                            .filter((sub) => canAccessView(user, sub.id))
+                            .map((sub) => {
+                              const subDisabled = !!sub.requiresProject && projectGuard;
+                              const subActive = [sub.id, ...(sub.aliases || [])].includes(String(currentView));
+                              return (
+                                <button
+                                  key={sub.id}
+                                  onClick={() => !subDisabled && setCurrentView(sub.id)}
+                                  title={subDisabled ? projectGuardTitle : undefined}
+                                  className={`w-full flex items-center px-3 py-2 rounded-xl text-left text-sm transition-all ${
+                                    subDisabled
+                                      ? 'text-slate-600 cursor-not-allowed opacity-60'
+                                      : subActive
+                                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 font-semibold'
+                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white font-medium'
+                                  }`}
+                                >
+                                  {sub.label}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </div>

@@ -158,7 +158,6 @@ Move into `pages/execution/`:
   - `ExecutionCodeAuditPage.tsx`
   - `ExecutionCodeAuditDetailPage.tsx`
   - `ExecutionWorkPlatformPage.tsx`
-  - `SecMateNGPage.tsx`
   - `B2STaskCreatePage.tsx`
   - `B2STaskListPage.tsx`
   - `B2STaskQueuePage.tsx`
@@ -332,15 +331,13 @@ Recommended sub-order:
 3. `VulnIntakePage.tsx`
 4. detail wrappers
 5. `ExecutionCodeAudit*`
-6. `SecMateNGPage.tsx`
-7. `B2S*`
+6. `B2S*`
 
 Success criteria:
 
 - intake still creates cases
 - case lifecycle actions still work
 - code audit create/restart/delete still works
-- secmate create/restart/delete still works
 - B2S create/list/detail still works
 
 ### Phase 7: Move Project And Platform
@@ -395,7 +392,7 @@ Recommended smoke cases:
 - assets: upload/download/preview
 - environment: deploy service + open detail
 - orchestration: open template detail + instance detail
-- execution: create code audit / secmate task
+- execution: create code audit task
 - vuln: intake + case detail + stage transition
 - platform: config center load + chat load
 
