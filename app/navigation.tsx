@@ -89,7 +89,6 @@ export interface SidebarHealthStatus {
   workflowHealth?: boolean | null;
   vulnHealth?: boolean | null;
   configCenterHealth?: boolean | null;
-  aiAgentFrameworkHealth?: boolean | null;
 }
 
 export type HealthStatusKey = keyof SidebarHealthStatus;
@@ -132,18 +131,6 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'workflow-instances',
   'workflow-instance-detail',
   'workflow-instance-logs',
-  'ai-agent-framework-root',
-  'aiwf-definitions',
-  'aiwf-triggers',
-  'aiwf-trigger-create',
-  'aiwf-trigger-list',
-  'aiwf-executions',
-  'aiwf-execution-list',
-  'aiwf-execution-events',
-  'aiwf-execution-artifacts',
-  'aiwf-scheduler',
-  'aiwf-worker-list',
-  'aiwf-worker-control',
   'system-analysis-task',
   'system-analysis-detail',
   'system-analysis-config',
@@ -223,7 +210,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     return 'environment';
   }
 
-  if (view.startsWith('workflow-') || view.startsWith('aiwf-') || view === 'ai-agent-framework-root') {
+  if (view.startsWith('workflow-')) {
     return 'orchestration';
   }
 
@@ -339,19 +326,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'workflow-app-instances', label: '应用实例', icon: Box, aliases: ['workflow-app-instance-detail'], requiresProject: true },
         { id: 'workflow-instances', label: '工作流实例', icon: Workflow, aliases: ['workflow-instance-detail', 'workflow-instance-logs'], requiresProject: true },
-      ],
-    },
-    {
-      title: 'AI 工作流',
-      items: [
-        { id: 'aiwf-definitions', label: '工作流定义', icon: Bot, aliases: ['ai-agent-framework-root', 'aiwf-definition-list', 'aiwf-definition-create', 'aiwf-definition-versions', 'aiwf-definition-example'], requiresProject: true, healthKey: 'aiAgentFrameworkHealth' },
-        { id: 'aiwf-trigger-create', label: '触发任务', icon: Play, aliases: ['aiwf-triggers'], requiresProject: true },
-        { id: 'aiwf-trigger-list', label: '任务列表', icon: ListTodo, requiresProject: true },
-        { id: 'aiwf-execution-list', label: '执行列表', icon: Activity, aliases: ['aiwf-executions'], requiresProject: true },
-        { id: 'aiwf-execution-events', label: '执行事件', icon: FileText, requiresProject: true },
-        { id: 'aiwf-execution-artifacts', label: '执行工件', icon: Archive, requiresProject: true },
-        { id: 'aiwf-worker-list', label: 'Worker 状态', icon: ServerCog, aliases: ['aiwf-scheduler'], requiresProject: true },
-        { id: 'aiwf-worker-control', label: '运行控制', icon: Settings, requiresProject: true },
       ],
     },
   ],

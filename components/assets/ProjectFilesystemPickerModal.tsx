@@ -65,14 +65,27 @@ export const ProjectFilesystemPickerModal: React.FC<{
   isOpen: boolean;
   projectId: string;
   selectionMode: 'file' | 'directory';
+  backend?: 'fileserver' | 'dataflowVulnScanner';
   title: string;
   description: string;
   onClose: () => void;
   onSelect: (selection: ProjectFilesystemSelection) => void;
   allowMultiple?: boolean;
   onSelectMany?: (selections: ProjectFilesystemSelection[]) => void;
-}> = ({ isOpen, projectId, selectionMode, title, description, onClose, onSelect, allowMultiple = false, onSelectMany }) => {
+}> = ({
+  isOpen,
+  projectId,
+  selectionMode,
+  backend = 'fileserver',
+  title,
+  description,
+  onClose,
+  onSelect,
+  allowMultiple = false,
+  onSelectMany,
+}) => {
   const assetApi = api.domains.assets;
+  const executionApi = api.domains.execution.dataflowVulnScanner;
   const [treeNodes, setTreeNodes] = useState<PickerNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState('');
@@ -88,7 +101,9 @@ export const ProjectFilesystemPickerModal: React.FC<{
   const loadRoot = async () => {
     setLoading(true);
     try {
-      const root = await assetApi.fileserver.getProjectFilesystemRoot(projectId);
+      const root = backend === 'dataflowVulnScanner'
+        ? await executionApi.getProjectFilesystemRoot(projectId)
+        : await assetApi.fileserver.getProjectFilesystemRoot(projectId);
       setTreeNodes(sortNodes((root.items || []).map(toNode)));
       setExpandedNodes(new Set());
       setSelectedId('');
@@ -104,7 +119,9 @@ export const ProjectFilesystemPickerModal: React.FC<{
     if (node.node_type === 'file') return;
     setLoadingNodeId(node.id);
     try {
-      const payload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, node.path);
+      const payload = backend === 'dataflowVulnScanner'
+        ? await executionApi.getProjectFilesystemChildren(projectId, node.path)
+        : await assetApi.fileserver.getProjectFilesystemChildren(projectId, node.path);
       const children = sortNodes(payload.directories.map(toNode).concat(payload.files.map(toNode)));
       setTreeNodes((prev) => replaceNodeChildren(prev, node.id, children));
     } catch (error: any) {
