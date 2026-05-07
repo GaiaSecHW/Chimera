@@ -501,6 +501,13 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const [dragHoverNodeId, setDragHoverNodeId] = useState<string | null>(null);
   const [gatewayLoadingNodeIds, setGatewayLoadingNodeIds] = useState<Set<string>>(new Set());
 
+  // Pending navigation path from task output button (secflow:fileExplorerNavigatePath)
+  const [pendingNavPath, setPendingNavPath] = useState<string | null>(() => {
+    const p = sessionStorage.getItem('secflow:fileExplorerNavigatePath');
+    if (p) sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
+    return p;
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<UnifiedExplorerNode | null>(null);
   const previewUrlRef = useRef<string | null>(null);
@@ -542,6 +549,40 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
       }
     };
   }, []);
+
+  // Listen for navigate-to-path requests from other views (e.g. task output button)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ view?: string }>).detail;
+      if (detail?.view !== 'project-file-explorer') return;
+      const p = sessionStorage.getItem('secflow:fileExplorerNavigatePath');
+      if (p) {
+        sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
+        setPendingNavPath(p);
+      }
+    };
+    window.addEventListener('secflow-navigate-view', handler as EventListener);
+    return () => window.removeEventListener('secflow-navigate-view', handler as EventListener);
+  }, []);
+
+  // When a pending nav path is ready and the explorer has finished loading, navigate to it
+  useEffect(() => {
+    if (!pendingNavPath || loading || !projectId) return;
+    const path = pendingNavPath;
+    setPendingNavPath(null);
+    const node: UnifiedExplorerNode = {
+      id: buildFsPathNodeId(path),
+      source: 'fileserver',
+      nodeType: 'directory',
+      name: path.split('/').filter(Boolean).pop() || path,
+      hasChildren: true,
+      children: [],
+      projectId,
+      path,
+    };
+    void openNode(node);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingNavPath, loading]);
 
   const clearPreview = () => {
     setPreviewFile(null);
