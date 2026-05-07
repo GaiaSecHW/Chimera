@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, XCircle } from 'lucide-react';
 
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
@@ -16,6 +16,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const executionApi = api.domains.execution;
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -46,6 +47,21 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       return () => window.clearInterval(timer);
     }
   }, [projectId, taskId, detail?.status]);
+
+  const cancelTask = async () => {
+    if (!projectId || !taskId || cancelling) return;
+    if (!window.confirm('确认取消该二进制逆向任务？运行中的 item 会请求后端终止。')) return;
+    setError(null);
+    setCancelling(true);
+    try {
+      await executionApi.binaryToSource.terminateTask(projectId, taskId);
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '取消任务失败');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const stats = useMemo(() => {
     if (!detail) return emptyB2SStats();
@@ -89,14 +105,27 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
           <ArrowLeft size={16} />
           返回二进制逆向
         </button>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-        >
-          <RefreshCw size={16} />
-          手动刷新
-        </button>
+        <div className="flex items-center gap-3">
+          {detail && !B2S_TERMINAL_STATUSES.has(detail.status) && (
+            <button
+              type="button"
+              onClick={() => void cancelTask()}
+              disabled={cancelling}
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 shadow-sm hover:bg-rose-50 disabled:opacity-50"
+            >
+              {cancelling ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
+              取消任务
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            <RefreshCw size={16} />
+            手动刷新
+          </button>
+        </div>
       </div>
 
       {error && (
