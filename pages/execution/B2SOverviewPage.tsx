@@ -4,6 +4,7 @@ import { ChevronRight, Clock3, Loader2, Plus, RefreshCw, UploadCloud } from 'luc
 import { B2SElfTaskInput, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
+import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 
 interface Props {
@@ -59,6 +60,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
   const [llmProvidersLoading, setLlmProvidersLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedServerFiles, setSelectedServerFiles] = useState<ProjectFilesystemSelection[]>([]);
+  const [showFilesystemPicker, setShowFilesystemPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [createError, setCreateError] = useState<string>('');
   const [createResult, setCreateResult] = useState<string>('');
@@ -124,6 +127,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     setConcurrency(4);
     setLlmProviderKey('');
     setSelectedFiles([]);
+    setSelectedServerFiles([]);
+    setShowFilesystemPicker(false);
     setCreateError('');
     setUploadProgress('');
   };
@@ -193,8 +198,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       setCreateError('请输入任务名称');
       return;
     }
-    if (selectedFiles.length === 0) {
-      setCreateError('请至少上传一个ELF文件');
+    if (selectedFiles.length === 0 && selectedServerFiles.length === 0) {
+      setCreateError('请至少上传或从文件服务选择一个ELF文件');
       return;
     }
 
@@ -205,8 +210,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       setUploadProgress('准备任务目录...');
       const { task_id: taskId } = await executionApi.binaryToSource.prepareTask(projectId);
       const elfTasks: B2SElfTaskInput[] = [];
+      let nextSequenceNo = 1;
       for (let i = 0; i < selectedFiles.length; i += 1) {
-        const sequenceNo = i + 1;
+        const sequenceNo = nextSequenceNo;
+        nextSequenceNo += 1;
         const file = selectedFiles[i];
         const inputPath = standardInputPath(taskId, sequenceNo);
         await ensureDirectoryPath(inputPath);
@@ -229,6 +236,21 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
           },
         });
       }
+
+      selectedServerFiles.forEach((selection) => {
+        const sequenceNo = nextSequenceNo;
+        nextSequenceNo += 1;
+        elfTasks.push({
+          elf_path: toAbsoluteProjectPath(selection.path),
+          file_list: [],
+          metadata: {
+            selected_from_fileserver: true,
+            source_project_path: selection.path,
+            source_filename: selection.name,
+            sequence_no: sequenceNo,
+          },
+        });
+      });
 
       const resp = await executionApi.binaryToSource.createTask(projectId, {
         task_id: taskId,
@@ -449,27 +471,38 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm font-bold text-slate-700">上传 ELF</label>
-                  <span className="text-xs font-semibold text-slate-500">{selectedFiles.length} 个文件</span>
+                  <label className="text-sm font-bold text-slate-700">ELF 文件</label>
+                  <span className="text-xs font-semibold text-slate-500">本地 {selectedFiles.length} · 文件服务 {selectedServerFiles.length}</span>
                 </div>
-                <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center hover:border-slate-400 hover:bg-slate-100">
-                  <UploadCloud size={28} className="text-slate-500" />
-                  <span className="mt-3 text-sm font-black text-slate-800">选择文件</span>
-                  <span className="mt-1 text-xs text-slate-500">默认显示所有文件，支持批量上传；任务 ID 与标准工作目录由后端和服务端自动处理。</span>
-                  <input
-                    type="file"
-                    multiple
-                    onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
-                    className="hidden"
-                  />
-                </label>
-                <div className="max-h-56 overflow-auto rounded-2xl border border-slate-200 bg-white">
-                  {selectedFiles.length === 0 && <div className="px-4 py-5 text-center text-sm text-slate-400">未选择文件</div>}
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center hover:border-slate-400 hover:bg-slate-100">
+                    <UploadCloud size={28} className="text-slate-500" />
+                    <span className="mt-3 text-sm font-black text-slate-800">上传本地文件</span>
+                    <span className="mt-1 text-xs text-slate-500">默认显示所有文件，支持批量上传。</span>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowFilesystemPicker(true)}
+                    className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-cyan-300 bg-cyan-50 px-6 py-8 text-center hover:border-cyan-500 hover:bg-cyan-100"
+                  >
+                    <UploadCloud size={28} className="text-cyan-700" />
+                    <span className="mt-3 text-sm font-black text-cyan-900">从文件服务选择</span>
+                    <span className="mt-1 text-xs text-cyan-700">选择项目文件系统中已有的 ELF，不重复上传。</span>
+                  </button>
+                </div>
+                <div className="max-h-64 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                  {selectedFiles.length === 0 && selectedServerFiles.length === 0 && <div className="px-4 py-5 text-center text-sm text-slate-400">未选择文件</div>}
                   {selectedFiles.map((file, idx) => (
-                    <div key={`${file.name}-${idx}`} className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm first:border-t-0">
+                    <div key={`local-${file.name}-${idx}`} className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm first:border-t-0">
                       <div className="min-w-0">
                         <div className="truncate font-bold text-slate-800">{file.name}</div>
-                        <div className="mt-1 text-xs text-slate-500">sequence #{idx + 1} · {formatBytes(file.size)}</div>
+                        <div className="mt-1 text-xs text-slate-500">本地上传 · sequence #{idx + 1} · {formatBytes(file.size)}</div>
                       </div>
                       <button
                         type="button"
@@ -481,8 +514,37 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       </button>
                     </div>
                   ))}
+                  {selectedServerFiles.map((file, idx) => (
+                    <div key={`server-${file.path}`} className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-sm first:border-t-0">
+                      <div className="min-w-0">
+                        <div className="truncate font-bold text-slate-800">{file.name}</div>
+                        <div className="mt-1 break-all text-xs text-slate-500">文件服务 · sequence #{selectedFiles.length + idx + 1} · {file.path}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedServerFiles((current) => current.filter((item) => item.path !== file.path))}
+                        disabled={submitting}
+                        className="ml-3 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        移除
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
+
+              <ProjectFilesystemPickerModal
+                isOpen={showFilesystemPicker}
+                projectId={projectId}
+                selectionMode="file"
+                title="从文件服务选择 ELF"
+                description="选择当前项目文件系统中已存在的二进制文件，创建任务时会直接引用该文件路径。"
+                onClose={() => setShowFilesystemPicker(false)}
+                onSelect={(selection) => {
+                  setSelectedServerFiles((current) => current.some((item) => item.path === selection.path) ? current : [...current, selection]);
+                  setShowFilesystemPicker(false);
+                }}
+              />
 
               {(createError || uploadProgress) && (
                 <div className="space-y-2">

@@ -125,10 +125,10 @@ const emptyForm = {
 // ── Stage display helpers ─────────────────────────────────────────────────────
 
 const STAGE_STEPS = [
-  { key: 'preprocess', label: '预处理',   desc: '文件过滤 / 目录探索 / 预扫描', triggers: ['filter', 'explore', 'prescan'], artifactSubpath: 'run/sessions/s0_preprocess' },
-  { key: 'classify',   label: '全局分类', desc: '全局文件类型分类与脚本检查',   triggers: [1, '1'],                         artifactSubpath: 'run/sessions/s1_classify' },
-  { key: 'refine',     label: '细分类',   desc: '子文件夹细分类与模块划分',     triggers: [2, '2'],                         artifactSubpath: 'run/sessions/s2_refine' },
-  { key: 'analyse',    label: '安全分析', desc: '各模块安全威胁深度分析',       triggers: [3, '3'],                         artifactSubpath: 'run/sessions/s3_analyse' },
+  { key: 'preprocess', label: '预处理',   desc: '文件过滤 / 目录探索 / 预扫描', triggers: ['filter', 'explore', 'prescan'], artifactSubpath: 'run/workspace' },
+  { key: 'classify',   label: '全局分类', desc: '全局文件类型分类与脚本检查',   triggers: [1, '1'],                         artifactSubpath: 'run/sessions' },
+  { key: 'refine',     label: '细分类',   desc: '子文件夹细分类与模块划分',     triggers: [2, '2'],                         artifactSubpath: 'run/sessions' },
+  { key: 'analyse',    label: '安全分析', desc: '各模块安全威胁深度分析',       triggers: [3, '3'],                         artifactSubpath: 'run/sessions' },
   { key: 'report',     label: '报告生成', desc: '完整性检查 + 最终安全报告',    triggers: [4, '4'],                         artifactSubpath: 'output' },
 ];
 
@@ -270,7 +270,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
       sessionStorage.removeItem('secflow:systemAnalysisInputPath');
       setCreateModalOpen(true);
       setSelectedTaskId('');
-      setForm({ ...emptyForm, input_path: stored });
+      setForm({ ...emptyForm, input_path: stored, output_path: `/data/fileserver/files/${projectId}/app/secflow-app-system-analyse` });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -341,7 +341,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
   const handleCreate = async () => {
     if (!form.task_name.trim()) { notify('任务名称不能为空', 'error'); return; }
     if (!form.input_path.trim()) { notify('输入路径不能为空', 'error'); return; }
-    if (!form.output_path.trim()) { notify('输出路径不能为空', 'error'); return; }
     setCreating(true);
     try {
       const resp = await appApi.createTask({
@@ -650,7 +649,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm }); }}
+            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm, output_path: `/data/fileserver/files/${projectId}/app/secflow-app-system-analyse` }); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
               <Plus size={13} />新建任务
             </button>

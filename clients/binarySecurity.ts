@@ -1,5 +1,13 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 
+export interface BinarySecurityInputFile {
+  filename: string;
+  size?: number;
+  content_type?: string;
+  relative_path?: string | null;
+  metadata?: Record<string, any>;
+}
+
 export interface BinarySecurityTask {
   id: string;
   project_id: string;
@@ -7,6 +15,9 @@ export interface BinarySecurityTask {
   status: string;
   current_stage?: string | null;
   firmware_path: string;
+  is_queued: boolean;
+  queue_position?: number | null;
+  dispatcher_instance_id?: string | null;
   created_by?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -15,6 +26,9 @@ export interface BinarySecurityTask {
   high_risk_module_count: number;
   entry_count: number;
   vuln_result_count: number;
+  firmware_item_count: number;
+  unpacked_firmware_count: number;
+  failed_firmware_count: number;
   stage_summaries: Array<{
     stage_name: string;
     sequence_no: number;
@@ -88,12 +102,23 @@ export interface BinarySecurityProjectConfig {
     max_stage_parallelism: number;
     max_retries_per_item: number;
     continue_on_item_failure: boolean;
+    stage_parallelism: Record<string, number>;
     stage_options: Record<string, { enabled: boolean }>;
   };
 }
 
+export interface BinarySecurityServiceConfig {
+  config: {
+    max_concurrent_tasks: number;
+    dispatch_timeout_seconds: number;
+  };
+}
+
 export const binarySecurityApi = {
-  listTasks: async (projectId: string, status?: string): Promise<{ total: number; items: BinarySecurityTask[] }> => {
+  listTasks: async (
+    projectId: string,
+    status?: string,
+  ): Promise<{ total: number; running_count: number; queued_count: number; max_concurrent_tasks: number; items: BinarySecurityTask[] }> => {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),
@@ -136,20 +161,38 @@ export const binarySecurityApi = {
       task_id?: string;
       name: string;
       description?: string;
-      firmware_input: { source?: string; path: string; filename?: string; metadata?: Record<string, any> };
+      input_files: BinarySecurityInputFile[];
       output_root?: string;
       stage_options?: Record<string, { enabled: boolean }>;
       policy_overrides?: {
         max_stage_parallelism?: number;
         max_retries_per_item?: number;
         continue_on_item_failure?: boolean;
+        stage_parallelism?: Record<string, number>;
       };
     },
-  ): Promise<BinarySecurityTask> => {
+  ): Promise<BinarySecurityTaskDetail> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
+    });
+    return handleResponse(resp);
+  },
+
+  completeUploads: async (projectId: string, taskId: string, files: BinarySecurityInputFile[]): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/uploads/complete`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ files }),
+    });
+    return handleResponse(resp);
+  },
+
+  startTask: async (projectId: string, taskId: string): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/start`, {
+      method: 'POST',
+      headers: getHeaders(),
     });
     return handleResponse(resp);
   },
@@ -181,6 +224,22 @@ export const binarySecurityApi = {
   getProjectConfig: async (projectId: string): Promise<BinarySecurityProjectConfig> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/config`, {
       headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getServiceConfig: async (): Promise<BinarySecurityServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/service/config`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  updateServiceConfig: async (payload: BinarySecurityServiceConfig['config']): Promise<BinarySecurityServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/service/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(resp);
   },

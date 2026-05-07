@@ -215,7 +215,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
   const modalConfirmText = confirmText || (mode === 'file' ? '选择文件' : '确认选择');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="w-[520px] max-h-[70vh] flex flex-col rounded-2xl bg-white shadow-2xl border border-slate-200">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">

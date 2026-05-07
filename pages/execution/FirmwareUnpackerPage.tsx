@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  AlertCircle, CheckCircle2, ChevronDown, ChevronUp, Clock,
+  AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Clock,
   FolderOpen, Loader2, Package, Play, RefreshCw,
   Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus,
 } from 'lucide-react';
@@ -82,25 +82,29 @@ function TaskStatusBadge({ status }: { status: string }) {
 }
 
 function TaskRow({
-  task, selected, onSelect, onRefresh, onCancel, onDelete, onRetry,
+  task, selected, active, onSelect, onOpenDetail,
 }: {
   task: FirmwareUnpackTask;
   selected: boolean;
+  active: boolean;
   onSelect: (id: string, checked: boolean) => void;
-  onRefresh: (id: string) => void;
-  onCancel: (id: string) => void;
-  onDelete: (id: string) => void;
-  onRetry: (id: string) => void;
+  onOpenDetail: (id: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const running = !isTerminal(task.status);
-  const canDelete = isTerminal(task.status);
 
   return (
-    <div className={`border rounded-xl overflow-hidden transition-colors ${selected ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200 bg-white'}`}>
+    <div
+      className={`cursor-pointer rounded-xl border transition-colors ${
+        active
+          ? 'border-blue-300 bg-blue-50/50 shadow-sm'
+          : selected
+            ? 'border-slate-300 bg-slate-50/70'
+            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'
+      }`}
+      onClick={() => onOpenDetail(task.id)}
+    >
       <div
-        className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-slate-50"
-        onClick={() => setExpanded((value) => !value)}
+        className="flex items-center gap-2 px-3 py-3"
       >
         <input
           type="checkbox"
@@ -118,78 +122,148 @@ function TaskRow({
           <span className="hidden xl:inline max-w-[120px] truncate text-[10px] text-slate-400">{task.worker_id}</span>
         )}
         {running && <Loader2 size={11} className="shrink-0 animate-spin text-blue-400" />}
+        <span className="hidden lg:inline shrink-0 text-[10px] text-slate-500">{fmtDuration(task.started_at, task.completed_at)}</span>
         <span className="shrink-0 text-[10px] text-slate-400">{fmtTime(task.created_at)}</span>
-        {expanded ? <ChevronUp size={13} className="shrink-0 text-slate-400" /> : <ChevronDown size={13} className="shrink-0 text-slate-400" />}
+        <ChevronRight size={14} className={`shrink-0 text-slate-400 transition-transform ${active ? 'translate-x-0.5 text-blue-500' : ''}`} />
       </div>
+    </div>
+  );
+}
 
-      {expanded && (
-        <div className="space-y-3 border-t border-slate-100 bg-white px-3 py-3">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-            {[
-              ['任务 ID', <span className="font-mono">{task.id}</span>],
-              ['Worker', task.worker_id || '-'],
-              ['固件路径', <span className="font-mono break-all">{task.firmware_path}</span>],
-              ['输出目录', <span className="font-mono break-all">{task.output_path}</span>],
-              ['运行目录', <span className="font-mono break-all">{deriveRunPath(task.output_path) || '-'}</span>],
-              ['开始时间', fmtTime(task.started_at)],
-              ['耗时', fmtDuration(task.started_at, task.completed_at)],
-              ['完成时间', fmtTime(task.completed_at)],
-              ['ai 轮次', task.rounds ?? '-'],
-            ].map(([label, value], index) => (
-              <div key={index}>
-                <p className="mb-0.5 font-semibold text-slate-400">{label}</p>
-                <div className="text-slate-700">{value}</div>
-              </div>
-            ))}
+function TaskDetailPanel({
+  task,
+  loading,
+  onBack,
+  onRefresh,
+  onCancel,
+  onDelete,
+  onRetry,
+}: {
+  task: FirmwareUnpackTask | null;
+  loading: boolean;
+  onBack: () => void;
+  onRefresh: (id: string) => void;
+  onCancel: (id: string) => void;
+  onDelete: (id: string) => void;
+  onRetry: (id: string) => void;
+}) {
+  if (!task) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 text-center">
+          <div className="rounded-2xl bg-slate-100 p-4 text-slate-400">
+            <ChevronRight size={22} />
           </div>
-
-          {task.result_message && (
-            <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs leading-6 text-slate-700">
-              {task.result_message}
-            </div>
-          )}
-          {task.error_message && (
-            <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 font-mono text-xs leading-6 text-red-700">
-              {task.error_message}
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            {running && (
-              <>
-                <button
-                  onClick={() => onRefresh(task.id)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  <RefreshCw size={11} /> 刷新
-                </button>
-                <button
-                  onClick={() => onCancel(task.id)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100"
-                >
-                  <Square size={11} /> 停止
-                </button>
-              </>
-            )}
-            {(task.status === 'failed' || task.status === 'cancelled' || task.status === 'max_retries_reached') && (
-              <button
-                onClick={() => onRetry(task.id)}
-                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-              >
-                <RotateCcw size={11} /> 重试
-              </button>
-            )}
-            {canDelete && (
-              <button
-                onClick={() => onDelete(task.id)}
-                className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
-              >
-                <Trash2 size={11} /> 删除
-              </button>
-            )}
+          <div>
+            <p className="text-sm font-bold text-slate-700">选择任务查看详情</p>
+            <p className="mt-1 text-xs text-slate-400">这里会展示解包任务的输入、输出目录、运行状态和日志摘要。</p>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  const running = !isTerminal(task.status);
+  const canDelete = isTerminal(task.status);
+  const canRetry = task.status === 'failed' || task.status === 'cancelled' || task.status === 'max_retries_reached';
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 p-5">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          <ArrowLeft size={16} />
+          返回任务列表
+        </button>
+
+        <div className="flex items-start justify-between gap-4">
+          <div className="mt-4 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <TaskStatusBadge status={task.status} />
+              {task.worker_id && (
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                  {task.worker_id}
+                </span>
+              )}
+            </div>
+            <h3 className="mt-3 break-all text-lg font-black text-slate-900">{task.firmware_path}</h3>
+            <p className="mt-2 break-all font-mono text-[11px] text-slate-500">{task.id}</p>
+          </div>
+          <button
+            onClick={() => onRefresh(task.id)}
+            className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+            title="刷新详情"
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {running && (
+            <button
+              onClick={() => onCancel(task.id)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-100"
+            >
+              <Square size={13} /> 停止
+            </button>
+          )}
+          {canRetry && (
+            <button
+              onClick={() => onRetry(task.id)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              <RotateCcw size={13} /> 重试
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => onDelete(task.id)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
+            >
+              <Trash2 size={13} /> 删除
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {[
+            ['任务 ID', <span className="font-mono">{task.id}</span>],
+            ['Worker', task.worker_id || '-'],
+            ['固件路径', <span className="font-mono break-all">{task.firmware_path}</span>],
+            ['输出目录', <span className="font-mono break-all">{task.output_path}</span>],
+            ['运行目录', <span className="font-mono break-all">{deriveRunPath(task.output_path) || '-'}</span>],
+            ['创建时间', fmtTime(task.created_at)],
+            ['开始时间', fmtTime(task.started_at)],
+            ['完成时间', fmtTime(task.completed_at)],
+            ['耗时', fmtDuration(task.started_at, task.completed_at)],
+            ['AI 轮次', task.rounds ?? '-'],
+          ].map(([label, value], index) => (
+            <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
+              <div className="text-xs text-slate-700">{value}</div>
+            </div>
+          ))}
+        </div>
+
+        {task.result_message && (
+          <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">结果摘要</p>
+            <div className="text-xs leading-6 text-slate-700">{task.result_message}</div>
+          </div>
+        )}
+
+        {task.error_message && (
+          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-red-500">错误信息</p>
+            <div className="break-all font-mono text-xs leading-6 text-red-700">{task.error_message}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -207,6 +281,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [activeTaskId, setActiveTaskId] = useState('');
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -223,6 +299,10 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const workspacePreview = useMemo(
     () => (projectId ? buildWorkspacePreview(projectId) : null),
     [projectId],
+  );
+  const activeTask = useMemo(
+    () => taskItems.find((task) => task.id === activeTaskId) || null,
+    [taskItems, activeTaskId],
   );
 
   const resetCreateForm = useCallback(() => {
@@ -269,11 +349,15 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   }, [page, projectId, filterStatus, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string) => {
+    if (activeTaskId === id) setDetailLoading(true);
     try {
       const task = await fwApi.getTask(id);
       setTasks((prev) => prev.map((item) => (item.id === id ? task : item)));
-    } catch {}
-  }, []);
+    } catch {
+    } finally {
+      if (activeTaskId === id) setDetailLoading(false);
+    }
+  }, [activeTaskId]);
 
   const hasRunning = useMemo(() => taskItems.some((task) => !isTerminal(task.status)), [taskItems]);
 
@@ -295,11 +379,22 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   useEffect(() => {
     fetchTasks(true);
     setSelected(new Set());
+    setActiveTaskId('');
   }, [projectId]);
 
   useEffect(() => {
     fetchTasks();
   }, [page]);
+
+  useEffect(() => {
+    if (!taskItems.length && activeTaskId) {
+      setActiveTaskId('');
+      return;
+    }
+    if (activeTaskId && !taskItems.some((task) => task.id === activeTaskId)) {
+      setActiveTaskId('');
+    }
+  }, [taskItems, activeTaskId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -342,7 +437,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     const target = taskItems.find((task) => task.id === id);
     if (target && !isTerminal(target.status)) {
       notify('运行中的任务不能删除，请先停止', 'error');
@@ -357,11 +452,12 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         next.delete(id);
         return next;
       });
+      if (activeTaskId === id) setActiveTaskId('');
       notify('任务已删除', 'success');
     } catch (e: any) {
       notify(`删除失败: ${e?.message}`, 'error');
     }
-  };
+  }, [activeTaskId, notify, taskItems]);
 
   const handleRetry = async (id: string) => {
     try {
@@ -373,7 +469,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     }
   };
 
-  const handleBatchDelete = async () => {
+  const handleBatchDelete = useCallback(async () => {
     const selectedTasks = taskItems.filter((task) => selected.has(task.id));
     const deletableIds = selectedTasks.filter((task) => isTerminal(task.status)).map((task) => task.id);
     const runningCount = selectedTasks.length - deletableIds.length;
@@ -392,12 +488,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         deletableIds.forEach((taskId) => next.delete(taskId));
         return next;
       });
+      if (activeTaskId && deletableIds.includes(activeTaskId)) setActiveTaskId('');
       fetchTasks(true);
       notify(`已删除 ${deletableIds.length} 条任务记录`, 'success');
     } catch (e: any) {
       notify(`批量删除失败: ${e?.message}`, 'error');
     }
-  };
+  }, [activeTaskId, fetchTasks, notify, selected, taskItems]);
 
   const toggleSelect = (id: string, checked: boolean) => {
     setSelected((prev) => {
@@ -413,6 +510,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const showingDetail = Boolean(activeTaskId);
 
   return (
     <div className="p-4 space-y-4">
@@ -543,7 +641,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         <div className="flex items-center gap-2">
           <Package size={18} className="text-indigo-600" />
           <div>
-            <h2 className="text-sm font-bold text-slate-800">固件解包 · 任务列表</h2>
+            <h2 className="text-sm font-bold text-slate-800">
+              {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
+            </h2>
             {hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
           </div>
         </div>
@@ -557,6 +657,17 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         </div>
       </div>
 
+      {showingDetail ? (
+        <TaskDetailPanel
+          task={projectId ? activeTask : null}
+          loading={detailLoading}
+          onBack={() => setActiveTaskId('')}
+          onRefresh={refreshOne}
+          onCancel={handleCancel}
+          onDelete={handleDelete}
+          onRetry={handleRetry}
+        />
+      ) : (
       <div className="space-y-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="grid grid-cols-4 gap-1 text-center">
@@ -701,11 +812,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                   key={task.id}
                   task={task}
                   selected={selected.has(task.id)}
+                  active={activeTaskId === task.id}
                   onSelect={toggleSelect}
-                  onRefresh={refreshOne}
-                  onCancel={handleCancel}
-                  onDelete={handleDelete}
-                  onRetry={handleRetry}
+                  onOpenDetail={setActiveTaskId}
                 />
               ))}
             </div>
@@ -732,6 +841,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

@@ -62,6 +62,12 @@ export const appDataflowAnalyseApi = {
       headers: getHeaders(),
     })),
 
+  resumeTask: async (taskId: string): Promise<AppDfaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/resume`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
   generatePrompt: async (inputPath: string): Promise<{ prompt: string }> =>
     handleResponse(await fetch(`${BASE}/generate-prompt`, {
       method: 'POST',
