@@ -35,9 +35,39 @@ export interface FirmwareUnpackTask {
   result_message: string | null;
   rounds: number | null;
   error_message: string | null;
+  matched_skill: string | null;
+  matched_skill_version: number | null;
+  matched_skill_score: number | null;
+  fallback_to_llm: boolean;
+  generated_skill_path: string | null;
+  generated_skill_status: string | null;
+  promotion_success_count: number | null;
   created_at: string | null;
   started_at: string | null;
   completed_at: string | null;
+}
+
+export interface FirmwareTaskResourceContainer {
+  name: string | null;
+  cpu_millicores: number;
+  memory_mib: number;
+}
+
+export interface FirmwareTaskResourceUsage {
+  task_id: string;
+  worker_id: string | null;
+  available: boolean;
+  pod_name: string | null;
+  namespace: string | null;
+  phase: string | null;
+  timestamp: string | null;
+  window: string | null;
+  cpu_millicores: number | null;
+  memory_mib: number | null;
+  pod_cpu_limit_millicores: number | null;
+  pod_memory_limit_mib: number | null;
+  containers: FirmwareTaskResourceContainer[];
+  message: string | null;
 }
 
 export interface FirmwareUnpackTaskList {
@@ -57,6 +87,25 @@ export interface FirmwareWorkerInstance {
   active_tasks: number;
 }
 
+export interface FirmwareConcurrencyInfo {
+  mode: string;
+  resource_based: boolean;
+  effective_max_concurrent: number;
+  executor_capacity: number;
+  manual_max_concurrent: number;
+  auto_max_concurrent: number;
+  cpu_based_limit: number | null;
+  memory_based_limit: number | null;
+  cpu_millis_per_task: number;
+  memory_mb_per_task: number;
+  reserved_cpu_millis: number;
+  reserved_memory_mb: number;
+  pod_cpu_limit_millicores: number | null;
+  pod_memory_limit_mib: number | null;
+  pod_cpu_request_millicores: number | null;
+  pod_memory_request_mib: number | null;
+}
+
 export interface FirmwareClusterInfo {
   this_worker: string;
   total_workers: number;
@@ -64,6 +113,7 @@ export interface FirmwareClusterInfo {
   workers: FirmwareWorkerInstance[];
   task_counts: Record<string, number>;
   total_tasks: number;
+  concurrency: FirmwareConcurrencyInfo;
 }
 
 export interface FirmwareConfigEntry {
@@ -77,6 +127,28 @@ export interface FirmwareConfigEntry {
 export interface FirmwareConfigList {
   total: number;
   items: FirmwareConfigEntry[];
+}
+
+export interface FirmwareToolEntry {
+  filename: string;
+  path: string;
+  name: string;
+  format_id: string;
+  description: string;
+  extensions: string[];
+  magic_hex: string;
+  keywords: string[];
+  binwalk_sigs: string[];
+  skill_status: string;
+  skill_version: number;
+  family_id: string;
+  promotion_success_count: number;
+  promotion_threshold: number;
+}
+
+export interface FirmwareToolList {
+  total: number;
+  items: FirmwareToolEntry[];
 }
 
 export interface TaskListQuery {
@@ -131,6 +203,13 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
     result_message: asNullableString(record.result_message),
     rounds: asNullableNumber(record.rounds),
     error_message: asNullableString(record.error_message),
+    matched_skill: asNullableString(record.matched_skill),
+    matched_skill_version: asNullableNumber(record.matched_skill_version),
+    matched_skill_score: asNullableNumber(record.matched_skill_score),
+    fallback_to_llm: asBoolean(record.fallback_to_llm),
+    generated_skill_path: asNullableString(record.generated_skill_path),
+    generated_skill_status: asNullableString(record.generated_skill_status),
+    promotion_success_count: asNullableNumber(record.promotion_success_count),
     created_at: asNullableString(record.created_at),
     started_at: asNullableString(record.started_at),
     completed_at: asNullableString(record.completed_at),
@@ -152,6 +231,34 @@ const normalizeTaskList = (value: unknown): FirmwareUnpackTaskList => {
     offset: asNumber(record.offset, 0),
     limit: asNumber(record.limit, items.length || 20),
     items,
+  };
+};
+
+const normalizeTaskResourceUsage = (value: unknown): FirmwareTaskResourceUsage => {
+  const record = asRecord(value);
+  const containers = asArray(record.containers).map((item) => {
+    const entry = asRecord(item);
+    return {
+      name: asNullableString(entry.name),
+      cpu_millicores: asNumber(entry.cpu_millicores, 0),
+      memory_mib: asNumber(entry.memory_mib, 0),
+    };
+  });
+  return {
+    task_id: asString(record.task_id),
+    worker_id: asNullableString(record.worker_id),
+    available: asBoolean(record.available),
+    pod_name: asNullableString(record.pod_name),
+    namespace: asNullableString(record.namespace),
+    phase: asNullableString(record.phase),
+    timestamp: asNullableString(record.timestamp),
+    window: asNullableString(record.window),
+    cpu_millicores: asNullableNumber(record.cpu_millicores),
+    memory_mib: asNullableNumber(record.memory_mib),
+    pod_cpu_limit_millicores: asNullableNumber(record.pod_cpu_limit_millicores),
+    pod_memory_limit_mib: asNullableNumber(record.pod_memory_limit_mib),
+    containers,
+    message: asNullableString(record.message),
   };
 };
 
@@ -187,6 +294,7 @@ const normalizeClusterInfo = (value: unknown): FirmwareClusterInfo => {
   const task_counts = Object.fromEntries(
     Object.entries(rawTaskCounts).map(([key, item]) => [key, asNumber(item, 0)])
   );
+  const concurrencyRecord = asRecord(record.concurrency);
   return {
     this_worker: asString(record.this_worker),
     total_workers: asNumber(record.total_workers, workers.length),
@@ -194,6 +302,24 @@ const normalizeClusterInfo = (value: unknown): FirmwareClusterInfo => {
     workers,
     task_counts,
     total_tasks: asNumber(record.total_tasks, Object.values(task_counts).reduce((sum, count) => sum + count, 0)),
+    concurrency: {
+      mode: asString(concurrencyRecord.mode, 'auto'),
+      resource_based: asBoolean(concurrencyRecord.resource_based),
+      effective_max_concurrent: asNumber(concurrencyRecord.effective_max_concurrent, 1),
+      executor_capacity: asNumber(concurrencyRecord.executor_capacity, 1),
+      manual_max_concurrent: asNumber(concurrencyRecord.manual_max_concurrent, 1),
+      auto_max_concurrent: asNumber(concurrencyRecord.auto_max_concurrent, 1),
+      cpu_based_limit: asNullableNumber(concurrencyRecord.cpu_based_limit),
+      memory_based_limit: asNullableNumber(concurrencyRecord.memory_based_limit),
+      cpu_millis_per_task: asNumber(concurrencyRecord.cpu_millis_per_task, 250),
+      memory_mb_per_task: asNumber(concurrencyRecord.memory_mb_per_task, 512),
+      reserved_cpu_millis: asNumber(concurrencyRecord.reserved_cpu_millis, 100),
+      reserved_memory_mb: asNumber(concurrencyRecord.reserved_memory_mb, 256),
+      pod_cpu_limit_millicores: asNullableNumber(concurrencyRecord.pod_cpu_limit_millicores),
+      pod_memory_limit_mib: asNullableNumber(concurrencyRecord.pod_memory_limit_mib),
+      pod_cpu_request_millicores: asNullableNumber(concurrencyRecord.pod_cpu_request_millicores),
+      pod_memory_request_mib: asNullableNumber(concurrencyRecord.pod_memory_request_mib),
+    },
   };
 };
 
@@ -231,6 +357,35 @@ const normalizeSubmitResult = (value: unknown): FirmwareUnpackSubmitResult => {
     input_path: record.input_path == null ? undefined : asString(record.input_path),
     output_path: record.output_path == null ? undefined : asString(record.output_path),
     run_path: record.run_path == null ? undefined : asString(record.run_path),
+  };
+};
+
+const normalizeToolEntry = (value: unknown): FirmwareToolEntry => {
+  const record = asRecord(value);
+  return {
+    filename: asString(record.filename),
+    path: asString(record.path),
+    name: asString(record.name),
+    format_id: asString(record.format_id),
+    description: asString(record.description),
+    extensions: asArray(record.extensions).map((item) => asString(item)).filter(Boolean),
+    magic_hex: asString(record.magic_hex),
+    keywords: asArray(record.keywords).map((item) => asString(item)).filter(Boolean),
+    binwalk_sigs: asArray(record.binwalk_sigs).map((item) => asString(item)).filter(Boolean),
+    skill_status: asString(record.skill_status, 'candidate'),
+    skill_version: asNumber(record.skill_version, 1),
+    family_id: asString(record.family_id),
+    promotion_success_count: asNumber(record.promotion_success_count, 0),
+    promotion_threshold: asNumber(record.promotion_threshold, 5),
+  };
+};
+
+const normalizeToolList = (value: unknown): FirmwareToolList => {
+  const record = asRecord(value);
+  const items = asArray(record.items).map(normalizeToolEntry);
+  return {
+    total: asNumber(record.total, items.length),
+    items,
   };
 };
 
@@ -272,6 +427,12 @@ export const firmwareUnpackerApi = {
   getTask: async (taskId: string): Promise<FirmwareUnpackTask> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}`, { headers: getHeaders() });
     return normalizeTask(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/tasks/{id}/resource-usage */
+  getTaskResourceUsage: async (taskId: string): Promise<FirmwareTaskResourceUsage> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/resource-usage`, { headers: getHeaders() });
+    return normalizeTaskResourceUsage(await handleResponse(r));
   },
 
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */
@@ -321,6 +482,12 @@ export const firmwareUnpackerApi = {
   getConfig: async (): Promise<FirmwareConfigList> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/config`, { headers: getHeaders() });
     return normalizeConfigList(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/tools */
+  getTools: async (): Promise<FirmwareToolList> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tools`, { headers: getHeaders() });
+    return normalizeToolList(await handleResponse(r));
   },
 
   /** PUT /api/app/firmware-unpacker/config/{key} */

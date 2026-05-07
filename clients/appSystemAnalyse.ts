@@ -207,3 +207,162 @@ export const appSystemAnalyseApi = {
       body: JSON.stringify({ config }),
     })),
 };
+export const appSystemAnalyseApi = {
+  // ── Health ────────────────────────────────────────────────────────────────
+  getHealth: async (): Promise<{ status: string }> =>
+    handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
+
+  // ── Tasks ─────────────────────────────────────────────────────────────────
+  createTask: async (payload: AppSaTaskCreateRequest): Promise<AppSaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  listTasks: async (params: {
+    project_id: string;
+    page?: number;
+    per_page?: number;
+    status?: string;
+  }): Promise<{ items: AppSaTaskItem[]; total: number; page: number; per_page: number }> => {
+    const query = new URLSearchParams({ project_id: params.project_id });
+    if (params.page) query.append('page', String(params.page));
+    if (params.per_page) query.append('per_page', String(params.per_page));
+    if (params.status) query.append('status', params.status);
+    return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
+  },
+
+  getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
+  cancelTask: async (taskId: string): Promise<AppSaTaskItem> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/cancel`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  deleteTask: async (taskId: string, deleteFiles = true): Promise<void> => {
+    const resp = await fetch(
+      `${BASE}/tasks/${encodeURIComponent(taskId)}?delete_files=${deleteFiles}`,
+      { method: 'DELETE', headers: getHeaders() },
+    );
+    if (!resp.ok) await handleResponse(resp);
+  },
+
+  restartTask: async (taskId: string): Promise<AppSaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/restart`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  resumeTask: async (taskId: string): Promise<AppSaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/resume`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: AppSaStagesJson }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
+
+  generatePrompt: async (inputPath: string): Promise<{ prompt: string }> =>
+    handleResponse(await fetch(`${BASE}/generate-prompt`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ input_path: inputPath }),
+    })),
+
+  // ── Prompts ───────────────────────────────────────────────────────────────
+  listPrompts: async (params: {
+    page?: number;
+    per_page?: number;
+    category?: string;
+    keyword?: string;
+    is_enabled?: boolean;
+  } = {}): Promise<{ items: SystemAnalysisPromptTemplate[]; total: number; page: number; per_page: number }> => {
+    const query = new URLSearchParams();
+    if (params.page) query.append('page', String(params.page));
+    if (params.per_page) query.append('per_page', String(params.per_page));
+    if (params.category) query.append('category', params.category);
+    if (params.keyword) query.append('keyword', params.keyword);
+    if (typeof params.is_enabled === 'boolean') query.append('is_enabled', String(params.is_enabled));
+    return handleResponse(await fetch(`${BASE}/prompts?${query.toString()}`, { headers: getHeaders() }));
+  },
+
+  getPrompt: async (promptId: string): Promise<SystemAnalysisPromptTemplate> =>
+    handleResponse(await fetch(`${BASE}/prompts/${encodeURIComponent(promptId)}`, { headers: getHeaders() })),
+
+  createPrompt: async (payload: {
+    name: string;
+    category: string;
+    description?: string;
+    content: string;
+    variables_json?: string[];
+    is_default?: boolean;
+    is_enabled?: boolean;
+  }): Promise<SystemAnalysisPromptTemplate> =>
+    handleResponse(await fetch(`${BASE}/prompts`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  updatePrompt: async (promptId: string, payload: Partial<{
+    name: string;
+    category: string;
+    description: string;
+    content: string;
+    variables_json: string[];
+    is_default: boolean;
+    is_enabled: boolean;
+  }>): Promise<SystemAnalysisPromptTemplate> =>
+    handleResponse(await fetch(`${BASE}/prompts/${encodeURIComponent(promptId)}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  deletePrompt: async (promptId: string): Promise<void> =>
+    handleResponse(await fetch(`${BASE}/prompts/${encodeURIComponent(promptId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
+  clonePrompt: async (promptId: string, name: string): Promise<SystemAnalysisPromptTemplate> =>
+    handleResponse(await fetch(`${BASE}/prompts/${encodeURIComponent(promptId)}/clone`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ name }),
+    })),
+
+  // ── Config ────────────────────────────────────────────────────────────────
+  getConfig: async (projectId: string): Promise<SystemAnalysisServiceConfig> =>
+    handleResponse(await fetch(`${BASE}/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
+  saveConfig: async (config: SystemAnalysisServiceConfig): Promise<SystemAnalysisServiceConfig> =>
+    handleResponse(await fetch(`${BASE}/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: config.project_id, config }),
+    })),
+
+  // ── Models config ─────────────────────────────────────────────────────────
+  getModels: async (): Promise<SystemAnalysisModelsConfig> => {
+    const response = await fetch(`${BASE}/models`, { headers: getHeaders() });
+    // 404 means the endpoint / table doesn't exist yet on this deployment — return built-in defaults
+    if (response.status === 404) return DEFAULT_MODELS_CONFIG;
+    const data = await handleResponse(response);
+    // Guard: if backend returned HTML / non-object / null providers, fall back to defaults
+    if (!data || typeof data !== 'object' || !data.providers || typeof data.providers !== 'object') {
+      return DEFAULT_MODELS_CONFIG;
+    }
+    return data as SystemAnalysisModelsConfig;
+  },
+
+  saveModels: async (config: SystemAnalysisModelsConfig): Promise<SystemAnalysisModelsConfig> =>
+    handleResponse(await fetch(`${BASE}/models`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ config }),
+    })),
+};
