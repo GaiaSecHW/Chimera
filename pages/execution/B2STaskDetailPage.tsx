@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import Editor from '@monaco-editor/react';
+import { ArrowLeft, ChevronDown, ChevronRight, Code2, FileText, Loader2, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
 
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
@@ -60,6 +61,26 @@ const fileNameOf = (path?: string | null) => {
   if (!path) return '-';
   const normalized = path.replace(/\\/g, '/');
   return normalized.split('/').filter(Boolean).pop() || path;
+};
+
+const projectPathFromStoragePath = (projectId: string, path: string) => {
+  const normalized = path.replace(/\\/g, '/');
+  const prefix = `/data/files/${projectId}`;
+  if (normalized.startsWith(prefix)) return normalized.slice(prefix.length) || '/';
+  if (normalized.startsWith('/')) return normalized;
+  return `/${normalized}`;
+};
+
+const languageFromPath = (path?: string | null) => {
+  const name = fileNameOf(path).toLowerCase();
+  if (name.endsWith('.c') || name.endsWith('.h')) return 'c';
+  if (name.endsWith('.cpp') || name.endsWith('.cc') || name.endsWith('.cxx') || name.endsWith('.hpp') || name.endsWith('.hh')) return 'cpp';
+  if (name.endsWith('.asm') || name.endsWith('.s')) return 'asm';
+  if (name.endsWith('.json')) return 'json';
+  if (name.endsWith('.md')) return 'markdown';
+  if (name.endsWith('.py')) return 'python';
+  if (name.endsWith('.txt') || name.endsWith('.log')) return 'plaintext';
+  return 'plaintext';
 };
 
 const formatPhaseLabel = (phase?: string | null, fallback?: string | null) => {
@@ -200,6 +221,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const [lastRefreshAt, setLastRefreshAt] = useState<string>('');
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const [selectedResultPath, setSelectedResultPath] = useState<string>('');
+  const [previewContent, setPreviewContent] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const load = async () => {
     if (!projectId || !taskId) return;
@@ -312,6 +337,44 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
     if (!detail) return [] as Array<{ item: B2SItem; path: string }>;
     return detail.items.flatMap((item) => (item.generated_files || []).map((path) => ({ item, path })));
   }, [detail]);
+
+  useEffect(() => {
+    if (generatedFiles.length === 0) {
+      setSelectedResultPath('');
+      return;
+    }
+    setSelectedResultPath((current) => current && generatedFiles.some((file) => file.path === current) ? current : generatedFiles[0].path);
+  }, [generatedFiles]);
+
+  useEffect(() => {
+    if (!projectId || !selectedResultPath) {
+      setPreviewContent('');
+      setPreviewError(null);
+      return;
+    }
+    let cancelled = false;
+    const loadPreview = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const projectPath = projectPathFromStoragePath(projectId, selectedResultPath);
+        const blob = await api.domains.assets.fileserver.fetchProjectFilesystemPreviewBlob(projectId, projectPath);
+        const text = await blob.text();
+        if (!cancelled) setPreviewContent(text);
+      } catch (e: any) {
+        if (!cancelled) {
+          setPreviewContent('');
+          setPreviewError(e?.message || '加载预览失败');
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+    void loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, selectedResultPath]);
 
   const dominantPhase = useMemo(() => {
     const summary = overall?.phase_summary || {};
@@ -469,20 +532,74 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       </section>
 
       {detail && generatedFiles.length > 0 && (
-        <section id="b2s-results" className="rounded-[2rem] border border-emerald-200 bg-emerald-50/50 p-5 shadow-sm">
-          <div className="flex flex-col gap-2 border-b border-emerald-100 pb-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">还原结果</h2>
-            </div>
+        <section id="b2s-results" className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-2 border-b border-emerald-100 bg-emerald-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-xl font-black text-slate-900">还原结果</h2>
             <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{generatedFiles.length} 个文件</div>
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {generatedFiles.map(({ item, path }) => (
-              <div key={`${item.id}-${path}`} className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
-                <div className="truncate text-sm font-black text-slate-900" title={fileNameOf(path)}>{fileNameOf(path)}</div>
-                <div className="mt-1 truncate font-mono text-xs text-slate-500" title={path}>#{item.sequence_no} · {path}</div>
+          <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <aside className="border-b border-slate-200 bg-slate-50/70 lg:border-b-0 lg:border-r">
+              <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">文件列表</div>
+              <div className="max-h-[520px] overflow-auto p-3">
+                {generatedFiles.map(({ item, path }) => {
+                  const active = selectedResultPath === path;
+                  return (
+                    <button
+                      key={`${item.id}-${path}`}
+                      type="button"
+                      onClick={() => setSelectedResultPath(path)}
+                      className={`mb-2 flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all ${active ? 'border-emerald-300 bg-white shadow-sm ring-2 ring-emerald-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}
+                    >
+                      <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {languageFromPath(path) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-black text-slate-900" title={fileNameOf(path)}>{fileNameOf(path)}</div>
+                        <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={path}>#{item.sequence_no} · {projectPathFromStoragePath(projectId, path)}</div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            ))}
+            </aside>
+            <div className="min-w-0 bg-slate-950">
+              <div className="flex min-h-[48px] items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-4 py-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-black text-slate-100" title={fileNameOf(selectedResultPath)}>{fileNameOf(selectedResultPath)}</div>
+                  <div className="mt-0.5 truncate font-mono text-[11px] text-slate-400" title={selectedResultPath}>{projectPathFromStoragePath(projectId, selectedResultPath)}</div>
+                </div>
+                <div className="shrink-0 rounded-full bg-slate-800 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
+                  {languageFromPath(selectedResultPath)}
+                </div>
+              </div>
+              <div className="h-[520px]">
+                {previewLoading ? (
+                  <div className="flex h-full items-center justify-center gap-2 text-sm font-bold text-slate-400">
+                    <Loader2 size={18} className="animate-spin" />
+                    加载预览中...
+                  </div>
+                ) : previewError ? (
+                  <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-rose-300">{previewError}</div>
+                ) : (
+                  <Editor
+                    height="100%"
+                    language={languageFromPath(selectedResultPath)}
+                    value={previewContent}
+                    theme="vs-dark"
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      lineNumbers: 'on',
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'off',
+                      automaticLayout: true,
+                      renderWhitespace: 'selection',
+                    }}
+                  />
+                )}
+              </div>
+            </div>
           </div>
         </section>
       )}
