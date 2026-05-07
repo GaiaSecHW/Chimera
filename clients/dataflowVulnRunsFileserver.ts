@@ -3,7 +3,9 @@ import {
   DataflowHistoryRunCycle,
   DataflowHistoryRunDetail,
   DataflowHistoryRunFile,
+  DataflowHistoryRunMutationResponse,
   DataflowHistoryRunResolve,
+  DataflowHistoryRunRetryPayload,
   DataflowHistoryRunSession,
   DataflowHistoryRunSummary,
 } from './dataflowVulnScanner';
@@ -33,6 +35,10 @@ const normalizeProjectPath = (value: string) => {
 
 const resolveCacheKey = (projectId: string, rootPath: string, runName: string) =>
   `${projectId}::${normalizeProjectPath(rootPath)}::${String(runName || '').split('/').filter(Boolean).pop() || ''}`;
+
+const clearResolveCache = (projectId: string, rootPath: string, runName: string) => {
+  resolveCache.delete(resolveCacheKey(projectId, rootPath, runName));
+};
 
 const buildProjectCandidates = (projectId: string) => {
   const candidates = [String(projectId || '').trim(), LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID];
@@ -169,4 +175,49 @@ export const inspectDataflowFileserverRun = async (
 ): Promise<DataflowFileserverRunDetail> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
   return dataflowVulnScannerApi.getHistoryRun(resolved.history_run_id);
+};
+
+export const adoptDataflowFileserverRun = async (
+  projectId: string,
+  rootPath: string,
+  runName: string
+): Promise<DataflowHistoryRunMutationResponse> => {
+  const resolved = await resolveRun(projectId, rootPath, runName, { force: true });
+  const payload = await dataflowVulnScannerApi.adoptHistoryRun(resolved.history_run_id);
+  clearResolveCache(projectId, rootPath, runName);
+  return payload;
+};
+
+export const cancelDataflowFileserverRun = async (
+  projectId: string,
+  rootPath: string,
+  runName: string
+): Promise<DataflowHistoryRunMutationResponse> => {
+  const resolved = await resolveRun(projectId, rootPath, runName);
+  const payload = await dataflowVulnScannerApi.cancelHistoryRun(resolved.history_run_id);
+  clearResolveCache(projectId, rootPath, runName);
+  return payload;
+};
+
+export const retryDataflowFileserverRun = async (
+  projectId: string,
+  rootPath: string,
+  runName: string,
+  retryPayload: DataflowHistoryRunRetryPayload = {}
+): Promise<DataflowHistoryRunMutationResponse> => {
+  const resolved = await resolveRun(projectId, rootPath, runName);
+  const payload = await dataflowVulnScannerApi.retryHistoryRun(resolved.history_run_id, retryPayload);
+  clearResolveCache(projectId, rootPath, runName);
+  return payload;
+};
+
+export const deleteDataflowFileserverRun = async (
+  projectId: string,
+  rootPath: string,
+  runName: string
+): Promise<DataflowHistoryRunMutationResponse> => {
+  const resolved = await resolveRun(projectId, rootPath, runName);
+  const payload = await dataflowVulnScannerApi.deleteHistoryRun(resolved.history_run_id);
+  clearResolveCache(projectId, rootPath, runName);
+  return payload;
 };

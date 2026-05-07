@@ -64,11 +64,6 @@ import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
 import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
-import { AiwfDefinitionsPage } from '../pages/orchestration/AiwfDefinitionsPage';
-import { AiwfDefinitionExamplePage } from '../pages/orchestration/AiwfDefinitionExamplePage';
-import { AiwfTriggersPage } from '../pages/orchestration/AiwfTriggersPage';
-import { AiwfExecutionsPage } from '../pages/orchestration/AiwfExecutionsPage';
-import { AiwfSchedulerPage } from '../pages/orchestration/AiwfSchedulerPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
 import { PermMgmtPage } from '../pages/platform/PermMgmtPage';
@@ -105,8 +100,6 @@ export interface ViewRegistryContext {
   activeB2STaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
-  activeAiwfDefinitionId: string;
-  activeAiwfExecutionId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setActiveProjectId: (id: string) => void;
@@ -118,7 +111,6 @@ export interface ViewRegistryContext {
   setActiveB2STaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
-  setActiveAiwfDefinitionId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -294,47 +286,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           }}
         />
       );
-    case 'ai-agent-framework-root':
-    case 'aiwf-definitions':
-    case 'aiwf-definition-list':
-    case 'aiwf-definition-create':
-    case 'aiwf-definition-versions':
-      return (
-        <AiwfDefinitionsPage
-          projectId={ctx.selectedProjectId}
-          selectedDefinitionId={ctx.activeAiwfDefinitionId}
-          onDefinitionSelected={ctx.setActiveAiwfDefinitionId}
-          onOpenExamplePage={() => ctx.setCurrentView('aiwf-definition-example')}
-          onNavigateToTriggers={(definitionId) => {
-            ctx.setActiveAiwfDefinitionId(definitionId);
-            ctx.setCurrentView('aiwf-trigger-create');
-          }}
-        />
-      );
-    case 'aiwf-definition-example':
-      return <AiwfDefinitionExamplePage onBack={() => ctx.setCurrentView('aiwf-definitions')} />;
-    case 'aiwf-triggers':
-    case 'aiwf-trigger-create':
-    case 'aiwf-trigger-list':
-      return (
-        <AiwfTriggersPage
-          projectId={ctx.selectedProjectId}
-          selectedDefinitionId={ctx.activeAiwfDefinitionId}
-          onNavigateToExecutionCenter={() => ctx.setCurrentView('aiwf-execution-list')}
-        />
-      );
-    case 'aiwf-executions':
-    case 'aiwf-execution-list':
-      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="list" selectedExecutionId={ctx.activeAiwfExecutionId} />;
-    case 'aiwf-execution-events':
-      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="events" selectedExecutionId={ctx.activeAiwfExecutionId} />;
-    case 'aiwf-execution-artifacts':
-      return <AiwfExecutionsPage projectId={ctx.selectedProjectId} initialTab="artifacts" selectedExecutionId={ctx.activeAiwfExecutionId} />;
-    case 'aiwf-scheduler':
-    case 'aiwf-worker-list':
-      return <AiwfSchedulerPage initialTab="workers" />;
-    case 'aiwf-worker-control':
-      return <AiwfSchedulerPage initialTab="control" />;
     case 'pentest-system':
       return <WorkflowPlaceholder title="系统分析" icon={<FileSearch />} />;
     case 'pentest-threat':

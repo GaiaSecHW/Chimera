@@ -6,6 +6,9 @@ import {
   DataflowFileserverRunOverview,
   DataflowFileserverRunSession,
   DataflowFileserverRunSummary,
+  adoptDataflowFileserverRun,
+  cancelDataflowFileserverRun,
+  deleteDataflowFileserverRun,
   getDataflowFileserverRunFile,
   getDataflowFileserverRunLog,
   getDataflowFileserverRunSessionFile,
@@ -13,6 +16,7 @@ import {
   inspectDataflowFileserverRunOverview,
   listDataflowFileserverRunFiles,
   listDataflowFileserverRunSessions,
+  retryDataflowFileserverRun,
 } from '../../clients/dataflowVulnRunsFileserver';
 import { DATAFLOW_DASHBOARD_MIRROR_CSS } from './DataflowFileserverRunDashboardCss';
 
@@ -28,8 +32,8 @@ const DASHBOARD_HTML = `
       <section class="page-header-card">
         <div class="page-header-copy">
           <p class="page-eyebrow">Dataflow Vulnerability Mining</p>
-          <h1 class="page-title">历史 Run 详情</h1>
-          <p class="page-description">当前详情由微服务后端统一读取 /data 历史目录并以只读模式展示，集中查看当前 Run 的概览、轮次、结果、会话、文件与日志信息。</p>
+          <h1 class="page-title">Run 详情</h1>
+          <p class="page-description">当前详情由微服务后端统一读取 /data Run 目录展示，集中查看当前 Run 的概览、轮次、结果、会话、文件、日志与任务关联信息。</p>
         </div>
         <div class="page-header-actions">
           <label class="toggle-label">
@@ -37,13 +41,17 @@ const DASHBOARD_HTML = `
             <span class="toggle-slider"></span>
             自动刷新
           </label>
-          <button id="btnRefresh" class="btn btn-sm" data-action="refresh">↻ 刷新历史 Run</button>
+          <button id="btnRefresh" class="btn btn-sm" data-action="refresh">刷新 Run</button>
+          <button id="btnAdoptRun" class="btn btn-sm" data-action="adopt-run" disabled>补齐任务信息</button>
+          <button id="btnCancelRun" class="btn btn-sm btn-warning" data-action="cancel-run" disabled>取消 Run</button>
+          <button id="btnRetryRun" class="btn btn-sm" data-action="retry-run" disabled>重试 Run</button>
+          <button id="btnDeleteRun" class="btn btn-sm btn-danger" data-action="delete-open" disabled>删除 Run</button>
         </div>
       </section>
 
       <div id="welcomeView" class="welcome">
         <div class="welcome-icon">📊</div>
-        <h2>正在加载历史 Run</h2>
+        <h2>正在加载 Run</h2>
         <p>请稍候，系统正在整理当前 Run 的概览、轮次、结果、会话、文件与日志信息</p>
       </div>
 
@@ -64,9 +72,11 @@ const DASHBOARD_HTML = `
           <button class="tab" data-tab="sessions">会话记录</button>
           <button class="tab" data-tab="files">文件浏览</button>
           <button class="tab" data-tab="log">运行日志</button>
+          <button class="tab" data-tab="task">任务信息</button>
         </nav>
 
         <div id="tabOverview" class="tab-content active">
+          <div class="card" id="runCommandCard"></div>
           <div class="grid-2">
             <div class="card" id="scoreChart"></div>
             <div class="card" id="issuesCard"></div>
@@ -97,6 +107,10 @@ const DASHBOARD_HTML = `
             <pre id="logContent" class="log-viewer"></pre>
           </div>
         </div>
+
+        <div id="tabTask" class="tab-content">
+          <div class="card" id="taskInfoCard"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -111,7 +125,7 @@ const DASHBOARD_HTML = `
     </div>
     <div class="modal-body" style="text-align:center">
       <p style="margin-bottom:8px">确定要删除运行记录 <strong id="deleteRunName"></strong> 吗？</p>
-      <p class="text-muted" style="font-size:12px">此操作将永久删除本地文件夹，不可恢复</p>
+      <p class="text-muted" style="font-size:12px">如果 Run 正在运行，后端会先停止 run_vuln_scan.py 进程，再永久删除本地文件夹和关联记录。此操作不可恢复。</p>
       <div style="margin-top:20px;display:flex;gap:10px;justify-content:center">
         <button class="btn" data-action="delete-close">取消</button>
         <button class="btn btn-danger" id="confirmDeleteBtn" data-action="delete-confirm">删除</button>
@@ -364,6 +378,25 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   border-color: transparent;
 }
 
+.btn-warning {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.btn-warning:hover {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.btn:disabled,
+.btn:disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+  box-shadow: none;
+}
+
 .welcome,
 .detail-header,
 .card,
@@ -440,6 +473,86 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   border: 1px solid #e2e8f0;
 }
 
+.task-state-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.task-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.task-info-row {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+  min-width: 0;
+}
+
+.task-info-label {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.task-info-value {
+  color: #0f172a;
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.run-command-block {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #bae6fd;
+  border-radius: 16px;
+  background: #f0f9ff;
+}
+
+.run-command-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #075985;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.run-command-pre {
+  margin-top: 10px;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.task-action-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .tabs {
   gap: 10px;
   margin-bottom: 18px;
@@ -511,7 +624,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   color: var(--success);
 }
 
-.badge-failed, .badge-interrupted, .badge-cancelled, .badge-stopped,
+.badge-failed, .badge-interrupted, .badge-cancelled, .badge-stopped, .badge-delete_requested,
 .badge-review_error, .badge-review_plateau, .badge-summary_incomplete,
 .badge-runtime_output_limit, .badge-runtime_timeout, .badge-blocked_context_window,
 .badge-blocked_quota, .badge-provider_rate_limited, .badge-model_contract_violation,
@@ -525,6 +638,12 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   background: #ecfeff;
   border-color: #a5f3fc;
   color: var(--primary);
+}
+
+.badge-cancel_requested {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
 }
 
 .badge-unknown, .badge-pending, .badge-queued {
@@ -1079,6 +1198,10 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
     flex-direction: column;
     align-items: stretch;
   }
+
+  .task-info-grid {
+    grid-template-columns: 1fr;
+  }
 }
 `;
 
@@ -1266,6 +1389,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     currentRunsFilter: '',
     collapsedRunDates: {} as Record<string, boolean>,
     runDetailRequestSeq: 0,
+    _mutationBusy: '' as '' | 'adopt' | 'cancel' | 'retry' | 'delete',
     _durationTimer: null as ReturnType<typeof setInterval> | null,
     _durationSeconds: 0,
     _destroyed: false,
@@ -1361,6 +1485,27 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           if (refreshButton) {
             event.preventDefault();
             void this.refresh({ forceActiveTabReload: true });
+            return;
+          }
+
+          const adoptButton = target.closest('[data-action="adopt-run"]') as HTMLElement | null;
+          if (adoptButton) {
+            event.preventDefault();
+            void this.adoptCurrentRun();
+            return;
+          }
+
+          const cancelButton = target.closest('[data-action="cancel-run"]') as HTMLElement | null;
+          if (cancelButton) {
+            event.preventDefault();
+            void this.cancelCurrentRun();
+            return;
+          }
+
+          const retryButton = target.closest('[data-action="retry-run"]') as HTMLElement | null;
+          if (retryButton) {
+            event.preventDefault();
+            void this.retryCurrentRun();
             return;
           }
 
@@ -1688,6 +1833,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const emptyCard = '<div class="empty-state">正在加载...</div>';
       const scoreChart = this.$('scoreChart');
       const issuesCard = this.$('issuesCard');
+      const runCommandCard = this.$('runCommandCard');
       const manifestCard = this.$('manifestCard');
       const cycleTimeline = this.$('cycleTimeline');
       const cyclesContainer = this.$('cyclesContainer');
@@ -1696,14 +1842,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const filesContainer = this.$('filesContainer');
       const logToolbar = this.$('logToolbar');
       const logContent = this.$('logContent');
+      const taskInfoCard = this.$('taskInfoCard');
       if (scoreChart) scoreChart.innerHTML = loadingCard;
       if (issuesCard) issuesCard.innerHTML = loadingCard;
+      if (runCommandCard) runCommandCard.innerHTML = loadingCard;
       if (manifestCard) manifestCard.innerHTML = loadingCard;
       if (cycleTimeline) cycleTimeline.innerHTML = loadingCard;
       if (cyclesContainer) cyclesContainer.innerHTML = emptyCard;
       if (resultsContainer) resultsContainer.innerHTML = emptyCard;
       if (sessionsContainer) sessionsContainer.innerHTML = emptyCard;
       if (filesContainer) filesContainer.innerHTML = emptyCard;
+      if (taskInfoCard) taskInfoCard.innerHTML = loadingCard;
       if (logToolbar) {
         logToolbar.innerHTML = `
           <div class="log-toolbar-copy">
@@ -1717,6 +1866,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         `;
       }
       if (logContent) logContent.textContent = '加载中...';
+      this.updateActionButtons(summary);
     },
 
     showLoadError(name: string, message: string) {
@@ -1724,11 +1874,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const errorCard = `<div class="card-title">加载失败</div><div class="empty-state text-error">${this.esc(message)}</div>`;
       const scoreChart = this.$('scoreChart');
       const issuesCard = this.$('issuesCard');
+      const runCommandCard = this.$('runCommandCard');
       const manifestCard = this.$('manifestCard');
       const cycleTimeline = this.$('cycleTimeline');
       if (scoreChart) scoreChart.innerHTML = errorCard;
       if (issuesCard) issuesCard.innerHTML = errorCard;
-      if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及历史 Run 后端对 /data 的挂载和索引配置。</div>';
+      if (runCommandCard) runCommandCard.innerHTML = '<div class="card-title">Pod 执行命令</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示启动命令。</div>';
+      if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及 Run 后端对 /data 的挂载和索引配置。</div>';
       if (cycleTimeline) cycleTimeline.innerHTML = '<div class="card-title">运行状态</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示轮次和结果信息。</div>';
     },
 
@@ -1751,8 +1903,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         }
         this.currentRunData = data;
         this.currentSummary = {
+          history_run_id: data.history_run_id,
+          project_id: data.project_id,
+          source_type: data.source_type,
+          source_key: data.source_key,
+          linked_task_id: data.linked_task_id,
+          linked_execution_id: data.linked_execution_id,
+          profile_id: data.profile_id,
           name: data.name,
           path: data.path,
+          root_path: data.root_path,
           status: data.status,
           start_time: data.start_time,
           start_epoch: data.start_epoch,
@@ -1767,6 +1927,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           passed_count: data.passed_count,
           failed_count: data.failed_count,
           workflow_mode: data.workflow_mode,
+          updated_at: data.updated_at,
         };
         this.runSessions = runCache.sessions;
         this.currentFiles = runCache.files;
@@ -1818,14 +1979,153 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       ${data.error ? `<span class="text-error">⚠️ ${this.esc(data.error).substring(0, 80)}</span>` : ''}
     `;
       }
-      this._startDurationTimer(data.status === 'running');
+	      this._startDurationTimer(data.status === 'running');
+	      this.updateActionButtons(data);
 
-      this.renderOverview(data);
-      this.renderCycles(data);
-      this.renderResults(data);
+	      this.renderOverview(data);
+	      this.renderCycles(data);
+	      this.renderResults(data);
+	      this.renderTaskInfo(data);
+	    },
+
+    currentHistoryRunId() {
+      return String(this.currentRunData?.history_run_id || this.currentSummary?.history_run_id || '');
+    },
+
+    isActiveRunStatus(statusText: string) {
+      return ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(String(statusText || '').toLowerCase());
+    },
+
+    isCancelledRunStatus(statusText: string) {
+      return String(statusText || '').toLowerCase() === 'cancelled';
+    },
+
+    updateActionButton(id: string, options: { disabled: boolean; hidden?: boolean; text?: string }) {
+      const button = this.$(id) as HTMLButtonElement | null;
+      if (!button) return;
+      button.disabled = options.disabled || !!this._mutationBusy;
+      button.style.display = options.hidden ? 'none' : '';
+      if (options.text) button.textContent = options.text;
+    },
+
+    updateActionButtons(data?: Partial<DataflowFileserverRunSummary> | null) {
+      const current = data || this.currentRunData || this.currentSummary || null;
+      const hasRun = !!this.currentRun && !!current;
+      const linked = !!(current?.linked_task_id || current?.linked_execution_id);
+      const active = this.isActiveRunStatus(String(current?.status || ''));
+      const cancelled = this.isCancelledRunStatus(String(current?.status || ''));
+      const busy = this._mutationBusy;
+      this.updateActionButton('btnAdoptRun', {
+        disabled: !hasRun || linked || !!busy,
+        hidden: linked,
+        text: busy === 'adopt' ? '正在补齐...' : '补齐任务信息',
+      });
+      this.updateActionButton('btnCancelRun', {
+        disabled: !hasRun || !linked || !active || !!busy,
+        text: busy === 'cancel' ? '正在取消...' : '取消 Run',
+      });
+      this.updateActionButton('btnRetryRun', {
+        disabled: !hasRun || !cancelled || !!busy,
+        text: busy === 'retry' ? '正在提交...' : '重试 Run',
+      });
+      this.updateActionButton('btnDeleteRun', {
+        disabled: !hasRun || !!busy,
+        text: busy === 'delete' ? '正在删除...' : '删除 Run',
+      });
+    },
+
+    taskActionButtons(data: DataflowFileserverRunOverview) {
+      const linked = !!(data.linked_task_id || data.linked_execution_id);
+      const active = this.isActiveRunStatus(data.status);
+      const cancelled = this.isCancelledRunStatus(data.status);
+      const busy = !!this._mutationBusy;
+      return `
+        <div class="task-action-panel">
+          <button class="btn btn-sm" data-action="adopt-run" ${linked || busy ? 'disabled' : ''}>补齐任务信息</button>
+          <button class="btn btn-sm btn-warning" data-action="cancel-run" ${!linked || !active || busy ? 'disabled' : ''}>取消 Run</button>
+          <button class="btn btn-sm" data-action="retry-run" ${!cancelled || busy ? 'disabled' : ''} title="仅已取消的 Run 可重试">重试 Run</button>
+          <button class="btn btn-sm btn-danger" data-action="delete-open" ${busy ? 'disabled' : ''}>删除 Run</button>
+        </div>
+      `;
+    },
+
+    runCommandDisplay(data: DataflowFileserverRunOverview) {
+      const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
+      const cli = raw.dataflow_cli && typeof raw.dataflow_cli === 'object' ? raw.dataflow_cli : {};
+      const commandDisplay = String(data.command_display || cli.command_display || raw.command_display || '').trim();
+      if (commandDisplay) return commandDisplay;
+      const command = Array.isArray(data.command) ? data.command : Array.isArray(cli.command) ? cli.command : Array.isArray(raw.command) ? raw.command : [];
+      return command.map((item: any) => String(item)).join(' ');
+    },
+
+    renderRunCommandCard(data: DataflowFileserverRunOverview) {
+      const el = this.$('runCommandCard');
+      if (!el) return;
+      const commandDisplay = this.runCommandDisplay(data);
+      el.innerHTML = commandDisplay ? `
+        <div class="card-title">Pod 执行命令（run_vuln_scan.py）</div>
+        <div class="run-command-block" style="margin-top:0">
+          <div class="run-command-title">
+            <span>${this.esc(data.linked_execution_id || data.name || '')}</span>
+            <span>${this.esc(data.linked_task_id ? '已关联任务' : '未关联任务')}</span>
+          </div>
+          <pre class="run-command-pre">${this.esc(commandDisplay)}</pre>
+        </div>
+      ` : `
+        <div class="card-title">Pod 执行命令（run_vuln_scan.py）</div>
+        <div class="empty-state">任务开始运行并产生 execution_started 事件后会显示完整命令。</div>
+      `;
+    },
+
+    renderTaskInfo(data: DataflowFileserverRunOverview) {
+      const el = this.$('taskInfoCard');
+      if (!el) return;
+      const linked = !!(data.linked_task_id || data.linked_execution_id);
+      const commandDisplay = this.runCommandDisplay(data);
+      const rows = [
+        ['History Run ID', data.history_run_id || '-'],
+        ['Task ID', data.linked_task_id || '-'],
+        ['Execution ID', data.linked_execution_id || '-'],
+        ['Profile ID', data.profile_id || '-'],
+        ['Source', data.source_type || '-'],
+        ['Run Root', data.path || '-'],
+        ['Atomic Work', data.atomic_work_path || '-'],
+        ['Last Sync', data.updated_at || '-'],
+      ];
+      el.innerHTML = `
+        <div class="card-title">任务 / Run 信息</div>
+        <div class="task-state-line">
+          <span class="badge ${linked ? 'badge-succeeded' : 'badge-warning'}">${linked ? '已补齐任务信息' : '未补齐任务信息'}</span>
+          <span class="text-muted">${linked ? '当前 Run 已绑定任务与执行记录，可以统一使用取消、重试、删除能力。' : '点击“补齐任务信息”会创建任务与执行记录并绑定该 Run，不会启动扫描。'}</span>
+        </div>
+        <div class="task-info-grid">
+          ${rows.map(([label, value]) => `
+            <div class="task-info-row">
+              <span class="task-info-label">${this.esc(label)}</span>
+              <span class="task-info-value">${this.esc(value)}</span>
+            </div>
+          `).join('')}
+        </div>
+        ${commandDisplay ? `
+          <div class="run-command-block">
+            <div class="run-command-title">
+              <span>Pod 执行命令（run_vuln_scan.py）</span>
+              <span>${this.esc(data.linked_execution_id || data.name || '')}</span>
+            </div>
+            <pre class="run-command-pre">${this.esc(commandDisplay)}</pre>
+          </div>
+        ` : `
+          <div class="run-command-block">
+            <div class="run-command-title">Pod 执行命令（run_vuln_scan.py）</div>
+            <div class="text-muted" style="margin-top:8px;font-size:12px">任务开始运行并产生 execution_started 事件后会显示完整命令。</div>
+          </div>
+        `}
+        ${this.taskActionButtons(data)}
+      `;
     },
 
     renderOverview(data: DataflowFileserverRunOverview) {
+      this.renderRunCommandCard(data);
       this.renderScoreChart(data.cycles || []);
       this.renderIssuesCard(data.latest_issues || []);
       this.renderManifestCard(data.manifests || {}, data.config || {});
@@ -2688,10 +2988,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return `${s}s`;
     },
 
-    _estimateDuration(data: any) {
-      if (typeof data.duration_seconds === 'number' && data.duration_seconds > 0) return data.duration_seconds;
-      const startStr = data.start_time || '';
-      if (!startStr) return 0;
+	    _estimateDuration(data: any) {
+	      if (typeof data.duration_seconds === 'number' && data.duration_seconds > 0) return data.duration_seconds;
+	      const startStr = data.start_time || '';
+	      if (!startStr) return 0;
       const m = startStr.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
       if (!m) return 0;
       const startMs = new Date(m[1]+'-'+m[2]+'-'+m[3]+'T'+m[4]+':'+m[5]+':'+m[6]+'Z').getTime();
@@ -2711,7 +3011,79 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         }
       }
 
-      return 0;
+	      return 0;
+	    },
+
+    setMutationBusy(action: '' | 'adopt' | 'cancel' | 'retry' | 'delete') {
+      this._mutationBusy = action;
+      this.updateActionButtons();
+      if (this.currentRunData) this.renderTaskInfo(this.currentRunData);
+    },
+
+    clearCurrentRunCache() {
+      if (!this.currentRun) return;
+      delete this.tabCacheByRun[this.currentRun];
+    },
+
+    async reloadCurrentRunAfterMutation() {
+      if (!this.currentRun) return;
+      this.clearCurrentRunCache();
+      await this.loadRunDetail(this.currentRun, false, true);
+    },
+
+    async adoptCurrentRun() {
+      if (!this.currentRun || !this.currentHistoryRunId()) return;
+      this.setMutationBusy('adopt');
+      try {
+        const result = await adoptDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun);
+        alert(result.message || '任务信息已补齐');
+        await this.reloadCurrentRunAfterMutation();
+      } catch (error: any) {
+        alert(error?.message || '补齐任务信息失败');
+      } finally {
+        this.setMutationBusy('');
+      }
+    },
+
+    async cancelCurrentRun() {
+      if (!this.currentRun || !this.currentHistoryRunId()) return;
+      if (!window.confirm(`确认取消 Run ${this.currentRun}？`)) return;
+      this.setMutationBusy('cancel');
+      try {
+        const result = await cancelDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun);
+        alert(result.message || '取消请求已提交');
+        await this.reloadCurrentRunAfterMutation();
+      } catch (error: any) {
+        alert(error?.message || '取消 Run 失败');
+      } finally {
+        this.setMutationBusy('');
+      }
+    },
+
+    async retryCurrentRun() {
+      if (!this.currentRun || !this.currentHistoryRunId()) return;
+      if (!this.isCancelledRunStatus(String(this.currentRunData?.status || this.currentSummary?.status || ''))) {
+        alert('只有已取消的 Run 可以重试。请先取消 Run，并等待状态变为“已取消”。');
+        return;
+      }
+      const extraCyclesText = window.prompt('追加评审轮次', '5');
+      if (extraCyclesText === null) return;
+      const extraCycles = Number.parseInt(extraCyclesText, 10);
+      if (!Number.isFinite(extraCycles) || extraCycles < 1) {
+        alert('追加评审轮次必须是大于 0 的整数');
+        return;
+      }
+      if (!window.confirm(`确认重试 Run ${this.currentRun}，追加 ${extraCycles} 个评审轮次？`)) return;
+      this.setMutationBusy('retry');
+      try {
+        const result = await retryDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun, { extra_cycles: extraCycles });
+        alert(result.message || '重试已提交');
+        await this.reloadCurrentRunAfterMutation();
+      } catch (error: any) {
+        alert(error?.message || '重试 Run 失败');
+      } finally {
+        this.setMutationBusy('');
+      }
     },
 
     showDeleteModal() {
@@ -2727,7 +3099,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     async confirmDeleteRun() {
       this.closeDeleteModal();
-      alert('历史 Run 删除能力已禁用');
+      if (!this.currentRun || !this.currentHistoryRunId()) return;
+      this.setMutationBusy('delete');
+      try {
+        const result = await deleteDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun);
+        alert(result.message || 'Run 已删除');
+        if (typeof onBack === 'function') onBack();
+        else window.history.back();
+      } catch (error: any) {
+        alert(error?.message || '删除 Run 失败');
+      } finally {
+        this.setMutationBusy('');
+      }
     },
 
     esc(s: any) {
@@ -2762,6 +3145,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         passed: '通过',
         pending: '等待',
         queued: '排队',
+        cancel_requested: '取消中',
+        delete_requested: '删除中',
         timeout: '超时',
         error: '错误',
         interrupted: '中断',
@@ -2873,7 +3258,7 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
         <div class="dfv-dashboard-root">
           <div id="mainContent">
             <div class="card">
-              <div class="card-title">历史 Run 详情加载失败</div>
+              <div class="card-title">Run 详情加载失败</div>
               <div class="empty-state text-error">${message.replace(/[&<>"]/g, (ch) => ({
                 '&': '&amp;',
                 '<': '&lt;',

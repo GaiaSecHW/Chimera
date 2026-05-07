@@ -20,7 +20,6 @@ interface SidebarProps {
   workflowHealth?: SidebarHealthStatus['workflowHealth'];
   vulnHealth?: SidebarHealthStatus['vulnHealth'];
   configCenterHealth?: SidebarHealthStatus['configCenterHealth'];
-  aiAgentFrameworkHealth?: SidebarHealthStatus['aiAgentFrameworkHealth'];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -39,7 +38,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   workflowHealth = null,
   vulnHealth = null,
   configCenterHealth = null,
-  aiAgentFrameworkHealth = null,
 }) => {
   const projectGuard = !hasSelectedProject;
   const projectGuardTitle = '请先选择项目';
@@ -53,7 +51,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     workflowHealth,
     vulnHealth,
     configCenterHealth,
-    aiAgentFrameworkHealth,
   };
 
   const sections = (SIDEBAR_SECTIONS[activeTopLevelNav as keyof typeof SIDEBAR_SECTIONS] || []).map((section) => ({
