@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy, FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppSaStageEvent, AppSaTaskDetail } from '../../types/types';
@@ -196,6 +196,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [loading, setLoading] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
   const [logsExpanded, setLogsExpanded] = useState(true);
   const logScrollRef = useRef<HTMLDivElement>(null);
   const handleBack = () => {
@@ -225,6 +226,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     const timer = window.setInterval(() => void loadDetail(), 5000);
     return () => window.clearInterval(timer);
   }, [detail?.status, taskId]);
+
+  useEffect(() => {
+    if (!detail || !['running', 'pending'].includes(detail.status)) return;
+    const timer = window.setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [detail?.status]);
 
   useEffect(() => {
     if (logsExpanded && logScrollRef.current) {
@@ -397,7 +404,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 {STAGE_STEPS.map((step, i) => {
                   const st = stageStatuses[i];
                   const timing = stageTimes[i];
-                  const timingStr = (st === 'completed' || st === 'failed') ? formatTsDuration(timing.startTs, timing.endTs) : '';
+                  const timingStr = st === 'completed' || st === 'failed'
+                    ? formatTsDuration(timing.startTs, timing.endTs)
+                    : st === 'running' && timing.startTs
+                    ? formatTsDuration(timing.startTs, clockNow)
+                    : '';
                   const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : null;
                   const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
                   return (
@@ -420,14 +431,24 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             {timingStr ? <span className="text-[11px] font-mono text-slate-500">⏱ {timingStr}</span> : null}
                           </div>
                           <p className="mt-1 text-xs text-slate-500">{step.desc}</p>
-                          {artifactFsPath && (st === 'completed' || st === 'running') ? (
-                            <button
-                              onClick={() => openInFileExplorer(artifactFsPath)}
-                              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-cyan-200 px-2 py-1 text-[11px] font-semibold text-cyan-700 hover:bg-cyan-50"
-                            >
-                              <FolderOpen size={11} />
-                              打开阶段输出
-                            </button>
+                          {artifactFsPath && st !== 'pending' ? (
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <button
+                                onClick={() => openInFileExplorer(artifactFsPath)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 px-2 py-1 text-[11px] font-semibold text-cyan-700 hover:bg-cyan-50"
+                              >
+                                <FolderOpen size={11} />
+                                打开阶段输出
+                              </button>
+                              <button
+                                onClick={() => { if (artifactFull) void navigator.clipboard.writeText(artifactFull); }}
+                                title="复制容器路径"
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100"
+                              >
+                                <ClipboardCopy size={10} />
+                                复制路径
+                              </button>
+                            </div>
                           ) : null}
                         </div>
                       </div>
