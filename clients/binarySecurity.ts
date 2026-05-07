@@ -213,6 +213,14 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
+  retryStage: async (projectId: string, taskId: string, stageName: string) => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
   resumeTask: async (projectId: string, taskId: string) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/resume`, {
       method: 'POST',
