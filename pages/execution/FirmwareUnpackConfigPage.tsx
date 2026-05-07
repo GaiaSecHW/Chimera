@@ -344,7 +344,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId }) => {
               <Settings size={13} className="text-emerald-600" />
               自进化解包工具
             </div>
-            <p className="mt-1 text-xs text-slate-400">当前读取目录：`/data/tools`</p>
+            <p className="mt-1 text-xs text-slate-400">当前读取目录：`/data/secflow-app-firmware-unpacker/tools`</p>
           </div>
           <button
             onClick={() => { loadTools(); }}
@@ -368,7 +368,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId }) => {
           </div>
         ) : tools.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-6 text-center text-xs text-slate-400">
-            `/data/tools` 当前没有工具
+            `/data/secflow-app-firmware-unpacker/tools` 当前没有工具
           </div>
         ) : (
           <div className="space-y-3">

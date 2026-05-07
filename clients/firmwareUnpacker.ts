@@ -70,6 +70,21 @@ export interface FirmwareTaskResourceUsage {
   message: string | null;
 }
 
+export interface FirmwareTaskProgressPhase {
+  key: string;
+  label: string;
+  status: string;
+  detail: string | null;
+  updated_at: string | null;
+}
+
+export interface FirmwareTaskProgress {
+  task_id: string;
+  current_phase: string | null;
+  summary: string | null;
+  phases: FirmwareTaskProgressPhase[];
+}
+
 export interface FirmwareUnpackTaskList {
   total: number;
   offset: number;
@@ -262,6 +277,26 @@ const normalizeTaskResourceUsage = (value: unknown): FirmwareTaskResourceUsage =
   };
 };
 
+const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
+  const record = asRecord(value);
+  const phases = asArray(record.phases).map((item) => {
+    const entry = asRecord(item);
+    return {
+      key: asString(entry.key),
+      label: asString(entry.label),
+      status: asString(entry.status, 'pending'),
+      detail: asNullableString(entry.detail),
+      updated_at: asNullableString(entry.updated_at),
+    };
+  });
+  return {
+    task_id: asString(record.task_id),
+    current_phase: asNullableString(record.current_phase),
+    summary: asNullableString(record.summary),
+    phases,
+  };
+};
+
 const normalizeHealth = (value: unknown): FirmwareUnpackerHealth => {
   const record = asRecord(value);
   return {
@@ -433,6 +468,12 @@ export const firmwareUnpackerApi = {
   getTaskResourceUsage: async (taskId: string): Promise<FirmwareTaskResourceUsage> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/resource-usage`, { headers: getHeaders() });
     return normalizeTaskResourceUsage(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/tasks/{id}/progress */
+  getTaskProgress: async (taskId: string): Promise<FirmwareTaskProgress> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/progress`, { headers: getHeaders() });
+    return normalizeTaskProgress(await handleResponse(r));
   },
 
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */

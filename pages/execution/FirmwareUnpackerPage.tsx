@@ -5,7 +5,7 @@ import {
   Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
+import { FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
@@ -89,6 +89,41 @@ function TaskStatusBadge({ status }: { status: string }) {
   );
 }
 
+function PhaseStatusBadge({ status }: { status: string }) {
+  const cfg: Record<string, string> = {
+    pending: 'bg-slate-100 text-slate-500',
+    running: 'bg-blue-100 text-blue-700',
+    success: 'bg-emerald-100 text-emerald-700',
+    failed: 'bg-red-100 text-red-700',
+    skipped: 'bg-amber-100 text-amber-700',
+  };
+  const labels: Record<string, string> = {
+    pending: '待执行',
+    running: '进行中',
+    success: '已完成',
+    failed: '失败',
+    skipped: '跳过',
+  };
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg[status] || cfg.pending}`}>
+      {labels[status] || status}
+    </span>
+  );
+}
+
+function PhaseNodeStatusIcon({ status, index }: { status: string; index: number }) {
+  if (status === 'success') {
+    return <CheckCircle2 size={16} className="text-emerald-500" />;
+  }
+  if (status === 'running') {
+    return <Loader2 size={14} className="animate-spin text-blue-500" />;
+  }
+  if (status === 'failed') {
+    return <XCircle size={16} className="text-red-500" />;
+  }
+  return <span>{index + 1}</span>;
+}
+
 function TaskRow({
   task, selected, active, onSelect, onOpenDetail,
 }: {
@@ -144,6 +179,8 @@ function TaskDetailPanel({
   resourceUsage,
   resourceLoading,
   hasReturnContext,
+  progress,
+  progressLoading,
   onBack,
   onRefresh,
   onCancel,
@@ -155,6 +192,8 @@ function TaskDetailPanel({
   resourceUsage: FirmwareTaskResourceUsage | null;
   resourceLoading: boolean;
   hasReturnContext: boolean;
+  progress: FirmwareTaskProgress | null;
+  progressLoading: boolean;
   onBack: () => void;
   onRefresh: (id: string) => void;
   onCancel: (id: string) => void;
@@ -265,6 +304,80 @@ function TaskDetailPanel({
         </div>
 
         <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">实时进展</p>
+          {progressLoading ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Loader2 size={13} className="animate-spin" /> 加载阶段进展中...
+            </div>
+          ) : !progress ? (
+            <div className="text-xs text-slate-500">暂无阶段进展数据</div>
+          ) : (
+            <div className="space-y-3">
+              {progress.summary && (
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                  {progress.summary}
+                </div>
+              )}
+              <div className="overflow-x-auto pb-1">
+                <div className="relative flex min-w-[720px] items-start gap-0">
+                  {progress.phases.map((phase, index) => {
+                    const isCompleted = phase.status === 'success';
+                    const isRunning = phase.status === 'running';
+                    const isFailed = phase.status === 'failed';
+                    const lineClass = isCompleted ? 'bg-emerald-400' : isFailed ? 'bg-red-300' : 'bg-slate-200';
+                    const nodeClass = isCompleted
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                      : isRunning
+                        ? 'border-blue-500 bg-blue-50 text-blue-600'
+                        : isFailed
+                          ? 'border-red-400 bg-red-50 text-red-600'
+                          : phase.status === 'skipped'
+                            ? 'border-amber-400 bg-amber-50 text-amber-600'
+                            : 'border-slate-200 bg-white text-slate-400';
+                    const textClass = isRunning
+                      ? 'text-blue-600'
+                      : isCompleted
+                        ? 'text-emerald-600'
+                        : isFailed
+                          ? 'text-red-500'
+                          : phase.status === 'skipped'
+                            ? 'text-amber-600'
+                            : 'text-slate-400';
+
+                    return (
+                      <div key={phase.key} className="relative flex-1">
+                        {index < progress.phases.length - 1 ? (
+                          <div className={`absolute left-1/2 top-4 h-0.5 w-full ${lineClass}`} />
+                        ) : null}
+                        <div className="relative z-10 flex flex-col items-center px-2 text-center">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${nodeClass}`}>
+                            <PhaseNodeStatusIcon status={phase.status} index={index} />
+                          </div>
+                          <div className={`mt-2 px-1 ${textClass}`}>
+                            <div className="text-xs font-semibold">{phase.label}</div>
+                            <div className="mt-1 flex justify-center">
+                              <PhaseStatusBadge status={phase.status} />
+                            </div>
+                            <div className="mt-1 text-[10px] leading-tight text-slate-500">
+                              {phase.detail || '-'}
+                            </div>
+                            {phase.updated_at && (
+                              <div className="mt-1 text-[10px] text-slate-400">
+                                {fmtTime(phase.updated_at)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">资源使用情况</p>
           {resourceLoading ? (
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -329,6 +442,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [detailLoading, setDetailLoading] = useState(false);
   const [resourceUsage, setResourceUsage] = useState<FirmwareTaskResourceUsage | null>(null);
   const [resourceLoading, setResourceLoading] = useState(false);
+  const [progress, setProgress] = useState<FirmwareTaskProgress | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
@@ -407,8 +522,12 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       const task = await fwApi.getTask(id);
       setTasks((prev) => prev.map((item) => (item.id === id ? task : item)));
       if (activeTaskId === id) {
-        const usage = await fwApi.getTaskResourceUsage(id);
+        const [usage, taskProgress] = await Promise.all([
+          fwApi.getTaskResourceUsage(id),
+          fwApi.getTaskProgress(id),
+        ]);
         setResourceUsage(usage);
+        setProgress(taskProgress);
       }
     } catch {
     } finally {
@@ -425,6 +544,18 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setResourceUsage(null);
     } finally {
       setResourceLoading(false);
+    }
+  }, []);
+
+  const loadTaskProgress = useCallback(async (id: string) => {
+    setProgressLoading(true);
+    try {
+      const next = await fwApi.getTaskProgress(id);
+      setProgress(next);
+    } catch {
+      setProgress(null);
+    } finally {
+      setProgressLoading(false);
     }
   }, []);
 
@@ -469,10 +600,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     if (!activeTaskId) {
       setResourceUsage(null);
       setResourceLoading(false);
+      setProgress(null);
+      setProgressLoading(false);
       return;
     }
     loadResourceUsage(activeTaskId);
-  }, [activeTaskId, loadResourceUsage]);
+    loadTaskProgress(activeTaskId);
+  }, [activeTaskId, loadResourceUsage, loadTaskProgress]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -762,6 +896,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           resourceUsage={resourceUsage}
           resourceLoading={resourceLoading}
           hasReturnContext={hasReturnContext}
+          progress={progress}
+          progressLoading={progressLoading}
           onBack={handleDetailBack}
           onRefresh={refreshOne}
           onCancel={handleCancel}
