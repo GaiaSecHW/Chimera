@@ -132,6 +132,19 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     }
   };
 
+  const deleteTask = async (taskId: string) => {
+    if (!projectId) return;
+    const confirmed = window.confirm('删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？');
+    if (!confirmed) return;
+    setError(null);
+    try {
+      await executionApi.binarySecurity.deleteTask(projectId, taskId);
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '删除失败');
+    }
+  };
+
   useEffect(() => {
     void load();
   }, [projectId, taskType]);
@@ -415,10 +428,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         ) : (
           <div className="mt-5 space-y-4">
             {items.map((item) => (
-              <button
+              <div
                 key={item.id}
-                type="button"
-                onClick={() => onOpenTask(item.id)}
                 className="w-full rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-slate-300 hover:bg-white"
               >
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -457,12 +468,25 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       })}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
-                    查看详情
-                    <ChevronRight size={18} />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onOpenTask(item.id)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700"
+                    >
+                      查看详情
+                      <ChevronRight size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteTask(item.id)}
+                      className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-bold text-rose-700"
+                    >
+                      删除
+                    </button>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
