@@ -30,10 +30,8 @@ import { SystemAnalysisTaskDetailPage } from '../pages/execution/SystemAnalysisT
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
-import { DataflowAnalysisModelsPage } from '../pages/execution/DataflowAnalysisModelsPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
-import { EntryAnalysisModelsPage } from '../pages/execution/EntryAnalysisModelsPage';
 import { WorkflowInstancePage } from '../pages/orchestration/WorkflowInstancePage';
 import { WorkflowInstanceDetailPage } from '../pages/orchestration/WorkflowInstanceDetailPage';
 import { WorkflowInstanceLogsPage } from '../pages/orchestration/WorkflowInstanceLogsPage';
@@ -239,8 +237,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'dataflow-analysis-config':
       return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
-    case 'dataflow-analysis-models':
-      return <DataflowAnalysisModelsPage />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
@@ -313,8 +309,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <EntryAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'entry-analysis-config':
       return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
-    case 'entry-analysis-models':
-      return <EntryAnalysisModelsPage />;
     case 'pentest-exec-code':
       return <ExecutionCodeAuditPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-work':

@@ -2398,6 +2398,8 @@ export interface AppEaTaskItem {
   task_name: string;
   task_description?: string | null;
   input_path: string;
+  source_path?: string | null;
+  module_name?: string | null;
   output_path?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   error?: string | null;
@@ -2408,20 +2410,34 @@ export interface AppEaTaskItem {
   finished_at?: string | null;
 }
 
+export interface AppEaStageEvent {
+  ts: number;
+  type: string;
+  data: Record<string, any>;
+}
+
+export interface AppEaStagesJson {
+  events: AppEaStageEvent[];
+  final?: boolean;
+}
+
 export interface AppEaTaskDetail extends AppEaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
   result_json?: Record<string, any> | null;
+  stages_json?: AppEaStagesJson | null;
+  task_config_json?: Record<string, any> | null;
 }
 
 export interface AppEaTaskCreateRequest {
   project_id: string;
   task_name: string;
-  input_path: string;
+  input_path: string;                // SA输出目录
+  module_name: string;               // 具体模块名
+  source_path?: string;              // 源码根目录
   output_path?: string;
   task_description?: string;
   prompt_template_id?: string;
-  prompt_content?: string;
 }
 
 export interface EntryAnalysisPromptTemplate {
@@ -2493,6 +2509,17 @@ export interface EntryAnalysisModelsConfig {
 
 // ─── Dataflow Analysis Types ──────────────────────────────────────────────────
 
+export interface AppDfaStageEvent {
+  ts: number;
+  type: string;
+  data?: Record<string, any>;
+}
+
+export interface AppDfaStagesJson {
+  events: AppDfaStageEvent[];
+  final?: boolean;
+}
+
 export interface AppDfaTaskItem {
   task_id: string;
   project_id: string;
@@ -2500,8 +2527,11 @@ export interface AppDfaTaskItem {
   task_description?: string | null;
   input_path: string;
   output_path?: string | null;
+  prompt_template_id?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   error?: string | null;
+  stages_json?: AppDfaStagesJson | null;
+  task_config_json?: Record<string, any> | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -2520,6 +2550,7 @@ export interface AppDfaTaskCreateRequest {
   input_path: string;
   output_path?: string;
   task_description?: string;
+  prompt_template_id?: string;
   prompt_content?: string;
 }
 
@@ -2556,22 +2587,5 @@ export interface AppDfaServiceConfig {
   output_dir: string;
   archive_dir: string;
   result_dir: string;
-  updated_at?: string | null;
-}
-
-export interface AppDfaModelEntry {
-  id: string;
-  reasoning: boolean;
-}
-
-export interface AppDfaProviderConfig {
-  baseUrl: string;
-  api: string;
-  apiKey: string;
-  models: AppDfaModelEntry[];
-}
-
-export interface AppDfaModelsConfig {
-  providers: Record<string, AppDfaProviderConfig>;
   updated_at?: string | null;
 }

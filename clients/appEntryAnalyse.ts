@@ -70,12 +70,32 @@ export const appEntryAnalyseApi = {
       headers: getHeaders(),
     })),
 
+  resumeTask: async (taskId: string): Promise<AppEaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/resume`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  deleteTask: async (taskId: string, deleteFiles = true): Promise<void> => {
+    const resp = await fetch(
+      `${BASE}/tasks/${encodeURIComponent(taskId)}?delete_files=${deleteFiles}`,
+      { method: 'DELETE', headers: getHeaders() },
+    );
+    if (!resp.ok) await handleResponse(resp);
+  },
+
+  getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: import('../types/types').AppEaStagesJson }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
+
   generatePrompt: async (inputPath: string): Promise<{ prompt: string }> =>
     handleResponse(await fetch(`${BASE}/generate-prompt`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ input_path: inputPath }),
     })),
+
+  listModules: async (basePath: string): Promise<{ modules: string[]; base_path: string }> =>
+    handleResponse(await fetch(`${BASE}/modules?base_path=${encodeURIComponent(basePath)}`, { headers: getHeaders() })),
 
   // ── Prompts ───────────────────────────────────────────────────────────────
   listPrompts: async (params: {

@@ -136,11 +136,9 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'system-analysis-config',
   'dataflow-analysis-task',
   'dataflow-analysis-config',
-  'dataflow-analysis-models',
   'entry-analysis-root',
   'entry-analysis-task',
   'entry-analysis-config',
-  'entry-analysis-models',
   'binary-security',
   'binary-security-root',
   'binary-security-task-list',
@@ -347,12 +345,10 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-threat', label: '入口分析', icon: Zap, requiresProject: true, subItems: [
           { id: 'entry-analysis-task', label: '任务队列', requiresProject: true },
           { id: 'entry-analysis-config', label: '分析配置', requiresProject: true },
-          { id: 'entry-analysis-models', label: '模型配置', requiresProject: true },
         ] },
         { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, requiresProject: true, subItems: [
           { id: 'dataflow-analysis-task', label: '任务队列', requiresProject: true },
           { id: 'dataflow-analysis-config', label: '分析配置', requiresProject: true },
-          { id: 'dataflow-analysis-models', label: '模型配置', requiresProject: true },
         ] },
         { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, requiresProject: true, subItems: [
           { id: 'pentest-exec-dataflow-vuln-task-list', label: '任务列表', aliases: ['pentest-exec-dataflow-vuln', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
