@@ -145,6 +145,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'aiwf-worker-list',
   'aiwf-worker-control',
   'system-analysis-task',
+  'system-analysis-detail',
   'system-analysis-config',
   'dataflow-analysis-task',
   'dataflow-analysis-config',
@@ -365,7 +366,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           { id: 'pentest-exec-firmware-config', label: '解包配置', requiresProject: true },
         ] },
         { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true, subItems: [
-          { id: 'system-analysis-task', label: '任务队列', requiresProject: true },
+          { id: 'system-analysis-task', label: '任务队列', aliases: ['system-analysis-detail'], requiresProject: true },
           { id: 'system-analysis-config', label: '分析配置', requiresProject: true },
         ] },
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail'], requiresProject: true },

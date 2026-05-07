@@ -76,11 +76,13 @@ const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [runningCount, setRunningCount] = useState(0);
   const [queuedCount, setQueuedCount] = useState(0);
   const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createResult, setCreateResult] = useState<string | null>(null);
@@ -132,17 +134,35 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     }
   };
 
-  const deleteTask = async (taskId: string) => {
+  const deleteTasks = async (taskIds: string[]) => {
     if (!projectId) return;
-    const confirmed = window.confirm('删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？');
+    if (taskIds.length === 0) return;
+    const confirmed = window.confirm(
+      taskIds.length === 1
+        ? '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？'
+        : `将删除选中的 ${taskIds.length} 个任务。删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？`,
+    );
     if (!confirmed) return;
     setError(null);
+    setDeleting(true);
     try {
-      await executionApi.binarySecurity.deleteTask(projectId, taskId);
+      const results = await Promise.allSettled(taskIds.map((taskId) => executionApi.binarySecurity.deleteTask(projectId, taskId)));
+      const failed = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+      if (failed.length > 0) {
+        const first = failed[0]?.reason;
+        throw new Error(first?.message || `删除失败：${failed.length} 个任务未删除成功`);
+      }
+      setSelectedTaskIds((current) => current.filter((id) => !taskIds.includes(id)));
       await load();
     } catch (e: any) {
       setError(e?.message || '删除失败');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const deleteTask = async (taskId: string) => {
+    await deleteTasks([taskId]);
   };
 
   useEffect(() => {
@@ -163,6 +183,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     setName(`${namePrefix}-${ts}`);
   }, [showCreateDialog, name, namePrefix]);
+
+  useEffect(() => {
+    setSelectedTaskIds((current) => current.filter((id) => items.some((item) => item.id === id)));
+  }, [items]);
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -187,6 +211,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     () => Object.values(uploadSpeed).reduce((max, current) => Math.max(max, current || 0), 0),
     [uploadSpeed],
   );
+  const selectedCount = selectedTaskIds.length;
+  const allSelected = items.length > 0 && selectedCount === items.length;
 
   const resetCreateForm = () => {
     setName('');
@@ -417,8 +443,33 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xl font-black text-slate-900">任务列表</h2>
-          <div className="text-sm text-slate-500">共 {items.length} 条</div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-black text-slate-900">任务列表</h2>
+            {items.length > 0 && (
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={(e) => setSelectedTaskIds(e.target.checked ? items.map((item) => item.id) : [])}
+                  className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                />
+                全选
+              </label>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {selectedCount > 0 && (
+              <button
+                type="button"
+                onClick={() => void deleteTasks(selectedTaskIds)}
+                disabled={deleting}
+                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deleting ? '删除中...' : `删除选中 (${selectedCount})`}
+              </button>
+            )}
+            <div className="text-sm text-slate-500">共 {items.length} 条</div>
+          </div>
         </div>
         {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
         {loading && items.length === 0 ? (
@@ -435,6 +486,16 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedTaskIds.includes(item.id)}
+                        onChange={(e) => {
+                          setSelectedTaskIds((current) => (
+                            e.target.checked ? [...new Set([...current, item.id])] : current.filter((id) => id !== item.id)
+                          ));
+                        }}
+                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                      />
                       <h3 className="text-lg font-black text-slate-900">{item.name}</h3>
                       <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
                       {item.status === 'pending' && item.queue_position ? (
@@ -480,7 +541,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <button
                       type="button"
                       onClick={() => void deleteTask(item.id)}
-                      className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-bold text-rose-700"
+                      disabled={deleting}
+                      className="rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       删除
                     </button>
