@@ -157,6 +157,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'binary-security-root',
   'binary-security-task-list',
   'binary-security-detail',
+  'source-security',
+  'source-security-detail',
   'security-assessment',
   'pentest-system',
   'pentest-threat',
@@ -227,6 +229,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (
     view === 'security-assessment' ||
     view.startsWith('binary-security') ||
+    view.startsWith('source-security') ||
     view.startsWith('pentest-') ||
     view.startsWith('entry-analysis-') ||
     view.startsWith('system-analysis-') ||
@@ -355,7 +358,8 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '二进制安全',
       items: [
-        { id: 'binary-security', label: '任务总览', icon: ShieldAlert, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
+        { id: 'binary-security', label: '二进制任务总览', icon: ShieldAlert, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
+        { id: 'source-security', label: '源码扫描任务总览', icon: FileSearch, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, requiresProject: true, subItems: [
           { id: 'pentest-exec-firmware-task-list', label: '任务列表', aliases: ['pentest-exec-firmware-unpacker'], requiresProject: true },
           { id: 'pentest-exec-firmware-config', label: '解包配置', requiresProject: true },

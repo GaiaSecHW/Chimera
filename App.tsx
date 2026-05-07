@@ -43,6 +43,7 @@ const AppShell: React.FC = () => {
   const [activeProcessMonitorServiceKey, setActiveProcessMonitorServiceKey] = useState<string>('');
   const [activeB2STaskId, setActiveB2STaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
+  const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -512,6 +513,7 @@ const AppShell: React.FC = () => {
                     activeProcessMonitorServiceKey,
                     activeB2STaskId,
                     activeBinarySecurityTaskId,
+                    activeSourceSecurityTaskId,
                     activeAiwfDefinitionId,
                     activeAiwfExecutionId,
                     selectedStaticPkgIds,
@@ -524,6 +526,7 @@ const AppShell: React.FC = () => {
                     setActiveAppWorkflowId: (id) => setActiveAppWorkflowId(id),
                     setActiveB2STaskId: (id) => setActiveB2STaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
+                    setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
                     setActiveAiwfDefinitionId: (id) => setActiveAiwfDefinitionId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,
