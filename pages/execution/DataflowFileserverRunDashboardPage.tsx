@@ -18,77 +18,84 @@ import { DATAFLOW_DASHBOARD_MIRROR_CSS } from './DataflowFileserverRunDashboardC
 
 const DASHBOARD_HTML = `
 <div class="dfv-dashboard-root">
-<header id="header">
-  <div class="header-left">
-    <button id="btnBack" class="btn btn-sm" data-action="back">← 返回数据流漏洞挖掘</button>
-    <span class="logo">🛡️</span>
-    <h1>漏洞扫描 Dashboard</h1>
-  </div>
-  <div class="header-right">
-    <label class="toggle-label">
-      <input type="checkbox" id="autoRefresh">
-      <span class="toggle-slider"></span>
-      自动刷新
-    </label>
-    <button id="btnRefresh" class="btn btn-sm" data-action="refresh">↻ 刷新</button>
-  </div>
-</header>
-
 <div id="app">
   <main id="mainContent">
-    <div id="welcomeView" class="welcome">
-      <div class="welcome-icon">📊</div>
-      <h2>正在加载 Run 详情</h2>
-      <p>请稍候，系统正在解析当前历史 Run 的详细信息</p>
-    </div>
+    <div class="page-shell">
+      <div class="page-backbar">
+        <button id="btnBack" class="btn btn-back" data-action="back">← 返回任务列表</button>
+      </div>
 
-    <div id="runDetail" class="run-detail" style="display:none">
-      <div class="detail-header">
-        <div class="detail-title">
-          <h2 id="runName"></h2>
-          <span id="runStatus" class="badge"></span>
-          <span id="runMode" class="badge badge-mode"></span>
+      <section class="page-header-card">
+        <div class="page-header-copy">
+          <p class="page-eyebrow">Dataflow Vulnerability Mining</p>
+          <h1 class="page-title">历史 Run 详情</h1>
+          <p class="page-description">当前详情由微服务后端统一读取 /data 历史目录并以只读模式展示，集中查看当前 Run 的概览、轮次、结果、会话、文件与日志信息。</p>
         </div>
-        <div id="runMeta" class="detail-meta"></div>
-      </div>
-
-      <nav class="tabs">
-        <button class="tab active" data-tab="overview">概览</button>
-        <button class="tab" data-tab="cycles">评审轮次</button>
-        <button class="tab" data-tab="results">漏洞结果</button>
-        <button class="tab" data-tab="sessions">会话记录</button>
-        <button class="tab" data-tab="files">文件浏览</button>
-        <button class="tab" data-tab="log">运行日志</button>
-      </nav>
-
-      <div id="tabOverview" class="tab-content active">
-        <div class="grid-2">
-          <div class="card" id="scoreChart"></div>
-          <div class="card" id="issuesCard"></div>
+        <div class="page-header-actions">
+          <label class="toggle-label">
+            <input type="checkbox" id="autoRefresh">
+            <span class="toggle-slider"></span>
+            自动刷新
+          </label>
+          <button id="btnRefresh" class="btn btn-sm" data-action="refresh">↻ 刷新历史 Run</button>
         </div>
-        <div class="card" id="manifestCard"></div>
-        <div class="card" id="cycleTimeline"></div>
+      </section>
+
+      <div id="welcomeView" class="welcome">
+        <div class="welcome-icon">📊</div>
+        <h2>正在加载历史 Run</h2>
+        <p>请稍候，系统正在整理当前 Run 的概览、轮次、结果、会话、文件与日志信息</p>
       </div>
 
-      <div id="tabCycles" class="tab-content">
-        <div id="cyclesContainer"></div>
-      </div>
+      <div id="runDetail" class="run-detail" style="display:none">
+        <div class="detail-header">
+          <div class="detail-title">
+            <h2 id="runName"></h2>
+            <span id="runStatus" class="badge"></span>
+            <span id="runMode" class="badge badge-mode"></span>
+          </div>
+          <div id="runMeta" class="detail-meta"></div>
+        </div>
 
-      <div id="tabResults" class="tab-content">
-        <div id="resultsContainer"></div>
-      </div>
+        <nav class="tabs">
+          <button class="tab active" data-tab="overview">概览</button>
+          <button class="tab" data-tab="cycles">评审轮次</button>
+          <button class="tab" data-tab="results">漏洞结果</button>
+          <button class="tab" data-tab="sessions">会话记录</button>
+          <button class="tab" data-tab="files">文件浏览</button>
+          <button class="tab" data-tab="log">运行日志</button>
+        </nav>
 
-      <div id="tabSessions" class="tab-content">
-        <div id="sessionsContainer"></div>
-      </div>
+        <div id="tabOverview" class="tab-content active">
+          <div class="grid-2">
+            <div class="card" id="scoreChart"></div>
+            <div class="card" id="issuesCard"></div>
+          </div>
+          <div class="card" id="manifestCard"></div>
+          <div class="card" id="cycleTimeline"></div>
+        </div>
 
-      <div id="tabFiles" class="tab-content">
-        <div id="filesContainer"></div>
-      </div>
+        <div id="tabCycles" class="tab-content">
+          <div id="cyclesContainer"></div>
+        </div>
 
-      <div id="tabLog" class="tab-content">
-        <div class="card">
-          <pre id="logContent" class="log-viewer"></pre>
+        <div id="tabResults" class="tab-content">
+          <div id="resultsContainer"></div>
+        </div>
+
+        <div id="tabSessions" class="tab-content">
+          <div id="sessionsContainer"></div>
+        </div>
+
+        <div id="tabFiles" class="tab-content">
+          <div id="filesContainer"></div>
+        </div>
+
+        <div id="tabLog" class="tab-content">
+          <div class="card log-card">
+            <div id="logToolbar" class="log-toolbar"></div>
+            <pre id="logContent" class="log-viewer"></pre>
+          </div>
         </div>
       </div>
     </div>
@@ -125,6 +132,957 @@ const DASHBOARD_HTML = `
 </div>
 </div>
 `;
+
+const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
+/* SecFlow visual refresh */
+:host {
+  display: block;
+  --bg: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-hover: #f8fafc;
+  --bg-active: #ecfeff;
+  --border: #dbe4ee;
+  --border-accent: #0891b2;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #94a3b8;
+  --text-bright: #020617;
+  --primary: #0891b2;
+  --success: #047857;
+  --warning: #b45309;
+  --error: #be123c;
+  --info: #0369a1;
+  --purple: #7c3aed;
+  --orange: #c2410c;
+  --radius: 18px;
+  --line-height: 20px;
+  --mono: 'SFMono-Regular', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+:host, .dfv-dashboard-root {
+  background:
+    radial-gradient(circle at top left, rgba(6, 182, 212, 0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 22%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: var(--text);
+}
+
+* {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.dfv-dashboard-root {
+  font-family: var(--sans);
+  font-size: 13px;
+  overflow: visible;
+  height: auto;
+  min-height: 100%;
+}
+
+#header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: auto;
+  min-height: 68px;
+  padding: 16px 22px;
+  background: rgba(248, 250, 252, 0.92);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(14px);
+}
+
+.header-left,
+.header-right {
+  gap: 10px;
+}
+
+.header-left h1 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+}
+
+.logo {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+  box-shadow: inset 0 0 0 1px rgba(8, 145, 178, 0.12);
+  font-size: 18px;
+}
+
+#app {
+  display: block;
+  height: auto;
+  min-height: calc(100% - 68px);
+}
+
+#mainContent {
+  padding: 24px;
+  overflow: visible;
+}
+
+.page-shell {
+  max-width: 1800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-backbar {
+  display: flex;
+  align-items: center;
+}
+
+.page-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.page-header-copy {
+  min-width: 0;
+}
+
+.page-eyebrow {
+  color: #0e7490;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.page-title {
+  margin-top: 8px;
+  color: #020617;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.page-description {
+  max-width: 72rem;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.page-header-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle-label {
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toggle-slider {
+  background: #cbd5e1;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.26);
+}
+
+.toggle-slider::after {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
+
+.toggle-label input:checked + .toggle-slider {
+  background: #22d3ee;
+}
+
+.btn {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.btn:hover {
+  background: #f8fafc;
+  border-color: #bae6fd;
+  color: var(--text-bright);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.10);
+}
+
+.btn-sm {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.btn-back {
+  padding: 0 16px;
+  color: #334155;
+  font-weight: 900;
+}
+
+.btn-close {
+  color: #64748b;
+  border-radius: 999px;
+}
+
+.btn-close:hover {
+  color: var(--error);
+  background: rgba(244, 63, 94, 0.08);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
+  border-color: transparent;
+}
+
+.welcome,
+.detail-header,
+.card,
+.session-header-card,
+.session-group,
+.modal-content {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+.welcome {
+  min-height: calc(100vh - 210px);
+  padding: 48px 28px;
+  border-radius: 28px;
+  text-align: center;
+}
+
+.welcome-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ecfeff 0%, #e0f2fe 100%);
+  box-shadow: inset 0 0 0 1px rgba(8, 145, 178, 0.10);
+  font-size: 38px;
+  opacity: 1;
+}
+
+.welcome h2 {
+  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-bright);
+}
+
+.welcome p {
+  max-width: 680px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.detail-header {
+  margin-bottom: 18px;
+  padding: 22px 24px;
+  border-radius: 26px;
+}
+
+.detail-title {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.detail-title h2 {
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--text-bright);
+}
+
+.detail-meta {
+  gap: 10px 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.detail-meta span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.tabs {
+  gap: 10px;
+  margin-bottom: 18px;
+  border-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tab:hover {
+  color: var(--text-bright);
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(186, 230, 253, 0.92);
+}
+
+.tab.active {
+  color: var(--text-bright);
+  background: #ffffff;
+  border-bottom-color: #bae6fd;
+  border-color: #bae6fd;
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.10);
+}
+
+.tab-danger {
+  margin-left: auto;
+  background: rgba(255, 241, 242, 0.96);
+  color: var(--error) !important;
+}
+
+.tab-danger:hover {
+  background: #ffe4e6;
+}
+
+.card {
+  margin-bottom: 18px;
+  padding: 20px;
+  border-radius: 24px;
+}
+
+.card-title {
+  margin-bottom: 12px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.badge {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.badge-completed, .badge-succeeded, .badge-passed {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: var(--success);
+}
+
+.badge-failed, .badge-interrupted, .badge-cancelled, .badge-stopped,
+.badge-review_error, .badge-review_plateau, .badge-summary_incomplete,
+.badge-runtime_output_limit, .badge-runtime_timeout, .badge-blocked_context_window,
+.badge-blocked_quota, .badge-provider_rate_limited, .badge-model_contract_violation,
+.badge-no_workspace, .badge-error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: var(--error);
+}
+
+.badge-running {
+  background: #ecfeff;
+  border-color: #a5f3fc;
+  color: var(--primary);
+}
+
+.badge-unknown, .badge-pending, .badge-queued {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.badge-mode {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #5b21b6;
+}
+
+.badge-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: var(--warning);
+}
+
+.manifest-grid {
+  gap: 12px;
+}
+
+.manifest-grid > div,
+.cycle-metrics,
+.issue-item,
+.review-card,
+.call-row,
+.file-row,
+.accordion-header,
+.accordion-body,
+.progress-stat {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.manifest-grid > div {
+  padding: 12px;
+  border-radius: 18px;
+}
+
+.metric-num {
+  color: var(--text-bright);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.cycle-row {
+  padding: 12px 0;
+  border-bottom-color: #e2e8f0;
+  font-size: 12px;
+}
+
+.score-pill {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #ffffff;
+  border-color: #dbe4ee;
+}
+
+.issue-item {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid #fde68a;
+  border-left-width: 1px;
+  border-radius: 16px;
+}
+
+.issue-item.framework-issue {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.issue-id {
+  color: #b45309;
+}
+
+.review-card {
+  margin-bottom: 10px;
+  padding: 14px;
+  border-left-width: 1px;
+  border-radius: 18px;
+}
+
+.review-card.passed {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.review-card.failed {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.result-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+}
+
+.result-card:hover {
+  border-color: #67e8f9;
+  box-shadow: 0 16px 28px rgba(14, 165, 233, 0.08);
+}
+
+.result-card-muted {
+  background: #f8fafc;
+}
+
+.result-name {
+  font-size: 14px;
+  color: var(--text-bright);
+}
+
+.result-title {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.session-group {
+  margin-bottom: 16px;
+  padding: 18px;
+  border-radius: 22px;
+}
+
+.session-name,
+.file-group-title {
+  color: var(--text-bright);
+  font-size: 13px;
+}
+
+.call-row {
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.log-viewer {
+  max-height: calc(100vh - 240px);
+  padding: 18px;
+  border-radius: 18px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid #1e293b;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+}
+
+.log-card {
+  padding-top: 16px;
+}
+
+.log-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.log-toolbar-copy {
+  min-width: 0;
+}
+
+.log-toolbar-title {
+  color: var(--text-bright);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.log-toolbar-desc {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.log-toolbar-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.log-mode-badge.full {
+  background: #ecfeff;
+  border-color: #a5f3fc;
+  color: #0f766e;
+}
+
+.modal {
+  background: rgba(15, 23, 42, 0.30);
+  backdrop-filter: blur(10px);
+}
+
+.modal-content {
+  border-radius: 28px;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom-color: #e2e8f0;
+  color: var(--text-bright);
+  font-size: 13px;
+}
+
+.modal-body {
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.modal-body pre {
+  padding: 14px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.modal-body code,
+.markdown-content code {
+  background: #eff6ff;
+  color: #075985;
+}
+
+.modal-body th,
+.modal-body td,
+.markdown-content th,
+.markdown-content td {
+  border-color: #dbe4ee;
+}
+
+.modal-body th,
+.markdown-content th {
+  background: #f8fafc;
+}
+
+.accordion-header {
+  padding: 12px 14px;
+  border-radius: 18px;
+}
+
+.accordion-header:hover {
+  border-color: #67e8f9;
+}
+
+.accordion-body {
+  padding: 14px;
+  border-radius: 0 0 18px 18px;
+}
+
+.file-toolbar {
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.file-toolbar input {
+  padding: 10px 12px;
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  font-size: 12px;
+}
+
+.file-toolbar input:focus {
+  border-color: #67e8f9;
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+}
+
+.file-row {
+  grid-template-columns: minmax(0, 1fr) 96px 88px;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.file-row:hover {
+  border-color: #67e8f9;
+}
+
+.action-link {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.action-link:hover,
+.link:hover {
+  color: #155e75;
+}
+
+.empty-state {
+  padding: 30px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.link,
+.text-primary {
+  color: #0f766e;
+}
+
+.text-success {
+  color: var(--success);
+}
+
+.text-error {
+  color: var(--error);
+}
+
+.session-header-card {
+  padding: 22px;
+  margin-bottom: 18px;
+  border-radius: 24px;
+}
+
+.session-header-card h1 {
+  margin-bottom: 16px;
+  color: var(--text-bright);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.session-header-info {
+  gap: 6px;
+}
+
+.info-label {
+  min-width: 110px;
+  color: #64748b;
+}
+
+.info-value {
+  color: var(--text);
+}
+
+.session-progress-bar {
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0 0;
+  margin-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 0;
+}
+
+.progress-stat {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.progress-num {
+  color: var(--text-bright);
+  font-size: 16px;
+}
+
+.model-change-event,
+.thinking-level-event {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #475569;
+}
+
+.model-name {
+  color: #075985;
+}
+
+.user-message {
+  background: linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%);
+  color: var(--text);
+  border: 1px solid #bae6fd;
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.08);
+}
+
+.user-message .message-timestamp {
+  color: #0f766e;
+  opacity: 1;
+}
+
+.assistant-message {
+  padding: 12px 0;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.assistant-message .message-timestamp {
+  padding: 0 18px;
+  margin-bottom: 8px;
+  color: #94a3b8;
+}
+
+.assistant-text-content,
+.thinking-block {
+  padding: 0 18px 18px;
+}
+
+.message-timestamp + .assistant-text-content,
+.message-timestamp + .thinking-block {
+  padding-top: 0;
+}
+
+.thinking-text,
+.thinking-collapsed {
+  color: #64748b;
+}
+
+.thinking-toggle-btn {
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tool-execution {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+}
+
+.tool-execution.pending {
+  background: #eff6ff;
+}
+
+.tool-execution.success {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+}
+
+.tool-execution.error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.tool-header,
+.tool-name,
+.tool-command {
+  color: var(--text-bright);
+}
+
+.tool-path {
+  color: #0f766e;
+}
+
+.tool-output,
+.tool-result-output {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #dbe4ee;
+  color: #334155;
+}
+
+.tool-result-message {
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  border-radius: 18px;
+}
+
+.tool-result-message.has-error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  color: var(--text-bright);
+}
+
+.markdown-content blockquote {
+  border-left-color: #cbd5e1;
+  color: #64748b;
+}
+
+@media (max-width: 960px) {
+  #mainContent {
+    padding: 18px;
+  }
+
+  .page-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .detail-header,
+  .card,
+  .session-header-card,
+  .session-group {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .detail-title h2,
+  .session-header-card h1 {
+    font-size: 20px;
+  }
+
+  .file-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .call-row {
+    flex-wrap: wrap;
+  }
+
+  .log-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .log-toolbar-actions {
+    width: 100%;
+  }
+
+  .detail-meta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+`;
+
+const DATAFLOW_DASHBOARD_STYLES = `${DATAFLOW_DASHBOARD_MIRROR_CSS}\n${DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS}`;
 
 const normalizeProjectPath = (value: string) => {
   const text = String(value || '/').trim() || '/';
@@ -293,6 +1251,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       files: DataflowFileserverRunFile[];
       logLoaded: boolean;
       log: string;
+      fullLogLoaded: boolean;
+      fullLog: string;
+      logMode: 'tail' | 'full';
       cycleDetails: Record<string, Record<string, any>>;
       cycleDetailPromises: Record<string, Promise<Record<string, any>>>;
       allCycleDetailsLoaded: boolean;
@@ -333,6 +1294,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           files: [],
           logLoaded: false,
           log: '',
+          fullLogLoaded: false,
+          fullLog: '',
+          logMode: 'tail',
           cycleDetails: {},
           cycleDetailPromises: {},
           allCycleDetailsLoaded: false,
@@ -397,6 +1361,26 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           if (refreshButton) {
             event.preventDefault();
             void this.refresh({ forceActiveTabReload: true });
+            return;
+          }
+
+          const loadFullLogButton = target.closest('[data-action="load-log-full"]') as HTMLElement | null;
+          if (loadFullLogButton) {
+            event.preventDefault();
+            if (!this.currentRun) return;
+            const runCache = this.getRunCache(this.currentRun);
+            runCache.logMode = 'full';
+            void this.loadLog();
+            return;
+          }
+
+          const showTailLogButton = target.closest('[data-action="show-log-tail"]') as HTMLElement | null;
+          if (showTailLogButton) {
+            event.preventDefault();
+            if (!this.currentRun) return;
+            const runCache = this.getRunCache(this.currentRun);
+            runCache.logMode = 'tail';
+            void this.loadLog();
             return;
           }
 
@@ -526,11 +1510,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return (this.root.querySelector('.tab.active[data-tab]') as HTMLElement | null)?.dataset.tab || 'overview';
     },
 
-    refreshActiveTabContent() {
+    refreshActiveTabContent(force = false) {
       const activeTab = this.getActiveTab();
-      if (activeTab === 'sessions') this.loadSessions();
-      if (activeTab === 'files') this.loadFiles();
-      if (activeTab === 'log') this.loadLog();
+      if (activeTab === 'sessions') this.loadSessions(force);
+      if (activeTab === 'files') this.loadFiles(force);
+      if (activeTab === 'log') this.loadLog(force);
     },
 
     async preloadAllCycleDetails(name: string, data: DataflowFileserverRunOverview, force = false) {
@@ -710,6 +1694,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const resultsContainer = this.$('resultsContainer');
       const sessionsContainer = this.$('sessionsContainer');
       const filesContainer = this.$('filesContainer');
+      const logToolbar = this.$('logToolbar');
       const logContent = this.$('logContent');
       if (scoreChart) scoreChart.innerHTML = loadingCard;
       if (issuesCard) issuesCard.innerHTML = loadingCard;
@@ -719,6 +1704,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (resultsContainer) resultsContainer.innerHTML = emptyCard;
       if (sessionsContainer) sessionsContainer.innerHTML = emptyCard;
       if (filesContainer) filesContainer.innerHTML = emptyCard;
+      if (logToolbar) {
+        logToolbar.innerHTML = `
+          <div class="log-toolbar-copy">
+            <div class="log-toolbar-title">运行日志</div>
+            <div class="log-toolbar-desc">默认展示日志尾部预览，加载详情后可按需读取完整 run.log。</div>
+          </div>
+          <div class="log-toolbar-actions">
+            <span class="log-mode-badge">尾部预览</span>
+            <button class="btn btn-sm" type="button" disabled>加载全文</button>
+          </div>
+        `;
+      }
       if (logContent) logContent.textContent = '加载中...';
     },
 
@@ -749,8 +1746,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
         runCache.filesLoaded = true;
         runCache.files = Array.isArray(data.files) ? data.files : [];
-        runCache.logLoaded = true;
-        runCache.log = data.run_log || '';
+        if (!runCache.logLoaded) {
+          runCache.log = data.run_log || '';
+        }
         this.currentRunData = data;
         this.currentSummary = {
           name: data.name,
@@ -772,14 +1770,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         };
         this.runSessions = runCache.sessions;
         this.currentFiles = runCache.files;
-        this.runLog = runCache.log;
+        this.runLog = runCache.logMode === 'full' && runCache.fullLogLoaded ? runCache.fullLog : runCache.log;
         this.renderRunDetail(data);
         const welcome = this.$('welcomeView');
         const detail = this.$('runDetail');
         if (welcome) welcome.style.display = 'none';
         if (detail) detail.style.display = 'block';
         void this.preloadAllCycleDetails(name, data, forceActiveTabReload);
-        this.refreshActiveTabContent();
+        this.refreshActiveTabContent(forceActiveTabReload);
       } catch (e: any) {
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const message = e?.message || '加载 Run 失败';
@@ -1518,19 +2516,92 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (input) { input.value = query; input.focus(); }
     },
 
+    renderLogToolbar(runCache: {
+      fullLogLoaded: boolean;
+      logMode: 'tail' | 'full';
+    }, options?: {
+      loading?: 'tail' | 'full' | null;
+      loadError?: string | null;
+    }) {
+      const toolbar = this.$('logToolbar');
+      if (!toolbar) return;
+      const mode = runCache.logMode === 'full' ? 'full' : 'tail';
+      const loading = options?.loading || null;
+      const isFull = mode === 'full';
+      const title = isFull ? '完整日志' : '尾部预览';
+      const description = isFull
+        ? '当前直接展示 /data 中 run.log 的完整内容，首次加载可能稍慢。'
+        : '为保证打开速度，默认只显示 run.log 尾部预览，最多 2000 行。';
+      const button = isFull
+        ? `<button class="btn btn-sm" type="button" data-action="show-log-tail">恢复尾部预览</button>`
+        : `<button class="btn btn-sm" type="button" data-action="load-log-full" ${loading === 'full' ? 'disabled' : ''}>${loading === 'full' ? '正在加载全文...' : '加载全文'}</button>`;
+      const error = options?.loadError
+        ? `<div class="log-toolbar-desc text-error">${this.esc(options.loadError)}</div>`
+        : '';
+      toolbar.innerHTML = `
+        <div class="log-toolbar-copy">
+          <div class="log-toolbar-title">运行日志</div>
+          <div class="log-toolbar-desc">${this.esc(description)}</div>
+          ${error}
+        </div>
+        <div class="log-toolbar-actions">
+          <span class="log-mode-badge ${isFull ? 'full' : ''}">${this.esc(title)}</span>
+          ${button}
+        </div>
+      `;
+    },
+
     async loadLog(force = false) {
       if (!this.currentRun) return;
       const runName = this.currentRun;
       const runCache = this.getRunCache(runName);
       const el = this.$('logContent') as HTMLElement | null;
       if (!el) return;
+      this.renderLogToolbar(runCache);
+
+      if (runCache.logMode === 'full') {
+        if (!force && runCache.fullLogLoaded) {
+          this.runLog = runCache.fullLog;
+          el.textContent = this.runLog || '(empty)';
+          el.scrollTop = 0;
+          this.renderLogToolbar(runCache);
+          return;
+        }
+        if (force) {
+          delete runCache.fileText['run.log'];
+          runCache.fullLogLoaded = false;
+          runCache.fullLog = '';
+        }
+        el.textContent = '正在加载完整日志...';
+        this.renderLogToolbar(runCache, { loading: 'full' });
+        try {
+          const logText = await this.readRunFileText(runName, 'run.log');
+          if (this.currentRun !== runName) return;
+          runCache.fullLogLoaded = true;
+          runCache.fullLog = logText;
+          this.runLog = logText;
+          el.textContent = this.runLog || '(empty)';
+          el.scrollTop = 0;
+          this.renderLogToolbar(runCache);
+        } catch (error) {
+          if (this.currentRun !== runName) return;
+          console.error('load full log failed', error);
+          runCache.logMode = 'tail';
+          el.textContent = runCache.log || '(empty)';
+          this.renderLogToolbar(runCache, { loadError: '完整日志加载失败，已回退到尾部预览。' });
+        }
+        return;
+      }
+
       if (!force && runCache.logLoaded) {
         this.runLog = runCache.log;
         el.textContent = this.runLog || '(empty)';
         el.scrollTop = el.scrollHeight;
+        this.renderLogToolbar(runCache);
         return;
       }
       el.textContent = '加载中...';
+      this.renderLogToolbar(runCache, { loading: 'tail' });
       try {
         const logText = await getDataflowFileserverRunLog(projectId, this.runsRootPath, runName, 2000);
         if (this.currentRun !== runName) return;
@@ -1539,10 +2610,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         this.runLog = logText;
         el.textContent = this.runLog || '(empty)';
         el.scrollTop = el.scrollHeight;
+        this.renderLogToolbar(runCache);
       } catch (error) {
         if (this.currentRun !== runName) return;
         console.error('loadLog failed', error);
         el.textContent = '加载运行日志失败';
+        this.renderLogToolbar(runCache, { loadError: '日志尾部预览加载失败。' });
       }
     },
 
@@ -1790,13 +2863,13 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
     const host = hostRef.current;
     if (!host) return;
     const shadow = host.shadowRoot || host.attachShadow({ mode: 'open' });
-    shadow.innerHTML = `<style>${DATAFLOW_DASHBOARD_MIRROR_CSS}</style>${DASHBOARD_HTML}`;
+    shadow.innerHTML = `<style>${DATAFLOW_DASHBOARD_STYLES}</style>${DASHBOARD_HTML}`;
     let app: ReturnType<typeof createDashboardApp> | null = null;
     const renderInitError = (error: unknown) => {
       const message = error instanceof Error ? error.message : String(error || 'unknown error');
       console.error('DataflowFileserverRunDashboardPage init failed', error);
       shadow.innerHTML = `
-        <style>${DATAFLOW_DASHBOARD_MIRROR_CSS}</style>
+        <style>${DATAFLOW_DASHBOARD_STYLES}</style>
         <div class="dfv-dashboard-root">
           <div id="mainContent">
             <div class="card">
@@ -1840,8 +2913,7 @@ export const DataflowFileserverRunDashboardPage: React.FC<{
     <div
       ref={hostRef}
       style={{
-        height: 'calc(100vh - 80px)',
-        minHeight: 640,
+        minHeight: 'calc(100vh - 80px)',
         width: '100%',
       }}
     />

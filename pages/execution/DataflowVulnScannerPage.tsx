@@ -46,6 +46,7 @@ import {
   DataflowRunFile,
   DataflowSchedulerWorker,
   DataflowTaskArtifacts,
+  DataflowCreateTaskPayload,
 } from '../../clients/dataflowVulnScanner';
 import {
   DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
@@ -83,6 +84,12 @@ const REVIEW_PROFILE_OPTIONS = [
   { value: 'strict', label: '正式报告' },
   { value: 'audit', label: '审计闭环' },
 ];
+const REVIEW_PROFILE_DEFAULT_MAX_CYCLES: Record<string, number> = {
+  fast: 3,
+  balanced: 6,
+  strict: 8,
+  audit: 10,
+};
 const TEMPLATE_OPTIONS = [
   { value: 'vuln_scan_default', label: '单阶段漏洞挖掘' },
   { value: 'full_pipeline', label: '完整分析流水线' },
@@ -473,6 +480,87 @@ const initialCreateTaskState = (): CreateTaskState => ({
   runtimeOverridesText: '',
 });
 
+const applyConfigPayloadToCreateTaskState = (
+  state: CreateTaskState,
+  configPayload: DataflowProfileConfigPayload
+): CreateTaskState => ({
+  ...state,
+  model: configPayload.model,
+  thinking: configPayload.thinking,
+  reviewProfile: configPayload.review_profile || 'balanced',
+  maxReviewCycles: configPayload.max_review_cycles,
+  workerTimeout: configPayload.worker_timeout,
+  advisorTimeout: configPayload.advisor_timeout,
+  resultReviewConcurrency: configPayload.result_review_concurrency,
+});
+
+const isCreateTaskConfigUntouched = (state: CreateTaskState) => {
+  const defaults = defaultConfigPayload();
+  return (
+    !state.provider.trim()
+    && state.model === defaults.model
+    && state.thinking === defaults.thinking
+    && state.reviewProfile === (defaults.review_profile || 'balanced')
+    && state.maxReviewCycles === defaults.max_review_cycles
+    && state.workerTimeout === defaults.worker_timeout
+    && state.advisorTimeout === defaults.advisor_timeout
+    && state.resultReviewConcurrency === defaults.result_review_concurrency
+    && !state.runtimeOverridesText.trim()
+  );
+};
+
+const resolveDefaultProfile = (profiles: DataflowScanProfile[]) =>
+  profiles.find((item) => item.is_default && item.enabled)
+  || profiles.find((item) => item.is_default)
+  || profiles.find((item) => item.enabled)
+  || null;
+
+const buildCreateTaskConfigOverrides = (
+  state: CreateTaskState,
+  baseline: DataflowProfileConfigPayload,
+  options: { suppressHardcodedDefaults?: boolean } = {}
+): Partial<DataflowCreateTaskPayload> => {
+  const overrides: Partial<DataflowCreateTaskPayload> = {};
+  const hardcodedDefaults = options.suppressHardcodedDefaults ? defaultConfigPayload() : null;
+  const shouldSend = <T,>(value: T, baselineValue: T, hardcodedValue?: T) =>
+    value !== baselineValue && (!hardcodedDefaults || value !== hardcodedValue);
+  const model = state.model.trim();
+  const provider = state.provider.trim();
+  if (provider) {
+    overrides.provider = provider;
+    if (model) overrides.model = model;
+  } else if (model && shouldSend(model, baseline.model, hardcodedDefaults?.model)) {
+    overrides.model = model;
+  }
+  if (state.thinking && shouldSend(state.thinking, baseline.thinking, hardcodedDefaults?.thinking)) {
+    overrides.thinking = state.thinking;
+  }
+  if (state.reviewProfile && shouldSend(
+    state.reviewProfile,
+    baseline.review_profile || 'balanced',
+    hardcodedDefaults?.review_profile || 'balanced'
+  )) {
+    overrides.review_profile = state.reviewProfile;
+  }
+  if (shouldSend(state.maxReviewCycles, baseline.max_review_cycles, hardcodedDefaults?.max_review_cycles)) {
+    overrides.max_review_cycles = state.maxReviewCycles;
+  }
+  if (shouldSend(state.workerTimeout, baseline.worker_timeout, hardcodedDefaults?.worker_timeout)) {
+    overrides.worker_timeout = state.workerTimeout;
+  }
+  if (shouldSend(state.advisorTimeout, baseline.advisor_timeout, hardcodedDefaults?.advisor_timeout)) {
+    overrides.advisor_timeout = state.advisorTimeout;
+  }
+  if (shouldSend(
+    state.resultReviewConcurrency,
+    baseline.result_review_concurrency,
+    hardcodedDefaults?.result_review_concurrency
+  )) {
+    overrides.result_review_concurrency = state.resultReviewConcurrency;
+  }
+  return overrides;
+};
+
 export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution.dataflowVulnScanner;
   const navigate = useNavigate();
@@ -520,8 +608,18 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     if (profilesLoaded && !options?.force) return;
     setProfilesLoading(true);
     try {
-      setProfiles(await executionApi.listProfiles(projectId));
+      const nextProfiles = await executionApi.listProfiles(projectId);
+      setProfiles(nextProfiles);
       setProfilesLoaded(true);
+      const defaultProfile = resolveDefaultProfile(nextProfiles);
+      if (showCreate && defaultProfile) {
+        const defaultProfilePayload = normalizeConfigPayload(defaultProfile.config_payload);
+        setCreateState((current) => (
+          current.profileId || !isCreateTaskConfigUntouched(current)
+            ? current
+            : applyConfigPayloadToCreateTaskState(current, defaultProfilePayload)
+        ));
+      }
     } catch (error: any) {
       setProfiles([]);
       notify(`加载数据流漏洞挖掘 Profile 失败: ${error?.message || error || '未知错误'}`, 'error');
@@ -592,10 +690,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       notify('请输入任务标题', 'warning');
       return;
     }
-    if (!createState.workspacePath.trim()) {
-      notify('请选择总工作目录', 'warning');
-      return;
-    }
     if (!createState.dataFlowPath.trim()) {
       notify('请选择数据流文件路径', 'warning');
       return;
@@ -608,24 +702,25 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     setSubmitting(true);
     try {
       const runtimeOverrides = parseJsonObject(createState.runtimeOverridesText, '运行时覆盖');
-      const created = await executionApi.createTask({
+      const selectedProfile = createState.profileId
+        ? profiles.find((item) => item.profile_id === createState.profileId)
+        : resolveDefaultProfile(profiles);
+      const baselinePayload = normalizeConfigPayload(selectedProfile?.config_payload);
+      const configOverrides = buildCreateTaskConfigOverrides(createState, baselinePayload, {
+        suppressHardcodedDefaults: !createState.profileId,
+      });
+      const createPayload: DataflowCreateTaskPayload = {
         project_id: projectId,
         profile_id: createState.profileId || undefined,
         title: createState.title.trim(),
-        workspace_dir: buildProjectFilesystemRef(createState.workspacePath),
         data_flow: buildProjectFilesystemRef(createState.dataFlowPath),
         source_dir: buildProjectFilesystemRef(createState.sourcePath),
-        model: createState.model.trim() || undefined,
-        provider: createState.provider.trim() || undefined,
-        thinking: createState.thinking,
-        review_profile: createState.reviewProfile,
-        max_review_cycles: createState.maxReviewCycles,
-        worker_timeout: createState.workerTimeout,
-        advisor_timeout: createState.advisorTimeout,
-        result_review_concurrency: createState.resultReviewConcurrency,
         priority: createState.priority,
-        runtime_overrides: runtimeOverrides,
-      });
+        ...(createState.workspacePath.trim() ? { workspace_dir: buildProjectFilesystemRef(createState.workspacePath) } : {}),
+        ...configOverrides,
+        ...(Object.keys(runtimeOverrides).length ? { runtime_overrides: runtimeOverrides } : {}),
+      };
+      const created = await executionApi.createTask(createPayload);
       notify('扫描任务已创建并进入调度队列', 'success');
       setShowCreate(false);
       setCreateState(initialCreateTaskState());
@@ -648,7 +743,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         >
           <button
             onClick={() => {
-              setCreateState(initialCreateTaskState());
+              const defaultProfile = resolveDefaultProfile(profiles);
+              const initialState = initialCreateTaskState();
+              setCreateState(defaultProfile
+                ? applyConfigPayloadToCreateTaskState(initialState, normalizeConfigPayload(defaultProfile.config_payload))
+                : initialState);
               setShowCreate(true);
               void loadProfiles();
             }}
@@ -2290,12 +2389,12 @@ const CreateTaskDialog: React.FC<{
 
   const pickerMode = pickerField === 'dataFlowPath' ? 'file' : 'directory';
   const pickerTitle = pickerField === 'workspacePath'
-    ? '选择总工作目录'
+    ? '选择 Runs 根目录'
     : pickerField === 'dataFlowPath'
       ? '选择数据流文件'
       : '选择代码目录';
   const pickerDescription = pickerField === 'workspacePath'
-    ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择每次执行的工作目录模板。系统会在该目录下按 execution_id 生成实际工作区。'
+    ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择 run_vuln_scan.py 的 --runs-root。系统会在该目录下创建与历史 Run 同构的扫描目录。'
     : pickerField === 'dataFlowPath'
       ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择数据流分析结果文件。'
       : '从数据流漏洞挖掘服务直接挂载的 /data 中选择要审计的代码目录。';
@@ -2373,14 +2472,14 @@ const CreateTaskDialog: React.FC<{
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-2 text-sm font-black text-slate-900">
                   <FolderOpen size={16} />
-                  总工作目录
+                  Runs 根目录（可选）
                 </div>
-                <div className="mt-2 text-xs leading-5 text-slate-500">每次执行会在这个目录下按 execution_id 创建独立工作区。</div>
+                <div className="mt-2 text-xs leading-5 text-slate-500">填写后会作为 run_vuln_scan.py 的 --runs-root；留空则使用项目默认 DATAFLOW_VULN_SCANNER/runs。</div>
                 <div className="mt-3 flex gap-2">
                   <input
                     value={state.workspacePath}
                     onChange={(event) => onChange({ ...state, workspacePath: event.target.value })}
-                    placeholder="/case-a/workspace"
+                    placeholder="/DATAFLOW_VULN_SCANNER/runs"
                     className={FORM_INPUT_CLASS}
                   />
                   <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
@@ -2445,7 +2544,18 @@ const CreateTaskDialog: React.FC<{
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">Review Profile</span>
-                <select value={state.reviewProfile} onChange={(event) => onChange({ ...state, reviewProfile: event.target.value })} className={FORM_INPUT_CLASS}>
+                <select
+                  value={state.reviewProfile}
+                  onChange={(event) => {
+                    const nextProfile = event.target.value;
+                    onChange({
+                      ...state,
+                      reviewProfile: nextProfile,
+                      maxReviewCycles: REVIEW_PROFILE_DEFAULT_MAX_CYCLES[nextProfile] || state.maxReviewCycles,
+                    });
+                  }}
+                  className={FORM_INPUT_CLASS}
+                >
                   {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
