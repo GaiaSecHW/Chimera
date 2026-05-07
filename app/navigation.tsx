@@ -360,7 +360,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '二进制安全',
       items: [
         { id: 'binary-security', label: '二进制任务总览', icon: ShieldAlert, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
-        { id: 'source-security', label: '源码扫描任务总览', icon: FileSearch, aliases: ['source-security-detail'], requiresProject: true },
+        { id: 'source-security', label: '源码任务总览', icon: FileSearch, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, requiresProject: true, subItems: [
           { id: 'pentest-exec-firmware-task-list', label: '任务列表', aliases: ['pentest-exec-firmware-unpacker'], requiresProject: true },
           { id: 'pentest-exec-firmware-config', label: '解包配置', requiresProject: true },

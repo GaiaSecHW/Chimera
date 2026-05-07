@@ -3,6 +3,7 @@ import { FolderOpen, Loader2, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppSaTaskItem } from '../../types/types';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 
@@ -172,7 +173,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   };
 
   const handleDelete = async (taskId: string, taskName: string) => {
-    if (!window.confirm(`确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`)) return;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: `确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
     try {
       await appApi.deleteTask(taskId, true);
       notify('任务已删除', 'success');
@@ -211,7 +219,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       notify('请先选择要删除的任务', 'error');
       return;
     }
-    if (!window.confirm(`确定要批量删除 ${taskIds.length} 个任务及其输出文件吗？此操作不可撤销。`)) return;
+    const confirmed = await showConfirm({
+      title: '批量删除任务',
+      message: `确定要批量删除 ${taskIds.length} 个任务及其输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
 
     setBatchDeleting(true);
     let success = 0;

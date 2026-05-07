@@ -4,6 +4,7 @@ import { ChevronRight, Loader2, Plus, RefreshCw, ShieldAlert, Upload } from 'luc
 import { BinarySecurityInputFile, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
+import { showConfirm } from '../../components/DialogService';
 
 interface Props {
   projectId: string;
@@ -137,11 +138,44 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const deleteTasks = async (taskIds: string[]) => {
     if (!projectId) return;
     if (taskIds.length === 0) return;
-    const confirmed = window.confirm(
+    let deleteMessage =
       taskIds.length === 1
         ? '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？'
-        : `将删除选中的 ${taskIds.length} 个任务。删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？`,
-    );
+        : `将删除选中的 ${taskIds.length} 个任务。删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？`;
+
+    if (taskIds.length === 1) {
+      try {
+        const detail = await executionApi.binarySecurity.getTask(projectId, taskIds[0]);
+        const taskIdsByStage = new Map<string, string[]>();
+        (detail.stage_items || []).forEach((item) => {
+          const downstreamTaskId = item.downstream_task_id?.trim();
+          if (!downstreamTaskId) return;
+          const current = taskIdsByStage.get(item.stage_name) || [];
+          if (!current.includes(downstreamTaskId)) current.push(downstreamTaskId);
+          taskIdsByStage.set(item.stage_name, current);
+        });
+        const stageLines = (detail.stage_sequence || stages).map((stageName) => {
+          const ids = taskIdsByStage.get(stageName) || [];
+          return `${formatStageLabel(stageName)}：${ids.length > 0 ? ids.join(', ') : ''}`;
+        });
+        deleteMessage = [
+          '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',
+          '',
+          '将删除的阶段子任务 ID：',
+          ...stageLines,
+        ].join('\n');
+      } catch {
+        // Ignore detail fetch failure and fall back to the generic prompt.
+      }
+    }
+
+    const confirmed = await showConfirm({
+      title: taskIds.length === 1 ? '删除任务' : '批量删除任务',
+      message: deleteMessage,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
     if (!confirmed) return;
     setError(null);
     setDeleting(true);

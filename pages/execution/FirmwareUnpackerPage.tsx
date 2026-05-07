@@ -8,6 +8,7 @@ import { api } from '../../clients/api';
 import { FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 interface Props {
@@ -510,7 +511,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       notify('运行中的任务不能删除，请先停止', 'error');
       return;
     }
-    if (!confirm('确认删除？')) return;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: '确认删除当前解包任务记录吗？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
     try {
       await fwApi.deleteTask(id);
       setTasks((prev) => prev.filter((task) => task.id !== id));
@@ -546,7 +554,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       notify('所选任务中包含运行中任务，请先停止后再删除', 'error');
       return;
     }
-    if (!confirm(`确认删除 ${deletableIds.length} 条记录${runningCount > 0 ? `，并跳过 ${runningCount} 条运行中任务` : ''}？`)) return;
+    const confirmed = await showConfirm({
+      title: '批量删除任务',
+      message: `确认删除 ${deletableIds.length} 条记录${runningCount > 0 ? `，并跳过 ${runningCount} 条运行中任务` : ''}？`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
 
     try {
       await fwApi.batchDelete(deletableIds);

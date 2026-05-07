@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, P
 
 import { api } from '../../clients/api';
 import { AppSaStageEvent, AppSaTaskDetail } from '../../types/types';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -238,7 +239,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
   const handleDelete = async () => {
     if (!detail) return;
-    if (!window.confirm(`确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`)) return;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: `确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
     try {
       await appApi.deleteTask(detail.task_id, true);
       notify('任务已删除', 'success');

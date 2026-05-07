@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareToolEntry } from '../../clients/firmwareUnpacker';
+import { showAlert } from '../../components/DialogService';
 
 interface Props { projectId: string; }
 
@@ -38,7 +39,11 @@ function ConfigRow({
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (e: any) {
-      alert(`保存失败: ${e?.message}`);
+      await showAlert({
+        title: '保存失败',
+        message: e?.message ? `保存失败: ${e.message}` : '保存失败',
+        tone: 'error',
+      });
     } finally {
       setSaving(false);
     }

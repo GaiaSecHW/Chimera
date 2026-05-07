@@ -7,6 +7,7 @@ import { B2STaskDetail } from '../../clients/binaryToSource';
 import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
 import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 import { AppDfaTaskDetail, AppEaTaskDetail, AppSaTaskDetail } from '../../types/types';
+import { showConfirm } from '../../components/DialogService';
 
 interface Props {
   projectId: string;
@@ -293,7 +294,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const runAction = async (action: 'cancel' | 'retry' | 'resume' | 'delete') => {
     if (!projectId || !taskId) return;
     if (action === 'delete') {
-      const confirmed = window.confirm('删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？');
+      const confirmed = await showConfirm({
+        title: '删除任务',
+        message: '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',
+        confirmText: '确认删除',
+        cancelText: '取消',
+        danger: true,
+      });
       if (!confirmed) return;
     }
     setActionLoading(action);
@@ -320,9 +327,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (!summary || !STAGE_RETRY_ALLOWED.has(summary.status)) {
       return;
     }
-    const confirmed = window.confirm(
-      `将重试阶段“${STAGE_LABELS[stageName] || stageName}”。这只会重跑当前阶段，后续阶段结果会保留但标记为过期。是否继续？`,
-    );
+    const confirmed = await showConfirm({
+      title: '重试阶段',
+      message: `将重试阶段“${STAGE_LABELS[stageName] || stageName}”。这只会重跑当前阶段，后续阶段结果会保留但标记为过期。是否继续？`,
+      confirmText: '确认重试',
+      cancelText: '取消',
+    });
     if (!confirmed) return;
     setActionLoading(`stage:${stageName}`);
     try {
