@@ -31,6 +31,7 @@ import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfi
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
+import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
 import { WorkflowInstancePage } from '../pages/orchestration/WorkflowInstancePage';
 import { WorkflowInstanceDetailPage } from '../pages/orchestration/WorkflowInstanceDetailPage';
@@ -98,6 +99,7 @@ export interface ViewRegistryContext {
   activeProcessMonitorServiceKey: string;
   activeB2STaskId: string;
   activeSystemAnalysisTaskId: string;
+  activeEntryAnalysisTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
@@ -110,6 +112,7 @@ export interface ViewRegistryContext {
   setActiveAppWorkflowId: (id: string) => void;
   setActiveB2STaskId: (id: string) => void;
   setActiveSystemAnalysisTaskId: (id: string) => void;
+  setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
@@ -306,7 +309,23 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-threat':
     case 'entry-analysis-root':
     case 'entry-analysis-task':
-      return <EntryAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+      return (
+        <EntryAnalysisTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveEntryAnalysisTaskId(taskId);
+            ctx.setCurrentView('entry-analysis-detail');
+          }}
+        />
+      );
+    case 'entry-analysis-detail':
+      return (
+        <EntryAnalysisTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeEntryAnalysisTaskId}
+          onBack={() => ctx.setCurrentView('entry-analysis-task')}
+        />
+      );
     case 'entry-analysis-config':
       return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-code':

@@ -30,6 +30,7 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   agent_retry_delay: 30,
   pi_max_retries: -1,
   pi_retry_delay: 5,
+  worker_parallel: false,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -83,26 +84,17 @@ const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: st
 };
 
 const AgentInstanceList: React.FC<{ agents: EntryAnalysisAgentInstance[]; modelOptions: string[]; onChange: (agents: EntryAnalysisAgentInstance[]) => void }> = ({ agents, modelOptions, onChange }) => {
-  const add = () => onChange([...agents, { model: '', tools: null, thinking_level: null, system_prompt: null }]);
+  const add = () => onChange([...agents, { model: '', tools: null, thinking_level: null }]);
   const remove = (i: number) => onChange(agents.filter((_, idx) => idx !== i));
   const update = (i: number, p: Partial<EntryAnalysisAgentInstance>) => onChange(agents.map((a, idx) => idx === i ? { ...a, ...p } : a));
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {agents.map((agent, i) => (
-        <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
-            </div>
-            <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <div className="flex-1">
+            <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
           </div>
-          <textarea
-            rows={2}
-            placeholder="System Prompt 覆盖（留空则使用 system_prompt_dir 文件）"
-            value={agent.system_prompt ?? ''}
-            onChange={(e) => update(i, { system_prompt: e.target.value || null })}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 placeholder-slate-300 resize-y font-mono"
-          />
+          <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
         </div>
       ))}
       <button onClick={add} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
@@ -120,14 +112,6 @@ const RoleConfigBlock: React.FC<{
   onChange: (v: EntryAnalysisRoleConfig) => void;
 }> = ({ title, subtitle, modelOptions, value, onChange }) => (
   <SectionCard title={title} subtitle={subtitle}>
-    <div className="grid grid-cols-2 gap-4">
-      <FieldRow label="default_model" hint="兜底模型（实例未指定时使用）">
-        <ModelSelect value={value.default_model ?? ''} options={modelOptions} onChange={(v) => onChange({ ...value, default_model: v })} />
-      </FieldRow>
-      <FieldRow label="system_prompt_dir" hint="Prompt 文件目录（可留空）">
-        <TextInput value={value.system_prompt_dir ?? ''} placeholder="./prompts/workers" onChange={(v) => onChange({ ...value, system_prompt_dir: v })} />
-      </FieldRow>
-    </div>
     <FieldRow label="Agent 实例列表">
       <AgentInstanceList agents={value.agents ?? []} modelOptions={modelOptions} onChange={(agents) => onChange({ ...value, agents })} />
     </FieldRow>
@@ -237,6 +221,44 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proje
               <FieldRow label="min_rounds" hint="最少通过轮数"><NumberInput value={config.min_rounds} min={1} max={20} onChange={(v) => patch({ min_rounds: v })} /></FieldRow>
               <FieldRow label="pass_threshold" hint="通过所需裁判数"><NumberInput value={config.pass_threshold} min={1} max={10} onChange={(v) => patch({ pass_threshold: v })} /></FieldRow>
             </div>
+            <FieldRow label="并行 Worker 模式" hint="开启后 Workers 中的多个实例同时运行，各自分析一个文件分片">
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="inline-flex cursor-pointer items-center gap-3">
+                  <div className="relative">
+                    <input type="checkbox" className="peer sr-only" checked={config.worker_parallel} onChange={(e) => patch({ worker_parallel: e.target.checked })} />
+                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                  </div>
+                  <span className="text-sm text-slate-600">
+                    {config.worker_parallel
+                      ? <span className="font-semibold text-violet-700">并行模式</span>
+                      : <span className="text-slate-400">串行模式</span>}
+                  </span>
+                </label>
+                {config.worker_parallel && (
+                  <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                    并行数量
+                    <input
+                      type="number"
+                      min={1}
+                      max={32}
+                      value={config.workers.agents?.length ?? 1}
+                      onChange={(e) => {
+                        const n = Math.max(1, Math.min(32, Number(e.target.value) || 1));
+                        const cur = config.workers.agents ?? [];
+                        const defaultModel = cur[0]?.model ?? '';
+                        const next = Array.from({ length: n }, (_, i) =>
+                          cur[i] ?? { model: defaultModel, tools: null, thinking_level: null }
+                        );
+                        patch({ workers: { ...config.workers, agents: next } });
+                      }}
+                      className="w-20 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                    />
+                    <span className="text-xs text-slate-400">个 Worker</span>
+                  </label>
+                )}
+              </div>
+            </FieldRow>
           </SectionCard>
 
           {/* 重试配置 */}
@@ -252,7 +274,9 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proje
           {/* Workers */}
           <RoleConfigBlock
             title="Workers 配置"
-            subtitle="串行逐文件分析 — 仅使用第一个实例（agents[0]），多余实例无效"
+            subtitle={config.worker_parallel
+              ? `并行模式 — 实例列表中每一项对应一个并行 Worker，各自分析 1/${config.workers.agents?.length || 1} 的文件`
+              : '串行模式 — 仅使用 agents[0]，多余实例无效'}
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}

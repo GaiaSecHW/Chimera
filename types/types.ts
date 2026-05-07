@@ -2481,6 +2481,7 @@ export interface EntryAnalysisServiceConfig {
   agent_retry_delay: number;
   pi_max_retries: number;
   pi_retry_delay: number;
+  worker_parallel: boolean;
   workers: EntryAnalysisRoleConfig;
   judges: EntryAnalysisRoleConfig;
   output_dir: string;
