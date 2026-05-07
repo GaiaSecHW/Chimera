@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 
-import { BinarySecurityTaskDetail } from '../../clients/binarySecurity';
+import { BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { api } from '../../clients/api';
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
@@ -11,11 +11,13 @@ import { AppDfaTaskDetail, AppEaTaskDetail, AppSaTaskDetail } from '../../types/
 interface Props {
   projectId: string;
   taskId: string;
+  taskType: BinarySecurityTaskType;
   onBack: () => void;
 }
 
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
-const STAGE_SEQUENCE = [
+const STAGE_RETRY_ALLOWED = new Set(['success', 'failed', 'partial_success', 'cancelled']);
+const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'firmware_unpack',
   'system_analysis',
   'binary_to_source',
@@ -122,7 +124,7 @@ type DownstreamTaskState = {
   error?: string;
 };
 
-export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }) => {
+export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
   const stageFlowRef = useRef<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<BinarySecurityTaskDetail | null>(null);
@@ -131,13 +133,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [selectedStage, setSelectedStage] = useState<string>(STAGE_SEQUENCE[0]);
+  const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
   const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
     mode: 'horizontal',
     cardWidth: 160,
     connectorWidth: 40,
   });
+
+  const stageSequence = useMemo(
+    () => (detail?.stage_sequence?.length ? detail.stage_sequence : DEFAULT_BINARY_STAGE_SEQUENCE),
+    [detail?.stage_sequence],
+  );
+  const isSourceTask = taskType === 'source';
+  const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
 
   const load = async () => {
     if (!projectId || !taskId) return;
@@ -151,10 +160,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       ]);
       setDetail(task);
       setSelectedStage((current) => {
-        if (current && STAGE_SEQUENCE.includes(current)) {
+        const nextStageSequence = task.stage_sequence?.length ? task.stage_sequence : DEFAULT_BINARY_STAGE_SEQUENCE;
+        if (current && nextStageSequence.includes(current)) {
           return current;
         }
-        return task.current_stage && STAGE_SEQUENCE.includes(task.current_stage) ? task.current_stage : STAGE_SEQUENCE[0];
+        return task.current_stage && nextStageSequence.includes(task.current_stage) ? task.current_stage : nextStageSequence[0];
       });
       setTimeline(timelineResp.events || []);
       setArtifacts(artifactsResp);
@@ -255,16 +265,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         return;
       }
 
-      const connectorSlots = STAGE_SEQUENCE.length - 1;
+      const connectorSlots = Math.max(1, stageSequence.length - 1);
       const minConnectorWidth = 40;
       const maxCardWidth = 175;
       const minCardWidth = 138;
-      let cardWidth = Math.min(maxCardWidth, Math.max(minCardWidth, Math.floor((width - connectorSlots * minConnectorWidth) / STAGE_SEQUENCE.length)));
-      let connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * STAGE_SEQUENCE.length) / connectorSlots));
+      let cardWidth = Math.min(maxCardWidth, Math.max(minCardWidth, Math.floor((width - connectorSlots * minConnectorWidth) / Math.max(1, stageSequence.length))));
+      let connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * Math.max(1, stageSequence.length)) / connectorSlots));
 
-      if (cardWidth * STAGE_SEQUENCE.length + connectorWidth * connectorSlots > width) {
-        cardWidth = Math.max(124, Math.floor((width - connectorSlots * minConnectorWidth) / STAGE_SEQUENCE.length));
-        connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * STAGE_SEQUENCE.length) / connectorSlots));
+      if (cardWidth * Math.max(1, stageSequence.length) + connectorWidth * connectorSlots > width) {
+        cardWidth = Math.max(124, Math.floor((width - connectorSlots * minConnectorWidth) / Math.max(1, stageSequence.length)));
+        connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * Math.max(1, stageSequence.length)) / connectorSlots));
       }
 
       setStageFlowLayout({
@@ -278,7 +288,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const observer = new ResizeObserver(() => updateLayout());
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [stageSequence]);
 
   const runAction = async (action: 'cancel' | 'retry' | 'resume') => {
     if (!projectId || !taskId) return;
@@ -295,10 +305,31 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
+  const retryStage = async (stageName: string) => {
+    if (!projectId || !taskId || !detail) return;
+    const summary = detail.stage_summaries.find((item) => item.stage_name === stageName);
+    if (!summary || !STAGE_RETRY_ALLOWED.has(summary.status)) {
+      return;
+    }
+    const confirmed = window.confirm(
+      `将重试阶段“${STAGE_LABELS[stageName] || stageName}”。这只会重跑当前阶段，后续阶段结果会保留但标记为过期。是否继续？`,
+    );
+    if (!confirmed) return;
+    setActionLoading(`stage:${stageName}`);
+    try {
+      await executionApi.binarySecurity.retryStage(projectId, taskId, stageName);
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '阶段重试失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
   const stageCards = useMemo(() => {
     const summaryMap = new Map((detail?.stage_summaries || []).map((stage) => [stage.stage_name, stage]));
     const itemStats = detail?.item_stats || {};
-    return STAGE_SEQUENCE.map((stageName, index) => {
+    return stageSequence.map((stageName, index) => {
       const summary = summaryMap.get(stageName);
       const counts = itemStats[stageName] || {};
       return {
@@ -312,9 +343,17 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         skipped_items: summary?.skipped_items ?? counts.skipped ?? 0,
         running_items: summary?.running_items ?? counts.running ?? 0,
         last_error: summary?.last_error ?? null,
+        has_run: Boolean(summary),
+        retryable: Boolean(summary && STAGE_RETRY_ALLOWED.has(summary.status)),
+        stale: staleStages.has(stageName),
       };
     });
-  }, [detail]);
+  }, [detail, stageSequence]);
+
+  const selectedStageCard = useMemo(
+    () => stageCards.find((stage) => stage.stage_name === selectedStage) || null,
+    [selectedStage, stageCards],
+  );
 
   const filteredStageItems = useMemo(() => {
     if (!detail) return [];
@@ -462,15 +501,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">创建时间：<span className="font-bold text-slate-900">{fmt(detail.created_at)}</span></div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">完成时间：<span className="font-bold text-slate-900">{fmt(detail.finished_at)}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">固件数量：<span className="font-bold text-slate-900">{detail.firmware_item_count}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">已解包/失败：<span className="font-bold text-slate-900">{detail.unpacked_firmware_count} / {detail.failed_firmware_count}</span></div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{isSourceTask ? '源码文件数' : '固件数量'}：<span className="font-bold text-slate-900">{detail.firmware_item_count}</span></div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{isSourceTask ? '入口数量' : '已解包/失败'}：<span className="font-bold text-slate-900">{isSourceTask ? detail.entry_count : `${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</span></div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">高危模块：<span className="font-bold text-slate-900">{detail.high_risk_module_count}</span></div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">漏洞结果：<span className="font-bold text-slate-900">{detail.vuln_result_count}</span></div>
               </div>
             </div>
             <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">输入目录</div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{isSourceTask ? '源码目录' : '输入目录'}</div>
                 <div className="mt-2 break-all font-mono text-xs text-slate-700">{detail.firmware_path}</div>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
@@ -484,11 +523,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <h2 className="text-xl font-black text-slate-900">阶段概览</h2>
-                <p className="mt-1 text-sm text-slate-500">点击任一阶段，下面的阶段任务区会自动只显示该阶段子任务。</p>
-              </div>
-              <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">点击阶段筛选下方任务</span>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">深色卡片表示当前选中</span>
+                <p className="mt-1 text-sm text-slate-500">点击阶段筛选下方子任务；只有已执行结束的阶段允许手动重试。</p>
               </div>
             </div>
 
@@ -496,18 +531,32 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <div className={stageFlowLayout.mode === 'horizontal' ? 'flex items-center pb-2' : 'flex flex-col items-stretch'}>
                 {stageCards.map((stage, index) => (
                   <React.Fragment key={stage.stage_name}>
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setSelectedStage(stage.stage_name)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedStage(stage.stage_name);
+                        }
+                      }}
                       style={stageFlowLayout.mode === 'horizontal' ? { width: `${stageFlowLayout.cardWidth}px` } : undefined}
-                      className={`rounded-[1.75rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${stageFlowLayout.mode === 'horizontal' ? 'shrink-0' : 'w-full'} ${stageNodeTone(stage.status, selectedStage === stage.stage_name)}`}
+                      className={`rounded-[1.75rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${stageFlowLayout.mode === 'horizontal' ? 'shrink-0' : 'w-full'} ${stageNodeTone(stage.status, selectedStage === stage.stage_name)}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">Stage {stage.sequence_no}</div>
                           <div className="mt-2 text-base font-black">{stage.label}</div>
                         </div>
-                        <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
+                          {stage.stale ? (
+                            <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                              已过期
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
                         <div>总数 {stage.total_items}</div>
@@ -518,7 +567,32 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
                         {stage.status}
                       </div>
-                    </button>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        {staleStages.has(stage.stage_name) ? (
+                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700">
+                            结果已过期
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-semibold opacity-70">点击查看子任务</span>
+                        )}
+                        <button
+                          type="button"
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                            STAGE_RETRY_ALLOWED.has(stage.status)
+                              ? 'bg-slate-900 text-white'
+                              : 'bg-slate-200 text-slate-500'
+                          }`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!STAGE_RETRY_ALLOWED.has(stage.status) || actionLoading !== '') return;
+                            void retryStage(stage.stage_name);
+                          }}
+                          disabled={!STAGE_RETRY_ALLOWED.has(stage.status) || actionLoading !== ''}
+                        >
+                          {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
+                        </button>
+                      </div>
+                    </div>
                     {index < stageCards.length - 1 ? (
                       stageFlowLayout.mode === 'horizontal' ? (
                         <div className={`shrink-0 px-3 ${stageConnectorTone(stage.status)}`} style={{ width: `${stageFlowLayout.connectorWidth}px` }}>
@@ -554,6 +628,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
 
             <div className="mt-5 space-y-3">
+              {staleStages.has(selectedStage) ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                  由于上游阶段 {STAGE_LABELS[detail.summary?.stale_from_stage || ''] || detail.summary?.stale_from_stage || '-'} 已重试，当前阶段结果基于旧上游产物。
+                </div>
+              ) : null}
               {filteredStageItems.length === 0 ? (
                 <div className="text-sm text-slate-400">当前筛选下暂无子任务</div>
               ) : filteredStageItems.map((item) => (

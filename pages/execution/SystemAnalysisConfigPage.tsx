@@ -3,6 +3,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import {
+  LlmProviderSummary,
   SystemAnalysisAgentInstance,
   SystemAnalysisRoleConfig,
   SystemAnalysisServiceConfig,
@@ -13,10 +14,38 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 // ─── 常量 ──────────────────────────────────────────────────────────────────────
 
-const TOOL_OPTIONS = ['read', 'bash', 'edit', 'write', 'grep', 'find'];
-const THINKING_LEVELS = ['off', 'low', 'medium', 'high'] as const;
 const WORKER_STAGES = ['explore', 'classify', 'refine', 'sub_read', 'analyse', 'report'];
 const JUDGE_STAGES = ['classify', 'refine', 'analyse', 'completeness', 'report'];
+
+/** 各 Worker 阶段的功能说明与模型选型建议 */
+const WORKER_STAGE_DESCS: Record<string, string> = {
+  explore:
+    '目录探索 — 快速扫描目标目录结构，提炼关键词与架构线索，为分类阶段提供上下文。逻辑简单，可使用轻量模型以降低成本；留空则与 classify 共用同一模型。',
+  classify:
+    '全局分类 — 遍历全量文件，按功能划定模块边界并输出带注释的文件清单。需要较强的上下文理解能力，建议配置主力模型。',
+  refine:
+    '模块细分 — 对每个模块进行精细化文件归属与子模块拆分，判断粒度是否合理。推理要求较高，建议与 classify 使用相同或更强的模型。',
+  sub_read:
+    '大文件预读 — 当模块文件数量超出阈值时，对各文件逐一生成摘要，压缩上下文供 analyse 阶段使用。以提取信息为主，可用轻量模型控制成本；留空则与 analyse 共用模型。',
+  analyse:
+    '【核心】STRIDE 安全分析 — 对每个模块执行深度安全威胁分析，识别漏洞、危险函数、可疑行为和攻击面。此阶段质量直接决定最终报告深度，强烈建议配置最强可用模型。',
+  report:
+    '最终报告生成 — 汇总所有模块的分析结果，生成结构化安全报告。建议与 analyse 使用相同强度的模型，确保报告综合质量。',
+};
+
+/** 各 Judge 阶段的功能说明与模型选型建议 */
+const JUDGE_STAGE_DESCS: Record<string, string> = {
+  classify:
+    '分类评审 — 独立评估 Worker 的模块划分是否完整、合理，判断是否需要重新分类。',
+  refine:
+    '细分评审 — 检查模块粒度是否合理，判断是否需要进一步拆分或合并子模块。',
+  analyse:
+    '【核心】安全分析评审 — 对 Worker 的威胁发现进行独立复核，评估发现深度与覆盖面。建议配置能理解安全概念的较强模型。',
+  completeness:
+    '完整性验证 — 最终检查全部模块是否均已完成分析、是否有模块遗漏未分析。通常与 final_check 阶段配合，轮数设为 1。',
+  report:
+    '报告评审 — 评估最终报告的结构、一致性与可读性，决定报告是否达到交付标准。',
+};
 
 // ─── 默认值 ────────────────────────────────────────────────────────────────────
 
@@ -128,63 +157,61 @@ const AgentInstanceList: React.FC<{ agents: SystemAnalysisAgentInstance[]; model
   return (
     <div className="space-y-2">
       {agents.map((agent, i) => (
-        <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 items-start">
-          <FieldRow label="模型" desc="选择模型（来自模型配置页面），或手动输入模型标识符"><ModelSelect value={agent.model} options={modelOptions} allowEmpty onChange={(v) => update(i, { model: v })} emptyLabel="— 选择模型 —" /></FieldRow>
-          <FieldRow label="thinking_level" hint="覆盖角色默认值" desc="null/off=沿用角色默认；low/medium/high=为此实例单独启用链式推理">
-            <select value={agent.thinking_level ?? 'off'} onChange={(e) => update(i, { thinking_level: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
-              {THINKING_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </FieldRow>
-          <FieldRow label="工具（逗号分隔）" hint="留空=沿用角色默认" desc="为此实例单独设置可用工具，覆盖 default_tools">
-            <TextInput value={agent.tools?.join(',') ?? ''} placeholder="read,bash,edit"
-              onChange={(v) => update(i, { tools: v ? v.split(',').map((s) => s.trim()).filter(Boolean) : null })} />
-          </FieldRow>
-          <button onClick={() => remove(i)} className="mt-6 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <div className="flex-1">
+            <ModelSelect value={agent.model} options={modelOptions} allowEmpty onChange={(v) => update(i, { model: v })} emptyLabel="— 选择模型 —" />
+          </div>
+          <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
         </div>
       ))}
       <button onClick={add} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
-        <Plus size={14} /> 添加 Agent 实例
+        <Plus size={14} /> 添加实例
       </button>
     </div>
   );
 };
 
-const StageModelsEditor: React.FC<{ stageNames: string[]; modelOptions: string[]; value: Record<string, string>; onChange: (v: Record<string, string>) => void }> = ({ stageNames, modelOptions, value, onChange }) => (
-  <div className="grid grid-cols-2 gap-3">
+const StageModelsEditor: React.FC<{ stageNames: string[]; modelOptions: string[]; stageDescs?: Record<string, string>; value: Record<string, string>; onChange: (v: Record<string, string>) => void }> = ({ stageNames, modelOptions, stageDescs, value, onChange }) => (
+  <div className="space-y-2">
     {stageNames.map((stage) => (
-      <FieldRow key={stage} label={stage}>
+      <div key={stage} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3 space-y-1.5">
+        <div>
+          <p className="text-sm font-semibold text-slate-800">{stage}</p>
+          {stageDescs?.[stage] && <p className="text-xs text-slate-500 leading-relaxed">{stageDescs[stage]}</p>}
+        </div>
         <ModelSelect value={value[stage] ?? ''} options={modelOptions} allowEmpty
           onChange={(v) => { const next = { ...value }; if (v) next[stage] = v; else delete next[stage]; onChange(next); }} />
-      </FieldRow>
+      </div>
     ))}
   </div>
 );
 
-const RoleConfigBlock: React.FC<{ title: string; subtitle?: string; stageNames: string[]; modelOptions: string[]; value: SystemAnalysisRoleConfig; onChange: (v: SystemAnalysisRoleConfig) => void }> = ({ title, subtitle, stageNames, modelOptions, value, onChange }) => (
+const RoleConfigBlock: React.FC<{
+  title: string;
+  subtitle?: string;
+  stageNames: string[];
+  stageDescs?: Record<string, string>;
+  modelOptions: string[];
+  value: SystemAnalysisRoleConfig;
+  agentDesc?: string;
+  onChange: (v: SystemAnalysisRoleConfig) => void;
+}> = ({ title, subtitle, stageNames, stageDescs, modelOptions, value, agentDesc, onChange }) => (
   <SectionCard title={title} subtitle={subtitle}>
-    <FieldRow label="default_thinking_level"
-      desc="该角色所有实例的默认推理深度。off=直接生成回答（速度最快，适合 explore/classify 等简单阶段）；low/medium/high=启用链式推理（更准确，速度更慢、费用更高），推荐 analyse 阶段使用 medium 或 high。">
-      <SelectInput value={value.default_thinking_level} options={[...THINKING_LEVELS]} onChange={(v) => onChange({ ...value, default_thinking_level: v })} />
+    <FieldRow
+      label="各阶段模型配置"
+      hint="留空则使用实例列表中 agents[0] 的模型"
+      desc="为每个阶段单独指定使用的模型，实现轻量阶段低成本、核心阶段高质量的差异化配置。未指定的阶段回退到下方实例列表的第一个模型。">
+      <StageModelsEditor
+        stageNames={stageNames}
+        modelOptions={modelOptions}
+        stageDescs={stageDescs}
+        value={value.stage_models ?? {}}
+        onChange={(v) => onChange({ ...value, stage_models: v })}
+      />
     </FieldRow>
-    <FieldRow label="default_tools"
-      desc="该角色 Agent 默认可调用的工具集。read=读文件内容；bash=执行 Shell 命令（ls / cat / strings / file 等）；edit=按行修改文件；write=写入新文件；grep=关键词文本搜索；find=文件路径查找。建议至少保留 read 和 bash。">
-      <div className="flex flex-wrap gap-3 mt-1">
-        {TOOL_OPTIONS.map((tool) => (
-          <label key={tool} className="inline-flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
-            <input type="checkbox" checked={(value.default_tools ?? []).includes(tool)}
-              onChange={(e) => { const tools = value.default_tools ?? []; onChange({ ...value, default_tools: e.target.checked ? [...tools, tool] : tools.filter((t) => t !== tool) }); }} />
-            {tool}
-          </label>
-        ))}
-      </div>
-    </FieldRow>
-    <FieldRow label="各阶段模型覆盖（stage_models）" hint="留空则使用 agents[0]"
-      desc="为特定阶段单独指定模型，实现按阶段差异化配置。例如：用轻量模型处理 explore 阶段（快速探索），用高性能模型处理 analyse 和 report 阶段（深度分析），在效果与成本间取得平衡。">
-      <StageModelsEditor stageNames={stageNames} modelOptions={modelOptions} value={value.stage_models ?? {}} onChange={(v) => onChange({ ...value, stage_models: v })} />
-    </FieldRow>
-    <FieldRow label="Agent 实例列表"
-      desc="定义此角色的模型实例列表。可添加多个实例以实现并行运行或多模型对比；第一个实例（agents[0]）为默认模型，stage_models 中未指定的阶段均使用此模型。">
+    <FieldRow
+      label="Agent 实例列表"
+      desc={agentDesc}>
       <AgentInstanceList agents={value.agents ?? []} modelOptions={modelOptions} onChange={(agents) => onChange({ ...value, agents })} />
     </FieldRow>
   </SectionCard>
@@ -207,17 +234,15 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proj
     setConfig((prev) => ({ ...prev, stages: { ...prev.stages, [key]: { ...prev.stages[key], ...p } } }));
 
   useEffect(() => {
-    systemAnalysis.getModels()
-      .then((modelsConfig) => {
-        const opts: string[] = [];
-        for (const [providerKey, provider] of Object.entries(modelsConfig.providers ?? {})) {
-          for (const m of (provider as any).models ?? []) {
-            opts.push(`${providerKey}/${m.id}`);
-          }
-        }
+    api.configCenter.listLlmProviders()
+      .then((res: { items?: LlmProviderSummary[] }) => {
+        const items = Array.isArray(res?.items) ? res.items : [];
+        const opts = items
+          .filter((p) => p.enabled && p.provider_key && p.model)
+          .map((p) => `${p.provider_key}/${p.model}`);
         setModelOptions(opts);
       })
-      .catch(() => { /* silently ignore; TextInput still works */ });
+      .catch(() => { /* 静默忽略，手动输入仍可用 */ });
   }, []);
 
   useEffect(() => {
@@ -358,20 +383,24 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proj
           {/* 4. Workers */}
           <RoleConfigBlock
             title="Workers 配置"
-            subtitle="负责执行分析任务的 Agent 角色。Worker 在每轮中调用工具（读文件、执行命令等）完成实际分析工作，结果提交给 Judge 评审。支持多实例以并行处理不同模块。可用阶段：explore / classify / refine / sub_read / analyse / report"
+            subtitle="负责执行分析任务的 Agent 角色。Worker 在每轮中调用工具（读文件、执行命令等）完成实际分析工作，结果提交给 Judge 评审。"
             stageNames={WORKER_STAGES}
+            stageDescs={WORKER_STAGE_DESCS}
             modelOptions={modelOptions}
             value={config.workers}
+            agentDesc="Worker 默认模型实例。agents[0] 的模型将作为所有未在「各阶段模型配置」中指定阶段的回退模型。通常只需配置一个实例。"
             onChange={(v) => patch({ workers: v })}
           />
 
           {/* 5. Judges */}
           <RoleConfigBlock
             title="Judges 配置"
-            subtitle="负责评审 Worker 输出质量的 Agent 角色。Judge 对 Worker 的分析结果进行独立评估，判断是否足够准确完整，并决定当前阶段是否可以推进。多 Judge 可提高评审可靠性。可用阶段：classify / refine / analyse / completeness / report"
+            subtitle="负责评审 Worker 输出质量的 Agent 角色。多个 Judge 实例会并行独立评审同一内容，按「阶段配置」中的 pass_mode 决定是否通过。"
             stageNames={JUDGE_STAGES}
+            stageDescs={JUDGE_STAGE_DESCS}
             modelOptions={modelOptions}
             value={config.judges}
+            agentDesc="配置参与评审的 Judge 实例。多个实例会并行独立评审同一内容并投票；建议配置 2–3 个实例以获得稳定的多数投票效果。单实例时 majority / all 效果相同。"
             onChange={(v) => patch({ judges: v })}
           />
 

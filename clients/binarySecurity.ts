@@ -8,13 +8,17 @@ export interface BinarySecurityInputFile {
   metadata?: Record<string, any>;
 }
 
+export type BinarySecurityTaskType = 'binary' | 'source';
+
 export interface BinarySecurityTask {
   id: string;
   project_id: string;
+  task_type: BinarySecurityTaskType;
   name: string;
   status: string;
   current_stage?: string | null;
   firmware_path: string;
+  stage_sequence: string[];
   is_queued: boolean;
   queue_position?: number | null;
   dispatcher_instance_id?: string | null;
@@ -118,8 +122,12 @@ export const binarySecurityApi = {
   listTasks: async (
     projectId: string,
     status?: string,
+    taskType?: BinarySecurityTaskType,
   ): Promise<{ total: number; running_count: number; queued_count: number; max_concurrent_tasks: number; items: BinarySecurityTask[] }> => {
-    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (taskType) params.set('task_type', taskType);
+    const q = params.size > 0 ? `?${params.toString()}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),
     });
@@ -159,6 +167,7 @@ export const binarySecurityApi = {
     projectId: string,
     payload: {
       task_id?: string;
+      task_type?: BinarySecurityTaskType;
       name: string;
       description?: string;
       input_files: BinarySecurityInputFile[];
@@ -207,6 +216,14 @@ export const binarySecurityApi = {
 
   retryTask: async (projectId: string, taskId: string) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryStage: async (projectId: string, taskId: string, stageName: string) => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry`, {
       method: 'POST',
       headers: getHeaders(),
     });

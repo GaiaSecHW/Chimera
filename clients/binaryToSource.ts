@@ -152,4 +152,21 @@ export const binaryToSourceApi = {
     });
     return handleResponse(resp);
   },
+
+  deleteTask: async (projectId: string, taskId: string) => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  rerunTask: async (projectId: string, taskId: string, options?: { clean_output?: boolean; cancel_running?: boolean }) => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/rerun`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ clean_output: options?.clean_output ?? true, cancel_running: options?.cancel_running ?? true }),
+    });
+    return handleResponse(resp);
+  },
 };

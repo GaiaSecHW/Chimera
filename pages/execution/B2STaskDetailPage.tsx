@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
 
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
+import { showConfirm } from '../../components/DialogService';
 import { B2SStatsHeader, emptyB2SStats } from './B2SStatsHeader';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
 
@@ -16,6 +17,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const executionApi = api.domains.execution;
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -46,6 +50,72 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       return () => window.clearInterval(timer);
     }
   }, [projectId, taskId, detail?.status]);
+
+  const cancelTask = async () => {
+    if (!projectId || !taskId || cancelling) return;
+    const confirmed = await showConfirm({
+      title: '取消二进制逆向任务',
+      message: '确认取消该二进制逆向任务？\n\n运行中的 item 会请求后端终止，已生成的输入、输出和中间文件会保留。',
+      confirmText: '确认取消',
+      cancelText: '继续运行',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setError(null);
+    setCancelling(true);
+    try {
+      await executionApi.binaryToSource.terminateTask(projectId, taskId);
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '取消任务失败');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const rerunTask = async () => {
+    if (!projectId || !taskId || rerunning) return;
+    const confirmed = await showConfirm({
+      title: '完整重试二进制逆向任务',
+      message: `确认完整重新运行该任务？\n\n任务 ID：${taskId}\n\n系统会先请求终止当前未完成的 job，保留 input 目录，清理各 item 的 output 目录，并重新提交所有 ELF item。旧结果会被覆盖。`,
+      confirmText: '确认重试',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setError(null);
+    setRerunning(true);
+    try {
+      await executionApi.binaryToSource.rerunTask(projectId, taskId, { clean_output: true, cancel_running: true });
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '重试任务失败');
+    } finally {
+      setRerunning(false);
+    }
+  };
+
+  const deleteTask = async () => {
+    if (!projectId || !taskId || deleting) return;
+    const confirmed = await showConfirm({
+      title: '彻底删除二进制逆向任务',
+      message: `确认彻底删除该二进制逆向任务？\n\n任务 ID：${taskId}\n\n此操作会删除 taskId 目录下的所有输入、输出和中间文件，并删除任务记录，且不可恢复。`,
+      confirmText: '确认删除',
+      cancelText: '保留任务',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      await executionApi.binaryToSource.deleteTask(projectId, taskId);
+      onBack();
+    } catch (e: any) {
+      setError(e?.message || '删除任务失败');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const stats = useMemo(() => {
     if (!detail) return emptyB2SStats();
@@ -89,14 +159,49 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
           <ArrowLeft size={16} />
           返回二进制逆向
         </button>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-        >
-          <RefreshCw size={16} />
-          手动刷新
-        </button>
+        <div className="flex items-center gap-3">
+          {detail && !B2S_TERMINAL_STATUSES.has(detail.status) && (
+            <button
+              type="button"
+              onClick={() => void cancelTask()}
+              disabled={cancelling}
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 shadow-sm hover:bg-rose-50 disabled:opacity-50"
+            >
+              {cancelling ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
+              取消任务
+            </button>
+          )}
+          {detail && (
+            <button
+              type="button"
+              onClick={() => void rerunTask()}
+              disabled={rerunning}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-50"
+            >
+              {rerunning ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
+              重试任务
+            </button>
+          )}
+          {detail && (
+            <button
+              type="button"
+              onClick={() => void deleteTask()}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-50"
+            >
+              {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              删除任务
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            <RefreshCw size={16} />
+            手动刷新
+          </button>
+        </div>
       </div>
 
       {error && (

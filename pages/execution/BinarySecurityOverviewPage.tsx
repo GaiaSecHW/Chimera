@@ -1,17 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Loader2, Play, Plus, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
+import { ChevronRight, Loader2, Plus, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityInputFile, BinarySecurityTask } from '../../clients/binarySecurity';
+import { BinarySecurityInputFile, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 
 interface Props {
   projectId: string;
+  taskType: BinarySecurityTaskType;
   onOpenTask: (taskId: string) => void;
 }
 
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
-const STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
+const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
+const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 
 const statusTone = (status: string) => {
   switch (status) {
@@ -71,7 +73,7 @@ const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'vuln_scan', label: '数据流漏洞挖掘最大并行数' },
 ];
 
-export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
+export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
   const [runningCount, setRunningCount] = useState(0);
@@ -89,6 +91,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>({
@@ -100,12 +103,24 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
     vuln_scan: 4,
   });
 
+  const isSourceTask = taskType === 'source';
+  const pageTitle = isSourceTask ? '源码扫描' : '二进制安全';
+  const createTitle = isSourceTask ? '创建源码扫描任务' : '创建二进制安全任务';
+  const emptyLabel = isSourceTask ? '当前项目还没有源码扫描任务。' : '当前项目还没有二进制安全任务。';
+  const namePrefix = isSourceTask ? 'source-security' : 'binary-security';
+  const stages = isSourceTask ? SOURCE_STAGES : BINARY_STAGES;
+
+  const fileKey = (file: File) => {
+    const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
+    return isSourceTask ? (rel || file.name) : file.name;
+  };
+
   const load = async () => {
     if (!projectId) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await executionApi.binarySecurity.listTasks(projectId);
+      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
       setItems(data.items || []);
       setRunningCount(data.running_count || 0);
       setQueuedCount(data.queued_count || 0);
@@ -119,22 +134,22 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
 
   useEffect(() => {
     void load();
-  }, [projectId]);
+  }, [projectId, taskType]);
 
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
     if (!hasActive) return;
     const timer = window.setInterval(() => void load(), 5000);
     return () => window.clearInterval(timer);
-  }, [hasActive, projectId]);
+  }, [hasActive, projectId, taskType]);
 
   useEffect(() => {
     if (!showCreateDialog) return;
     if (name.trim()) return;
     const now = new Date();
     const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-    setName(`binary-security-${ts}`);
-  }, [showCreateDialog, name]);
+    setName(`${namePrefix}-${ts}`);
+  }, [showCreateDialog, name, namePrefix]);
 
   const stats = useMemo(() => {
     const total = items.length;
@@ -169,12 +184,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
     setMaxRetries(2);
     setContinueOnFailure(true);
     setStageParallelism({
-      firmware_unpack: 4,
       system_analysis: 4,
-      binary_to_source: 4,
       entry_analysis: 4,
       dataflow_analysis: 4,
       vuln_scan: 4,
+      ...(isSourceTask ? {} : { firmware_unpack: 4, binary_to_source: 4 }),
     });
     setCreateError(null);
   };
@@ -193,20 +207,21 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
 
   const mergeFiles = (incoming: File[]) => {
     const next = [...files];
-    const names = new Set(next.map((file) => file.name));
+    const names = new Set(next.map((file) => fileKey(file)));
     for (const file of incoming) {
-      if (names.has(file.name)) {
-        setCreateError(`存在重复文件名: ${file.name}`);
+      const nextKey = fileKey(file);
+      if (names.has(nextKey)) {
+        setCreateError(`存在重复${isSourceTask ? '路径' : '文件名'}: ${nextKey}`);
         continue;
       }
-      names.add(file.name);
+      names.add(nextKey);
       next.push(file);
     }
     setFiles(next);
   };
 
   const removeFile = (nameToRemove: string) => {
-    setFiles((current) => current.filter((file) => file.name !== nameToRemove));
+    setFiles((current) => current.filter((file) => fileKey(file) !== nameToRemove));
     setUploadProgress((current) => {
       const next = { ...current };
       delete next[nameToRemove];
@@ -231,9 +246,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
       setCreateError('请选择至少一个输入文件');
       return;
     }
-    const duplicateNames = files.map((file) => file.name).filter((name, index, arr) => arr.indexOf(name) !== index);
+    const duplicateNames = files.map((file) => fileKey(file)).filter((name, index, arr) => arr.indexOf(name) !== index);
     if (duplicateNames.length > 0) {
-      setCreateError(`存在重复文件名: ${duplicateNames[0]}`);
+      setCreateError(`存在重复${isSourceTask ? '路径' : '文件名'}: ${duplicateNames[0]}`);
       return;
     }
     setSubmitting(true);
@@ -242,10 +257,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
         filename: file.name,
         size: file.size,
         content_type: file.type || undefined,
+        relative_path: isSourceTask ? ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name) : undefined,
       }));
       const prepared = await executionApi.binarySecurity.prepareTask(projectId);
       const created = await executionApi.binarySecurity.createTask(projectId, {
         task_id: prepared.task_id,
+        task_type: taskType,
         name: name.trim(),
         description: description.trim() || undefined,
         input_files: inputFiles,
@@ -256,26 +273,51 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
         },
       });
       const inputDir = created.summary?.input_dir || `/app/secflow-app-binary-security/${prepared.task_id}/input`;
+      const ensuredDirs = new Set<string>();
+      const ensureProjectPath = async (path: string) => {
+        if (!path || ensuredDirs.has(path)) return;
+        const parts = path.split('/').filter(Boolean);
+        let current = '';
+        for (const part of parts) {
+          current = current ? `${current}/${part}` : part;
+          if (ensuredDirs.has(current)) continue;
+          try {
+            await fileserverApi.createProjectFilesystemDirectory({ project_id: projectId, path: current });
+          } catch (error: any) {
+            if (!String(error?.message || '').includes('已存在')) {
+              throw error;
+            }
+          }
+          ensuredDirs.add(current);
+        }
+      };
       for (const file of files) {
+        const rel = isSourceTask ? ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name) : file.name;
+        const normalizedRel = rel.replace(/\\/g, '/');
+        const relDir = normalizedRel.includes('/') ? normalizedRel.split('/').slice(0, -1).join('/') : '';
+        const uploadPath = relDir ? `${inputDir}/${relDir}` : inputDir;
+        if (relDir) {
+          await ensureProjectPath(`app/secflow-app-binary-security/${prepared.task_id}/input/${relDir}`);
+        }
         await fileserverApi.uploadProjectFilesystemFile(
           {
             project_id: projectId,
-            path: inputDir,
+            path: uploadPath,
             file,
             overwrite: false,
           },
           {
             onProgress: (progress) => {
               const percent = progress.total_bytes > 0 ? Math.min(100, Math.round((progress.loaded_bytes / progress.total_bytes) * 100)) : 0;
-              setUploadProgress((current) => ({ ...current, [file.name]: percent }));
-              setUploadSpeed((current) => ({ ...current, [file.name]: progress.speed_bytes_per_sec || 0 }));
+              setUploadProgress((current) => ({ ...current, [fileKey(file)]: percent }));
+              setUploadSpeed((current) => ({ ...current, [fileKey(file)]: progress.speed_bytes_per_sec || 0 }));
             },
             trackGlobal: false,
-            sourceLabel: '二进制安全输入上传',
+            sourceLabel: isSourceTask ? '源码扫描输入上传' : '二进制安全输入上传',
           },
         );
-        setUploadProgress((current) => ({ ...current, [file.name]: 100 }));
-        setUploadSpeed((current) => ({ ...current, [file.name]: 0 }));
+        setUploadProgress((current) => ({ ...current, [fileKey(file)]: 100 }));
+        setUploadSpeed((current) => ({ ...current, [fileKey(file)]: 0 }));
       }
       await executionApi.binarySecurity.completeUploads(projectId, prepared.task_id, inputFiles);
       setShowCreateDialog(false);
@@ -296,9 +338,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">二进制安全</h1>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
-              为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流分析和漏洞扫描，聚合查看多固件任务的阶段状态与结果。
+              {isSourceTask
+                ? '为当前项目统一编排系统分析、入口分析、数据流分析和漏洞扫描，聚合查看源码工程任务的阶段状态与结果。'
+                : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流分析和漏洞扫描，聚合查看多固件任务的阶段状态与结果。'}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -331,7 +375,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
       <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
         <div className="flex items-center gap-2">
           <ShieldAlert size={18} className="text-rose-600" />
-          <h2 className="text-xl font-black text-slate-900">当前项目统计</h2>
+            <h2 className="text-xl font-black text-slate-900">当前项目统计</h2>
         </div>
         <div className="mt-2 text-sm text-slate-500">任务、固件和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -341,9 +385,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
             <div className="mt-1 text-sm text-slate-500">运行中 {runningCount} · 排队中 {queuedCount}</div>
           </div>
           <div className="rounded-2xl bg-white px-4 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">固件解包</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{stats.unpacked}</div>
-            <div className="mt-1 text-sm text-slate-500">总固件 {stats.firmwares} · 失败 {stats.unpackFailed}</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{isSourceTask ? '源码输入' : '固件解包'}</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{isSourceTask ? stats.firmwares : stats.unpacked}</div>
+            <div className="mt-1 text-sm text-slate-500">{isSourceTask ? `源码文件 ${stats.firmwares}` : `总固件 ${stats.firmwares} · 失败 ${stats.unpackFailed}`}</div>
           </div>
           <div className="rounded-2xl bg-white px-4 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">分析结果</div>
@@ -367,7 +411,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
         {loading && items.length === 0 ? (
           <div className="mt-6 text-sm text-slate-500">加载中...</div>
         ) : items.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-400">当前项目还没有二进制安全任务。</div>
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-400">{emptyLabel}</div>
         ) : (
           <div className="mt-5 space-y-4">
             {items.map((item) => (
@@ -396,14 +440,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                     <div className="mt-3 break-all rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-500">{item.firmware_path}</div>
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 xl:grid-cols-6">
                       <div>当前阶段：<span className="font-bold text-slate-900">{formatStageLabel(item.current_stage)}</span></div>
-                      <div>固件数：<span className="font-bold text-slate-900">{item.firmware_item_count}</span></div>
-                      <div>已解包：<span className="font-bold text-slate-900">{item.unpacked_firmware_count}</span></div>
-                      <div>解包失败：<span className="font-bold text-slate-900">{item.failed_firmware_count}</span></div>
+                      <div>{isSourceTask ? '源码文件' : '固件数'}：<span className="font-bold text-slate-900">{item.firmware_item_count}</span></div>
+                      <div>{isSourceTask ? '高危模块' : '已解包'}：<span className="font-bold text-slate-900">{isSourceTask ? item.high_risk_module_count : item.unpacked_firmware_count}</span></div>
+                      <div>{isSourceTask ? '入口数量' : '解包失败'}：<span className="font-bold text-slate-900">{isSourceTask ? item.entry_count : item.failed_firmware_count}</span></div>
                       <div>漏洞结果：<span className="font-bold text-slate-900">{item.vuln_result_count}</span></div>
                       <div>开始时间：<span className="font-bold text-slate-900">{fmt(item.started_at)}</span></div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {STAGES.map((stage) => {
+                      {(item.stage_sequence?.length ? item.stage_sequence : stages).map((stage) => {
                         const summary = item.stage_summaries.find((current) => current.stage_name === stage);
                         return (
                           <span key={stage} className={`rounded-xl px-3 py-1 text-xs font-bold ${summary ? statusTone(summary.status) : 'bg-slate-100 text-slate-400'}`}>
@@ -429,8 +473,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
           <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
               <div>
-                <h3 className="text-xl font-black text-slate-900">创建二进制安全任务</h3>
-                <p className="mt-1 text-sm text-slate-500">每个上传文件都会作为独立固件进入完整的安全分析编排流程。</p>
+                <h3 className="text-xl font-black text-slate-900">{createTitle}</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {isSourceTask ? '同一批上传文件共同组成一个源码工程，进入源码扫描流程。' : '每个上传文件都会作为独立固件进入完整的安全分析编排流程。'}
+                </p>
               </div>
               <button type="button" onClick={closeCreateDialog} disabled={submitting} className="text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50">
                 关闭
@@ -446,7 +492,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-black text-slate-900">输入文件</div>
-                    <div className="mt-1 text-sm text-slate-500">支持一次选择多个文件；文件名不能重复。</div>
+                    <div className="mt-1 text-sm text-slate-500">{isSourceTask ? '支持选择多个源码文件，或直接选择源码目录；会尽量保留目录结构。' : '支持一次选择多个文件；文件名不能重复。'}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -457,6 +503,16 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                       <Upload size={16} />
                       选择文件
                     </button>
+                    {isSourceTask && (
+                      <button
+                        type="button"
+                        onClick={() => folderInputRef.current?.click()}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+                      >
+                        <Upload size={16} />
+                        选择目录
+                      </button>
+                    )}
                     <div className="text-sm text-slate-500">{files.length} 个文件 · {fmtSize(totalUploadBytes)}</div>
                     {submitting && activeUploadSpeed > 0 && (
                       <div className="text-sm font-semibold text-sky-600">上传速度 {fmtSpeed(activeUploadSpeed)}</div>
@@ -477,37 +533,56 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                     e.currentTarget.value = '';
                   }}
                 />
+                <input
+                  ref={folderInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  {...({ webkitdirectory: 'true', directory: 'true' } as any)}
+                  onChange={(e) => {
+                    const incoming = Array.from(e.target.files || []);
+                    if (incoming.length > 0) {
+                      setCreateError(null);
+                      mergeFiles(incoming);
+                    }
+                    e.currentTarget.value = '';
+                  }}
+                />
                 <div className="mt-4 space-y-3">
                   {files.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center text-sm text-slate-400">尚未选择输入文件。</div>
-                  ) : files.map((file) => (
-                    <div key={file.name} className="rounded-2xl bg-white px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-bold text-slate-900">{file.name}</div>
-                          <div className="mt-1 text-xs text-slate-500">{fmtSize(file.size || 0)}</div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {submitting && (
-                            <div className="min-w-[160px] text-right text-xs font-semibold text-slate-500">
-                              {uploadProgress[file.name] ? `${uploadProgress[file.name]}%` : '等待上传'}
-                              {uploadSpeed[file.name] > 0 ? ` · ${fmtSpeed(uploadSpeed[file.name])}` : ''}
-                            </div>
-                          )}
-                          <button type="button" onClick={() => removeFile(file.name)} disabled={submitting} className="text-sm font-semibold text-rose-600 disabled:opacity-40">
-                            移除
-                          </button>
+                  ) : files.map((file) => {
+                    const key = fileKey(file);
+                    const displayPath = isSourceTask ? ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name) : file.name;
+                    return (
+                      <div key={key} className="rounded-2xl bg-white px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-bold text-slate-900">{displayPath}</div>
+                            <div className="mt-1 text-xs text-slate-500">{fmtSize(file.size || 0)}</div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {submitting && (
+                              <div className="min-w-[160px] text-right text-xs font-semibold text-slate-500">
+                                {uploadProgress[key] ? `${uploadProgress[key]}%` : '等待上传'}
+                                {uploadSpeed[key] > 0 ? ` · ${fmtSpeed(uploadSpeed[key])}` : ''}
+                              </div>
+                            )}
+                            <button type="button" onClick={() => removeFile(key)} disabled={submitting} className="text-sm font-semibold text-rose-600 disabled:opacity-40">
+                              移除
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="text-sm font-black text-slate-900">阶段并发配置</div>
                 <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-                  {STAGE_PARALLELISM_FIELDS.map((field) => (
+                  {STAGE_PARALLELISM_FIELDS.filter((field) => !isSourceTask || !['firmware_unpack', 'binary_to_source'].includes(field.key)).map((field) => (
                     <div key={field.key}>
                       <div className="mb-2 text-sm font-bold text-slate-700">{field.label}</div>
                       <input
@@ -544,8 +619,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                   className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin" />}
-                  <Play size={16} />
-                  {submitting ? '创建并上传中...' : '创建任务'}
+                  {submitting ? '创建并上传中...' : '创建并启动'}
                 </button>
               </div>
             </div>

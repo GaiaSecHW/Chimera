@@ -27,7 +27,6 @@ import { EnvProcessMonitorDetailPage } from '../pages/environment/EnvProcessMoni
 import { EnvProcessMonitorTasksPage } from '../pages/environment/EnvProcessMonitorTasksPage';
 import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPage';
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
-import { SystemAnalysisModelsPage } from '../pages/execution/SystemAnalysisModelsPage';
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
 import { DataflowAnalysisModelsPage } from '../pages/execution/DataflowAnalysisModelsPage';
@@ -105,6 +104,7 @@ export interface ViewRegistryContext {
   activeProcessMonitorServiceKey: string;
   activeB2STaskId: string;
   activeBinarySecurityTaskId: string;
+  activeSourceSecurityTaskId: string;
   activeAiwfDefinitionId: string;
   activeAiwfExecutionId: string;
   selectedStaticPkgIds: Set<string>;
@@ -117,6 +117,7 @@ export interface ViewRegistryContext {
   setActiveAppWorkflowId: (id: string) => void;
   setActiveB2STaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
+  setActiveSourceSecurityTaskId: (id: string) => void;
   setActiveAiwfDefinitionId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
@@ -223,8 +224,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <SystemAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-models':
-      return <SystemAnalysisModelsPage />;
     case 'dataflow-analysis-task':
       return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'dataflow-analysis-config':
@@ -384,6 +383,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <BinarySecurityOverviewPage
           projectId={ctx.selectedProjectId}
+          taskType="binary"
           onOpenTask={(taskId) => {
             ctx.setActiveBinarySecurityTaskId(taskId);
             ctx.setCurrentView('binary-security-detail');
@@ -395,7 +395,28 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <BinarySecurityTaskDetailPage
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeBinarySecurityTaskId}
+          taskType="binary"
           onBack={() => ctx.setCurrentView('binary-security')}
+        />
+      );
+    case 'source-security':
+      return (
+        <BinarySecurityOverviewPage
+          projectId={ctx.selectedProjectId}
+          taskType="source"
+          onOpenTask={(taskId) => {
+            ctx.setActiveSourceSecurityTaskId(taskId);
+            ctx.setCurrentView('source-security-detail');
+          }}
+        />
+      );
+    case 'source-security-detail':
+      return (
+        <BinarySecurityTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeSourceSecurityTaskId}
+          taskType="source"
+          onBack={() => ctx.setCurrentView('source-security')}
         />
       );
     case 'binary-security-config':

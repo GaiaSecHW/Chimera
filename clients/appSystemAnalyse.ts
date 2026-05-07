@@ -83,6 +83,14 @@ export const appSystemAnalyseApi = {
       headers: getHeaders(),
     })),
 
+  deleteTask: async (taskId: string, deleteFiles = true): Promise<void> => {
+    const resp = await fetch(
+      `${BASE}/tasks/${encodeURIComponent(taskId)}?delete_files=${deleteFiles}`,
+      { method: 'DELETE', headers: getHeaders() },
+    );
+    if (!resp.ok) await handleResponse(resp);
+  },
+
   restartTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/restart`, {
       method: 'POST',

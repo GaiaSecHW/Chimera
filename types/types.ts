@@ -1872,6 +1872,7 @@ export type ViewType =
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
+  | 'source-security' | 'source-security-detail'
   | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'
   | 'pentest-report'
   | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config'
