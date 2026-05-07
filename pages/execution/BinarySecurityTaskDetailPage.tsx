@@ -261,7 +261,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       const width = node.clientWidth;
       if (!width) return;
       if (isSourceTask) {
-        if (width < 760) {
+        const compactCardWidth = 156;
+        const compactConnectorWidth = 28;
+        const compactTotalWidth = compactCardWidth * stageSequence.length + compactConnectorWidth * Math.max(0, stageSequence.length - 1);
+        if (width < Math.min(760, compactTotalWidth)) {
           setStageFlowLayout({
             mode: 'vertical',
             cardWidth: Math.max(0, width),
@@ -271,12 +274,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         }
         setStageFlowLayout({
           mode: 'horizontal',
-          cardWidth: 160,
-          connectorWidth: 56,
+          cardWidth: compactCardWidth,
+          connectorWidth: compactConnectorWidth,
         });
         return;
       }
-      if (width < 1100) {
+      const compactCardWidth = 156;
+      const compactConnectorWidth = 28;
+      const compactTotalWidth = compactCardWidth * stageSequence.length + compactConnectorWidth * Math.max(0, stageSequence.length - 1);
+      if (width < compactTotalWidth) {
         setStageFlowLayout({
           mode: 'vertical',
           cardWidth: Math.max(0, width),
@@ -285,22 +291,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         return;
       }
 
-      const connectorSlots = Math.max(1, stageSequence.length - 1);
-      const minConnectorWidth = 40;
-      const maxCardWidth = 175;
-      const minCardWidth = 138;
-      let cardWidth = Math.min(maxCardWidth, Math.max(minCardWidth, Math.floor((width - connectorSlots * minConnectorWidth) / Math.max(1, stageSequence.length))));
-      let connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * Math.max(1, stageSequence.length)) / connectorSlots));
-
-      if (cardWidth * Math.max(1, stageSequence.length) + connectorWidth * connectorSlots > width) {
-        cardWidth = Math.max(124, Math.floor((width - connectorSlots * minConnectorWidth) / Math.max(1, stageSequence.length)));
-        connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * Math.max(1, stageSequence.length)) / connectorSlots));
-      }
-
       setStageFlowLayout({
         mode: 'horizontal',
-        cardWidth,
-        connectorWidth,
+        cardWidth: compactCardWidth,
+        connectorWidth: compactConnectorWidth,
       });
     };
 
@@ -603,8 +597,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </div>
             </div>
 
-            <div ref={stageFlowRef} className="mt-6">
-              <div className={stageFlowLayout.mode === 'horizontal' ? 'flex items-center justify-start pb-2' : 'flex flex-col items-stretch'}>
+            <div ref={stageFlowRef} className="mt-6 overflow-x-auto">
+              <div className={stageFlowLayout.mode === 'horizontal' ? 'inline-flex items-center justify-start pb-2 pr-2' : 'flex flex-col items-stretch'}>
                 {stageCards.map((stage, index) => (
                   <React.Fragment key={stage.stage_name}>
                     <div
@@ -671,7 +665,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </div>
                     {index < stageCards.length - 1 ? (
                       stageFlowLayout.mode === 'horizontal' ? (
-                        <div className={`shrink-0 px-3 ${stageConnectorTone(stage.status)}`} style={{ width: `${stageFlowLayout.connectorWidth}px` }}>
+                        <div className={`shrink-0 ${stageConnectorTone(stage.status)}`} style={{ width: `${stageFlowLayout.connectorWidth}px` }}>
                           <svg viewBox="0 0 100 24" className="block h-6 w-full overflow-visible" fill="none" aria-hidden="true">
                             <path d="M4 12H86" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
                             <path d="M72 5L88 12L72 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
