@@ -69,11 +69,14 @@ export const ProjectFilesystemPickerModal: React.FC<{
   description: string;
   onClose: () => void;
   onSelect: (selection: ProjectFilesystemSelection) => void;
-}> = ({ isOpen, projectId, selectionMode, title, description, onClose, onSelect }) => {
+  allowMultiple?: boolean;
+  onSelectMany?: (selections: ProjectFilesystemSelection[]) => void;
+}> = ({ isOpen, projectId, selectionMode, title, description, onClose, onSelect, allowMultiple = false, onSelectMany }) => {
   const assetApi = api.domains.assets;
   const [treeNodes, setTreeNodes] = useState<PickerNode[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [loadingNodeId, setLoadingNodeId] = useState('');
 
@@ -89,6 +92,7 @@ export const ProjectFilesystemPickerModal: React.FC<{
       setTreeNodes(sortNodes((root.items || []).map(toNode)));
       setExpandedNodes(new Set());
       setSelectedId('');
+      setSelectedIds(new Set());
     } catch (error: any) {
       alert(error?.message || '加载项目文件资源失败');
     } finally {
@@ -125,16 +129,47 @@ export const ProjectFilesystemPickerModal: React.FC<{
     }
   };
 
+  const isNodeSelectable = (node: PickerNode) => (
+    selectionMode === 'file' ? node.node_type === 'file' : node.node_type !== 'file'
+  );
+
+  const collectNodesByIds = (nodes: PickerNode[], ids: Set<string>, result: PickerNode[] = []): PickerNode[] => {
+    nodes.forEach((node) => {
+      if (ids.has(node.id)) result.push(node);
+      if (node.children.length > 0) collectNodesByIds(node.children, ids, result);
+    });
+    return result;
+  };
+
+  const toSelection = (node: PickerNode): ProjectFilesystemSelection => ({
+    path: node.path,
+    name: node.name,
+    node_type: node.node_type,
+  });
+
   const selectedNode = selectedId ? findNode(treeNodes, selectedId) : null;
-  const selectionValid = selectedNode
-    ? (selectionMode === 'file' ? selectedNode.node_type === 'file' : selectedNode.node_type !== 'file')
-    : false;
+  const selectionValid = selectedNode ? isNodeSelectable(selectedNode) : false;
+  const selectedNodes = allowMultiple ? collectNodesByIds(treeNodes, selectedIds) : [];
+  const selectedValidNodes = selectedNodes.filter(isNodeSelectable);
+
+  const toggleMultiSelect = (node: PickerNode) => {
+    if (!isNodeSelectable(node)) return;
+    setSelectedId(node.id);
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(node.id)) next.delete(node.id);
+      else next.add(node.id);
+      return next;
+    });
+  };
 
   const renderTree = (nodes: PickerNode[], depth = 0): React.ReactNode => (
     nodes.map((node) => {
       const expandable = node.node_type !== 'file' && node.has_children;
       const expanded = expandedNodes.has(node.id);
       const active = selectedId === node.id;
+      const checked = selectedIds.has(node.id);
+      const selectable = isNodeSelectable(node);
       return (
         <div key={node.id}>
           <div
@@ -142,8 +177,18 @@ export const ProjectFilesystemPickerModal: React.FC<{
               active ? 'bg-cyan-100 text-cyan-700' : 'text-slate-700 hover:bg-slate-100'
             }`}
             style={{ paddingLeft: `${depth * 18 + 12}px` }}
-            onClick={() => setSelectedId(node.id)}
+            onClick={() => allowMultiple ? toggleMultiSelect(node) : setSelectedId(node.id)}
           >
+            {allowMultiple ? (
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={!selectable}
+                onChange={() => toggleMultiSelect(node)}
+                onClick={(event) => event.stopPropagation()}
+                className="h-4 w-4 rounded border-slate-300 text-cyan-700 focus:ring-cyan-700 disabled:cursor-not-allowed disabled:opacity-40"
+              />
+            ) : null}
             <button
               type="button"
               className="flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:bg-slate-200"
@@ -209,8 +254,24 @@ export const ProjectFilesystemPickerModal: React.FC<{
 
           <div className="flex flex-col justify-between p-6">
             <div>
-              <div className="text-xs font-black uppercase tracking-widest text-slate-400">已选路径</div>
-              {selectedNode ? (
+              <div className="text-xs font-black uppercase tracking-widest text-slate-400">{allowMultiple ? '已选路径' : '已选路径'}</div>
+              {allowMultiple ? (
+                <div className="mt-4 rounded-2xl border border-cyan-100 bg-cyan-50 p-5">
+                  <div className="text-sm font-bold text-slate-800">已选择 {selectedValidNodes.length} 个{selectionMode === 'file' ? '文件' : '目录'}</div>
+                  <div className="mt-4 max-h-72 space-y-2 overflow-auto">
+                    {selectedValidNodes.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-cyan-200 bg-white/70 px-3 py-4 text-sm text-slate-400">
+                        从左侧树中勾选一个或多个{selectionMode === 'file' ? '文件' : '目录'}。
+                      </div>
+                    ) : selectedValidNodes.map((node) => (
+                      <div key={node.id} className="rounded-xl bg-white px-3 py-2">
+                        <div className="truncate text-sm font-bold text-slate-800">{node.name}</div>
+                        <div className="mt-1 break-all font-mono text-xs text-slate-500">{node.path}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : selectedNode ? (
                 <div className="mt-4 space-y-4 rounded-2xl border border-cyan-100 bg-cyan-50 p-5">
                   <div>
                     <div className="text-xs font-black uppercase tracking-widest text-cyan-600">类型</div>
@@ -241,18 +302,22 @@ export const ProjectFilesystemPickerModal: React.FC<{
               </button>
               <button
                 onClick={() => {
+                  if (allowMultiple) {
+                    const selections = selectedValidNodes.map(toSelection);
+                    if (selections.length > 0) {
+                      if (onSelectMany) onSelectMany(selections);
+                      else onSelect(selections[0]);
+                    }
+                    return;
+                  }
                   if (selectedNode && selectionValid) {
-                    onSelect({
-                      path: selectedNode.path,
-                      name: selectedNode.name,
-                      node_type: selectedNode.node_type,
-                    });
+                    onSelect(toSelection(selectedNode));
                   }
                 }}
-                disabled={!selectedNode || !selectionValid}
+                disabled={allowMultiple ? selectedValidNodes.length === 0 : (!selectedNode || !selectionValid)}
                 className="rounded-2xl bg-cyan-700 px-5 py-3 text-sm font-bold text-white hover:bg-cyan-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {selectionMode === 'file' ? '选择该文件' : '选择该目录'}
+                {allowMultiple ? `选择 ${selectedValidNodes.length} 项` : (selectionMode === 'file' ? '选择该文件' : '选择该目录')}
               </button>
             </div>
           </div>

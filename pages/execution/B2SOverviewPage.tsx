@@ -538,10 +538,21 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 projectId={projectId}
                 selectionMode="file"
                 title="从文件服务选择 ELF"
-                description="选择当前项目文件系统中已存在的二进制文件，创建任务时会直接引用该文件路径。"
+                description="选择当前项目文件系统中已存在的一个或多个二进制文件，创建任务时会直接引用文件路径。"
+                allowMultiple
                 onClose={() => setShowFilesystemPicker(false)}
                 onSelect={(selection) => {
                   setSelectedServerFiles((current) => current.some((item) => item.path === selection.path) ? current : [...current, selection]);
+                  setShowFilesystemPicker(false);
+                }}
+                onSelectMany={(selections) => {
+                  setSelectedServerFiles((current) => {
+                    const next = [...current];
+                    selections.forEach((selection) => {
+                      if (!next.some((item) => item.path === selection.path)) next.push(selection);
+                    });
+                    return next;
+                  });
                   setShowFilesystemPicker(false);
                 }}
               />
