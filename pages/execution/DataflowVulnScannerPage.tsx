@@ -513,9 +513,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [fileserverRunsRoot, setFileserverRunsRoot] = useState(DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
   const [fileserverError, setFileserverError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [taskQuery, setTaskQuery] = useState('');
+  const [taskStatusFilter, setTaskStatusFilter] = useState('');
   const [profileFilter, setProfileFilter] = useState('');
+  const [historyQuery, setHistoryQuery] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
@@ -542,24 +544,34 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     if (!projectId) return;
     setLoading(true);
     setFileserverError('');
+    const [taskResp, profileResp, fileserverResp] = await Promise.allSettled([
+      executionApi.listTasks({ projectId, status: taskStatusFilter || undefined, profileId: profileFilter || undefined }),
+      executionApi.listProfiles(projectId),
+      listDataflowFileserverRuns(projectId),
+    ]);
     try {
-      const [taskResp, profileResp, fileserverResp] = await Promise.all([
-        executionApi.listTasks({ projectId, status: statusFilter || undefined, profileId: profileFilter || undefined }),
-        executionApi.listProfiles(projectId),
-        listDataflowFileserverRuns(projectId).catch((error: any) => ({ error })),
-      ]);
-      setTasks(taskResp || []);
-      setProfiles(profileResp || []);
-      if ('error' in fileserverResp) {
+      if (taskResp.status === 'fulfilled') {
+        setTasks(taskResp.value || []);
+      } else {
+        setTasks([]);
+        notify(`加载数据流漏洞挖掘任务失败: ${taskResp.reason?.message || taskResp.reason || '未知错误'}`, 'error');
+      }
+
+      if (profileResp.status === 'fulfilled') {
+        setProfiles(profileResp.value || []);
+      } else {
+        setProfiles([]);
+        notify(`加载数据流漏洞挖掘 Profile 失败: ${profileResp.reason?.message || profileResp.reason || '未知错误'}`, 'error');
+      }
+
+      if (fileserverResp.status === 'rejected') {
         setFileserverRuns([]);
         setFileserverRunsRoot(DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
-        setFileserverError(fileserverResp.error?.message || '读取 Fileserver 历史 runs 失败');
+        setFileserverError(fileserverResp.reason?.message || '读取历史 runs 失败');
       } else {
-        setFileserverRuns(fileserverResp.runs || []);
-        setFileserverRunsRoot(fileserverResp.rootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
+        setFileserverRuns(fileserverResp.value.runs || []);
+        setFileserverRunsRoot(fileserverResp.value.rootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
       }
-    } catch (error: any) {
-      notify(`加载数据流漏洞挖掘任务失败: ${error?.message || error}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -567,12 +579,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   useEffect(() => {
     void load();
-  }, [projectId, statusFilter, profileFilter]);
+  }, [projectId, taskStatusFilter, profileFilter]);
 
   const profileById = useMemo(() => new Map(profiles.map((profile) => [profile.profile_id, profile])), [profiles]);
 
   const filteredTasks = useMemo(() => {
-    const text = query.trim().toLowerCase();
+    const text = taskQuery.trim().toLowerCase();
     if (!text) return tasks;
     return tasks.filter((task) => {
       const profile = profileById.get(task.profile_id);
@@ -584,12 +596,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         profile?.name,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
     });
-  }, [profileById, query, tasks]);
+  }, [profileById, taskQuery, tasks]);
 
   const filteredFileserverRuns = useMemo(() => {
-    const text = query.trim().toLowerCase();
+    const text = historyQuery.trim().toLowerCase();
     return fileserverRuns.filter((run) => {
-      if (statusFilter && run.status !== statusFilter) return false;
+      if (historyStatusFilter && run.status !== historyStatusFilter) return false;
       if (!text) return true;
       return [
         run.name,
@@ -599,7 +611,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         run.workflow_mode,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
     });
-  }, [fileserverRuns, query, statusFilter]);
+  }, [fileserverRuns, historyQuery, historyStatusFilter]);
 
   const stats = useMemo(() => {
     const terminal = new Set(['succeeded', 'completed', 'failed', 'cancelled']);
@@ -777,16 +789,16 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                   <Search size={16} className="text-slate-400" />
                   <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    value={taskQuery}
+                    onChange={(event) => setTaskQuery(event.target.value)}
                     placeholder="搜索任务、执行 ID、Profile 或消息"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <select
-                    value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value)}
+                    value={taskStatusFilter}
+                    onChange={(event) => setTaskStatusFilter(event.target.value)}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                   >
                     <option value="">全部状态</option>
@@ -873,12 +885,37 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         <section>
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 p-4">
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-sm font-black text-slate-900">历史 Runs</div>
                   <div className="mt-1 text-xs text-slate-500">由漏洞挖掘服务后端直接读取 `/data` 并同步数据库，用于统一展示历史 run 与中间过程文件。</div>
                 </div>
-                <div className="text-xs font-bold text-slate-500">{fileserverRuns.length} 个历史 run</div>
+                <div className="text-xs font-bold text-slate-500">
+                  {filteredFileserverRuns.length === fileserverRuns.length
+                    ? `${fileserverRuns.length} 个历史 run`
+                    : `${filteredFileserverRuns.length} / ${fileserverRuns.length} 个历史 run`}
+                </div>
+              </div>
+              <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <Search size={16} className="text-slate-400" />
+                  <input
+                    value={historyQuery}
+                    onChange={(event) => setHistoryQuery(event.target.value)}
+                    placeholder="搜索历史 Run、模型、状态或工作流模式"
+                    className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={historyStatusFilter}
+                    onChange={(event) => setHistoryStatusFilter(event.target.value)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                  >
+                    <option value="">全部状态</option>
+                    {Object.entries(STATUS_META).map(([key, meta]) => <option key={key} value={key}>{meta.label}</option>)}
+                  </select>
+                </div>
               </div>
               {fileserverError ? (
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">
