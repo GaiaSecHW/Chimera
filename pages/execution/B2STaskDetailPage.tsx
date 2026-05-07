@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, RefreshCw, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
 
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
@@ -19,6 +19,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -69,6 +70,28 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       setError(e?.message || '取消任务失败');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const rerunTask = async () => {
+    if (!projectId || !taskId || rerunning) return;
+    const confirmed = await showConfirm({
+      title: '完整重试二进制逆向任务',
+      message: `确认完整重新运行该任务？\n\n任务 ID：${taskId}\n\n系统会先请求终止当前未完成的 job，保留 input 目录，清理各 item 的 output 目录，并重新提交所有 ELF item。旧结果会被覆盖。`,
+      confirmText: '确认重试',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setError(null);
+    setRerunning(true);
+    try {
+      await executionApi.binaryToSource.rerunTask(projectId, taskId, { clean_output: true, cancel_running: true });
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '重试任务失败');
+    } finally {
+      setRerunning(false);
     }
   };
 
@@ -146,6 +169,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
             >
               {cancelling ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
               取消任务
+            </button>
+          )}
+          {detail && (
+            <button
+              type="button"
+              onClick={() => void rerunTask()}
+              disabled={rerunning}
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-50"
+            >
+              {rerunning ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
+              重试任务
             </button>
           )}
           {detail && (
