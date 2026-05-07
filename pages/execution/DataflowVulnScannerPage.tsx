@@ -35,7 +35,6 @@ import {
 
 import { api } from '../../clients/api';
 import {
-  DataflowArtifactRef,
   DataflowInputRef,
   DataflowProfileConfigPayload,
   DataflowScanProfile,
@@ -53,13 +52,10 @@ import {
   DataflowFileserverRunDetail,
   DataflowFileserverRunSummary,
   inspectDataflowFileserverRun,
-  listDataflowFileserverRuns,
 } from '../../clients/dataflowVulnRunsFileserver';
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
-
-const ATTACHMENT_SUBPROJECT_NAME = 'DATAFLOW_VULN_SCANNER_ATTACHMENTS';
 
 const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: { label: '待调度', className: 'bg-slate-100 text-slate-700 border-slate-200', icon: <Clock size={13} /> },
@@ -95,7 +91,7 @@ const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-
 type DataflowDetailTab = 'overview' | 'runs' | 'events' | 'attempts' | 'artifacts' | 'input';
 
 const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
-  model: 'openai/gpt-5.4',
+  model: 'icsl/zai-org/GLM-5',
   thinking: 'high',
   review_profile: 'balanced',
   max_review_cycles: 6,
@@ -104,23 +100,6 @@ const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
   result_review_concurrency: 3,
   runtime_overrides: {},
 });
-
-const defaultTaskMarkdown = () => `# 数据流漏洞挖掘任务
-
-## 输入目标
-- 固件/软件包: 请填写目标包名称
-- 数据流报告: 请说明数据流分析结果文件或目录
-- 反编译源码目录: 请说明源码路径或上传的源码包
-
-## 审计重点
-- 外部输入到危险函数的数据链路
-- 边界检查缺失、长度计算错误、整数溢出
-- 文件/网络/IPC 入口的高危路径
-
-## 输出要求
-- 每个漏洞单独产出一个 result_NNN.md
-- 给出可复核的函数、路径、条件与证据链
-`;
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '-';
@@ -228,6 +207,7 @@ const isoFromEpoch = (epoch?: number | null) => {
 };
 
 const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
+const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 
 const buildFileserverSyntheticTask = (
   projectId: string,
@@ -464,7 +444,6 @@ interface CreateTaskState {
   workspacePath: string;
   dataFlowPath: string;
   sourcePath: string;
-  outputPath: string;
   model: string;
   provider: string;
   thinking: string;
@@ -473,10 +452,7 @@ interface CreateTaskState {
   workerTimeout: number;
   advisorTimeout: number;
   resultReviewConcurrency: number;
-  scanOptionsText: string;
-  taskMarkdown: string;
   runtimeOverridesText: string;
-  files: File[];
 }
 
 const initialCreateTaskState = (): CreateTaskState => ({
@@ -486,7 +462,6 @@ const initialCreateTaskState = (): CreateTaskState => ({
   workspacePath: '',
   dataFlowPath: '',
   sourcePath: '',
-  outputPath: '',
   model: defaultConfigPayload().model,
   provider: '',
   thinking: defaultConfigPayload().thinking,
@@ -495,44 +470,43 @@ const initialCreateTaskState = (): CreateTaskState => ({
   workerTimeout: defaultConfigPayload().worker_timeout,
   advisorTimeout: defaultConfigPayload().advisor_timeout,
   resultReviewConcurrency: defaultConfigPayload().result_review_concurrency,
-  scanOptionsText: '{}',
-  taskMarkdown: '',
   runtimeOverridesText: '',
-  files: [],
 });
 
 export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution.dataflowVulnScanner;
-  const assetApi = api.domains.assets;
   const navigate = useNavigate();
   const { notify, feedbackNodes } = useUiFeedback();
 
-  const [tasks, setTasks] = useState<DataflowScanTask[]>([]);
   const [profiles, setProfiles] = useState<DataflowScanProfile[]>([]);
-  const [fileserverRuns, setFileserverRuns] = useState<DataflowFileserverRunSummary[]>([]);
-  const [fileserverRunsRoot, setFileserverRunsRoot] = useState(DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
-  const [fileserverError, setFileserverError] = useState('');
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
+  const [profilesLoading, setProfilesLoading] = useState(false);
+  const [runs, setRuns] = useState<DataflowFileserverRunSummary[]>([]);
+  const [runsError, setRunsError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [taskQuery, setTaskQuery] = useState('');
-  const [taskStatusFilter, setTaskStatusFilter] = useState('');
-  const [profileFilter, setProfileFilter] = useState('');
-  const [historyQuery, setHistoryQuery] = useState('');
-  const [historyStatusFilter, setHistoryStatusFilter] = useState('');
+  const [runQuery, setRunQuery] = useState('');
+  const [runStatusFilter, setRunStatusFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
 
   const openTaskDetail = (task: Pick<DataflowScanTask, 'task_id' | 'latest_execution_id'>) => {
     const runQuery = task.latest_execution_id ? `?run_id=${encodeURIComponent(task.latest_execution_id)}` : '';
     navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(task.task_id)}${runQuery}`);
   };
 
-  const openFileserverRunDetail = (run: DataflowFileserverRunSummary) => {
+  const openRunDetail = (run: DataflowFileserverRunSummary) => {
+    if (run.linked_task_id) {
+      const params = new URLSearchParams();
+      if (run.linked_execution_id) params.set('run_id', run.linked_execution_id);
+      const query = params.toString();
+      navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(run.linked_task_id)}${query ? `?${query}` : ''}`);
+      return;
+    }
     const params = new URLSearchParams();
     if (run.history_run_id) params.set('history_run_id', run.history_run_id);
     params.set('fileserver_run', run.name);
-    params.set('fileserver_root', run.root_path || fileserverRunsRoot || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
+    params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
     navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`, {
       state: {
         fileserverRunSummary: run,
@@ -540,68 +514,50 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     });
   };
 
+  const loadProfiles = async (options?: { force?: boolean }) => {
+    if (!projectId) return;
+    if (profilesLoading) return;
+    if (profilesLoaded && !options?.force) return;
+    setProfilesLoading(true);
+    try {
+      setProfiles(await executionApi.listProfiles(projectId));
+      setProfilesLoaded(true);
+    } catch (error: any) {
+      setProfiles([]);
+      notify(`加载数据流漏洞挖掘 Profile 失败: ${error?.message || error || '未知错误'}`, 'error');
+    } finally {
+      setProfilesLoading(false);
+    }
+  };
+
   const load = async () => {
     if (!projectId) return;
     setLoading(true);
-    setFileserverError('');
-    const [taskResp, profileResp, fileserverResp] = await Promise.allSettled([
-      executionApi.listTasks({ projectId, status: taskStatusFilter || undefined, profileId: profileFilter || undefined }),
-      executionApi.listProfiles(projectId),
-      listDataflowFileserverRuns(projectId),
-    ]);
+    setRunsError('');
     try {
-      if (taskResp.status === 'fulfilled') {
-        setTasks(taskResp.value || []);
-      } else {
-        setTasks([]);
-        notify(`加载数据流漏洞挖掘任务失败: ${taskResp.reason?.message || taskResp.reason || '未知错误'}`, 'error');
-      }
-
-      if (profileResp.status === 'fulfilled') {
-        setProfiles(profileResp.value || []);
-      } else {
-        setProfiles([]);
-        notify(`加载数据流漏洞挖掘 Profile 失败: ${profileResp.reason?.message || profileResp.reason || '未知错误'}`, 'error');
-      }
-
-      if (fileserverResp.status === 'rejected') {
-        setFileserverRuns([]);
-        setFileserverRunsRoot(DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
-        setFileserverError(fileserverResp.reason?.message || '读取历史 runs 失败');
-      } else {
-        setFileserverRuns(fileserverResp.value.runs || []);
-        setFileserverRunsRoot(fileserverResp.value.rootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
-      }
+      setRuns(await executionApi.listHistoryRuns(projectId));
+    } catch (error: any) {
+      setRuns([]);
+      setRunsError(error?.message || '读取任务列表失败');
+      notify(`加载数据流漏洞挖掘任务列表失败: ${error?.message || error || '未知错误'}`, 'error');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    setProfiles([]);
+    setProfilesLoaded(false);
+  }, [projectId]);
+
+  useEffect(() => {
     void load();
-  }, [projectId, taskStatusFilter, profileFilter]);
+  }, [projectId]);
 
-  const profileById = useMemo(() => new Map(profiles.map((profile) => [profile.profile_id, profile])), [profiles]);
-
-  const filteredTasks = useMemo(() => {
-    const text = taskQuery.trim().toLowerCase();
-    if (!text) return tasks;
-    return tasks.filter((task) => {
-      const profile = profileById.get(task.profile_id);
-      return [
-        task.task_id,
-        task.status,
-        task.message,
-        task.latest_execution_id,
-        profile?.name,
-      ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
-    });
-  }, [profileById, taskQuery, tasks]);
-
-  const filteredFileserverRuns = useMemo(() => {
-    const text = historyQuery.trim().toLowerCase();
-    return fileserverRuns.filter((run) => {
-      if (historyStatusFilter && run.status !== historyStatusFilter) return false;
+  const filteredRuns = useMemo(() => {
+    const text = runQuery.trim().toLowerCase();
+    return runs.filter((run) => {
+      if (runStatusFilter && run.status !== runStatusFilter) return false;
       if (!text) return true;
       return [
         run.name,
@@ -609,71 +565,23 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         run.model,
         run.provider,
         run.workflow_mode,
+        run.linked_task_id,
+        run.linked_execution_id,
+        run.profile_id,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
     });
-  }, [fileserverRuns, historyQuery, historyStatusFilter]);
+  }, [runQuery, runStatusFilter, runs]);
 
   const stats = useMemo(() => {
-    const terminal = new Set(['succeeded', 'completed', 'failed', 'cancelled']);
     return {
-      total: tasks.length,
-      active: tasks.filter((task) => ['pending', 'queued', 'running', 'cancel_requested'].includes(task.status)).length,
-      running: tasks.filter((task) => task.status === 'running').length,
-      succeeded: tasks.filter((task) => ['succeeded', 'completed'].includes(task.status)).length,
-      failed: tasks.filter((task) => task.status === 'failed').length,
-      retryable: tasks.filter((task) => ['failed', 'cancelled'].includes(task.status) && task.retry_count <= task.max_retry_count).length,
-      finished: tasks.filter((task) => terminal.has(task.status)).length,
+      total: runs.length,
+      running: runs.filter((run) => ['pending', 'queued', 'running', 'cancel_requested'].includes(run.status)).length,
+      succeeded: runs.filter((run) => ['succeeded', 'completed'].includes(run.status)).length,
+      failed: runs.filter((run) => run.status === 'failed').length,
+      linked: runs.filter((run) => Boolean(run.linked_task_id)).length,
+      legacy: runs.filter((run) => !run.linked_task_id).length,
     };
-  }, [tasks]);
-
-  const ensureUploadSubproject = async (): Promise<number> => {
-    const root = await assetApi.fileserver.getRoot(projectId);
-    const existing = (root.items || []).find((node: any) =>
-      node.node_type === 'subproject' && node.name === ATTACHMENT_SUBPROJECT_NAME && node.subproject_id
-    );
-    if (existing?.subproject_id) return Number(existing.subproject_id);
-    const created = await assetApi.fileserver.createSubproject({
-      project_id: projectId,
-      name: ATTACHMENT_SUBPROJECT_NAME,
-      description: '数据流漏洞挖掘任务输入文件',
-    });
-    return created.id;
-  };
-
-  const uploadArtifacts = async (files: File[]): Promise<DataflowArtifactRef[]> => {
-    if (files.length === 0) return [];
-    const subprojectId = await ensureUploadSubproject();
-    const directory = await assetApi.fileserver.createDirectory({
-      project_id: projectId,
-      subproject_id: subprojectId,
-      parent_id: null,
-      name: `scan-${Date.now()}`,
-    });
-    const refs: DataflowArtifactRef[] = [];
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      setUploadProgress(`上传 ${index + 1}/${files.length}: ${file.name}`);
-      const uploaded = await assetApi.fileserver.uploadFile({
-        project_id: projectId,
-        subproject_id: subprojectId,
-        directory_id: directory.id,
-        file,
-      }, {
-        sourceLabel: '数据流漏洞挖掘输入',
-      });
-      refs.push({
-        storage_key: uploaded.storage_key,
-        relative_path: uploaded.filename,
-        filename: uploaded.filename,
-        metadata: {
-          uploaded_file_id: uploaded.id,
-          size: uploaded.size,
-          content_type: uploaded.content_type,
-        },
-      });
-    }
-    return refs;
-  };
+  }, [runs]);
 
   const submitCreateTask = async () => {
     if (!projectId) {
@@ -696,30 +604,17 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       notify('请选择代码目录路径', 'warning');
       return;
     }
-    if (!createState.outputPath.trim()) {
-      notify('请选择 run 输出目录', 'warning');
-      return;
-    }
-    if (!isPathWithin(createState.workspacePath, createState.outputPath)) {
-      notify('run 输出目录必须位于总工作目录内', 'warning');
-      return;
-    }
 
     setSubmitting(true);
-    setUploadProgress('');
     try {
       const runtimeOverrides = parseJsonObject(createState.runtimeOverridesText, '运行时覆盖');
-      const scanOptions = parseJsonObject(createState.scanOptionsText, '扫描选项');
-      const artifactRefs = await uploadArtifacts(createState.files);
       const created = await executionApi.createTask({
         project_id: projectId,
         profile_id: createState.profileId || undefined,
         title: createState.title.trim(),
-        task_markdown: createState.taskMarkdown.trim() || undefined,
         workspace_dir: buildProjectFilesystemRef(createState.workspacePath),
         data_flow: buildProjectFilesystemRef(createState.dataFlowPath),
         source_dir: buildProjectFilesystemRef(createState.sourcePath),
-        output_dir: buildProjectFilesystemRef(createState.outputPath),
         model: createState.model.trim() || undefined,
         provider: createState.provider.trim() || undefined,
         thinking: createState.thinking,
@@ -728,8 +623,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         worker_timeout: createState.workerTimeout,
         advisor_timeout: createState.advisorTimeout,
         result_review_concurrency: createState.resultReviewConcurrency,
-        scan_options: scanOptions,
-        artifact_refs: artifactRefs,
         priority: createState.priority,
         runtime_overrides: runtimeOverrides,
       });
@@ -741,7 +634,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       notify(error?.message || '创建任务失败', 'error');
     } finally {
       setSubmitting(false);
-      setUploadProgress('');
     }
   };
 
@@ -752,12 +644,13 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         <PageHeader
           eyebrow="Dataflow Vulnerability Mining"
           title="数据流漏洞挖掘"
-          description="聚合扫描任务、执行尝试、调度事件与工作区产物，覆盖从任务提交到评审闭环的核心观察视图。"
+          description="任务列表改为统一 runs 视图，通过后端单一接口聚合当前执行 run 与历史 run，不再拆分“当前 / 历史”两套列表。"
         >
           <button
             onClick={() => {
               setCreateState(initialCreateTaskState());
               setShowCreate(true);
+              void loadProfiles();
             }}
             className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-cyan-800"
           >
@@ -774,112 +667,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         </PageHeader>
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-          <MetricCard label="任务总数" value={stats.total} icon={<Layers size={17} />} />
-          <MetricCard label="活跃任务" value={stats.active} icon={<Activity size={17} />} hint={`${stats.running} 个运行中`} />
+          <MetricCard label="Run 总数" value={stats.total} icon={<Layers size={17} />} />
+          <MetricCard label="运行中" value={stats.running} icon={<Activity size={17} />} />
           <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-50/70" />
-          <MetricCard label="失败任务" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
-          <MetricCard label="可重试" value={stats.retryable} icon={<RotateCcw size={17} />} />
-          <MetricCard label="完成率" value={stats.total ? `${Math.round((stats.finished / stats.total) * 100)}%` : '0%'} icon={<Gauge size={17} />} />
-        </section>
-
-        <section>
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <Search size={16} className="text-slate-400" />
-                  <input
-                    value={taskQuery}
-                    onChange={(event) => setTaskQuery(event.target.value)}
-                    placeholder="搜索任务、执行 ID、Profile 或消息"
-                    className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
-                  />
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={taskStatusFilter}
-                    onChange={(event) => setTaskStatusFilter(event.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
-                  >
-                    <option value="">全部状态</option>
-                    {Object.entries(STATUS_META).map(([key, meta]) => <option key={key} value={key}>{meta.label}</option>)}
-                  </select>
-                  <select
-                    value={profileFilter}
-                    onChange={(event) => setProfileFilter(event.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
-                  >
-                    <option value="">全部 Profile</option>
-                    {profiles.map((profile) => <option key={profile.profile_id} value={profile.profile_id}>{profile.name}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="overflow-auto">
-              <table className="w-full min-w-[960px] text-left text-sm">
-                <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">任务</th>
-                    <th className="px-4 py-3">状态</th>
-                    <th className="px-4 py-3">Profile</th>
-                    <th className="px-4 py-3">尝试</th>
-                    <th className="px-4 py-3">优先级</th>
-                    <th className="px-4 py-3">耗时</th>
-                    <th className="px-4 py-3">更新时间</th>
-                    <th className="px-4 py-3 text-right">详情</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTasks.map((task) => {
-                    const profile = profileById.get(task.profile_id);
-                    return (
-                      <tr
-                        key={task.task_id}
-                        onClick={() => openTaskDetail(task)}
-                        className="cursor-pointer border-t border-slate-100 bg-white hover:bg-cyan-50/50"
-                        title="查看任务详情"
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
-                              <FileSearch size={17} />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-black text-slate-900">{shortId(task.task_id, 18)}</div>
-                              <div className="mt-1 truncate text-xs text-slate-500">{task.message || task.latest_execution_id || '-'}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3"><StatusBadge status={task.status} /></td>
-                        <td className="px-4 py-3">
-                          <div className="font-bold text-slate-700">{profile?.name || shortId(task.profile_id, 16)}</div>
-                          <div className="mt-1 text-xs text-slate-500">v{task.profile_version}</div>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-700">{task.latest_attempt_no || 0}</td>
-                        <td className="px-4 py-3 font-bold text-slate-700">{task.priority}</td>
-                        <td className="px-4 py-3 text-slate-600">{formatDuration(task.started_at, task.finished_at)}</td>
-                        <td className="px-4 py-3 text-xs text-slate-500">{formatDateTime(task.finished_at || task.started_at || task.created_at)}</td>
-                        <td className="px-4 py-3 text-right text-cyan-700">
-                          <ChevronRight size={17} className="ml-auto" />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {!loading && filteredTasks.length === 0 ? (
-                <div className="p-6"><EmptyPanel title="暂无任务" description="当前筛选条件下没有数据流漏洞挖掘任务。" /></div>
-              ) : null}
-              {loading ? (
-                <div className="flex items-center gap-2 p-6 text-sm font-bold text-slate-500">
-                  <Loader2 size={16} className="animate-spin" />
-                  加载任务中...
-                </div>
-              ) : null}
-            </div>
-          </div>
+          <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
+          <MetricCard label="关联任务" value={stats.linked} icon={<FileSearch size={17} />} />
+          <MetricCard label="独立历史 Run" value={stats.legacy} icon={<Archive size={17} />} />
         </section>
 
         <section>
@@ -887,29 +680,29 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <div className="text-sm font-black text-slate-900">历史 Runs</div>
-                  <div className="mt-1 text-xs text-slate-500">由漏洞挖掘服务后端直接读取 `/data` 并同步数据库，用于统一展示历史 run 与中间过程文件。</div>
+                  <div className="text-sm font-black text-slate-900">任务列表</div>
+                  <div className="mt-1 text-xs text-slate-500">所有 run 统一从 `/api/dataflow-vuln-scanner/history-runs` 获取；已关联任务的 run 和纯历史 run 在同一视图查看。</div>
                 </div>
                 <div className="text-xs font-bold text-slate-500">
-                  {filteredFileserverRuns.length === fileserverRuns.length
-                    ? `${fileserverRuns.length} 个历史 run`
-                    : `${filteredFileserverRuns.length} / ${fileserverRuns.length} 个历史 run`}
+                  {filteredRuns.length === runs.length
+                    ? `${runs.length} 个 run`
+                    : `${filteredRuns.length} / ${runs.length} 个 run`}
                 </div>
               </div>
               <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                   <Search size={16} className="text-slate-400" />
                   <input
-                    value={historyQuery}
-                    onChange={(event) => setHistoryQuery(event.target.value)}
-                    placeholder="搜索历史 Run、模型、状态或工作流模式"
+                    value={runQuery}
+                    onChange={(event) => setRunQuery(event.target.value)}
+                    placeholder="搜索 Run、任务 ID、执行 ID、模型、状态或工作流模式"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <select
-                    value={historyStatusFilter}
-                    onChange={(event) => setHistoryStatusFilter(event.target.value)}
+                    value={runStatusFilter}
+                    onChange={(event) => setRunStatusFilter(event.target.value)}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                   >
                     <option value="">全部状态</option>
@@ -917,9 +710,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   </select>
                 </div>
               </div>
-              {fileserverError ? (
+              {runsError ? (
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">
-                  {fileserverError}
+                  {runsError}
                 </div>
               ) : null}
             </div>
@@ -928,7 +721,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               <table className="w-full min-w-[960px] text-left text-sm">
                 <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
                   <tr>
-                    <th className="px-4 py-3">Run</th>
+                    <th className="px-4 py-3">任务 / Run</th>
                     <th className="px-4 py-3">状态</th>
                     <th className="px-4 py-3">模型</th>
                     <th className="px-4 py-3">轮次</th>
@@ -939,46 +732,78 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredFileserverRuns.map((run) => (
-                    <tr
-                      key={run.name}
-                      onClick={() => openFileserverRunDetail(run)}
-                      className="cursor-pointer border-t border-slate-100 bg-white hover:bg-cyan-50/50"
-                      title="查看历史 run 解析详情"
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
-                            <Archive size={17} />
+                  {filteredRuns.map((run) => {
+                    const secondaryLine = run.linked_task_id
+                      ? `任务 ${shortId(run.linked_task_id, 18)} · 执行 ${shortId(run.linked_execution_id || run.name, 18)}`
+                      : `${run.workflow_mode || run.provider || '未关联任务'}`;
+                    return (
+                      <tr
+                        key={run.history_run_id || run.name}
+                        onClick={() => openRunDetail(run)}
+                        className="cursor-pointer border-t border-slate-100 bg-white hover:bg-cyan-50/50"
+                        title="查看任务运行详情"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
+                              <FileSearch size={17} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-black text-slate-900">{shortId(run.name, 32)}</div>
+                              <div className="mt-1 truncate text-xs text-slate-500">{secondaryLine}</div>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <div className="font-black text-slate-900">{shortId(run.name, 32)}</div>
-                            <div className="mt-1 truncate text-xs text-slate-500">{run.workflow_mode || run.provider || '-'}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={run.status} /></td>
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-slate-700">{run.model || '-'}</div>
-                        <div className="mt-1 text-xs text-slate-500">{run.thinking || '-'}</div>
-                      </td>
-                      <td className="px-4 py-3 font-bold text-slate-700">{run.cycles_used || 0}</td>
-                      <td className="px-4 py-3 text-slate-600">{run.result_count || 0} / {run.passed_count || 0} 通过</td>
-                      <td className="px-4 py-3 text-xs text-slate-500">{formatEpochTime(run.start_epoch)}</td>
-                      <td className="px-4 py-3 text-slate-600">{formatSeconds(run.duration_seconds || 0)}</td>
-                      <td className="px-4 py-3 text-right text-cyan-700">
-                        <ChevronRight size={17} className="ml-auto" />
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3"><StatusBadge status={run.status} /></td>
+                        <td className="px-4 py-3">
+                          <div className="font-bold text-slate-700">{run.model || '-'}</div>
+                          <div className="mt-1 text-xs text-slate-500">{run.thinking || run.provider || '-'}</div>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-700">{run.cycles_used || 0} / {run.max_cycles || 0}</td>
+                        <td className="px-4 py-3 text-slate-600">
+                          <div>{run.result_count || 0} / {run.passed_count || 0} 通过</div>
+                          <div className="mt-1 text-xs text-slate-500">{run.failed_count || 0} 失败</div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">{formatEpochTime(run.start_epoch)}</td>
+                        <td className="px-4 py-3 text-slate-600">{formatSeconds(run.duration_seconds || 0)}</td>
+                        <td className="px-4 py-3 text-right text-cyan-700">
+                          <ChevronRight size={17} className="ml-auto" />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 
-              {!loading && !fileserverError && filteredFileserverRuns.length === 0 ? (
+              {!loading && !runsError && filteredRuns.length === 0 ? (
                 <div className="p-6">
-                  <EmptyPanel title="暂无历史 Runs" description="当前筛选条件下没有解析到可展示的历史 run。" icon={<Archive size={22} />} />
+                  <EmptyPanel title="暂无 Runs" description="当前筛选条件下没有可展示的数据流漏洞挖掘 run。" />
                 </div>
               ) : null}
+              {loading ? (
+                <div className="flex items-center gap-2 p-6 text-sm font-bold text-slate-500">
+                  <Loader2 size={16} className="animate-spin" />
+                  加载任务列表中...
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-sm font-black text-slate-900">Profile / 系统配置</div>
+                <div className="mt-1 text-xs text-slate-500">Profile 维护入口已下沉到页面底部，日常以统一任务列表为主；只有在需要调整默认模板、Worker 或版本快照时再进入。</div>
+              </div>
+              <button
+                onClick={() => navigate('/pentest-exec-dataflow-vuln-system-config')}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              >
+                <Settings size={16} />
+                打开系统配置
+              </button>
             </div>
           </div>
         </section>
@@ -989,8 +814,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           projectId={projectId}
           state={createState}
           profiles={profiles}
+          profilesLoading={profilesLoading}
           submitting={submitting}
-          uploadProgress={uploadProgress}
           onChange={setCreateState}
           onClose={() => !submitting && setShowCreate(false)}
           onSubmit={submitCreateTask}
@@ -1016,8 +841,9 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     [location.search]
   );
   const fileserverRouteSummary = (location.state as { fileserverRunSummary?: DataflowFileserverRunSummary } | null)?.fileserverRunSummary || null;
-  const isFileserverMode = Boolean(fileserverRunName);
-  const isHistoryBootstrapMode = Boolean(historyRunId && !fileserverRunName);
+  const isSyntheticFileserverTask = useMemo(() => isSyntheticFileserverTaskId(taskId), [taskId]);
+  const isFileserverMode = isSyntheticFileserverTask && Boolean(fileserverRunName);
+  const isHistoryBootstrapMode = isSyntheticFileserverTask && Boolean(historyRunId && !fileserverRunName);
   const [profiles, setProfiles] = useState<DataflowScanProfile[]>([]);
   const [detail, setDetail] = useState<DataflowScanTaskDetail | null>(null);
   const [events, setEvents] = useState<DataflowScanTaskEvent[]>([]);
@@ -1162,7 +988,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   }, [taskId, requestedRunId, isFileserverMode, isHistoryBootstrapMode, fileserverRunName, fileserverRootPath, projectId]);
 
   useEffect(() => {
-    if (!historyRunId || fileserverRunName) return;
+    if (!isHistoryBootstrapMode || !historyRunId) return;
     let cancelled = false;
     setDetailLoading(true);
     setLoadError('');
@@ -1190,7 +1016,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     return () => {
       cancelled = true;
     };
-  }, [executionApi, fileserverRouteSummary, fileserverRunName, historyRunId, location.search, navigate, notify]);
+  }, [executionApi, fileserverRouteSummary, historyRunId, isHistoryBootstrapMode, location.search, navigate, notify]);
 
   useEffect(() => {
     if (isFileserverMode || !taskId || detailLoading || !isActiveTaskStatus(detail?.status)) return undefined;
@@ -2454,30 +2280,25 @@ const CreateTaskDialog: React.FC<{
   projectId: string;
   state: CreateTaskState;
   profiles: DataflowScanProfile[];
+  profilesLoading: boolean;
   submitting: boolean;
-  uploadProgress: string;
   onChange: (state: CreateTaskState) => void;
   onClose: () => void;
   onSubmit: () => void;
-}> = ({ projectId, state, profiles, submitting, uploadProgress, onChange, onClose, onSubmit }) => {
-  const [pickerField, setPickerField] = useState<null | 'workspacePath' | 'dataFlowPath' | 'sourcePath' | 'outputPath'>(null);
+}> = ({ projectId, state, profiles, profilesLoading, submitting, onChange, onClose, onSubmit }) => {
+  const [pickerField, setPickerField] = useState<null | 'workspacePath' | 'dataFlowPath' | 'sourcePath'>(null);
 
   const pickerMode = pickerField === 'dataFlowPath' ? 'file' : 'directory';
   const pickerTitle = pickerField === 'workspacePath'
     ? '选择总工作目录'
     : pickerField === 'dataFlowPath'
       ? '选择数据流文件'
-      : pickerField === 'sourcePath'
-        ? '选择代码目录'
-        : '选择 run 输出目录';
+      : '选择代码目录';
   const pickerDescription = pickerField === 'workspacePath'
-    ? '从项目文件资源管理中选择每次执行的工作目录模板。系统会在该目录下按 execution_id 生成实际工作区。'
+    ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择每次执行的工作目录模板。系统会在该目录下按 execution_id 生成实际工作区。'
     : pickerField === 'dataFlowPath'
-      ? '从项目文件资源管理中选择数据流分析结果文件。'
-      : pickerField === 'sourcePath'
-        ? '从项目文件资源管理中选择要审计的代码目录。'
-        : '从项目文件资源管理中选择 run 输出目录。该目录必须位于总工作目录内。';
-  const outputPathValid = !state.workspacePath.trim() || !state.outputPath.trim() || isPathWithin(state.workspacePath, state.outputPath);
+      ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择数据流分析结果文件。'
+      : '从数据流漏洞挖掘服务直接挂载的 /data 中选择要审计的代码目录。';
 
   return (
     <>
@@ -2539,7 +2360,10 @@ const CreateTaskDialog: React.FC<{
                     </option>
                   ))}
                 </select>
-                {!profiles.some((profile) => profile.enabled) ? (
+                {profilesLoading ? (
+                  <div className="mt-2 text-xs text-slate-500">Profile 列表加载中...</div>
+                ) : null}
+                {!profilesLoading && !profiles.some((profile) => profile.enabled) ? (
                   <div className="mt-2 text-xs text-slate-500">当前项目还没有可用 Profile，提交任务时系统会自动创建一个默认扫描 Profile。</div>
                 ) : null}
               </label>
@@ -2602,28 +2426,6 @@ const CreateTaskDialog: React.FC<{
                   </button>
                 </div>
               </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                  <Archive size={16} />
-                  Run 输出目录
-                </div>
-                <div className="mt-2 text-xs leading-5 text-slate-500">该目录必须位于总工作目录内，系统会在对应执行目录中映射相同的输出位置。</div>
-                <div className="mt-3 flex gap-2">
-                  <input
-                    value={state.outputPath}
-                    onChange={(event) => onChange({ ...state, outputPath: event.target.value })}
-                    placeholder="/case-a/workspace/output"
-                    className={`${FORM_INPUT_CLASS} ${outputPathValid ? '' : 'border-amber-300 focus:border-amber-500'}`}
-                  />
-                  <button type="button" onClick={() => setPickerField('outputPath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                    选择
-                  </button>
-                </div>
-                {!outputPathValid ? (
-                  <div className="mt-2 text-xs font-semibold text-amber-700">当前输出目录不在总工作目录内，请重新选择。</div>
-                ) : null}
-              </div>
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-4">
@@ -2665,16 +2467,7 @@ const CreateTaskDialog: React.FC<{
               </label>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-              <label>
-                <span className="text-xs font-black text-slate-600">扫描选项 JSON</span>
-                <textarea
-                  value={state.scanOptionsText}
-                  onChange={(event) => onChange({ ...state, scanOptionsText: event.target.value })}
-                  placeholder={'{\n  "target_function": "optional"\n}'}
-                  className="mt-2 min-h-[150px] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs leading-5 text-slate-800 outline-none focus:border-cyan-600"
-                />
-              </label>
+            <div className="mt-4">
               <label>
                 <span className="text-xs font-black text-slate-600">运行时覆盖 JSON</span>
                 <textarea
@@ -2684,40 +2477,7 @@ const CreateTaskDialog: React.FC<{
                   className="mt-2 min-h-[150px] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs leading-5 text-slate-800 outline-none focus:border-cyan-600"
                 />
               </label>
-              <label>
-                <span className="text-xs font-black text-slate-600">可选补充 Markdown</span>
-                <textarea
-                  value={state.taskMarkdown}
-                  onChange={(event) => onChange({ ...state, taskMarkdown: event.target.value })}
-                  placeholder={defaultTaskMarkdown()}
-                  className="mt-2 min-h-[150px] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs leading-5 text-slate-800 outline-none focus:border-cyan-600"
-                />
-              </label>
             </div>
-
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <label>
-                <span className="text-xs font-black text-slate-600">附加附件（可选）</span>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(event) => onChange({ ...state, files: Array.from(event.target.files || []) })}
-                  className="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-bold file:text-white"
-                />
-              </label>
-              {state.files.length ? (
-                <div className="mt-3 max-h-32 space-y-2 overflow-auto">
-                  {state.files.map((file, index) => (
-                    <div key={`${file.name}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm">
-                      <span className="truncate font-semibold text-slate-700">{file.name}</span>
-                      <span className="shrink-0 text-xs text-slate-500">{formatSize(file.size)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            {uploadProgress ? <div className="mt-4 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-bold text-cyan-700">{uploadProgress}</div> : null}
           </div>
           <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">
             <button onClick={onClose} disabled={submitting} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">取消</button>
@@ -2733,6 +2493,7 @@ const CreateTaskDialog: React.FC<{
         isOpen={Boolean(pickerField)}
         projectId={projectId}
         selectionMode={pickerMode}
+        backend="dataflowVulnScanner"
         title={pickerTitle}
         description={pickerDescription}
         onClose={() => setPickerField(null)}

@@ -1,4 +1,8 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import {
+  ProjectFilesystemChildrenResponse,
+  ProjectFilesystemRootResponse,
+} from '../types/types';
 
 const PREFIX = `${API_BASE}/api/dataflow-vuln-scanner`;
 
@@ -334,6 +338,20 @@ const unwrapList = <T,>(payload: unknown): T[] => {
 export const dataflowVulnScannerApi = {
   getCapabilities: async (): Promise<Record<string, any>> => {
     const response = await fetch(`${PREFIX}/capabilities`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getProjectFilesystemRoot: async (projectId: string): Promise<ProjectFilesystemRootResponse> => {
+    const response = await fetch(withQuery(`${PREFIX}/project-filesystem/root`, { project_id: projectId }), {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  getProjectFilesystemChildren: async (projectId: string, path: string): Promise<ProjectFilesystemChildrenResponse> => {
+    const response = await fetch(withQuery(`${PREFIX}/project-filesystem/children`, { project_id: projectId, path }), {
+      headers: getHeaders(),
+    });
     return handleResponse(response);
   },
 
