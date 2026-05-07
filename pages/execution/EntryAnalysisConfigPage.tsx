@@ -13,6 +13,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 
 const defaultRole = (): EntryAnalysisRoleConfig => ({
+  default_model: '',
   default_tools: ['read', 'bash', 'edit', 'write'],
   system_prompt_dir: '',
   default_thinking_level: 'off',
@@ -82,17 +83,26 @@ const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: st
 };
 
 const AgentInstanceList: React.FC<{ agents: EntryAnalysisAgentInstance[]; modelOptions: string[]; onChange: (agents: EntryAnalysisAgentInstance[]) => void }> = ({ agents, modelOptions, onChange }) => {
-  const add = () => onChange([...agents, { model: '', tools: null, thinking_level: null }]);
+  const add = () => onChange([...agents, { model: '', tools: null, thinking_level: null, system_prompt: null }]);
   const remove = (i: number) => onChange(agents.filter((_, idx) => idx !== i));
-  const update = (i: number, patch: Partial<EntryAnalysisAgentInstance>) => onChange(agents.map((a, idx) => idx === i ? { ...a, ...patch } : a));
+  const update = (i: number, p: Partial<EntryAnalysisAgentInstance>) => onChange(agents.map((a, idx) => idx === i ? { ...a, ...p } : a));
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {agents.map((agent, i) => (
-        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
-          <div className="flex-1">
-            <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
+        <div key={i} className="rounded-xl border border-slate-100 bg-slate-50 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
+            </div>
+            <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
           </div>
-          <button onClick={() => remove(i)} className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
+          <textarea
+            rows={2}
+            placeholder="System Prompt 覆盖（留空则使用 system_prompt_dir 文件）"
+            value={agent.system_prompt ?? ''}
+            onChange={(e) => update(i, { system_prompt: e.target.value || null })}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 placeholder-slate-300 resize-y font-mono"
+          />
         </div>
       ))}
       <button onClick={add} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
@@ -110,6 +120,14 @@ const RoleConfigBlock: React.FC<{
   onChange: (v: EntryAnalysisRoleConfig) => void;
 }> = ({ title, subtitle, modelOptions, value, onChange }) => (
   <SectionCard title={title} subtitle={subtitle}>
+    <div className="grid grid-cols-2 gap-4">
+      <FieldRow label="default_model" hint="兜底模型（实例未指定时使用）">
+        <ModelSelect value={value.default_model ?? ''} options={modelOptions} onChange={(v) => onChange({ ...value, default_model: v })} />
+      </FieldRow>
+      <FieldRow label="system_prompt_dir" hint="Prompt 文件目录（可留空）">
+        <TextInput value={value.system_prompt_dir ?? ''} placeholder="./prompts/workers" onChange={(v) => onChange({ ...value, system_prompt_dir: v })} />
+      </FieldRow>
+    </div>
     <FieldRow label="Agent 实例列表">
       <AgentInstanceList agents={value.agents ?? []} modelOptions={modelOptions} onChange={(agents) => onChange({ ...value, agents })} />
     </FieldRow>
@@ -234,7 +252,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proje
           {/* Workers */}
           <RoleConfigBlock
             title="Workers 配置"
-            subtitle="执行入口分析工作的 Agent"
+            subtitle="串行逐文件分析 — 仅使用第一个实例（agents[0]），多余实例无效"
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
@@ -243,7 +261,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proje
           {/* Judges */}
           <RoleConfigBlock
             title="Judges 配置"
-            subtitle="评判 Worker 结果的 Agent"
+            subtitle="并行评审 — 实例列表中每一项对应一个并行 Judge 进程，数量即并行度"
             modelOptions={modelOptions}
             value={config.judges}
             onChange={(v) => patch({ judges: v })}
