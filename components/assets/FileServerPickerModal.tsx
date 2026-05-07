@@ -36,7 +36,7 @@ export const FileServerPickerModal: React.FC<FileServerPickerModalProps> = ({
   title,
   description,
   confirmText,
-  containerRoot = '/data/fileserver/files',
+  containerRoot = '/data/files',
 }) => {
   const fileserverApi = api.domains.assets.fileserver;
 

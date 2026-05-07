@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, ExternalLink, FileText, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, X, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, ExternalLink, FileText, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -72,7 +72,7 @@ function computeStageTimes(events: AppSaStageEvent[]): Array<{ startTs: number |
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
-  const prefix = `/data/fileserver/files/${projectId}`;
+  const prefix = `/data/files/${projectId}`;
   if (!outputPath.startsWith(prefix)) return null;
   const rel = outputPath.slice(prefix.length).replace(/\/+$/, '');
   return rel.startsWith('/') ? rel : `/${rel}`;
@@ -270,7 +270,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
       sessionStorage.removeItem('secflow:systemAnalysisInputPath');
       setCreateModalOpen(true);
       setSelectedTaskId('');
-      setForm({ ...emptyForm, input_path: stored, output_path: `/data/fileserver/files/${projectId}/app/secflow-app-system-analyse` });
+      setForm({ ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -372,6 +372,18 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
       await loadTasks(page);
     } catch (err: any) {
       notify(`取消失败: ${err?.message || err}`, 'error');
+    }
+  };
+
+  const handleDelete = async (taskId: string, taskName: string) => {
+    if (!window.confirm(`确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`)) return;
+    try {
+      await appApi.deleteTask(taskId, true);
+      notify('任务已删除', 'success');
+      if (selectedTaskId === taskId) { setModalOpen(false); setSelectedTaskId(''); }
+      await loadTasks(page);
+    } catch (err: any) {
+      notify(`删除失败: ${err?.message || err}`, 'error');
     }
   };
 
@@ -649,7 +661,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm, output_path: `/data/fileserver/files/${projectId}/app/secflow-app-system-analyse` }); }}
+            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` }); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
               <Plus size={13} />新建任务
             </button>
@@ -663,25 +675,36 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
         ) : (
           <div className="space-y-2 max-h-[640px] overflow-auto pr-1">
             {tasks.map((t) => (
-              <button
+              <div
                 key={t.task_id}
-                onClick={() => handleSelectTask(t.task_id)}
-                className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left transition-colors hover:bg-slate-50 hover:border-slate-300"
+                className="group relative rounded-xl border border-slate-200 bg-white transition-colors hover:bg-slate-50 hover:border-slate-300"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-sm font-bold text-slate-900 truncate">{t.task_name}</div>
-                    <div className="mt-0.5 text-xs text-slate-500 truncate font-mono">{t.input_path}</div>
+                <button
+                  onClick={() => handleSelectTask(t.task_id)}
+                  className="w-full p-4 text-left"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-slate-900 truncate">{t.task_name}</div>
+                      <div className="mt-0.5 text-xs text-slate-500 truncate font-mono">{t.input_path}</div>
+                    </div>
+                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {STATUS_LABEL[t.status] ?? t.status}
+                    </span>
                   </div>
-                  <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {STATUS_LABEL[t.status] ?? t.status}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
-                  <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
-                  <span>耗时: {formatDuration(t.started_at, t.finished_at)}</span>
-                </div>
-              </button>
+                  <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
+                    <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
+                    <span>耗时: {formatDuration(t.started_at, t.finished_at)}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
+                  title="删除任务及输出文件"
+                  className="absolute right-3 top-3 hidden group-hover:flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -723,7 +746,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
                     className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
                     value={form.input_path}
                     onChange={(e) => handleInputPathChange(e.target.value)}
-                    placeholder="/data/fileserver/files/<project>/<subproject>"
+                    placeholder="/data/files/<project>/<subproject>"
                   />
                   <button
                     type="button"
@@ -743,7 +766,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projec
                     className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
                     value={form.output_path}
                     onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
-                    placeholder="/data/fileserver/files/<project>/<subproject>"
+                    placeholder="/data/files/<project>/<subproject>"
                   />
                   <button
                     type="button"

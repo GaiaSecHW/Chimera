@@ -1595,7 +1595,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         onClick: () => {
           const dirPath = getFileserverDirectoryPath(node);
           if (dirPath !== null) {
-            const containerPath = `/data/fileserver/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+            const containerPath = `/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
             sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
             window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
           }
@@ -1618,7 +1618,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           onClick: () => {
             const dirPath = getFileserverDirectoryPath(node);
             if (dirPath !== null) {
-              const containerPath = `/data/fileserver/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
+              const containerPath = `/data/files/${projectId}${dirPath === '/' ? '' : dirPath}`;
               sessionStorage.setItem('secflow:systemAnalysisInputPath', containerPath);
               window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
             }

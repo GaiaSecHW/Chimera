@@ -27,7 +27,6 @@ import { EnvProcessMonitorDetailPage } from '../pages/environment/EnvProcessMoni
 import { EnvProcessMonitorTasksPage } from '../pages/environment/EnvProcessMonitorTasksPage';
 import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPage';
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
-import { SystemAnalysisModelsPage } from '../pages/execution/SystemAnalysisModelsPage';
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
 import { DataflowAnalysisModelsPage } from '../pages/execution/DataflowAnalysisModelsPage';
@@ -223,8 +222,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <SystemAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
-    case 'system-analysis-models':
-      return <SystemAnalysisModelsPage />;
     case 'dataflow-analysis-task':
       return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'dataflow-analysis-config':
