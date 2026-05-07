@@ -1019,6 +1019,40 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
 
   const buildTargetPath = (basePath: string, relativePath: string) => buildFsChildPath(basePath, normalizeUploadRelativePath(relativePath));
 
+  const getFileserverDirectoryNodeByPath = (path: string): UnifiedExplorerNode => {
+    const normalizedPath = path === '/' ? '/' : path.replace(/\/+$/, '') || '/';
+    if (normalizedPath === '/') {
+      return (
+        nodeMap[`fs:root:${projectId}`] || {
+          id: `fs:root:${projectId}`,
+          source: 'fileserver',
+          nodeType: 'fileserver-root',
+          name: '项目文件（Fileserver）',
+          hasChildren: true,
+          children: [],
+          projectId,
+        }
+      );
+    }
+    const nodeId = buildFsPathNodeId(normalizedPath);
+    return (
+      nodeMap[nodeId] || {
+        id: nodeId,
+        source: 'fileserver',
+        nodeType: parentFsPath(normalizedPath) === '/' ? 'subproject' : 'directory',
+        name: normalizedPath.split('/').filter(Boolean).pop() || normalizedPath,
+        hasChildren: true,
+        children: [],
+        projectId,
+        path: normalizedPath,
+      }
+    );
+  };
+
+  const refreshFileserverDirectory = async (path: string) => {
+    await openNode(getFileserverDirectoryNodeByPath(path));
+  };
+
   const uploadDirectoryTree = async (tree: UploadDirectoryTree, target: UnifiedExplorerNode) => {
     if (!isFileserverDirectoryLike(target)) {
       throw new Error('文件夹上传仅支持项目 Fileserver 目录。');
@@ -1092,7 +1126,8 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
 
   const refreshUploadTarget = async (target: UnifiedExplorerNode) => {
     if (isFileserverDirectoryLike(target)) {
-      await initialize({ source: 'fileserver' });
+      const targetPath = getFileserverDirectoryPath(target);
+      await refreshFileserverDirectory(targetPath || '/');
       return;
     }
     if (target.resourceId) {
@@ -1109,7 +1144,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
         project_id: projectId,
         path: buildFsChildPath('/', name),
       });
-      await initialize({ source: 'fileserver' });
+      await refreshFileserverDirectory('/');
     } catch (error: any) {
       alert(error?.message || '创建子项目失败');
     } finally {
@@ -1136,7 +1171,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           project_id: projectId,
           path: buildFsChildPath(targetPath, name),
         });
-        await initialize({ source: 'fileserver' });
+        await refreshFileserverDirectory(targetPath);
       } else {
         if (!targetNode.resourceId) throw new Error('无效的PVC资源');
         const basePath = targetNode.nodeType === 'pvc-directory' ? normalizePvcPath(targetNode.path || '/') : '/';
@@ -1157,12 +1192,12 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     setBusyAction(`rename:${node.id}`);
     try {
       if (node.source === 'fileserver' && node.path) {
-        await assetApi.fileserver.renameProjectFilesystemNode({
+        const renamed = await assetApi.fileserver.renameProjectFilesystemNode({
           project_id: projectId,
           path: node.path,
           name,
         });
-        await initialize({ source: 'fileserver' });
+        await refreshFileserverDirectory(parentFsPath(renamed.path));
       } else if (node.source === 'pvc' && node.resourceId && node.path) {
         await assetApi.resources.renamePvcBrowserNode(node.resourceId, node.path, name);
         await initialize({ source: 'pvc', resourceId: node.resourceId });
@@ -1188,7 +1223,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     try {
       if (node.source === 'fileserver' && node.path) {
         await assetApi.fileserver.deleteProjectFilesystemNode(projectId, node.path, true);
-        await initialize({ source: 'fileserver' });
+        await refreshFileserverDirectory(parentFsPath(node.path));
       } else if (node.source === 'pvc' && node.resourceId && node.path) {
         await assetApi.resources.deletePvcBrowserNode(node.resourceId, node.path);
         await initialize({ source: 'pvc', resourceId: node.resourceId });
@@ -1257,7 +1292,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
             file,
           });
         }
-        await initialize({ source: 'fileserver' });
+        await refreshFileserverDirectory(targetPath);
       } else {
         if (!target.resourceId) throw new Error('无效的PVC资源');
         const basePath = target.nodeType === 'pvc-directory' ? normalizePvcPath(target.path || '/') : '/';
@@ -1366,7 +1401,11 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
           source_path: dragNode.path,
           target_directory_path: targetDirectoryPath,
         });
-        await initialize({ source: 'fileserver' });
+        const sourceParentPath = parentFsPath(dragNode.path);
+        if (sourceParentPath !== targetDirectoryPath) {
+          await refreshFileserverDirectory(sourceParentPath);
+        }
+        await refreshFileserverDirectory(targetDirectoryPath);
       } else if (dragNode.source === 'pvc') {
         if (!dragNode.resourceId || !dragNode.path) throw new Error('无效PVC节点');
         if (dragNode.resourceId !== targetNode.resourceId) throw new Error('暂不支持跨PVC移动');

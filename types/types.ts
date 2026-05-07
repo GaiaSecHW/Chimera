@@ -1864,7 +1864,7 @@ export type ViewType =
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
-  | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-history' | 'system-analysis-prompt' | 'system-analysis-config'
+  | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-detail' | 'system-analysis-history' | 'system-analysis-prompt' | 'system-analysis-config'
   | 'workflow-instances' | 'workflow-instance-detail' | 'workflow-instance-logs' | 'workflow-jobs' | 'workflow-job-detail' | 'workflow-apps' | 'workflow-app-detail' | 'workflow-app-instances' | 'workflow-app-instance-detail'
   | 'pentest-root' | 'pentest-system'
   | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work'

@@ -290,11 +290,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => observer.disconnect();
   }, [stageSequence]);
 
-  const runAction = async (action: 'cancel' | 'retry' | 'resume') => {
+  const runAction = async (action: 'cancel' | 'retry' | 'resume' | 'delete') => {
     if (!projectId || !taskId) return;
+    if (action === 'delete') {
+      const confirmed = window.confirm('删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？');
+      if (!confirmed) return;
+    }
     setActionLoading(action);
     try {
       if (action === 'cancel') await executionApi.binarySecurity.cancelTask(projectId, taskId);
+      if (action === 'delete') {
+        await executionApi.binarySecurity.deleteTask(projectId, taskId);
+        onBack();
+        return;
+      }
       if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
       if (action === 'resume') await executionApi.binarySecurity.resumeTask(projectId, taskId);
       await load();
@@ -478,6 +487,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button type="button" onClick={() => void runAction('cancel')} disabled={actionLoading !== ''} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
           <button type="button" onClick={() => void runAction('retry')} disabled={actionLoading !== ''} className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60">重试</button>
           <button type="button" onClick={() => void runAction('resume')} disabled={actionLoading !== ''} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">继续</button>
+          <button type="button" onClick={() => void runAction('delete')} disabled={actionLoading !== ''} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
         </div>
       </div>
 

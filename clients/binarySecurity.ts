@@ -118,6 +118,15 @@ export interface BinarySecurityServiceConfig {
   };
 }
 
+export interface BinarySecurityActionResult {
+  status: string;
+  task_id: string;
+  message: string;
+  cancelled_downstream_count?: number;
+  deleted_downstream_count?: number;
+  cleanup_status?: string | null;
+}
+
 export const binarySecurityApi = {
   listTasks: async (
     projectId: string,
@@ -206,9 +215,17 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
-  cancelTask: async (projectId: string, taskId: string) => {
+  cancelTask: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/cancel`, {
       method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  deleteTask: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}`, {
+      method: 'DELETE',
       headers: getHeaders(),
     });
     return handleResponse(resp);

@@ -5,7 +5,7 @@ import {
   Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
+import { FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -61,6 +61,12 @@ function fmtDuration(s: string | null, e: string | null) {
   const ms = (e ? new Date(e).getTime() : Date.now()) - new Date(s).getTime();
   const sec = Math.round(ms / 1000);
   return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}m${sec % 60}s`;
+}
+
+function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
+  if (used == null || limit == null || limit <= 0) return '-';
+  const percent = Math.max(0, (used / limit) * 100);
+  return `${percent.toFixed(percent >= 10 ? 1 : 2)}%${unitSuffix}`;
 }
 
 function TaskStatusBadge({ status }: { status: string }) {
@@ -133,6 +139,8 @@ function TaskRow({
 function TaskDetailPanel({
   task,
   loading,
+  resourceUsage,
+  resourceLoading,
   onBack,
   onRefresh,
   onCancel,
@@ -141,6 +149,8 @@ function TaskDetailPanel({
 }: {
   task: FirmwareUnpackTask | null;
   loading: boolean;
+  resourceUsage: FirmwareTaskResourceUsage | null;
+  resourceLoading: boolean;
   onBack: () => void;
   onRefresh: (id: string) => void;
   onCancel: (id: string) => void;
@@ -250,6 +260,36 @@ function TaskDetailPanel({
           ))}
         </div>
 
+        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">资源使用情况</p>
+          {resourceLoading ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Loader2 size={13} className="animate-spin" /> 加载资源指标中...
+            </div>
+          ) : !resourceUsage?.available ? (
+            <div className="text-xs text-slate-500">
+              {resourceUsage?.message || '暂无资源指标'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <p className="text-[10px] text-slate-400">CPU 占用</p>
+                  <p className="mt-1 text-sm font-bold text-slate-800">
+                    {fmtPercent(resourceUsage.cpu_millicores, resourceUsage.pod_cpu_limit_millicores)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <p className="text-[10px] text-slate-400">内存占用</p>
+                  <p className="mt-1 text-sm font-bold text-slate-800">
+                    {fmtPercent(resourceUsage.memory_mib, resourceUsage.pod_memory_limit_mib)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {task.result_message && (
           <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
             <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">结果摘要</p>
@@ -283,6 +323,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeTaskId, setActiveTaskId] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
+  const [resourceUsage, setResourceUsage] = useState<FirmwareTaskResourceUsage | null>(null);
+  const [resourceLoading, setResourceLoading] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -353,11 +395,27 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     try {
       const task = await fwApi.getTask(id);
       setTasks((prev) => prev.map((item) => (item.id === id ? task : item)));
+      if (activeTaskId === id) {
+        const usage = await fwApi.getTaskResourceUsage(id);
+        setResourceUsage(usage);
+      }
     } catch {
     } finally {
       if (activeTaskId === id) setDetailLoading(false);
     }
   }, [activeTaskId]);
+
+  const loadResourceUsage = useCallback(async (id: string) => {
+    setResourceLoading(true);
+    try {
+      const usage = await fwApi.getTaskResourceUsage(id);
+      setResourceUsage(usage);
+    } catch {
+      setResourceUsage(null);
+    } finally {
+      setResourceLoading(false);
+    }
+  }, []);
 
   const hasRunning = useMemo(() => taskItems.some((task) => !isTerminal(task.status)), [taskItems]);
 
@@ -395,6 +453,15 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setActiveTaskId('');
     }
   }, [taskItems, activeTaskId]);
+
+  useEffect(() => {
+    if (!activeTaskId) {
+      setResourceUsage(null);
+      setResourceLoading(false);
+      return;
+    }
+    loadResourceUsage(activeTaskId);
+  }, [activeTaskId, loadResourceUsage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -595,7 +662,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 <p className="text-sm font-semibold text-slate-700">任务工作目录</p>
                 <p className="mt-2 text-xs leading-6 text-slate-500">
                   提交后会在当前项目根目录自动创建 `app/secflow-app-firmware-unpacker/&lt;task-id&gt;`，
-                  并在其中生成 `input`、`output`、`run` 三个目录。选中的固件会先复制到 `input` 后再执行解包。
+                  并在其中生成 `input`、`output`、`run` 三个目录。`input` 目录中只会写入一份 JSON 清单，记录原始固件路径、
+                  输出目录和运行日志目录，解包时直接使用原始固件文件。
                 </p>
                 <div className="mt-3 space-y-2 text-xs">
                   <div>
@@ -661,6 +729,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         <TaskDetailPanel
           task={projectId ? activeTask : null}
           loading={detailLoading}
+          resourceUsage={resourceUsage}
+          resourceLoading={resourceLoading}
           onBack={() => setActiveTaskId('')}
           onRefresh={refreshOne}
           onCancel={handleCancel}

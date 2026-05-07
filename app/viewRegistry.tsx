@@ -26,6 +26,7 @@ import { EnvProcessMonitorOverviewPage } from '../pages/environment/EnvProcessMo
 import { EnvProcessMonitorDetailPage } from '../pages/environment/EnvProcessMonitorDetailPage';
 import { EnvProcessMonitorTasksPage } from '../pages/environment/EnvProcessMonitorTasksPage';
 import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPage';
+import { SystemAnalysisTaskDetailPage } from '../pages/execution/SystemAnalysisTaskDetailPage';
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
@@ -98,6 +99,7 @@ export interface ViewRegistryContext {
   activeAiHelperKey: string;
   activeProcessMonitorServiceKey: string;
   activeB2STaskId: string;
+  activeSystemAnalysisTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
@@ -109,6 +111,7 @@ export interface ViewRegistryContext {
   setActiveJobTemplateId: (id: string) => void;
   setActiveAppWorkflowId: (id: string) => void;
   setActiveB2STaskId: (id: string) => void;
+  setActiveSystemAnalysisTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
@@ -213,7 +216,23 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'env-tasks':
       return <EnvTasksPage projectId={ctx.selectedProjectId} />;
     case 'system-analysis-task':
-      return <SystemAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+      return (
+        <SystemAnalysisTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveSystemAnalysisTaskId(taskId);
+            ctx.setCurrentView('system-analysis-detail');
+          }}
+        />
+      );
+    case 'system-analysis-detail':
+      return (
+        <SystemAnalysisTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeSystemAnalysisTaskId}
+          onBack={() => ctx.setCurrentView('system-analysis-task')}
+        />
+      );
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'dataflow-analysis-task':
