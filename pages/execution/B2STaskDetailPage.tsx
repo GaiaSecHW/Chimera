@@ -3,6 +3,7 @@ import { ArrowLeft, Loader2, RefreshCw, Trash2, XCircle } from 'lucide-react';
 
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
+import { showConfirm } from '../../components/DialogService';
 import { B2SStatsHeader, emptyB2SStats } from './B2SStatsHeader';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
 
@@ -51,7 +52,14 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
 
   const cancelTask = async () => {
     if (!projectId || !taskId || cancelling) return;
-    if (!window.confirm('确认取消该二进制逆向任务？运行中的 item 会请求后端终止。')) return;
+    const confirmed = await showConfirm({
+      title: '取消二进制逆向任务',
+      message: '确认取消该二进制逆向任务？\n\n运行中的 item 会请求后端终止，已生成的输入、输出和中间文件会保留。',
+      confirmText: '确认取消',
+      cancelText: '继续运行',
+      danger: true,
+    });
+    if (!confirmed) return;
     setError(null);
     setCancelling(true);
     try {
@@ -66,7 +74,14 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
 
   const deleteTask = async () => {
     if (!projectId || !taskId || deleting) return;
-    if (!window.confirm('确认彻底删除该二进制逆向任务？此操作会删除 taskId 目录下的所有输入、输出和中间文件，且不可恢复。')) return;
+    const confirmed = await showConfirm({
+      title: '彻底删除二进制逆向任务',
+      message: `确认彻底删除该二进制逆向任务？\n\n任务 ID：${taskId}\n\n此操作会删除 taskId 目录下的所有输入、输出和中间文件，并删除任务记录，且不可恢复。`,
+      confirmText: '确认删除',
+      cancelText: '保留任务',
+      danger: true,
+    });
+    if (!confirmed) return;
     setError(null);
     setDeleting(true);
     try {
