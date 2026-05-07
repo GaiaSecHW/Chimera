@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 import { BinarySecurityTaskDetail } from '../../clients/binarySecurity';
@@ -124,6 +124,7 @@ type DownstreamTaskState = {
 
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }) => {
   const executionApi = api.domains.execution;
+  const stageFlowRef = useRef<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<BinarySecurityTaskDetail | null>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [artifacts, setArtifacts] = useState<any | null>(null);
@@ -132,6 +133,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [error, setError] = useState<string | null>(null);
   const [selectedStage, setSelectedStage] = useState<string>(STAGE_SEQUENCE[0]);
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
+  const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
+    mode: 'horizontal',
+    cardWidth: 160,
+    connectorWidth: 40,
+  });
 
   const load = async () => {
     if (!projectId || !taskId) return;
@@ -232,6 +238,47 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       cancelled = true;
     };
   }, [detail, projectId, selectedStage]);
+
+  useEffect(() => {
+    const node = stageFlowRef.current;
+    if (!node) return;
+
+    const updateLayout = () => {
+      const width = node.clientWidth;
+      if (!width) return;
+      if (width < 1100) {
+        setStageFlowLayout({
+          mode: 'vertical',
+          cardWidth: Math.max(0, width),
+          connectorWidth: 32,
+        });
+        return;
+      }
+
+      const connectorSlots = STAGE_SEQUENCE.length - 1;
+      const minConnectorWidth = 40;
+      const maxCardWidth = 175;
+      const minCardWidth = 138;
+      let cardWidth = Math.min(maxCardWidth, Math.max(minCardWidth, Math.floor((width - connectorSlots * minConnectorWidth) / STAGE_SEQUENCE.length)));
+      let connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * STAGE_SEQUENCE.length) / connectorSlots));
+
+      if (cardWidth * STAGE_SEQUENCE.length + connectorWidth * connectorSlots > width) {
+        cardWidth = Math.max(124, Math.floor((width - connectorSlots * minConnectorWidth) / STAGE_SEQUENCE.length));
+        connectorWidth = Math.max(minConnectorWidth, Math.floor((width - cardWidth * STAGE_SEQUENCE.length) / connectorSlots));
+      }
+
+      setStageFlowLayout({
+        mode: 'horizontal',
+        cardWidth,
+        connectorWidth,
+      });
+    };
+
+    updateLayout();
+    const observer = new ResizeObserver(() => updateLayout());
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const runAction = async (action: 'cancel' | 'retry' | 'resume') => {
     if (!projectId || !taskId) return;
@@ -445,14 +492,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </div>
             </div>
 
-            <div className="mt-6 overflow-x-auto">
-              <div className="flex min-w-[1280px] items-center pb-2">
+            <div ref={stageFlowRef} className="mt-6">
+              <div className={stageFlowLayout.mode === 'horizontal' ? 'flex items-center pb-2' : 'flex flex-col items-stretch'}>
                 {stageCards.map((stage, index) => (
                   <React.Fragment key={stage.stage_name}>
                     <button
                       type="button"
                       onClick={() => setSelectedStage(stage.stage_name)}
-                      className={`w-[175px] shrink-0 rounded-[1.75rem] border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${stageNodeTone(stage.status, selectedStage === stage.stage_name)}`}
+                      style={stageFlowLayout.mode === 'horizontal' ? { width: `${stageFlowLayout.cardWidth}px` } : undefined}
+                      className={`rounded-[1.75rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${stageFlowLayout.mode === 'horizontal' ? 'shrink-0' : 'w-full'} ${stageNodeTone(stage.status, selectedStage === stage.stage_name)}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -472,12 +520,21 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       </div>
                     </button>
                     {index < stageCards.length - 1 ? (
-                      <div className={`w-40 shrink-0 px-4 ${stageConnectorTone(stage.status)}`}>
-                        <svg viewBox="0 0 160 24" className="block h-6 w-full overflow-visible" fill="none" aria-hidden="true">
-                          <path d="M4 12H138" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-                          <path d="M124 5L140 12L124 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </div>
+                      stageFlowLayout.mode === 'horizontal' ? (
+                        <div className={`shrink-0 px-3 ${stageConnectorTone(stage.status)}`} style={{ width: `${stageFlowLayout.connectorWidth}px` }}>
+                          <svg viewBox="0 0 100 24" className="block h-6 w-full overflow-visible" fill="none" aria-hidden="true">
+                            <path d="M4 12H86" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                            <path d="M72 5L88 12L72 19" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      ) : (
+                        <div className={`flex h-12 items-center justify-center ${stageConnectorTone(stage.status)}`}>
+                          <svg viewBox="0 0 24 64" className="block h-12 w-6 overflow-visible" fill="none" aria-hidden="true">
+                            <path d="M12 4V48" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                            <path d="M5 36L12 52L19 36" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )
                     ) : null}
                   </React.Fragment>
                 ))}
