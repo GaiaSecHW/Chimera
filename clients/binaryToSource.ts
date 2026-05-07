@@ -152,4 +152,12 @@ export const binaryToSourceApi = {
     });
     return handleResponse(resp);
   },
+
+  deleteTask: async (projectId: string, taskId: string) => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
 };

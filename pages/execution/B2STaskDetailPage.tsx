@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, RefreshCw, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, RefreshCw, Trash2, XCircle } from 'lucide-react';
 
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
@@ -17,6 +17,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -60,6 +61,21 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       setError(e?.message || '取消任务失败');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const deleteTask = async () => {
+    if (!projectId || !taskId || deleting) return;
+    if (!window.confirm('确认彻底删除该二进制逆向任务？此操作会删除 taskId 目录下的所有输入、输出和中间文件，且不可恢复。')) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      await executionApi.binaryToSource.deleteTask(projectId, taskId);
+      onBack();
+    } catch (e: any) {
+      setError(e?.message || '删除任务失败');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -115,6 +131,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
             >
               {cancelling ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
               取消任务
+            </button>
+          )}
+          {detail && (
+            <button
+              type="button"
+              onClick={() => void deleteTask()}
+              disabled={deleting}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-50"
+            >
+              {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              删除任务
             </button>
           )}
           <button
