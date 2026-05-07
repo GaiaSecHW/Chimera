@@ -29,6 +29,8 @@ const statusTone = (status: string) => {
       return 'bg-sky-50 text-sky-700 border-sky-200';
     case 'ready_to_start':
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+    case 'dispatching':
+      return 'bg-sky-50 text-sky-700 border-sky-200';
     default:
       return 'bg-blue-50 text-blue-700 border-blue-200';
   }
@@ -58,6 +60,7 @@ const fmtSize = (value: number) => {
   }
   return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 };
+const fmtSpeed = (value: number) => `${fmtSize(value)}/s`;
 
 const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'firmware_unpack', label: '固件解包最大并行数' },
@@ -71,6 +74,9 @@ const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
+  const [runningCount, setRunningCount] = useState(0);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,6 +87,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
   const [description, setDescription] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
@@ -100,6 +107,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
     try {
       const data = await executionApi.binarySecurity.listTasks(projectId);
       setItems(data.items || []);
+      setRunningCount(data.running_count || 0);
+      setQueuedCount(data.queued_count || 0);
+      setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
@@ -145,12 +155,17 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
   }, [items]);
 
   const totalUploadBytes = useMemo(() => files.reduce((sum, file) => sum + (file.size || 0), 0), [files]);
+  const activeUploadSpeed = useMemo(
+    () => Object.values(uploadSpeed).reduce((max, current) => Math.max(max, current || 0), 0),
+    [uploadSpeed],
+  );
 
   const resetCreateForm = () => {
     setName('');
     setDescription('');
     setFiles([]);
     setUploadProgress({});
+    setUploadSpeed({});
     setMaxRetries(2);
     setContinueOnFailure(true);
     setStageParallelism({
@@ -193,6 +208,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
   const removeFile = (nameToRemove: string) => {
     setFiles((current) => current.filter((file) => file.name !== nameToRemove));
     setUploadProgress((current) => {
+      const next = { ...current };
+      delete next[nameToRemove];
+      return next;
+    });
+    setUploadSpeed((current) => {
       const next = { ...current };
       delete next[nameToRemove];
       return next;
@@ -248,12 +268,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
             onProgress: (progress) => {
               const percent = progress.total_bytes > 0 ? Math.min(100, Math.round((progress.loaded_bytes / progress.total_bytes) * 100)) : 0;
               setUploadProgress((current) => ({ ...current, [file.name]: percent }));
+              setUploadSpeed((current) => ({ ...current, [file.name]: progress.speed_bytes_per_sec || 0 }));
             },
             trackGlobal: false,
             sourceLabel: '二进制安全输入上传',
           },
         );
         setUploadProgress((current) => ({ ...current, [file.name]: 100 }));
+        setUploadSpeed((current) => ({ ...current, [file.name]: 0 }));
       }
       await executionApi.binarySecurity.completeUploads(projectId, prepared.task_id, inputFiles);
       setShowCreateDialog(false);
@@ -311,11 +333,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
           <ShieldAlert size={18} className="text-rose-600" />
           <h2 className="text-xl font-black text-slate-900">当前项目统计</h2>
         </div>
+        <div className="mt-2 text-sm text-slate-500">任务、固件和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
           <div className="rounded-2xl bg-white px-4 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务总数</div>
             <div className="mt-2 text-2xl font-black text-slate-900">{stats.total}</div>
-            <div className="mt-1 text-sm text-slate-500">运行中 {stats.running}</div>
+            <div className="mt-1 text-sm text-slate-500">运行中 {runningCount} · 排队中 {queuedCount}</div>
           </div>
           <div className="rounded-2xl bg-white px-4 py-4">
             <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">固件解包</div>
@@ -328,9 +351,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
             <div className="mt-1 text-sm text-slate-500">高危模块 · 入口 {stats.entries}</div>
           </div>
           <div className="rounded-2xl bg-white px-4 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务结果</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{stats.success}</div>
-            <div className="mt-1 text-sm text-slate-500">局部成功 {stats.partial} · 失败 {stats.failed} · 漏洞 {stats.vulns}</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">队列配置</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{maxConcurrentTasks}</div>
+            <div className="mt-1 text-sm text-slate-500">最大并发任务数 · 已完成 {stats.success} · 失败 {stats.failed}</div>
           </div>
         </div>
       </section>
@@ -359,6 +382,16 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                     <div className="flex flex-wrap items-center gap-3">
                       <h3 className="text-lg font-black text-slate-900">{item.name}</h3>
                       <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
+                      {item.status === 'pending' && item.queue_position ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
+                          排队中，第 {item.queue_position} 位
+                        </span>
+                      ) : null}
+                      {item.status === 'dispatching' ? (
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+                          调度中
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-3 break-all rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-500">{item.firmware_path}</div>
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 xl:grid-cols-6">
@@ -425,6 +458,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                       选择文件
                     </button>
                     <div className="text-sm text-slate-500">{files.length} 个文件 · {fmtSize(totalUploadBytes)}</div>
+                    {submitting && activeUploadSpeed > 0 && (
+                      <div className="text-sm font-semibold text-sky-600">上传速度 {fmtSpeed(activeUploadSpeed)}</div>
+                    )}
                   </div>
                 </div>
                 <input
@@ -453,8 +489,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, onOpenT
                         </div>
                         <div className="flex items-center gap-3">
                           {submitting && (
-                            <div className="min-w-[88px] text-right text-xs font-semibold text-slate-500">
+                            <div className="min-w-[160px] text-right text-xs font-semibold text-slate-500">
                               {uploadProgress[file.name] ? `${uploadProgress[file.name]}%` : '等待上传'}
+                              {uploadSpeed[file.name] > 0 ? ` · ${fmtSpeed(uploadSpeed[file.name])}` : ''}
                             </div>
                           )}
                           <button type="button" onClick={() => removeFile(file.name)} disabled={submitting} className="text-sm font-semibold text-rose-600 disabled:opacity-40">

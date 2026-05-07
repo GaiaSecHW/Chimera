@@ -15,6 +15,9 @@ export interface BinarySecurityTask {
   status: string;
   current_stage?: string | null;
   firmware_path: string;
+  is_queued: boolean;
+  queue_position?: number | null;
+  dispatcher_instance_id?: string | null;
   created_by?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -104,8 +107,18 @@ export interface BinarySecurityProjectConfig {
   };
 }
 
+export interface BinarySecurityServiceConfig {
+  config: {
+    max_concurrent_tasks: number;
+    dispatch_timeout_seconds: number;
+  };
+}
+
 export const binarySecurityApi = {
-  listTasks: async (projectId: string, status?: string): Promise<{ total: number; items: BinarySecurityTask[] }> => {
+  listTasks: async (
+    projectId: string,
+    status?: string,
+  ): Promise<{ total: number; running_count: number; queued_count: number; max_concurrent_tasks: number; items: BinarySecurityTask[] }> => {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),
@@ -211,6 +224,22 @@ export const binarySecurityApi = {
   getProjectConfig: async (projectId: string): Promise<BinarySecurityProjectConfig> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/config`, {
       headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getServiceConfig: async (): Promise<BinarySecurityServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/service/config`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  updateServiceConfig: async (payload: BinarySecurityServiceConfig['config']): Promise<BinarySecurityServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/service/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(resp);
   },

@@ -381,6 +381,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           { id: 'pentest-exec-dataflow-vuln-task-list', label: '任务列表', aliases: ['pentest-exec-dataflow-vuln', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
           { id: 'pentest-exec-dataflow-vuln-system-config', label: '系统配置', requiresProject: true },
         ] },
+        { id: 'binary-security-config', label: '参数配置', icon: Settings, requiresProject: true },
       ],
     },
     {
