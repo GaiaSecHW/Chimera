@@ -128,8 +128,22 @@ const AppShell: React.FC = () => {
 
   useEffect(() => {
     const handleNavigateView = (event: Event) => {
-      const detail = (event as CustomEvent<{ view?: string; helperKey?: string; processMonitorServiceKey?: string }>).detail;
+      const detail = (event as CustomEvent<{
+        view?: string;
+        helperKey?: string;
+        processMonitorServiceKey?: string;
+        binarySecurityTaskId?: string;
+        sourceSecurityTaskId?: string;
+      }>).detail;
       const nextView = String(detail?.view || '').trim();
+      const binarySecurityTaskId = String(detail?.binarySecurityTaskId || '').trim();
+      if (binarySecurityTaskId) {
+        setActiveBinarySecurityTaskId(binarySecurityTaskId);
+      }
+      const sourceSecurityTaskId = String(detail?.sourceSecurityTaskId || '').trim();
+      if (sourceSecurityTaskId) {
+        setActiveSourceSecurityTaskId(sourceSecurityTaskId);
+      }
       if (nextView) {
         navigateToView(nextView);
       }

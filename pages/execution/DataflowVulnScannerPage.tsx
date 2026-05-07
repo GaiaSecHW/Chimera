@@ -44,6 +44,7 @@ import {
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
+import { navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: { label: '待启动', className: 'bg-slate-100 text-slate-700 border-slate-200', icon: <Clock size={13} /> },
@@ -467,6 +468,13 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     void load();
   }, [projectId]);
 
+  useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:dataflowVulnTaskId');
+    if (!storedTaskId || !projectId) return;
+    sessionStorage.removeItem('secflow:dataflowVulnTaskId');
+    void openTaskDetail({ task_id: storedTaskId, latest_execution_id: '' });
+  }, [projectId]);
+
   const filteredRuns = useMemo(() => {
     const text = runQuery.trim().toLowerCase();
     return runs.filter((run) => {
@@ -759,6 +767,9 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const [loadError, setLoadError] = useState('');
 
   const goBack = () => {
+    if (navigateBackToBinarySecurityTask()) {
+      return;
+    }
     if (onBack) {
       onBack();
       return;

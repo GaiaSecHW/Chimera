@@ -10,6 +10,7 @@ import { SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 interface Props {
   projectId: string;
@@ -142,6 +143,7 @@ function TaskDetailPanel({
   loading,
   resourceUsage,
   resourceLoading,
+  hasReturnContext,
   onBack,
   onRefresh,
   onCancel,
@@ -152,6 +154,7 @@ function TaskDetailPanel({
   loading: boolean;
   resourceUsage: FirmwareTaskResourceUsage | null;
   resourceLoading: boolean;
+  hasReturnContext: boolean;
   onBack: () => void;
   onRefresh: (id: string) => void;
   onCancel: (id: string) => void;
@@ -187,7 +190,7 @@ function TaskDetailPanel({
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
         >
           <ArrowLeft size={16} />
-          返回任务列表
+          {hasReturnContext ? '返回原任务' : '返回任务列表'}
         </button>
 
         <div className="flex items-start justify-between gap-4">
@@ -326,6 +329,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [detailLoading, setDetailLoading] = useState(false);
   const [resourceUsage, setResourceUsage] = useState<FirmwareTaskResourceUsage | null>(null);
   const [resourceLoading, setResourceLoading] = useState(false);
+
+  useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
+    if (!storedTaskId) return;
+    sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
+    setActiveTaskId(storedTaskId);
+  }, []);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -593,6 +603,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const showingDetail = Boolean(activeTaskId);
+  const hasReturnContext = hasBinarySecurityReturnContext();
+  const handleDetailBack = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    setActiveTaskId('');
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -746,7 +761,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           loading={detailLoading}
           resourceUsage={resourceUsage}
           resourceLoading={resourceLoading}
-          onBack={() => setActiveTaskId('')}
+          hasReturnContext={hasReturnContext}
+          onBack={handleDetailBack}
           onRefresh={refreshOne}
           onCancel={handleCancel}
           onDelete={handleDelete}

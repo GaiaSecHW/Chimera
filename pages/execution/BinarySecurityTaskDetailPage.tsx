@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import { BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { api } from '../../clients/api';
@@ -8,6 +9,7 @@ import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
 import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 import { AppDfaTaskDetail, AppEaTaskDetail, AppSaTaskDetail } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
+import { saveBinarySecurityReturnContext } from '../../utils/executionReturnContext';
 
 interface Props {
   projectId: string;
@@ -127,6 +129,7 @@ type DownstreamTaskState = {
 
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
+  const navigate = useNavigate();
   const stageFlowRef = useRef<HTMLDivElement | null>(null);
   const [detail, setDetail] = useState<BinarySecurityTaskDetail | null>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
@@ -257,6 +260,22 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const updateLayout = () => {
       const width = node.clientWidth;
       if (!width) return;
+      if (isSourceTask) {
+        if (width < 760) {
+          setStageFlowLayout({
+            mode: 'vertical',
+            cardWidth: Math.max(0, width),
+            connectorWidth: 32,
+          });
+          return;
+        }
+        setStageFlowLayout({
+          mode: 'horizontal',
+          cardWidth: 160,
+          connectorWidth: 56,
+        });
+        return;
+      }
       if (width < 1100) {
         setStageFlowLayout({
           mode: 'vertical',
@@ -289,7 +308,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const observer = new ResizeObserver(() => updateLayout());
     observer.observe(node);
     return () => observer.disconnect();
-  }, [stageSequence]);
+  }, [isSourceTask, stageSequence]);
 
   const runAction = async (action: 'cancel' | 'retry' | 'resume' | 'delete') => {
     if (!projectId || !taskId) return;
@@ -378,6 +397,43 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (!detail) return [];
     return detail.stage_items.filter((item) => item.stage_name === selectedStage);
   }, [detail, selectedStage]);
+
+  const openDownstreamTaskDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+    const downstreamTaskId = item.downstream_task_id?.trim();
+    if (!downstreamTaskId) return;
+    saveBinarySecurityReturnContext({
+      view: taskType === 'source' ? 'source-security-detail' : 'binary-security-detail',
+      taskId,
+      taskType,
+    });
+    if (item.stage_name === 'firmware_unpack') {
+      sessionStorage.setItem('secflow:firmwareUnpackerTaskId', downstreamTaskId);
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'pentest-exec-firmware-task-list' } }));
+      return;
+    }
+    if (item.stage_name === 'system_analysis') {
+      sessionStorage.setItem('secflow:systemAnalysisTaskId', downstreamTaskId);
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-task' } }));
+      return;
+    }
+    if (item.stage_name === 'binary_to_source') {
+      sessionStorage.setItem('secflow:b2sTaskId', downstreamTaskId);
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'pentest-exec-b2s' } }));
+      return;
+    }
+    if (item.stage_name === 'entry_analysis') {
+      sessionStorage.setItem('secflow:entryAnalysisTaskId', downstreamTaskId);
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-task' } }));
+      return;
+    }
+    if (item.stage_name === 'dataflow_analysis') {
+      sessionStorage.setItem('secflow:dataflowAnalysisTaskId', downstreamTaskId);
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-analysis-task' } }));
+      return;
+    }
+    sessionStorage.setItem('secflow:dataflowVulnTaskId', downstreamTaskId);
+    navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(downstreamTaskId)}`);
+  };
 
   const renderDownstreamDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     const state = downstreamByItemId[item.id];
@@ -548,7 +604,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
 
             <div ref={stageFlowRef} className="mt-6">
-              <div className={stageFlowLayout.mode === 'horizontal' ? 'flex items-center pb-2' : 'flex flex-col items-stretch'}>
+              <div className={stageFlowLayout.mode === 'horizontal' ? 'flex items-center justify-start pb-2' : 'flex flex-col items-stretch'}>
                 {stageCards.map((stage, index) => (
                   <React.Fragment key={stage.stage_name}>
                     <div
@@ -658,7 +714,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               ) : filteredStageItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`rounded-[1.5rem] border p-5 transition ${stageItemTone(item.stage_name === selectedStage)}`}
+                  role={item.downstream_task_id ? 'button' : undefined}
+                  tabIndex={item.downstream_task_id ? 0 : undefined}
+                  onClick={item.downstream_task_id ? () => openDownstreamTaskDetail(item) : undefined}
+                  onKeyDown={item.downstream_task_id ? (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openDownstreamTaskDetail(item);
+                    }
+                  } : undefined}
+                  className={`rounded-[1.5rem] border p-5 transition ${item.downstream_task_id ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus:outline-none' : ''} ${stageItemTone(item.stage_name === selectedStage)}`}
                 >
                   <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 flex-1">
@@ -678,6 +743,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           {fmt(item.started_at)} {'->'} {fmt(item.finished_at)}
                         </div>
                       </div>
+                      {item.downstream_task_id ? (
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            type="button"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-black text-slate-700"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openDownstreamTaskDetail(item);
+                            }}
+                          >
+                            查看微服务详情
+                          </button>
+                        </div>
+                      ) : null}
                       <div className="mt-4 grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
                         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                           <span className="text-slate-400">下游服务</span>

@@ -6,6 +6,7 @@ import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 interface Props {
   projectId: string;
@@ -225,6 +226,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const [previewContent, setPreviewContent] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const hasReturnContext = hasBinarySecurityReturnContext();
+  const handleBack = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    onBack();
+  };
 
   const load = async () => {
     if (!projectId || !taskId) return;
@@ -320,7 +326,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
     setDeleting(true);
     try {
       await executionApi.binaryToSource.deleteTask(projectId, taskId);
-      onBack();
+      handleBack();
     } catch (e: any) {
       setError(e?.message || '删除任务失败');
     } finally {
@@ -385,9 +391,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   if (!taskId) {
     return (
       <div className="px-8 pb-10 pt-8 space-y-6">
-        <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm">
+        <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm">
           <ArrowLeft size={16} />
-          返回二进制逆向
+          {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
         </button>
         <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
           未指定任务，请返回列表重新选择。
@@ -415,11 +421,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
-          onClick={onBack}
+          onClick={handleBack}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
         >
           <ArrowLeft size={16} />
-          返回二进制逆向
+          {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
         </button>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500">

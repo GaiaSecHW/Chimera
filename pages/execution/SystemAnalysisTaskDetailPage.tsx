@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { AppSaStageEvent, AppSaTaskDetail } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -190,12 +191,17 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 }> = ({ projectId, taskId, onBack }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
+  const hasReturnContext = hasBinarySecurityReturnContext();
   const [detail, setDetail] = useState<AppSaTaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
   const [logsExpanded, setLogsExpanded] = useState(true);
   const logScrollRef = useRef<HTMLDivElement>(null);
+  const handleBack = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    onBack();
+  };
 
   const loadDetail = async () => {
     if (!taskId) return;
@@ -250,7 +256,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     try {
       await appApi.deleteTask(detail.task_id, true);
       notify('任务已删除', 'success');
-      onBack();
+      handleBack();
     } catch (err: any) {
       notify(`删除失败: ${err?.message || err}`, 'error');
     }
@@ -299,12 +305,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <button
-              onClick={onBack}
+        <button
+          onClick={handleBack}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
             >
               <ArrowLeft size={14} />
-              返回任务列表
+              {hasReturnContext ? '返回原任务' : '返回任务列表'}
             </button>
             <p className="mt-4 text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">

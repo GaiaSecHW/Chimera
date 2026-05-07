@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { AppEaTaskDetail, AppEaTaskItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -65,6 +66,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
   const promptGenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
+  const hasReturnContext = hasBinarySecurityReturnContext();
 
   useEffect(() => {
     const stored = sessionStorage.getItem('secflow:entryAnalysisInputPath');
@@ -75,6 +77,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
       setForm({ ...emptyForm, input_path: stored });
       handleInputPathChange(stored);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:entryAnalysisTaskId');
+    if (!storedTaskId) return;
+    sessionStorage.removeItem('secflow:entryAnalysisTaskId');
+    handleSelectTask(storedTaskId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -110,6 +120,13 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
     setSelectedTaskId(taskId);
     setPanelMode('detail');
     void loadDetail(taskId);
+  };
+
+  const closeDetail = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    setPanelMode('none');
+    setSelectedTaskId('');
+    setDetail(null);
   };
 
   const handleInputPathChange = (value: string) => {
@@ -374,6 +391,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">任务详情</h2>
               <div className="flex items-center gap-2">
+                {hasReturnContext ? (
+                  <button
+                    onClick={closeDetail}
+                    className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+                  >
+                    返回原任务
+                  </button>
+                ) : null}
                 {detail && (detail.status === 'running' || detail.status === 'pending') ? (
                   <button onClick={() => void handleCancel(detail.task_id)}
                     className="rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:bg-slate-50">取消</button>
@@ -390,7 +415,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
                 ) : null}
                 <button onClick={() => detail && void loadDetail(detail.task_id)}
                   className="rounded-lg border border-slate-200 p-1.5 text-slate-400 hover:text-slate-700"><RefreshCw size={14} /></button>
-                <button onClick={() => { setPanelMode('none'); setSelectedTaskId(''); setDetail(null); }}
+                <button onClick={closeDetail}
                   className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
               </div>
             </div>

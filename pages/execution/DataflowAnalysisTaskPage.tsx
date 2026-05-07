@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { AppDfaTaskDetail, AppDfaTaskItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -66,6 +67,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   const promptGenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
+  const hasReturnContext = hasBinarySecurityReturnContext();
 
   const [taskStats, setTaskStats] = useState({ total: 0, running: 0, passed: 0, failed: 0 });
 
@@ -79,6 +81,14 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
       setForm({ ...emptyForm, input_path: stored });
       handleInputPathChange(stored);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:dataflowAnalysisTaskId');
+    if (!storedTaskId) return;
+    sessionStorage.removeItem('secflow:dataflowAnalysisTaskId');
+    handleSelectTask(storedTaskId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -138,6 +148,13 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
     setSelectedTaskId(taskId);
     setPanelMode('detail');
     void loadDetail(taskId);
+  };
+
+  const closeDetail = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    setPanelMode('none');
+    setSelectedTaskId('');
+    setDetail(null);
   };
 
   // ── Auto-generate prompt from input_path ─────────────────────────────────
@@ -478,6 +495,14 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-lg font-black text-slate-900">任务详情</h2>
               <div className="flex items-center gap-2">
+                {hasReturnContext ? (
+                  <button
+                    onClick={closeDetail}
+                    className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+                  >
+                    返回原任务
+                  </button>
+                ) : null}
                 {detail && (detail.status === 'running' || detail.status === 'pending') ? (
                   <button
                     onClick={() => void handleCancel(detail.task_id)}
@@ -515,7 +540,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                   <RefreshCw size={14} />
                 </button>
                 <button
-                  onClick={() => { setPanelMode('none'); setSelectedTaskId(''); setDetail(null); }}
+                  onClick={closeDetail}
                   className="rounded-lg p-1 text-slate-400 hover:text-slate-700"
                 >
                   <X size={16} />

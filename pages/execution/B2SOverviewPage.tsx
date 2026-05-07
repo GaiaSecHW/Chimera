@@ -100,6 +100,13 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [projectId]);
 
   useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:b2sTaskId');
+    if (!storedTaskId) return;
+    sessionStorage.removeItem('secflow:b2sTaskId');
+    onOpenTask(storedTaskId);
+  }, [onOpenTask]);
+
+  useEffect(() => {
     if (!showCreateDialog) return;
     if (name.trim()) return;
     const now = new Date();

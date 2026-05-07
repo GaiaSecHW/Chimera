@@ -156,7 +156,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         });
         const stageLines = (detail.stage_sequence || stages).map((stageName) => {
           const ids = taskIdsByStage.get(stageName) || [];
-          return `${formatStageLabel(stageName)}：${ids.length > 0 ? ids.join(', ') : ''}`;
+          return `${formatStageLabel(stageName)}：${ids.length > 0 ? ids.join(', ') : '无子任务'}`;
         });
         deleteMessage = [
           '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',

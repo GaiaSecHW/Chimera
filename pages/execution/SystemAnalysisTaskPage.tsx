@@ -77,6 +77,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:systemAnalysisTaskId');
+    if (!storedTaskId) return;
+    sessionStorage.removeItem('secflow:systemAnalysisTaskId');
+    onOpenTask(storedTaskId);
+  }, [onOpenTask]);
+
   // ── Load task list ────────────────────────────────────────────────────────
 
   const loadTasks = useCallback(async (p = page) => {
