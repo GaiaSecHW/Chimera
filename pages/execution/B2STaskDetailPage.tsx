@@ -107,7 +107,24 @@ const batchProgressPercent = (progress?: B2SItem['progress'] | null) => {
   return null;
 };
 
-const phaseAwareProgressValue = (phase: string, numericPercent: number, progress?: B2SItem['progress'] | null) => {
+const rawProgressPercent = (progress?: B2SItem['progress'] | null) => {
+  const numeric = progress?.percent ?? progress?.batches_percent ?? progress?.bytes_percent;
+  return numeric === undefined || numeric === null ? null : pct(Number(numeric));
+};
+
+const terminalNonSuccessProgressValue = (item: B2SItem) => {
+  const raw = rawProgressPercent(item.progress);
+  if (raw !== null) return raw;
+  const batchPercent = batchProgressPercent(item.progress);
+  if (batchPercent !== null) return batchPercent;
+  return 0;
+};
+
+const phaseAwareProgressValue = (item: B2SItem, numericPercent: number) => {
+  const phase = item.phase || item.status || '';
+  const progress = item.progress;
+  if (item.status === 'success' || item.status === 'completed') return 100;
+  if (item.status === 'failed' || item.status === 'cancelled') return terminalNonSuccessProgressValue(item);
   if (phase === 'pending' || phase === 'queued' || phase === 'ida' || phase === 'batching') return 0;
   if (phase === 'header') return 15;
   if (phase === 'body') {
@@ -123,15 +140,24 @@ const phaseAwareProgressValue = (phase: string, numericPercent: number, progress
 const itemProgressPresentation = (item: B2SItem) => {
   const progress = item.progress;
   const phase = item.phase || item.status || '';
-  const numeric = progress?.percent ?? progress?.batches_percent ?? progress?.bytes_percent;
+  const raw = rawProgressPercent(progress);
   if (hasNumericProgress(progress)) {
-    const value = phaseAwareProgressValue(phase, Number(numeric || 0), progress);
+    const value = phaseAwareProgressValue(item, raw ?? 0);
     return {
       value,
       label: `${value.toFixed(1)}%`,
-      mode: '',
+      mode: item.status === 'failed' || item.status === 'cancelled' ? '终止进度' : '',
       estimated: false,
       description: progress?.message || PHASE_DESCRIPTIONS[phase] || '',
+    };
+  }
+  if (item.status === 'failed' || item.status === 'cancelled') {
+    return {
+      value: 0,
+      label: '0.0%',
+      mode: '终止进度',
+      estimated: false,
+      description: PHASE_DESCRIPTIONS[item.status] || '',
     };
   }
   const estimated = PHASE_ESTIMATED_PERCENT[phase] ?? (B2S_TERMINAL_STATUSES.has(item.status) ? 100 : 12);
@@ -412,9 +438,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const derivedOverall = itemProgressValues.length
     ? itemProgressValues.reduce((sum, item) => sum + item.value, 0) / itemProgressValues.length
     : (overall?.percent ?? 0);
-  const progressValue = terminal && (detail?.success_items || 0) + (detail?.partial_items || 0) === (detail?.total_items || 0)
-    ? 100
-    : derivedOverall;
+  const progressValue = overall?.percent !== undefined && overall.percent !== null
+    ? overall.percent
+    : (terminal && (detail?.success_items || 0) + (detail?.partial_items || 0) === (detail?.total_items || 0)
+      ? 100
+      : derivedOverall);
   const progressModeLabel = !terminal && itemProgressValues.some((item) => item.estimated) ? '阶段估算' : '';
 
   return (
@@ -547,7 +575,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
             <h2 className="text-xl font-black text-slate-900">还原结果</h2>
             <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{generatedFiles.length} 个文件</div>
           </div>
-          <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[440px_minmax(0,1fr)]">
             <aside className="border-b border-slate-200 bg-slate-50/70 lg:border-b-0 lg:border-r">
               <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">文件列表</div>
               <div className="max-h-[520px] overflow-auto p-3">
@@ -564,7 +592,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
                         {languageFromPath(path) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-black text-slate-900" title={fileNameOf(path)}>{fileNameOf(path)}</div>
+                        <div className="break-words text-sm font-black leading-5 text-slate-900 [overflow-wrap:anywhere]" title={fileNameOf(path)}>{fileNameOf(path)}</div>
                         <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={path}>#{item.sequence_no} · {projectPathFromStoragePath(projectId, path)}</div>
                       </div>
                     </button>
