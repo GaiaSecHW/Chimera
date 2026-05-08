@@ -15,6 +15,13 @@ export interface B2STaskCreatePayload {
   tags?: string[];
   llm_provider_key?: string;
   concurrency?: number;
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
   elf_tasks: B2SElfTaskInput[];
 }
 
@@ -30,6 +37,15 @@ export interface B2SLlmProviderSummary {
 export interface B2STask {
   id: string;
   project_id: string;
+  task_origin_type?: string | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: string | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   name: string;
   status: string;
   total_items: number;

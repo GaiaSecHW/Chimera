@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
+import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -709,6 +710,9 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-slate-900 truncate">{t.task_name}</div>
                       <div className="mt-0.5 text-xs text-slate-500 truncate font-mono">{t.input_path}</div>
+                      <div className="mt-2">
+                        <TaskOriginInline origin={t} compact />
+                      </div>
                     </div>
                     <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
                       {STATUS_LABEL[t.status] ?? t.status}
@@ -746,6 +750,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
           <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
             <div className="p-6 space-y-4">
+              {detail ? <TaskOriginCard origin={detail} /> : null}
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-slate-900">新建数据流分析任务</h2>
                 <button onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>

@@ -73,6 +73,7 @@ const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'dataflow_analysis', label: '数据流分析最大并行数' },
   { key: 'vuln_scan', label: '数据流漏洞挖掘最大并行数' },
 ];
+const SOURCE_ARCHIVE_ACCEPT = '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz';
 
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
@@ -94,7 +95,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const folderInputRef = useRef<HTMLInputElement | null>(null);
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>({
@@ -116,6 +116,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const fileKey = (file: File) => {
     const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
     return isSourceTask ? (rel || file.name) : file.name;
+  };
+
+  const isSupportedSourceArchive = (file: File) => {
+    const lowered = file.name.toLowerCase();
+    return ['.zip', '.tar', '.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz'].some((ext) => lowered.endsWith(ext));
   };
 
   const load = async () => {
@@ -282,6 +287,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     const next = [...files];
     const names = new Set(next.map((file) => fileKey(file)));
     for (const file of incoming) {
+      if (isSourceTask && !isSupportedSourceArchive(file)) {
+        setCreateError(`源码扫描仅支持常见压缩文件: ${file.name}`);
+        continue;
+      }
       const nextKey = fileKey(file);
       if (names.has(nextKey)) {
         setCreateError(`存在重复${isSourceTask ? '路径' : '文件名'}: ${nextKey}`);
@@ -319,6 +328,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setCreateError('请选择至少一个输入文件');
       return;
     }
+    if (isSourceTask) {
+      const invalidArchive = files.find((file) => !isSupportedSourceArchive(file));
+      if (invalidArchive) {
+        setCreateError(`源码扫描仅支持常见压缩文件: ${invalidArchive.name}`);
+        return;
+      }
+    }
     const duplicateNames = files.map((file) => fileKey(file)).filter((name, index, arr) => arr.indexOf(name) !== index);
     if (duplicateNames.length > 0) {
       setCreateError(`存在重复${isSourceTask ? '路径' : '文件名'}: ${duplicateNames[0]}`);
@@ -330,7 +346,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         filename: file.name,
         size: file.size,
         content_type: file.type || undefined,
-        relative_path: isSourceTask ? ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name) : undefined,
       }));
       const prepared = await executionApi.binarySecurity.prepareTask(projectId);
       const created = await executionApi.binarySecurity.createTask(projectId, {
@@ -346,6 +361,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         },
       });
       const inputDir = created.summary?.input_dir || `/app/secflow-app-binary-security/${prepared.task_id}/input`;
+      const tempUploadDir = created.summary?.temp_upload_dir || `/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
       const ensureProjectPath = async (path: string) => {
         if (!path || ensuredDirs.has(path)) return;
@@ -364,13 +380,18 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           ensuredDirs.add(current);
         }
       };
+      // Backend is expected to prepare these directories, but source uploads
+      // fail hard if fileserver-side temp dir is missing. Create them here as
+      // a client-side safeguard before uploading.
+      await ensureProjectPath(isSourceTask ? tempUploadDir : inputDir);
       for (const file of files) {
-        const rel = isSourceTask ? ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name) : file.name;
+        const rel = isSourceTask ? file.name : file.name;
         const normalizedRel = rel.replace(/\\/g, '/');
         const relDir = normalizedRel.includes('/') ? normalizedRel.split('/').slice(0, -1).join('/') : '';
-        const uploadPath = relDir ? `${inputDir}/${relDir}` : inputDir;
+        const uploadBase = isSourceTask ? tempUploadDir : inputDir;
+        const uploadPath = relDir ? `${uploadBase}/${relDir}` : uploadBase;
         if (relDir) {
-          await ensureProjectPath(`app/secflow-app-binary-security/${prepared.task_id}/input/${relDir}`);
+          await ensureProjectPath(`app/secflow-app-binary-security/${prepared.task_id}/${isSourceTask ? `run/upload-tmp/${relDir}` : `input/${relDir}`}`);
         }
         await fileserverApi.uploadProjectFilesystemFile(
           {
@@ -595,7 +616,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               <div>
                 <h3 className="text-xl font-black text-slate-900">{createTitle}</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {isSourceTask ? '同一批上传文件共同组成一个源码工程，进入源码扫描流程。' : '每个上传文件都会作为独立固件进入完整的安全分析编排流程。'}
+                  {isSourceTask ? '仅支持上传常见源码压缩包；文件会先上传到临时目录，再由后端解压到任务 input 目录。' : '每个上传文件都会作为独立固件进入完整的安全分析编排流程。'}
                 </p>
               </div>
               <button type="button" onClick={closeCreateDialog} disabled={submitting} className="text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50">
@@ -612,7 +633,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-black text-slate-900">输入文件</div>
-                    <div className="mt-1 text-sm text-slate-500">{isSourceTask ? '支持选择多个源码文件，或直接选择源码目录；会尽量保留目录结构。' : '支持一次选择多个文件；文件名不能重复。'}</div>
+                    <div className="mt-1 text-sm text-slate-500">{isSourceTask ? '仅支持 zip、tar、tgz、tar.gz、tbz2、tar.bz2、txz、tar.xz 等常见压缩文件。' : '支持一次选择多个文件；文件名不能重复。'}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -623,16 +644,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       <Upload size={16} />
                       选择文件
                     </button>
-                    {isSourceTask && (
-                      <button
-                        type="button"
-                        onClick={() => folderInputRef.current?.click()}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-                      >
-                        <Upload size={16} />
-                        选择目录
-                      </button>
-                    )}
                     <div className="text-sm text-slate-500">{files.length} 个文件 · {fmtSize(totalUploadBytes)}</div>
                     {submitting && activeUploadSpeed > 0 && (
                       <div className="text-sm font-semibold text-sky-600">上传速度 {fmtSpeed(activeUploadSpeed)}</div>
@@ -643,22 +654,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   ref={fileInputRef}
                   type="file"
                   multiple
+                  accept={isSourceTask ? SOURCE_ARCHIVE_ACCEPT : undefined}
                   className="hidden"
-                  onChange={(e) => {
-                    const incoming = Array.from(e.target.files || []);
-                    if (incoming.length > 0) {
-                      setCreateError(null);
-                      mergeFiles(incoming);
-                    }
-                    e.currentTarget.value = '';
-                  }}
-                />
-                <input
-                  ref={folderInputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  {...({ webkitdirectory: 'true', directory: 'true' } as any)}
                   onChange={(e) => {
                     const incoming = Array.from(e.target.files || []);
                     if (incoming.length > 0) {
@@ -673,7 +670,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center text-sm text-slate-400">尚未选择输入文件。</div>
                   ) : files.map((file) => {
                     const key = fileKey(file);
-                    const displayPath = isSourceTask ? ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name) : file.name;
+                    const displayPath = file.name;
                     return (
                       <div key={key} className="rounded-2xl bg-white px-4 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">

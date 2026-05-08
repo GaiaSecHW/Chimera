@@ -6,6 +6,7 @@ import { AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
+import { TaskOriginInline } from './taskOrigin';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -425,6 +426,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     <div className="min-w-0">
                       <div className="text-sm font-bold text-slate-900 truncate">{t.task_name}</div>
                       <div className="mt-0.5 text-xs text-slate-500 truncate font-mono">{t.input_path}</div>
+                      <div className="mt-2">
+                        <TaskOriginInline origin={t} compact />
+                      </div>
                     </div>
                     <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
                       {STATUS_LABEL[t.status] ?? t.status}

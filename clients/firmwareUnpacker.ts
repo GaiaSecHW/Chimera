@@ -26,6 +26,15 @@ export interface FirmwareUnpackSubmitResult {
 export interface FirmwareUnpackTask {
   id: string;
   project_id: string | null;
+  task_origin_type?: string | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: string | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   firmware_path: string;
   output_path: string;
   /** pending | running | cancelling | cancelled | success | failed */
@@ -210,6 +219,15 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
   return {
     id: asString(record.id),
     project_id: asNullableString(record.project_id),
+    task_origin_type: asNullableString(record.task_origin_type),
+    parent_project_id: asNullableString(record.parent_project_id),
+    parent_task_id: asNullableString(record.parent_task_id),
+    parent_task_type: asNullableString(record.parent_task_type),
+    parent_stage_name: asNullableString(record.parent_stage_name),
+    parent_stage_item_id: asNullableString(record.parent_stage_item_id),
+    parent_stage_item_key: asNullableString(record.parent_stage_item_key),
+    origin_label: asNullableString(record.origin_label),
+    parent_task_display: asNullableString(record.parent_task_display),
     firmware_path: asString(record.firmware_path),
     output_path: asString(record.output_path),
     status: asString(record.status, 'unknown'),

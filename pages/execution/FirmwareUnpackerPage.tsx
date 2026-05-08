@@ -11,6 +11,7 @@ import { FileServerPickerModal } from '../../components/assets/FileServerPickerM
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
 
 interface Props {
   projectId: string;
@@ -161,6 +162,9 @@ function TaskRow({
         />
         <TaskStatusBadge status={task.status} />
         <span className="flex-1 min-w-0 truncate font-mono text-xs text-slate-600">{task.firmware_path}</span>
+        <div onClick={(e) => e.stopPropagation()} className="hidden 2xl:block max-w-[240px] overflow-hidden">
+          <TaskOriginInline origin={task} compact />
+        </div>
         {task.worker_id && (
           <span className="hidden xl:inline max-w-[120px] truncate text-[10px] text-slate-400">{task.worker_id}</span>
         )}
@@ -279,6 +283,9 @@ function TaskDetailPanel({
               <Trash2 size={13} /> 删除
             </button>
           )}
+        </div>
+        <div className="mt-4">
+          <TaskOriginCard origin={task} />
         </div>
       </div>
 

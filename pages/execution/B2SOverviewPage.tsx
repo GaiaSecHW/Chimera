@@ -6,6 +6,7 @@ import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
+import { TaskOriginInline } from './taskOrigin';
 
 interface Props {
   projectId: string;
@@ -369,6 +370,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} />
                       </div>
                       <div className="mt-2 break-all font-mono text-xs text-slate-400">{task.id}</div>
+                      <div className="mt-3">
+                        <TaskOriginInline origin={task} compact />
+                      </div>
                       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <div className="rounded-2xl bg-slate-50 px-4 py-3">
                           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务结果</div>

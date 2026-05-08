@@ -7,6 +7,7 @@ import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
 import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { TaskOriginCard } from './taskOrigin';
 
 interface Props {
   projectId: string;
@@ -488,6 +489,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
                 <MetricCard label="函数" value={`${completedFunctions}/${totalFunctions || '-'}`} hint="已还原 / 总数" tone="emerald" />
                 <MetricCard label="失败" value={detail.failed_items || 0} hint={detail.failed_items ? '需要处理' : '无异常'} tone={detail.failed_items ? 'rose' : 'slate'} />
                 <MetricCard label="本轮耗时" value={taskRunDuration(detail, clockNow)} hint={terminal ? undefined : '实时计时中'} tone="slate" />
+              </div>
+              <div className="mt-5">
+                <TaskOriginCard origin={detail} />
               </div>
 
               <div className="mt-5">

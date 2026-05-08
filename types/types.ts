@@ -2345,6 +2345,15 @@ export interface AgentIngressRouteInfo {
 export interface AppSaTaskItem {
   task_id: string;
   project_id: string;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   task_name: string;
   task_description?: string | null;
   input_path: string;
@@ -2387,6 +2396,13 @@ export interface AppSaTaskCreateRequest {
   prompt_content?: string;
   analyse_targets?: string[];
   binary_arch?: string[];
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
 }
 
 
@@ -2395,6 +2411,15 @@ export interface AppSaTaskCreateRequest {
 export interface AppEaTaskItem {
   task_id: string;
   project_id: string;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   task_name: string;
   task_description?: string | null;
   input_path: string;
@@ -2438,6 +2463,13 @@ export interface AppEaTaskCreateRequest {
   output_path?: string;
   task_description?: string;
   prompt_template_id?: string;
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
 }
 
 export interface EntryAnalysisPromptTemplate {
@@ -2524,6 +2556,15 @@ export interface AppDfaStagesJson {
 export interface AppDfaTaskItem {
   task_id: string;
   project_id: string;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   task_name: string;
   task_description?: string | null;
   input_path: string;
@@ -2553,6 +2594,13 @@ export interface AppDfaTaskCreateRequest {
   task_description?: string;
   prompt_template_id?: string;
   prompt_content?: string;
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
 }
 
 

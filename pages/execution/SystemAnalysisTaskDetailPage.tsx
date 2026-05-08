@@ -6,6 +6,7 @@ import { AppSaStageEvent, AppSaTaskDetail } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { TaskOriginCard } from './taskOrigin';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -370,6 +371,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             </button>
           </div>
         </div>
+        {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
       </section>
 
       {loading && !detail ? (
