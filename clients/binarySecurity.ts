@@ -28,6 +28,12 @@ export interface BinarySecurityTask {
   started_at?: string | null;
   finished_at?: string | null;
   high_risk_module_count: number;
+  medium_risk_module_count: number;
+  low_risk_module_count: number;
+  candidate_module_count: number;
+  selected_module_count: number;
+  selected_risk_levels: string[];
+  module_selection_mode: 'auto' | 'manual_confirm' | string;
   entry_count: number;
   vuln_result_count: number;
   firmware_item_count: number;
@@ -38,6 +44,8 @@ export interface BinarySecurityTask {
     sequence_no: number;
     status: string;
     retry_count: number;
+    retry_supported: boolean;
+    retry_reason?: string | null;
     total_items: number;
     success_items: number;
     failed_items: number;
@@ -47,6 +55,8 @@ export interface BinarySecurityTask {
     finished_at?: string | null;
     last_error?: string | null;
   }>;
+  task_retry_supported: boolean;
+  task_retry_reason?: string | null;
 }
 
 export interface BinarySecurityTaskDetail extends BinarySecurityTask {
@@ -75,6 +85,17 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     started_at?: string | null;
     finished_at?: string | null;
   }>;
+}
+
+export interface BinarySecurityModuleSelection {
+  task_id: string;
+  status: string;
+  selection_mode: 'auto' | 'manual_confirm' | string;
+  risk_levels: string[];
+  requires_confirmation: boolean;
+  system_analysis_modules: Array<Record<string, any>>;
+  candidate_modules: Array<Record<string, any>>;
+  selected_modules: Array<Record<string, any>>;
 }
 
 export interface BinarySecurityTimeline {
@@ -187,6 +208,8 @@ export const binarySecurityApi = {
         max_retries_per_item?: number;
         continue_on_item_failure?: boolean;
         stage_parallelism?: Record<string, number>;
+        module_selection_mode?: 'auto' | 'manual_confirm';
+        module_risk_levels?: string[];
       };
     },
   ): Promise<BinarySecurityTaskDetail> => {
@@ -247,10 +270,18 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
-  resumeTask: async (projectId: string, taskId: string) => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/resume`, {
+  getModuleSelection: async (projectId: string, taskId: string): Promise<BinarySecurityModuleSelection> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/module-selection`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  confirmModuleSelection: async (projectId: string, taskId: string, selectedModuleKeys: string[]): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/module-selection/confirm`, {
       method: 'POST',
       headers: getHeaders(),
+      body: JSON.stringify({ selected_module_keys: selectedModuleKeys }),
     });
     return handleResponse(resp);
   },

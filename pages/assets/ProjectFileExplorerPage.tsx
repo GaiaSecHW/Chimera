@@ -270,6 +270,20 @@ const inferPreviewModeByName = (filename: string, contentType?: string | null): 
 };
 
 const buildFsPathNodeId = (path: string) => `fs:path:${encodeURIComponent(path)}`;
+const normalizeFsPathForOpen = (input: string) => {
+  const raw = (input || '').trim();
+  if (!raw) return '/';
+  const prefixed = raw.startsWith('/') ? raw : `/${raw}`;
+  const normalized = prefixed.replace(/\/{2,}/g, '/');
+  return normalized || '/';
+};
+const getUrlRequestedFsPath = () => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search || '');
+  const raw = params.get('path');
+  if (!raw) return null;
+  return normalizeFsPathForOpen(raw);
+};
 const parentFsPath = (path: string) => {
   const raw = (path || '/').trim() || '/';
   if (raw === '/') return '/';
@@ -523,6 +537,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     if (p) sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
     return p;
   });
+  const [pendingUrlPath, setPendingUrlPath] = useState<string | null>(() => getUrlRequestedFsPath());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<UnifiedExplorerNode | null>(null);
@@ -569,8 +584,13 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   // Listen for navigate-to-path requests from other views (e.g. task output button)
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ view?: string }>).detail;
+      const detail = (e as CustomEvent<{ view?: string; path?: string }>).detail;
       if (detail?.view !== 'project-file-explorer') return;
+      const eventPath = String(detail?.path || '').trim();
+      if (eventPath) {
+        setPendingUrlPath(normalizeFsPathForOpen(eventPath));
+        return;
+      }
       const p = sessionStorage.getItem('secflow:fileExplorerNavigatePath');
       if (p) {
         sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
@@ -599,6 +619,64 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     void openNode(node);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingNavPath, loading]);
+
+  // Open target path from URL query: ?path=/a/b/c (directory or file)
+  useEffect(() => {
+    if (!pendingUrlPath || loading || !projectId) return;
+    const requestedPath = normalizeFsPathForOpen(pendingUrlPath);
+    setPendingUrlPath(null);
+
+    const openRequestedPath = async () => {
+      try {
+        // 1) Try as directory first
+        const dirPayload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, requestedPath);
+        const node: UnifiedExplorerNode = {
+          id: requestedPath === '/' ? `fs:root:${projectId}` : buildFsPathNodeId(requestedPath),
+          source: requestedPath === '/' ? 'virtual' : 'fileserver',
+          nodeType: requestedPath === '/' ? 'fileserver-root' : (parentFsPath(requestedPath) === '/' ? 'subproject' : 'directory'),
+          name: requestedPath === '/' ? '项目文件（Fileserver）' : (requestedPath.split('/').filter(Boolean).pop() || requestedPath),
+          hasChildren: true,
+          children: [],
+          projectId,
+          path: requestedPath === '/' ? undefined : requestedPath,
+        };
+        if (requestedPath === '/') {
+          await openNode(node);
+          return;
+        }
+        setExpandedNodes((prev) => {
+          const next = new Set(prev);
+          next.add(`fs:root:${projectId}`);
+          next.add(node.id);
+          return next;
+        });
+        buildFsListing(node, dirPayload);
+        setSelectedNodeId(node.id);
+        return;
+      } catch {
+        // 2) Not a directory: try as file
+      }
+
+      const parentPath = parentFsPath(requestedPath);
+      const parentPayload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, parentPath);
+      const files = parentPayload.files.map((item) => toFsPathNode(projectId, item));
+      const target = files.find((item) => item.path === requestedPath);
+      if (!target) {
+        alert(`URL 指定路径不存在：${requestedPath}`);
+        return;
+      }
+      setExpandedNodes((prev) => {
+        const next = new Set(prev);
+        next.add(`fs:root:${projectId}`);
+        if (parentPath !== '/') next.add(buildFsPathNodeId(parentPath));
+        return next;
+      });
+      await openFileNode(target);
+    };
+
+    void openRequestedPath();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingUrlPath, loading, projectId]);
 
   const clearPreview = () => {
     setPreviewFile(null);

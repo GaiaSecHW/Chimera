@@ -123,7 +123,7 @@ function extractFsRelPath(outputPath: string, projectId: string): string | null 
 
 function openInFileExplorer(fsPath: string) {
   sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer' } }));
+  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: fsPath } }));
 }
 
 function formatEventLog(evt: AppDfaStageEvent): string {

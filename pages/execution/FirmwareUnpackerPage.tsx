@@ -2,9 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  AlertCircle, AlertTriangle, ArrowLeft, CheckCircle2, ChevronRight, Clock,
+  AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Clock,
   FolderOpen, Loader2, Package, Play, RefreshCw,
-  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus, Terminal, PauseCircle, Sparkles,
+  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus, Terminal, Sparkles,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FileWatchMessage } from '../../clients/fileserver';
@@ -103,58 +103,12 @@ function resultEntryKindLabel(kind: string | null | undefined): string {
 }
 
 function inferTimelineTone(event: FirmwareTaskEvent) {
-  const raw = `${event?.event_type || ''} ${event?.summary || ''} ${event?.status || ''}`.toLowerCase();
-  if (raw.includes('fail') || raw.includes('error')) {
-    return {
-      icon: XCircle,
-      line: 'from-rose-200 via-rose-300 to-rose-100',
-      node: 'border-rose-200 bg-rose-50 text-rose-700',
-      badge: 'border-rose-200 bg-rose-50 text-rose-700',
-      glow: 'shadow-rose-100/80',
-    };
-  }
-  if (raw.includes('cancel')) {
-    return {
-      icon: PauseCircle,
-      line: 'from-slate-200 via-slate-300 to-slate-100',
-      node: 'border-slate-200 bg-slate-100 text-slate-600',
-      badge: 'border-slate-200 bg-slate-100 text-slate-600',
-      glow: 'shadow-slate-200/80',
-    };
-  }
-  if (raw.includes('success') || raw.includes('complete') || raw.includes('finish')) {
-    return {
-      icon: CheckCircle2,
-      line: 'from-emerald-200 via-emerald-300 to-emerald-100',
-      node: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-      badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-      glow: 'shadow-emerald-100/80',
-    };
-  }
-  if (raw.includes('running') || raw.includes('start') || raw.includes('retry') || raw.includes('dispatch')) {
-    return {
-      icon: Loader2,
-      line: 'from-sky-200 via-blue-300 to-cyan-100',
-      node: 'border-sky-200 bg-sky-50 text-sky-700',
-      badge: 'border-sky-200 bg-sky-50 text-sky-700',
-      glow: 'shadow-sky-100/80',
-    };
-  }
-  if (raw.includes('warn')) {
-    return {
-      icon: AlertTriangle,
-      line: 'from-amber-200 via-amber-300 to-amber-100',
-      node: 'border-amber-200 bg-amber-50 text-amber-700',
-      badge: 'border-amber-200 bg-amber-50 text-amber-700',
-      glow: 'shadow-amber-100/80',
-    };
-  }
   return {
     icon: Sparkles,
-    line: 'from-violet-200 via-fuchsia-200 to-cyan-100',
-    node: 'border-violet-200 bg-violet-50 text-violet-700',
-    badge: 'border-violet-200 bg-violet-50 text-violet-700',
-    glow: 'shadow-violet-100/80',
+    line: 'from-sky-200 via-blue-300 to-cyan-100',
+    node: 'border-sky-200 bg-sky-50 text-sky-700',
+    badge: 'border-sky-200 bg-sky-50 text-sky-700',
+    glow: 'shadow-sky-100/80',
   };
 }
 
@@ -956,12 +910,11 @@ function TaskDetailPanel({
                     {timelineItems.map((event) => {
                       const tone = event._tone;
                       const Icon = tone.icon;
-                      const isRunningTone = Icon === Loader2;
                       return (
                         <div key={event._key} className="relative flex gap-4">
                           <div className="relative z-10 flex w-10 shrink-0 justify-center">
                             <div className={`flex h-8 w-8 items-center justify-center rounded-2xl border shadow-lg ${tone.node} ${tone.glow}`}>
-                              <Icon size={14} className={isRunningTone ? 'animate-spin' : ''} />
+                              <Icon size={14} />
                             </div>
                           </div>
 

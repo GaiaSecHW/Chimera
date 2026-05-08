@@ -375,7 +375,7 @@ function parseSessionJsonlDelta(lines: string[], startLine: number): SessionDelt
 
 function openInFileExplorer(fsPath: string) {
   sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer' } }));
+  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: fsPath } }));
 }
 
 function formatSessionMtime(value?: number) {
