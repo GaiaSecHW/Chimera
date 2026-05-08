@@ -2113,6 +2113,7 @@ export interface LlmProviderSummary {
   is_default: boolean;
   api_base: string;
   model: string;
+  model_context_window: number;
   api_key: string;
   organization?: string | null;
   api_version?: string | null;
@@ -2143,6 +2144,7 @@ export interface LlmProviderDetail {
   is_default: boolean;
   api_base: string;
   model: string;
+  model_context_window: number;
   api_key: string;
   organization?: string | null;
   api_version?: string | null;
@@ -2165,6 +2167,7 @@ export interface LlmProviderUpsertRequest {
   is_default: boolean;
   api_base: string;
   model: string;
+  model_context_window: number;
   api_key: string;
   organization?: string | null;
   api_version?: string | null;
@@ -2470,18 +2473,6 @@ export interface AppSaSessionSnapshot {
   events: AppSaSessionEvent[];
   warnings: string[];
   line_count: number;
-}
-
-export interface AppSaSessionWsMessage {
-  type: 'session_snapshot' | 'session_delta' | 'session_rotated' | 'error' | 'pong';
-  path?: string;
-  session_meta?: Record<string, any>;
-  warnings?: string[];
-  line_count?: number;
-  event_count?: number;
-  offset?: number;
-  events?: AppSaSessionEvent[];
-  message?: string;
 }
 
 export interface AppSaTaskCreateRequest {

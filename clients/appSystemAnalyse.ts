@@ -13,10 +13,6 @@ import {
 } from '../types/types';
 
 const BASE = `${API_BASE}/api/app/system-analyse`;
-const getWsBase = () => {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}`;
-};
 
 // ── 模型配置内置默认值（与后端 _DEFAULT_MODELS_CONFIG 保持同步）────────────────
 export const DEFAULT_MODELS_CONFIG: SystemAnalysisModelsConfig = {
@@ -93,15 +89,6 @@ export const appSystemAnalyseApi = {
   getTaskSessionFile: async (taskId: string, path: string): Promise<AppSaSessionSnapshot> => {
     const query = new URLSearchParams({ path }).toString();
     return handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/file?${query}`, { headers: getHeaders() }));
-  },
-
-  openTaskSessionWebSocket: (taskId: string): WebSocket => {
-    const token = localStorage.getItem('secflow_token');
-    const params = new URLSearchParams();
-    if (token) params.append('token', token);
-    const query = params.toString();
-    const suffix = query ? `?${query}` : '';
-    return new WebSocket(`${getWsBase()}${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/ws${suffix}`);
   },
 
   cancelTask: async (taskId: string): Promise<AppSaTaskItem> =>

@@ -25,11 +25,11 @@ import {
   AppSaSessionEvent,
   AppSaSessionMeta,
   AppSaSessionSnapshot,
-  AppSaSessionWsMessage,
   AppSaStageEvent,
   AppSaTaskDetail,
   AppSaTaskResult,
 } from '../../types/types';
+import { FileWatchMessage } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
@@ -65,6 +65,22 @@ const STAGE_STEPS = [
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 type DetailTab = 'overview' | 'session' | 'result';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
+
+const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
+  off: 'off',
+  minimal: 'minimal',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  'x-high': 'xhigh',
+};
+
+type SessionDeltaParseResult = {
+  sessionMeta: Record<string, any> | null;
+  events: AppSaSessionEvent[];
+  warnings: string[];
+  lineCount: number;
+};
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
@@ -210,6 +226,153 @@ function extractFsRelPath(outputPath: string, projectId: string): string | null 
   return rel.startsWith('/') ? rel : `/${rel}`;
 }
 
+function normalizeJoinPath(basePath: string, relativePath: string): string {
+  const base = basePath.replace(/\/+$/, '');
+  const relative = relativePath.replace(/^\/+/, '');
+  return `${base}/${relative}`;
+}
+
+function parseSessionMessageParts(content: unknown): Array<Record<string, any>> {
+  const parts: Array<Record<string, any>> = [];
+  if (typeof content === 'string') {
+    parts.push({ type: 'text', text: content });
+    return parts;
+  }
+  if (!Array.isArray(content)) return parts;
+  for (const item of content) {
+    if (!item || typeof item !== 'object') continue;
+    const part = item as Record<string, any>;
+    const contentType = String(part.type || '');
+    if (contentType === 'text') {
+      parts.push({ type: 'text', text: part.text || '' });
+    } else if (contentType === 'thinking') {
+      parts.push({ type: 'thinking', text: part.thinking || '' });
+    } else if (contentType === 'toolCall') {
+      parts.push({
+        type: 'toolCall',
+        name: part.name || '',
+        id: part.id || '',
+        arguments: part.arguments || {},
+      });
+    } else if (contentType === 'toolResult') {
+      parts.push({ type: 'toolResult', text: part.text || '' });
+    } else {
+      parts.push({ type: 'unknown', detail: String(item).slice(0, 200) });
+    }
+  }
+  return parts;
+}
+
+function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, lineNo: number): {
+  sessionMeta?: Record<string, any>;
+  event?: AppSaSessionEvent;
+} {
+  const eventType = String(obj.type || '');
+  if (eventType === 'session') {
+    return {
+      sessionMeta: {
+        id: obj.id || '',
+        version: obj.version || '',
+        timestamp: obj.timestamp || '',
+        cwd: obj.cwd || '',
+      },
+    };
+  }
+  if (eventType === 'model_change') {
+    return {
+      event: {
+        type: 'model_change',
+        line: lineNo,
+        event_index: lineNo,
+        timestamp: obj.timestamp || '',
+        display_timestamp: obj.timestamp || '',
+        provider: obj.provider || '',
+        modelId: obj.modelId || '',
+        raw_line: rawLine,
+      },
+    };
+  }
+  if (eventType === 'thinking_level_change') {
+    const level = String(obj.thinkingLevel || '');
+    return {
+      event: {
+        type: 'thinking_level_change',
+        line: lineNo,
+        event_index: lineNo,
+        timestamp: obj.timestamp || '',
+        display_timestamp: obj.timestamp || '',
+        thinkingLevel: level,
+        thinkingLevelClass: `thinking-${SESSION_THINKING_LEVEL_MAP[level.toLowerCase()] || 'off'}`,
+        raw_line: rawLine,
+      },
+    };
+  }
+  if (eventType === 'message') {
+    const msg = obj.message && typeof obj.message === 'object' ? obj.message as Record<string, any> : {};
+    const role = String(msg.role || '');
+    const event: AppSaSessionEvent = {
+      type: 'message',
+      line: lineNo,
+      event_index: lineNo,
+      timestamp: obj.timestamp || '',
+      display_timestamp: obj.timestamp || '',
+      role,
+      render_role: role,
+      parts: parseSessionMessageParts(msg.content),
+      raw_line: rawLine,
+    };
+    if (role === 'toolResult') {
+      event.toolCallId = msg.toolCallId || msg.tool_call_id || '';
+      event.toolName = msg.toolName || msg.tool_name || '';
+      event.isError = Boolean(msg.isError ?? msg.is_error ?? false);
+    }
+    return { event };
+  }
+  return {
+    event: {
+      type: eventType || 'unknown_event',
+      line: lineNo,
+      event_index: lineNo,
+      display_timestamp: obj.timestamp || '',
+      summary: JSON.stringify(obj).slice(0, 200),
+      raw_line: rawLine.slice(0, 200),
+    },
+  };
+}
+
+function parseSessionJsonlDelta(lines: string[], startLine: number): SessionDeltaParseResult {
+  const events: AppSaSessionEvent[] = [];
+  const warnings: string[] = [];
+  let sessionMeta: Record<string, any> | null = null;
+  let lineCount = 0;
+
+  lines.forEach((rawLine, index) => {
+    const lineNo = startLine + index;
+    const trimmed = rawLine.trim();
+    if (!trimmed) return;
+    lineCount += 1;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        events.push({ type: 'raw', line: lineNo, raw_line: trimmed.slice(0, 200), summary: trimmed.slice(0, 200) });
+        return;
+      }
+      const mapped = parseSessionJsonlObject(parsed as Record<string, any>, trimmed, lineNo);
+      if (mapped.sessionMeta) {
+        sessionMeta = mapped.sessionMeta;
+      }
+      if (mapped.event) {
+        events.push(mapped.event);
+      }
+    } catch {
+      warnings.push(`第 ${lineNo} 行 JSON 解析失败`);
+      events.push({ type: 'raw', line: lineNo, raw_line: trimmed.slice(0, 200), summary: trimmed.slice(0, 200) });
+    }
+  });
+
+  return { sessionMeta, events, warnings, lineCount };
+}
+
 function openInFileExplorer(fsPath: string) {
   sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
   window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer' } }));
@@ -307,6 +470,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   onBack: () => void;
 }> = ({ projectId, taskId, onBack }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
+  const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
   const hasReturnContext = hasBinarySecurityReturnContext();
   const [detail, setDetail] = useState<AppSaTaskDetail | null>(null);
@@ -325,6 +489,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
   const [sessionSnapshot, setSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
+  const [sessionWatchStartLine, setSessionWatchStartLine] = useState(0);
   const [sessionEvents, setSessionEvents] = useState<AppSaSessionEvent[]>([]);
   const [sessionWarnings, setSessionWarnings] = useState<string[]>([]);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -365,6 +530,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
   const closeSessionSocket = () => {
     if (sessionSocketRef.current) {
+      if (sessionSocketRef.current.readyState === WebSocket.OPEN) {
+        try {
+          sessionSocketRef.current.send(JSON.stringify({ action: 'close' }));
+        } catch {
+          // ignore close handshake failures
+        }
+      }
       sessionSocketRef.current.close();
       sessionSocketRef.current = null;
     }
@@ -404,10 +576,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     try {
       const snapshot = await appApi.getTaskSessionFile(taskId, path);
       setSessionSnapshot(snapshot);
+      setSessionWatchStartLine(snapshot.line_count || 0);
       setSessionEvents(snapshot.events || []);
       setSessionWarnings(snapshot.warnings || []);
     } catch (err: any) {
       setSessionSnapshot(null);
+      setSessionWatchStartLine(0);
       setSessionEvents([]);
       setSessionWarnings([]);
       setSessionError(err?.message || String(err));
@@ -480,37 +654,73 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       setSessionLive(false);
       return;
     }
+    if (!detail?.output_path) {
+      setSessionLive(false);
+      setSessionError('当前任务缺少输出路径，无法建立实时监听');
+      return;
+    }
+    const sessionAbsPath = normalizeJoinPath(`${detail.output_path}/${detail.task_id}/run/sessions`, selectedSessionPath);
+    const watchPath = extractFsRelPath(sessionAbsPath, projectId);
+    if (!watchPath) {
+      setSessionLive(false);
+      setSessionError('当前会话路径不在 fileserver 项目目录下，无法实时监听');
+      return;
+    }
     closeSessionSocket();
-    const socket = appApi.openTaskSessionWebSocket(taskId);
+    const socket = fileserverApi.openProjectFileWatchWebSocket(projectId, watchPath, {
+      path_mode: 'project_filesystem',
+      read_mode: 'line',
+      start_from: 'head',
+      start_line: sessionWatchStartLine,
+    });
     sessionSocketRef.current = socket;
     socket.onopen = () => {
       setSessionLive(['pending', 'running'].includes(detail?.status || ''));
-      socket.send(JSON.stringify({
-        type: 'subscribe',
-        path: selectedSessionPath,
-        offset: sessionSnapshot.line_count || 0,
-      }));
     };
     socket.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data) as AppSaSessionWsMessage;
-        if (message.type === 'session_snapshot') {
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'snapshot') {
+          setSessionLive(true);
           return;
         }
-        if (message.type === 'session_delta') {
-          if ((message.path || selectedSessionPath) !== selectedSessionPath) return;
-          if (message.events?.length) {
-            setSessionEvents((current) => current.concat(message.events || []));
+        if (message.type === 'delta') {
+          if (message.read_mode !== 'line') return;
+          const deltaLines = Array.isArray(message.lines) ? message.lines : [];
+          if (deltaLines.length === 0) return;
+          const parsed = parseSessionJsonlDelta(deltaLines, (message.from_line ?? sessionWatchStartLine) + 1);
+          if (parsed.events.length > 0) {
+            setSessionEvents((current) => current.concat(parsed.events));
           }
-          if (message.warnings?.length) {
-            setSessionWarnings((current) => Array.from(new Set(current.concat(message.warnings || []))));
+          if (parsed.warnings.length > 0) {
+            setSessionWarnings((current) => Array.from(new Set(current.concat(parsed.warnings))));
           }
-          setSessionSnapshot((current) => current ? { ...current, line_count: message.line_count || current.line_count } : current);
+          if (parsed.sessionMeta) {
+            setSessionSnapshot((current) => current ? {
+              ...current,
+              session_meta: {
+                ...(current.session_meta || {}),
+                ...parsed.sessionMeta,
+              },
+              line_count: message.to_line ?? current.line_count,
+            } : current);
+          } else {
+            setSessionSnapshot((current) => current ? { ...current, line_count: message.to_line ?? current.line_count } : current);
+          }
           return;
         }
-        if (message.type === 'session_rotated') {
-          setSessionLive(false);
-          void loadSessionFile(selectedSessionPath);
+        if (message.type === 'file_event') {
+          if (message.event === 'truncated' || message.event === 'renamed') {
+            setSessionLive(false);
+            setSessionError('会话文件已重置，正在重新加载');
+            void loadSessionFile(selectedSessionPath);
+            return;
+          }
+          if (message.event === 'deleted') {
+            setSessionLive(false);
+            setSessionError('会话文件已删除');
+            closeSessionSocket();
+          }
           return;
         }
         if (message.type === 'error') {
@@ -534,7 +744,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
         socket.close();
       }
     };
-  }, [activeTab, selectedSessionPath, sessionSnapshot?.path, taskId, detail?.status]);
+  }, [activeTab, selectedSessionPath, sessionSnapshot?.path, sessionWatchStartLine, taskId, detail?.status, detail?.output_path, detail?.task_id, projectId]);
 
   useEffect(() => {
     if (!result) return;

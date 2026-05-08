@@ -62,6 +62,7 @@ const normalizeDraft = (draft: Partial<LlmProviderUpsertRequest> | null | undefi
   is_default: typeof draft?.is_default === 'boolean' ? draft.is_default : false,
   api_base: String(draft?.api_base || ''),
   model: String(draft?.model || ''),
+  model_context_window: typeof draft?.model_context_window === 'number' && Number.isFinite(draft.model_context_window) ? Math.trunc(draft.model_context_window) : 128000,
   api_key: String(draft?.api_key || ''),
   organization: draft?.organization ? String(draft.organization) : '',
   api_version: draft?.api_version ? String(draft.api_version) : '',
@@ -87,6 +88,7 @@ const createEmptyForm = (): LlmProviderUpsertRequest => ({
   is_default: false,
   api_base: '',
   model: '',
+  model_context_window: 128000,
   api_key: '',
   organization: '',
   api_version: '',
@@ -263,6 +265,7 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
       is_default: detail.is_default,
       api_base: detail.api_base,
       model: detail.model,
+      model_context_window: detail.model_context_window ?? 128000,
       api_key: detail.api_key,
       organization: detail.organization || '',
       api_version: detail.api_version || '',
@@ -613,6 +616,8 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
     if (!String(draft.display_name || '').trim()) missingTopLevel.push('展示名称');
     if (!String(draft.provider_type || '').trim()) missingTopLevel.push('渠道类型');
     if (!String(draft.api_base || '').trim()) missingTopLevel.push('API Base');
+    const modelContextWindow = Number(draft.model_context_window);
+    if (!Number.isFinite(modelContextWindow) || modelContextWindow <= 0) missingTopLevel.push('模型上下文窗口大小');
     if (String(draft.provider_type || '').trim() !== 'ollama' && !String(draft.api_key || '').trim()) {
       missingTopLevel.push('API Key');
     }
@@ -957,6 +962,18 @@ export const ConfigCenterLlmPage: React.FC<ConfigCenterLlmPageProps> = ({ onOpen
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">模型</label>
               <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500" placeholder="gpt-4.1-mini" />
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">模型上下文窗口大小（十进制）</label>
+              <input
+                type="number"
+                min={1}
+                required
+                value={form.model_context_window}
+                onChange={(event) => setForm({ ...form, model_context_window: Math.max(0, Math.trunc(Number(event.target.value || 0))) })}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                placeholder="128000"
+              />
             </div>
             <div className="md:col-span-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">API Base</label>

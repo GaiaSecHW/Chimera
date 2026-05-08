@@ -19,6 +19,83 @@ export interface FileserverUploadProgress {
   elapsed_ms: number;
 }
 
+export interface FileWatchOpenOptions {
+  path_mode?: 'project_filesystem';
+  read_mode?: 'line' | 'byte';
+  start_from?: 'head' | 'tail';
+  start_line?: number;
+  start_byte?: number;
+}
+
+export interface FileWatchSnapshotMessage {
+  type: 'snapshot';
+  request_id: string;
+  project_id: string;
+  path: string;
+  path_mode: string;
+  read_mode: 'line' | 'byte';
+  exists: boolean;
+  start_line?: number | null;
+  start_byte?: number | null;
+  queue_class?: string;
+  ts: string;
+}
+
+export interface FileWatchDeltaMessage {
+  type: 'delta';
+  read_mode: 'line' | 'byte';
+  from_line?: number;
+  to_line?: number;
+  lines?: string[];
+  from_byte?: number;
+  to_byte?: number;
+  encoding?: string;
+  content_base64?: string;
+  request_id: string;
+  project_id: string;
+  path: string;
+  ts: string;
+}
+
+export interface FileWatchEventMessage {
+  type: 'file_event';
+  event: 'created' | 'deleted' | 'renamed' | 'truncated' | 'permission_changed' | 'metadata_changed' | 'closed';
+  request_id: string;
+  project_id: string;
+  path: string;
+  size?: number;
+  mtime?: number;
+  inode?: number;
+  ts: string;
+}
+
+export interface FileWatchHeartbeatMessage {
+  type: 'heartbeat';
+  request_id: string;
+  project_id: string;
+  path: string;
+  read_mode: 'line' | 'byte';
+  line_offset?: number | null;
+  byte_offset?: number | null;
+  ts: string;
+}
+
+export interface FileWatchErrorMessage {
+  type: 'error';
+  request_id?: string;
+  project_id?: string;
+  path?: string;
+  message: string;
+  ts?: string;
+}
+
+export type FileWatchMessage =
+  | FileWatchSnapshotMessage
+  | FileWatchDeltaMessage
+  | FileWatchEventMessage
+  | FileWatchHeartbeatMessage
+  | FileWatchErrorMessage;
+
 const toUploadProgress = (event: XhrUploadProgress): FileserverUploadProgress => ({
   loaded_bytes: event.loaded_bytes,
   total_bytes: event.total_bytes,
@@ -30,6 +107,11 @@ const getUploadHeaders = () => {
   const headers: Record<string, string> = { ...getHeaders() };
   delete headers['Content-Type'];
   return headers;
+};
+
+const getWsBase = () => {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}`;
 };
 
 export const fileserverApi = {
@@ -163,6 +245,21 @@ export const fileserverApi = {
       await handleResponse(response);
     }
     return response.blob();
+  },
+
+  openProjectFileWatchWebSocket: (projectId: string, path: string, options: FileWatchOpenOptions = {}): WebSocket => {
+    const token = localStorage.getItem('secflow_token');
+    const params = new URLSearchParams({
+      project_id: projectId,
+      path,
+      path_mode: options.path_mode || 'project_filesystem',
+      read_mode: options.read_mode || 'line',
+      start_from: options.start_from || 'head',
+    });
+    if (options.start_line !== undefined) params.append('start_line', String(options.start_line));
+    if (options.start_byte !== undefined) params.append('start_byte', String(options.start_byte));
+    if (token) params.append('token', token);
+    return new WebSocket(`${getWsBase()}${API_BASE}/api/fileserver/ws/watch?${params.toString()}`);
   },
 
   getSubprojectChildren: async (projectId: string, subprojectId: number): Promise<DirectoryChildrenResponse> => {

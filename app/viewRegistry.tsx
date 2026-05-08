@@ -218,6 +218,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <EnvTemplatePage projectId={ctx.selectedProjectId} />;
     case 'env-tasks':
       return <EnvTasksPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-system':
     case 'system-analysis-task':
       return (
         <SystemAnalysisTaskPage
@@ -306,8 +307,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           }}
         />
       );
-    case 'pentest-system':
-      return <WorkflowPlaceholder title="系统分析" icon={<FileSearch />} />;
     case 'pentest-threat':
     case 'entry-analysis-root':
     case 'entry-analysis-task':
@@ -330,7 +329,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-firmware-task-list':
       return <FirmwareUnpackerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'pentest-exec-firmware-config':
-      return <BinarySecurityConfigPage />;
+      return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s':
     case 'pentest-exec-b2s-root':
     case 'pentest-exec-b2s-task-list':
@@ -410,7 +409,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         />
       );
     case 'binary-security-config':
-      return <BinarySecurityConfigPage />;
+      return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
