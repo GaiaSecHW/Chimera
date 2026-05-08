@@ -123,6 +123,72 @@ export interface FirmwareTaskEventList {
   items: FirmwareTaskEvent[];
 }
 
+export interface FirmwareTaskTopLevelEntry {
+  name: string;
+  kind: string;
+  file_count: number;
+  dir_count: number;
+  total_size_bytes: number;
+}
+
+export interface FirmwareTaskExtensionBreakdownItem {
+  extension: string;
+  file_count: number;
+  total_size_bytes: number;
+}
+
+export interface FirmwareTaskLargestFileItem {
+  path: string;
+  size_bytes: number;
+}
+
+export interface FirmwareTaskDeepestPath {
+  path: string;
+  depth: number;
+}
+
+export interface FirmwareTaskResultSummary {
+  top_level_entries: FirmwareTaskTopLevelEntry[];
+  file_extension_breakdown: FirmwareTaskExtensionBreakdownItem[];
+  largest_files: FirmwareTaskLargestFileItem[];
+  deepest_path: FirmwareTaskDeepestPath | null;
+  output_file_count: number;
+  output_dir_count: number;
+  output_total_size_bytes: number;
+  largest_file_path: string | null;
+  largest_file_size_bytes: number;
+  top_level_entry_count: number;
+  avg_file_size_bytes: number;
+  small_file_count: number;
+  medium_file_count: number;
+  large_file_count: number;
+  matched_skill: string | null;
+  fallback_to_llm: boolean;
+  generated_skill_path: string | null;
+  promotion_success_count: number;
+  executor_rounds: number;
+  session_count: number;
+  event_count: number;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_seconds: number | null;
+}
+
+export interface FirmwareTaskResult {
+  task_id: string;
+  available: boolean;
+  status: string;
+  output_root: string | null;
+  run_root: string | null;
+  summary_path: string | null;
+  reason_path: string | null;
+  tokens_summary_path: string | null;
+  summary_text: string | null;
+  reason_text: string | null;
+  warnings: string[];
+  summary: FirmwareTaskResultSummary;
+}
+
 export interface FirmwareUnpackTaskList {
   total: number;
   offset: number;
@@ -425,6 +491,77 @@ const normalizeTaskEventList = (value: unknown): FirmwareTaskEventList => {
   };
 };
 
+const normalizeTaskResult = (value: unknown): FirmwareTaskResult => {
+  const record = asRecord(value);
+  const summary = asRecord(record.summary);
+  return {
+    task_id: asString(record.task_id),
+    available: asBoolean(record.available),
+    status: asString(record.status, 'unknown'),
+    output_root: asNullableString(record.output_root),
+    run_root: asNullableString(record.run_root),
+    summary_path: asNullableString(record.summary_path),
+    reason_path: asNullableString(record.reason_path),
+    tokens_summary_path: asNullableString(record.tokens_summary_path),
+    summary_text: asNullableString(record.summary_text),
+    reason_text: asNullableString(record.reason_text),
+    warnings: asArray(record.warnings).map((item) => asString(item)).filter(Boolean),
+    summary: {
+      top_level_entries: asArray(summary.top_level_entries).map((item) => {
+        const entry = asRecord(item);
+        return {
+          name: asString(entry.name),
+          kind: asString(entry.kind, 'file'),
+          file_count: asNumber(entry.file_count, 0),
+          dir_count: asNumber(entry.dir_count, 0),
+          total_size_bytes: asNumber(entry.total_size_bytes, 0),
+        };
+      }),
+      file_extension_breakdown: asArray(summary.file_extension_breakdown).map((item) => {
+        const entry = asRecord(item);
+        return {
+          extension: asString(entry.extension, '(none)'),
+          file_count: asNumber(entry.file_count, 0),
+          total_size_bytes: asNumber(entry.total_size_bytes, 0),
+        };
+      }),
+      largest_files: asArray(summary.largest_files).map((item) => {
+        const entry = asRecord(item);
+        return {
+          path: asString(entry.path),
+          size_bytes: asNumber(entry.size_bytes, 0),
+        };
+      }).filter((item) => item.path),
+      deepest_path: summary.deepest_path && typeof summary.deepest_path === 'object' && !Array.isArray(summary.deepest_path)
+        ? {
+            path: asString(asRecord(summary.deepest_path).path),
+            depth: asNumber(asRecord(summary.deepest_path).depth, 0),
+          }
+        : null,
+      output_file_count: asNumber(summary.output_file_count, 0),
+      output_dir_count: asNumber(summary.output_dir_count, 0),
+      output_total_size_bytes: asNumber(summary.output_total_size_bytes, 0),
+      largest_file_path: asNullableString(summary.largest_file_path),
+      largest_file_size_bytes: asNumber(summary.largest_file_size_bytes, 0),
+      top_level_entry_count: asNumber(summary.top_level_entry_count, 0),
+      avg_file_size_bytes: asNumber(summary.avg_file_size_bytes, 0),
+      small_file_count: asNumber(summary.small_file_count, 0),
+      medium_file_count: asNumber(summary.medium_file_count, 0),
+      large_file_count: asNumber(summary.large_file_count, 0),
+      matched_skill: asNullableString(summary.matched_skill),
+      fallback_to_llm: asBoolean(summary.fallback_to_llm),
+      generated_skill_path: asNullableString(summary.generated_skill_path),
+      promotion_success_count: asNumber(summary.promotion_success_count, 0),
+      executor_rounds: asNumber(summary.executor_rounds, 0),
+      session_count: asNumber(summary.session_count, 0),
+      event_count: asNumber(summary.event_count, 0),
+      started_at: asNullableString(summary.started_at),
+      completed_at: asNullableString(summary.completed_at),
+      duration_seconds: summary.duration_seconds == null ? null : asNumber(summary.duration_seconds, 0),
+    },
+  };
+};
+
 const normalizeHealth = (value: unknown): FirmwareUnpackerHealth => {
   const record = asRecord(value);
   return {
@@ -670,6 +807,12 @@ export const firmwareUnpackerApi = {
   getTaskEvents: async (taskId: string, limit = 200): Promise<FirmwareTaskEventList> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/events?limit=${encodeURIComponent(String(limit))}`, { headers: getHeaders() });
     return normalizeTaskEventList(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/tasks/{id}/result */
+  getTaskResult: async (taskId: string): Promise<FirmwareTaskResult> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/result`, { headers: getHeaders() });
+    return normalizeTaskResult(await handleResponse(r));
   },
 
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */
