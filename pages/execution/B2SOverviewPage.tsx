@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Clock3, Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
 
-import { B2SElfTaskInput, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SEngine, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
@@ -16,6 +16,11 @@ interface Props {
 const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
 const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
+type B2SRunMode = 'fast' | 'deep';
+const RUN_MODE_ENGINE: Record<B2SRunMode, B2SEngine> = {
+  fast: 'hybrid',
+  deep: 'agent',
+};
 
 const formatBytes = (value: number): string => {
   if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
@@ -57,6 +62,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
   const [concurrency, setConcurrency] = useState(4);
+  const [runMode, setRunMode] = useState<B2SRunMode>('fast');
   const [llmProviderKey, setLlmProviderKey] = useState('');
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
   const [llmProvidersLoading, setLlmProvidersLoading] = useState(false);
@@ -133,6 +139,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const resetCreateForm = () => {
     setName('');
     setConcurrency(4);
+    setRunMode('fast');
     setLlmProviderKey('');
     setSelectedFiles([]);
     setSelectedServerFiles([]);
@@ -267,6 +274,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         tags: ['reverse', 'binary-to-source'],
         llm_provider_key: llmProviderKey || undefined,
         concurrency: safeConcurrency,
+        engine: RUN_MODE_ENGINE[runMode],
         elf_tasks: elfTasks,
       });
       setShowCreateDialog(false);
@@ -463,22 +471,54 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 </label>
               </div>
 
-              <label className="block text-sm font-bold text-slate-700">
-                Provider
-                <select
-                  value={llmProviderKey}
-                  onChange={(e) => setLlmProviderKey(e.target.value)}
-                  disabled={llmProvidersLoading || llmProviders.length === 0}
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-                >
-                  {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
-                  {llmProviders.map((provider) => (
-                    <option key={provider.provider_key} value={provider.provider_key}>
-                      {(provider.display_name || provider.provider_key)} · {provider.model || '-'}{provider.is_default ? ' · 默认' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="space-y-3">
+                <div>
+                  <div className="text-sm font-bold text-slate-700">还原模式</div>
+                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setRunMode('fast')}
+                      disabled={submitting}
+                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'fast' ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-black text-slate-900">快速模式</div>
+                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-700 ring-1 ring-cyan-100">hybrid</div>
+                      </div>
+                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">优先速度，使用混合流水线，适合初步分析和批量还原。</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRunMode('deep')}
+                      disabled={submitting}
+                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'deep' ? 'border-violet-300 bg-violet-50 ring-2 ring-violet-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-black text-slate-900">深度模式</div>
+                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-violet-700 ring-1 ring-violet-100">agent</div>
+                      </div>
+                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">使用 Agent 深度推理，速度较慢，适合关键二进制和高质量还原。</div>
+                    </button>
+                  </div>
+                </div>
+
+                <label className="block text-sm font-bold text-slate-700">
+                  Provider
+                  <select
+                    value={llmProviderKey}
+                    onChange={(e) => setLlmProviderKey(e.target.value)}
+                    disabled={llmProvidersLoading || llmProviders.length === 0}
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                  >
+                    {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
+                    {llmProviders.map((provider) => (
+                      <option key={provider.provider_key} value={provider.provider_key}>
+                        {(provider.display_name || provider.provider_key)} · {provider.model || '-'}{provider.is_default ? ' · 默认' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">

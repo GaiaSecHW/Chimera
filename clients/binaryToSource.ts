@@ -7,6 +7,8 @@ export interface B2SElfTaskInput {
   metadata?: Record<string, any>;
 }
 
+export type B2SEngine = 'hybrid' | 'agent';
+
 export interface B2STaskCreatePayload {
   task_id?: string;
   name: string;
@@ -15,6 +17,7 @@ export interface B2STaskCreatePayload {
   tags?: string[];
   llm_provider_key?: string;
   concurrency?: number;
+  engine?: B2SEngine;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
