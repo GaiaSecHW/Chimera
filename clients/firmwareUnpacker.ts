@@ -94,23 +94,14 @@ export interface FirmwareTaskProgress {
   phases: FirmwareTaskProgressPhase[];
 }
 
-export interface FirmwareTaskEvent {
-  id: string;
+export interface FirmwareTaskLog {
   task_id: string;
-  project_id: string | null;
-  event_type: string;
-  stage_key: string | null;
-  status: string | null;
-  summary: string;
-  detail: Record<string, any> | null;
-  owner_id: string | null;
-  created_by: string | null;
-  created_at: string | null;
-}
-
-export interface FirmwareTaskEventList {
-  total: number;
-  items: FirmwareTaskEvent[];
+  run_path: string | null;
+  available: boolean;
+  log_text: string;
+  files: string[];
+  phase: string | null;
+  message: string | null;
 }
 
 export interface FirmwareUnpackTaskList {
@@ -351,31 +342,16 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
   };
 };
 
-const normalizeTaskEvent = (value: unknown): FirmwareTaskEvent => {
+const normalizeTaskLog = (value: unknown): FirmwareTaskLog => {
   const record = asRecord(value);
   return {
-    id: asString(record.id),
     task_id: asString(record.task_id),
-    project_id: asNullableString(record.project_id),
-    event_type: asString(record.event_type, 'event'),
-    stage_key: asNullableString(record.stage_key),
-    status: asNullableString(record.status),
-    summary: asString(record.summary),
-    detail: record.detail && typeof record.detail === 'object' && !Array.isArray(record.detail)
-      ? (record.detail as Record<string, any>)
-      : null,
-    owner_id: asNullableString(record.owner_id),
-    created_by: asNullableString(record.created_by),
-    created_at: asNullableString(record.created_at),
-  };
-};
-
-const normalizeTaskEventList = (value: unknown): FirmwareTaskEventList => {
-  const record = asRecord(value);
-  const items = asArray(record.items).map(normalizeTaskEvent);
-  return {
-    total: asNumber(record.total, items.length),
-    items,
+    run_path: asNullableString(record.run_path),
+    available: asBoolean(record.available),
+    log_text: asString(record.log_text),
+    files: asArray(record.files).map((item) => asString(item)).filter(Boolean),
+    phase: asNullableString(record.phase),
+    message: asNullableString(record.message),
   };
 };
 
@@ -582,10 +558,13 @@ export const firmwareUnpackerApi = {
     return normalizeTaskProgress(await handleResponse(r));
   },
 
-  /** GET /api/app/firmware-unpacker/tasks/{id}/events */
-  getTaskEvents: async (taskId: string, limit = 200): Promise<FirmwareTaskEventList> => {
-    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/events?limit=${encodeURIComponent(String(limit))}`, { headers: getHeaders() });
-    return normalizeTaskEventList(await handleResponse(r));
+  /** GET /api/app/firmware-unpacker/tasks/{id}/logs */
+  getTaskLogs: async (taskId: string, phase?: string): Promise<FirmwareTaskLog> => {
+    const query = new URLSearchParams();
+    if (phase) query.set('phase', phase);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/logs${suffix}`, { headers: getHeaders() });
+    return normalizeTaskLog(await handleResponse(r));
   },
 
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */
