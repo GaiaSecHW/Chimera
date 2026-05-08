@@ -151,7 +151,7 @@ function formatEventLog(evt: AppEaStageEvent): string {
     case 'round_start':   return `[${ts}] \u25b6 第 ${d.round ?? ''} 轮开始`;
     case 'worker_start':  return `[${ts}] \u2502 Worker ${d.worker_id ?? ''}: ${d.entry ?? ''}`;
     case 'worker_file':   return `[${ts}] \u2502   \u2192 ${d.file ?? ''}`;
-    case 'worker_done': {
+    case 'workers_skipped': return `[${ts}] \u23ed Round ${d.round ?? ''} 跳过文件重分析，Master Worker 根据反馈修正`;    case 'worker_done': {
       if (d.done != null && d.total != null) {
         return `[${ts}] \u2713 (${d.done}/${d.total}) 已完成${d.done} 共${d.total}个文件`;
       }
