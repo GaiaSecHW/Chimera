@@ -20,11 +20,21 @@ import {
 } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppSaResultModule, AppSaStageEvent, AppSaTaskDetail, AppSaTaskResult } from '../../types/types';
+import {
+  AppSaResultModule,
+  AppSaSessionEvent,
+  AppSaSessionMeta,
+  AppSaSessionSnapshot,
+  AppSaSessionWsMessage,
+  AppSaStageEvent,
+  AppSaTaskDetail,
+  AppSaTaskResult,
+} from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard } from './taskOrigin';
+import { AgentSessionViewer } from './AgentSessionViewer';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -53,7 +63,7 @@ const STAGE_STEPS = [
 ];
 
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
-type DetailTab = 'overview' | 'result';
+type DetailTab = 'overview' | 'session' | 'result';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
@@ -205,6 +215,16 @@ function openInFileExplorer(fsPath: string) {
   window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer' } }));
 }
 
+function formatSessionMtime(value?: number) {
+  if (!value) return '-';
+  return new Date(value * 1000).toLocaleString('zh-CN');
+}
+
+function sessionGroupLabel(group: string) {
+  if (group === 'root') return '根会话';
+  return group;
+}
+
 function MarkdownContent({ content }: { content: string }) {
   return (
     <div className="markdown-body break-words leading-6 text-sm text-slate-700">
@@ -300,6 +320,17 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selection, setSelection] = useState<ResultSelection>({ type: 'report' });
   const logScrollRef = useRef<HTMLDivElement>(null);
+  const [sessions, setSessions] = useState<AppSaSessionMeta[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
+  const [sessionSnapshot, setSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
+  const [sessionEvents, setSessionEvents] = useState<AppSaSessionEvent[]>([]);
+  const [sessionWarnings, setSessionWarnings] = useState<string[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [sessionLive, setSessionLive] = useState(false);
+  const sessionSocketRef = useRef<WebSocket | null>(null);
 
   const handleBack = () => {
     if (navigateBackToBinarySecurityTask()) return;
@@ -332,9 +363,64 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
   };
 
+  const closeSessionSocket = () => {
+    if (sessionSocketRef.current) {
+      sessionSocketRef.current.close();
+      sessionSocketRef.current = null;
+    }
+    setSessionLive(false);
+  };
+
+  const loadSessions = async (options?: { silent?: boolean }) => {
+    if (!taskId) return;
+    if (!options?.silent) {
+      setSessionsLoading(true);
+      setSessionsError(null);
+    }
+    try {
+      const data = await appApi.listTaskSessions(taskId);
+      setSessions(data);
+      setSessionsError(null);
+      setSelectedSessionPath((current) => {
+        if (current && data.some((item) => item.relative_path === current)) {
+          return current;
+        }
+        const active = data.find((item) => item.is_active);
+        return active?.relative_path || data[0]?.relative_path || null;
+      });
+    } catch (err: any) {
+      setSessionsError(err?.message || String(err));
+    } finally {
+      if (!options?.silent) {
+        setSessionsLoading(false);
+      }
+    }
+  };
+
+  const loadSessionFile = async (path: string) => {
+    if (!taskId || !path) return;
+    setSessionLoading(true);
+    setSessionError(null);
+    try {
+      const snapshot = await appApi.getTaskSessionFile(taskId, path);
+      setSessionSnapshot(snapshot);
+      setSessionEvents(snapshot.events || []);
+      setSessionWarnings(snapshot.warnings || []);
+    } catch (err: any) {
+      setSessionSnapshot(null);
+      setSessionEvents([]);
+      setSessionWarnings([]);
+      setSessionError(err?.message || String(err));
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
   useEffect(() => {
     void loadDetail();
   }, [taskId]);
+
+  useEffect(() => () => closeSessionSocket(), []);
 
   useEffect(() => {
     if (!detail || !['running', 'pending'].includes(detail.status)) return;
@@ -358,6 +444,97 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     if (activeTab !== 'result') return;
     void loadResult();
   }, [activeTab, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session') {
+      closeSessionSocket();
+      return;
+    }
+    void loadSessions();
+  }, [activeTab, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session') return;
+    if (!detail || !['pending', 'running'].includes(detail.status)) return;
+    const timer = window.setInterval(() => void loadSessions({ silent: true }), 12000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, detail?.status, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath) {
+      if (activeTab !== 'session') {
+        setSessionSnapshot(null);
+        setSessionEvents([]);
+        setSessionWarnings([]);
+        setSessionError(null);
+      }
+      return;
+    }
+    closeSessionSocket();
+    void loadSessionFile(selectedSessionPath);
+  }, [activeTab, selectedSessionPath, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath || !sessionSnapshot) return;
+    if (!['pending', 'running'].includes(detail?.status || '')) {
+      setSessionLive(false);
+      return;
+    }
+    closeSessionSocket();
+    const socket = appApi.openTaskSessionWebSocket(taskId);
+    sessionSocketRef.current = socket;
+    socket.onopen = () => {
+      setSessionLive(['pending', 'running'].includes(detail?.status || ''));
+      socket.send(JSON.stringify({
+        type: 'subscribe',
+        path: selectedSessionPath,
+        offset: sessionSnapshot.line_count || 0,
+      }));
+    };
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as AppSaSessionWsMessage;
+        if (message.type === 'session_snapshot') {
+          return;
+        }
+        if (message.type === 'session_delta') {
+          if ((message.path || selectedSessionPath) !== selectedSessionPath) return;
+          if (message.events?.length) {
+            setSessionEvents((current) => current.concat(message.events || []));
+          }
+          if (message.warnings?.length) {
+            setSessionWarnings((current) => Array.from(new Set(current.concat(message.warnings || []))));
+          }
+          setSessionSnapshot((current) => current ? { ...current, line_count: message.line_count || current.line_count } : current);
+          return;
+        }
+        if (message.type === 'session_rotated') {
+          setSessionLive(false);
+          void loadSessionFile(selectedSessionPath);
+          return;
+        }
+        if (message.type === 'error') {
+          setSessionLive(false);
+          setSessionError(message.message || '会话订阅失败');
+        }
+      } catch (err: any) {
+        setSessionError(err?.message || String(err));
+      }
+    };
+    socket.onerror = () => {
+      setSessionLive(false);
+    };
+    socket.onclose = () => {
+      setSessionLive(false);
+    };
+    return () => {
+      if (sessionSocketRef.current === socket) {
+        closeSessionSocket();
+      } else {
+        socket.close();
+      }
+    };
+  }, [activeTab, selectedSessionPath, sessionSnapshot?.path, taskId, detail?.status]);
 
   useEffect(() => {
     if (!result) return;
@@ -445,6 +622,19 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const resultAvailable = Boolean(result?.available);
   const moduleCount = result?.summary.module_count || result?.modules.length || 0;
   const highRiskCount = result?.summary.high_risk_module_count || result?.modules.filter((item) => item.risk_level === '高').length || 0;
+  const selectedSession = useMemo(
+    () => sessions.find((item) => item.relative_path === selectedSessionPath) || null,
+    [sessions, selectedSessionPath],
+  );
+  const groupedSessions = useMemo(() => {
+    const map = new Map<string, AppSaSessionMeta[]>();
+    for (const session of sessions) {
+      const list = map.get(session.stage_group) || [];
+      list.push(session);
+      map.set(session.stage_group, list);
+    }
+    return Array.from(map.entries());
+  }, [sessions]);
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -532,6 +722,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             <div className="flex flex-wrap items-center gap-2">
               {[
                 { id: 'overview' as DetailTab, label: '总览' },
+                { id: 'session' as DetailTab, label: '智能体会话' },
                 { id: 'result' as DetailTab, label: '结果' },
               ].map((tab) => (
                 <button
@@ -679,6 +870,120 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 ) : null}
               </section>
             </>
+          ) : activeTab === 'session' ? (
+            <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
+                    <div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadSessions()}
+                    className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                    title="刷新会话"
+                  >
+                    <RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+
+                {sessionsError ? (
+                  <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                    {sessionsError}
+                  </div>
+                ) : null}
+
+                {sessionsLoading && sessions.length === 0 ? (
+                  <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    加载会话中...
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+                    当前任务暂无智能体会话文件
+                  </div>
+                ) : (
+                  <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
+                    {groupedSessions.map(([group, items]) => (
+                      <div key={group}>
+                        <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          {sessionGroupLabel(group)}
+                        </div>
+                        <div className="space-y-2">
+                          {items.map((session) => {
+                            const selected = session.relative_path === selectedSessionPath;
+                            return (
+                              <button
+                                key={session.relative_path}
+                                type="button"
+                                onClick={() => setSelectedSessionPath(session.relative_path)}
+                                className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                                  selected
+                                    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
+                                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="truncate text-sm font-black">{session.display_name}</div>
+                                    <div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                      {session.relative_path}
+                                    </div>
+                                  </div>
+                                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                    session.is_active
+                                      ? selected
+                                        ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                                        : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                      : selected
+                                        ? 'border-slate-500 bg-slate-800 text-slate-100'
+                                        : 'border-slate-200 bg-white text-slate-500'
+                                  }`}>
+                                    {session.is_active ? '活跃' : '历史'}
+                                  </span>
+                                </div>
+                                <div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                  <span>事件 {session.event_count}</span>
+                                  <span>更新时间 {formatSessionMtime(session.mtime)}</span>
+                                </div>
+                                {session.warnings.length > 0 ? (
+                                  <div className={`mt-2 text-[11px] ${selected ? 'text-amber-200' : 'text-amber-700'}`}>
+                                    {session.warnings[0]}
+                                  </div>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </aside>
+
+              <div className="space-y-4">
+                {sessionWarnings.length > 0 ? (
+                  <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
+                    <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                      {sessionWarnings.map((warning, index) => (
+                        <li key={`${warning}-${index}`}>{warning}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+
+                <AgentSessionViewer
+                  sessionMeta={selectedSession}
+                  sessionHeader={sessionSnapshot?.session_meta}
+                  events={sessionEvents}
+                  loading={sessionLoading}
+                  live={sessionLive}
+                  error={sessionError}
+                />
+              </div>
+            </section>
           ) : (
             <section className="space-y-4">
               <div className="grid gap-4 xl:grid-cols-5">

@@ -2429,6 +2429,61 @@ export interface AppSaTaskResult {
   warnings: string[];
 }
 
+export interface AppSaSessionMeta {
+  session_id: string;
+  session_name: string;
+  relative_path: string;
+  stage_group: string;
+  role_name: string;
+  size: number;
+  mtime: number;
+  event_count: number;
+  line_count: number;
+  is_active: boolean;
+  display_name: string;
+  warnings: string[];
+}
+
+export interface AppSaSessionEvent {
+  type: string;
+  line?: number;
+  event_index?: number;
+  timestamp?: string;
+  display_timestamp?: string;
+  role?: string;
+  render_role?: string;
+  provider?: string;
+  modelId?: string;
+  thinkingLevel?: string;
+  thinkingLevelClass?: string;
+  toolCallId?: string;
+  toolName?: string;
+  isError?: boolean;
+  parts?: Array<Record<string, any>>;
+  summary?: string;
+  raw_line?: string;
+}
+
+export interface AppSaSessionSnapshot {
+  path: string;
+  session_meta: Record<string, any>;
+  events: AppSaSessionEvent[];
+  warnings: string[];
+  line_count: number;
+}
+
+export interface AppSaSessionWsMessage {
+  type: 'session_snapshot' | 'session_delta' | 'session_rotated' | 'error' | 'pong';
+  path?: string;
+  session_meta?: Record<string, any>;
+  warnings?: string[];
+  line_count?: number;
+  event_count?: number;
+  offset?: number;
+  events?: AppSaSessionEvent[];
+  message?: string;
+}
+
 export interface AppSaTaskCreateRequest {
   project_id: string;
   task_name: string;
