@@ -246,6 +246,15 @@ const replaceNodeChildren = (node: UnifiedExplorerNode, targetId: string, childr
   return { ...node, children: node.children.map((child) => replaceNodeChildren(child, targetId, children)) };
 };
 
+const removeNodeById = (node: UnifiedExplorerNode, targetId: string): UnifiedExplorerNode => {
+  if (!node.children.length) return node;
+  const nextChildren = node.children
+    .filter((child) => child.id !== targetId)
+    .map((child) => removeNodeById(child, targetId));
+  if (nextChildren === node.children) return node;
+  return { ...node, children: nextChildren, hasChildren: nextChildren.length > 0 };
+};
+
 const inferPreviewModeByName = (filename: string, contentType?: string | null): PreviewState['mode'] => {
   const ct = contentType || '';
   if (ct.startsWith('text/') || ct === 'application/json' || ct === 'application/xml' || ct === 'application/javascript') {
@@ -273,6 +282,13 @@ const buildFsChildPath = (parentPath: string, name: string) => {
   const trimmed = name.trim();
   if (!trimmed) return parentPath;
   return parentPath === '/' ? `/${trimmed}` : `${parentPath.replace(/\/+$/, '')}/${trimmed}`;
+};
+
+const isFileserverPathMissingError = (error: any) => {
+  const status = Number((error as any)?.status || 0);
+  const code = String((error as any)?.code || '');
+  const message = String(error?.message || '');
+  return status === 404 || code === 'NOT_FOUND' || message.includes('目录不存在') || message.includes('项目目录不存在');
 };
 
 const toFsPathNode = (projectId: string, entry: ProjectFilesystemEntry): UnifiedExplorerNode => ({
@@ -689,6 +705,23 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     setRootNode((prev) => replaceNodeChildren(prev, targetId, children));
   };
 
+  const dropNode = (targetId: string) => {
+    setRootNode((prev) => removeNodeById(prev, targetId));
+  };
+
+  const ensureFileserverDirectoryExists = async (path: string) => {
+    try {
+      await assetApi.fileserver.getProjectFilesystemChildren(projectId, path);
+    } catch (error: any) {
+      if (!isFileserverPathMissingError(error)) {
+        throw error;
+      }
+      const parentPath = parentFsPath(path);
+      await refreshFileserverDirectory(parentPath);
+      throw new Error('目标目录不存在，界面已刷新，请重新选择目录后重试');
+    }
+  };
+
   const setListingForRootNode = (node: UnifiedExplorerNode, maybeRoot?: UnifiedExplorerNode) => {
     const rootRef = maybeRoot || rootNode;
     const map = collectNodeMap(rootRef);
@@ -1062,6 +1095,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     if (!targetPath) {
       throw new Error('无效的目标目录');
     }
+    await ensureFileserverDirectoryExists(targetPath);
 
     for (const directory of uniqueSortedDirectories(tree.directories)) {
       try {
@@ -1222,8 +1256,17 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     setBusyAction(`delete:${node.id}`);
     try {
       if (node.source === 'fileserver' && node.path) {
+        const parentPath = parentFsPath(node.path);
         await assetApi.fileserver.deleteProjectFilesystemNode(projectId, node.path, true);
-        await refreshFileserverDirectory(parentFsPath(node.path));
+        dropNode(node.id);
+        if (
+          selectedNodeId === node.id ||
+          (selectedNode?.path != null && (selectedNode.path === node.path || selectedNode.path.startsWith(`${node.path}/`)))
+        ) {
+          setSelectedNodeId(parentPath === '/' ? `fs:root:${projectId}` : buildFsPathNodeId(parentPath));
+          clearPreview();
+        }
+        await refreshFileserverDirectory(parentPath);
       } else if (node.source === 'pvc' && node.resourceId && node.path) {
         await assetApi.resources.deletePvcBrowserNode(node.resourceId, node.path);
         await initialize({ source: 'pvc', resourceId: node.resourceId });
@@ -1285,6 +1328,7 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
       if (isFileserverDirectoryLike(target)) {
         const targetPath = getFileserverDirectoryPath(target);
         if (!targetPath) throw new Error('无效的目标目录');
+        await ensureFileserverDirectoryExists(targetPath);
         for (const file of list) {
           await assetApi.fileserver.uploadProjectFilesystemFile({
             project_id: projectId,

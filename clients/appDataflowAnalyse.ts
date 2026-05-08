@@ -1,25 +1,13 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
-  AppDfaModelsConfig,
   AppDfaServiceConfig,
+  AppDfaStagesJson,
   AppDfaTaskCreateRequest,
   AppDfaTaskDetail,
   AppDfaTaskItem,
 } from '../types/types';
 
 const BASE = `${API_BASE}/api/app/dataflow-analyse`;
-
-export const DEFAULT_DFA_MODELS_CONFIG: AppDfaModelsConfig = {
-  providers: {
-    icsl_vllm_1: {
-      baseUrl: 'http://172.31.29.10:8000/v1/',
-      api: 'openai-completions',
-      apiKey: '1234',
-      models: [{ id: 'zai-org/GLM-5', reasoning: true }],
-    },
-  },
-  updated_at: null,
-};
 
 export const appDataflowAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
@@ -56,6 +44,17 @@ export const appDataflowAnalyseApi = {
       headers: getHeaders(),
     })),
 
+  deleteTask: async (taskId: string, deleteFiles = true): Promise<void> => {
+    const resp = await fetch(
+      `${BASE}/tasks/${encodeURIComponent(taskId)}?delete_files=${deleteFiles}`,
+      { method: 'DELETE', headers: getHeaders() },
+    );
+    if (!resp.ok) await handleResponse(resp);
+  },
+
+  getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: AppDfaStagesJson }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
+
   restartTask: async (taskId: string): Promise<AppDfaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/restart`, {
       method: 'POST',
@@ -86,22 +85,4 @@ export const appDataflowAnalyseApi = {
       body: JSON.stringify({ project_id: config.project_id, config }),
     })),
 
-  // ── Models config ─────────────────────────────────────────────────────────
-  getModels: async (): Promise<AppDfaModelsConfig> => {
-    const response = await fetch(`${BASE}/models`, { headers: getHeaders() });
-    if (response.status === 404) return DEFAULT_DFA_MODELS_CONFIG;
-    const data = await handleResponse(response);
-    // Guard: if backend returned HTML / non-object / null providers, fall back to defaults
-    if (!data || typeof data !== 'object' || !data.providers || typeof data.providers !== 'object') {
-      return DEFAULT_DFA_MODELS_CONFIG;
-    }
-    return data as AppDfaModelsConfig;
-  },
-
-  saveModels: async (config: AppDfaModelsConfig): Promise<AppDfaModelsConfig> =>
-    handleResponse(await fetch(`${BASE}/models`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify({ config }),
-    })),
 };

@@ -1869,7 +1869,7 @@ export type ViewType =
   | 'pentest-root' | 'pentest-system'
   | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work'
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
-  | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail'
+  | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
   | 'source-security' | 'source-security-detail'
   | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'
@@ -2345,6 +2345,15 @@ export interface AgentIngressRouteInfo {
 export interface AppSaTaskItem {
   task_id: string;
   project_id: string;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   task_name: string;
   task_description?: string | null;
   input_path: string;
@@ -2377,6 +2386,104 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   task_config_json?: { analyse_targets?: string[]; binary_arch?: string[] } | null;
 }
 
+export interface AppSaTaskResultSummary {
+  module_count: number;
+  high_risk_module_count: number;
+  medium_risk_module_count: number;
+  low_risk_module_count: number;
+  total_file_count: number;
+  threat_count: number;
+}
+
+export interface AppSaResultModuleSection {
+  level: number;
+  title: string;
+  anchor: string;
+}
+
+export interface AppSaResultModule {
+  module_name: string;
+  rank: number;
+  module_dir_path?: string | null;
+  files_list_path?: string | null;
+  module_report_path?: string | null;
+  module_report_markdown?: string | null;
+  files: string[];
+  file_count: number;
+  risk_level?: string | null;
+  risk_score?: number | null;
+  report_sections: AppSaResultModuleSection[];
+  report_preview?: string | null;
+}
+
+export interface AppSaTaskResult {
+  task_id: string;
+  available: boolean;
+  status: string;
+  output_root?: string | null;
+  final_report_path?: string | null;
+  modules_list_path?: string | null;
+  final_report_markdown?: string | null;
+  modules: AppSaResultModule[];
+  summary: AppSaTaskResultSummary;
+  warnings: string[];
+}
+
+export interface AppSaSessionMeta {
+  session_id: string;
+  session_name: string;
+  relative_path: string;
+  stage_group: string;
+  role_name: string;
+  size: number;
+  mtime: number;
+  event_count: number;
+  line_count: number;
+  is_active: boolean;
+  display_name: string;
+  warnings: string[];
+}
+
+export interface AppSaSessionEvent {
+  type: string;
+  line?: number;
+  event_index?: number;
+  timestamp?: string;
+  display_timestamp?: string;
+  role?: string;
+  render_role?: string;
+  provider?: string;
+  modelId?: string;
+  thinkingLevel?: string;
+  thinkingLevelClass?: string;
+  toolCallId?: string;
+  toolName?: string;
+  isError?: boolean;
+  parts?: Array<Record<string, any>>;
+  summary?: string;
+  raw_line?: string;
+}
+
+export interface AppSaSessionSnapshot {
+  path: string;
+  session_meta: Record<string, any>;
+  events: AppSaSessionEvent[];
+  warnings: string[];
+  line_count: number;
+}
+
+export interface AppSaSessionWsMessage {
+  type: 'session_snapshot' | 'session_delta' | 'session_rotated' | 'error' | 'pong';
+  path?: string;
+  session_meta?: Record<string, any>;
+  warnings?: string[];
+  line_count?: number;
+  event_count?: number;
+  offset?: number;
+  events?: AppSaSessionEvent[];
+  message?: string;
+}
+
 export interface AppSaTaskCreateRequest {
   project_id: string;
   task_name: string;
@@ -2387,6 +2494,13 @@ export interface AppSaTaskCreateRequest {
   prompt_content?: string;
   analyse_targets?: string[];
   binary_arch?: string[];
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
 }
 
 
@@ -2395,9 +2509,20 @@ export interface AppSaTaskCreateRequest {
 export interface AppEaTaskItem {
   task_id: string;
   project_id: string;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   task_name: string;
   task_description?: string | null;
   input_path: string;
+  source_path?: string | null;
+  module_name?: string | null;
   output_path?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   error?: string | null;
@@ -2408,20 +2533,41 @@ export interface AppEaTaskItem {
   finished_at?: string | null;
 }
 
+export interface AppEaStageEvent {
+  ts: number;
+  type: string;
+  data: Record<string, any>;
+}
+
+export interface AppEaStagesJson {
+  events: AppEaStageEvent[];
+  final?: boolean;
+}
+
 export interface AppEaTaskDetail extends AppEaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
   result_json?: Record<string, any> | null;
+  stages_json?: AppEaStagesJson | null;
+  task_config_json?: Record<string, any> | null;
 }
 
 export interface AppEaTaskCreateRequest {
   project_id: string;
   task_name: string;
-  input_path: string;
+  input_path: string;                // SA输出目录
+  module_name: string;               // 具体模块名
+  source_path?: string;              // 源码根目录
   output_path?: string;
   task_description?: string;
   prompt_template_id?: string;
-  prompt_content?: string;
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
 }
 
 export interface EntryAnalysisPromptTemplate {
@@ -2465,6 +2611,7 @@ export interface EntryAnalysisServiceConfig {
   agent_retry_delay: number;
   pi_max_retries: number;
   pi_retry_delay: number;
+  worker_parallel: boolean;
   workers: EntryAnalysisRoleConfig;
   judges: EntryAnalysisRoleConfig;
   output_dir: string;
@@ -2493,15 +2640,38 @@ export interface EntryAnalysisModelsConfig {
 
 // ─── Dataflow Analysis Types ──────────────────────────────────────────────────
 
+export interface AppDfaStageEvent {
+  ts: number;
+  type: string;
+  data?: Record<string, any>;
+}
+
+export interface AppDfaStagesJson {
+  events: AppDfaStageEvent[];
+  final?: boolean;
+}
+
 export interface AppDfaTaskItem {
   task_id: string;
   project_id: string;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   task_name: string;
   task_description?: string | null;
   input_path: string;
   output_path?: string | null;
+  prompt_template_id?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   error?: string | null;
+  stages_json?: AppDfaStagesJson | null;
+  task_config_json?: Record<string, any> | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -2520,7 +2690,15 @@ export interface AppDfaTaskCreateRequest {
   input_path: string;
   output_path?: string;
   task_description?: string;
+  prompt_template_id?: string;
   prompt_content?: string;
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
 }
 
 
@@ -2556,22 +2734,5 @@ export interface AppDfaServiceConfig {
   output_dir: string;
   archive_dir: string;
   result_dir: string;
-  updated_at?: string | null;
-}
-
-export interface AppDfaModelEntry {
-  id: string;
-  reasoning: boolean;
-}
-
-export interface AppDfaProviderConfig {
-  baseUrl: string;
-  api: string;
-  apiKey: string;
-  models: AppDfaModelEntry[];
-}
-
-export interface AppDfaModelsConfig {
-  providers: Record<string, AppDfaProviderConfig>;
   updated_at?: string | null;
 }

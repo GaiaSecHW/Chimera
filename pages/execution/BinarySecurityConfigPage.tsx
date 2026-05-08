@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Save, Settings } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 
 export const BinarySecurityConfigPage: React.FC = () => {
   const executionApi = api.domains.execution;
@@ -73,10 +74,16 @@ export const BinarySecurityConfigPage: React.FC = () => {
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Settings size={18} className="text-rose-600" />
           <h2 className="text-xl font-black text-slate-900">队列控制</h2>
+          <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+            secflow-app-binary-security
+          </span>
         </div>
+        <p className="mt-2 text-sm text-slate-500">
+          当前面板配置项归属于 `secflow-app-binary-security` 微服务，用于控制该服务在多实例部署下的全局任务调度行为。
+        </p>
 
         {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
         {message && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div>}
@@ -120,10 +127,12 @@ export const BinarySecurityConfigPage: React.FC = () => {
           >
             {saving && <Loader2 size={16} className="animate-spin" />}
             <Save size={16} />
-            保存配置
+            保存二进制安全配置
           </button>
         </div>
       </section>
+
+      <FirmwareUnpackConfigPage projectId="" embedded />
     </div>
   );
 };

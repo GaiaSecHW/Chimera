@@ -42,7 +42,9 @@ const AppShell: React.FC = () => {
   const [activeAiHelperKey, setActiveAiHelperKey] = useState<string>('');
   const [activeProcessMonitorServiceKey, setActiveProcessMonitorServiceKey] = useState<string>('');
   const [activeB2STaskId, setActiveB2STaskId] = useState<string>('');
+  const [activeB2SItemId, setActiveB2SItemId] = useState<string>('');
   const [activeSystemAnalysisTaskId, setActiveSystemAnalysisTaskId] = useState<string>('');
+  const [activeEntryAnalysisTaskId, setActiveEntryAnalysisTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -128,8 +130,22 @@ const AppShell: React.FC = () => {
 
   useEffect(() => {
     const handleNavigateView = (event: Event) => {
-      const detail = (event as CustomEvent<{ view?: string; helperKey?: string; processMonitorServiceKey?: string }>).detail;
+      const detail = (event as CustomEvent<{
+        view?: string;
+        helperKey?: string;
+        processMonitorServiceKey?: string;
+        binarySecurityTaskId?: string;
+        sourceSecurityTaskId?: string;
+      }>).detail;
       const nextView = String(detail?.view || '').trim();
+      const binarySecurityTaskId = String(detail?.binarySecurityTaskId || '').trim();
+      if (binarySecurityTaskId) {
+        setActiveBinarySecurityTaskId(binarySecurityTaskId);
+      }
+      const sourceSecurityTaskId = String(detail?.sourceSecurityTaskId || '').trim();
+      if (sourceSecurityTaskId) {
+        setActiveSourceSecurityTaskId(sourceSecurityTaskId);
+      }
       if (nextView) {
         navigateToView(nextView);
       }
@@ -507,7 +523,9 @@ const AppShell: React.FC = () => {
                     activeAiHelperKey,
                     activeProcessMonitorServiceKey,
                     activeB2STaskId,
+                    activeB2SItemId,
                     activeSystemAnalysisTaskId,
+                    activeEntryAnalysisTaskId,
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
                     selectedStaticPkgIds,
@@ -519,7 +537,9 @@ const AppShell: React.FC = () => {
                     setActiveJobTemplateId: (id) => setActiveJobTemplateId(id),
                     setActiveAppWorkflowId: (id) => setActiveAppWorkflowId(id),
                     setActiveB2STaskId: (id) => setActiveB2STaskId(id),
+                    setActiveB2SItemId: (id) => setActiveB2SItemId(id),
                     setActiveSystemAnalysisTaskId: (id) => setActiveSystemAnalysisTaskId(id),
+                    setActiveEntryAnalysisTaskId: (id) => setActiveEntryAnalysisTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),

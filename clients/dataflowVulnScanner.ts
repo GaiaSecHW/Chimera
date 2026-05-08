@@ -67,6 +67,15 @@ export interface DataflowInputRef {
 export interface DataflowScanTask {
   task_id: string;
   project_id: string;
+  task_origin_type?: string | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: string | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
   profile_id: string;
   profile_version: number;
   title?: string;
@@ -163,6 +172,13 @@ export interface DataflowCreateTaskPayload {
   artifact_refs?: DataflowArtifactRef[];
   priority?: number;
   runtime_overrides?: Record<string, any>;
+  task_origin_type?: 'manual' | 'binary_security';
+  parent_project_id?: string;
+  parent_task_id?: string;
+  parent_task_type?: 'binary' | 'source';
+  parent_stage_name?: string;
+  parent_stage_item_id?: string;
+  parent_stage_item_key?: string;
 }
 
 export interface DataflowProfilePayload {

@@ -1,9 +1,40 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  ClipboardCopy,
+  FolderOpen,
+  Loader2,
+  PlayCircle,
+  RefreshCw,
+  RotateCcw,
+  ScrollText,
+  ShieldAlert,
+  Trash2,
+  XCircle,
+} from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppSaStageEvent, AppSaTaskDetail } from '../../types/types';
+import {
+  AppSaResultModule,
+  AppSaSessionEvent,
+  AppSaSessionMeta,
+  AppSaSessionSnapshot,
+  AppSaSessionWsMessage,
+  AppSaStageEvent,
+  AppSaTaskDetail,
+  AppSaTaskResult,
+} from '../../types/types';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { TaskOriginCard } from './taskOrigin';
+import { AgentSessionViewer } from './AgentSessionViewer';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -32,6 +63,8 @@ const STAGE_STEPS = [
 ];
 
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
+type DetailTab = 'overview' | 'session' | 'result';
+type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
@@ -182,6 +215,92 @@ function openInFileExplorer(fsPath: string) {
   window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer' } }));
 }
 
+function formatSessionMtime(value?: number) {
+  if (!value) return '-';
+  return new Date(value * 1000).toLocaleString('zh-CN');
+}
+
+function sessionGroupLabel(group: string) {
+  if (group === 'root') return '根会话';
+  return group;
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <div className="markdown-body break-words leading-6 text-sm text-slate-700">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+          a: ({ children, href }) => (
+            <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-cyan-700 underline decoration-cyan-300 underline-offset-2">
+              {children}
+            </a>
+          ),
+          ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
+          h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-slate-900 last:mb-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-3 text-lg font-black text-slate-900 last:mb-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-2 text-base font-black text-slate-900 last:mb-0">{children}</h3>,
+          blockquote: ({ children }) => (
+            <blockquote className="mb-3 border-l-4 border-slate-300 bg-slate-50 px-4 py-2 italic text-slate-700 last:mb-0">
+              {children}
+            </blockquote>
+          ),
+          table: ({ children }) => (
+            <div className="mb-3 overflow-x-auto last:mb-0">
+              <table className="min-w-full border-collapse text-left text-xs">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
+          th: ({ children }) => <th className="border border-slate-200 px-3 py-2 font-black text-slate-800">{children}</th>,
+          td: ({ children }) => <td className="border border-slate-200 px-3 py-2 align-top">{children}</td>,
+          code: ({ children, className }) => {
+            const isBlock = Boolean(className);
+            if (isBlock) {
+              return <code className="block overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 font-mono text-xs text-slate-100">{children}</code>;
+            }
+            return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-900">{children}</code>;
+          },
+          pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
+function riskTone(level?: string | null) {
+  if (level === '高') return 'border-red-200 bg-red-50 text-red-700';
+  if (level === '中') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (level === '低') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  return 'border-slate-200 bg-slate-100 text-slate-600';
+}
+
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex gap-3 text-sm">
+      <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+      <span className="min-w-0 text-sm text-slate-700">{value}</span>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div>
+          <div className="mt-2 text-2xl font-black tracking-tight text-slate-900">{value}</div>
+        </div>
+        <div className="rounded-2xl bg-slate-100 p-3 text-slate-600">{icon}</div>
+      </div>
+    </div>
+  );
+}
+
 export const SystemAnalysisTaskDetailPage: React.FC<{
   projectId: string;
   taskId: string;
@@ -189,12 +308,34 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 }> = ({ projectId, taskId, onBack }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
+  const hasReturnContext = hasBinarySecurityReturnContext();
   const [detail, setDetail] = useState<AppSaTaskDetail | null>(null);
+  const [result, setResult] = useState<AppSaTaskResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resultLoading, setResultLoading] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
   const [logsExpanded, setLogsExpanded] = useState(true);
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  const [selection, setSelection] = useState<ResultSelection>({ type: 'report' });
   const logScrollRef = useRef<HTMLDivElement>(null);
+  const [sessions, setSessions] = useState<AppSaSessionMeta[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
+  const [sessionSnapshot, setSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
+  const [sessionEvents, setSessionEvents] = useState<AppSaSessionEvent[]>([]);
+  const [sessionWarnings, setSessionWarnings] = useState<string[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [sessionLive, setSessionLive] = useState(false);
+  const sessionSocketRef = useRef<WebSocket | null>(null);
+
+  const handleBack = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    onBack();
+  };
 
   const loadDetail = async () => {
     if (!taskId) return;
@@ -209,9 +350,77 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
   };
 
+  const loadResult = async () => {
+    if (!taskId) return;
+    setResultLoading(true);
+    try {
+      const data = await appApi.getTaskResult(taskId);
+      setResult(data);
+    } catch (err: any) {
+      notify(`加载任务结果失败: ${err?.message || err}`, 'error');
+    } finally {
+      setResultLoading(false);
+    }
+  };
+
+  const closeSessionSocket = () => {
+    if (sessionSocketRef.current) {
+      sessionSocketRef.current.close();
+      sessionSocketRef.current = null;
+    }
+    setSessionLive(false);
+  };
+
+  const loadSessions = async (options?: { silent?: boolean }) => {
+    if (!taskId) return;
+    if (!options?.silent) {
+      setSessionsLoading(true);
+      setSessionsError(null);
+    }
+    try {
+      const data = await appApi.listTaskSessions(taskId);
+      setSessions(data);
+      setSessionsError(null);
+      setSelectedSessionPath((current) => {
+        if (current && data.some((item) => item.relative_path === current)) {
+          return current;
+        }
+        const active = data.find((item) => item.is_active);
+        return active?.relative_path || data[0]?.relative_path || null;
+      });
+    } catch (err: any) {
+      setSessionsError(err?.message || String(err));
+    } finally {
+      if (!options?.silent) {
+        setSessionsLoading(false);
+      }
+    }
+  };
+
+  const loadSessionFile = async (path: string) => {
+    if (!taskId || !path) return;
+    setSessionLoading(true);
+    setSessionError(null);
+    try {
+      const snapshot = await appApi.getTaskSessionFile(taskId, path);
+      setSessionSnapshot(snapshot);
+      setSessionEvents(snapshot.events || []);
+      setSessionWarnings(snapshot.warnings || []);
+    } catch (err: any) {
+      setSessionSnapshot(null);
+      setSessionEvents([]);
+      setSessionWarnings([]);
+      setSessionError(err?.message || String(err));
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
   useEffect(() => {
     void loadDetail();
   }, [taskId]);
+
+  useEffect(() => () => closeSessionSocket(), []);
 
   useEffect(() => {
     if (!detail || !['running', 'pending'].includes(detail.status)) return;
@@ -220,10 +429,120 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, [detail?.status, taskId]);
 
   useEffect(() => {
+    if (!detail || !['running', 'pending'].includes(detail.status)) return;
+    const timer = window.setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [detail?.status]);
+
+  useEffect(() => {
     if (logsExpanded && logScrollRef.current) {
       logScrollRef.current.scrollTop = logScrollRef.current.scrollHeight;
     }
   }, [detail?.stages_json?.events?.length, logsExpanded]);
+
+  useEffect(() => {
+    if (activeTab !== 'result') return;
+    void loadResult();
+  }, [activeTab, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session') {
+      closeSessionSocket();
+      return;
+    }
+    void loadSessions();
+  }, [activeTab, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session') return;
+    if (!detail || !['pending', 'running'].includes(detail.status)) return;
+    const timer = window.setInterval(() => void loadSessions({ silent: true }), 12000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, detail?.status, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath) {
+      if (activeTab !== 'session') {
+        setSessionSnapshot(null);
+        setSessionEvents([]);
+        setSessionWarnings([]);
+        setSessionError(null);
+      }
+      return;
+    }
+    closeSessionSocket();
+    void loadSessionFile(selectedSessionPath);
+  }, [activeTab, selectedSessionPath, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath || !sessionSnapshot) return;
+    if (!['pending', 'running'].includes(detail?.status || '')) {
+      setSessionLive(false);
+      return;
+    }
+    closeSessionSocket();
+    const socket = appApi.openTaskSessionWebSocket(taskId);
+    sessionSocketRef.current = socket;
+    socket.onopen = () => {
+      setSessionLive(['pending', 'running'].includes(detail?.status || ''));
+      socket.send(JSON.stringify({
+        type: 'subscribe',
+        path: selectedSessionPath,
+        offset: sessionSnapshot.line_count || 0,
+      }));
+    };
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as AppSaSessionWsMessage;
+        if (message.type === 'session_snapshot') {
+          return;
+        }
+        if (message.type === 'session_delta') {
+          if ((message.path || selectedSessionPath) !== selectedSessionPath) return;
+          if (message.events?.length) {
+            setSessionEvents((current) => current.concat(message.events || []));
+          }
+          if (message.warnings?.length) {
+            setSessionWarnings((current) => Array.from(new Set(current.concat(message.warnings || []))));
+          }
+          setSessionSnapshot((current) => current ? { ...current, line_count: message.line_count || current.line_count } : current);
+          return;
+        }
+        if (message.type === 'session_rotated') {
+          setSessionLive(false);
+          void loadSessionFile(selectedSessionPath);
+          return;
+        }
+        if (message.type === 'error') {
+          setSessionLive(false);
+          setSessionError(message.message || '会话订阅失败');
+        }
+      } catch (err: any) {
+        setSessionError(err?.message || String(err));
+      }
+    };
+    socket.onerror = () => {
+      setSessionLive(false);
+    };
+    socket.onclose = () => {
+      setSessionLive(false);
+    };
+    return () => {
+      if (sessionSocketRef.current === socket) {
+        closeSessionSocket();
+      } else {
+        socket.close();
+      }
+    };
+  }, [activeTab, selectedSessionPath, sessionSnapshot?.path, taskId, detail?.status]);
+
+  useEffect(() => {
+    if (!result) return;
+    if (selection.type === 'report') return;
+    if (!result.modules.some((item) => item.module_name === selection.moduleName)) {
+      setSelection({ type: 'report' });
+    }
+  }, [result, selection]);
 
   const handleCancel = async () => {
     if (!detail) return;
@@ -238,11 +557,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
   const handleDelete = async () => {
     if (!detail) return;
-    if (!window.confirm(`确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`)) return;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: `确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
     try {
       await appApi.deleteTask(detail.task_id, true);
       notify('任务已删除', 'success');
-      onBack();
+      handleBack();
     } catch (err: any) {
       notify(`删除失败: ${err?.message || err}`, 'error');
     }
@@ -255,6 +581,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       await appApi.restartTask(detail.task_id);
       notify('任务已重新启动', 'success');
       await loadDetail();
+      if (activeTab === 'result') await loadResult();
     } catch (err: any) {
       notify(`重启失败: ${err?.message || err}`, 'error');
     } finally {
@@ -269,6 +596,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       await appApi.resumeTask(detail.task_id);
       notify('已从断点继续', 'success');
       await loadDetail();
+      if (activeTab === 'result') await loadResult();
     } catch (err: any) {
       notify(`断点续跑失败: ${err?.message || err}`, 'error');
     } finally {
@@ -283,6 +611,30 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     ? computeStageTimes(detail.stages_json?.events ?? [])
     : STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null }));
   const logLines = detail?.stages_json?.events?.map(formatEventLog) ?? [];
+  const selectedModule = useMemo<AppSaResultModule | null>(() => {
+    if (!result || selection.type !== 'module') return null;
+    return result.modules.find((item) => item.module_name === selection.moduleName) || null;
+  }, [result, selection]);
+  const selectedMarkdown = selection.type === 'report'
+    ? result?.final_report_markdown || ''
+    : selectedModule?.module_report_markdown || '';
+  const resultRootFsPath = result?.output_root ? extractFsRelPath(result.output_root, projectId) : null;
+  const resultAvailable = Boolean(result?.available);
+  const moduleCount = result?.summary.module_count || result?.modules.length || 0;
+  const highRiskCount = result?.summary.high_risk_module_count || result?.modules.filter((item) => item.risk_level === '高').length || 0;
+  const selectedSession = useMemo(
+    () => sessions.find((item) => item.relative_path === selectedSessionPath) || null,
+    [sessions, selectedSessionPath],
+  );
+  const groupedSessions = useMemo(() => {
+    const map = new Map<string, AppSaSessionMeta[]>();
+    for (const session of sessions) {
+      const list = map.get(session.stage_group) || [];
+      list.push(session);
+      map.set(session.stage_group, list);
+    }
+    return Array.from(map.entries());
+  }, [sessions]);
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -292,11 +644,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <button
-              onClick={onBack}
+              onClick={handleBack}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
             >
               <ArrowLeft size={14} />
-              返回任务列表
+              {hasReturnContext ? '返回原任务' : '返回任务列表'}
             </button>
             <p className="mt-4 text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -344,11 +696,15 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 删除任务
               </button>
             ) : null}
-            <button onClick={() => void loadDetail()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" title="刷新">
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <button onClick={() => {
+              void loadDetail();
+              if (activeTab === 'result') void loadResult();
+            }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" title="刷新">
+              <RefreshCw size={14} className={loading || resultLoading ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
+        {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
       </section>
 
       {loading && !detail ? (
@@ -362,138 +718,553 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
 
       {detail ? (
         <>
-          <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
-              <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-                <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
-                <InfoRow label="创建时间" value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
-                <InfoRow label="输入路径" value={<span className="font-mono break-all">{detail.input_path}</span>} />
-                <InfoRow label="开始时间" value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
-                <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono break-all">{detail.output_path}</span> : '-'} />
-                <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
-                <InfoRow label="描述" value={detail.task_description || '-'} />
-                <InfoRow label="耗时" value={detail.started_at ? formatDuration(detail.started_at, detail.finished_at ?? undefined) : '-'} />
-              </div>
+          <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: 'overview' as DetailTab, label: '总览' },
+                { id: 'session' as DetailTab, label: '智能体会话' },
+                { id: 'result' as DetailTab, label: '结果' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
+                    activeTab === tab.id
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+          </section>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
-              <div className="mt-4 space-y-3">
-                {STAGE_STEPS.map((step, i) => {
-                  const st = stageStatuses[i];
-                  const timing = stageTimes[i];
-                  const timingStr = (st === 'completed' || st === 'failed') ? formatTsDuration(timing.startTs, timing.endTs) : '';
-                  const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : null;
-                  const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
-                  return (
-                    <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                      <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
-                          st === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
-                            : st === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600'
-                            : st === 'failed' ? 'border-red-400 bg-red-50 text-red-600'
-                            : 'border-slate-200 bg-white text-slate-400'
-                        }`}>
-                          {st === 'completed' ? <CheckCircle2 size={16} className="text-emerald-500" />
-                            : st === 'running' ? <Loader2 size={14} className="animate-spin text-blue-500" />
-                            : st === 'failed' ? <XCircle size={16} className="text-red-500" />
-                            : <span>{i + 1}</span>}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-bold text-slate-900">{step.label}</p>
-                            {timingStr ? <span className="text-[11px] font-mono text-slate-500">⏱ {timingStr}</span> : null}
+          {activeTab === 'overview' ? (
+            <>
+              <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
+                  <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
+                    <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
+                    <InfoRow label="创建时间" value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
+                    <InfoRow label="输入路径" value={<span className="font-mono break-all">{detail.input_path}</span>} />
+                    <InfoRow label="开始时间" value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
+                    <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono break-all">{detail.output_path}</span> : '-'} />
+                    <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
+                    <InfoRow label="描述" value={detail.task_description || '-'} />
+                    <InfoRow label="耗时" value={detail.started_at ? formatDuration(detail.started_at, detail.finished_at ?? undefined) : '-'} />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
+                  <div className="mt-4 space-y-3">
+                    {STAGE_STEPS.map((step, i) => {
+                      const st = stageStatuses[i];
+                      const timing = stageTimes[i];
+                      const timingStr = st === 'completed' || st === 'failed'
+                        ? formatTsDuration(timing.startTs, timing.endTs)
+                        : st === 'running' && timing.startTs
+                          ? formatTsDuration(timing.startTs, clockNow)
+                          : '';
+                      const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : null;
+                      const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
+                      return (
+                        <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
+                              st === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                                : st === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                  : st === 'failed' ? 'border-red-400 bg-red-50 text-red-600'
+                                    : 'border-slate-200 bg-white text-slate-400'
+                            }`}>
+                              {st === 'completed' ? <CheckCircle2 size={16} className="text-emerald-500" />
+                                : st === 'running' ? <Loader2 size={14} className="animate-spin text-blue-500" />
+                                  : st === 'failed' ? <XCircle size={16} className="text-red-500" />
+                                    : <span>{i + 1}</span>}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-bold text-slate-900">{step.label}</p>
+                                {timingStr ? <span className="text-[11px] font-mono text-slate-500">⏱ {timingStr}</span> : null}
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500">{step.desc}</p>
+                              {artifactFsPath && st !== 'pending' ? (
+                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                  <button
+                                    onClick={() => openInFileExplorer(artifactFsPath)}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 px-2 py-1 text-[11px] font-semibold text-cyan-700 hover:bg-cyan-50"
+                                  >
+                                    <FolderOpen size={11} />
+                                    打开阶段输出
+                                  </button>
+                                  <button
+                                    onClick={() => { if (artifactFull) void navigator.clipboard.writeText(artifactFull); }}
+                                    title="复制容器路径"
+                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100"
+                                  >
+                                    <ClipboardCopy size={10} />
+                                    复制路径
+                                  </button>
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
-                          <p className="mt-1 text-xs text-slate-500">{step.desc}</p>
-                          {artifactFsPath && (st === 'completed' || st === 'running') ? (
-                            <button
-                              onClick={() => openInFileExplorer(artifactFsPath)}
-                              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-cyan-200 px-2 py-1 text-[11px] font-semibold text-cyan-700 hover:bg-cyan-50"
-                            >
-                              <FolderOpen size={11} />
-                              打开阶段输出
-                            </button>
-                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+
+              {detail.error ? (
+                <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2>
+                  <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre>
+                </section>
+              ) : null}
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setLogsExpanded((v) => !v)}
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                >
+                  <div>
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">分析日志</h2>
+                    <p className="mt-1 text-xs text-slate-400">{logLines.length} 条事件</p>
+                  </div>
+                  {logsExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                </button>
+                {logsExpanded ? (
+                  logLines.length === 0 ? (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-xs text-slate-400">
+                      {detail.status === 'pending' ? '任务尚未开始，暂无日志' : '暂无阶段事件（日志在任务运行期间每 5 秒刷新一次）'}
+                    </div>
+                  ) : (
+                    <div
+                      ref={logScrollRef}
+                      className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-xs leading-relaxed text-slate-300"
+                    >
+                      {logLines.map((line, idx) => (
+                        <div
+                          key={idx}
+                          className={
+                            !line ? 'h-1'
+                              : line.includes('✗') ? 'text-red-400'
+                                : line.includes('▶') ? 'text-cyan-300'
+                                  : line.includes('✓') ? 'text-emerald-400'
+                                    : line.includes('│') && line.includes('脚本') ? 'text-yellow-300'
+                                      : line.includes('│') ? 'text-slate-400 text-[11px]'
+                                        : line.includes('模型') ? 'text-slate-400'
+                                          : 'text-slate-300'
+                          }
+                        >
+                          {line}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : null}
+              </section>
+            </>
+          ) : activeTab === 'session' ? (
+            <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
+                    <div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadSessions()}
+                    className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                    title="刷新会话"
+                  >
+                    <RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+
+                {sessionsError ? (
+                  <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                    {sessionsError}
+                  </div>
+                ) : null}
+
+                {sessionsLoading && sessions.length === 0 ? (
+                  <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    加载会话中...
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+                    当前任务暂无智能体会话文件
+                  </div>
+                ) : (
+                  <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
+                    {groupedSessions.map(([group, items]) => (
+                      <div key={group}>
+                        <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          {sessionGroupLabel(group)}
+                        </div>
+                        <div className="space-y-2">
+                          {items.map((session) => {
+                            const selected = session.relative_path === selectedSessionPath;
+                            return (
+                              <button
+                                key={session.relative_path}
+                                type="button"
+                                onClick={() => setSelectedSessionPath(session.relative_path)}
+                                className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                                  selected
+                                    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
+                                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="truncate text-sm font-black">{session.display_name}</div>
+                                    <div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                      {session.relative_path}
+                                    </div>
+                                  </div>
+                                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                    session.is_active
+                                      ? selected
+                                        ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                                        : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                      : selected
+                                        ? 'border-slate-500 bg-slate-800 text-slate-100'
+                                        : 'border-slate-200 bg-white text-slate-500'
+                                  }`}>
+                                    {session.is_active ? '活跃' : '历史'}
+                                  </span>
+                                </div>
+                                <div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                  <span>事件 {session.event_count}</span>
+                                  <span>更新时间 {formatSessionMtime(session.mtime)}</span>
+                                </div>
+                                {session.warnings.length > 0 ? (
+                                  <div className={`mt-2 text-[11px] ${selected ? 'text-amber-200' : 'text-amber-700'}`}>
+                                    {session.warnings[0]}
+                                  </div>
+                                ) : null}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
+                    ))}
+                  </div>
+                )}
+              </aside>
 
-          {detail.error ? (
-            <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2>
-              <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre>
+              <div className="space-y-4">
+                {sessionWarnings.length > 0 ? (
+                  <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
+                    <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                      {sessionWarnings.map((warning, index) => (
+                        <li key={`${warning}-${index}`}>{warning}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+
+                <AgentSessionViewer
+                  sessionMeta={selectedSession}
+                  sessionHeader={sessionSnapshot?.session_meta}
+                  events={sessionEvents}
+                  loading={sessionLoading}
+                  live={sessionLive}
+                  error={sessionError}
+                />
+              </div>
             </section>
-          ) : null}
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <button
-              type="button"
-              onClick={() => setLogsExpanded((v) => !v)}
-              className="flex w-full items-center justify-between gap-3 text-left"
-            >
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">分析日志</h2>
-                <p className="mt-1 text-xs text-slate-400">{logLines.length} 条事件</p>
-              </div>
-              {logsExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
-            </button>
-            {logsExpanded ? (
-              logLines.length === 0 ? (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-xs text-slate-400">
-                  {detail.status === 'pending' ? '任务尚未开始，暂无日志' : '暂无阶段事件（日志在任务运行期间每 5 秒刷新一次）'}
-                </div>
-              ) : (
-                <div
-                  ref={logScrollRef}
-                  className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-xs leading-relaxed text-slate-300"
-                >
-                  {logLines.map((line, idx) => (
-                    <div
-                      key={idx}
-                      className={
-                        !line ? 'h-1'
-                          : line.includes('✗') ? 'text-red-400'
-                          : line.includes('▶') ? 'text-cyan-300'
-                          : line.includes('✓') ? 'text-emerald-400'
-                          : line.includes('│') && line.includes('脚本') ? 'text-yellow-300'
-                          : line.includes('│') ? 'text-slate-400 text-[11px]'
-                          : line.includes('模型') ? 'text-slate-400'
-                          : 'text-slate-300'
-                      }
+          ) : (
+            <section className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-5">
+                <MetricCard label="模块数" value={moduleCount} icon={<ScrollText size={18} />} />
+                <MetricCard label="高风险模块" value={highRiskCount} icon={<ShieldAlert size={18} />} />
+                <MetricCard label="总文件数" value={result?.summary.total_file_count ?? 0} icon={<FolderOpen size={18} />} />
+                <MetricCard label="威胁总数" value={result?.summary.threat_count ?? 0} icon={<AlertTriangle size={18} />} />
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div>
+                  <div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={!resultRootFsPath}
+                      onClick={() => { if (resultRootFsPath) openInFileExplorer(resultRootFsPath); }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 px-2 py-1 text-[11px] font-semibold text-cyan-700 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {line}
-                    </div>
-                  ))}
+                      <FolderOpen size={11} />
+                      打开目录
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!result?.output_root}
+                      onClick={() => { if (result?.output_root) void navigator.clipboard.writeText(result.output_root); }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <ClipboardCopy size={10} />
+                      复制路径
+                    </button>
+                  </div>
                 </div>
-              )
-            ) : null}
-          </section>
+              </div>
 
-          {detail.result_json ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">分析结果</h2>
-              <pre className="mt-4 max-h-[420px] overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-700">
-                {JSON.stringify(detail.result_json, null, 2)}
-              </pre>
+              {resultLoading ? (
+                <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+                  <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                    <Loader2 size={16} className="animate-spin" />
+                    加载结果中...
+                  </div>
+                </section>
+              ) : !result ? (
+                <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">
+                  暂无结果数据
+                </section>
+              ) : !resultAvailable ? (
+                <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 shadow-sm text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                    <ScrollText size={20} />
+                  </div>
+                  <div className="mt-4 text-base font-bold text-slate-800">任务完成后可查看结果</div>
+                  <div className="mt-2 text-sm text-slate-500">当前状态：{STATUS_LABEL[result.status] || result.status}</div>
+                </section>
+              ) : (
+                <>
+                  {result.warnings.length > 0 ? (
+                    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                      <div className="flex items-center gap-2 text-sm font-bold text-amber-800">
+                        <AlertTriangle size={16} />
+                        结果存在部分缺失，以下内容已按可用文件展示
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                        {result.warnings.map((warning, index) => (
+                          <li key={`${warning}-${index}`}>{warning}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
+
+                  <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
+                    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div>
+                      <div className="mt-3 space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelection({ type: 'report' })}
+                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                            selection.type === 'report'
+                              ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                          }`}
+                        >
+                          <div className="text-sm font-black">总报告</div>
+                          <div className={`mt-1 text-xs ${selection.type === 'report' ? 'text-slate-200' : 'text-slate-500'}`}>完整渲染 final_report.md</div>
+                        </button>
+
+                        {result.modules.map((module) => {
+                          const selected = selection.type === 'module' && selection.moduleName === module.module_name;
+                          return (
+                            <button
+                              key={module.module_name}
+                              type="button"
+                              onClick={() => setSelection({ type: 'module', moduleName: module.module_name })}
+                              className={`w-full rounded-2xl border px-4 py-3 text-left shadow-sm transition ${
+                                selected
+                                  ? 'border-slate-900 bg-white text-slate-900 shadow-[0_12px_30px_rgba(15,23,42,0.12)]'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">#{module.rank}</div>
+                                  <div className="mt-1 truncate text-sm font-black">{module.module_name}</div>
+                                </div>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${riskTone(module.risk_level)}`}>
+                                  {module.risk_level || '未知'}
+                                </span>
+                              </div>
+                              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                                <span>分数 {module.risk_score ?? '-'}</span>
+                                <span>文件 {module.file_count}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </aside>
+
+                    <main className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 pb-4">
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                            {selection.type === 'report' ? '最终结果' : '模块报告'}
+                          </div>
+                          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">
+                            {selection.type === 'report' ? '总报告' : selectedModule?.module_name || '模块报告'}
+                          </h2>
+                        </div>
+                        {selection.type === 'module' && selectedModule ? (
+                          <div className="flex flex-wrap gap-2">
+                            <span className={`rounded-full border px-3 py-1 text-xs font-bold ${riskTone(selectedModule.risk_level)}`}>
+                              风险等级：{selectedModule.risk_level || '未知'}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                              风险分数：{selectedModule.risk_score ?? '-'}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">
+                        {selectedMarkdown ? (
+                          <MarkdownContent content={selectedMarkdown} />
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
+                            当前结果缺少可展示内容
+                          </div>
+                        )}
+                      </div>
+                    </main>
+
+                    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                        {selection.type === 'report' ? '结果说明' : '模块辅助信息'}
+                      </div>
+
+                      {selection.type === 'report' ? (
+                        <div className="mt-3 space-y-4">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="text-xs font-bold text-slate-700">模块排序</div>
+                            <div className="mt-2 space-y-2">
+                              {result.modules.map((module) => (
+                                <div key={module.module_name} className="flex items-center justify-between gap-3 text-xs text-slate-600">
+                                  <span className="font-mono">#{module.rank}</span>
+                                  <span className="min-w-0 flex-1 truncate font-semibold text-slate-700">{module.module_name}</span>
+                                  <span className={`rounded-full border px-2 py-0.5 font-bold ${riskTone(module.risk_level)}`}>{module.risk_level || '未知'}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <button
+                              type="button"
+                              disabled={!result.final_report_path}
+                              onClick={() => {
+                                const fsPath = result.final_report_path ? extractFsRelPath(result.final_report_path, projectId) : null;
+                                if (fsPath) openInFileExplorer(fsPath);
+                              }}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200 px-3 py-2 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <FolderOpen size={13} />
+                              打开总报告文件
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!result.modules_list_path}
+                              onClick={() => {
+                                const fsPath = result.modules_list_path ? extractFsRelPath(result.modules_list_path, projectId) : null;
+                                if (fsPath) openInFileExplorer(fsPath);
+                              }}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <FolderOpen size={13} />
+                              打开 modules.list
+                            </button>
+                          </div>
+                        </div>
+                      ) : selectedModule ? (
+                        <div className="mt-3 space-y-4">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-xs font-bold text-slate-700">文件列表</div>
+                                <div className="mt-1 text-[11px] text-slate-500">{selectedModule.file_count} 个文件</div>
+                              </div>
+                              <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600">#{selectedModule.rank}</span>
+                            </div>
+                            <div className="mt-3 max-h-[380px] space-y-2 overflow-auto pr-1">
+                              {selectedModule.files.length > 0 ? selectedModule.files.map((file) => (
+                                <div key={file} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">
+                                  {file}
+                                </div>
+                              )) : (
+                                <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-6 text-center text-xs text-slate-400">
+                                  没有 files.list 内容
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <div className="text-xs font-bold text-slate-700">报告结构</div>
+                            <div className="mt-2 space-y-2">
+                              {selectedModule.report_sections.length > 0 ? selectedModule.report_sections.map((section) => (
+                                <div key={section.anchor} className="text-xs text-slate-600">
+                                  <span className="mr-2 font-mono text-slate-400">H{section.level}</span>
+                                  {section.title}
+                                </div>
+                              )) : (
+                                <div className="text-xs text-slate-400">没有可解析的小节标题</div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <button
+                              type="button"
+                              disabled={!selectedModule.module_dir_path}
+                              onClick={() => {
+                                const fsPath = selectedModule.module_dir_path ? extractFsRelPath(selectedModule.module_dir_path, projectId) : null;
+                                if (fsPath) openInFileExplorer(fsPath);
+                              }}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200 px-3 py-2 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <FolderOpen size={13} />
+                              打开模块目录
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!selectedModule.module_report_path}
+                              onClick={() => {
+                                const fsPath = selectedModule.module_report_path ? extractFsRelPath(selectedModule.module_report_path, projectId) : null;
+                                if (fsPath) openInFileExplorer(fsPath);
+                              }}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <FolderOpen size={13} />
+                              打开报告文件
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!selectedModule.files_list_path}
+                              onClick={() => {
+                                const fsPath = selectedModule.files_list_path ? extractFsRelPath(selectedModule.files_list_path, projectId) : null;
+                                if (fsPath) openInFileExplorer(fsPath);
+                              }}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <FolderOpen size={13} />
+                              打开 files.list
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </aside>
+                  </section>
+                </>
+              )}
             </section>
-          ) : null}
+          )}
         </>
       ) : null}
     </div>
   );
 };
-
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex gap-3 text-sm">
-      <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</span>
-      <span className="min-w-0 text-sm text-slate-700">{value}</span>
-    </div>
-  );
-}

@@ -1,16 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { ArrowLeft, ChevronDown, ChevronRight, Code2, FileText, Loader2, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Code2, Cpu, FileCode2, FileText, Gauge, Layers3, Loader2, RefreshCw, RotateCcw, Sparkles, Trash2, XCircle } from 'lucide-react';
 
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { TaskOriginCard } from './taskOrigin';
 
 interface Props {
   projectId: string;
   taskId: string;
   onBack: () => void;
+  onOpenAdvanced?: (itemId: string) => void;
 }
 
 type B2SItem = B2STaskDetail['items'][number];
@@ -105,7 +108,24 @@ const batchProgressPercent = (progress?: B2SItem['progress'] | null) => {
   return null;
 };
 
-const phaseAwareProgressValue = (phase: string, numericPercent: number, progress?: B2SItem['progress'] | null) => {
+const rawProgressPercent = (progress?: B2SItem['progress'] | null) => {
+  const numeric = progress?.percent ?? progress?.batches_percent ?? progress?.bytes_percent;
+  return numeric === undefined || numeric === null ? null : pct(Number(numeric));
+};
+
+const terminalNonSuccessProgressValue = (item: B2SItem) => {
+  const raw = rawProgressPercent(item.progress);
+  if (raw !== null) return raw;
+  const batchPercent = batchProgressPercent(item.progress);
+  if (batchPercent !== null) return batchPercent;
+  return 0;
+};
+
+const phaseAwareProgressValue = (item: B2SItem, numericPercent: number) => {
+  const phase = item.phase || item.status || '';
+  const progress = item.progress;
+  if (item.status === 'success' || item.status === 'completed') return 100;
+  if (item.status === 'failed' || item.status === 'cancelled') return terminalNonSuccessProgressValue(item);
   if (phase === 'pending' || phase === 'queued' || phase === 'ida' || phase === 'batching') return 0;
   if (phase === 'header') return 15;
   if (phase === 'body') {
@@ -121,15 +141,24 @@ const phaseAwareProgressValue = (phase: string, numericPercent: number, progress
 const itemProgressPresentation = (item: B2SItem) => {
   const progress = item.progress;
   const phase = item.phase || item.status || '';
-  const numeric = progress?.percent ?? progress?.batches_percent ?? progress?.bytes_percent;
+  const raw = rawProgressPercent(progress);
   if (hasNumericProgress(progress)) {
-    const value = phaseAwareProgressValue(phase, Number(numeric || 0), progress);
+    const value = phaseAwareProgressValue(item, raw ?? 0);
     return {
       value,
       label: `${value.toFixed(1)}%`,
-      mode: '',
+      mode: item.status === 'failed' || item.status === 'cancelled' ? '终止进度' : '',
       estimated: false,
       description: progress?.message || PHASE_DESCRIPTIONS[phase] || '',
+    };
+  }
+  if (item.status === 'failed' || item.status === 'cancelled') {
+    return {
+      value: 0,
+      label: '0.0%',
+      mode: '终止进度',
+      estimated: false,
+      description: PHASE_DESCRIPTIONS[item.status] || '',
     };
   }
   const estimated = PHASE_ESTIMATED_PERCENT[phase] ?? (B2S_TERMINAL_STATUSES.has(item.status) ? 100 : 12);
@@ -199,6 +228,8 @@ const metricToneClass = (tone: string) => {
   if (tone === 'amber') return 'border-amber-100 bg-amber-50 text-amber-900';
   if (tone === 'emerald') return 'border-emerald-100 bg-emerald-50 text-emerald-900';
   if (tone === 'blue') return 'border-blue-100 bg-blue-50 text-blue-900';
+  if (tone === 'violet') return 'border-violet-100 bg-violet-50 text-violet-900';
+  if (tone === 'cyan') return 'border-cyan-100 bg-cyan-50 text-cyan-900';
   return 'border-slate-200 bg-slate-50 text-slate-900';
 };
 
@@ -210,7 +241,83 @@ const MetricCard: React.FC<{ label: string; value: string | number; hint?: strin
   </div>
 );
 
-export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }) => {
+const KPI_TILE_STYLES: Record<string, string> = {
+  blue: 'border-blue-100 bg-blue-50/80 text-blue-900',
+  emerald: 'border-emerald-100 bg-emerald-50/80 text-emerald-900',
+  rose: 'border-rose-100 bg-rose-50/80 text-rose-900',
+  amber: 'border-amber-100 bg-amber-50/80 text-amber-900',
+  violet: 'border-violet-100 bg-violet-50/80 text-violet-900',
+  slate: 'border-slate-200 bg-slate-50/90 text-slate-900',
+};
+
+const KPI_ICON_STYLES: Record<string, string> = {
+  blue: 'bg-blue-100 text-blue-700',
+  emerald: 'bg-emerald-100 text-emerald-700',
+  rose: 'bg-rose-100 text-rose-700',
+  amber: 'bg-amber-100 text-amber-700',
+  violet: 'bg-violet-100 text-violet-700',
+  slate: 'bg-slate-200 text-slate-700',
+};
+
+const KpiTile: React.FC<{ label: string; value: string | number; hint?: string; tone?: string; icon: React.ReactNode }> = ({ label, value, hint, tone = 'slate', icon }) => (
+  <div className={`rounded-[1.25rem] border p-4 ${KPI_TILE_STYLES[tone] || KPI_TILE_STYLES.slate}`}>
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-55">{label}</div>
+        <div className="mt-1 text-2xl font-black tracking-tight">{value}</div>
+      </div>
+      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${KPI_ICON_STYLES[tone] || KPI_ICON_STYLES.slate}`}>
+        {icon}
+      </div>
+    </div>
+    {hint ? <div className="mt-2 truncate text-xs font-semibold opacity-65" title={hint}>{hint}</div> : null}
+  </div>
+);
+
+const STAGE_ORDER = ['queued', 'ida', 'batching', 'header', 'body', 'merge', 'completed'];
+const STAGE_LABELS: Record<string, string> = {
+  queued: '调度',
+  ida: '静态分析',
+  batching: '分批',
+  header: '头文件',
+  body: '函数体',
+  merge: '合并',
+  completed: '完成',
+};
+
+const stageIndex = (phase?: string | null) => {
+  const idx = STAGE_ORDER.indexOf(phase || '');
+  if (idx >= 0) return idx;
+  if (phase === 'pending') return 0;
+  if (phase === 'success') return STAGE_ORDER.length - 1;
+  if (phase === 'failed' || phase === 'cancelled') return -1;
+  return 0;
+};
+
+const dominantRunningPhase = (detail?: B2STaskDetail | null, fallback?: string) => {
+  if (!detail) return fallback || '';
+  const running = detail.items.filter((item) => !B2S_TERMINAL_STATUSES.has(item.status));
+  if (running.length === 0) return fallback || detail.status;
+  const counts = running.reduce<Record<string, number>>((acc, item) => {
+    const phase = item.phase || item.status || 'queued';
+    acc[phase] = (acc[phase] || 0) + 1;
+    return acc;
+  }, {});
+  const [phase] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
+  return phase || fallback || detail.status;
+};
+
+const modeLabelFromDetail = (detail?: B2STaskDetail | null) => detail?.mode_label || '-';
+
+const fileKindLabel = (path: string) => {
+  const name = fileNameOf(path).toLowerCase();
+  if (name.endsWith('_ida.c')) return 'IDA C';
+  if (name.endsWith('.h')) return '头文件';
+  if (name.endsWith('.c')) return '还原 C';
+  return languageFromPath(path).toUpperCase();
+};
+
+export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, onOpenAdvanced }) => {
   const executionApi = api.domains.execution;
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -218,13 +325,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const [deleting, setDeleting] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefreshAt, setLastRefreshAt] = useState<string>('');
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [clockNow, setClockNow] = useState(() => Date.now());
   const [selectedResultPath, setSelectedResultPath] = useState<string>('');
   const [previewContent, setPreviewContent] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const hasReturnContext = hasBinarySecurityReturnContext();
+  const handleBack = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    onBack();
+  };
 
   const load = async () => {
     if (!projectId || !taskId) return;
@@ -233,7 +344,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
     try {
       const data = await executionApi.binaryToSource.getTask(projectId, taskId);
       setDetail(data);
-      setLastRefreshAt(new Date().toLocaleTimeString());
     } catch (e: any) {
       setError(e?.message || '加载任务详情失败');
       setDetail(null);
@@ -320,7 +430,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
     setDeleting(true);
     try {
       await executionApi.binaryToSource.deleteTask(projectId, taskId);
-      onBack();
+      handleBack();
     } catch (e: any) {
       setError(e?.message || '删除任务失败');
     } finally {
@@ -377,17 +487,19 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   }, [projectId, selectedResultPath]);
 
   const dominantPhase = useMemo(() => {
+    const runningPhase = dominantRunningPhase(detail);
+    if (runningPhase) return runningPhase;
     const summary = overall?.phase_summary || {};
     const [phase] = Object.entries(summary).sort((a, b) => b[1] - a[1])[0] || [];
-    return phase || detail?.items.find((item) => !B2S_TERMINAL_STATUSES.has(item.status))?.phase || detail?.status || '';
+    return phase || detail?.status || '';
   }, [detail, overall]);
 
   if (!taskId) {
     return (
       <div className="px-8 pb-10 pt-8 space-y-6">
-        <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm">
+        <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm">
           <ArrowLeft size={16} />
-          返回二进制逆向
+          {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
         </button>
         <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
           未指定任务，请返回列表重新选择。
@@ -405,26 +517,31 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
   const derivedOverall = itemProgressValues.length
     ? itemProgressValues.reduce((sum, item) => sum + item.value, 0) / itemProgressValues.length
     : (overall?.percent ?? 0);
-  const progressValue = terminal && (detail?.success_items || 0) + (detail?.partial_items || 0) === (detail?.total_items || 0)
-    ? 100
-    : derivedOverall;
+  const progressValue = overall?.percent !== undefined && overall.percent !== null
+    ? overall.percent
+    : (terminal && (detail?.success_items || 0) + (detail?.partial_items || 0) === (detail?.total_items || 0)
+      ? 100
+      : derivedOverall);
   const progressModeLabel = !terminal && itemProgressValues.some((item) => item.estimated) ? '阶段估算' : '';
+  const runningItems = detail?.running_items || detail?.items.filter((item) => !B2S_TERMINAL_STATUSES.has(item.status)).length || 0;
+  const resultCount = generatedFiles.length;
+  const modeLabel = modeLabelFromDetail(detail);
+  const primaryActiveItem = detail?.items.find((item) => !B2S_TERMINAL_STATUSES.has(item.status)) || detail?.items.find((item) => item.status === 'failed') || detail?.items[0];
+  const primaryActivePresentation = primaryActiveItem ? (itemPresentations[primaryActiveItem.id] || itemProgressPresentation(primaryActiveItem)) : null;
+  const actionableFailures = detail?.items.filter((item) => item.status === 'failed' || item.error_reason).slice(0, 3) || [];
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
-          onClick={onBack}
+          onClick={handleBack}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
         >
           <ArrowLeft size={16} />
-          返回二进制逆向
+          {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
         </button>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <div className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-500">
-            {terminal ? '已停止自动刷新' : '自动刷新中 · 每 5 秒'}{lastRefreshAt ? ` · 最后刷新 ${lastRefreshAt}` : ''}
-          </div>
           <button
             type="button"
             onClick={() => void load()}
@@ -451,48 +568,97 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
           </div>
         ) : detail ? (
           <div>
-            <div className="bg-[linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eef6ff_100%)] p-7">
-              <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-                <div className="min-w-0 flex-1">
+            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_38%,#f8fafc_100%)] p-7">
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <B2SStatusBadge status={detail.status} />
                     {showTopPhaseBadge && <B2SPhaseBadge phase={dominantPhase} label={phaseLabel} />}
+                    {modeLabel !== '-' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 ring-1 ring-indigo-200">
+                        <Sparkles size={13} />
+                        {modeLabel}
+                      </span>
+                    )}
                   </div>
                   <h1 className="mt-4 break-words text-3xl font-black tracking-tight text-slate-950">{detail.name || detail.id}</h1>
-                  <div className="mt-3 text-xs font-semibold text-slate-500">
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
                     <span className="font-mono">任务 ID：{detail.id}</span>
+                    <span>创建：{formatDateTime(detail.created_at)}</span>
+                    <span>更新：{formatDateTime(detail.updated_at)}</span>
+                  </div>
+
+                  <div className="mt-6 rounded-[1.5rem] border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
+                    <div className="flex items-end justify-between gap-4">
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">总体进度</div>
+                        <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{pct(progressValue).toFixed(1)}%</div>
+                      </div>
+                      <div className="text-right text-xs font-bold text-slate-500">
+                        {progressModeLabel || (terminal ? '最终进度' : '后端实时进度')}
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <B2SProgressBar value={progressValue} tone={statusTone(detail) === 'emerald' ? 'emerald' : 'blue'} />
+                    </div>
+                    <div className="mt-4 grid grid-cols-3 gap-3 text-xs font-semibold text-slate-600">
+                      <div className="rounded-xl bg-slate-50 px-3 py-2">当前阶段：<span className="font-black text-slate-800">{phaseLabel}</span></div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2">运行中：<span className="font-black text-slate-800">{runningItems}</span></div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2">结果文件：<span className="font-black text-slate-800">{resultCount}</span></div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-[360px]">
-                  <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
-                    <div className="mt-1 text-sm font-black text-slate-800">{formatDateTime(detail.created_at)}</div>
+                <div className="space-y-3">
+                  <div className="rounded-[1.5rem] border border-white/80 bg-white/80 p-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前焦点</div>
+                    {primaryActiveItem ? (
+                      <div className="mt-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">#{primaryActiveItem.sequence_no}</span>
+                          <div className="min-w-0 truncate text-sm font-black text-slate-900" title={primaryActiveItem.elf_path}>{fileNameOf(primaryActiveItem.elf_path)}</div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+                          <div className="rounded-xl bg-slate-50 px-3 py-2">阶段：<span className="font-black text-slate-800">{formatPhaseLabel(primaryActiveItem.phase, primaryActiveItem.phase_label)}</span></div>
+                          <div className="rounded-xl bg-slate-50 px-3 py-2">进度：<span className="font-black text-slate-800">{primaryActivePresentation?.label || '-'}</span></div>
+                          <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2">当前函数：<span className="font-black text-slate-800">{primaryActiveItem.progress?.current_function || '-'}</span></div>
+                        </div>
+                      </div>
+                    ) : <div className="mt-3 text-sm font-semibold text-slate-500">暂无 item</div>}
                   </div>
-                  <div className="rounded-2xl border border-white/70 bg-white/75 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">更新时间</div>
-                    <div className="mt-1 text-sm font-black text-slate-800">{formatDateTime(detail.updated_at)}</div>
-                  </div>
+                  <TaskOriginCard origin={detail} />
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-                <MetricCard label="总进度" value={`${pct(progressValue).toFixed(1)}%`} hint={progressModeLabel} tone={statusTone(detail)} />
-                <MetricCard label="ELF" value={`${overall?.completed_items ?? detail.success_items + detail.partial_items}/${overall?.total_items ?? detail.total_items}`} hint="已完成 / 总数" tone="blue" />
-                <MetricCard label="函数" value={`${completedFunctions}/${totalFunctions || '-'}`} hint="已还原 / 总数" tone="emerald" />
-                <MetricCard label="失败" value={detail.failed_items || 0} hint={detail.failed_items ? '需要处理' : '无异常'} tone={detail.failed_items ? 'rose' : 'slate'} />
-                <MetricCard label="本轮耗时" value={taskRunDuration(detail, clockNow)} hint={terminal ? undefined : '实时计时中'} tone="slate" />
-              </div>
-
-              <div className="mt-5">
-                <B2SProgressBar value={progressValue} tone={statusTone(detail) === 'emerald' ? 'emerald' : 'blue'} />
+              <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+                <KpiTile label="ELF 完成" value={`${overall?.completed_items ?? detail.success_items + detail.partial_items}/${overall?.total_items ?? detail.total_items}`} hint={`${runningItems} 个运行中`} tone="blue" icon={<Cpu size={19} />} />
+                <KpiTile label="函数" value={`${completedFunctions}/${totalFunctions || '-'}`} hint="已还原 / 总数" tone="emerald" icon={<FileCode2 size={19} />} />
+                <KpiTile label="批次" value={`${overall?.completed_batches ?? 0}/${overall?.total_batches ?? 0}`} hint="completed / total" tone="violet" icon={<Layers3 size={19} />} />
+                <KpiTile label="结果文件" value={resultCount} hint={resultCount ? '可预览' : '等待生成'} tone={resultCount ? 'emerald' : 'slate'} icon={<Code2 size={19} />} />
+                <KpiTile label="失败" value={detail.failed_items || 0} hint={detail.failed_items ? '需要处理' : '无异常'} tone={detail.failed_items ? 'rose' : 'slate'} icon={detail.failed_items ? <AlertTriangle size={19} /> : <CheckCircle2 size={19} />} />
+                <KpiTile label="本轮耗时" value={taskRunDuration(detail, clockNow)} hint={terminal ? '已结束' : '实时计时中'} tone="slate" icon={<Gauge size={19} />} />
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-7 py-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="text-sm font-semibold text-slate-500">
-                {generatedFiles.length > 0 ? `已生成 ${generatedFiles.length} 个结果文件。` : detail.failed_items ? '请查看失败诊断或展开 item 详情。' : '结果文件生成后会显示在这里。'}
+            {actionableFailures.length > 0 && (
+              <div className="border-t border-rose-100 bg-rose-50/80 px-7 py-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rose-600" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-black text-rose-900">失败诊断</div>
+                    <div className="mt-2 space-y-2">
+                      {actionableFailures.map((item) => (
+                        <div key={item.id} className="rounded-xl border border-rose-100 bg-white px-3 py-2 text-xs font-semibold text-rose-800">
+                          <span className="font-black">#{item.sequence_no} {fileNameOf(item.elf_path)}：</span>{item.error_reason || item.failure_type || '未知错误'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
+            )}
+
+            <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-7 py-5 lg:flex-row lg:items-center lg:justify-end">
               <div className="flex flex-wrap items-center gap-3">
                 {detail && !B2S_TERMINAL_STATUSES.has(detail.status) && (
                   <button
@@ -534,10 +700,13 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       {detail && generatedFiles.length > 0 && (
         <section id="b2s-results" className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-sm">
           <div className="flex flex-col gap-2 border-b border-emerald-100 bg-emerald-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-xl font-black text-slate-900">还原结果</h2>
+            <div>
+              <h2 className="text-xl font-black text-slate-900">还原结果</h2>
+              <div className="mt-1 text-xs font-semibold text-emerald-800/70">优先预览最终 C / 头文件 / IDA 直出 C，长文件名自动换行。</div>
+            </div>
             <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{generatedFiles.length} 个文件</div>
           </div>
-          <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[440px_minmax(0,1fr)]">
             <aside className="border-b border-slate-200 bg-slate-50/70 lg:border-b-0 lg:border-r">
               <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">文件列表</div>
               <div className="max-h-[520px] overflow-auto p-3">
@@ -554,7 +723,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
                         {languageFromPath(path) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-black text-slate-900" title={fileNameOf(path)}>{fileNameOf(path)}</div>
+                        <div className="flex flex-wrap items-start gap-2">
+                          <div className="break-words text-sm font-black leading-5 text-slate-900 [overflow-wrap:anywhere]" title={fileNameOf(path)}>{fileNameOf(path)}</div>
+                          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">{fileKindLabel(path)}</span>
+                        </div>
                         <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={path}>#{item.sequence_no} · {projectPathFromStoragePath(projectId, path)}</div>
                       </div>
                     </button>
@@ -605,8 +777,19 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
       )}
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="border-b border-slate-100 pb-4">
-          <h2 className="text-xl font-black text-slate-900">二进制文件执行详情</h2>
+        <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">执行明细</h2>
+            <div className="mt-1 text-sm font-semibold text-slate-500">按 ELF 展示状态、阶段、函数批次和诊断信息。</div>
+          </div>
+          {detail && (
+            <div className="flex flex-wrap gap-2 text-xs font-black">
+              <span className="rounded-full bg-blue-50 px-3 py-1.5 text-blue-700">运行 {runningItems}</span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">成功 {detail.success_items}</span>
+              <span className="rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">失败 {detail.failed_items}</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">取消 {detail.cancelled_items}</span>
+            </div>
+          )}
         </div>
 
         {!detail ? (
@@ -622,6 +805,8 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
               const expanded = expandedItems[item.id] ?? !(item.status === 'success' || item.status === 'completed');
               const itemGeneratedCount = item.generated_files?.length || 0;
               const itemPhaseLabel = formatPhaseLabel(item.phase, item.phase_label);
+              const itemStageIndex = stageIndex(item.phase || item.status);
+              const itemTerminal = B2S_TERMINAL_STATUSES.has(item.status);
               return (
                 <article key={item.id} className={`rounded-[1.5rem] border bg-white p-5 ${item.status === 'failed' ? 'border-rose-200' : 'border-slate-200'}`}>
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -633,10 +818,29 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
                         <B2SPhaseBadge phase={item.phase} label={itemPhaseLabel} />
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                        <MetricCard label="函数" value={`${progress?.completed_functions ?? 0}/${progress?.total_functions ?? '-'}`} tone="emerald" />
-                        <MetricCard label="进度" value={progressPresentation.label} hint={progressPresentation.mode} tone={item.status === 'failed' ? 'rose' : 'blue'} />
+                        <MetricCard label="函数" value={`${progress?.completed_functions ?? 0}/${progress?.total_functions ?? '-'}`} hint="已还原 / 总数" tone="emerald" />
+                        <MetricCard label="批次" value={`${progress?.completed_batches ?? 0}/${progress?.total_batches ?? 0}`} hint="completed / total" tone="violet" />
                         <MetricCard label="耗时" value={item.finished_at ? formatDuration(item.started_at, item.finished_at) : formatDurationMs(item.started_at ? clockNow - parseBackendTimeMs(item.started_at) : null)} tone="slate" />
-                        <MetricCard label="结果文件" value={itemGeneratedCount} tone={itemGeneratedCount ? 'emerald' : 'slate'} />
+                        <MetricCard label="结果文件" value={itemGeneratedCount} hint={itemGeneratedCount ? '可预览' : '未生成'} tone={itemGeneratedCount ? 'emerald' : 'slate'} />
+                      </div>
+                      <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                        <div className="mb-3 flex items-center justify-between text-xs font-black text-slate-500">
+                          <span>ELF 阶段</span>
+                          <span>{itemPhaseLabel}</span>
+                        </div>
+                        <div className="grid grid-cols-7 gap-2">
+                          {STAGE_ORDER.map((stage, index) => {
+                            const active = itemTerminal ? stage === 'completed' && (item.status === 'success' || item.status === 'completed') : index === itemStageIndex;
+                            const done = itemTerminal ? (item.status === 'success' || item.status === 'completed') : index < itemStageIndex;
+                            const failedHere = (item.status === 'failed' || item.status === 'cancelled') && index === Math.max(0, itemStageIndex);
+                            return (
+                              <div key={stage} className="min-w-0">
+                                <div className={`h-1.5 rounded-full ${failedHere ? 'bg-rose-500' : active ? 'bg-blue-500' : done ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                                <div className={`mt-1.5 truncate text-center text-[10px] font-black ${failedHere ? 'text-rose-700' : active ? 'text-blue-700' : done ? 'text-emerald-700' : 'text-slate-400'}`}>{STAGE_LABELS[stage]}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                       {item.status === 'failed' && (
                         <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800">
@@ -645,83 +849,102 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
                       )}
                     </div>
 
-                    <div className="w-full xl:max-w-[300px]">
+                    <div className="w-full xl:max-w-[320px]">
                       <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm font-bold text-slate-700">当前进度</div>
-                          <div className="text-right text-sm font-black text-slate-900">
-                            {progressPresentation.label}
-                            {progressPresentation.mode ? <div className="mt-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{progressPresentation.mode}</div> : null}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-black text-slate-800">实时上下文</div>
+                            <div className="mt-1 text-xs font-semibold text-slate-500">{progressPresentation.description || '等待 worker 上报执行信息。'}</div>
                           </div>
+                          <div className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">{progressPresentation.label}</div>
                         </div>
-                        <div className="mt-3">
-                          <B2SProgressBar value={progressValueItem} />
+                        <div className="mt-4 space-y-2 text-xs font-semibold text-slate-600">
+                          <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2"><span>当前阶段</span><span className="font-black text-slate-800">{itemPhaseLabel}</span></div>
+                          <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2"><span>当前函数</span><span className="max-w-[170px] truncate font-black text-slate-800" title={progress?.current_function || '-'}>{progress?.current_function || '-'}</span></div>
+                          <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2"><span>更新时间</span><span className="font-black text-slate-800">{formatDateTime(item.finished_at || detail.updated_at)}</span></div>
                         </div>
-                        <div className="mt-4 text-xs font-semibold leading-6 text-slate-500">
-                          <div>当前阶段：<span className="text-slate-700">{itemPhaseLabel}</span></div>
-                          <div className="leading-5 text-slate-600">{progressPresentation.description}</div>
-                          <div>当前函数：<span className="text-slate-700">{progress?.current_function || '-'}</span></div>
-                          <div>更新时间：<span className="text-slate-700">{formatDateTime(item.finished_at || detail.updated_at)}</span></div>
+                        <div className="mt-4 grid grid-cols-1 gap-2">
+                          {detail.mode === 'deep' && onOpenAdvanced && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenAdvanced(item.id)}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
+                            >
+                              <Code2 size={14} />
+                              查看高级信息
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedItems((current) => ({ ...current, [item.id]: !expanded }))}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                          >
+                            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            {expanded ? '收起基础信息' : '展开基础信息'}
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setExpandedItems((current) => ({ ...current, [item.id]: !expanded }))}
-                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
-                        >
-                          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                          {expanded ? '收起高级信息' : '展开高级信息'}
-                        </button>
                       </div>
                     </div>
                   </div>
 
                   {expanded && (
-                    <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-sm font-black text-slate-800">路径与执行参数</div>
-                        <div className="mt-3 space-y-3 text-sm text-slate-600">
-                          <div>
-                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">输入文件</div>
-                            <div className="mt-1 break-all rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-700">{item.elf_path}</div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">输出目录</div>
-                            <div className="mt-1 break-all rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-700">{item.output_dir || '-'}</div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">开始时间</div>
-                              <div className="mt-1 font-bold text-slate-800">{formatDateTime(item.started_at)}</div>
+                    <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-col gap-2 border-b border-slate-200 pb-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                          <div className="text-sm font-black text-slate-900">高级信息</div>
+                          <div className="mt-1 text-xs font-semibold text-slate-500">执行参数、路径、worker 上报与错误原文。</div>
+                        </div>
+                        <div className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">尝试 {progress?.current_attempt ?? '-'}</div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                        <div className="space-y-4">
+                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">文件路径</div>
+                            <div className="mt-3 space-y-3">
+                              <div>
+                                <div className="text-[11px] font-black text-slate-400">输入 ELF</div>
+                                <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.elf_path}</div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-black text-slate-400">输出目录</div>
+                                <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.output_dir || '-'}</div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">结束时间</div>
-                              <div className="mt-1 font-bold text-slate-800">{formatDateTime(item.finished_at)}</div>
+                          </div>
+
+                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">消息</div>
+                            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                              <div>
+                                <div className="text-[11px] font-black text-slate-400">阶段消息</div>
+                                <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{item.phase_message || '-'}</div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-black text-slate-400">进度消息</div>
+                                <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{progress?.message || '-'}</div>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-                        <div className="text-sm font-black text-slate-800">高级执行信息</div>
-                        <div className="mt-3 space-y-3 text-sm text-slate-600">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>字节：<span className="font-bold text-slate-800">{formatBytes(progress?.completed_bytes)} / {formatBytes(progress?.total_bytes)}</span></div>
-                            <div>批次：<span className="font-bold text-slate-800">{progress?.completed_batches ?? 0} / {progress?.total_batches ?? 0}</span></div>
-                            <div>当前批次：<span className="font-bold text-slate-800">{progress?.current_batch ?? '-'}</span></div>
-                            <div>尝试次数：<span className="font-bold text-slate-800">{progress?.current_attempt ?? '-'}</span></div>
+                        <div className="space-y-4">
+                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">运行统计</div>
+                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+                              <div className="rounded-xl bg-slate-50 px-3 py-2">字节<br /><span className="font-black text-slate-900">{formatBytes(progress?.completed_bytes)} / {formatBytes(progress?.total_bytes)}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-3 py-2">批次<br /><span className="font-black text-slate-900">{progress?.completed_batches ?? 0} / {progress?.total_batches ?? 0}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-3 py-2">当前批次<br /><span className="font-black text-slate-900">{progress?.current_batch ?? '-'}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-3 py-2">函数进度<br /><span className="font-black text-slate-900">{progress?.completed_functions ?? 0} / {progress?.total_functions ?? '-'}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-3 py-2">开始时间<br /><span className="font-black text-slate-900">{formatDateTime(item.started_at)}</span></div>
+                              <div className="rounded-xl bg-slate-50 px-3 py-2">结束时间<br /><span className="font-black text-slate-900">{formatDateTime(item.finished_at)}</span></div>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">阶段消息</div>
-                            <div className="mt-1 whitespace-pre-wrap break-words rounded-xl bg-white px-3 py-2 text-slate-700">{item.phase_message || '-'}</div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">进度消息</div>
-                            <div className="mt-1 whitespace-pre-wrap break-words rounded-xl bg-white px-3 py-2 text-slate-700">{progress?.message || '-'}</div>
-                          </div>
+
                           {(item.error_reason || item.failure_type) && (
-                            <div>
-                              <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">错误原文</div>
-                              <div className="mt-1 whitespace-pre-wrap break-words rounded-xl bg-white px-3 py-2 text-rose-700">{item.error_reason || item.failure_type}</div>
+                            <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 p-4">
+                              <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-400">错误原文</div>
+                              <div className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700">{item.error_reason || item.failure_type}</div>
                             </div>
                           )}
                         </div>

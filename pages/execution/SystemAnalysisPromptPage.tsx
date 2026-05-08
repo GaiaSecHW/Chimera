@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { SystemAnalysisPromptTemplate } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { showConfirm } from '../../components/DialogService';
 
 const emptyForm = {
   name: '',
@@ -107,7 +108,14 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
 
   const handleDelete = async () => {
     if (!selectedId) return;
-    if (!window.confirm('确认删除该 Prompt？')) return;
+    const confirmed = await showConfirm({
+      title: '删除 Prompt',
+      message: '确认删除该 Prompt？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
     setSaving(true);
     try {
       await executionApi.appSystemAnalyse.deletePrompt(selectedId);

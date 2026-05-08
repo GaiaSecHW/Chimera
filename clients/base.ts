@@ -165,6 +165,14 @@ const parseXhrResponse = (xhr: XMLHttpRequest): any => {
   }
 };
 
+const buildApiError = (message: string, extras?: { status?: number; code?: string; details?: any }) => {
+  const error = new Error(message);
+  if (extras?.status != null) (error as any).status = extras.status;
+  if (extras?.code) (error as any).code = extras.code;
+  if (extras?.details !== undefined) (error as any).details = extras.details;
+  return error;
+};
+
 export const xhrUpload = <TResult,>(params: {
   url: string;
   formData: FormData;
@@ -215,6 +223,16 @@ export const xhrUpload = <TResult,>(params: {
     };
 
     xhr.onerror = () => {
+      const payload = parseXhrResponse(xhr);
+      if (xhr.status > 0) {
+        const errorData = typeof payload === 'string' ? { detail: payload } : payload || { detail: `API Error (${xhr.status})` };
+        rejectOnce(buildApiError(extractErrorMessage(errorData, xhr.status), {
+          status: xhr.status,
+          code: errorData.code,
+          details: errorData.details,
+        }));
+        return;
+      }
       rejectOnce(new Error('网络错误，上传失败'));
     };
 
@@ -233,7 +251,11 @@ export const xhrUpload = <TResult,>(params: {
       }
       if (status < 200 || status >= 300) {
         const errorData = typeof payload === 'string' ? { detail: payload } : payload || { detail: 'Unknown error' };
-        rejectOnce(new Error(extractErrorMessage(errorData, status)));
+        rejectOnce(buildApiError(extractErrorMessage(errorData, status), {
+          status,
+          code: errorData.code,
+          details: errorData.details,
+        }));
         return;
       }
       resolveOnce(payload as TResult);

@@ -30,10 +30,9 @@ import { SystemAnalysisTaskDetailPage } from '../pages/execution/SystemAnalysisT
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
-import { DataflowAnalysisModelsPage } from '../pages/execution/DataflowAnalysisModelsPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
+import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
-import { EntryAnalysisModelsPage } from '../pages/execution/EntryAnalysisModelsPage';
 import { WorkflowInstancePage } from '../pages/orchestration/WorkflowInstancePage';
 import { WorkflowInstanceDetailPage } from '../pages/orchestration/WorkflowInstanceDetailPage';
 import { WorkflowInstanceLogsPage } from '../pages/orchestration/WorkflowInstanceLogsPage';
@@ -45,7 +44,6 @@ import { AppInstancePage } from '../pages/orchestration/AppInstancePage';
 import { AppInstanceDetailPage } from '../pages/orchestration/AppInstanceDetailPage';
 import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPage';
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
-import { FirmwareUnpackConfigPage } from '../pages/execution/FirmwareUnpackConfigPage';
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { DataflowVulnConfigPage, DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
@@ -64,6 +62,7 @@ import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
 import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
+import { B2STaskAdvancedPage } from '../pages/execution/B2STaskAdvancedPage';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
@@ -99,7 +98,9 @@ export interface ViewRegistryContext {
   activeAiHelperKey: string;
   activeProcessMonitorServiceKey: string;
   activeB2STaskId: string;
+  activeB2SItemId: string;
   activeSystemAnalysisTaskId: string;
+  activeEntryAnalysisTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
@@ -111,7 +112,9 @@ export interface ViewRegistryContext {
   setActiveJobTemplateId: (id: string) => void;
   setActiveAppWorkflowId: (id: string) => void;
   setActiveB2STaskId: (id: string) => void;
+  setActiveB2SItemId: (id: string) => void;
   setActiveSystemAnalysisTaskId: (id: string) => void;
+  setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
@@ -239,8 +242,6 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'dataflow-analysis-config':
       return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
-    case 'dataflow-analysis-models':
-      return <DataflowAnalysisModelsPage />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage
@@ -311,10 +312,16 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'entry-analysis-root':
     case 'entry-analysis-task':
       return <EntryAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+    case 'entry-analysis-detail':
+      return (
+        <EntryAnalysisTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeEntryAnalysisTaskId}
+          onBack={() => ctx.setCurrentView('entry-analysis-task')}
+        />
+      );
     case 'entry-analysis-config':
       return <EntryAnalysisConfigPage projectId={ctx.selectedProjectId} />;
-    case 'entry-analysis-models':
-      return <EntryAnalysisModelsPage />;
     case 'pentest-exec-code':
       return <ExecutionCodeAuditPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-work':
@@ -323,7 +330,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-firmware-task-list':
       return <FirmwareUnpackerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'pentest-exec-firmware-config':
-      return <FirmwareUnpackConfigPage projectId={ctx.selectedProjectId} />;
+      return <BinarySecurityConfigPage />;
     case 'pentest-exec-b2s':
     case 'pentest-exec-b2s-root':
     case 'pentest-exec-b2s-task-list':
@@ -345,6 +352,19 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeB2STaskId}
           onBack={() => ctx.setCurrentView('pentest-exec-b2s')}
+          onOpenAdvanced={(itemId) => {
+            ctx.setActiveB2SItemId(itemId);
+            ctx.setCurrentView('pentest-exec-b2s-advanced');
+          }}
+        />
+      );
+    case 'pentest-exec-b2s-advanced':
+      return (
+        <B2STaskAdvancedPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeB2STaskId}
+          itemId={ctx.activeB2SItemId}
+          onBack={() => ctx.setCurrentView('pentest-exec-b2s-detail')}
         />
       );
     case 'binary-security':

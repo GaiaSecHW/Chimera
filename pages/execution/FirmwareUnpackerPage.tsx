@@ -2,13 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Clock,
   FolderOpen, Loader2, Package, Play, RefreshCw,
-  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus,
+  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus, Terminal,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
+import { FirmwareTaskLog, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
 
 interface Props {
   projectId: string;
@@ -87,6 +90,52 @@ function TaskStatusBadge({ status }: { status: string }) {
   );
 }
 
+function PhaseStatusBadge({ status }: { status: string }) {
+  const cfg: Record<string, string> = {
+    pending: 'bg-slate-100 text-slate-500',
+    running: 'bg-blue-100 text-blue-700',
+    success: 'bg-emerald-100 text-emerald-700',
+    failed: 'bg-red-100 text-red-700',
+    skipped: 'bg-amber-100 text-amber-700',
+  };
+  const labels: Record<string, string> = {
+    pending: '待执行',
+    running: '进行中',
+    success: '已完成',
+    failed: '失败',
+    skipped: '跳过',
+  };
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg[status] || cfg.pending}`}>
+      {labels[status] || status}
+    </span>
+  );
+}
+
+function PhaseNodeStatusIcon({ status, index }: { status: string; index: number }) {
+  if (status === 'success') {
+    return <CheckCircle2 size={16} className="text-emerald-500" />;
+  }
+  if (status === 'running') {
+    return <Loader2 size={14} className="animate-spin text-blue-500" />;
+  }
+  if (status === 'failed') {
+    return <XCircle size={16} className="text-red-500" />;
+  }
+  return <span>{index + 1}</span>;
+}
+
+function phaseDisplayLabel(phaseKey: string | null | undefined) {
+  const mapping: Record<string, string> = {
+    preprocess: '预处理',
+    tool_match: '工具匹配执行',
+    llm_unpack: 'LLM 解包',
+    llm_review: 'LLM 评审',
+    llm_cleanup: 'LLM 清理',
+  };
+  return mapping[String(phaseKey || '')] || String(phaseKey || '任务');
+}
+
 function TaskRow({
   task, selected, active, onSelect, onOpenDetail,
 }: {
@@ -124,6 +173,9 @@ function TaskRow({
         />
         <TaskStatusBadge status={task.status} />
         <span className="flex-1 min-w-0 truncate font-mono text-xs text-slate-600">{task.firmware_path}</span>
+        <div onClick={(e) => e.stopPropagation()} className="hidden 2xl:block max-w-[240px] overflow-hidden">
+          <TaskOriginInline origin={task} compact />
+        </div>
         {task.worker_id && (
           <span className="hidden xl:inline max-w-[120px] truncate text-[10px] text-slate-400">{task.worker_id}</span>
         )}
@@ -141,6 +193,17 @@ function TaskDetailPanel({
   loading,
   resourceUsage,
   resourceLoading,
+  hasReturnContext,
+  progress,
+  progressLoading,
+  logModalOpen,
+  logModalTitle,
+  logModalPhase,
+  taskLog,
+  taskLogLoading,
+  onOpenPhaseLog,
+  onCloseLogModal,
+  deletingTaskId,
   onBack,
   onRefresh,
   onCancel,
@@ -151,6 +214,17 @@ function TaskDetailPanel({
   loading: boolean;
   resourceUsage: FirmwareTaskResourceUsage | null;
   resourceLoading: boolean;
+  hasReturnContext: boolean;
+  progress: FirmwareTaskProgress | null;
+  progressLoading: boolean;
+  logModalOpen: boolean;
+  logModalTitle: string;
+  logModalPhase: string;
+  taskLog: FirmwareTaskLog | null;
+  taskLogLoading: boolean;
+  onOpenPhaseLog: (taskId: string, phaseKey: string, phaseLabel: string) => void;
+  onCloseLogModal: () => void;
+  deletingTaskId: string;
   onBack: () => void;
   onRefresh: (id: string) => void;
   onCancel: (id: string) => void;
@@ -186,7 +260,7 @@ function TaskDetailPanel({
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
         >
           <ArrowLeft size={16} />
-          返回任务列表
+          {hasReturnContext ? '返回原任务' : '返回任务列表'}
         </button>
 
         <div className="flex items-start justify-between gap-4">
@@ -230,12 +304,16 @@ function TaskDetailPanel({
           )}
           {canDelete && (
             <button
+              disabled={deletingTaskId === task.id}
               onClick={() => onDelete(task.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Trash2 size={13} /> 删除
+              {deletingTaskId === task.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} 删除
             </button>
           )}
+        </div>
+        <div className="mt-4">
+          <TaskOriginCard origin={task} />
         </div>
       </div>
 
@@ -258,6 +336,89 @@ function TaskDetailPanel({
               <div className="text-xs text-slate-700">{value}</div>
             </div>
           ))}
+        </div>
+
+        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">实时进展</p>
+          {progressLoading ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Loader2 size={13} className="animate-spin" /> 加载阶段进展中...
+            </div>
+          ) : !progress ? (
+            <div className="text-xs text-slate-500">暂无阶段进展数据</div>
+          ) : (
+            <div className="space-y-3">
+              {progress.summary && (
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                  {progress.summary}
+                </div>
+              )}
+              <div className="overflow-x-auto pb-1">
+                <div className="relative flex min-w-[720px] items-start gap-0">
+                  {progress.phases.map((phase, index) => {
+                    const isCompleted = phase.status === 'success';
+                    const isRunning = phase.status === 'running';
+                    const isFailed = phase.status === 'failed';
+                    const lineClass = isCompleted ? 'bg-emerald-400' : isFailed ? 'bg-red-300' : 'bg-slate-200';
+                    const nodeClass = isCompleted
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                      : isRunning
+                        ? 'border-blue-500 bg-blue-50 text-blue-600'
+                        : isFailed
+                          ? 'border-red-400 bg-red-50 text-red-600'
+                          : phase.status === 'skipped'
+                            ? 'border-amber-400 bg-amber-50 text-amber-600'
+                            : 'border-slate-200 bg-white text-slate-400';
+                    const textClass = isRunning
+                      ? 'text-blue-600'
+                      : isCompleted
+                        ? 'text-emerald-600'
+                        : isFailed
+                          ? 'text-red-500'
+                          : phase.status === 'skipped'
+                            ? 'text-amber-600'
+                            : 'text-slate-400';
+
+                    return (
+                      <div key={phase.key} className="relative flex-1">
+                        {index < progress.phases.length - 1 ? (
+                          <div className={`absolute left-1/2 top-4 h-0.5 w-full ${lineClass}`} />
+                        ) : null}
+                        <div className="relative z-10 flex flex-col items-center px-2 text-center">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${nodeClass}`}>
+                            <PhaseNodeStatusIcon status={phase.status} index={index} />
+                          </div>
+                          <div className={`mt-2 px-1 ${textClass}`}>
+                            <div className="text-xs font-semibold">{phase.label}</div>
+                            <div className="mt-1 flex justify-center">
+                              <PhaseStatusBadge status={phase.status} />
+                            </div>
+                            <div className="mt-1 text-[10px] leading-tight text-slate-500">
+                              {phase.detail || '-'}
+                            </div>
+                            {phase.updated_at && (
+                              <div className="mt-1 text-[10px] text-slate-400">
+                                {fmtTime(phase.updated_at)}
+                              </div>
+                            )}
+                            <div className="mt-2 flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => onOpenPhaseLog(task.id, phase.key, phase.label)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                              >
+                                <Terminal size={11} /> 查看日志
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -304,6 +465,53 @@ function TaskDetailPanel({
           </div>
         )}
       </div>
+
+      {logModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
+          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Stage Log</p>
+                <h3 className="mt-2 text-xl font-black text-slate-900">{logModalTitle}</h3>
+                <p className="mt-1 text-xs text-slate-500">阶段标识：<span className="font-mono text-slate-600">{logModalPhase || '-'}</span></p>
+              </div>
+              <button
+                type="button"
+                onClick={onCloseLogModal}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 overflow-auto px-6 py-5">
+              {taskLogLoading ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 size={15} className="animate-spin" /> 加载日志中...
+                </div>
+              ) : !taskLog?.available ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  {taskLog?.message || '当前阶段日志不可用'}
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志目录</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-700">{taskLog.run_path || '-'}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志文件</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-700">{taskLog.files?.join(', ') || '-'}</p>
+                    </div>
+                  </div>
+                  <pre className="min-h-[320px] overflow-auto rounded-2xl bg-slate-950 px-4 py-4 text-[12px] leading-6 text-slate-100 whitespace-pre-wrap break-words">{taskLog.log_text || taskLog.message || '暂无日志内容'}</pre>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -323,8 +531,23 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeTaskId, setActiveTaskId] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
+  const [deletingTaskId, setDeletingTaskId] = useState('');
   const [resourceUsage, setResourceUsage] = useState<FirmwareTaskResourceUsage | null>(null);
   const [resourceLoading, setResourceLoading] = useState(false);
+  const [progress, setProgress] = useState<FirmwareTaskProgress | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [taskLog, setTaskLog] = useState<FirmwareTaskLog | null>(null);
+  const [taskLogLoading, setTaskLogLoading] = useState(false);
+  const [logModalOpen, setLogModalOpen] = useState(false);
+  const [logModalTitle, setLogModalTitle] = useState('');
+  const [logModalPhase, setLogModalPhase] = useState('');
+
+  useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
+    if (!storedTaskId) return;
+    sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
+    setActiveTaskId(storedTaskId);
+  }, []);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -396,8 +619,12 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       const task = await fwApi.getTask(id);
       setTasks((prev) => prev.map((item) => (item.id === id ? task : item)));
       if (activeTaskId === id) {
-        const usage = await fwApi.getTaskResourceUsage(id);
+        const [usage, taskProgress] = await Promise.all([
+          fwApi.getTaskResourceUsage(id),
+          fwApi.getTaskProgress(id),
+        ]);
         setResourceUsage(usage);
+        setProgress(taskProgress);
       }
     } catch {
     } finally {
@@ -414,6 +641,18 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setResourceUsage(null);
     } finally {
       setResourceLoading(false);
+    }
+  }, []);
+
+  const loadTaskProgress = useCallback(async (id: string) => {
+    setProgressLoading(true);
+    try {
+      const next = await fwApi.getTaskProgress(id);
+      setProgress(next);
+    } catch {
+      setProgress(null);
+    } finally {
+      setProgressLoading(false);
     }
   }, []);
 
@@ -458,10 +697,18 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     if (!activeTaskId) {
       setResourceUsage(null);
       setResourceLoading(false);
+      setProgress(null);
+      setProgressLoading(false);
+      setTaskLog(null);
+      setTaskLogLoading(false);
+      setLogModalOpen(false);
+      setLogModalTitle('');
+      setLogModalPhase('');
       return;
     }
     loadResourceUsage(activeTaskId);
-  }, [activeTaskId, loadResourceUsage]);
+    loadTaskProgress(activeTaskId);
+  }, [activeTaskId, loadResourceUsage, loadTaskProgress]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -510,7 +757,15 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       notify('运行中的任务不能删除，请先停止', 'error');
       return;
     }
-    if (!confirm('确认删除？')) return;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: '确认删除当前解包任务记录吗？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeletingTaskId(id);
     try {
       await fwApi.deleteTask(id);
       setTasks((prev) => prev.filter((task) => task.id !== id));
@@ -519,12 +774,27 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         next.delete(id);
         return next;
       });
-      if (activeTaskId === id) setActiveTaskId('');
+      if (activeTaskId === id) {
+        setActiveTaskId('');
+        setDetailLoading(false);
+        setResourceUsage(null);
+        setResourceLoading(false);
+        setProgress(null);
+        setProgressLoading(false);
+        setTaskLog(null);
+        setTaskLogLoading(false);
+        setLogModalOpen(false);
+        setLogModalTitle('');
+        setLogModalPhase('');
+      }
+      await fetchTasks(taskItems.length <= 1 && page > 0);
       notify('任务已删除', 'success');
     } catch (e: any) {
       notify(`删除失败: ${e?.message}`, 'error');
+    } finally {
+      setDeletingTaskId('');
     }
-  }, [activeTaskId, notify, taskItems]);
+  }, [activeTaskId, fetchTasks, notify, page, taskItems]);
 
   const handleRetry = async (id: string) => {
     try {
@@ -536,6 +806,30 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     }
   };
 
+  const handleOpenPhaseLog = useCallback(async (taskId: string, phaseKey: string, phaseLabel: string) => {
+    setLogModalTitle(`${phaseLabel} 日志`);
+    setLogModalPhase(phaseKey);
+    setTaskLog(null);
+    setTaskLogLoading(true);
+    setLogModalOpen(true);
+    try {
+      const next = await fwApi.getTaskLogs(taskId, phaseKey);
+      setTaskLog(next);
+    } catch (e: any) {
+      setTaskLog({
+        task_id: taskId,
+        run_path: null,
+        available: false,
+        log_text: '',
+        files: [],
+        phase: phaseKey,
+        message: e?.message || '加载阶段日志失败',
+      });
+    } finally {
+      setTaskLogLoading(false);
+    }
+  }, []);
+
   const handleBatchDelete = useCallback(async () => {
     const selectedTasks = taskItems.filter((task) => selected.has(task.id));
     const deletableIds = selectedTasks.filter((task) => isTerminal(task.status)).map((task) => task.id);
@@ -546,7 +840,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       notify('所选任务中包含运行中任务，请先停止后再删除', 'error');
       return;
     }
-    if (!confirm(`确认删除 ${deletableIds.length} 条记录${runningCount > 0 ? `，并跳过 ${runningCount} 条运行中任务` : ''}？`)) return;
+    const confirmed = await showConfirm({
+      title: '批量删除任务',
+      message: `确认删除 ${deletableIds.length} 条记录${runningCount > 0 ? `，并跳过 ${runningCount} 条运行中任务` : ''}？`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
 
     try {
       await fwApi.batchDelete(deletableIds);
@@ -578,6 +879,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const showingDetail = Boolean(activeTaskId);
+  const hasReturnContext = hasBinarySecurityReturnContext();
+  const handleDetailBack = () => {
+    if (navigateBackToBinarySecurityTask()) return;
+    setActiveTaskId('');
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -665,6 +971,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                   并在其中生成 `input`、`output`、`run` 三个目录。`input` 目录中只会写入一份 JSON 清单，记录原始固件路径、
                   输出目录和运行日志目录，解包时直接使用原始固件文件。
                 </p>
+                <p className="mt-2 text-xs leading-6 text-slate-500">
+                  当前任务使用的 LLM 配置会在提交时从“执行 → 参数配置 → LLM Role Binding”读取并冻结，执行过程中不会再跟随后续配置变更。
+                </p>
                 <div className="mt-3 space-y-2 text-xs">
                   <div>
                     <p className="font-semibold text-slate-500">input</p>
@@ -731,7 +1040,18 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           loading={detailLoading}
           resourceUsage={resourceUsage}
           resourceLoading={resourceLoading}
-          onBack={() => setActiveTaskId('')}
+          hasReturnContext={hasReturnContext}
+          progress={progress}
+          progressLoading={progressLoading}
+          logModalOpen={logModalOpen}
+          logModalTitle={logModalTitle}
+          logModalPhase={logModalPhase}
+          taskLog={taskLog}
+          taskLogLoading={taskLogLoading}
+          onOpenPhaseLog={handleOpenPhaseLog}
+          onCloseLogModal={() => setLogModalOpen(false)}
+          deletingTaskId={deletingTaskId}
+          onBack={handleDetailBack}
           onRefresh={refreshOne}
           onCancel={handleCancel}
           onDelete={handleDelete}
