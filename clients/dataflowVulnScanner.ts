@@ -90,7 +90,11 @@ export interface DataflowScanTask {
   finished_at?: string | null;
   message?: string | null;
   latest_execution_id?: string | null;
-  latest_run?: Partial<DataflowHistoryRunSummary> | null;
+  run_name?: string | null;
+  runs_root?: string | null;
+  run_path?: string | null;
+  run?: Partial<DataflowRunSummary> | null;
+  latest_run?: Partial<DataflowRunSummary> | null;
 }
 
 export interface DataflowScanTaskDetail extends DataflowScanTask {
@@ -107,6 +111,7 @@ export interface DataflowScanTaskAttempt {
   task_id: string;
   attempt_no: number;
   status: string;
+  run_id?: string | null;
   history_run_id?: string | null;
   owner_pod_id?: string | null;
   lease_expires_at?: string | null;
@@ -203,8 +208,9 @@ export interface DataflowRunFile {
   type: string;
 }
 
-export interface DataflowHistoryRunSummary {
-  history_run_id: string;
+export interface DataflowRunSummary {
+  run_id: string;
+  history_run_id?: string;
   project_id: string;
   source_type: string;
   source_key: string;
@@ -231,9 +237,7 @@ export interface DataflowHistoryRunSummary {
   updated_at?: string | null;
 }
 
-export interface DataflowHistoryRunFile extends DataflowRunFile {}
-
-export interface DataflowHistoryRunSession {
+export interface DataflowRunSession {
   session_id: string;
   format: string;
   worker_id?: string;
@@ -243,7 +247,7 @@ export interface DataflowHistoryRunSession {
   calls: Record<string, any>[];
 }
 
-export interface DataflowHistoryRunDetail extends DataflowHistoryRunSummary {
+export interface DataflowRunDetail extends DataflowRunSummary {
   config: Record<string, any>;
   error?: string | null;
   cycles: Record<string, any>[];
@@ -252,15 +256,15 @@ export interface DataflowHistoryRunDetail extends DataflowHistoryRunSummary {
   manifests: Record<string, any>;
   latest_issues: Record<string, any>[];
   atomic_work_path: string;
-  files: DataflowHistoryRunFile[];
-  sessions: DataflowHistoryRunSession[];
+  files: DataflowRunFile[];
+  sessions: DataflowRunSession[];
   run_log: string;
   command?: string[];
   command_display?: string;
   raw: Record<string, any>;
 }
 
-export interface DataflowHistoryRunCycle {
+export interface DataflowRunCycle {
   cycle: number;
   global_reviews: Record<string, any>[];
   result_reviews: Record<string, any>[];
@@ -268,8 +272,9 @@ export interface DataflowHistoryRunCycle {
   metrics: Record<string, any>;
 }
 
-export interface DataflowHistoryRunResolve {
-  history_run_id: string;
+export interface DataflowRunResolve {
+  run_id: string;
+  history_run_id?: string;
   project_id: string;
   run_name: string;
   root_path: string;
@@ -278,9 +283,10 @@ export interface DataflowHistoryRunResolve {
   linked_execution_id?: string | null;
 }
 
-export interface DataflowHistoryRunMutationResponse {
+export interface DataflowRunMutationResponse {
   success: boolean;
-  history_run_id: string;
+  run_id: string;
+  history_run_id?: string;
   project_id: string;
   status: string;
   message: string;
@@ -291,12 +297,21 @@ export interface DataflowHistoryRunMutationResponse {
   process_signal?: string | null;
 }
 
-export interface DataflowHistoryRunRetryPayload {
+export interface DataflowRunRetryPayload {
   extra_cycles?: number;
   model?: string | null;
   provider?: string | null;
   clean_workspace?: boolean;
 }
+
+export type DataflowHistoryRunSummary = DataflowRunSummary;
+export type DataflowHistoryRunFile = DataflowRunFile;
+export type DataflowHistoryRunSession = DataflowRunSession;
+export type DataflowHistoryRunDetail = DataflowRunDetail;
+export type DataflowHistoryRunCycle = DataflowRunCycle;
+export type DataflowHistoryRunResolve = DataflowRunResolve;
+export type DataflowHistoryRunMutationResponse = DataflowRunMutationResponse;
+export type DataflowHistoryRunRetryPayload = DataflowRunRetryPayload;
 
 const withQuery = (path: string, params: Record<string, string | number | undefined | null>) => {
   const query = new URLSearchParams();
@@ -380,13 +395,13 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  listHistoryRuns: async (projectId: string): Promise<DataflowHistoryRunSummary[]> => {
-    const response = await fetch(withQuery(`${PREFIX}/history-runs`, { project_id: projectId }), { headers: getHeaders() });
-    return unwrapList<DataflowHistoryRunSummary>(await handleResponse(response));
+  listRuns: async (projectId: string): Promise<DataflowRunSummary[]> => {
+    const response = await fetch(withQuery(`${PREFIX}/runs`, { project_id: projectId }), { headers: getHeaders() });
+    return unwrapList<DataflowRunSummary>(await handleResponse(response));
   },
 
-  resolveHistoryRun: async (projectId: string, runName: string, rootPath: string): Promise<DataflowHistoryRunResolve> => {
-    const response = await fetch(withQuery(`${PREFIX}/history-runs/resolve`, {
+  resolveRun: async (projectId: string, runName: string, rootPath: string): Promise<DataflowRunResolve> => {
+    const response = await fetch(withQuery(`${PREFIX}/runs/resolve`, {
       project_id: projectId,
       run_name: runName,
       root_path: rootPath,
@@ -394,8 +409,8 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  resolveHistoryRunByTask: async (projectId: string, taskId: string, executionId?: string | null): Promise<DataflowHistoryRunResolve> => {
-    const response = await fetch(withQuery(`${PREFIX}/history-runs/by-task`, {
+  resolveRunByTask: async (projectId: string, taskId: string, executionId?: string | null): Promise<DataflowRunResolve> => {
+    const response = await fetch(withQuery(`${PREFIX}/runs/by-task`, {
       project_id: projectId,
       task_id: taskId,
       execution_id: executionId || undefined,
@@ -403,59 +418,59 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  getHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunDetail> => {
-    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}`, { headers: getHeaders() });
+  getRun: async (runId: string): Promise<DataflowRunDetail> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}`, { headers: getHeaders() });
     return handleResponse(response);
   },
 
-  getHistoryRunCycle: async (historyRunId: string, cycle: number): Promise<DataflowHistoryRunCycle> => {
-    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/cycles/${cycle}`, { headers: getHeaders() });
+  getRunCycle: async (runId: string, cycle: number): Promise<DataflowRunCycle> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/cycles/${cycle}`, { headers: getHeaders() });
     return handleResponse(response);
   },
 
-  listHistoryRunSessions: async (historyRunId: string): Promise<DataflowHistoryRunSession[]> => {
-    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/sessions`, { headers: getHeaders() });
-    return unwrapList<DataflowHistoryRunSession>(await handleResponse(response));
+  listRunSessions: async (runId: string): Promise<DataflowRunSession[]> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/sessions`, { headers: getHeaders() });
+    return unwrapList<DataflowRunSession>(await handleResponse(response));
   },
 
-  listHistoryRunFiles: async (historyRunId: string, limit = 1200): Promise<DataflowHistoryRunFile[]> => {
-    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/files`, { limit }), { headers: getHeaders() });
-    return unwrapList<DataflowHistoryRunFile>(await handleResponse(response));
+  listRunFiles: async (runId: string, limit = 1200): Promise<DataflowRunFile[]> => {
+    const response = await fetch(withQuery(`${PREFIX}/runs/${encodeURIComponent(runId)}/files`, { limit }), { headers: getHeaders() });
+    return unwrapList<DataflowRunFile>(await handleResponse(response));
   },
 
-  getHistoryRunFile: async (historyRunId: string, path: string): Promise<{ path: string; type: string; content: string }> => {
-    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/file`, { path }), { headers: getHeaders() });
+  getRunFile: async (runId: string, path: string): Promise<{ path: string; type: string; content: string }> => {
+    const response = await fetch(withQuery(`${PREFIX}/runs/${encodeURIComponent(runId)}/file`, { path }), { headers: getHeaders() });
     return handleResponse(response);
   },
 
-  getHistoryRunSessionFile: async (historyRunId: string, path: string): Promise<Record<string, any>> => {
-    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/session-file`, { path }), { headers: getHeaders() });
+  getRunSessionFile: async (runId: string, path: string): Promise<Record<string, any>> => {
+    const response = await fetch(withQuery(`${PREFIX}/runs/${encodeURIComponent(runId)}/session-file`, { path }), { headers: getHeaders() });
     return handleResponse(response);
   },
 
-  getHistoryRunLog: async (historyRunId: string, lines = 300): Promise<{ content: string }> => {
-    const response = await fetch(withQuery(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/log`, { lines }), { headers: getHeaders() });
+  getRunLog: async (runId: string, lines = 300): Promise<{ content: string }> => {
+    const response = await fetch(withQuery(`${PREFIX}/runs/${encodeURIComponent(runId)}/log`, { lines }), { headers: getHeaders() });
     return handleResponse(response);
   },
 
-  adoptHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> => {
-    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/adopt`, {
+  adoptRun: async (runId: string): Promise<DataflowRunMutationResponse> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/adopt`, {
       method: 'POST',
       headers: getHeaders(),
     });
     return handleResponse(response);
   },
 
-  cancelHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> => {
-    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/cancel`, {
+  cancelRun: async (runId: string): Promise<DataflowRunMutationResponse> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/cancel`, {
       method: 'POST',
       headers: getHeaders(),
     });
     return handleResponse(response);
   },
 
-  retryHistoryRun: async (historyRunId: string, payload: DataflowHistoryRunRetryPayload = {}): Promise<DataflowHistoryRunMutationResponse> => {
-    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}/retry`, {
+  retryRun: async (runId: string, payload: DataflowRunRetryPayload = {}): Promise<DataflowRunMutationResponse> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/retry`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
@@ -463,13 +478,55 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  deleteHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> => {
-    const response = await fetch(`${PREFIX}/history-runs/${encodeURIComponent(historyRunId)}`, {
+  deleteRun: async (runId: string): Promise<DataflowRunMutationResponse> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
     return handleResponse(response);
   },
+
+  listHistoryRuns: async (projectId: string): Promise<DataflowHistoryRunSummary[]> =>
+    dataflowVulnScannerApi.listRuns(projectId),
+
+  resolveHistoryRun: async (projectId: string, runName: string, rootPath: string): Promise<DataflowHistoryRunResolve> =>
+    dataflowVulnScannerApi.resolveRun(projectId, runName, rootPath),
+
+  resolveHistoryRunByTask: async (projectId: string, taskId: string, executionId?: string | null): Promise<DataflowHistoryRunResolve> =>
+    dataflowVulnScannerApi.resolveRunByTask(projectId, taskId, executionId),
+
+  getHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunDetail> =>
+    dataflowVulnScannerApi.getRun(historyRunId),
+
+  getHistoryRunCycle: async (historyRunId: string, cycle: number): Promise<DataflowHistoryRunCycle> =>
+    dataflowVulnScannerApi.getRunCycle(historyRunId, cycle),
+
+  listHistoryRunSessions: async (historyRunId: string): Promise<DataflowHistoryRunSession[]> =>
+    dataflowVulnScannerApi.listRunSessions(historyRunId),
+
+  listHistoryRunFiles: async (historyRunId: string, limit = 1200): Promise<DataflowHistoryRunFile[]> =>
+    dataflowVulnScannerApi.listRunFiles(historyRunId, limit),
+
+  getHistoryRunFile: async (historyRunId: string, path: string): Promise<{ path: string; type: string; content: string }> =>
+    dataflowVulnScannerApi.getRunFile(historyRunId, path),
+
+  getHistoryRunSessionFile: async (historyRunId: string, path: string): Promise<Record<string, any>> =>
+    dataflowVulnScannerApi.getRunSessionFile(historyRunId, path),
+
+  getHistoryRunLog: async (historyRunId: string, lines = 300): Promise<{ content: string }> =>
+    dataflowVulnScannerApi.getRunLog(historyRunId, lines),
+
+  adoptHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> =>
+    dataflowVulnScannerApi.adoptRun(historyRunId),
+
+  cancelHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> =>
+    dataflowVulnScannerApi.cancelRun(historyRunId),
+
+  retryHistoryRun: async (historyRunId: string, payload: DataflowHistoryRunRetryPayload = {}): Promise<DataflowHistoryRunMutationResponse> =>
+    dataflowVulnScannerApi.retryRun(historyRunId, payload),
+
+  deleteHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> =>
+    dataflowVulnScannerApi.deleteRun(historyRunId),
 
   cancelTask: async (taskId: string): Promise<DataflowScanTask> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/cancel`, {

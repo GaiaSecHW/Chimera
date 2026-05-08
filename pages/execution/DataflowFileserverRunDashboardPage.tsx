@@ -42,7 +42,7 @@ const DASHBOARD_HTML = `
             自动刷新
           </label>
           <button id="btnRefresh" class="btn btn-sm" data-action="refresh">刷新 Run</button>
-          <button id="btnAdoptRun" class="btn btn-sm" data-action="adopt-run" disabled>补齐任务信息</button>
+          <button id="btnAdoptRun" class="btn btn-sm" data-action="adopt-run" disabled>关联任务记录</button>
           <button id="btnCancelRun" class="btn btn-sm btn-warning" data-action="cancel-run" disabled>取消 Run</button>
           <button id="btnRetryRun" class="btn btn-sm" data-action="retry-run" disabled>重试 Run</button>
           <button id="btnDeleteRun" class="btn btn-sm btn-danger" data-action="delete-open" disabled>删除 Run</button>
@@ -1898,6 +1898,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         }
         this.currentRunData = data;
         this.currentSummary = {
+          run_id: data.run_id || data.history_run_id || '',
           history_run_id: data.history_run_id,
           project_id: data.project_id,
           source_type: data.source_type,
@@ -1984,8 +1985,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.renderTaskInfo(data);
     },
 
-    currentHistoryRunId() {
-      return String(this.currentRunData?.history_run_id || this.currentSummary?.history_run_id || '');
+    currentRunId() {
+      return String(this.currentRunData?.run_id || this.currentRunData?.history_run_id || this.currentSummary?.run_id || this.currentSummary?.history_run_id || '');
     },
 
     isActiveRunStatus(statusText: string) {
@@ -2030,7 +2031,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.updateActionButton('btnAdoptRun', {
         disabled: !hasRun || linked || !!busy,
         hidden: linked,
-        text: busy === 'adopt' ? '正在补齐...' : '补齐任务信息',
+        text: busy === 'adopt' ? '正在关联...' : '关联任务记录',
       });
       this.updateActionButton('btnCancelRun', {
         disabled: !hasRun || !linked || !active || !!busy,
@@ -2053,7 +2054,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const busy = !!this._mutationBusy;
       return `
         <div class="task-action-panel">
-          <button class="btn btn-sm" data-action="adopt-run" ${linked || busy ? 'disabled' : ''}>补齐任务信息</button>
+          <button class="btn btn-sm" data-action="adopt-run" ${linked || busy ? 'disabled' : ''}>关联任务记录</button>
           <button class="btn btn-sm btn-warning" data-action="cancel-run" ${!linked || !active || busy ? 'disabled' : ''}>取消 Run</button>
           <button class="btn btn-sm" data-action="retry-run" ${!retryable || busy ? 'disabled' : ''} title="取消/失败/可恢复异常的 Run 可重试">重试 Run</button>
           <button class="btn btn-sm btn-danger" data-action="delete-open" ${busy ? 'disabled' : ''}>删除 Run</button>
@@ -2076,20 +2077,20 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const commandDisplay = this.runCommandDisplay(data);
       const rows = [
-        ['History Run ID', data.history_run_id || '-'],
+        ['Run ID', data.run_id || data.history_run_id || '-'],
         ['Task ID', data.linked_task_id || '-'],
         ['Execution ID', data.linked_execution_id || '-'],
         ['Profile ID', data.profile_id || '-'],
         ['Source', data.source_type || '-'],
         ['Run Root', data.path || '-'],
         ['Atomic Work', data.atomic_work_path || '-'],
-        ['Last Sync', data.updated_at || '-'],
+        ['解析时间', data.updated_at || '-'],
       ];
       el.innerHTML = `
         <div class="card-title">任务 / Run 信息</div>
         <div class="task-state-line">
-          <span class="badge ${linked ? 'badge-succeeded' : 'badge-warning'}">${linked ? '已补齐任务信息' : '未补齐任务信息'}</span>
-          <span class="text-muted">${linked ? '当前 Run 已绑定任务与执行记录，可以统一使用取消、重试、删除能力。' : '点击“补齐任务信息”会创建任务与执行记录并绑定该 Run，不会启动扫描。'}</span>
+          <span class="badge ${linked ? 'badge-succeeded' : 'badge-warning'}">${linked ? '已关联任务记录' : '未关联任务记录'}</span>
+          <span class="text-muted">${linked ? '当前 Run 已关联任务与执行记录，可以统一使用取消、重试、删除能力。' : '点击“关联任务记录”会创建任务与执行记录并绑定该 Run，不会启动扫描。'}</span>
         </div>
         <div class="task-info-grid">
           ${rows.map(([label, value]) => `
@@ -3059,21 +3060,21 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
     async adoptCurrentRun() {
-      if (!this.currentRun || !this.currentHistoryRunId()) return;
+      if (!this.currentRun || !this.currentRunId()) return;
       this.setMutationBusy('adopt');
       try {
         const result = await adoptDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun);
-        alert(result.message || '任务信息已补齐');
+        alert(result.message || '任务记录已关联');
         await this.reloadCurrentRunAfterMutation();
       } catch (error: any) {
-        alert(error?.message || '补齐任务信息失败');
+        alert(error?.message || '关联任务记录失败');
       } finally {
         this.setMutationBusy('');
       }
     },
 
     async cancelCurrentRun() {
-      if (!this.currentRun || !this.currentHistoryRunId()) return;
+      if (!this.currentRun || !this.currentRunId()) return;
       if (!window.confirm(`确认取消 Run ${this.currentRun}？`)) return;
       this.setMutationBusy('cancel');
       try {
@@ -3088,7 +3089,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
 	    async retryCurrentRun() {
-	      if (!this.currentRun || !this.currentHistoryRunId()) return;
+	      if (!this.currentRun || !this.currentRunId()) return;
 	      if (!this.isRetryableRunStatus(String(this.currentRunData?.status || this.currentSummary?.status || ''))) {
 	        alert('当前 Run 状态不可重试。运行中的 Run 请先取消并等待进入终态；已完成的 Run 不需要重试。');
 	        return;
@@ -3126,7 +3127,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     async confirmDeleteRun() {
       this.closeDeleteModal();
-      if (!this.currentRun || !this.currentHistoryRunId()) return;
+      if (!this.currentRun || !this.currentRunId()) return;
       this.setMutationBusy('delete');
       try {
         const result = await deleteDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun);

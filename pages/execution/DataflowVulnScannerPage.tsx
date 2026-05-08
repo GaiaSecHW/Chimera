@@ -35,7 +35,7 @@ import {
   DataflowScanProfile,
   DataflowScanTask,
   DataflowCreateTaskPayload,
-  DataflowHistoryRunResolve,
+  DataflowRunResolve,
 } from '../../clients/dataflowVulnScanner';
 import {
   DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
@@ -207,24 +207,51 @@ const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
-const buildHistoryRunDetailPath = (run: Pick<DataflowFileserverRunSummary, 'name' | 'history_run_id' | 'root_path'>) => {
+const buildRunDetailPath = (run: Pick<DataflowFileserverRunSummary, 'name' | 'run_id' | 'history_run_id' | 'root_path'>) => {
   const params = new URLSearchParams();
-  if (run.history_run_id) params.set('history_run_id', run.history_run_id);
+  const runId = run.run_id || run.history_run_id || '';
+  if (runId) params.set('run_id', runId);
   params.set('fileserver_run', run.name);
   params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
   return `/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`;
 };
 
-const historyRunResolveToRouteTarget = (resolved: DataflowHistoryRunResolve) => ({
+const runResolveToRouteTarget = (resolved: DataflowRunResolve) => ({
   name: resolved.run_name,
-  history_run_id: resolved.history_run_id,
+  run_id: resolved.run_id || resolved.history_run_id || '',
   root_path: resolved.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
 });
 
-const taskLatestRun = (task: DataflowScanTask): Partial<DataflowFileserverRunSummary> =>
-  (task.latest_run && typeof task.latest_run === 'object' ? task.latest_run : {});
+const taskRunSummary = (task: DataflowScanTask): Partial<DataflowFileserverRunSummary> =>
+  task.run && typeof task.run === 'object'
+    ? task.run
+    : (task.latest_run && typeof task.latest_run === 'object' ? task.latest_run : {});
 
-const taskDisplayStatus = (task: DataflowScanTask) => String(taskLatestRun(task).status || task.status || '');
+const taskRunLocator = (task: DataflowScanTask): Partial<DataflowFileserverRunSummary> => {
+  const explicitPath = String(task.run_path || '').trim();
+  const pathParts = explicitPath.split('/').filter(Boolean);
+  const pathName = pathParts[pathParts.length - 1] || '';
+  const pathRoot = pathParts.length > 1 ? `/${pathParts.slice(0, -1).join('/')}` : '';
+  return {
+    name: task.run_name || pathName,
+    root_path: task.runs_root || pathRoot,
+    path: task.run_path || '',
+    linked_task_id: task.task_id,
+    linked_execution_id: task.latest_execution_id,
+  };
+};
+
+const taskRunDirectoryPath = (task: DataflowScanTask) => {
+  const run = taskRunLocator(task);
+  const path = String(run.path || '').trim();
+  if (path) return path;
+  const rootPath = String(run.root_path || '').trim().replace(/\/+$/, '');
+  const name = String(run.name || '').trim().replace(/^\/+|\/+$/g, '');
+  if (!rootPath || !name) return '';
+  return `${rootPath}/${name}`;
+};
+
+const taskDisplayStatus = (task: DataflowScanTask) => String(task.status || '');
 
 const normalizeRunStatus = (status?: string | null) => {
   const value = String(status || '').trim().toLowerCase();
@@ -346,8 +373,8 @@ const initialCreateTaskState = (): CreateTaskState => ({
   provider: '',
   reviewProfile: defaultConfigPayload().review_profile || 'balanced',
   maxReviewCycles: defaultConfigPayload().max_review_cycles,
-  timeoutMaxRetries: defaultConfigPayload().timeout_max_retries || 3,
-  timeoutRetryIntervalSeconds: defaultConfigPayload().timeout_retry_interval_seconds || 30,
+  timeoutMaxRetries: defaultConfigPayload().timeout_max_retries ?? 3,
+  timeoutRetryIntervalSeconds: defaultConfigPayload().timeout_retry_interval_seconds ?? 30,
   resultReviewConcurrency: defaultConfigPayload().result_review_concurrency,
   runtimeOverridesText: '',
 });
@@ -360,8 +387,8 @@ const applyConfigPayloadToCreateTaskState = (
   model: configPayload.model,
   reviewProfile: configPayload.review_profile || 'balanced',
   maxReviewCycles: configPayload.max_review_cycles,
-  timeoutMaxRetries: configPayload.timeout_max_retries || 3,
-  timeoutRetryIntervalSeconds: configPayload.timeout_retry_interval_seconds || 30,
+  timeoutMaxRetries: configPayload.timeout_max_retries ?? 3,
+  timeoutRetryIntervalSeconds: configPayload.timeout_retry_interval_seconds ?? 30,
   resultReviewConcurrency: configPayload.result_review_concurrency,
 });
 
@@ -372,8 +399,8 @@ const isCreateTaskConfigUntouched = (state: CreateTaskState) => {
     && state.model === defaults.model
     && state.reviewProfile === (defaults.review_profile || 'balanced')
     && state.maxReviewCycles === defaults.max_review_cycles
-    && state.timeoutMaxRetries === (defaults.timeout_max_retries || 3)
-    && state.timeoutRetryIntervalSeconds === (defaults.timeout_retry_interval_seconds || 30)
+    && state.timeoutMaxRetries === (defaults.timeout_max_retries ?? 3)
+    && state.timeoutRetryIntervalSeconds === (defaults.timeout_retry_interval_seconds ?? 30)
     && state.resultReviewConcurrency === defaults.result_review_concurrency
     && !state.runtimeOverridesText.trim()
   );
@@ -404,10 +431,10 @@ const buildCreateTaskConfigOverrides = (
   if (shouldSend(state.maxReviewCycles, baseline.max_review_cycles)) {
     overrides.max_review_cycles = state.maxReviewCycles;
   }
-  if (shouldSend(state.timeoutMaxRetries, baseline.timeout_max_retries || 3)) {
+  if (shouldSend(state.timeoutMaxRetries, baseline.timeout_max_retries ?? 3)) {
     overrides.timeout_max_retries = state.timeoutMaxRetries;
   }
-  if (shouldSend(state.timeoutRetryIntervalSeconds, baseline.timeout_retry_interval_seconds || 30)) {
+  if (shouldSend(state.timeoutRetryIntervalSeconds, baseline.timeout_retry_interval_seconds ?? 30)) {
     overrides.timeout_retry_interval_seconds = state.timeoutRetryIntervalSeconds;
   }
   if (shouldSend(state.resultReviewConcurrency, baseline.result_review_concurrency)) {
@@ -441,21 +468,21 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     const maxAttempts = Math.max(options?.retry ?? 1, 1);
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
-        const resolved = await executionApi.resolveHistoryRunByTask(projectId, task.task_id, task.latest_execution_id);
-        navigate(buildHistoryRunDetailPath(historyRunResolveToRouteTarget(resolved)));
+        const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, task.latest_execution_id);
+        navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)));
         return true;
       } catch {
-        // The history row may appear just after task creation; retry briefly before falling back to the resolver route.
+        // The Run index may appear just after task creation; retry briefly before falling back to the resolver route.
       }
       if (attempt + 1 < maxAttempts) await wait(500);
     }
-    const runQuery = task.latest_execution_id ? `?run_id=${encodeURIComponent(task.latest_execution_id)}` : '';
+    const runQuery = task.latest_execution_id ? `?execution_id=${encodeURIComponent(task.latest_execution_id)}` : '';
     navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(task.task_id)}${runQuery}`);
     return false;
   };
 
   const openRunDetail = (run: DataflowFileserverRunSummary) => {
-    navigate(buildHistoryRunDetailPath(run), {
+    navigate(buildRunDetailPath(run), {
       state: {
         fileserverRunSummary: run,
       },
@@ -463,8 +490,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const openTaskRowDetail = async (task: DataflowScanTask) => {
-    const run = taskLatestRun(task);
-    if (run.history_run_id && run.name) {
+    const run = taskRunLocator(task);
+    if (run.name && run.root_path) {
       openRunDetail(run as DataflowFileserverRunSummary);
       return;
     }
@@ -507,11 +534,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       setTasksError('');
       try {
         const payload = await executionApi.listTasks({ projectId });
-        setTasks(payload);
+        setTasks(payload || []);
       } catch (error: any) {
         setTasks([]);
-        setTasksError(error?.message || '读取任务列表失败');
-        notify(`加载数据流漏洞挖掘任务列表失败: ${error?.message || error || '未知错误'}`, 'error');
+        const message = error?.message || '读取任务列表失败';
+        setTasksError(message);
+        notify(`加载数据流漏洞挖掘任务列表失败: ${message}`, 'error');
       } finally {
         setLoading(false);
       }
@@ -545,7 +573,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const filteredTasks = useMemo(() => {
     const text = runQuery.trim().toLowerCase();
     return tasks.filter((task) => {
-      const run = taskLatestRun(task);
+      const run = taskRunLocator(task);
+      const runSummary = taskRunSummary(task);
       const normalizedStatus = normalizeRunStatus(taskDisplayStatus(task));
       if (runStatusFilter && normalizedStatus !== runStatusFilter) return false;
       if (!text) return true;
@@ -557,11 +586,14 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         task.latest_execution_id,
         task.profile_id,
         run.name,
-        run.status,
+        run.path,
+        taskRunDirectoryPath(task),
+        run.root_path,
+        runSummary.status,
         STATUS_META[normalizedStatus]?.label,
-        run.model,
-        run.provider,
-        run.workflow_mode,
+        runSummary.model,
+        runSummary.provider,
+        runSummary.workflow_mode,
         run.linked_task_id,
         run.linked_execution_id,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
@@ -574,8 +606,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       running: tasks.filter((task) => isActiveTaskStatus(taskDisplayStatus(task))).length,
       succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'completed').length,
       failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed').length,
-      withRun: tasks.filter((task) => Boolean(taskLatestRun(task).history_run_id)).length,
-      withoutRun: tasks.filter((task) => !taskLatestRun(task).history_run_id).length,
+      withRun: tasks.filter((task) => Boolean(taskRunLocator(task).name && taskRunLocator(task).root_path)).length,
+      withoutRun: tasks.filter((task) => !(taskRunLocator(task).name && taskRunLocator(task).root_path)).length,
     };
   }, [tasks]);
 
@@ -619,7 +651,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       notify('扫描任务已创建并开始运行', 'success');
       setShowCreate(false);
       setCreateState(initialCreateTaskState());
-      await openTaskDetail(created, { retry: 6 });
+      await openTaskRowDetail(created);
     } catch (error: any) {
       notify(error?.message || '创建任务失败', 'error');
     } finally {
@@ -664,8 +696,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           <MetricCard label="运行中" value={stats.running} icon={<Activity size={17} />} />
           <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-50/70" />
           <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
-          <MetricCard label="已生成 Run" value={stats.withRun} icon={<FileSearch size={17} />} />
-          <MetricCard label="待同步 Run" value={stats.withoutRun} icon={<Archive size={17} />} />
+          <MetricCard label="Run 目录" value={stats.withRun} icon={<FileSearch size={17} />} />
+          <MetricCard label="待生成 Run" value={stats.withoutRun} icon={<Archive size={17} />} />
         </section>
 
         <section>
@@ -673,7 +705,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             <div className="border-b border-slate-200 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <div className="text-sm font-black text-slate-900">任务列表</div>
+                  <div className="text-sm font-black text-slate-900">任务 / Run 列表</div>
                 </div>
                 <div className="text-xs font-bold text-slate-500">
                   {filteredTasks.length === tasks.length
@@ -687,7 +719,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <input
                     value={runQuery}
                     onChange={(event) => setRunQuery(event.target.value)}
-                    placeholder="搜索任务名、任务 ID、执行 ID、模型、状态或工作流模式"
+                    placeholder="搜索任务名、任务 ID、执行 ID、Run 目录、模型、状态或工作流模式"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </div>
@@ -713,10 +745,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             </div>
 
             <div className="overflow-auto">
-              <table className="w-full min-w-[960px] text-left text-sm">
+              <table className="w-full min-w-[1180px] text-left text-sm">
                 <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
                   <tr>
                     <th className="px-4 py-3">任务 / Run</th>
+                    <th className="px-4 py-3">Run 目录</th>
                     <th className="px-4 py-3">状态</th>
                     <th className="px-4 py-3">模型</th>
                     <th className="px-4 py-3">轮次</th>
@@ -728,24 +761,28 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 </thead>
                 <tbody>
                   {filteredTasks.map((task) => {
-                    const run = taskLatestRun(task);
+                    const run = taskRunLocator(task);
+                    const runSummary = taskRunSummary(task);
                     const displayStatus = taskDisplayStatus(task);
-                    const hasRun = Boolean(run.history_run_id && run.name);
-                    const displayName = task.title || run.name || task.task_id;
+                    const hasRun = Boolean(run.name && run.root_path);
+                    const taskId = task.task_id || run.linked_task_id || '';
+                    const executionId = task.latest_execution_id || run.linked_execution_id || '';
+                    const displayName = task.title || run.name || taskId || run.path || 'Run';
+                    const runPath = taskRunDirectoryPath(task);
                     const secondaryLine = hasRun
-                      ? `任务 ${shortId(task.task_id, 18)} · Run ${shortId(run.name || '', 18)}`
-                      : `任务 ${shortId(task.task_id, 18)} · 执行 ${shortId(task.latest_execution_id || '-', 18)}`;
+                      ? `任务 ${shortId(taskId, 18)} · Run ${shortId(run.name || '', 18)}`
+                      : `任务 ${shortId(taskId, 18)} · 执行 ${shortId(executionId || '-', 18)}`;
                     return (
                       <tr
                         key={task.task_id}
                         onClick={() => void openTaskRowDetail(task)}
                         className="cursor-pointer border-t border-slate-100 bg-white hover:bg-cyan-50/50"
-                        title={hasRun ? '查看任务运行详情' : '查看任务记录，Run 同步后会自动进入详情'}
+                        title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
-                              <FileSearch size={17} />
+                              {hasRun ? <FolderOpen size={17} /> : <FileSearch size={17} />}
                             </div>
                             <div className="min-w-0">
                               <div className="font-black text-slate-900">{shortId(displayName, 32)}</div>
@@ -753,32 +790,44 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             </div>
                           </div>
                         </td>
+                        <td className="px-4 py-3">
+                          {runPath ? (
+                            <div className="max-w-[340px]">
+                              <div className="truncate font-mono text-xs font-bold text-slate-700" title={runPath}>{runPath}</div>
+                              <div className="mt-1 truncate text-[11px] text-slate-400" title={run.root_path || ''}>
+                                root: {run.root_path || '-'}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-xs font-bold text-slate-400">Run 初始化中</div>
+                          )}
+                        </td>
                         <td className="px-4 py-3"><StatusBadge status={displayStatus} /></td>
                         <td className="px-4 py-3">
-                          <div className="font-bold text-slate-700">{run.model || '-'}</div>
-                          <div className="mt-1 text-xs text-slate-500">{formatThinking(run.thinking)}</div>
+                          <div className="font-bold text-slate-700">{runSummary.model || '-'}</div>
+                          <div className="mt-1 text-xs text-slate-500">{formatThinking(runSummary.thinking)}</div>
                         </td>
                         <td className="px-4 py-3 font-bold text-slate-700">
-                          {hasRun ? `${run.cycles_used || 0} / ${run.max_cycles || 0}` : `尝试 ${task.latest_attempt_no || 0}`}
+                          {hasRun ? `${runSummary.cycles_used || 0} / ${runSummary.max_cycles || 0}` : `尝试 ${task.latest_attempt_no || 0}`}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           {hasRun ? (
                             <>
-                              <div>{run.result_count || 0} / {run.passed_count || 0} 通过</div>
-                              <div className="mt-1 text-xs text-slate-500">{run.failed_count || 0} 失败</div>
+                              <div>{runSummary.result_count || 0} / {runSummary.passed_count || 0} 通过</div>
+                              <div className="mt-1 text-xs text-slate-500">{runSummary.failed_count || 0} 失败</div>
                             </>
                           ) : (
                             <>
-                              <div>{task.message || '等待 Run 生成/同步'}</div>
-                              <div className="mt-1 text-xs text-slate-500">Execution: {shortId(task.latest_execution_id || '-', 18)}</div>
+                              <div>{task.message || '等待 Run 生成'}</div>
+                              <div className="mt-1 text-xs text-slate-500">Execution: {shortId(executionId || '-', 18)}</div>
                             </>
                           )}
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500">
-                          {run.start_epoch ? formatEpochTime(run.start_epoch) : formatDateTime(task.started_at || task.created_at)}
+                          {runSummary.start_epoch ? formatEpochTime(runSummary.start_epoch) : formatDateTime(task.started_at || task.created_at)}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
-                          {run.duration_seconds ? formatSeconds(run.duration_seconds || 0) : formatDuration(task.started_at || task.created_at, task.finished_at)}
+                          {runSummary.duration_seconds ? formatSeconds(runSummary.duration_seconds || 0) : formatDuration(task.started_at || task.created_at, task.finished_at)}
                         </td>
                         <td className="px-4 py-3 text-right text-cyan-700">
                           <ChevronRight size={17} className="ml-auto" />
@@ -847,8 +896,11 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const { notify, feedbackNodes } = useUiFeedback();
 
   const taskId = routeTaskId || '';
-  const requestedRunId = useMemo(() => new URLSearchParams(location.search).get('run_id') || '', [location.search]);
-  const historyRunId = useMemo(() => new URLSearchParams(location.search).get('history_run_id') || '', [location.search]);
+  const routeRunId = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('run_id') || params.get('history_run_id') || '';
+  }, [location.search]);
+  const requestedExecutionId = useMemo(() => new URLSearchParams(location.search).get('execution_id') || '', [location.search]);
   const fileserverRunName = useMemo(() => new URLSearchParams(location.search).get('fileserver_run') || '', [location.search]);
   const fileserverRootPath = useMemo(
     () => new URLSearchParams(location.search).get('fileserver_root') || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
@@ -857,7 +909,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const fileserverRouteSummary = (location.state as { fileserverRunSummary?: DataflowFileserverRunSummary } | null)?.fileserverRunSummary || null;
   const isSyntheticFileserverTask = useMemo(() => isSyntheticFileserverTaskId(taskId), [taskId]);
   const isFileserverMode = isSyntheticFileserverTask && Boolean(fileserverRunName);
-  const isHistoryBootstrapMode = isSyntheticFileserverTask && Boolean(historyRunId && !fileserverRunName);
+  const isRunBootstrapMode = isSyntheticFileserverTask && Boolean(routeRunId && !fileserverRunName);
   const [detailLoading, setDetailLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
 
@@ -872,22 +924,22 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     navigate('/pentest-exec-dataflow-vuln-task-list');
   };
 
-  const resolveTaskRouteToHistoryRun = async (targetTaskId: string, preferredRunId = requestedRunId) => {
+  const resolveTaskRouteToRun = async (targetTaskId: string, preferredExecutionId = requestedExecutionId) => {
     if (!projectId || !targetTaskId) return;
     setDetailLoading(true);
     setLoadError('');
     try {
       for (let attempt = 0; attempt < 6; attempt += 1) {
         try {
-          const resolved = await executionApi.resolveHistoryRunByTask(projectId, targetTaskId, preferredRunId);
-          navigate(buildHistoryRunDetailPath(historyRunResolveToRouteTarget(resolved)), { replace: true });
+          const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, preferredExecutionId);
+          navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)), { replace: true });
           return;
         } catch (error: any) {
           if (attempt >= 5) throw error;
         }
         if (attempt < 5) await wait(500);
       }
-      setLoadError('没有找到该任务对应的 Run。可能任务刚创建完成，Run 目录仍在同步；请稍后刷新任务列表。');
+      setLoadError('没有找到该任务对应的 Run 目录。可能任务刚创建完成，Run 目录仍在初始化；请稍后刷新任务列表。');
     } catch (error: any) {
       setLoadError(error?.message || '解析任务对应 Run 失败');
     } finally {
@@ -896,20 +948,21 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   };
 
   useEffect(() => {
-    if (isFileserverMode || isHistoryBootstrapMode) return;
-    void resolveTaskRouteToHistoryRun(taskId, requestedRunId);
-  }, [taskId, requestedRunId, isFileserverMode, isHistoryBootstrapMode, fileserverRunName, fileserverRootPath, projectId]);
+    if (isFileserverMode || isRunBootstrapMode) return;
+    void resolveTaskRouteToRun(taskId, requestedExecutionId);
+  }, [taskId, requestedExecutionId, isFileserverMode, isRunBootstrapMode, fileserverRunName, fileserverRootPath, projectId]);
 
   useEffect(() => {
-    if (!isHistoryBootstrapMode || !historyRunId) return;
+    if (!isRunBootstrapMode || !routeRunId) return;
     let cancelled = false;
     setDetailLoading(true);
     setLoadError('');
-    executionApi.getHistoryRun(historyRunId)
+    executionApi.getRun(routeRunId)
       .then((run) => {
         if (cancelled) return;
         const params = new URLSearchParams(location.search);
-        params.set('history_run_id', historyRunId);
+        params.set('run_id', run.run_id || routeRunId);
+        params.delete('history_run_id');
         params.set('fileserver_run', run.name);
         params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
         navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`, {
@@ -929,7 +982,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     return () => {
       cancelled = true;
     };
-  }, [executionApi, fileserverRouteSummary, historyRunId, isHistoryBootstrapMode, location.search, navigate, notify]);
+  }, [executionApi, fileserverRouteSummary, routeRunId, isRunBootstrapMode, location.search, navigate, notify]);
 
   if (isFileserverMode) {
     return (
@@ -943,7 +996,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     );
   }
 
-  if (isHistoryBootstrapMode) {
+  if (isRunBootstrapMode) {
     return (
       <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
         {feedbackNodes}
@@ -977,7 +1030,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
               返回列表
             </button>
             <button
-              onClick={() => void resolveTaskRouteToHistoryRun(taskId, requestedRunId)}
+              onClick={() => void resolveTaskRouteToRun(taskId, requestedExecutionId)}
               disabled={detailLoading}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
@@ -1088,8 +1141,8 @@ const CreateTaskDialog: React.FC<{
                       model: payload.model,
                       reviewProfile: payload.review_profile || 'balanced',
                       maxReviewCycles: payload.max_review_cycles,
-                      timeoutMaxRetries: payload.timeout_max_retries || 3,
-                      timeoutRetryIntervalSeconds: payload.timeout_retry_interval_seconds || 30,
+                      timeoutMaxRetries: payload.timeout_max_retries ?? 3,
+                      timeoutRetryIntervalSeconds: payload.timeout_retry_interval_seconds ?? 30,
                       resultReviewConcurrency: payload.result_review_concurrency,
                     });
                   }}
@@ -1289,7 +1342,7 @@ const blankProfileForm = (): ProfileFormState => {
     enabled: true,
     defaultPriority: 100,
     maxRetryCount: 3,
-    executionTimeoutSeconds: 7200,
+    executionTimeoutSeconds: 0,
   };
 };
 
@@ -1580,8 +1633,8 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string }> = ({ projec
                 <Field label="最大重试次数">
                   <NumberInput value={form.maxRetryCount} onChange={(value) => setForm({ ...form, maxRetryCount: value })} />
                 </Field>
-                <Field label="执行超时秒数">
-                  <NumberInput value={form.executionTimeoutSeconds} onChange={(value) => setForm({ ...form, executionTimeoutSeconds: value })} />
+                <Field label="执行超时秒数（0=不限制）">
+                  <NumberInput value={form.executionTimeoutSeconds} onChange={(value) => setForm({ ...form, executionTimeoutSeconds: Math.max(0, value) })} />
                 </Field>
               </div>
               <Field label="描述">

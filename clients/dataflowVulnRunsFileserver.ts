@@ -1,24 +1,24 @@
 import {
   dataflowVulnScannerApi,
-  DataflowHistoryRunCycle,
-  DataflowHistoryRunDetail,
-  DataflowHistoryRunFile,
-  DataflowHistoryRunMutationResponse,
-  DataflowHistoryRunResolve,
-  DataflowHistoryRunRetryPayload,
-  DataflowHistoryRunSession,
-  DataflowHistoryRunSummary,
+  DataflowRunCycle,
+  DataflowRunDetail,
+  DataflowRunFile,
+  DataflowRunMutationResponse,
+  DataflowRunResolve,
+  DataflowRunRetryPayload,
+  DataflowRunSession,
+  DataflowRunSummary,
 } from './dataflowVulnScanner';
 
 export const DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT = '/dataflow-vuln-scanner/runs';
 
-export type DataflowFileserverRunFile = DataflowHistoryRunFile;
-export type DataflowFileserverRunSession = DataflowHistoryRunSession;
-export type DataflowFileserverRunSummary = DataflowHistoryRunSummary;
-export type DataflowFileserverRunOverview = DataflowHistoryRunDetail;
-export type DataflowFileserverRunDetail = DataflowHistoryRunDetail;
+export type DataflowFileserverRunFile = DataflowRunFile;
+export type DataflowFileserverRunSession = DataflowRunSession;
+export type DataflowFileserverRunSummary = DataflowRunSummary;
+export type DataflowFileserverRunOverview = DataflowRunDetail;
+export type DataflowFileserverRunDetail = DataflowRunDetail;
 
-const resolveCache = new Map<string, Promise<DataflowHistoryRunResolve>>();
+const resolveCache = new Map<string, Promise<DataflowRunResolve>>();
 const overviewCache = new Map<string, { promise: Promise<DataflowFileserverRunOverview>; expiresAt: number }>();
 const OVERVIEW_CACHE_TTL_MS = 1500;
 
@@ -41,7 +41,7 @@ const resolveRun = async (
   rootPath: string,
   runName: string,
   options?: { force?: boolean }
-): Promise<DataflowHistoryRunResolve> => {
+): Promise<DataflowRunResolve> => {
   const safeName = String(runName || '').split('/').filter(Boolean).pop() || '';
   if (!safeName) throw new Error('run name is required');
   const cacheKey = resolveCacheKey(projectId, rootPath, safeName);
@@ -52,7 +52,7 @@ const resolveRun = async (
   if (cached) return cached;
   const promise = (async () => {
     const normalizedRootPath = normalizeProjectPath(rootPath);
-    return dataflowVulnScannerApi.resolveHistoryRun(projectId, safeName, normalizedRootPath);
+    return dataflowVulnScannerApi.resolveRun(projectId, safeName, normalizedRootPath);
   })();
   resolveCache.set(cacheKey, promise);
   try {
@@ -76,7 +76,7 @@ export const inspectDataflowFileserverRunOverview = async (
   }
   const promise = (async () => {
     const resolved = await resolveRun(projectId, rootPath, runName);
-    return dataflowVulnScannerApi.getHistoryRun(resolved.history_run_id);
+    return dataflowVulnScannerApi.getRun(resolved.run_id);
   })();
   overviewCache.set(cacheKey, { promise, expiresAt: now + OVERVIEW_CACHE_TTL_MS });
   try {
@@ -92,9 +92,9 @@ export const inspectDataflowFileserverRunCycle = async (
   rootPath: string,
   runName: string,
   cycle: number
-): Promise<DataflowHistoryRunCycle> => {
+): Promise<DataflowRunCycle> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.getHistoryRunCycle(resolved.history_run_id, cycle);
+  return dataflowVulnScannerApi.getRunCycle(resolved.run_id, cycle);
 };
 
 export const listDataflowFileserverRunSessions = async (
@@ -103,7 +103,7 @@ export const listDataflowFileserverRunSessions = async (
   runName: string
 ): Promise<DataflowFileserverRunSession[]> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.listHistoryRunSessions(resolved.history_run_id);
+  return dataflowVulnScannerApi.listRunSessions(resolved.run_id);
 };
 
 export const listDataflowFileserverRunFiles = async (
@@ -113,7 +113,7 @@ export const listDataflowFileserverRunFiles = async (
   limit = 1200
 ): Promise<DataflowFileserverRunFile[]> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.listHistoryRunFiles(resolved.history_run_id, limit);
+  return dataflowVulnScannerApi.listRunFiles(resolved.run_id, limit);
 };
 
 export const getDataflowFileserverRunLog = async (
@@ -123,7 +123,7 @@ export const getDataflowFileserverRunLog = async (
   lines = 2000
 ): Promise<string> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  const payload = await dataflowVulnScannerApi.getHistoryRunLog(resolved.history_run_id, lines);
+  const payload = await dataflowVulnScannerApi.getRunLog(resolved.run_id, lines);
   return payload.content || '';
 };
 
@@ -134,7 +134,7 @@ export const getDataflowFileserverRunFile = async (
   path: string
 ): Promise<{ path: string; type: string; content: string }> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.getHistoryRunFile(resolved.history_run_id, path);
+  return dataflowVulnScannerApi.getRunFile(resolved.run_id, path);
 };
 
 export const getDataflowFileserverRunSessionFile = async (
@@ -144,7 +144,7 @@ export const getDataflowFileserverRunSessionFile = async (
   path: string
 ): Promise<Record<string, any>> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.getHistoryRunSessionFile(resolved.history_run_id, path);
+  return dataflowVulnScannerApi.getRunSessionFile(resolved.run_id, path);
 };
 
 export const inspectDataflowFileserverRun = async (
@@ -153,16 +153,16 @@ export const inspectDataflowFileserverRun = async (
   runName: string
 ): Promise<DataflowFileserverRunDetail> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.getHistoryRun(resolved.history_run_id);
+  return dataflowVulnScannerApi.getRun(resolved.run_id);
 };
 
 export const adoptDataflowFileserverRun = async (
   projectId: string,
   rootPath: string,
   runName: string
-): Promise<DataflowHistoryRunMutationResponse> => {
+): Promise<DataflowRunMutationResponse> => {
   const resolved = await resolveRun(projectId, rootPath, runName, { force: true });
-  const payload = await dataflowVulnScannerApi.adoptHistoryRun(resolved.history_run_id);
+  const payload = await dataflowVulnScannerApi.adoptRun(resolved.run_id);
   clearResolveCache(projectId, rootPath, runName);
   return payload;
 };
@@ -171,9 +171,9 @@ export const cancelDataflowFileserverRun = async (
   projectId: string,
   rootPath: string,
   runName: string
-): Promise<DataflowHistoryRunMutationResponse> => {
+): Promise<DataflowRunMutationResponse> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  const payload = await dataflowVulnScannerApi.cancelHistoryRun(resolved.history_run_id);
+  const payload = await dataflowVulnScannerApi.cancelRun(resolved.run_id);
   clearResolveCache(projectId, rootPath, runName);
   return payload;
 };
@@ -182,10 +182,10 @@ export const retryDataflowFileserverRun = async (
   projectId: string,
   rootPath: string,
   runName: string,
-  retryPayload: DataflowHistoryRunRetryPayload = {}
-): Promise<DataflowHistoryRunMutationResponse> => {
+  retryPayload: DataflowRunRetryPayload = {}
+): Promise<DataflowRunMutationResponse> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  const payload = await dataflowVulnScannerApi.retryHistoryRun(resolved.history_run_id, retryPayload);
+  const payload = await dataflowVulnScannerApi.retryRun(resolved.run_id, retryPayload);
   clearResolveCache(projectId, rootPath, runName);
   return payload;
 };
@@ -194,9 +194,9 @@ export const deleteDataflowFileserverRun = async (
   projectId: string,
   rootPath: string,
   runName: string
-): Promise<DataflowHistoryRunMutationResponse> => {
+): Promise<DataflowRunMutationResponse> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  const payload = await dataflowVulnScannerApi.deleteHistoryRun(resolved.history_run_id);
+  const payload = await dataflowVulnScannerApi.deleteRun(resolved.run_id);
   clearResolveCache(projectId, rootPath, runName);
   return payload;
 };
