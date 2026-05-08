@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Save, Settings } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 
 export const BinarySecurityConfigPage: React.FC = () => {
   const executionApi = api.domains.execution;
@@ -126,10 +127,12 @@ export const BinarySecurityConfigPage: React.FC = () => {
           >
             {saving && <Loader2 size={16} className="animate-spin" />}
             <Save size={16} />
-            保存配置
+            保存二进制安全配置
           </button>
         </div>
       </section>
+
+      <FirmwareUnpackConfigPage projectId="" embedded />
     </div>
   );
 };

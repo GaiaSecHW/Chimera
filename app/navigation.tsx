@@ -335,7 +335,6 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'source-security', label: '源码任务总览', icon: FileSearch, aliases: ['source-security-detail'], requiresProject: true },
         { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, requiresProject: true, subItems: [
           { id: 'pentest-exec-firmware-task-list', label: '任务列表', aliases: ['pentest-exec-firmware-unpacker'], requiresProject: true },
-          { id: 'pentest-exec-firmware-config', label: '解包配置', requiresProject: true },
         ] },
         { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true, subItems: [
           { id: 'system-analysis-task', label: '任务队列', aliases: ['system-analysis-detail'], requiresProject: true },

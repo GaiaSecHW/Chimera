@@ -7,7 +7,7 @@ import { api } from '../../clients/api';
 import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareToolEntry } from '../../clients/firmwareUnpacker';
 import { showAlert } from '../../components/DialogService';
 
-interface Props { projectId: string; }
+interface Props { projectId: string; embedded?: boolean; }
 
 const fwApi = api.domains.execution.firmwareUnpacker;
 
@@ -20,8 +20,8 @@ function fmtTime(iso: string | null) {
 // Config editor row
 // ──────────────────────────────────────────────────────────
 function ConfigRow({
-  entry, onSave, disabled = false,
-}: { entry: FirmwareConfigEntry; onSave: (key: string, value: string) => Promise<void>; disabled?: boolean }) {
+  entry, onSave, disabled = false, saveLabel = '保存配置',
+}: { entry: FirmwareConfigEntry; onSave: (key: string, value: string) => Promise<void>; disabled?: boolean; saveLabel?: string }) {
   const [val, setVal]       = useState(entry.value);
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
@@ -75,7 +75,7 @@ function ConfigRow({
             className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white disabled:bg-slate-300 disabled:cursor-not-allowed hover:bg-blue-700"
           >
             {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
-            保存
+            {saveLabel}
           </button>
         </div>
         <p className="mt-1 text-[10px] text-slate-400">
@@ -89,7 +89,7 @@ function ConfigRow({
 // ──────────────────────────────────────────────────────────
 // Main page
 // ──────────────────────────────────────────────────────────
-export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId }) => {
+export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectId, embedded = false }) => {
   const [configs,       setConfigs]       = useState<FirmwareConfigEntry[]>([]);
   const [configLoading, setConfigLoading] = useState(false);
   const [configError,   setConfigError]   = useState('');
@@ -183,34 +183,41 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId }) => {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Settings size={18} className="text-violet-600" />
-          <div>
-            <h2 className="text-sm font-bold text-slate-800">固件解包 · 配置</h2>
-            <p className="text-xs text-slate-400">动态配置参数</p>
+    <div className={embedded ? 'space-y-4' : 'p-4 space-y-4'}>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Settings size={18} className="text-violet-600" />
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">固件解包 · 配置</h2>
+              <p className="text-xs text-slate-400">动态配置参数</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { loadConfig(); loadCluster(); loadTools(); }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+              <RefreshCw size={12} /> 刷新
+            </button>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => { loadConfig(); loadCluster(); loadTools(); }}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-            <RefreshCw size={12} /> 刷新
-          </button>
-        </div>
-      </div>
+      )}
 
-      {/* Config editor */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className={`${embedded ? 'rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm' : 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'}`}>
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-            <Settings size={13} className="text-amber-600" />
-            动态配置参数
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <Settings size={13} className="text-amber-600" />
+              {embedded ? '固件解包参数配置' : '动态配置参数'}
+            </div>
+            {embedded && (
+              <p className="mt-2 text-sm text-slate-500">
+                当前区块归属于 `secflow-app-firmware-unpacker` 微服务，配置与工具列表共享同一保存入口，但保存动作只作用于该服务。
+              </p>
+            )}
           </div>
-          <button onClick={() => { loadConfig(); loadCluster(); }} disabled={configLoading || clusterLoading}
+          <button onClick={() => { loadConfig(); loadCluster(); loadTools(); }} disabled={configLoading || clusterLoading || toolsLoading}
             className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-            {configLoading || clusterLoading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />} 刷新
+            {configLoading || clusterLoading || toolsLoading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />} 刷新
           </button>
         </div>
 
@@ -314,6 +321,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId }) => {
                   entry={entry}
                   onSave={handleSaveConfig}
                   disabled={!isManualMode}
+                  saveLabel="保存固件解包配置"
                 />
               ))}
             </div>
@@ -331,13 +339,13 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId }) => {
         ) : (
           <div className="space-y-2">
             {genericConfigItems.map(e => (
-              <ConfigRow key={e.key} entry={e} onSave={handleSaveConfig} />
+              <ConfigRow key={e.key} entry={e} onSave={handleSaveConfig} saveLabel="保存固件解包配置" />
             ))}
           </div>
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className={`${embedded ? 'rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm' : 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'}`}>
         <div className="mb-3 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">

@@ -44,7 +44,6 @@ import { AppInstancePage } from '../pages/orchestration/AppInstancePage';
 import { AppInstanceDetailPage } from '../pages/orchestration/AppInstanceDetailPage';
 import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPage';
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
-import { FirmwareUnpackConfigPage } from '../pages/execution/FirmwareUnpackConfigPage';
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { DataflowVulnConfigPage, DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
@@ -336,7 +335,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-firmware-task-list':
       return <FirmwareUnpackerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
     case 'pentest-exec-firmware-config':
-      return <FirmwareUnpackConfigPage projectId={ctx.selectedProjectId} />;
+      return <BinarySecurityConfigPage />;
     case 'pentest-exec-b2s':
     case 'pentest-exec-b2s-root':
     case 'pentest-exec-b2s-task-list':
