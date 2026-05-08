@@ -21,7 +21,7 @@ const fileNameOf = (path?: string | null) => {
 const languageFromPath = (path?: string | null) => {
   const name = fileNameOf(path).toLowerCase();
   if (name.endsWith('.c') || name.endsWith('.h')) return 'c';
-  if (name.endsWith('.json')) return 'json';
+  if (name.endsWith('.json') || name.endsWith('.jsonl')) return 'json';
   if (name.endsWith('.md')) return 'markdown';
   if (name.endsWith('.log') || name.endsWith('.txt')) return 'plaintext';
   return 'plaintext';
@@ -42,6 +42,94 @@ const formatSize = (value?: number | null) => {
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
   return `${(value / 1024 / 1024).toFixed(2)} MB`;
+};
+
+interface PiSessionEntry {
+  type: string;
+  id?: string;
+  parentId?: string | null;
+  timestamp?: string;
+  message?: any;
+  provider?: string;
+  modelId?: string;
+  thinkingLevel?: string;
+  [key: string]: any;
+}
+
+const parseJsonlSession = (content?: string | null): PiSessionEntry[] => {
+  if (!content) return [];
+  return content.split(/\n+/).map((line) => line.trim()).filter(Boolean).map((line) => {
+    try { return JSON.parse(line) as PiSessionEntry; } catch { return null; }
+  }).filter((entry): entry is PiSessionEntry => !!entry);
+};
+
+const textFromContent = (content: any): string => {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) return content.map((block) => {
+    if (!block) return '';
+    if (block.type === 'text') return block.text || '';
+    if (block.type === 'thinking') return block.thinking || '';
+    if (block.type === 'toolCall') return `Tool call: ${block.name || ''}\n${JSON.stringify(block.arguments || {}, null, 2)}`;
+    if (block.type === 'image') return `[image: ${block.mimeType || 'image'}]`;
+    return JSON.stringify(block);
+  }).filter(Boolean).join('\n\n');
+  return content ? JSON.stringify(content, null, 2) : '';
+};
+
+const PiSessionPreview: React.FC<{ file: B2SAdvancedFile }> = ({ file }) => {
+  const entries = useMemo(() => parseJsonlSession(file.content), [file.content]);
+  if (!file.content) {
+    return <div className="flex h-full items-center justify-center text-sm font-semibold text-slate-400">会话内容为空或未加载。</div>;
+  }
+  if (entries.length === 0) {
+    return <pre className="h-full overflow-auto whitespace-pre-wrap p-5 text-sm text-slate-200">{file.content}</pre>;
+  }
+  const header = entries.find((entry) => entry.type === 'session');
+  const messages = entries.filter((entry) => entry.type === 'message');
+  const modelChanges = entries.filter((entry) => entry.type === 'model_change');
+  const toolCalls = messages.flatMap((entry) => {
+    const content = entry.message?.content;
+    if (!Array.isArray(content)) return [];
+    return content.filter((block: any) => block?.type === 'toolCall');
+  });
+  return (
+    <div className="h-full overflow-auto bg-[#0b1020] p-5 text-slate-100">
+      <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">
+        <div className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Pi Agent Session</div>
+        <div className="mt-2 break-all font-mono text-xs text-slate-400">{file.name}</div>
+        <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-300 md:grid-cols-4">
+          <div className="rounded-xl bg-slate-800 px-3 py-2">消息<br /><span className="text-lg font-black text-white">{messages.length}</span></div>
+          <div className="rounded-xl bg-slate-800 px-3 py-2">工具调用<br /><span className="text-lg font-black text-white">{toolCalls.length}</span></div>
+          <div className="rounded-xl bg-slate-800 px-3 py-2">模型<br /><span className="font-black text-white">{modelChanges[0]?.modelId || '-'}</span></div>
+          <div className="rounded-xl bg-slate-800 px-3 py-2">会话 ID<br /><span className="font-mono font-black text-white">{header?.id || '-'}</span></div>
+        </div>
+      </div>
+      <div className="mt-4 space-y-3">
+        {entries.filter((entry) => entry.type !== 'session').map((entry, index) => {
+          const role = entry.message?.role || entry.type;
+          const isUser = role === 'user';
+          const isAssistant = role === 'assistant';
+          const isTool = role === 'toolResult' || role === 'bashExecution';
+          const body = entry.type === 'message'
+            ? textFromContent(entry.message?.content)
+            : entry.type === 'model_change'
+              ? `Model: ${entry.provider || '-'} / ${entry.modelId || '-'}`
+              : entry.type === 'thinking_level_change'
+                ? `Thinking level: ${entry.thinkingLevel || '-'}`
+                : JSON.stringify(entry, null, 2);
+          return (
+            <article key={`${entry.id || index}-${index}`} className={`rounded-2xl border p-4 ${isUser ? 'border-blue-800 bg-blue-950/40' : isAssistant ? 'border-emerald-800 bg-emerald-950/30' : isTool ? 'border-amber-800 bg-amber-950/25' : 'border-slate-700 bg-slate-900/60'}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2 text-xs font-black">
+                <span className={`${isUser ? 'text-blue-300' : isAssistant ? 'text-emerald-300' : isTool ? 'text-amber-300' : 'text-slate-300'}`}>{role}</span>
+                <span className="font-mono text-slate-500">{entry.timestamp || entry.id || ''}</span>
+              </div>
+              <pre className="mt-3 max-h-[520px] overflow-auto whitespace-pre-wrap break-words text-sm leading-6 text-slate-100">{body}</pre>
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
 };
 
 export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId, onBack }) => {
@@ -166,13 +254,17 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                 <div className="shrink-0 rounded-full bg-slate-800 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">{selected ? fileKindLabel(selected) : '-'}</div>
               </div>
               <div className="h-[680px]">
-                <Editor
-                  height="100%"
-                  language={languageFromPath(selected?.name)}
-                  value={selected?.content || ''}
-                  theme="vs-dark"
-                  options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13, lineNumbers: 'on', scrollBeyondLastLine: false, wordWrap: 'on', automaticLayout: true, renderWhitespace: 'selection' }}
-                />
+                {selected?.name.toLowerCase().endsWith('.jsonl') && selected.kind === 'agent_session' ? (
+                  <PiSessionPreview file={selected} />
+                ) : (
+                  <Editor
+                    height="100%"
+                    language={languageFromPath(selected?.name)}
+                    value={selected?.content || ''}
+                    theme="vs-dark"
+                    options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13, lineNumbers: 'on', scrollBeyondLastLine: false, wordWrap: 'on', automaticLayout: true, renderWhitespace: 'selection' }}
+                  />
+                )}
               </div>
             </div>
           </div>
