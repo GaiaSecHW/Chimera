@@ -93,6 +93,8 @@ function formatEaEvent(evt: AppEaStageEvent): string {
     case 'worker_start': return `[${ts}] ▶ Worker[${d.worker_idx ?? ''}] 开始分析  files=${d.file_count ?? ''}`;
     case 'worker_end': return `[${ts}] ✓ Worker[${d.worker_idx ?? ''}] 分析完成`;
     case 'workers_skipped': return `[${ts}] ⏭ Round ${d.round ?? ''} 跳过文件重分析（Master Worker 直接根据反馈修正）  workers=${d.workers ?? ''}`;
+    case 'master_worker_start': return `[${ts}] ▶ Master Worker Round ${d.round ?? ''} 开始合并  workers=${d.workers ?? ''}`;
+    case 'master_worker_done': return `[${ts}] ✓ Master Worker Round ${d.round ?? ''} 合并完成  entry_file_found=${d.entry_file_found ?? ''}`;
     case 'judge_start': return `[${ts}] ▶ Judge[${d.judge_idx ?? ''}] 开始评审`;
     case 'judge_end': return `[${ts}] ✓ Judge[${d.judge_idx ?? ''}] 评审完成  passed=${d.passed ?? ''}`;
     case 'pi_output': {
