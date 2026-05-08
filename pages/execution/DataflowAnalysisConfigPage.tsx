@@ -56,11 +56,20 @@ const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNo
   </div>
 );
 
-const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: number; onChange: (v: number) => void }> = ({ value, min, max, step = 1, onChange }) => (
-  <input type="number" min={min} max={max} step={step} value={value}
-    onChange={(e) => onChange(Number(e.target.value))}
-    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-);
+const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: number; onChange: (v: number) => void }> = ({ value, min, max, step = 1, onChange }) => {
+  const [str, setStr] = React.useState(String(value));
+  React.useEffect(() => { setStr(String(value)); }, [value]);
+  return (
+    <input type="number" min={min} max={max} step={step} value={str}
+      onChange={(e) => {
+        setStr(e.target.value);
+        const n = e.target.valueAsNumber;
+        if (!isNaN(n)) onChange(n);
+      }}
+      onBlur={() => setStr(String(value))}
+      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+  );
+};
 
 const TextInput: React.FC<{ value: string; placeholder?: string; onChange: (v: string) => void }> = ({ value, placeholder, onChange }) => (
   <input type="text" placeholder={placeholder} value={value}
@@ -232,8 +241,8 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
           {/* 基本配置 */}
           <SectionCard title="基本配置" subtitle="分析轮次控制">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              <FieldRow label="max_rounds" hint="最大分析轮数">
-                <NumberInput value={config.max_rounds} min={1} max={20} onChange={(v) => patch({ max_rounds: v })} />
+              <FieldRow label="max_rounds" hint="-1=无限">
+                <NumberInput value={config.max_rounds} min={-1} onChange={(v) => patch({ max_rounds: v })} />
               </FieldRow>
               <FieldRow label="min_rounds" hint="最少通过轮数">
                 <NumberInput value={config.min_rounds} min={1} max={20} onChange={(v) => patch({ min_rounds: v })} />

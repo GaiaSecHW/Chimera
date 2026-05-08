@@ -105,11 +105,20 @@ const FieldRow: React.FC<{ label: string; hint?: string; desc?: string; children
   </div>
 );
 
-const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: number; onChange: (v: number) => void }> = ({ value, min, max, step = 1, onChange }) => (
-  <input type="number" min={min} max={max} step={step} value={value}
-    onChange={(e) => onChange(Number(e.target.value))}
-    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-);
+const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: number; onChange: (v: number) => void }> = ({ value, min, max, step = 1, onChange }) => {
+  const [str, setStr] = React.useState(String(value));
+  React.useEffect(() => { setStr(String(value)); }, [value]);
+  return (
+    <input type="number" min={min} max={max} step={step} value={str}
+      onChange={(e) => {
+        setStr(e.target.value);
+        const n = e.target.valueAsNumber;
+        if (!isNaN(n)) onChange(n);
+      }}
+      onBlur={() => setStr(String(value))}
+      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+  );
+};
 
 const TextInput: React.FC<{ value: string; placeholder?: string; onChange: (v: string) => void }> = ({ value, placeholder, onChange }) => (
   <input type="text" placeholder={placeholder} value={value}
