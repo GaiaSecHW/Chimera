@@ -94,6 +94,25 @@ export interface FirmwareTaskProgress {
   phases: FirmwareTaskProgressPhase[];
 }
 
+export interface FirmwareTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string | null;
+  event_type: string;
+  stage_key: string | null;
+  status: string | null;
+  summary: string;
+  detail: Record<string, any> | null;
+  owner_id: string | null;
+  created_by: string | null;
+  created_at: string | null;
+}
+
+export interface FirmwareTaskEventList {
+  total: number;
+  items: FirmwareTaskEvent[];
+}
+
 export interface FirmwareUnpackTaskList {
   total: number;
   offset: number;
@@ -332,6 +351,34 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
   };
 };
 
+const normalizeTaskEvent = (value: unknown): FirmwareTaskEvent => {
+  const record = asRecord(value);
+  return {
+    id: asString(record.id),
+    task_id: asString(record.task_id),
+    project_id: asNullableString(record.project_id),
+    event_type: asString(record.event_type, 'event'),
+    stage_key: asNullableString(record.stage_key),
+    status: asNullableString(record.status),
+    summary: asString(record.summary),
+    detail: record.detail && typeof record.detail === 'object' && !Array.isArray(record.detail)
+      ? (record.detail as Record<string, any>)
+      : null,
+    owner_id: asNullableString(record.owner_id),
+    created_by: asNullableString(record.created_by),
+    created_at: asNullableString(record.created_at),
+  };
+};
+
+const normalizeTaskEventList = (value: unknown): FirmwareTaskEventList => {
+  const record = asRecord(value);
+  const items = asArray(record.items).map(normalizeTaskEvent);
+  return {
+    total: asNumber(record.total, items.length),
+    items,
+  };
+};
+
 const normalizeHealth = (value: unknown): FirmwareUnpackerHealth => {
   const record = asRecord(value);
   return {
@@ -533,6 +580,12 @@ export const firmwareUnpackerApi = {
   getTaskProgress: async (taskId: string): Promise<FirmwareTaskProgress> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/progress`, { headers: getHeaders() });
     return normalizeTaskProgress(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/tasks/{id}/events */
+  getTaskEvents: async (taskId: string, limit = 200): Promise<FirmwareTaskEventList> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/events?limit=${encodeURIComponent(String(limit))}`, { headers: getHeaders() });
+    return normalizeTaskEventList(await handleResponse(r));
   },
 
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */

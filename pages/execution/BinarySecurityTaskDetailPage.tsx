@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Loader2, PauseCircle, RefreshCw, Sparkles, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
@@ -112,6 +112,63 @@ const detailPanelTone = 'rounded-xl border border-slate-200 bg-white px-3 py-2 t
 const detailCodeTone = 'max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs text-slate-100';
 
 const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
+const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
+
+const inferTimelineTone = (event: any) => {
+  const raw = `${event?.event_type || ''} ${event?.message || ''}`.toLowerCase();
+  if (raw.includes('fail') || raw.includes('error')) {
+    return {
+      icon: XCircle,
+      line: 'from-rose-200 via-rose-300 to-rose-100',
+      node: 'border-rose-200 bg-rose-50 text-rose-700',
+      badge: 'border-rose-200 bg-rose-50 text-rose-700',
+      glow: 'shadow-rose-100/80',
+    };
+  }
+  if (raw.includes('cancel')) {
+    return {
+      icon: PauseCircle,
+      line: 'from-slate-200 via-slate-300 to-slate-100',
+      node: 'border-slate-200 bg-slate-100 text-slate-600',
+      badge: 'border-slate-200 bg-slate-100 text-slate-600',
+      glow: 'shadow-slate-200/80',
+    };
+  }
+  if (raw.includes('success') || raw.includes('complete') || raw.includes('finish')) {
+    return {
+      icon: CheckCircle2,
+      line: 'from-emerald-200 via-emerald-300 to-emerald-100',
+      node: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      glow: 'shadow-emerald-100/80',
+    };
+  }
+  if (raw.includes('running') || raw.includes('dispatch') || raw.includes('start') || raw.includes('retry')) {
+    return {
+      icon: Loader2,
+      line: 'from-sky-200 via-blue-300 to-cyan-100',
+      node: 'border-sky-200 bg-sky-50 text-sky-700',
+      badge: 'border-sky-200 bg-sky-50 text-sky-700',
+      glow: 'shadow-sky-100/80',
+    };
+  }
+  if (raw.includes('stale')) {
+    return {
+      icon: AlertTriangle,
+      line: 'from-amber-200 via-amber-300 to-amber-100',
+      node: 'border-amber-200 bg-amber-50 text-amber-700',
+      badge: 'border-amber-200 bg-amber-50 text-amber-700',
+      glow: 'shadow-amber-100/80',
+    };
+  }
+  return {
+    icon: Sparkles,
+    line: 'from-violet-200 via-fuchsia-200 to-cyan-100',
+    node: 'border-violet-200 bg-violet-50 text-violet-700',
+    badge: 'border-violet-200 bg-violet-50 text-violet-700',
+    glow: 'shadow-violet-100/80',
+  };
+};
 
 type DownstreamTaskDetail =
   | { kind: 'firmware_unpack'; data: FirmwareUnpackTask }
@@ -391,6 +448,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (!detail) return [];
     return detail.stage_items.filter((item) => item.stage_name === selectedStage);
   }, [detail, selectedStage]);
+
+  const timelineItems = useMemo(() => {
+    const events = timeline.slice(-80);
+    return events.map((event, index) => ({
+      ...event,
+      _key: event.id || `${event.event_type || 'event'}-${event.created_at || index}-${index}`,
+      _index: index + 1,
+      _tone: inferTimelineTone(event),
+    }));
+  }, [timeline]);
 
   const openDownstreamTaskDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     const downstreamTaskId = item.downstream_task_id?.trim();
@@ -777,19 +844,84 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           </section>
 
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black text-slate-900">事件时间线</h2>
-            <div className="mt-5 space-y-3">
-              {timeline.length === 0 ? (
-                <div className="text-sm text-slate-400">暂无事件</div>
-              ) : timeline.slice(-80).reverse().map((event) => (
-                <div key={event.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-bold text-slate-900">{event.message}</div>
-                    <div className="text-xs text-slate-500">{fmt(event.created_at)}</div>
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">{event.event_type} {event.stage_name ? `· ${STAGE_LABELS[event.stage_name] || event.stage_name}` : ''}</div>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">事件时间线</h2>
+                <p className="mt-1 text-sm text-slate-500">按时间顺序展示最近 80 条编排事件</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">总事件数</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{timeline.length}</div>
                 </div>
-              ))}
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">展示区间</div>
+                  <div className="mt-1 text-sm font-bold text-slate-700">{timelineItems.length > 0 ? `${fmtTime(timelineItems[0].created_at)} -> ${fmtTime(timelineItems[timelineItems.length - 1].created_at)}` : '-'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              {timelineItems.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
+                  暂无事件
+                </div>
+              ) : (
+                <div className="relative pl-2">
+                  <div className="absolute bottom-0 left-[19px] top-0 w-px bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200" />
+                  <div className="space-y-3">
+                    {timelineItems.map((event) => {
+                      const tone = event._tone;
+                      const Icon = tone.icon;
+                      const isRunningTone = Icon === Loader2;
+                      return (
+                        <div key={event._key} className="relative flex gap-4">
+                          <div className="relative z-10 flex w-10 shrink-0 justify-center">
+                            <div className={`flex h-8 w-8 items-center justify-center rounded-2xl border shadow-lg ${tone.node} ${tone.glow}`}>
+                              <Icon size={14} className={isRunningTone ? 'animate-spin' : ''} />
+                            </div>
+                          </div>
+
+                          <div className="min-w-0 flex-1 pb-1">
+                            <div className={`rounded-[1.25rem] border bg-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md`}>
+                              <div className="flex items-center gap-3">
+                                <div className="min-w-0 flex flex-1 items-center gap-2 overflow-hidden">
+                                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${tone.badge}`}>
+                                      {event.event_type || 'event'}
+                                    </span>
+                                    {event.stage_name ? (
+                                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                        {STAGE_LABELS[event.stage_name] || event.stage_name}
+                                      </span>
+                                    ) : null}
+                                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                                      #{event._index}
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0 truncate text-sm font-black text-slate-900">
+                                    {event.message || '系统事件'}
+                                  </div>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  <div className="text-xs font-black text-slate-700">{fmtTime(event.created_at)}</div>
+                                  <div className="text-[10px] text-slate-500">{fmt(event.created_at)}</div>
+                                </div>
+                              </div>
+
+                              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                                <span className={`inline-flex h-2.5 w-2.5 rounded-full bg-gradient-to-br ${tone.line}`} />
+                                <span>编排器事件</span>
+                                {event.created_by ? <span>· {event.created_by}</span> : null}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 

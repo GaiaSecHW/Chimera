@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Clock,
   FolderOpen, Loader2, Package, Play, RefreshCw,
-  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus,
+  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus, PauseCircle, Sparkles,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
+import { FirmwareTaskEvent, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
@@ -125,6 +125,53 @@ function PhaseNodeStatusIcon({ status, index }: { status: string; index: number 
   return <span>{index + 1}</span>;
 }
 
+function inferTaskEventTone(event: FirmwareTaskEvent) {
+  const raw = `${event.event_type || ''} ${event.status || ''} ${event.summary || ''}`.toLowerCase();
+  if (raw.includes('failed') || raw.includes('error') || raw.includes('expired') || raw.includes('lost')) {
+    return {
+      icon: XCircle,
+      dot: 'bg-red-400',
+      badge: 'border-red-200 bg-red-50 text-red-700',
+      text: 'text-red-700',
+    };
+  }
+  if (raw.includes('cancel')) {
+    return {
+      icon: PauseCircle,
+      dot: 'bg-orange-400',
+      badge: 'border-orange-200 bg-orange-50 text-orange-700',
+      text: 'text-orange-700',
+    };
+  }
+  if (raw.includes('success') || raw.includes('complete') || raw.includes('succeeded')) {
+    return {
+      icon: CheckCircle2,
+      dot: 'bg-emerald-400',
+      badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      text: 'text-emerald-700',
+    };
+  }
+  if (raw.includes('start') || raw.includes('running') || raw.includes('claimed') || raw.includes('renewed') || raw.includes('stage_changed')) {
+    return {
+      icon: Loader2,
+      dot: 'bg-blue-400',
+      badge: 'border-blue-200 bg-blue-50 text-blue-700',
+      text: 'text-blue-700',
+    };
+  }
+  return {
+    icon: Sparkles,
+    dot: 'bg-slate-300',
+    badge: 'border-slate-200 bg-slate-50 text-slate-600',
+    text: 'text-slate-600',
+  };
+}
+
+function formatEventDetail(detail: Record<string, any> | null) {
+  if (!detail) return '';
+  return JSON.stringify(detail, null, 2);
+}
+
 function TaskRow({
   task, selected, active, onSelect, onOpenDetail,
 }: {
@@ -185,6 +232,9 @@ function TaskDetailPanel({
   hasReturnContext,
   progress,
   progressLoading,
+  events,
+  eventsLoading,
+  eventsError,
   onBack,
   onRefresh,
   onCancel,
@@ -198,6 +248,9 @@ function TaskDetailPanel({
   hasReturnContext: boolean;
   progress: FirmwareTaskProgress | null;
   progressLoading: boolean;
+  events: FirmwareTaskEvent[];
+  eventsLoading: boolean;
+  eventsError: string;
   onBack: () => void;
   onRefresh: (id: string) => void;
   onCancel: (id: string) => void;
@@ -223,6 +276,7 @@ function TaskDetailPanel({
   const running = !isTerminal(task.status);
   const canDelete = isTerminal(task.status);
   const canRetry = task.status === 'failed' || task.status === 'cancelled' || task.status === 'max_retries_reached';
+  const orderedEvents = [...events].reverse();
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -385,6 +439,63 @@ function TaskDetailPanel({
         </div>
 
         <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">事件时间轴</p>
+              <p className="mt-1 text-[11px] text-slate-500">默认展示最近任务事件，最新事件在上</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[10px]">
+              <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-500">
+                总事件数 <span className="font-bold text-slate-800">{events.length}</span>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-500">
+                最近事件 <span className="font-bold text-slate-800">{orderedEvents[0]?.created_at ? fmtTime(orderedEvents[0].created_at) : '-'}</span>
+              </div>
+            </div>
+          </div>
+          {eventsLoading ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <Loader2 size={13} className="animate-spin" /> 加载任务事件中...
+            </div>
+          ) : eventsError ? (
+            <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {eventsError}
+            </div>
+          ) : orderedEvents.length === 0 ? (
+            <div className="text-xs text-slate-500">暂无任务事件</div>
+          ) : (
+            <div className="space-y-2">
+              {orderedEvents.map((event) => {
+                const tone = inferTaskEventTone(event);
+                const Icon = tone.icon;
+                const detailText = formatEventDetail(event.detail);
+                return (
+                  <details key={event.id} className="group rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-slate-700">
+                      <span className={`inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${tone.dot}`} />
+                      <Icon size={13} className={`shrink-0 ${tone.text} ${Icon === Loader2 ? 'group-open:animate-spin' : ''}`} />
+                      <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${tone.badge}`}>
+                        {event.event_type}
+                      </span>
+                      {event.stage_key ? (
+                        <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                          {event.stage_key}
+                        </span>
+                      ) : null}
+                      <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{event.summary}</span>
+                      <span className="shrink-0 text-[10px] text-slate-400">{fmtTime(event.created_at)}</span>
+                    </summary>
+                    {detailText ? (
+                      <pre className="mt-2 overflow-auto rounded-lg bg-slate-950 px-3 py-2 text-[10px] leading-5 text-slate-100">{detailText}</pre>
+                    ) : null}
+                  </details>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">资源使用情况</p>
           {resourceLoading ? (
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -451,6 +562,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [resourceLoading, setResourceLoading] = useState(false);
   const [progress, setProgress] = useState<FirmwareTaskProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
+  const [events, setEvents] = useState<FirmwareTaskEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState('');
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
@@ -535,6 +649,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         ]);
         setResourceUsage(usage);
         setProgress(taskProgress);
+        try {
+          const taskEvents = await fwApi.getTaskEvents(id);
+          setEvents(taskEvents.items);
+          setEventsError('');
+        } catch (eventError: any) {
+          setEvents([]);
+          setEventsError(eventError?.message || '加载任务事件失败');
+        }
       }
     } catch {
     } finally {
@@ -563,6 +685,20 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setProgress(null);
     } finally {
       setProgressLoading(false);
+    }
+  }, []);
+
+  const loadTaskEvents = useCallback(async (id: string) => {
+    setEventsLoading(true);
+    setEventsError('');
+    try {
+      const next = await fwApi.getTaskEvents(id);
+      setEvents(next.items);
+    } catch (e: any) {
+      setEvents([]);
+      setEventsError(e?.message || '加载任务事件失败');
+    } finally {
+      setEventsLoading(false);
     }
   }, []);
 
@@ -609,11 +745,15 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setResourceLoading(false);
       setProgress(null);
       setProgressLoading(false);
+      setEvents([]);
+      setEventsLoading(false);
+      setEventsError('');
       return;
     }
     loadResourceUsage(activeTaskId);
     loadTaskProgress(activeTaskId);
-  }, [activeTaskId, loadResourceUsage, loadTaskProgress]);
+    loadTaskEvents(activeTaskId);
+  }, [activeTaskId, loadResourceUsage, loadTaskProgress, loadTaskEvents]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -905,6 +1045,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           hasReturnContext={hasReturnContext}
           progress={progress}
           progressLoading={progressLoading}
+          events={events}
+          eventsLoading={eventsLoading}
+          eventsError={eventsError}
           onBack={handleDetailBack}
           onRefresh={refreshOne}
           onCancel={handleCancel}
