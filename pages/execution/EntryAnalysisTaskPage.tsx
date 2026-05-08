@@ -71,26 +71,28 @@ function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): Step
   if (taskStatus === 'pending') return statuses;
   if (taskStatus === 'passed') return STAGE_STEPS.map(() => 'completed');
 
-  let lastSeenStep = -1;
+  // 追踪【最后一个】事件对应的步骤（而非最大值），这样评审不通过回到下一轮时能正确退回 step 1
+  let lastStep = -1;
   for (const evt of events) {
     const t = evt.type;
     for (let i = 0; i < STAGE_STEPS.length; i++) {
       if (STAGE_STEPS[i].triggers.some((trigger) => trigger === t)) {
-        if (i > lastSeenStep) lastSeenStep = i;
+        lastStep = i;
+        break;
       }
     }
   }
 
-  if (lastSeenStep === -1) {
+  if (lastStep === -1) {
     if (taskStatus === 'running') statuses[0] = 'running';
     else if (taskStatus === 'error' || taskStatus === 'failed' || taskStatus === 'cancelled') statuses[0] = 'failed';
     return statuses;
   }
 
   for (let i = 0; i < STAGE_STEPS.length; i++) {
-    if (i < lastSeenStep) {
+    if (i < lastStep) {
       statuses[i] = 'completed';
-    } else if (i === lastSeenStep) {
+    } else if (i === lastStep) {
       statuses[i] = taskStatus === 'error' || taskStatus === 'failed' || taskStatus === 'cancelled'
         ? 'failed'
         : 'running';
@@ -125,6 +127,18 @@ function computeStageTimes(events: AppEaStageEvent[]): Array<{ startTs: number |
   return result;
 }
 
+function computeFileProgress(events: AppEaStageEvent[]): { done: number; total: number } | null {
+  let done = 0;
+  let total = 0;
+  for (const evt of events) {
+    if (evt.type === 'worker_done' && evt.data?.done != null && evt.data?.total != null) {
+      if (evt.data.done > done) done = evt.data.done;
+      total = evt.data.total;
+    }
+  }
+  return total > 0 ? { done, total } : null;
+}
+
 function formatEventLog(evt: AppEaStageEvent): string {
   const ts = new Date(evt.ts * 1000).toLocaleTimeString('zh-CN');
   const d = evt.data ?? {};
@@ -137,7 +151,12 @@ function formatEventLog(evt: AppEaStageEvent): string {
     case 'round_start':   return `[${ts}] \u25b6 第 ${d.round ?? ''} 轮开始`;
     case 'worker_start':  return `[${ts}] \u2502 Worker ${d.worker_id ?? ''}: ${d.entry ?? ''}`;
     case 'worker_file':   return `[${ts}] \u2502   \u2192 ${d.file ?? ''}`;
-    case 'worker_done':   return `[${ts}] \u2713 Worker ${d.worker_id ?? ''} 完成  status=${d.status ?? ''}`;
+    case 'worker_done': {
+      if (d.done != null && d.total != null) {
+        return `[${ts}] \u2713 (${d.done}/${d.total}) 已完成${d.done} 共${d.total}个文件`;
+      }
+      return `[${ts}] \u2713 Worker ${d.worker_id ?? ''} 完成`;
+    }
     case 'judge_start':   return `[${ts}] \u25b6 Judge ${d.judge_id ?? ''} 开始综合`;
     case 'judge_eval': {
       const text = (d.summary ?? '').toString().replace(/\n+/g, ' ').trim().slice(0, 100);
@@ -379,6 +398,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
     ? computeStageTimes(detail.stages_json?.events ?? [])
     : STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null }));
 
+  const fileProgress = detail ? computeFileProgress(detail.stages_json?.events ?? []) : null;
+
   const logLines = detail?.stages_json?.events?.map(formatEventLog) ?? [];
 
   return (
@@ -515,6 +536,28 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
                     })}
                   </div>
                 </div>
+
+                {/* File Progress Bar — 并行模式下显示文件处理进度 */}
+                {fileProgress ? (
+                  <div>
+                    <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+                      <span className="font-semibold">文件处理进度</span>
+                      <span className="font-mono text-slate-700 font-semibold">{fileProgress.done}/{fileProgress.total}</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-violet-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.round(fileProgress.done / fileProgress.total * 100)}%` }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">
+                      已完成 <span className="font-semibold text-slate-600">{fileProgress.done}</span> 共 <span className="font-semibold text-slate-600">{fileProgress.total}</span> 个文件
+                      {fileProgress.done < fileProgress.total && detail.status === 'running'
+                        ? <span className="ml-2 text-violet-500">({Math.round(fileProgress.done / fileProgress.total * 100)}%)</span>
+                        : null}
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Error */}
                 {detail.error ? (
