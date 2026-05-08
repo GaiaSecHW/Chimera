@@ -153,6 +153,23 @@ export interface FirmwareConfigList {
   items: FirmwareConfigEntry[];
 }
 
+export interface FirmwareLlmProviderSummary {
+  provider_key: string;
+  display_name: string;
+  provider_type: string;
+  enabled: boolean;
+  is_default: boolean;
+  model: string;
+  description: string | null;
+  updated_at: string | null;
+}
+
+export interface FirmwareLlmProviderSummaryList {
+  total: number;
+  default_provider_key: string | null;
+  items: FirmwareLlmProviderSummary[];
+}
+
 export interface FirmwareToolEntry {
   filename: string;
   path: string;
@@ -401,6 +418,30 @@ const normalizeConfigList = (value: unknown): FirmwareConfigList => {
   };
 };
 
+const normalizeLlmProviderSummary = (value: unknown): FirmwareLlmProviderSummary => {
+  const record = asRecord(value);
+  return {
+    provider_key: asString(record.provider_key),
+    display_name: asString(record.display_name),
+    provider_type: asString(record.provider_type),
+    enabled: asBoolean(record.enabled),
+    is_default: asBoolean(record.is_default),
+    model: asString(record.model),
+    description: asNullableString(record.description),
+    updated_at: asNullableString(record.updated_at),
+  };
+};
+
+const normalizeLlmProviderSummaryList = (value: unknown): FirmwareLlmProviderSummaryList => {
+  const record = asRecord(value);
+  const items = asArray(record.items).map(normalizeLlmProviderSummary);
+  return {
+    total: asNumber(record.total, items.length),
+    default_provider_key: asNullableString(record.default_provider_key),
+    items,
+  };
+};
+
 const normalizeSubmitResult = (value: unknown): FirmwareUnpackSubmitResult => {
   const record = asRecord(value);
   return {
@@ -541,6 +582,12 @@ export const firmwareUnpackerApi = {
   getConfig: async (): Promise<FirmwareConfigList> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/config`, { headers: getHeaders() });
     return normalizeConfigList(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/llm/providers */
+  getLlmProviders: async (): Promise<FirmwareLlmProviderSummaryList> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/llm/providers`, { headers: getHeaders() });
+    return normalizeLlmProviderSummaryList(await handleResponse(r));
   },
 
   /** GET /api/app/firmware-unpacker/tools */

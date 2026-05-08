@@ -1,15 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle, CheckCircle2, Loader2,
+  AlertCircle, Loader2,
   RefreshCw, Save, Settings,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareToolEntry } from '../../clients/firmwareUnpacker';
-import { showAlert } from '../../components/DialogService';
+import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmProviderSummary } from '../../clients/firmwareUnpacker';
 
 interface Props { projectId: string; embedded?: boolean; }
 
 const fwApi = api.domains.execution.firmwareUnpacker;
+const LLM_ROLE_FIELDS = [
+  { key: 'llm_provider_key_executor', label: '通用解包执行器', description: '控制通用 LLM 解包执行轮次使用的 Provider。' },
+  { key: 'llm_provider_key_reviewer', label: '评审器', description: '控制解包结果评审阶段使用的 Provider。' },
+  { key: 'llm_provider_key_cleaner', label: '清理器', description: '控制输出清理阶段使用的 Provider。' },
+  { key: 'llm_provider_key_skill_author', label: '技能生成器', description: '控制成功解包后生成可复用技能的 Provider。' },
+  { key: 'llm_provider_key_skill_executor', label: '命中技能执行器', description: '控制命中解包技能后实际执行该技能的 Provider。' },
+] as const;
 
 function fmtTime(iso: string | null) {
   if (!iso) return '-';
@@ -20,65 +26,28 @@ function fmtTime(iso: string | null) {
 // Config editor row
 // ──────────────────────────────────────────────────────────
 function ConfigRow({
-  entry, onSave, disabled = false, saveLabel = '保存配置',
-}: { entry: FirmwareConfigEntry; onSave: (key: string, value: string) => Promise<void>; disabled?: boolean; saveLabel?: string }) {
-  const [val, setVal]       = useState(entry.value);
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
-  const dirty = val !== entry.value;
-
-  useEffect(() => {
-    setVal(entry.value);
-  }, [entry.value]);
-
-  const handleSave = async () => {
-    if (disabled) return;
-    setSaving(true);
-    try {
-      await onSave(entry.key, val);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (e: any) {
-      await showAlert({
-        title: '保存失败',
-        message: e?.message ? `保存失败: ${e.message}` : '保存失败',
-        tone: 'error',
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  entry, value, onChange, disabled = false, dirty = false,
+}: { entry: FirmwareConfigEntry; value: string; onChange: (value: string) => void; disabled?: boolean; dirty?: boolean }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
+    <div className="rounded-2xl bg-white p-5">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="mb-1 flex items-center gap-2">
           <span className="text-xs font-black font-mono text-slate-700">{entry.key}</span>
           <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{entry.value_type}</span>
-          {saved && <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5"><CheckCircle2 size={10} /> 已保存</span>}
+          {dirty && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
         </div>
         {entry.description && (
-          <p className="text-[11px] text-slate-400 mb-2">{entry.description}</p>
+          <p className="mb-3 text-[11px] text-slate-400">{entry.description}</p>
         )}
-        <div className="flex items-center gap-2">
-          <input
-            value={val}
-            onChange={e => setVal(e.target.value)}
-            disabled={disabled}
-            className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-mono outline-none transition ${
-              dirty ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
-            } bg-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
-          />
-          <button
-            onClick={handleSave}
-            disabled={disabled || !dirty || saving}
-            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white disabled:bg-slate-300 disabled:cursor-not-allowed hover:bg-blue-700"
-          >
-            {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
-            {saveLabel}
-          </button>
-        </div>
-        <p className="mt-1 text-[10px] text-slate-400">
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          disabled={disabled}
+          className={`w-full rounded-lg border px-3 py-1.5 text-xs font-mono outline-none transition ${
+            dirty ? 'border-blue-300 ring-1 ring-blue-100' : 'border-slate-200'
+          } bg-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400`}
+        />
+        <p className="mt-2 text-[10px] text-slate-400">
           更新于 {fmtTime(entry.updated_at)}
         </p>
       </div>
@@ -93,9 +62,12 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   const [configs,       setConfigs]       = useState<FirmwareConfigEntry[]>([]);
   const [configLoading, setConfigLoading] = useState(false);
   const [configError,   setConfigError]   = useState('');
-  const [tools,         setTools]         = useState<FirmwareToolEntry[]>([]);
-  const [toolsLoading,  setToolsLoading]  = useState(false);
-  const [toolsError,    setToolsError]    = useState('');
+  const [configMessage, setConfigMessage] = useState('');
+  const [configSaving,  setConfigSaving]  = useState(false);
+  const [draftValues,   setDraftValues]   = useState<Record<string, string>>({});
+  const [llmProviders,  setLlmProviders]  = useState<FirmwareLlmProviderSummary[]>([]);
+  const [llmLoading,    setLlmLoading]    = useState(false);
+  const [llmError,      setLlmError]      = useState('');
   const [cluster,       setCluster]       = useState<FirmwareClusterInfo | null>(null);
   const [clusterLoading,setClusterLoading]= useState(false);
   const [clusterError,  setClusterError]  = useState('');
@@ -109,6 +81,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
       'reserved_cpu_millis',
       'reserved_memory_mb',
       'max_concurrent',
+      ...LLM_ROLE_FIELDS.map((item) => item.key),
     ]),
     [],
   );
@@ -122,14 +95,25 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     configMap.get('manual_max_concurrent'),
   ].filter((item): item is FirmwareConfigEntry => Boolean(item));
   const genericConfigItems = configItems.filter((item) => !concurrencyConfigKeys.has(item.key));
+  const llmRoleConfigs = LLM_ROLE_FIELDS.map((field) => ({
+    ...field,
+    entry: configMap.get(field.key) || null,
+    value: draftValues[field.key] ?? configMap.get(field.key)?.value ?? '',
+  }));
+  const hasConfigChanges = configItems.some((item) => draftValues[item.key] !== item.value);
+  const missingLlmRoles = llmRoleConfigs.filter((item) => !String(item.value || '').trim()).map((item) => item.label);
 
   // ── load ──────────────────────────────────────────────────
   const loadConfig = useCallback(async () => {
     setConfigLoading(true);
     setConfigError('');
+    setConfigMessage('');
     try {
       const r = await fwApi.getConfig();
       setConfigs(r.items);
+      setDraftValues(
+        Object.fromEntries(r.items.map((item) => [item.key, item.value])),
+      );
     } catch (e: any) {
       setConfigError(e?.message || '加载配置失败');
     } finally {
@@ -150,36 +134,76 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     }
   }, []);
 
-  const loadTools = useCallback(async () => {
-    setToolsLoading(true);
-    setToolsError('');
+  const loadLlmProviders = useCallback(async () => {
+    setLlmLoading(true);
+    setLlmError('');
     try {
-      const result = await fwApi.getTools();
-      setTools(result.items);
+      const result = await fwApi.getLlmProviders();
+      setLlmProviders(result.items);
     } catch (e: any) {
-      setToolsError(e?.message || '加载工具列表失败');
+      setLlmError(e?.message || '加载可选 LLM Provider 失败');
     } finally {
-      setToolsLoading(false);
+      setLlmLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadConfig();
     loadCluster();
-    loadTools();
-  }, []);
+    loadLlmProviders();
+  }, [loadCluster, loadConfig, loadLlmProviders]);
 
   // ── save config ───────────────────────────────────────────
-  const handleSaveConfig = async (key: string, value: string) => {
-    await fwApi.updateConfig(key, value);
-    // Update local cache
-    setConfigs(prev => prev.map(e => e.key === key ? { ...e, value, updated_at: new Date().toISOString() } : e));
-    loadCluster();
-  };
+  const updateDraftValue = useCallback((key: string, value: string) => {
+    setDraftValues((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
-  const handleModeChange = async (mode: 'auto' | 'manual') => {
+  const handleSaveConfig = useCallback(async () => {
+    if (missingLlmRoles.length > 0) {
+      setConfigError(`以下 LLM 角色尚未配置: ${missingLlmRoles.join('、')}`);
+      setConfigMessage('');
+      return;
+    }
+    const updates = configItems
+      .filter((item) => draftValues[item.key] !== item.value)
+      .map((item) => ({ key: item.key, value: draftValues[item.key] ?? item.value }));
+
+    if (updates.length === 0) {
+      setConfigMessage('当前没有需要保存的改动');
+      return;
+    }
+
+    setConfigSaving(true);
+    setConfigError('');
+    setConfigMessage('');
+    try {
+      const result = await fwApi.batchUpdateConfig(updates);
+      setConfigs(result.items);
+      setDraftValues(
+        Object.fromEntries(result.items.map((item) => [item.key, item.value])),
+      );
+      setConfigMessage('固件解包配置已保存');
+      void loadCluster();
+    } catch (e: any) {
+      setConfigError(e?.message || '保存失败');
+    } finally {
+      setConfigSaving(false);
+    }
+  }, [configItems, draftValues, loadCluster, missingLlmRoles]);
+
+  const handleResetConfig = useCallback(() => {
+    setDraftValues(Object.fromEntries(configItems.map((item) => [item.key, item.value])));
+    setConfigMessage('');
+    setConfigError('');
+  }, [configItems]);
+
+  const resolveDraftValue = useCallback((entry: FirmwareConfigEntry) => (
+    draftValues[entry.key] ?? entry.value
+  ), [draftValues]);
+
+  const handleModeChange = (mode: 'auto' | 'manual') => {
     if (mode === concurrencyMode) return;
-    await handleSaveConfig('concurrency_mode', mode);
+    updateDraftValue('concurrency_mode', mode);
   };
 
   return (
@@ -194,7 +218,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => { loadConfig(); loadCluster(); loadTools(); }}
+            <button onClick={() => { loadConfig(); loadCluster(); loadLlmProviders(); }}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
               <RefreshCw size={12} /> 刷新
             </button>
@@ -202,51 +226,62 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
         </div>
       )}
 
-      <div className={`${embedded ? 'rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm' : 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'}`}>
-        <div className="flex items-center justify-between mb-3">
+      <section className={`${embedded ? 'rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm' : 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'}`}>
+        <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-              <Settings size={13} className="text-amber-600" />
-              {embedded ? '固件解包参数配置' : '动态配置参数'}
+            <div className="flex flex-wrap items-center gap-2">
+              <Settings size={18} className="text-rose-600" />
+              <h2 className="text-xl font-black text-slate-900">{embedded ? '固件解包参数配置' : '动态配置参数'}</h2>
+              <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+                secflow-app-firmware-unpacker
+              </span>
             </div>
-            {embedded && (
-              <p className="mt-2 text-sm text-slate-500">
-                当前区块归属于 `secflow-app-firmware-unpacker` 微服务，配置与工具列表共享同一保存入口，但保存动作只作用于该服务。
-              </p>
-            )}
+            <p className="mt-2 text-sm text-slate-500">
+              当前面板配置项归属于 `secflow-app-firmware-unpacker` 微服务，用于控制固件解包服务的集群并发和运行时参数。
+            </p>
           </div>
-          <button onClick={() => { loadConfig(); loadCluster(); loadTools(); }} disabled={configLoading || clusterLoading || toolsLoading}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-            {configLoading || clusterLoading || toolsLoading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />} 刷新
+          <button onClick={() => { loadConfig(); loadCluster(); loadLlmProviders(); }} disabled={configLoading || clusterLoading || llmLoading}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">
+            {configLoading || clusterLoading || llmLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} 刷新
           </button>
         </div>
 
         {configError && (
-          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 flex items-center gap-2">
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
             <AlertCircle size={13} /> {configError}
           </div>
         )}
         {clusterError && (
-          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 flex items-center gap-2">
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
             <AlertCircle size={13} /> {clusterError}
           </div>
         )}
+        {llmError && (
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 flex items-center gap-2">
+            <AlertCircle size={13} /> {llmError}
+          </div>
+        )}
+        {configMessage && (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            {configMessage}
+          </div>
+        )}
 
-        <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700 mb-3">
-          💡 配置立即生效于后端服务，所有集群实例共享。修改后无需重启。
+        <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          配置立即生效于后端服务，所有集群实例共享。修改后无需重启。
         </div>
 
-        <div className="mb-4 rounded-xl border border-cyan-100 bg-cyan-50/70 p-4">
+        <div className="mb-5 rounded-2xl bg-white p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-cyan-700">单 Pod 并发控制</p>
-              <p className="mt-1 text-sm font-semibold text-slate-800">
+              <p className="text-xs font-black uppercase tracking-widest text-rose-600">Pod Concurrency</p>
+              <p className="mt-2 text-sm font-semibold text-slate-800">
                 {concurrencyMode === 'manual' ? '手动模式' : '自动模式'}
                 {' · '}
                 当前生效上限 {cluster?.concurrency.effective_max_concurrent ?? '-'}
               </p>
             </div>
-            {clusterLoading && <Loader2 size={14} className="animate-spin text-cyan-600" />}
+            {clusterLoading && <Loader2 size={16} className="animate-spin text-rose-600" />}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -254,8 +289,8 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
               onClick={() => { void handleModeChange('auto'); }}
               className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                 !isManualMode
-                  ? 'border-cyan-600 bg-cyan-600 text-white'
-                  : 'border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50'
+                  ? 'border-slate-900 bg-slate-900 text-white'
+                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
               自动模式
@@ -271,30 +306,30 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             >
               手动模式
             </button>
-            <span className="inline-flex items-center rounded-lg bg-white px-3 py-1.5 text-[11px] text-slate-500">
+            <span className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-500">
               自动模式下并发参数只读；切换到手动模式后可编辑
             </span>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-            <div className="rounded-lg border border-cyan-100 bg-white px-3 py-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2">
               <p className="text-slate-400">在线实例</p>
               <p className="mt-1 font-bold text-slate-800">{cluster?.alive_workers ?? '-'}</p>
             </div>
-            <div className="rounded-lg border border-cyan-100 bg-white px-3 py-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2">
               <p className="text-slate-400">运行中任务</p>
               <p className="mt-1 font-bold text-slate-800">{cluster?.task_counts?.running ?? 0}</p>
             </div>
-            <div className="rounded-lg border border-cyan-100 bg-white px-3 py-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2">
               <p className="text-slate-400">CPU 限制</p>
               <p className="mt-1 font-bold text-slate-800">{cluster?.concurrency.pod_cpu_limit_millicores ?? '-'}m</p>
             </div>
-            <div className="rounded-lg border border-cyan-100 bg-white px-3 py-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2">
               <p className="text-slate-400">内存限制</p>
               <p className="mt-1 font-bold text-slate-800">{cluster?.concurrency.pod_memory_limit_mib ?? '-'}Mi</p>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-            <div className="rounded-lg border border-cyan-100 bg-white px-3 py-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2">
               <p className="font-semibold text-slate-700">自动计算依据</p>
               <p className="mt-1 text-slate-500">
                 Pod 总资源上限：CPU {cluster?.concurrency.pod_cpu_limit_millicores ?? '-'}m / 内存 {cluster?.concurrency.pod_memory_limit_mib ?? '-'}Mi
@@ -303,7 +338,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                 系统按单任务预算估算：CPU {cluster?.concurrency.cpu_millis_per_task ?? '-'}m / 内存 {cluster?.concurrency.memory_mb_per_task ?? '-'}Mi
               </p>
             </div>
-            <div className="rounded-lg border border-cyan-100 bg-white px-3 py-2">
+            <div className="rounded-xl bg-slate-50 px-3 py-2">
               <p className="font-semibold text-slate-700">自动计算结果</p>
               <p className="mt-1 text-slate-500">
                 CPU 档位 {cluster?.concurrency.cpu_based_limit ?? '-'}，内存档位 {cluster?.concurrency.memory_based_limit ?? '-'}
@@ -319,13 +354,65 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                 <ConfigRow
                   key={`${entry.key}-${concurrencyMode}`}
                   entry={entry}
-                  onSave={handleSaveConfig}
+                  value={resolveDraftValue(entry)}
+                  onChange={(value) => updateDraftValue(entry.key, value)}
                   disabled={!isManualMode}
-                  saveLabel="保存固件解包配置"
+                  dirty={resolveDraftValue(entry) !== entry.value}
                 />
               ))}
             </div>
           )}
+        </div>
+
+        <div className="mb-5 rounded-2xl bg-white p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-rose-600">LLM Role Binding</p>
+              <p className="mt-2 text-sm font-semibold text-slate-800">按角色绑定配置中心 Provider</p>
+            </div>
+            {llmLoading && <Loader2 size={16} className="animate-spin text-rose-600" />}
+          </div>
+          <p className="mt-3 text-xs text-slate-500">
+            每个角色必须显式选择一个配置中心 Provider。保存后，后端会在拉起对应 `pi` 智能体子进程时动态注入环境变量并生成临时 provider 路由配置。
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {llmRoleConfigs.map((item) => (
+              <div key={item.key} className="rounded-2xl bg-slate-50 p-4">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="text-sm font-black text-slate-800">{item.label}</span>
+                  {item.entry && resolveDraftValue(item.entry) !== item.entry.value && (
+                    <span className="text-[10px] font-semibold text-amber-600">未保存</span>
+                  )}
+                </div>
+                <p className="mb-3 text-[11px] text-slate-500">{item.description}</p>
+                <select
+                  value={item.value}
+                  disabled={configLoading || configSaving || llmLoading}
+                  onChange={(event) => updateDraftValue(item.key, event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-rose-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                >
+                  <option value="">请选择 Provider</option>
+                  {llmProviders.map((provider) => (
+                    <option key={provider.provider_key} value={provider.provider_key}>
+                      {`${provider.display_name || provider.provider_key} · ${provider.provider_type} · ${provider.model || '-'}`}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                  {item.value ? (
+                    <>
+                      <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">provider_key: {item.value}</span>
+                      {llmProviders.find((provider) => provider.provider_key === item.value)?.is_default && (
+                        <span className="rounded-full bg-rose-50 px-2 py-1 text-rose-700 ring-1 ring-rose-200">配置中心默认</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="rounded-full bg-white px-2 py-1 text-rose-700 ring-1 ring-rose-200">未配置，保存前必须选择</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {configLoading && configItems.length === 0 ? (
@@ -333,101 +420,45 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             <Loader2 size={18} className="animate-spin mr-2" /> 加载配置中...
           </div>
         ) : genericConfigItems.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-6 text-center text-xs text-slate-400">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-6 text-center text-xs text-slate-400">
             暂无配置项
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {genericConfigItems.map(e => (
-              <ConfigRow key={e.key} entry={e} onSave={handleSaveConfig} saveLabel="保存固件解包配置" />
+              <ConfigRow
+                key={e.key}
+                entry={e}
+                value={resolveDraftValue(e)}
+                onChange={(value) => updateDraftValue(e.key, value)}
+                dirty={resolveDraftValue(e) !== e.value}
+              />
             ))}
           </div>
         )}
-      </div>
 
-      <div className={`${embedded ? 'rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm' : 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'}`}>
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-              <Settings size={13} className="text-emerald-600" />
-              自进化解包工具
-            </div>
-            <p className="mt-1 text-xs text-slate-400">当前读取目录：`/data/secflow-app-firmware-unpacker/tools`</p>
-          </div>
+        <div className="mt-6 flex items-center justify-end gap-3">
           <button
-            onClick={() => { loadTools(); }}
-            disabled={toolsLoading}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            type="button"
+            onClick={handleResetConfig}
+            disabled={configLoading || configSaving || !hasConfigChanges}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
           >
-            {toolsLoading ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-            刷新
+            <RefreshCw size={16} />
+            撤销改动
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSaveConfig()}
+            disabled={configLoading || configSaving || !hasConfigChanges || missingLlmRoles.length > 0}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+          >
+            {configSaving && <Loader2 size={16} className="animate-spin" />}
+            <Save size={16} />
+            保存固件解包配置
           </button>
         </div>
-
-        {toolsError && (
-          <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            <AlertCircle size={13} /> {toolsError}
-          </div>
-        )}
-
-        {toolsLoading && tools.length === 0 ? (
-          <div className="flex items-center justify-center py-8 text-slate-400">
-            <Loader2 size={18} className="mr-2 animate-spin" /> 加载工具列表中...
-          </div>
-        ) : tools.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-6 text-center text-xs text-slate-400">
-            `/data/secflow-app-firmware-unpacker/tools` 当前没有工具
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {tools.map((tool) => (
-              <div key={tool.path} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-black font-mono text-slate-800">{tool.format_id || tool.filename}</span>
-                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] text-slate-600">{tool.filename}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${
-                    tool.skill_status === 'active'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : tool.skill_status === 'archived'
-                        ? 'bg-slate-200 text-slate-600'
-                        : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {tool.skill_status}
-                  </span>
-                </div>
-                <p className="mt-2 break-all text-[11px] text-slate-500">{tool.path}</p>
-                <p className="mt-2 text-xs text-slate-700">{tool.description || '未填写描述'}</p>
-                <div className="mt-3 grid grid-cols-1 gap-2 text-[11px] text-slate-500 sm:grid-cols-2">
-                  <div>
-                    <span className="font-semibold text-slate-700">格式族：</span>
-                    {tool.family_id || '-'}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-700">版本 / 晋升：</span>
-                    v{tool.skill_version} · {tool.promotion_success_count}/{tool.promotion_threshold}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-700">扩展名：</span>
-                    {tool.extensions.length > 0 ? tool.extensions.join(', ') : '-'}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-700">Magic：</span>
-                    {tool.magic_hex || '-'}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-700">关键词：</span>
-                    {tool.keywords.length > 0 ? tool.keywords.join(', ') : '-'}
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-700">Binwalk 特征：</span>
-                    {tool.binwalk_sigs.length > 0 ? tool.binwalk_sigs.join(', ') : '-'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      </section>
     </div>
   );
 };

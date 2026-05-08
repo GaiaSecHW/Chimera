@@ -151,7 +151,6 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-code',
   'pentest-exec-work',
   'pentest-exec-firmware-unpacker',
-  'pentest-exec-firmware-task-list',
   'pentest-exec-firmware-config',
   'pentest-exec-b2s',
   'pentest-exec-b2s-root',
@@ -333,9 +332,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'binary-security', label: '二进制任务总览', icon: ShieldAlert, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '源码任务总览', icon: FileSearch, aliases: ['source-security-detail'], requiresProject: true },
-        { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, requiresProject: true, subItems: [
-          { id: 'pentest-exec-firmware-task-list', label: '任务列表', aliases: ['pentest-exec-firmware-unpacker'], requiresProject: true },
-        ] },
+        { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, aliases: ['pentest-exec-firmware-task-list'], requiresProject: true },
         { id: 'pentest-system', label: '系统分析', icon: Activity, requiresProject: true, subItems: [
           { id: 'system-analysis-task', label: '任务队列', aliases: ['system-analysis-detail'], requiresProject: true },
           { id: 'system-analysis-config', label: '分析配置', requiresProject: true },
