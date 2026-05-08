@@ -59,11 +59,27 @@ function fmtTime(iso: string | null) {
   return new Date(iso).toLocaleString('zh-CN', { hour12: false });
 }
 
-function fmtDuration(s: string | null, e: string | null) {
-  if (!s) return '-';
-  const ms = (e ? new Date(e).getTime() : Date.now()) - new Date(s).getTime();
+function fmtDurationFromRange(start: string | null, end: string | null) {
+  if (!start) return '-';
+  const ms = Math.max(0, (end ? new Date(end).getTime() : Date.now()) - new Date(start).getTime());
   const sec = Math.round(ms / 1000);
   return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}m${sec % 60}s`;
+}
+
+function fmtTaskDuration(task: FirmwareUnpackTask) {
+  const start = task.started_at || task.created_at;
+  const end = task.completed_at;
+  return fmtDurationFromRange(start, end);
+}
+
+function fmtRoundProgress(currentRound: number | null | undefined, totalRounds: number | null | undefined) {
+  if (currentRound == null || totalRounds == null || totalRounds <= 0) return '-';
+  return `${currentRound}/${totalRounds}`;
+}
+
+function withPhaseRound(label: string, currentRound: number | null | undefined, totalRounds: number | null | undefined) {
+  if (currentRound == null || totalRounds == null || totalRounds <= 0) return label;
+  return `${label}（${currentRound}/${totalRounds}）`;
 }
 
 function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
@@ -180,7 +196,7 @@ function TaskRow({
           <span className="hidden xl:inline max-w-[120px] truncate text-[10px] text-slate-400">{task.worker_id}</span>
         )}
         {running && <Loader2 size={11} className="shrink-0 animate-spin text-blue-400" />}
-        <span className="hidden lg:inline shrink-0 text-[10px] text-slate-500">{fmtDuration(task.started_at, task.completed_at)}</span>
+        <span className="hidden lg:inline shrink-0 text-[10px] text-slate-500">{fmtTaskDuration(task)}</span>
         <span className="shrink-0 text-[10px] text-slate-400">{fmtTime(task.created_at)}</span>
         <ChevronRight size={14} className={`shrink-0 text-slate-400 transition-transform ${active ? 'translate-x-0.5 text-blue-500' : ''}`} />
       </div>
@@ -250,6 +266,7 @@ function TaskDetailPanel({
   const running = !isTerminal(task.status);
   const canDelete = isTerminal(task.status);
   const canRetry = task.status === 'failed' || task.status === 'cancelled' || task.status === 'max_retries_reached';
+  const aiRounds = fmtRoundProgress(progress?.current_round, progress?.total_rounds);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -328,8 +345,8 @@ function TaskDetailPanel({
             ['创建时间', fmtTime(task.created_at)],
             ['开始时间', fmtTime(task.started_at)],
             ['完成时间', fmtTime(task.completed_at)],
-            ['耗时', fmtDuration(task.started_at, task.completed_at)],
-            ['AI 轮次', task.rounds ?? '-'],
+            ['耗时', fmtTaskDuration(task)],
+            ['AI 轮次', aiRounds !== '-' ? aiRounds : (task.rounds != null ? String(task.rounds) : '-')],
           ].map(([label, value], index) => (
             <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
               <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
@@ -389,7 +406,9 @@ function TaskDetailPanel({
                             <PhaseNodeStatusIcon status={phase.status} index={index} />
                           </div>
                           <div className={`mt-2 px-1 ${textClass}`}>
-                            <div className="text-xs font-semibold">{phase.label}</div>
+                            <div className="text-xs font-semibold">
+                              {withPhaseRound(phase.label, phase.current_round, phase.total_rounds)}
+                            </div>
                             <div className="mt-1 flex justify-center">
                               <PhaseStatusBadge status={phase.status} />
                             </div>
@@ -798,8 +817,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
   const handleRetry = async (id: string) => {
     try {
-      const result = await fwApi.retryTask(id);
-      notify(`已重试，新任务 ID: ${result.new_task_id}`, 'success');
+      await fwApi.retryTask(id);
+      notify(`任务 ${id} 已重新入队`, 'success');
+      setActiveTaskId(id);
       setTimeout(() => fetchTasks(true), 800);
     } catch (e: any) {
       notify(`重试失败: ${e?.message}`, 'error');

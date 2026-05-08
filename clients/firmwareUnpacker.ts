@@ -85,12 +85,16 @@ export interface FirmwareTaskProgressPhase {
   status: string;
   detail: string | null;
   updated_at: string | null;
+  current_round: number | null;
+  total_rounds: number | null;
 }
 
 export interface FirmwareTaskProgress {
   task_id: string;
   current_phase: string | null;
   summary: string | null;
+  current_round: number | null;
+  total_rounds: number | null;
   phases: FirmwareTaskProgressPhase[];
 }
 
@@ -374,12 +378,16 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
       status: asString(entry.status, 'pending'),
       detail: asNullableString(entry.detail),
       updated_at: asNullableString(entry.updated_at),
+      current_round: asNullableNumber(entry.current_round),
+      total_rounds: asNullableNumber(entry.total_rounds),
     };
   });
   return {
     task_id: asString(record.task_id),
     current_phase: asNullableString(record.current_phase),
     summary: asNullableString(record.summary),
+    current_round: asNullableNumber(record.current_round),
+    total_rounds: asNullableNumber(record.total_rounds),
     phases,
   };
 };
