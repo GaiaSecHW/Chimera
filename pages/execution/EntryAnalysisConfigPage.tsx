@@ -23,9 +23,9 @@ const defaultRole = (): EntryAnalysisRoleConfig => ({
 
 const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   project_id: projectId,
-  max_rounds: 3,
+  max_rounds: -1,
   min_rounds: 2,
-  pass_threshold: 1,
+  pass_threshold: 0,
   agent_max_retries: 100,
   agent_retry_delay: 30,
   pi_max_retries: -1,
@@ -110,11 +110,25 @@ const RoleConfigBlock: React.FC<{
   modelOptions: string[];
   value: EntryAnalysisRoleConfig;
   onChange: (v: EntryAnalysisRoleConfig) => void;
-}> = ({ title, subtitle, modelOptions, value, onChange }) => (
+  parallelMode?: boolean;
+}> = ({ title, subtitle, modelOptions, value, onChange, parallelMode }) => (
   <SectionCard title={title} subtitle={subtitle}>
-    <FieldRow label="Agent 实例列表">
-      <AgentInstanceList agents={value.agents ?? []} modelOptions={modelOptions} onChange={(agents) => onChange({ ...value, agents })} />
-    </FieldRow>
+    {parallelMode ? (
+      <FieldRow label="Worker 模型" hint="所有并行实例共用同一模型">
+        <ModelSelect
+          value={value.agents?.[0]?.model ?? ''}
+          options={modelOptions}
+          onChange={(model) => onChange({
+            ...value,
+            agents: (value.agents ?? []).map((a) => ({ ...a, model })),
+          })}
+        />
+      </FieldRow>
+    ) : (
+      <FieldRow label="Agent 实例列表">
+        <AgentInstanceList agents={value.agents ?? []} modelOptions={modelOptions} onChange={(agents) => onChange({ ...value, agents })} />
+      </FieldRow>
+    )}
   </SectionCard>
 );
 
@@ -217,9 +231,17 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proje
           {/* 基本配置 */}
           <SectionCard title="基本配置" subtitle="分析轮次控制与重试策略">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              <FieldRow label="max_rounds" hint="最大分析轮数"><NumberInput value={config.max_rounds} min={1} max={20} onChange={(v) => patch({ max_rounds: v })} /></FieldRow>
+              <FieldRow label="max_rounds" hint="-1=无限"><NumberInput value={config.max_rounds} min={-1} onChange={(v) => patch({ max_rounds: v })} /></FieldRow>
               <FieldRow label="min_rounds" hint="最少通过轮数"><NumberInput value={config.min_rounds} min={1} max={20} onChange={(v) => patch({ min_rounds: v })} /></FieldRow>
-              <FieldRow label="pass_threshold" hint="通过所需裁判数"><NumberInput value={config.pass_threshold} min={1} max={10} onChange={(v) => patch({ pass_threshold: v })} /></FieldRow>
+              <FieldRow label="pass_threshold" hint="评审通过模式">
+                <select
+                  value={config.pass_threshold}
+                  onChange={(e) => patch({ pass_threshold: Number(e.target.value) })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+                  <option value={0}>大于半数裁判通过</option>
+                  <option value={-1}>全部裁判均通过</option>
+                </select>
+              </FieldRow>
             </div>
             <FieldRow label="并行 Worker 模式" hint="开启后 Workers 中的多个实例同时运行，各自分析一个文件分片">
               <div className="flex flex-wrap items-center gap-4">
@@ -275,11 +297,12 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string }> = ({ proje
           <RoleConfigBlock
             title="Workers 配置"
             subtitle={config.worker_parallel
-              ? `并行模式 — 实例列表中每一项对应一个并行 Worker，各自分析 1/${config.workers.agents?.length || 1} 的文件`
+              ? `并行模式 — ${config.workers.agents?.length || 1} 个 Worker 并行运行，各自分析 1/${config.workers.agents?.length || 1} 的文件，共用同一模型`
               : '串行模式 — 仅使用 agents[0]，多余实例无效'}
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
+            parallelMode={config.worker_parallel}
           />
 
           {/* Judges */}
