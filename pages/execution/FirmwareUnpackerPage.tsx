@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Clock,
-  FileText, FolderOpen, Loader2, Package, Play, RefreshCw,
-  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus,
+  FolderOpen, Loader2, Package, Play, RefreshCw,
+  Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus, Terminal,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FirmwareTaskLog, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
@@ -196,17 +196,19 @@ function TaskDetailPanel({
   hasReturnContext,
   progress,
   progressLoading,
-  logData,
-  logLoading,
   logModalOpen,
+  logModalTitle,
+  logModalPhase,
+  taskLog,
+  taskLogLoading,
+  onOpenPhaseLog,
+  onCloseLogModal,
   deletingTaskId,
   onBack,
   onRefresh,
   onCancel,
   onDelete,
   onRetry,
-  onOpenLogs,
-  onCloseLogs,
 }: {
   task: FirmwareUnpackTask | null;
   loading: boolean;
@@ -215,17 +217,19 @@ function TaskDetailPanel({
   hasReturnContext: boolean;
   progress: FirmwareTaskProgress | null;
   progressLoading: boolean;
-  logData: FirmwareTaskLog | null;
-  logLoading: boolean;
   logModalOpen: boolean;
+  logModalTitle: string;
+  logModalPhase: string;
+  taskLog: FirmwareTaskLog | null;
+  taskLogLoading: boolean;
+  onOpenPhaseLog: (taskId: string, phaseKey: string, phaseLabel: string) => void;
+  onCloseLogModal: () => void;
   deletingTaskId: string;
   onBack: () => void;
   onRefresh: (id: string) => void;
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
   onRetry: (id: string) => void;
-  onOpenLogs: (id: string, phaseKey: string) => void;
-  onCloseLogs: () => void;
 }) {
   if (!task) {
     return (
@@ -400,11 +404,10 @@ function TaskDetailPanel({
                             <div className="mt-2 flex justify-center">
                               <button
                                 type="button"
-                                onClick={() => onOpenLogs(task.id, phase.key)}
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-700 hover:bg-slate-50"
+                                onClick={() => onOpenPhaseLog(task.id, phase.key, phase.label)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
                               >
-                                <FileText size={11} />
-                                查看日志
+                                <Terminal size={11} /> 查看日志
                               </button>
                             </div>
                           </div>
@@ -417,43 +420,6 @@ function TaskDetailPanel({
             </div>
           )}
         </div>
-
-        {logModalOpen && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
-            <div className="flex h-[78vh] w-full max-w-6xl flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-2xl">
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Firmware Unpacker</p>
-                  <h3 className="mt-2 text-xl font-black text-slate-900">{phaseDisplayLabel(logData?.phase)}日志</h3>
-                  <p className="mt-2 break-all font-mono text-[11px] text-slate-500">{logData?.run_path || deriveRunPath(task.output_path) || '-'}</p>
-                  {logData?.files?.length ? (
-                    <p className="mt-1 text-xs text-slate-500">已汇总 {logData.files.length} 个日志文件：{logData.files.join('、')}</p>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  onClick={onCloseLogs}
-                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-auto bg-slate-950 px-6 py-5">
-                {logLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-slate-300">
-                    <Loader2 size={14} className="animate-spin" /> 日志加载中...
-                  </div>
-                ) : !logData?.available ? (
-                  <div className="text-sm text-slate-300">{logData?.message || '暂无可展示日志'}</div>
-                ) : (
-                  <pre className="whitespace-pre-wrap break-all font-mono text-[12px] leading-6 text-slate-200">
-                    {logData.log_text}
-                  </pre>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">资源使用情况</p>
@@ -499,6 +465,53 @@ function TaskDetailPanel({
           </div>
         )}
       </div>
+
+      {logModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
+          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Stage Log</p>
+                <h3 className="mt-2 text-xl font-black text-slate-900">{logModalTitle}</h3>
+                <p className="mt-1 text-xs text-slate-500">阶段标识：<span className="font-mono text-slate-600">{logModalPhase || '-'}</span></p>
+              </div>
+              <button
+                type="button"
+                onClick={onCloseLogModal}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 overflow-auto px-6 py-5">
+              {taskLogLoading ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 size={15} className="animate-spin" /> 加载日志中...
+                </div>
+              ) : !taskLog?.available ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  {taskLog?.message || '当前阶段日志不可用'}
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志目录</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-700">{taskLog.run_path || '-'}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志文件</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-700">{taskLog.files?.join(', ') || '-'}</p>
+                    </div>
+                  </div>
+                  <pre className="min-h-[320px] overflow-auto rounded-2xl bg-slate-950 px-4 py-4 text-[12px] leading-6 text-slate-100 whitespace-pre-wrap break-words">{taskLog.log_text || taskLog.message || '暂无日志内容'}</pre>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -523,9 +536,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [resourceLoading, setResourceLoading] = useState(false);
   const [progress, setProgress] = useState<FirmwareTaskProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
-  const [logData, setLogData] = useState<FirmwareTaskLog | null>(null);
-  const [logLoading, setLogLoading] = useState(false);
+  const [taskLog, setTaskLog] = useState<FirmwareTaskLog | null>(null);
+  const [taskLogLoading, setTaskLogLoading] = useState(false);
   const [logModalOpen, setLogModalOpen] = useState(false);
+  const [logModalTitle, setLogModalTitle] = useState('');
+  const [logModalPhase, setLogModalPhase] = useState('');
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
@@ -684,9 +699,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setResourceLoading(false);
       setProgress(null);
       setProgressLoading(false);
-      setLogData(null);
-      setLogLoading(false);
+      setTaskLog(null);
+      setTaskLogLoading(false);
       setLogModalOpen(false);
+      setLogModalTitle('');
+      setLogModalPhase('');
       return;
     }
     loadResourceUsage(activeTaskId);
@@ -764,9 +781,11 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         setResourceLoading(false);
         setProgress(null);
         setProgressLoading(false);
-        setLogData(null);
-        setLogLoading(false);
+        setTaskLog(null);
+        setTaskLogLoading(false);
         setLogModalOpen(false);
+        setLogModalTitle('');
+        setLogModalPhase('');
       }
       await fetchTasks(taskItems.length <= 1 && page > 0);
       notify('任务已删除', 'success');
@@ -787,29 +806,28 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     }
   };
 
-  const handleOpenLogs = useCallback(async (id: string, phaseKey: string) => {
+  const handleOpenPhaseLog = useCallback(async (taskId: string, phaseKey: string, phaseLabel: string) => {
+    setLogModalTitle(`${phaseLabel} 日志`);
+    setLogModalPhase(phaseKey);
+    setTaskLog(null);
+    setTaskLogLoading(true);
     setLogModalOpen(true);
-    setLogLoading(true);
     try {
-      const next = await fwApi.getTaskLogs(id, phaseKey);
-      setLogData(next);
+      const next = await fwApi.getTaskLogs(taskId, phaseKey);
+      setTaskLog(next);
     } catch (e: any) {
-      setLogData({
-        task_id: id,
-        run_path: deriveRunPath(activeTask?.output_path || ''),
+      setTaskLog({
+        task_id: taskId,
+        run_path: null,
         available: false,
         log_text: '',
         files: [],
         phase: phaseKey,
-        message: e?.message || '日志加载失败',
+        message: e?.message || '加载阶段日志失败',
       });
     } finally {
-      setLogLoading(false);
+      setTaskLogLoading(false);
     }
-  }, [activeTask]);
-
-  const handleCloseLogs = useCallback(() => {
-    setLogModalOpen(false);
   }, []);
 
   const handleBatchDelete = useCallback(async () => {
@@ -953,6 +971,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                   并在其中生成 `input`、`output`、`run` 三个目录。`input` 目录中只会写入一份 JSON 清单，记录原始固件路径、
                   输出目录和运行日志目录，解包时直接使用原始固件文件。
                 </p>
+                <p className="mt-2 text-xs leading-6 text-slate-500">
+                  当前任务使用的 LLM 配置会在提交时从“执行 → 参数配置 → LLM Role Binding”读取并冻结，执行过程中不会再跟随后续配置变更。
+                </p>
                 <div className="mt-3 space-y-2 text-xs">
                   <div>
                     <p className="font-semibold text-slate-500">input</p>
@@ -1022,17 +1043,19 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           hasReturnContext={hasReturnContext}
           progress={progress}
           progressLoading={progressLoading}
-          logData={logData}
-          logLoading={logLoading}
           logModalOpen={logModalOpen}
+          logModalTitle={logModalTitle}
+          logModalPhase={logModalPhase}
+          taskLog={taskLog}
+          taskLogLoading={taskLogLoading}
+          onOpenPhaseLog={handleOpenPhaseLog}
+          onCloseLogModal={() => setLogModalOpen(false)}
           deletingTaskId={deletingTaskId}
           onBack={handleDetailBack}
           onRefresh={refreshOne}
           onCancel={handleCancel}
           onDelete={handleDelete}
           onRetry={handleRetry}
-          onOpenLogs={handleOpenLogs}
-          onCloseLogs={handleCloseLogs}
         />
       ) : (
       <div className="space-y-4">

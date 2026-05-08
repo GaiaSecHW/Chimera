@@ -4,18 +4,25 @@ import {
   RefreshCw, Save, Settings,
 } from 'lucide-react';
 import { api } from '../../clients/api';
-import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmProviderSummary } from '../../clients/firmwareUnpacker';
+import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmConfigFileSummary } from '../../clients/firmwareUnpacker';
 
 interface Props { projectId: string; embedded?: boolean; }
 
 const fwApi = api.domains.execution.firmwareUnpacker;
 const LLM_ROLE_FIELDS = [
-  { key: 'llm_provider_key_executor', label: '通用解包执行器', description: '控制通用 LLM 解包执行轮次使用的 Provider。' },
-  { key: 'llm_provider_key_reviewer', label: '评审器', description: '控制解包结果评审阶段使用的 Provider。' },
-  { key: 'llm_provider_key_cleaner', label: '清理器', description: '控制输出清理阶段使用的 Provider。' },
-  { key: 'llm_provider_key_skill_author', label: '技能生成器', description: '控制成功解包后生成可复用技能的 Provider。' },
-  { key: 'llm_provider_key_skill_executor', label: '命中技能执行器', description: '控制命中解包技能后实际执行该技能的 Provider。' },
+  { key: 'llm_config_file_key_executor', label: '通用解包执行器', description: '绑定执行器使用的 models.json 配置文件。' },
+  { key: 'llm_config_file_key_reviewer', label: '评审器', description: '绑定评审器使用的 models.json 配置文件。' },
+  { key: 'llm_config_file_key_cleaner', label: '清理器', description: '绑定清理器使用的 models.json 配置文件。' },
+  { key: 'llm_config_file_key_skill_author', label: '技能生成器', description: '绑定技能生成器使用的 models.json 配置文件。' },
+  { key: 'llm_config_file_key_skill_executor', label: '命中技能执行器', description: '绑定命中技能执行器使用的 models.json 配置文件。' },
 ] as const;
+const LLM_MODEL_FIELDS: Record<string, string> = {
+  llm_config_file_key_executor: 'llm_model_executor',
+  llm_config_file_key_reviewer: 'llm_model_reviewer',
+  llm_config_file_key_cleaner: 'llm_model_cleaner',
+  llm_config_file_key_skill_author: 'llm_model_skill_author',
+  llm_config_file_key_skill_executor: 'llm_model_skill_executor',
+};
 
 function fmtTime(iso: string | null) {
   if (!iso) return '-';
@@ -65,7 +72,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   const [configMessage, setConfigMessage] = useState('');
   const [configSaving,  setConfigSaving]  = useState(false);
   const [draftValues,   setDraftValues]   = useState<Record<string, string>>({});
-  const [llmProviders,  setLlmProviders]  = useState<FirmwareLlmProviderSummary[]>([]);
+  const [llmConfigFiles,  setLlmConfigFiles]  = useState<FirmwareLlmConfigFileSummary[]>([]);
   const [llmLoading,    setLlmLoading]    = useState(false);
   const [llmError,      setLlmError]      = useState('');
   const [cluster,       setCluster]       = useState<FirmwareClusterInfo | null>(null);
@@ -82,6 +89,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
       'reserved_memory_mb',
       'max_concurrent',
       ...LLM_ROLE_FIELDS.map((item) => item.key),
+      ...Object.values(LLM_MODEL_FIELDS),
     ]),
     [],
   );
@@ -99,6 +107,10 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     ...field,
     entry: configMap.get(field.key) || null,
     value: draftValues[field.key] ?? configMap.get(field.key)?.value ?? '',
+    modelKey: LLM_MODEL_FIELDS[field.key],
+    modelEntry: configMap.get(LLM_MODEL_FIELDS[field.key]) || null,
+    modelValue: draftValues[LLM_MODEL_FIELDS[field.key]] ?? configMap.get(LLM_MODEL_FIELDS[field.key])?.value ?? '',
+    configFile: llmConfigFiles.find((item) => item.config_file_key === (draftValues[field.key] ?? configMap.get(field.key)?.value ?? '')) || null,
   }));
   const hasConfigChanges = configItems.some((item) => draftValues[item.key] !== item.value);
   const missingLlmRoles = llmRoleConfigs.filter((item) => !String(item.value || '').trim()).map((item) => item.label);
@@ -134,14 +146,14 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     }
   }, []);
 
-  const loadLlmProviders = useCallback(async () => {
+  const loadLlmConfigFiles = useCallback(async () => {
     setLlmLoading(true);
     setLlmError('');
     try {
-      const result = await fwApi.getLlmProviders();
-      setLlmProviders(result.items);
+      const result = await fwApi.getLlmConfigFiles();
+      setLlmConfigFiles(result.items);
     } catch (e: any) {
-      setLlmError(e?.message || '加载可选 LLM Provider 失败');
+      setLlmError(e?.message || '加载可选 models.json 配置失败');
     } finally {
       setLlmLoading(false);
     }
@@ -150,8 +162,8 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   useEffect(() => {
     loadConfig();
     loadCluster();
-    loadLlmProviders();
-  }, [loadCluster, loadConfig, loadLlmProviders]);
+    loadLlmConfigFiles();
+  }, [loadCluster, loadConfig, loadLlmConfigFiles]);
 
   // ── save config ───────────────────────────────────────────
   const updateDraftValue = useCallback((key: string, value: string) => {
@@ -218,7 +230,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => { loadConfig(); loadCluster(); loadLlmProviders(); }}
+            <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
               <RefreshCw size={12} /> 刷新
             </button>
@@ -240,7 +252,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
               当前面板配置项归属于 `secflow-app-firmware-unpacker` 微服务，用于控制固件解包服务的集群并发和运行时参数。
             </p>
           </div>
-          <button onClick={() => { loadConfig(); loadCluster(); loadLlmProviders(); }} disabled={configLoading || clusterLoading || llmLoading}
+          <button onClick={() => { loadConfig(); loadCluster(); loadLlmConfigFiles(); }} disabled={configLoading || clusterLoading || llmLoading}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50">
             {configLoading || clusterLoading || llmLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} 刷新
           </button>
@@ -368,12 +380,12 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-rose-600">LLM Role Binding</p>
-              <p className="mt-2 text-sm font-semibold text-slate-800">按角色绑定配置中心 Provider</p>
+              <p className="mt-2 text-sm font-semibold text-slate-800">按角色绑定配置文件与模型</p>
             </div>
             {llmLoading && <Loader2 size={16} className="animate-spin text-rose-600" />}
           </div>
           <p className="mt-3 text-xs text-slate-500">
-            每个角色必须显式选择一个配置中心 Provider。保存后，后端会在拉起对应 `pi` 智能体子进程时动态注入环境变量并生成临时 provider 路由配置。
+            每个角色都需要显式绑定一个 `models.json` 配置文件，并指定要使用的 `provider/model`。保存后只影响后续新建任务，任务创建时会冻结这五个角色的绑定快照。
           </p>
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
             {llmRoleConfigs.map((item) => (
@@ -391,23 +403,50 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                   onChange={(event) => updateDraftValue(item.key, event.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-rose-100 disabled:cursor-not-allowed disabled:bg-slate-100"
                 >
-                  <option value="">请选择 Provider</option>
-                  {llmProviders.map((provider) => (
-                    <option key={provider.provider_key} value={provider.provider_key}>
-                      {`${provider.display_name || provider.provider_key} · ${provider.provider_type} · ${provider.model || '-'}`}
+                  <option value="">请选择配置文件</option>
+                  {llmConfigFiles.map((configFile) => (
+                    <option key={configFile.config_file_key} value={configFile.config_file_key}>
+                      {`${configFile.display_name || configFile.config_file_key} · ${configFile.provider_type} · ${configFile.default_model || '-'}`}
                     </option>
                   ))}
                 </select>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
                   {item.value ? (
                     <>
-                      <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">provider_key: {item.value}</span>
-                      {llmProviders.find((provider) => provider.provider_key === item.value)?.is_default && (
+                      <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">config_file_key: {item.value}</span>
+                      {item.configFile?.is_default && (
                         <span className="rounded-full bg-rose-50 px-2 py-1 text-rose-700 ring-1 ring-rose-200">配置中心默认</span>
                       )}
                     </>
                   ) : (
                     <span className="rounded-full bg-white px-2 py-1 text-rose-700 ring-1 ring-rose-200">未配置，保存前必须选择</span>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-500">Provider / Model</label>
+                  <input
+                    value={item.modelValue}
+                    disabled={configLoading || configSaving}
+                    onChange={(event) => updateDraftValue(item.modelKey, event.target.value)}
+                    placeholder="例如 openai/gpt-4o，留空则使用配置文件默认"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:ring-2 focus:ring-rose-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    建议填写 `provider/model`。如果该配置文件只包含单一 provider，也可以只填模型名；留空则继承配置文件默认值。
+                  </p>
+                  {item.configFile && item.configFile.model_options.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {item.configFile.model_options.slice(0, 6).map((option) => (
+                        <button
+                          key={`${item.key}-${option.value}`}
+                          type="button"
+                          onClick={() => updateDraftValue(item.modelKey, option.value)}
+                          className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600 hover:border-rose-200 hover:text-rose-700"
+                        >
+                          {option.value}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>

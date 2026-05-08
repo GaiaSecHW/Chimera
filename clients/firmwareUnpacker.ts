@@ -104,6 +104,25 @@ export interface FirmwareTaskLog {
   message: string | null;
 }
 
+export interface FirmwareTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string | null;
+  event_type: string;
+  stage_key: string | null;
+  status: string | null;
+  summary: string;
+  detail: Record<string, any> | null;
+  owner_id: string | null;
+  created_by: string | null;
+  created_at: string | null;
+}
+
+export interface FirmwareTaskEventList {
+  total: number;
+  items: FirmwareTaskEvent[];
+}
+
 export interface FirmwareUnpackTaskList {
   total: number;
   offset: number;
@@ -178,6 +197,29 @@ export interface FirmwareLlmProviderSummaryList {
   total: number;
   default_provider_key: string | null;
   items: FirmwareLlmProviderSummary[];
+}
+
+export interface FirmwareLlmConfigFileModelOption {
+  value: string;
+  label: string;
+  source: string | null;
+}
+
+export interface FirmwareLlmConfigFileSummary {
+  config_file_key: string;
+  display_name: string;
+  provider_type: string;
+  enabled: boolean;
+  is_default: boolean;
+  default_model: string | null;
+  description: string | null;
+  updated_at: string | null;
+  model_options: FirmwareLlmConfigFileModelOption[];
+}
+
+export interface FirmwareLlmConfigFileSummaryList {
+  total: number;
+  items: FirmwareLlmConfigFileSummary[];
 }
 
 export interface FirmwareToolEntry {
@@ -342,6 +384,25 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
   };
 };
 
+const normalizeTaskEvent = (value: unknown): FirmwareTaskEvent => {
+  const record = asRecord(value);
+  return {
+    task_id: asString(record.task_id),
+    project_id: asNullableString(record.project_id),
+    id: asString(record.id),
+    event_type: asString(record.event_type, 'event'),
+    stage_key: asNullableString(record.stage_key),
+    status: asNullableString(record.status),
+    summary: asString(record.summary),
+    detail: record.detail && typeof record.detail === 'object' && !Array.isArray(record.detail)
+      ? (record.detail as Record<string, any>)
+      : null,
+    owner_id: asNullableString(record.owner_id),
+    created_by: asNullableString(record.created_by),
+    created_at: asNullableString(record.created_at),
+  };
+};
+
 const normalizeTaskLog = (value: unknown): FirmwareTaskLog => {
   const record = asRecord(value);
   return {
@@ -355,11 +416,49 @@ const normalizeTaskLog = (value: unknown): FirmwareTaskLog => {
   };
 };
 
+const normalizeTaskEventList = (value: unknown): FirmwareTaskEventList => {
+  const record = asRecord(value);
+  const items = asArray(record.items).map(normalizeTaskEvent);
+  return {
+    total: asNumber(record.total, items.length),
+    items,
+  };
+};
+
 const normalizeHealth = (value: unknown): FirmwareUnpackerHealth => {
   const record = asRecord(value);
   return {
     status: asString(record.status, typeof value === 'string' ? value : 'unknown'),
     worker_id: record.worker_id == null ? undefined : asString(record.worker_id),
+  };
+};
+
+const normalizeLlmConfigFileSummaryList = (value: unknown): FirmwareLlmConfigFileSummaryList => {
+  const record = asRecord(value);
+  const items = asArray(record.items).map((item) => {
+    const entry = asRecord(item);
+    return {
+      config_file_key: asString(entry.config_file_key),
+      display_name: asString(entry.display_name),
+      provider_type: asString(entry.provider_type),
+      enabled: asBoolean(entry.enabled),
+      is_default: asBoolean(entry.is_default),
+      default_model: asNullableString(entry.default_model),
+      description: asNullableString(entry.description),
+      updated_at: asNullableString(entry.updated_at),
+      model_options: asArray(entry.model_options).map((option) => {
+        const model = asRecord(option);
+        return {
+          value: asString(model.value),
+          label: asString(model.label || model.value),
+          source: asNullableString(model.source),
+        };
+      }).filter((option) => option.value),
+    };
+  });
+  return {
+    total: asNumber(record.total, items.length),
+    items,
   };
 };
 
@@ -567,6 +666,12 @@ export const firmwareUnpackerApi = {
     return normalizeTaskLog(await handleResponse(r));
   },
 
+  /** GET /api/app/firmware-unpacker/tasks/{id}/events */
+  getTaskEvents: async (taskId: string, limit = 200): Promise<FirmwareTaskEventList> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/events?limit=${encodeURIComponent(String(limit))}`, { headers: getHeaders() });
+    return normalizeTaskEventList(await handleResponse(r));
+  },
+
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */
   deleteTask: async (taskId: string) => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}`, {
@@ -620,6 +725,12 @@ export const firmwareUnpackerApi = {
   getLlmProviders: async (): Promise<FirmwareLlmProviderSummaryList> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/llm/providers`, { headers: getHeaders() });
     return normalizeLlmProviderSummaryList(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/llm/config-files */
+  getLlmConfigFiles: async (): Promise<FirmwareLlmConfigFileSummaryList> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/llm/config-files`, { headers: getHeaders() });
+    return normalizeLlmConfigFileSummaryList(await handleResponse(r));
   },
 
   /** GET /api/app/firmware-unpacker/tools */
