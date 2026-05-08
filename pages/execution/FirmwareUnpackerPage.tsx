@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FileWatchMessage } from '../../clients/fileserver';
-import { FirmwareTaskEvent, FirmwareTaskLog, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareTaskResult, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
+import { FirmwareTaskEvent, FirmwareTaskLog, FirmwareTaskMetrics, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareTaskResult, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
@@ -27,10 +27,12 @@ const fwApi = api.domains.execution.firmwareUnpacker;
 
 const TERMINAL = new Set(['success', 'failed', 'cancelled', 'max_retries_reached']);
 const isTerminal = (s: string) => TERMINAL.has(s);
+const canCancelTask = (s: string) => ['pending', 'running', 'cancelling'].includes(s);
 
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
   { value: 'pending', label: '排队中' },
+  { value: 'retry_preparing', label: '重试准备中' },
   { value: 'running', label: '运行中' },
   { value: 'cancelling', label: '取消中' },
   { value: 'cancelled', label: '已取消' },
@@ -71,10 +73,25 @@ function fmtDuration(s: string | null, e: string | null) {
   return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}m${sec % 60}s`;
 }
 
+function formatSeconds(seconds: number | null | undefined) {
+  if (seconds == null || !Number.isFinite(seconds)) return '-';
+  const value = Math.max(0, Math.round(seconds));
+  if (value < 60) return `${value}s`;
+  if (value < 3600) return `${Math.floor(value / 60)}m${value % 60}s`;
+  const hours = Math.floor(value / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  return `${hours}h${minutes}m`;
+}
+
 function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
   if (used == null || limit == null || limit <= 0) return '-';
   const percent = Math.max(0, (used / limit) * 100);
   return `${percent.toFixed(percent >= 10 ? 1 : 2)}%${unitSuffix}`;
+}
+
+function formatMetricPercent(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return '-';
+  return `${value.toFixed(value >= 10 ? 1 : 2)}%`;
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
@@ -115,6 +132,7 @@ function inferTimelineTone(event: FirmwareTaskEvent) {
 function TaskStatusBadge({ status }: { status: string }) {
   const cfg: Record<string, { icon: React.ReactNode; cls: string; label: string }> = {
     pending: { icon: <Clock size={12} />, cls: 'bg-amber-50 text-amber-700 border-amber-200', label: '排队中' },
+    retry_preparing: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: '重试准备中' },
     running: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-blue-50 text-blue-700 border-blue-200', label: '运行中' },
     cancelling: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-orange-50 text-orange-700 border-orange-200', label: '取消中' },
     cancelled: { icon: <XCircle size={12} />, cls: 'bg-slate-50 text-slate-500 border-slate-200', label: '已取消' },
@@ -249,6 +267,8 @@ function TaskDetailPanel({
   onCancel,
   onDelete,
   onRetry,
+  onRefreshResultCache,
+  resultRefreshingTaskId,
 }: {
   task: FirmwareUnpackTask | null;
   loading: boolean;
@@ -270,13 +290,18 @@ function TaskDetailPanel({
   onCancel: (id: string) => void;
   onDelete: (id: string) => void;
   onRetry: (id: string) => void;
+  onRefreshResultCache: (id: string) => void;
+  resultRefreshingTaskId: string;
 }) {
   const fileserverApi = api.domains.assets.fileserver;
-  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'session' | 'result'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'metrics' | 'events' | 'session' | 'result'>('overview');
   const [activeResultDoc, setActiveResultDoc] = useState<'summary' | 'reason'>('summary');
   const [timeline, setTimeline] = useState<FirmwareTaskEvent[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineError, setTimelineError] = useState('');
+  const [metrics, setMetrics] = useState<FirmwareTaskMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState('');
   const [result, setResult] = useState<FirmwareTaskResult | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [resultError, setResultError] = useState('');
@@ -314,6 +339,21 @@ function TaskDetailPanel({
       setTimelineError(e?.message || '加载事件失败');
     } finally {
       setTimelineLoading(false);
+    }
+  }, [task?.id]);
+
+  const loadMetrics = useCallback(async () => {
+    if (!task?.id) return;
+    setMetricsLoading(true);
+    setMetricsError('');
+    try {
+      const res = await fwApi.getTaskMetrics(task.id);
+      setMetrics(res);
+    } catch (e: any) {
+      setMetrics(null);
+      setMetricsError(e?.message || '加载观测指标失败');
+    } finally {
+      setMetricsLoading(false);
     }
   }, [task?.id]);
 
@@ -433,6 +473,9 @@ function TaskDetailPanel({
     setTimeline([]);
     setTimelineError('');
     setTimelineLoading(false);
+    setMetrics(null);
+    setMetricsError('');
+    setMetricsLoading(false);
     setResult(null);
     setResultError('');
     setActiveResultDoc('summary');
@@ -450,6 +493,21 @@ function TaskDetailPanel({
     if (activeTab !== 'events' || !task?.id) return;
     void loadTimeline();
   }, [activeTab, loadTimeline, task?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'metrics' || !task?.id) return;
+    void loadMetrics();
+  }, [
+    activeTab,
+    loadMetrics,
+    task?.id,
+    task?.status,
+    task?.completed_at,
+    resourceUsage?.timestamp,
+    progress?.current_phase,
+    progress?.current_round,
+    progress?.total_rounds,
+  ]);
 
   useEffect(() => {
     if (activeTab !== 'result' || !task?.id) return;
@@ -649,6 +707,7 @@ function TaskDetailPanel({
           <button
             onClick={() => {
               onRefresh(task.id);
+              if (activeTab === 'metrics') void loadMetrics();
               if (activeTab === 'events') void loadTimeline();
               if (activeTab === 'result') void loadResult();
               if (activeTab === 'session') void loadSessions();
@@ -656,12 +715,12 @@ function TaskDetailPanel({
             className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
             title="刷新详情"
           >
-            {loading || timelineLoading || resultLoading || sessionsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            {loading || metricsLoading || timelineLoading || resultLoading || sessionsLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
           </button>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {running && (
+          {canCancelTask(task.status) && (
             <button
               onClick={() => onCancel(task.id)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-100"
@@ -697,6 +756,7 @@ function TaskDetailPanel({
           <div className="flex flex-wrap items-center gap-2">
             {[
               { id: 'overview' as const, label: '总览' },
+              { id: 'metrics' as const, label: '观测' },
               { id: 'events' as const, label: '事件记录' },
               { id: 'session' as const, label: '智能体会话' },
               { id: 'result' as const, label: '结果' },
@@ -866,6 +926,247 @@ function TaskDetailPanel({
               </div>
             )}
           </>
+        ) : null}
+
+        {activeTab === 'metrics' ? (
+          <section className="space-y-4">
+            {metricsLoading ? (
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                <Loader2 size={14} className="animate-spin" />
+                加载观测指标中...
+              </div>
+            ) : metricsError ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                {metricsError}
+              </div>
+            ) : !metrics ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
+                暂无观测指标
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">状态</div>
+                    <div className="mt-3"><TaskStatusBadge status={metrics.task.status} /></div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前阶段</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">{phaseDisplayLabel(metrics.task.current_stage || metrics.progress.current_phase)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行耗时</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">{formatSeconds(metrics.task.running_seconds ?? metrics.task.duration_seconds)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出总大小</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">{formatBytes(metrics.result.output_total_size_bytes)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">CPU 使用率</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">{formatMetricPercent(metrics.resource.cpu_usage_percent)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">内存使用率</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">{formatMetricPercent(metrics.resource.memory_usage_percent)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">事件数</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">{metrics.events.event_count}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话数</div>
+                    <div className="mt-2 text-xl font-black text-slate-900">{metrics.sessions.session_count}</div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行状态</div>
+                    <div className="mt-4 space-y-3 text-xs text-slate-600">
+                      {[
+                        ['Owner', metrics.task.owner_id || '-'],
+                        ['排队时间', formatSeconds(metrics.task.queue_wait_seconds)],
+                        ['开始时间', fmtTime(metrics.task.started_at)],
+                        ['完成时间', fmtTime(metrics.task.completed_at)],
+                        ['最近进展', fmtTime(metrics.task.last_progress_at)],
+                        ['结果状态', metrics.task.result_status || '-'],
+                      ].map(([label, value]) => (
+                        <div key={String(label)} className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                          <span className="shrink-0 font-bold text-slate-500">{label}</span>
+                          <span className="break-all text-right font-mono text-slate-700">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">资源指标</div>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${metrics.resource.available ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {metrics.resource.available ? '可用' : '不可用'}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Pod</div>
+                        <div className="mt-1 break-all font-mono text-xs text-slate-700">{metrics.resource.pod_name || '-'}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Namespace</div>
+                        <div className="mt-1 font-mono text-xs text-slate-700">{metrics.resource.namespace || '-'}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">CPU</div>
+                        <div className="mt-1 text-xs text-slate-700">{metrics.resource.cpu_millicores ?? '-'} / {metrics.resource.pod_cpu_limit_millicores ?? '-'} m</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Memory</div>
+                        <div className="mt-1 text-xs text-slate-700">{metrics.resource.memory_mib ?? '-'} / {metrics.resource.pod_memory_limit_mib ?? '-'} MiB</div>
+                      </div>
+                    </div>
+                    {metrics.resource.containers.length > 0 ? (
+                      <div className="mt-4 space-y-2">
+                        {metrics.resource.containers.map((container) => (
+                          <div key={container.name || `${container.cpu_millicores}-${container.memory_mib}`} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs">
+                            <span className="font-mono text-slate-700">{container.name || '-'}</span>
+                            <span className="text-slate-500">{container.cpu_millicores}m CPU · {container.memory_mib} MiB</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-4 text-xs text-slate-500">{metrics.resource.message || '暂无容器级资源数据'}</div>
+                    )}
+                  </section>
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">执行进展</div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">当前轮次</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.progress.current_round ?? '-'}/{metrics.progress.total_rounds ?? '-'}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">阶段总数</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.progress.phase_count}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">已完成</div>
+                        <div className="mt-1 text-lg font-black text-emerald-700">{metrics.progress.completed_phase_count}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">失败 / 运行</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.progress.failed_phase_count} / {metrics.progress.running_phase_count}</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                      当前阶段：<span className="font-bold text-slate-800">{phaseDisplayLabel(metrics.progress.current_phase)}</span>
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果与产物</div>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${metrics.result.cache_available ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {metrics.result.cache_available ? '缓存可用' : '缓存缺失'}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">文件</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.result.output_file_count}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">目录</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.result.output_dir_count}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">最大文件</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{formatBytes(metrics.result.largest_file_size_bytes)}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">小文件</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.result.small_file_count}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">中文件</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.result.medium_file_count}</div>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-400">大文件</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{metrics.result.large_file_count}</div>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                      <div>缓存更新时间：<span className="font-mono text-slate-800">{fmtTime(metrics.result.cache_updated_at)}</span></div>
+                      <div>执行轮次：<span className="font-bold text-slate-800">{metrics.result.executor_rounds}</span></div>
+                      <div>命中工具：<span className="font-bold text-slate-800">{metrics.result.matched_skill || '-'}</span></div>
+                      <div>回退 LLM：<span className="font-bold text-slate-800">{metrics.result.fallback_to_llm ? '是' : '否'}</span></div>
+                    </div>
+                  </section>
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">事件与会话</div>
+                    <div className="mt-4 space-y-3 text-xs text-slate-600">
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="font-bold text-slate-500">最近事件</div>
+                        <div className="mt-1 break-all text-slate-700">{metrics.events.latest_event_summary || '-'}</div>
+                        <div className="mt-1 font-mono text-slate-400">{metrics.events.latest_event_type || '-'} · {fmtTime(metrics.events.latest_event_at)}</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-center">
+                          <div className="text-slate-400">运行会话</div>
+                          <div className="mt-1 text-lg font-black text-blue-700">{metrics.sessions.running_session_count}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-center">
+                          <div className="text-slate-400">关闭会话</div>
+                          <div className="mt-1 text-lg font-black text-slate-800">{metrics.sessions.closed_session_count}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-center">
+                          <div className="text-slate-400">失败会话</div>
+                          <div className="mt-1 text-lg font-black text-red-700">{metrics.sessions.failed_session_count}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">观测告警</div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                      {([
+                        ['终态', metrics.health.is_terminal],
+                        ['Owner', metrics.health.has_owner],
+                        ['资源指标', metrics.health.resource_available],
+                        ['结果缓存', metrics.health.result_cache_available],
+                      ] as [string, boolean][]).map(([label, ok]) => (
+                        <div key={String(label)} className={`rounded-xl border px-3 py-2 ${ok ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-100 bg-amber-50 text-amber-700'}`}>
+                          <span className="font-bold">{label}</span>
+                          <span className="float-right">{ok ? '正常' : '关注'}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {metrics.health.warnings.length > 0 ? (
+                      <div className="mt-4 space-y-2">
+                        {metrics.health.warnings.map((warning, index) => (
+                          <div key={`${warning}-${index}`} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            {warning}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                        暂无观测告警
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </>
+            )}
+          </section>
         ) : null}
 
         {activeTab === 'events' ? (
@@ -1067,6 +1368,17 @@ function TaskDetailPanel({
 
         {activeTab === 'result' ? (
           <section className="space-y-4">
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => onRefreshResultCache(task.id)}
+                disabled={resultRefreshingTaskId === task.id}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
+              >
+                {resultRefreshingTaskId === task.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                刷新结果缓存
+              </button>
+            </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出文件数</div>
@@ -1413,6 +1725,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [logModalOpen, setLogModalOpen] = useState(false);
   const [logModalTitle, setLogModalTitle] = useState('');
   const [logModalPhase, setLogModalPhase] = useState('');
+  const [resultRefreshingTaskId, setResultRefreshingTaskId] = useState('');
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
@@ -1671,10 +1984,25 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const handleRetry = async (id: string) => {
     try {
       const result = await fwApi.retryTask(id);
-      notify(`已重试，新任务 ID: ${result.new_task_id}`, 'success');
+      notify(result.message || '任务重试已受理，后台正在准备', 'success');
       setTimeout(() => fetchTasks(true), 800);
     } catch (e: any) {
       notify(`重试失败: ${e?.message}`, 'error');
+    }
+  };
+
+  const handleRefreshResultCache = async (id: string) => {
+    setResultRefreshingTaskId(id);
+    try {
+      const result = await fwApi.refreshTaskResultCache(id);
+      notify(result.message || '结果缓存刷新已受理，后台正在更新', 'success');
+      setTimeout(() => {
+        void refreshOne(id);
+      }, 800);
+    } catch (e: any) {
+      notify(`刷新结果缓存失败: ${e?.message}`, 'error');
+    } finally {
+      setResultRefreshingTaskId('');
     }
   };
 
@@ -1928,6 +2256,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           onCancel={handleCancel}
           onDelete={handleDelete}
           onRetry={handleRetry}
+          onRefreshResultCache={handleRefreshResultCache}
+          resultRefreshingTaskId={resultRefreshingTaskId}
         />
       ) : (
       <div className="space-y-4">

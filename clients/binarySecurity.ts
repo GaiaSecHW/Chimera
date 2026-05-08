@@ -270,6 +270,19 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
+  syncDownstreamStatus: async (
+    projectId: string,
+    taskId: string,
+    payload?: { stage_name?: string; item_id?: string; force?: boolean },
+  ): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/sync-downstream-status`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload || {}),
+    });
+    return handleResponse(resp);
+  },
+
   getModuleSelection: async (projectId: string, taskId: string): Promise<BinarySecurityModuleSelection> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/module-selection`, {
       headers: getHeaders(),

@@ -37,7 +37,7 @@ export interface FirmwareUnpackTask {
   parent_task_display?: string | null;
   firmware_path: string;
   output_path: string;
-  /** pending | running | cancelling | cancelled | success | failed */
+  /** pending | retry_preparing | running | cancelling | cancelled | success | failed */
   status: string;
   worker_id: string | null;
   result_status: string | null;
@@ -191,6 +191,93 @@ export interface FirmwareTaskResult {
   reason_text: string | null;
   warnings: string[];
   summary: FirmwareTaskResultSummary;
+}
+
+export interface FirmwareTaskMetricsTask {
+  status: string;
+  result_status: string | null;
+  current_stage: string | null;
+  owner_id: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  last_progress_at: string | null;
+  duration_seconds: number | null;
+  queue_wait_seconds: number | null;
+  running_seconds: number | null;
+}
+
+export interface FirmwareTaskMetricsResource {
+  available: boolean;
+  pod_name: string | null;
+  namespace: string | null;
+  cpu_millicores: number | null;
+  memory_mib: number | null;
+  pod_cpu_limit_millicores: number | null;
+  pod_memory_limit_mib: number | null;
+  cpu_usage_percent: number | null;
+  memory_usage_percent: number | null;
+  containers: FirmwareTaskResourceContainer[];
+  message: string | null;
+}
+
+export interface FirmwareTaskMetricsProgress {
+  current_phase: string | null;
+  current_round: number | null;
+  total_rounds: number | null;
+  phase_count: number;
+  completed_phase_count: number;
+  failed_phase_count: number;
+  running_phase_count: number;
+}
+
+export interface FirmwareTaskMetricsEvents {
+  event_count: number;
+  latest_event_type: string | null;
+  latest_event_summary: string | null;
+  latest_event_at: string | null;
+}
+
+export interface FirmwareTaskMetricsSessions {
+  session_count: number;
+  running_session_count: number;
+  failed_session_count: number;
+  closed_session_count: number;
+}
+
+export interface FirmwareTaskMetricsResult {
+  cache_available: boolean;
+  cache_updated_at: string | null;
+  output_file_count: number;
+  output_dir_count: number;
+  output_total_size_bytes: number;
+  largest_file_size_bytes: number;
+  top_level_entry_count: number;
+  small_file_count: number;
+  medium_file_count: number;
+  large_file_count: number;
+  executor_rounds: number;
+  fallback_to_llm: boolean;
+  matched_skill: string | null;
+}
+
+export interface FirmwareTaskMetricsHealth {
+  is_terminal: boolean;
+  has_owner: boolean;
+  resource_available: boolean;
+  result_cache_available: boolean;
+  warnings: string[];
+}
+
+export interface FirmwareTaskMetrics {
+  task_id: string;
+  task: FirmwareTaskMetricsTask;
+  resource: FirmwareTaskMetricsResource;
+  progress: FirmwareTaskMetricsProgress;
+  events: FirmwareTaskMetricsEvents;
+  sessions: FirmwareTaskMetricsSessions;
+  result: FirmwareTaskMetricsResult;
+  health: FirmwareTaskMetricsHealth;
 }
 
 export interface FirmwareUnpackTaskList {
@@ -370,7 +457,7 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
     firmware_path: asString(record.firmware_path),
     output_path: asString(record.output_path),
     status: asString(record.status, 'unknown'),
-    worker_id: asNullableString(record.worker_id),
+    worker_id: asNullableString(record.owner_id ?? record.worker_id),
     result_status: asNullableString(record.result_status),
     result_message: asNullableString(record.result_message),
     rounds: asNullableNumber(record.rounds),
@@ -566,6 +653,97 @@ const normalizeTaskResult = (value: unknown): FirmwareTaskResult => {
       started_at: asNullableString(summary.started_at),
       completed_at: asNullableString(summary.completed_at),
       duration_seconds: summary.duration_seconds == null ? null : asNumber(summary.duration_seconds, 0),
+    },
+  };
+};
+
+const normalizeTaskMetrics = (value: unknown): FirmwareTaskMetrics => {
+  const record = asRecord(value);
+  const task = asRecord(record.task);
+  const resource = asRecord(record.resource);
+  const progress = asRecord(record.progress);
+  const events = asRecord(record.events);
+  const sessions = asRecord(record.sessions);
+  const result = asRecord(record.result);
+  const health = asRecord(record.health);
+  const containers = asArray(resource.containers).map((item) => {
+    const entry = asRecord(item);
+    return {
+      name: asNullableString(entry.name),
+      cpu_millicores: asNumber(entry.cpu_millicores, 0),
+      memory_mib: asNumber(entry.memory_mib, 0),
+    };
+  });
+  return {
+    task_id: asString(record.task_id),
+    task: {
+      status: asString(task.status, 'unknown'),
+      result_status: asNullableString(task.result_status),
+      current_stage: asNullableString(task.current_stage),
+      owner_id: asNullableString(task.owner_id),
+      created_at: asNullableString(task.created_at),
+      started_at: asNullableString(task.started_at),
+      completed_at: asNullableString(task.completed_at),
+      last_progress_at: asNullableString(task.last_progress_at),
+      duration_seconds: asNullableNumber(task.duration_seconds),
+      queue_wait_seconds: asNullableNumber(task.queue_wait_seconds),
+      running_seconds: asNullableNumber(task.running_seconds),
+    },
+    resource: {
+      available: asBoolean(resource.available),
+      pod_name: asNullableString(resource.pod_name),
+      namespace: asNullableString(resource.namespace),
+      cpu_millicores: asNullableNumber(resource.cpu_millicores),
+      memory_mib: asNullableNumber(resource.memory_mib),
+      pod_cpu_limit_millicores: asNullableNumber(resource.pod_cpu_limit_millicores),
+      pod_memory_limit_mib: asNullableNumber(resource.pod_memory_limit_mib),
+      cpu_usage_percent: asNullableNumber(resource.cpu_usage_percent),
+      memory_usage_percent: asNullableNumber(resource.memory_usage_percent),
+      containers,
+      message: asNullableString(resource.message),
+    },
+    progress: {
+      current_phase: asNullableString(progress.current_phase),
+      current_round: asNullableNumber(progress.current_round),
+      total_rounds: asNullableNumber(progress.total_rounds),
+      phase_count: asNumber(progress.phase_count, 0),
+      completed_phase_count: asNumber(progress.completed_phase_count, 0),
+      failed_phase_count: asNumber(progress.failed_phase_count, 0),
+      running_phase_count: asNumber(progress.running_phase_count, 0),
+    },
+    events: {
+      event_count: asNumber(events.event_count, 0),
+      latest_event_type: asNullableString(events.latest_event_type),
+      latest_event_summary: asNullableString(events.latest_event_summary),
+      latest_event_at: asNullableString(events.latest_event_at),
+    },
+    sessions: {
+      session_count: asNumber(sessions.session_count, 0),
+      running_session_count: asNumber(sessions.running_session_count, 0),
+      failed_session_count: asNumber(sessions.failed_session_count, 0),
+      closed_session_count: asNumber(sessions.closed_session_count, 0),
+    },
+    result: {
+      cache_available: asBoolean(result.cache_available),
+      cache_updated_at: asNullableString(result.cache_updated_at),
+      output_file_count: asNumber(result.output_file_count, 0),
+      output_dir_count: asNumber(result.output_dir_count, 0),
+      output_total_size_bytes: asNumber(result.output_total_size_bytes, 0),
+      largest_file_size_bytes: asNumber(result.largest_file_size_bytes, 0),
+      top_level_entry_count: asNumber(result.top_level_entry_count, 0),
+      small_file_count: asNumber(result.small_file_count, 0),
+      medium_file_count: asNumber(result.medium_file_count, 0),
+      large_file_count: asNumber(result.large_file_count, 0),
+      executor_rounds: asNumber(result.executor_rounds, 0),
+      fallback_to_llm: asBoolean(result.fallback_to_llm),
+      matched_skill: asNullableString(result.matched_skill),
+    },
+    health: {
+      is_terminal: asBoolean(health.is_terminal),
+      has_owner: asBoolean(health.has_owner),
+      resource_available: asBoolean(health.resource_available),
+      result_cache_available: asBoolean(health.result_cache_available),
+      warnings: asArray(health.warnings).map((item) => asString(item)).filter(Boolean),
     },
   };
 };
@@ -823,6 +1001,12 @@ export const firmwareUnpackerApi = {
     return normalizeTaskResult(await handleResponse(r));
   },
 
+  /** GET /api/app/firmware-unpacker/tasks/{id}/metrics */
+  getTaskMetrics: async (taskId: string): Promise<FirmwareTaskMetrics> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/metrics`, { headers: getHeaders() });
+    return normalizeTaskMetrics(await handleResponse(r));
+  },
+
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */
   deleteTask: async (taskId: string) => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}`, {
@@ -844,6 +1028,15 @@ export const firmwareUnpackerApi = {
   /** POST /api/app/firmware-unpacker/tasks/{id}/retry */
   retryTask: async (taskId: string) => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(r);
+  },
+
+  /** POST /api/app/firmware-unpacker/tasks/{id}/refresh-result-cache */
+  refreshTaskResultCache: async (taskId: string) => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/refresh-result-cache`, {
       method: 'POST',
       headers: getHeaders(),
     });

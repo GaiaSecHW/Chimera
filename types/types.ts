@@ -2432,6 +2432,58 @@ export interface AppSaTaskResult {
   warnings: string[];
 }
 
+export interface AppSaEvaluationSummary {
+  task_id?: string;
+  task_status?: string;
+  error?: string | null;
+  generated_at?: string;
+  module_count?: number;
+  completed_module_count?: number;
+  failed_module_count?: number;
+  completed_modules?: string[];
+  failed_modules?: string[];
+  round_count?: number;
+  avg_rounds_per_module?: number;
+  total_duration_ms?: number;
+  avg_duration_ms?: number;
+  total_token_usage?: Record<string, any>;
+  total_tokens?: number;
+  total_cost?: number;
+  stage_summary?: Record<string, Record<string, any>>;
+  effectiveness?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface AppSaEvaluationRound {
+  task_id?: string;
+  module_name?: string;
+  stage?: string;
+  round?: number;
+  stage_round?: number;
+  status?: string;
+  started_at?: string;
+  ended_at?: string;
+  duration_ms?: number;
+  worker?: Record<string, any>;
+  judges?: Array<Record<string, any>>;
+  metrics?: Record<string, any>;
+  effectiveness?: Record<string, any>;
+  module_completed?: boolean;
+  completion_reason?: string;
+  extra?: Record<string, any>;
+  source_path?: string;
+  [key: string]: any;
+}
+
+export interface AppSaTaskEvaluation {
+  task_id: string;
+  status: string;
+  available: boolean;
+  summary?: AppSaEvaluationSummary | null;
+  rounds: AppSaEvaluationRound[];
+  warnings: string[];
+}
+
 export interface AppSaSessionMeta {
   session_id: string;
   session_name: string;

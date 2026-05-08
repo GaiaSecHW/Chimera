@@ -5,6 +5,7 @@ import {
   AppSaStagesJson,
   AppSaTaskCreateRequest,
   AppSaTaskDetail,
+  AppSaTaskEvaluation,
   AppSaTaskItem,
   AppSaTaskResult,
   SystemAnalysisModelsConfig,
@@ -82,6 +83,9 @@ export const appSystemAnalyseApi = {
 
   getTaskResult: async (taskId: string): Promise<AppSaTaskResult> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
+
+  getTaskEvaluation: async (taskId: string): Promise<AppSaTaskEvaluation> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/evaluation`, { headers: getHeaders() })),
 
   listTaskSessions: async (taskId: string): Promise<AppSaSessionMeta[]> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),

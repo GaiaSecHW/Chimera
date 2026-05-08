@@ -8,11 +8,13 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardCopy,
+  BarChart3,
   FolderOpen,
   Loader2,
   PlayCircle,
   RefreshCw,
   RotateCcw,
+  Search,
   ScrollText,
   ShieldAlert,
   Trash2,
@@ -27,6 +29,8 @@ import {
   AppSaSessionSnapshot,
   AppSaStageEvent,
   AppSaTaskDetail,
+  AppSaTaskEvaluation,
+  AppSaEvaluationRound,
   AppSaTaskResult,
 } from '../../types/types';
 import { FileWatchMessage } from '../../clients/fileserver';
@@ -63,7 +67,7 @@ const STAGE_STEPS = [
 ];
 
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
-type DetailTab = 'overview' | 'session' | 'result';
+type DetailTab = 'overview' | 'session' | 'result' | 'evaluation';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
 
 const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
@@ -464,6 +468,54 @@ function MetricCard({ label, value, icon }: { label: string; value: React.ReactN
   );
 }
 
+function formatNumber(value: unknown, digits = 0): string {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  return num.toLocaleString('zh-CN', {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits > 0 ? Math.min(digits, 2) : 0,
+  });
+}
+
+function formatCost(value: unknown): string {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  return `$${num.toFixed(num >= 1 ? 4 : 6)}`;
+}
+
+function formatRate(value: unknown): string {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  return `${(num * 100).toFixed(1)}%`;
+}
+
+function formatMs(value: unknown): string {
+  const ms = Number(value);
+  if (!Number.isFinite(ms) || ms <= 0) return '-';
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}m${seconds % 60}s`;
+}
+
+function stageLabel(stage: string | undefined): string {
+  const labels: Record<string, string> = {
+    classify: '全局分类',
+    refine: '细分类',
+    analyse: '安全分析',
+    final_report: '最终报告',
+  };
+  return labels[stage || ''] || stage || '-';
+}
+
+function evaluationStatusTone(status?: string) {
+  if (status === 'passed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (status === 'failed') return 'border-red-200 bg-red-50 text-red-700';
+  if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
+  if (status === 'skipped') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-slate-200 bg-slate-100 text-slate-600';
+}
+
 export const SystemAnalysisTaskDetailPage: React.FC<{
   projectId: string;
   taskId: string;
@@ -477,6 +529,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [result, setResult] = useState<AppSaTaskResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultLoading, setResultLoading] = useState(false);
+  const [evaluation, setEvaluation] = useState<AppSaTaskEvaluation | null>(null);
+  const [evaluationLoading, setEvaluationLoading] = useState(false);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
+  const [evaluationModuleFilter, setEvaluationModuleFilter] = useState('');
+  const [evaluationStageFilter, setEvaluationStageFilter] = useState('');
+  const [evaluationStatusFilter, setEvaluationStatusFilter] = useState('');
+  const [expandedEvaluationRound, setExpandedEvaluationRound] = useState<number | null>(null);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
@@ -525,6 +584,22 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       notify(`加载任务结果失败: ${err?.message || err}`, 'error');
     } finally {
       setResultLoading(false);
+    }
+  };
+
+  const loadEvaluation = async () => {
+    if (!taskId) return;
+    setEvaluationLoading(true);
+    setEvaluationError(null);
+    try {
+      const data = await appApi.getTaskEvaluation(taskId);
+      setEvaluation(data);
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      setEvaluationError(message);
+      notify(`加载观测指标失败: ${message}`, 'error');
+    } finally {
+      setEvaluationLoading(false);
     }
   };
 
@@ -617,6 +692,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   useEffect(() => {
     if (activeTab !== 'result') return;
     void loadResult();
+  }, [activeTab, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation') return;
+    void loadEvaluation();
   }, [activeTab, taskId]);
 
   useEffect(() => {
@@ -845,6 +925,38 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
     return Array.from(map.entries());
   }, [sessions]);
+  const evaluationRounds = evaluation?.rounds || [];
+  const evaluationStages = useMemo(
+    () => Array.from(new Set(evaluationRounds.map((item) => item.stage).filter(Boolean) as string[])).sort(),
+    [evaluationRounds],
+  );
+  const evaluationStatuses = useMemo(
+    () => Array.from(new Set(evaluationRounds.map((item) => item.status).filter(Boolean) as string[])).sort(),
+    [evaluationRounds],
+  );
+  const filteredEvaluationRounds = useMemo(() => {
+    const keyword = evaluationModuleFilter.trim().toLowerCase();
+    return evaluationRounds.filter((round) => {
+      const moduleName = String(round.module_name || '').toLowerCase();
+      const stage = String(round.stage || '');
+      const status = String(round.status || '');
+      if (keyword && !moduleName.includes(keyword)) return false;
+      if (evaluationStageFilter && stage !== evaluationStageFilter) return false;
+      if (evaluationStatusFilter && status !== evaluationStatusFilter) return false;
+      return true;
+    });
+  }, [evaluationModuleFilter, evaluationRounds, evaluationStageFilter, evaluationStatusFilter]);
+  const averageJudgeScore = useMemo(() => {
+    const scores = evaluationRounds
+      .map((item) => Number(item.metrics?.avg_judge_score))
+      .filter((item) => Number.isFinite(item));
+    if (!scores.length) return null;
+    return scores.reduce((sum, item) => sum + item, 0) / scores.length;
+  }, [evaluationRounds]);
+  const expandedRound = useMemo<AppSaEvaluationRound | null>(
+    () => filteredEvaluationRounds.find((item) => item.round === expandedEvaluationRound) || null,
+    [expandedEvaluationRound, filteredEvaluationRounds],
+  );
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -909,8 +1021,9 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             <button onClick={() => {
               void loadDetail();
               if (activeTab === 'result') void loadResult();
+              if (activeTab === 'evaluation') void loadEvaluation();
             }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" title="刷新">
-              <RefreshCw size={14} className={loading || resultLoading ? 'animate-spin' : ''} />
+              <RefreshCw size={14} className={loading || resultLoading || evaluationLoading ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
@@ -934,6 +1047,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 { id: 'overview' as DetailTab, label: '总览' },
                 { id: 'session' as DetailTab, label: '智能体会话' },
                 { id: 'result' as DetailTab, label: '结果' },
+                { id: 'evaluation' as DetailTab, label: '观测指标' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1194,7 +1308,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 />
               </div>
             </section>
-          ) : (
+          ) : activeTab === 'result' ? (
             <section className="space-y-4">
               <div className="grid gap-4 xl:grid-cols-5">
                 <MetricCard label="模块数" value={moduleCount} icon={<ScrollText size={18} />} />
@@ -1468,6 +1582,204 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </div>
                       ) : null}
                     </aside>
+                  </section>
+                </>
+              )}
+            </section>
+          ) : (
+            <section className="space-y-4">
+              {evaluationLoading ? (
+                <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+                  <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+                    <Loader2 size={16} className="animate-spin" />
+                    加载观测指标中...
+                  </div>
+                </section>
+              ) : evaluationError ? (
+                <section className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold text-red-700 shadow-sm">
+                  {evaluationError}
+                </section>
+              ) : !evaluation || !evaluation.available ? (
+                <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                    <BarChart3 size={20} />
+                  </div>
+                  <div className="mt-4 text-base font-bold text-slate-800">当前任务尚未生成观测指标</div>
+                  <div className="mt-2 text-sm text-slate-500">任务至少完成一个 Worker/Judge 轮次后会出现观测数据。</div>
+                </section>
+              ) : (
+                <>
+                  {evaluation.warnings.length > 0 ? (
+                    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                      <div className="flex items-center gap-2 text-sm font-bold text-amber-800">
+                        <AlertTriangle size={16} />
+                        部分观测文件读取异常
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                        {evaluation.warnings.map((warning, index) => (
+                          <li key={`${warning}-${index}`}>{warning}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
+
+                  <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <MetricCard label="模块总数" value={formatNumber(evaluation.summary?.module_count)} icon={<ScrollText size={18} />} />
+                    <MetricCard label="完成模块" value={formatNumber(evaluation.summary?.completed_module_count)} icon={<CheckCircle2 size={18} />} />
+                    <MetricCard label="失败模块" value={formatNumber(evaluation.summary?.failed_module_count)} icon={<XCircle size={18} />} />
+                    <MetricCard label="总轮数" value={formatNumber(evaluation.summary?.round_count ?? evaluation.rounds.length)} icon={<BarChart3 size={18} />} />
+                    <MetricCard label="总 Token" value={formatNumber(evaluation.summary?.total_tokens)} icon={<ScrollText size={18} />} />
+                    <MetricCard label="总 Cost" value={formatCost(evaluation.summary?.total_cost)} icon={<ShieldAlert size={18} />} />
+                    <MetricCard label="平均 Judge 分" value={averageJudgeScore == null ? '-' : formatNumber(averageJudgeScore, 1)} icon={<BarChart3 size={18} />} />
+                    <MetricCard label="最终通过率" value={formatRate(evaluation.summary?.effectiveness?.final_module_pass_rate)} icon={<CheckCircle2 size={18} />} />
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段汇总</h2>
+                        <p className="mt-1 text-xs text-slate-400">按阶段聚合 Judge 分、通过率与轮次数</p>
+                      </div>
+                      <div className="text-xs text-slate-500">生成时间：{evaluation.summary?.generated_at ? new Date(evaluation.summary.generated_at).toLocaleString('zh-CN') : '-'}</div>
+                    </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      {Object.entries(evaluation.summary?.stage_summary || {}).map(([stage, item]) => (
+                        <div key={stage} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-sm font-black text-slate-900">{stageLabel(stage)}</div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                            <div>轮次 <span className="font-bold text-slate-900">{formatNumber(item.round_count)}</span></div>
+                            <div>通过 <span className="font-bold text-slate-900">{formatNumber(item.passed_round_count)}</span></div>
+                            <div>均分 <span className="font-bold text-slate-900">{formatNumber(item.avg_judge_score, 1)}</span></div>
+                            <div>通过率 <span className="font-bold text-slate-900">{formatRate(item.avg_review_pass_rate)}</span></div>
+                          </div>
+                        </div>
+                      ))}
+                      {Object.keys(evaluation.summary?.stage_summary || {}).length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-4">
+                          暂无阶段汇总
+                        </div>
+                      ) : null}
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div>
+                        <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2>
+                        <p className="mt-1 text-xs text-slate-400">展示每一轮 Worker/Judge 的观测指标，点击行展开完整 JSON</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <div className="relative">
+                          <Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                          <input
+                            value={evaluationModuleFilter}
+                            onChange={(event) => setEvaluationModuleFilter(event.target.value)}
+                            placeholder="搜索模块"
+                            className="w-44 rounded-xl border border-slate-200 py-2 pl-8 pr-3 text-xs outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100"
+                          />
+                        </div>
+                        <select
+                          value={evaluationStageFilter}
+                          onChange={(event) => setEvaluationStageFilter(event.target.value)}
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-cyan-300"
+                        >
+                          <option value="">全部阶段</option>
+                          {evaluationStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+                        </select>
+                        <select
+                          value={evaluationStatusFilter}
+                          onChange={(event) => setEvaluationStatusFilter(event.target.value)}
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-cyan-300"
+                        >
+                          <option value="">全部状态</option>
+                          {evaluationStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="min-w-[1120px] w-full text-left text-xs">
+                        <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                          <tr>
+                            <th className="px-3 py-3">Round</th>
+                            <th className="px-3 py-3">Stage Round</th>
+                            <th className="px-3 py-3">模块</th>
+                            <th className="px-3 py-3">阶段</th>
+                            <th className="px-3 py-3">状态</th>
+                            <th className="px-3 py-3">耗时</th>
+                            <th className="px-3 py-3">Worker</th>
+                            <th className="px-3 py-3">Judge 均分</th>
+                            <th className="px-3 py-3">通过率</th>
+                            <th className="px-3 py-3">Token</th>
+                            <th className="px-3 py-3">Cost</th>
+                            <th className="px-3 py-3">效果</th>
+                            <th className="px-3 py-3">完成原因</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {filteredEvaluationRounds.map((round) => (
+                            <React.Fragment key={`${round.round}-${round.module_name}-${round.stage}`}>
+                              <tr
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setExpandedEvaluationRound((current) => current === round.round ? null : round.round ?? null)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setExpandedEvaluationRound((current) => current === round.round ? null : round.round ?? null);
+                                  }
+                                }}
+                                className="cursor-pointer bg-white transition hover:bg-slate-50"
+                              >
+                                <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
+                                <td className="px-3 py-3 font-mono text-slate-700">{round.module_name || '-'}</td>
+                                <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
+                                <td className="px-3 py-3">
+                                  <span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span>
+                                </td>
+                                <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
+                                <td className="px-3 py-3 max-w-[180px] truncate font-mono text-slate-600">{round.worker?.model || '-'}</td>
+                                <td className="px-3 py-3 font-bold text-slate-800">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
+                                <td className="px-3 py-3 text-slate-600">{formatRate(round.metrics?.review_pass_rate)}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.metrics?.token_total)}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{formatCost(round.metrics?.cost)}</td>
+                                <td className="px-3 py-3 text-slate-600">
+                                  <div className="flex flex-wrap gap-1">
+                                    {round.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">反思</span> : null}
+                                    {round.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">重分类</span> : null}
+                                    {!round.effectiveness?.needed_reflection && !round.effectiveness?.triggered_reclassify ? '-' : null}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3 text-slate-600">{round.completion_reason || '-'}</td>
+                              </tr>
+                              {expandedEvaluationRound === round.round ? (
+                                <tr>
+                                  <td colSpan={13} className="bg-slate-950 px-4 py-4">
+                                    <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-all text-xs leading-6 text-slate-200">
+                                      {JSON.stringify(round, null, 2)}
+                                    </pre>
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </React.Fragment>
+                          ))}
+                          {filteredEvaluationRounds.length === 0 ? (
+                            <tr>
+                              <td colSpan={13} className="px-4 py-10 text-center text-sm text-slate-500">
+                                当前筛选条件下没有轮次记录
+                              </td>
+                            </tr>
+                          ) : null}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {expandedRound?.source_path ? (
+                      <div className="mt-3 break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-500">
+                        {expandedRound.source_path}
+                      </div>
+                    ) : null}
                   </section>
                 </>
               )}

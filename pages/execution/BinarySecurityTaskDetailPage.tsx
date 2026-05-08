@@ -437,6 +437,36 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
+  const syncDownstreamStatus = async (options?: { stageName?: string; itemId?: string; force?: boolean }) => {
+    if (!projectId || !taskId) return;
+    const confirmed = await showConfirm({
+      title: '同步下游状态',
+      message: options?.itemId
+        ? '将查询该阶段子任务在对应微服务中的真实状态，并刷新当前编排记录。该操作不会启动、取消、删除或重试任何任务，是否继续？'
+        : options?.stageName
+          ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态。该操作不会触发执行动作，是否继续？`
+          : '将同步当前任务所有已创建下游子任务的真实状态。该操作不会启动、取消、删除或重试任何任务，是否继续？',
+      confirmText: '确认同步',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    const loadingKey = options?.itemId ? `sync-item:${options.itemId}` : options?.stageName ? `sync-stage:${options.stageName}` : 'sync-downstream';
+    setActionLoading(loadingKey);
+    setError(null);
+    try {
+      await executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, {
+        stage_name: options?.stageName,
+        item_id: options?.itemId,
+        force: options?.force,
+      });
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '同步下游状态失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
   const confirmModuleSelection = async () => {
     if (!projectId || !taskId) return;
     if (selectedModuleKeys.length === 0) {
@@ -652,6 +682,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button type="button" onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
             <RefreshCw size={16} />
             刷新
+          </button>
+          <button
+            type="button"
+            onClick={() => void syncDownstreamStatus()}
+            disabled={actionLoading !== ''}
+            className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-700 disabled:opacity-60"
+          >
+            <RefreshCw size={16} />
+            同步下游状态
           </button>
           <button type="button" onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !canActOnTask} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
           <button
@@ -953,6 +992,19 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
                             {fmt(item.started_at)} {'->'} {fmt(item.finished_at)}
                           </div>
+                          {item.downstream_task_id ? (
+                            <button
+                              type="button"
+                              className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700 disabled:opacity-60"
+                              disabled={actionLoading !== ''}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id });
+                              }}
+                            >
+                              同步状态
+                            </button>
+                          ) : null}
                           {detailSupport.supported ? (
                             <button
                               type="button"
