@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getHeaders, handleResponse, fetchWithRetry } from './base';
 import {
   AppDfaServiceConfig,
   AppDfaStagesJson,
@@ -79,10 +79,10 @@ export const appDataflowAnalyseApi = {
     handleResponse(await fetch(`${BASE}/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 
   saveConfig: async (config: AppDfaServiceConfig): Promise<AppDfaServiceConfig> =>
-    handleResponse(await fetch(`${BASE}/config`, {
+    handleResponse(await fetchWithRetry(`${BASE}/config`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ project_id: config.project_id, config }),
-    })),
+    }, { retries: 3, retryDelayMs: 500 })),
 
 };
