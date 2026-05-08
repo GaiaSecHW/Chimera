@@ -17,6 +17,12 @@ export default defineConfig(({ mode }) => {
             secure: false,
             ws: true,
           },
+          '/ws': {
+            target: 'ws://secflow.ai.icsl.huawei.com',
+            changeOrigin: true,
+            secure: false,
+            ws: true,
+          },
         },
       },
       plugins: [react()],

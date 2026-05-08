@@ -2,16 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppDfaAgentInstance, AppDfaRoleConfig, AppDfaServiceConfig } from '../../types/types';
+import { AppDfaAgentInstance, AppDfaRoleConfig, AppDfaServiceConfig, LlmProviderSummary } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
-const TOOL_OPTIONS = ['read', 'bash', 'edit', 'write', 'grep', 'find'];
-const THINKING_LEVELS = ['off', 'low', 'medium', 'high'] as const;
-
 const defaultRole = (): AppDfaRoleConfig => ({
-  default_tools: ['read', 'bash', 'edit', 'write', 'find'],
   system_prompt_dir: '',
-  default_thinking_level: 'off',
   agents: [],
   stage_models: {},
 });
@@ -71,16 +66,22 @@ const NumberInput: React.FC<{ value: number; min?: number; max?: number; step?: 
   );
 };
 
-const TextInput: React.FC<{ value: string; placeholder?: string; onChange: (v: string) => void }> = ({ value, placeholder, onChange }) => (
-  <input type="text" placeholder={placeholder} value={value}
-    onChange={(e) => onChange(e.target.value)}
-    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-);
+const ModelSelect: React.FC<{ value: string; options: string[]; onChange: (v: string) => void }> = ({ value, options, onChange }) => {
+  const allOpts = value && !options.includes(value) ? [value, ...options] : options;
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+      <option value="">— 选择模型 —</option>
+      {allOpts.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+    </select>
+  );
+};
 
 const AgentInstanceList: React.FC<{
   agents: AppDfaAgentInstance[];
+  modelOptions: string[];
   onChange: (agents: AppDfaAgentInstance[]) => void;
-}> = ({ agents, onChange }) => {
+}> = ({ agents, modelOptions, onChange }) => {
   const add = () => onChange([...agents, { model: '', tools: null, thinking_level: null }]);
   const remove = (i: number) => onChange(agents.filter((_, idx) => idx !== i));
   const update = (i: number, patch: Partial<AppDfaAgentInstance>) =>
@@ -89,26 +90,12 @@ const AgentInstanceList: React.FC<{
   return (
     <div className="space-y-2">
       {agents.map((agent, i) => (
-        <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 items-start">
-          <FieldRow label="模型">
-            <TextInput value={agent.model} placeholder="provider/Model" onChange={(v) => update(i, { model: v })} />
-          </FieldRow>
-          <FieldRow label="thinking_level">
-            <select value={agent.thinking_level ?? 'off'}
-              onChange={(e) => update(i, { thinking_level: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
-              {THINKING_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </FieldRow>
-          <FieldRow label="工具（逗号分隔）">
-            <TextInput
-              value={agent.tools?.join(',') ?? ''}
-              placeholder="read,bash,edit"
-              onChange={(v) => update(i, { tools: v ? v.split(',').map((s) => s.trim()).filter(Boolean) : null })}
-            />
-          </FieldRow>
+        <div key={i} className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <div className="flex-1">
+            <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
+          </div>
           <button onClick={() => remove(i)}
-            className="mt-6 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50">
+            className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50">
             <Trash2 size={14} />
           </button>
         </div>
@@ -124,36 +111,15 @@ const AgentInstanceList: React.FC<{
 const RoleConfigBlock: React.FC<{
   title: string;
   subtitle?: string;
+  modelOptions: string[];
   value: AppDfaRoleConfig;
   onChange: (v: AppDfaRoleConfig) => void;
-}> = ({ title, subtitle, value, onChange }) => (
+}> = ({ title, subtitle, modelOptions, value, onChange }) => (
   <SectionCard title={title} subtitle={subtitle}>
-    <FieldRow label="default_thinking_level">
-      <select
-        value={value.default_thinking_level ?? 'off'}
-        onChange={(e) => onChange({ ...value, default_thinking_level: e.target.value })}
-        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
-        {THINKING_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-      </select>
-    </FieldRow>
-    <FieldRow label="default_tools">
-      <div className="flex flex-wrap gap-3 mt-1">
-        {TOOL_OPTIONS.map((tool) => (
-          <label key={tool} className="inline-flex items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
-            <input type="checkbox"
-              checked={(value.default_tools ?? []).includes(tool)}
-              onChange={(e) => {
-                const tools = value.default_tools ?? [];
-                onChange({ ...value, default_tools: e.target.checked ? [...tools, tool] : tools.filter((t) => t !== tool) });
-              }} />
-            {tool}
-          </label>
-        ))}
-      </div>
-    </FieldRow>
     <FieldRow label="Agent 实例列表">
       <AgentInstanceList
         agents={value.agents ?? []}
+        modelOptions={modelOptions}
         onChange={(agents) => onChange({ ...value, agents })}
       />
     </FieldRow>
@@ -169,8 +135,21 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<AppDfaServiceConfig>(() => defaultConfig(projectId));
+  const [modelOptions, setModelOptions] = useState<string[]>([]);
 
   const patch = (p: Partial<AppDfaServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
+
+  useEffect(() => {
+    api.configCenter.listLlmProviders()
+      .then((res: { items?: LlmProviderSummary[] }) => {
+        const items = Array.isArray(res?.items) ? res.items : [];
+        const opts = items
+          .filter((p) => p.enabled && p.provider_key && p.model)
+          .map((p) => `${p.provider_key}/${p.model}`);
+        setModelOptions(opts);
+      })
+      .catch(() => { /* 静默忽略 */ });
+  }, []);
 
   const mergeConfig = (raw: Partial<AppDfaServiceConfig>): AppDfaServiceConfig => {
     const base = defaultConfig(projectId);
@@ -287,6 +266,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
           <RoleConfigBlock
             title="Workers 配置"
             subtitle="执行数据流分析工作的 Agent"
+            modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
           />
@@ -295,24 +275,10 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
           <RoleConfigBlock
             title="Judges 配置"
             subtitle="评判 Worker 结果的 Agent"
+            modelOptions={modelOptions}
             value={config.judges}
             onChange={(v) => patch({ judges: v })}
           />
-
-          {/* 路径配置 */}
-          <SectionCard title="路径配置" subtitle="输出目录设置">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <FieldRow label="output_dir">
-                <TextInput value={config.output_dir} onChange={(v) => patch({ output_dir: v })} />
-              </FieldRow>
-              <FieldRow label="archive_dir">
-                <TextInput value={config.archive_dir} onChange={(v) => patch({ archive_dir: v })} />
-              </FieldRow>
-              <FieldRow label="result_dir">
-                <TextInput value={config.result_dir} onChange={(v) => patch({ result_dir: v })} />
-              </FieldRow>
-            </div>
-          </SectionCard>
 
           <div className="flex items-center gap-3">
             <button onClick={() => void handleSave()} disabled={saving}
