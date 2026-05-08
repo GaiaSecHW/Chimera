@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Clock3, Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
 
-import { B2SElfTaskInput, B2SEngine, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SRunMode, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
@@ -16,12 +16,6 @@ interface Props {
 const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
 const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
-type B2SRunMode = 'fast' | 'deep';
-const RUN_MODE_ENGINE: Record<B2SRunMode, B2SEngine> = {
-  fast: 'hybrid',
-  deep: 'agent',
-};
-
 const formatBytes = (value: number): string => {
   if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
   if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
@@ -35,6 +29,16 @@ const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
   }
   if (total <= 0) return '-';
   return `${task.success_items || 0}/${total}`;
+};
+
+const taskModeLabel = (task: B2STask, detail?: B2STaskDetail | null) => detail?.mode_label || task.mode_label || '';
+
+const taskModeTone = (task: B2STask, detail?: B2STaskDetail | null) => {
+  const mode = detail?.mode || task.mode;
+  if (mode === 'deep') return 'bg-violet-50 text-violet-700 ring-violet-200';
+  if (mode === 'fast') return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
+  if (mode === 'mixed') return 'bg-amber-50 text-amber-700 ring-amber-200';
+  return 'bg-slate-100 text-slate-600 ring-slate-200';
 };
 
 const buildPhaseSummary = (task: B2STask, detail?: B2STaskDetail | null) => {
@@ -274,7 +278,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         tags: ['reverse', 'binary-to-source'],
         llm_provider_key: llmProviderKey || undefined,
         concurrency: safeConcurrency,
-        engine: RUN_MODE_ENGINE[runMode],
+        mode: runMode,
         elf_tasks: elfTasks,
       });
       setShowCreateDialog(false);
@@ -362,6 +366,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             {items.map((task) => {
               const detail = activeTaskDetails[task.id];
               const phaseSummary = buildPhaseSummary(task, detail);
+              const modeLabel = taskModeLabel(task, detail);
               const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
               return (
                 <button
@@ -375,6 +380,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="text-lg font-black text-slate-900">{task.name || task.id}</div>
                         <B2SStatusBadge status={task.status} />
+                        {modeLabel && (
+                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${taskModeTone(task, detail)}`}>
+                            {modeLabel}
+                          </span>
+                        )}
                         <B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} />
                       </div>
                       <div className="mt-2 break-all font-mono text-xs text-slate-400">{task.id}</div>
@@ -483,7 +493,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black text-slate-900">快速模式</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-cyan-700 ring-1 ring-cyan-100">hybrid</div>
+                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-cyan-700 ring-1 ring-cyan-100">推荐</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">优先速度，使用混合流水线，适合初步分析和批量还原。</div>
                     </button>
@@ -495,7 +505,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-black text-slate-900">深度模式</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-violet-700 ring-1 ring-violet-100">agent</div>
+                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-violet-700 ring-1 ring-violet-100">高质量</div>
                       </div>
                       <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">使用 Agent 深度推理，速度较慢，适合关键二进制和高质量还原。</div>
                     </button>
