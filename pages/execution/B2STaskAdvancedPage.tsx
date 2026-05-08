@@ -170,8 +170,25 @@ interface AdvancedFileEntry {
   roundOrder?: number;
   agent?: string;
   role?: string;
+  batchNo?: number | null;
+  attemptNo?: number | null;
   file: B2SAdvancedFile;
 }
+
+const entryFromFile = (file: B2SAdvancedFile, fallback: AdvancedFileEntry): AdvancedFileEntry => ({
+  ...fallback,
+  stage: file.stage || fallback.stage,
+  stageOrder: file.stage_order ?? fallback.stageOrder,
+  section: file.section || fallback.section,
+  sectionOrder: file.section_order ?? fallback.sectionOrder,
+  round: file.round || fallback.round,
+  roundOrder: file.round_order ?? fallback.roundOrder,
+  agent: file.agent || fallback.agent,
+  role: file.role || fallback.role,
+  batchNo: file.batch_no ?? fallback.batchNo,
+  attemptNo: file.attempt_no ?? fallback.attemptNo,
+  file,
+});
 
 const relativeTo = (path: string, base?: string | null) => {
   const normalized = path.replace(/\\/g, '/');
@@ -359,30 +376,30 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
     advanced?.runs.forEach((run) => {
       run.files.forEach((file) => {
         const meta = runFileMeta(file);
-        list.push({ ...meta, round: meta.round || run.name, file });
+        list.push(entryFromFile(file, { ...meta, round: meta.round || run.name, file }));
       });
       run.batches.forEach((batch) => {
         const batchNo = batch.batch_no || batchNumberFromName(batch.name) || 999;
         const batchName = batchLabel(batch.name, batch.batch_no);
         const stage = `阶段 4 · ${batchName} 函数`;
         const stageOrder = 4000 + batchNo;
-        if (batch.disasm) list.push({ stage: '阶段 2 · Batch 上下文切片', stageOrder: 2000, round: batchName, file: batch.disasm });
-        if (batch.source) list.push({ stage, stageOrder, section: '执行', sectionOrder: 10, round: '执行输出', roundOrder: 0, agent: 'executor agent', role: 'batch 输出', file: batch.source });
+        if (batch.disasm) list.push(entryFromFile(batch.disasm, { stage: '阶段 2 · Batch 上下文切片', stageOrder: 2000, round: batchName, file: batch.disasm }));
+        if (batch.source) list.push(entryFromFile(batch.source, { stage, stageOrder, section: '执行', sectionOrder: 10, round: '执行输出', roundOrder: 0, agent: 'executor agent', role: 'batch 输出', file: batch.source }));
         batch.review_snapshots.forEach((file) => {
           const attemptNo = attemptNumberFromName(file.name) || 0;
-          list.push({ stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ? `第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输入', file });
+          list.push(entryFromFile(file, { stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ? `第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输入', file }));
         });
         batch.reviews.forEach((file) => {
           const attemptNo = attemptNumberFromName(file.name) || 0;
-          list.push({ stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ? `第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输出', file });
+          list.push(entryFromFile(file, { stage, stageOrder, section: '评审', sectionOrder: 20, round: attemptNo ? `第 ${attemptNo} 次评审` : '评审轮次', roundOrder: attemptNo, agent: 'validator agent', role: '评审输出', file }));
         });
       });
       run.agent_sessions.forEach((file) => {
         const meta = sessionMetaFromPath(file, run);
-        list.push({ stage: meta.stage || '阶段 4 · Agent 会话', stageOrder: meta.stageOrder ?? 4999, section: meta.section, sectionOrder: meta.sectionOrder, round: meta.round || run.name, roundOrder: meta.roundOrder, agent: meta.agent, role: meta.role, file });
+        list.push(entryFromFile(file, { stage: meta.stage || '阶段 4 · Agent 会话', stageOrder: meta.stageOrder ?? 4999, section: meta.section, sectionOrder: meta.sectionOrder, round: meta.round || run.name, roundOrder: meta.roundOrder, agent: meta.agent, role: meta.role, file }));
       });
     });
-    advanced?.ida_files.forEach((file) => list.push({ stage: '阶段 1 · IDA 分析缓存', stageOrder: 1000, file }));
+    advanced?.ida_files.forEach((file) => list.push(entryFromFile(file, { stage: '阶段 1 · IDA 分析缓存', stageOrder: 1000, file })));
     return list.sort((a, b) => a.stageOrder - b.stageOrder || (a.sectionOrder || 0) - (b.sectionOrder || 0) || (a.roundOrder || 0) - (b.roundOrder || 0) || a.file.name.localeCompare(b.file.name));
   }, [advanced]);
 
