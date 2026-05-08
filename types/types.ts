@@ -2386,6 +2386,49 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   task_config_json?: { analyse_targets?: string[]; binary_arch?: string[] } | null;
 }
 
+export interface AppSaTaskResultSummary {
+  module_count: number;
+  high_risk_module_count: number;
+  medium_risk_module_count: number;
+  low_risk_module_count: number;
+  total_file_count: number;
+  threat_count: number;
+}
+
+export interface AppSaResultModuleSection {
+  level: number;
+  title: string;
+  anchor: string;
+}
+
+export interface AppSaResultModule {
+  module_name: string;
+  rank: number;
+  module_dir_path?: string | null;
+  files_list_path?: string | null;
+  module_report_path?: string | null;
+  module_report_markdown?: string | null;
+  files: string[];
+  file_count: number;
+  risk_level?: string | null;
+  risk_score?: number | null;
+  report_sections: AppSaResultModuleSection[];
+  report_preview?: string | null;
+}
+
+export interface AppSaTaskResult {
+  task_id: string;
+  available: boolean;
+  status: string;
+  output_root?: string | null;
+  final_report_path?: string | null;
+  modules_list_path?: string | null;
+  final_report_markdown?: string | null;
+  modules: AppSaResultModule[];
+  summary: AppSaTaskResultSummary;
+  warnings: string[];
+}
+
 export interface AppSaTaskCreateRequest {
   project_id: string;
   task_name: string;

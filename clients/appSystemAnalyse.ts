@@ -4,6 +4,7 @@ import {
   AppSaTaskCreateRequest,
   AppSaTaskDetail,
   AppSaTaskItem,
+  AppSaTaskResult,
   SystemAnalysisModelsConfig,
   SystemAnalysisPromptTemplate,
   SystemAnalysisServiceConfig,
@@ -76,6 +77,9 @@ export const appSystemAnalyseApi = {
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
+  getTaskResult: async (taskId: string): Promise<AppSaTaskResult> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
 
   cancelTask: async (taskId: string): Promise<AppSaTaskItem> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/cancel`, {
