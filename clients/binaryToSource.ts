@@ -104,6 +104,16 @@ export interface B2SAdvancedFile {
   size: number;
   content?: string | null;
   truncated?: boolean;
+  stage?: string | null;
+  stage_order?: number | null;
+  section?: string | null;
+  section_order?: number | null;
+  round?: string | null;
+  round_order?: number | null;
+  agent?: string | null;
+  role?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
 }
 
 export interface B2SAdvancedBatch {
