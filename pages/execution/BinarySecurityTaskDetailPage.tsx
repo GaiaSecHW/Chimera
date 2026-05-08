@@ -673,42 +673,63 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         <div className="text-sm text-slate-500">加载中...</div>
       ) : detail ? (
         <>
-          <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-              <div>
+          <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] xl:items-start">
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security Detail</p>
-                <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{detail.name}</h1>
+                <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{detail.name}</h1>
                 <div className="mt-2 break-all font-mono text-xs text-slate-400">{detail.id}</div>
-                <div className="mt-4 flex items-center gap-3">
+                <div className="mt-3 flex flex-wrap items-center gap-3">
                   <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail.status)}`}>{detail.status}</span>
                   <span className="text-sm text-slate-500">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
+                <div className="mt-4 grid gap-2">
+                  <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{isSourceTask ? '源码目录' : '输入目录'}</div>
+                    <div className="mt-1 break-all font-mono text-xs text-slate-700">{detail.firmware_path}</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">产物目录</div>
+                    <div className="mt-1 break-all font-mono text-xs text-slate-700">{artifacts?.fileserver_path || detail.output_root}</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">模块策略</div>
+                    <div className="mt-1 text-xs text-slate-700">
+                      {detail.module_selection_mode === 'manual_confirm' ? '系统分析后人工确认' : '按风险自动推进'}
+                      {' · '}
+                      风险等级：{(detail.selected_risk_levels || []).join(' / ') || '-'}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">创建时间：<span className="font-bold text-slate-900">{fmt(detail.created_at)}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">完成时间：<span className="font-bold text-slate-900">{fmt(detail.finished_at)}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{isSourceTask ? '源码文件数' : '固件数量'}：<span className="font-bold text-slate-900">{detail.firmware_item_count}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{isSourceTask ? '入口数量' : '已解包/失败'}：<span className="font-bold text-slate-900">{isSourceTask ? detail.entry_count : `${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">已选模块：<span className="font-bold text-slate-900">{detail.selected_module_count}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">高危模块：<span className="font-bold text-slate-900">{detail.high_risk_module_count}</span></div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">漏洞结果：<span className="font-bold text-slate-900">{detail.vuln_result_count}</span></div>
-              </div>
-            </div>
-            <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{isSourceTask ? '源码目录' : '输入目录'}</div>
-                <div className="mt-2 break-all font-mono text-xs text-slate-700">{detail.firmware_path}</div>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">产物目录</div>
-                <div className="mt-2 break-all font-mono text-xs text-slate-700">{artifacts?.fileserver_path || detail.output_root}</div>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">模块策略</div>
-                <div className="mt-2 text-xs text-slate-700">
-                  {detail.module_selection_mode === 'manual_confirm' ? '系统分析后人工确认' : '按风险自动推进'}
-                  {' · '}
-                  风险等级：{(detail.selected_risk_levels || []).join(' / ') || '-'}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">创建时间</div>
+                  <div className="mt-1 font-bold text-slate-900">{fmt(detail.created_at)}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">完成时间</div>
+                  <div className="mt-1 font-bold text-slate-900">{fmt(detail.finished_at)}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">{isSourceTask ? '源码文件数' : '固件数量'}</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{detail.firmware_item_count}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">{isSourceTask ? '入口数量' : '已解包/失败'}</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{isSourceTask ? detail.entry_count : `${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">已选模块</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{detail.selected_module_count}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">高危模块</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{detail.high_risk_module_count}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">漏洞结果</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{detail.vuln_result_count}</div>
                 </div>
               </div>
             </div>

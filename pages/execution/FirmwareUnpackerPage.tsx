@@ -1225,13 +1225,13 @@ function TaskDetailPanel({
                                 {
                                   id: 'summary' as const,
                                   label: '报告总结',
-                                  file: 'summary.txt',
+                                  file: 'summary.md',
                                   available: resultDocumentState.hasSummary,
                                 },
                                 {
                                   id: 'reason' as const,
                                   label: '改进总结',
-                                  file: 'reason.txt',
+                                  file: 'reason.md',
                                   available: resultDocumentState.hasReason,
                                 },
                               ].map((doc) => {
