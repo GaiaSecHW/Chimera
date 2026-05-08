@@ -76,7 +76,6 @@ const DASHBOARD_HTML = `
         </nav>
 
         <div id="tabOverview" class="tab-content active">
-          <div class="card" id="runCommandCard"></div>
           <div class="grid-2">
             <div class="card" id="scoreChart"></div>
             <div class="card" id="issuesCard"></div>
@@ -628,7 +627,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 .badge-review_error, .badge-review_plateau, .badge-summary_incomplete,
 .badge-runtime_output_limit, .badge-runtime_timeout, .badge-blocked_context_window,
 .badge-blocked_quota, .badge-provider_rate_limited, .badge-model_contract_violation,
-.badge-no_workspace, .badge-error {
+.badge-blocked_external_source, .badge-no_workspace, .badge-error {
   background: #fff1f2;
   border-color: #fecdd3;
   color: var(--error);
@@ -1833,7 +1832,6 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const emptyCard = '<div class="empty-state">正在加载...</div>';
       const scoreChart = this.$('scoreChart');
       const issuesCard = this.$('issuesCard');
-      const runCommandCard = this.$('runCommandCard');
       const manifestCard = this.$('manifestCard');
       const cycleTimeline = this.$('cycleTimeline');
       const cyclesContainer = this.$('cyclesContainer');
@@ -1845,7 +1843,6 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const taskInfoCard = this.$('taskInfoCard');
       if (scoreChart) scoreChart.innerHTML = loadingCard;
       if (issuesCard) issuesCard.innerHTML = loadingCard;
-      if (runCommandCard) runCommandCard.innerHTML = loadingCard;
       if (manifestCard) manifestCard.innerHTML = loadingCard;
       if (cycleTimeline) cycleTimeline.innerHTML = loadingCard;
       if (cyclesContainer) cyclesContainer.innerHTML = emptyCard;
@@ -1874,12 +1871,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const errorCard = `<div class="card-title">加载失败</div><div class="empty-state text-error">${this.esc(message)}</div>`;
       const scoreChart = this.$('scoreChart');
       const issuesCard = this.$('issuesCard');
-      const runCommandCard = this.$('runCommandCard');
       const manifestCard = this.$('manifestCard');
       const cycleTimeline = this.$('cycleTimeline');
       if (scoreChart) scoreChart.innerHTML = errorCard;
       if (issuesCard) issuesCard.innerHTML = errorCard;
-      if (runCommandCard) runCommandCard.innerHTML = '<div class="card-title">Pod 执行命令</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示启动命令。</div>';
       if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及 Run 后端对 /data 的挂载和索引配置。</div>';
       if (cycleTimeline) cycleTimeline.innerHTML = '<div class="card-title">运行状态</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示轮次和结果信息。</div>';
     },
@@ -1968,9 +1963,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const advisorCount = (c.global_review_advisors || []).length;
       const metaEl = this.$('runMeta');
       if (metaEl) {
+        const thinking = String(c.thinking || '').trim() || '不支持/未启用';
         metaEl.innerHTML = `
       <span>🤖 ${this.esc(c.model)}</span>
-      <span>🧠 ${this.esc(c.thinking)}</span>
+      <span>🧠 ${this.esc(thinking)}</span>
       <span>🔄 ${data.cycles_used || cycles.length} cycles</span>
       <span>⏱️ ${c.timeout_seconds}s</span>
       <span>🎯 ${c.parallel_result_review ? '并行结果评审' : '串行结果评审'}${c.parallel_result_review_limit ? ` ×${c.parallel_result_review_limit}` : ''}</span>
@@ -1979,14 +1975,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       ${data.error ? `<span class="text-error">⚠️ ${this.esc(data.error).substring(0, 80)}</span>` : ''}
     `;
       }
-	      this._startDurationTimer(data.status === 'running');
-	      this.updateActionButtons(data);
+      this._startDurationTimer(data.status === 'running');
+      this.updateActionButtons(data);
 
-	      this.renderOverview(data);
-	      this.renderCycles(data);
-	      this.renderResults(data);
-	      this.renderTaskInfo(data);
-	    },
+      this.renderOverview(data);
+      this.renderCycles(data);
+      this.renderResults(data);
+      this.renderTaskInfo(data);
+    },
 
     currentHistoryRunId() {
       return String(this.currentRunData?.history_run_id || this.currentSummary?.history_run_id || '');
@@ -1996,8 +1992,24 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(String(statusText || '').toLowerCase());
     },
 
-    isCancelledRunStatus(statusText: string) {
-      return String(statusText || '').toLowerCase() === 'cancelled';
+    isRetryableRunStatus(statusText: string) {
+      return [
+        'cancelled',
+        'failed',
+        'interrupted',
+        'stopped',
+        'review_error',
+        'review_plateau',
+        'summary_incomplete',
+        'runtime_output_limit',
+        'runtime_timeout',
+        'blocked_context_window',
+        'blocked_quota',
+        'provider_rate_limited',
+        'model_contract_violation',
+        'blocked_external_source',
+        'error',
+      ].includes(String(statusText || '').toLowerCase());
     },
 
     updateActionButton(id: string, options: { disabled: boolean; hidden?: boolean; text?: string }) {
@@ -2013,7 +2025,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const hasRun = !!this.currentRun && !!current;
       const linked = !!(current?.linked_task_id || current?.linked_execution_id);
       const active = this.isActiveRunStatus(String(current?.status || ''));
-      const cancelled = this.isCancelledRunStatus(String(current?.status || ''));
+      const retryable = this.isRetryableRunStatus(String(current?.status || ''));
       const busy = this._mutationBusy;
       this.updateActionButton('btnAdoptRun', {
         disabled: !hasRun || linked || !!busy,
@@ -2025,7 +2037,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         text: busy === 'cancel' ? '正在取消...' : '取消 Run',
       });
       this.updateActionButton('btnRetryRun', {
-        disabled: !hasRun || !cancelled || !!busy,
+        disabled: !hasRun || !retryable || !!busy,
         text: busy === 'retry' ? '正在提交...' : '重试 Run',
       });
       this.updateActionButton('btnDeleteRun', {
@@ -2037,13 +2049,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     taskActionButtons(data: DataflowFileserverRunOverview) {
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const active = this.isActiveRunStatus(data.status);
-      const cancelled = this.isCancelledRunStatus(data.status);
+      const retryable = this.isRetryableRunStatus(data.status);
       const busy = !!this._mutationBusy;
       return `
         <div class="task-action-panel">
           <button class="btn btn-sm" data-action="adopt-run" ${linked || busy ? 'disabled' : ''}>补齐任务信息</button>
           <button class="btn btn-sm btn-warning" data-action="cancel-run" ${!linked || !active || busy ? 'disabled' : ''}>取消 Run</button>
-          <button class="btn btn-sm" data-action="retry-run" ${!cancelled || busy ? 'disabled' : ''} title="仅已取消的 Run 可重试">重试 Run</button>
+          <button class="btn btn-sm" data-action="retry-run" ${!retryable || busy ? 'disabled' : ''} title="取消/失败/可恢复异常的 Run 可重试">重试 Run</button>
           <button class="btn btn-sm btn-danger" data-action="delete-open" ${busy ? 'disabled' : ''}>删除 Run</button>
         </div>
       `;
@@ -2056,25 +2068,6 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (commandDisplay) return commandDisplay;
       const command = Array.isArray(data.command) ? data.command : Array.isArray(cli.command) ? cli.command : Array.isArray(raw.command) ? raw.command : [];
       return command.map((item: any) => String(item)).join(' ');
-    },
-
-    renderRunCommandCard(data: DataflowFileserverRunOverview) {
-      const el = this.$('runCommandCard');
-      if (!el) return;
-      const commandDisplay = this.runCommandDisplay(data);
-      el.innerHTML = commandDisplay ? `
-        <div class="card-title">Pod 执行命令（run_vuln_scan.py）</div>
-        <div class="run-command-block" style="margin-top:0">
-          <div class="run-command-title">
-            <span>${this.esc(data.linked_execution_id || data.name || '')}</span>
-            <span>${this.esc(data.linked_task_id ? '已关联任务' : '未关联任务')}</span>
-          </div>
-          <pre class="run-command-pre">${this.esc(commandDisplay)}</pre>
-        </div>
-      ` : `
-        <div class="card-title">Pod 执行命令（run_vuln_scan.py）</div>
-        <div class="empty-state">任务开始运行并产生 execution_started 事件后会显示完整命令。</div>
-      `;
     },
 
     renderTaskInfo(data: DataflowFileserverRunOverview) {
@@ -2109,14 +2102,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         ${commandDisplay ? `
           <div class="run-command-block">
             <div class="run-command-title">
-              <span>Pod 执行命令（run_vuln_scan.py）</span>
+              <span>Pod 执行命令</span>
               <span>${this.esc(data.linked_execution_id || data.name || '')}</span>
             </div>
             <pre class="run-command-pre">${this.esc(commandDisplay)}</pre>
           </div>
         ` : `
           <div class="run-command-block">
-            <div class="run-command-title">Pod 执行命令（run_vuln_scan.py）</div>
+            <div class="run-command-title">Pod 执行命令</div>
             <div class="text-muted" style="margin-top:8px;font-size:12px">任务开始运行并产生 execution_started 事件后会显示完整命令。</div>
           </div>
         `}
@@ -2125,7 +2118,6 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
     renderOverview(data: DataflowFileserverRunOverview) {
-      this.renderRunCommandCard(data);
       this.renderScoreChart(data.cycles || []);
       this.renderIssuesCard(data.latest_issues || []);
       this.renderManifestCard(data.manifests || {}, data.config || {});
@@ -2488,25 +2480,60 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         html += '<div class="card-title mt-8" style="margin-bottom:8px">会话记录 (Calls)</div>';
         callSessions.forEach((s: any) => {
           const calls = Array.isArray(s.calls) ? s.calls : [];
-          html += `
-          <div class="session-group">
-            <div class="session-name">${this.esc(s.session_id)}</div>
-            ${calls.map((c: any) => `
+          const callHtml = calls.map((c: any) => {
+            const attempts = Array.isArray(c.attempts) ? c.attempts : [];
+            const attemptCount = attempts.length;
+            const timeoutFailures = Number(c.timeout_failures || 0);
+            const timeoutLimitRaw = Number(c.timeout_max_retries);
+            const timeoutLimit = Number.isFinite(timeoutLimitRaw) ? timeoutLimitRaw : 0;
+            const restartedAttempts = attempts.filter((a: any) =>
+              a && a.retry_kind === 'runtime_timeout_restart' && a.will_retry
+            ).length;
+            const effectiveSessionId = String(c.effective_session_id || '');
+            const switchedSession = effectiveSessionId && effectiveSessionId !== String(s.session_id || '');
+            const outputBytes = Number(c.output_total_bytes || c.output_len || 0);
+            const stdoutTraceLimit = Number((c.trace_limits || {}).stdout_bytes || 0);
+            const stdoutLimitText = stdoutTraceLimit > 0 ? `stdout trace ${this.fmtSize(stdoutTraceLimit)}` : 'stdout trace limit';
+            const attemptTitle = attempts.map((a: any) => {
+              const parts = [
+                '#' + (a.attempt || '?'),
+                a.status || 'unknown',
+                a.error_code || '',
+                a.session_id ? 'session=' + a.session_id : '',
+                a.will_retry ? 'will_retry' : '',
+              ].filter(Boolean);
+              return parts.join(' · ');
+            }).join('\n');
+            const retryBadges = [
+              attemptCount > 1 ? `<span class="badge badge-sm badge-mode" title="${this.attr(attemptTitle)}">attempts ×${attemptCount}</span>` : '',
+              restartedAttempts > 0 ? `<span class="badge badge-sm badge-warning">重启 ${restartedAttempts}/${timeoutLimit}</span>` : '',
+              timeoutFailures > 0 && restartedAttempts === 0 ? `<span class="badge badge-sm badge-failed">超时 ${timeoutFailures}</span>` : '',
+              switchedSession ? `<span class="badge badge-sm badge-mode" title="${this.attr(effectiveSessionId)}">新 session</span>` : '',
+              c.stdout_soft_limit_exceeded ? `<span class="badge badge-sm badge-warning" title="${this.attr(stdoutLimitText)}">stdout 截断</span>` : '',
+              c.events_truncated_count > 0 ? `<span class="badge badge-sm badge-warning">events 截断</span>` : '',
+            ].join('');
+            return `
               <div class="call-row">
                 <div class="call-turn">#${c.turn}</div>
                 <div class="call-agent">${this.esc(c.agent_id)}</div>
-                <div class="call-size">↑${this.fmtSize(c.user_prompt_len)} ↓${this.fmtSize(c.output_len)}</div>
+                <div class="call-size">↑${this.fmtSize(c.user_prompt_len)} ↓${this.fmtSize(outputBytes)}</div>
                 <div class="call-duration">${c.duration_ms ? (c.duration_ms / 1000).toFixed(1) + 's' : '-'}</div>
-                <div class="call-status">${this.statusBadge(c.status, 'badge-sm')}</div>
+                <div class="call-status" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${this.statusBadge(c.status, 'badge-sm')}${retryBadges}</div>
                 <div class="file-actions">
                   ${Object.entries({user_prompt:'Prompt', system_prompt:'System', response:'Response', stdout:'Stdout', stderr:'Stderr', request:'Req'}).map(([key,label]) =>
                     c.files && c.files[key] ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files[key])}">${label}</span>` : ''
                   ).join('')}
                   ${c.files && c.files.stdout_events ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files.stdout_events)}">Events</span>` : ''}
                 </div>
+                ${attemptCount > 1 ? `<div class="text-muted" style="font-size:11px;flex:1" title="${this.attr(attemptTitle)}">timeout/process attempts 已聚合在当前 call，避免与业务 turn 错位</div>` : ''}
                 ${c.error ? `<div class="text-error" style="font-size:11px;flex:1">${this.esc(c.error).substring(0, 60)}</div>` : ''}
               </div>
-            `).join('')}
+            `;
+          }).join('');
+          html += `
+          <div class="session-group">
+            <div class="session-name">${this.esc(s.session_id)}</div>
+            ${callHtml}
           </div>`;
         });
       }
@@ -3060,12 +3087,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
     },
 
-    async retryCurrentRun() {
-      if (!this.currentRun || !this.currentHistoryRunId()) return;
-      if (!this.isCancelledRunStatus(String(this.currentRunData?.status || this.currentSummary?.status || ''))) {
-        alert('只有已取消的 Run 可以重试。请先取消 Run，并等待状态变为“已取消”。');
-        return;
-      }
+	    async retryCurrentRun() {
+	      if (!this.currentRun || !this.currentHistoryRunId()) return;
+	      if (!this.isRetryableRunStatus(String(this.currentRunData?.status || this.currentSummary?.status || ''))) {
+	        alert('当前 Run 状态不可重试。运行中的 Run 请先取消并等待进入终态；已完成的 Run 不需要重试。');
+	        return;
+	      }
       const extraCyclesText = window.prompt('追加评审轮次', '5');
       if (extraCyclesText === null) return;
       const extraCycles = Number.parseInt(extraCyclesText, 10);
@@ -3161,6 +3188,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         blocked_quota: '额度受限',
         provider_rate_limited: '限流',
         model_contract_violation: '模型契约错误',
+        blocked_external_source: '外部源码阻塞',
         no_workspace: '无工作区',
       } as Record<string, string>)[s] || s;
       return `<span class="badge badge-${s} ${extra}">${label}</span>`;

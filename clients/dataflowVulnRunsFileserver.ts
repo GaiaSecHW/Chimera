@@ -12,13 +12,6 @@ import {
 
 export const DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT = '/dataflow-vuln-scanner/runs';
 
-export const DATAFLOW_FILESERVER_RUNS_ROOT_CANDIDATES = [
-  DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
-  '/DATAFLOW_VULN_SCANNER/runs',
-];
-
-const LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID = '44f9029d00650a10';
-
 export type DataflowFileserverRunFile = DataflowHistoryRunFile;
 export type DataflowFileserverRunSession = DataflowHistoryRunSession;
 export type DataflowFileserverRunSummary = DataflowHistoryRunSummary;
@@ -26,6 +19,8 @@ export type DataflowFileserverRunOverview = DataflowHistoryRunDetail;
 export type DataflowFileserverRunDetail = DataflowHistoryRunDetail;
 
 const resolveCache = new Map<string, Promise<DataflowHistoryRunResolve>>();
+const overviewCache = new Map<string, { promise: Promise<DataflowFileserverRunOverview>; expiresAt: number }>();
+const OVERVIEW_CACHE_TTL_MS = 1500;
 
 const normalizeProjectPath = (value: string) => {
   const text = String(value || '/').trim() || '/';
@@ -38,11 +33,7 @@ const resolveCacheKey = (projectId: string, rootPath: string, runName: string) =
 
 const clearResolveCache = (projectId: string, rootPath: string, runName: string) => {
   resolveCache.delete(resolveCacheKey(projectId, rootPath, runName));
-};
-
-const buildProjectCandidates = (projectId: string) => {
-  const candidates = [String(projectId || '').trim(), LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID];
-  return candidates.filter((value, index, list) => value && list.indexOf(value) === index);
+  overviewCache.delete(resolveCacheKey(projectId, rootPath, runName));
 };
 
 const resolveRun = async (
@@ -61,15 +52,7 @@ const resolveRun = async (
   if (cached) return cached;
   const promise = (async () => {
     const normalizedRootPath = normalizeProjectPath(rootPath);
-    let lastError: unknown = null;
-    for (const candidateProjectId of buildProjectCandidates(projectId)) {
-      try {
-        return await dataflowVulnScannerApi.resolveHistoryRun(candidateProjectId, safeName, normalizedRootPath);
-      } catch (error) {
-        lastError = error;
-      }
-    }
-    throw lastError instanceof Error ? lastError : new Error('history run not found');
+    return dataflowVulnScannerApi.resolveHistoryRun(projectId, safeName, normalizedRootPath);
   })();
   resolveCache.set(cacheKey, promise);
   try {
@@ -80,32 +63,28 @@ const resolveRun = async (
   }
 };
 
-export const listDataflowFileserverRuns = async (
-  projectId: string,
-  _rootCandidates: string[] = DATAFLOW_FILESERVER_RUNS_ROOT_CANDIDATES
-): Promise<{ rootPath: string; runs: DataflowFileserverRunSummary[] }> => {
-  let runs = await dataflowVulnScannerApi.listHistoryRuns(projectId);
-  if (!runs.length && projectId && projectId !== LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID) {
-    try {
-      runs = await dataflowVulnScannerApi.listHistoryRuns(LEGACY_HISTORY_RUNS_FIXED_PROJECT_ID);
-    } catch {
-      // Keep the original empty result when the compatibility fallback is unavailable.
-    }
-  }
-  const preferredRoot = runs.find((item) => item.root_path)?.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT;
-  return {
-    rootPath: preferredRoot,
-    runs,
-  };
-};
-
 export const inspectDataflowFileserverRunOverview = async (
   projectId: string,
   rootPath: string,
   runName: string
 ): Promise<DataflowFileserverRunOverview> => {
-  const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.getHistoryRun(resolved.history_run_id);
+  const cacheKey = resolveCacheKey(projectId, rootPath, runName);
+  const now = Date.now();
+  const cached = overviewCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) {
+    return cached.promise;
+  }
+  const promise = (async () => {
+    const resolved = await resolveRun(projectId, rootPath, runName);
+    return dataflowVulnScannerApi.getHistoryRun(resolved.history_run_id);
+  })();
+  overviewCache.set(cacheKey, { promise, expiresAt: now + OVERVIEW_CACHE_TTL_MS });
+  try {
+    return await promise;
+  } catch (error) {
+    overviewCache.delete(cacheKey);
+    throw error;
+  }
 };
 
 export const inspectDataflowFileserverRunCycle = async (

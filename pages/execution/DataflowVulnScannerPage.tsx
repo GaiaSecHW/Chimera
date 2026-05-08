@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Activity,
@@ -51,12 +51,23 @@ const STATUS_META: Record<string, { label: string; className: string; icon: Reac
   running: { label: '运行中', className: 'bg-cyan-50 text-cyan-700 border-cyan-200', icon: <Activity size={13} /> },
   cancel_requested: { label: '取消中', className: 'bg-amber-50 text-amber-700 border-amber-200', icon: <PauseCircle size={13} /> },
   delete_requested: { label: '删除中', className: 'bg-rose-50 text-rose-700 border-rose-200', icon: <PauseCircle size={13} /> },
-  succeeded: { label: '已成功', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <CheckCircle2 size={13} /> },
   completed: { label: '已完成', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <CheckCircle2 size={13} /> },
   failed: { label: '失败', className: 'bg-rose-50 text-rose-700 border-rose-200', icon: <XCircle size={13} /> },
+  interrupted: { label: '已中断', className: 'bg-orange-50 text-orange-700 border-orange-200', icon: <AlertTriangle size={13} /> },
   cancelled: { label: '已取消', className: 'bg-zinc-100 text-zinc-700 border-zinc-200', icon: <X size={13} /> },
-  orphaned: { label: '孤儿任务', className: 'bg-orange-50 text-orange-700 border-orange-200', icon: <AlertTriangle size={13} /> },
 };
+
+const RUN_STATUS_FILTER_KEYS = [
+  'pending',
+  'queued',
+  'running',
+  'cancel_requested',
+  'delete_requested',
+  'completed',
+  'failed',
+  'interrupted',
+  'cancelled',
+];
 
 const REVIEW_PROFILE_OPTIONS = [
   { value: 'fast', label: '快速筛选' },
@@ -80,6 +91,8 @@ const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
   max_review_cycles: 6,
   worker_timeout: 3600,
   advisor_timeout: 3600,
+  timeout_max_retries: 3,
+  timeout_retry_interval_seconds: 30,
   result_review_concurrency: 3,
   runtime_overrides: {},
 });
@@ -207,14 +220,45 @@ const historyRunResolveToRouteTarget = (resolved: DataflowHistoryRunResolve) => 
   root_path: resolved.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
 });
 
-const statusMeta = (status?: string | null) => STATUS_META[String(status || '').toLowerCase()] || {
-  label: status || '未知',
-  className: 'bg-slate-100 text-slate-600 border-slate-200',
-  icon: <AlertTriangle size={13} />,
+const taskLatestRun = (task: DataflowScanTask): Partial<DataflowFileserverRunSummary> =>
+  (task.latest_run && typeof task.latest_run === 'object' ? task.latest_run : {});
+
+const taskDisplayStatus = (task: DataflowScanTask) => String(taskLatestRun(task).status || task.status || '');
+
+const normalizeRunStatus = (status?: string | null) => {
+  const value = String(status || '').trim().toLowerCase();
+  if (['succeeded', 'success', 'passed'].includes(value)) return 'completed';
+  if ([
+    'orphaned',
+    'error',
+    'timeout',
+    'review_error',
+    'review_plateau',
+    'summary_incomplete',
+    'runtime_output_limit',
+    'runtime_timeout',
+    'blocked_context_window',
+    'blocked_quota',
+    'provider_rate_limited',
+    'model_contract_violation',
+    'blocked_external_source',
+    'no_workspace',
+  ].includes(value)) return 'failed';
+  if (value === 'stopped') return 'interrupted';
+  return value;
+};
+
+const statusMeta = (status?: string | null) => {
+  const normalized = normalizeRunStatus(status);
+  return STATUS_META[normalized] || {
+    label: status || '未知',
+    className: 'bg-slate-100 text-slate-600 border-slate-200',
+    icon: <AlertTriangle size={13} />,
+  };
 };
 
 const isActiveTaskStatus = (status?: string | null) =>
-  ['pending', 'queued', 'running', 'cancel_requested'].includes(String(status || '').toLowerCase());
+  ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(normalizeRunStatus(status));
 
 const StatusBadge: React.FC<{ status?: string | null }> = ({ status }) => {
   const meta = statusMeta(status);
@@ -260,7 +304,7 @@ const JsonBlock: React.FC<{ value: any; maxHeight?: string }> = ({ value, maxHei
 const PageHeader: React.FC<{
   eyebrow: string;
   title: string;
-  description: string;
+  description?: string;
   children?: React.ReactNode;
 }> = ({ eyebrow, title, description, children }) => (
   <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -268,7 +312,7 @@ const PageHeader: React.FC<{
       <div className="min-w-0">
         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
         <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{title}</h1>
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">{description}</p>
+        {description ? <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">{description}</p> : null}
       </div>
       {children ? <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div> : null}
     </div>
@@ -285,8 +329,8 @@ interface CreateTaskState {
   provider: string;
   reviewProfile: string;
   maxReviewCycles: number;
-  workerTimeout: number;
-  advisorTimeout: number;
+  timeoutMaxRetries: number;
+  timeoutRetryIntervalSeconds: number;
   resultReviewConcurrency: number;
   runtimeOverridesText: string;
 }
@@ -301,8 +345,8 @@ const initialCreateTaskState = (): CreateTaskState => ({
   provider: '',
   reviewProfile: defaultConfigPayload().review_profile || 'balanced',
   maxReviewCycles: defaultConfigPayload().max_review_cycles,
-  workerTimeout: defaultConfigPayload().worker_timeout,
-  advisorTimeout: defaultConfigPayload().advisor_timeout,
+  timeoutMaxRetries: defaultConfigPayload().timeout_max_retries || 3,
+  timeoutRetryIntervalSeconds: defaultConfigPayload().timeout_retry_interval_seconds || 30,
   resultReviewConcurrency: defaultConfigPayload().result_review_concurrency,
   runtimeOverridesText: '',
 });
@@ -315,8 +359,8 @@ const applyConfigPayloadToCreateTaskState = (
   model: configPayload.model,
   reviewProfile: configPayload.review_profile || 'balanced',
   maxReviewCycles: configPayload.max_review_cycles,
-  workerTimeout: configPayload.worker_timeout,
-  advisorTimeout: configPayload.advisor_timeout,
+  timeoutMaxRetries: configPayload.timeout_max_retries || 3,
+  timeoutRetryIntervalSeconds: configPayload.timeout_retry_interval_seconds || 30,
   resultReviewConcurrency: configPayload.result_review_concurrency,
 });
 
@@ -327,8 +371,8 @@ const isCreateTaskConfigUntouched = (state: CreateTaskState) => {
     && state.model === defaults.model
     && state.reviewProfile === (defaults.review_profile || 'balanced')
     && state.maxReviewCycles === defaults.max_review_cycles
-    && state.workerTimeout === defaults.worker_timeout
-    && state.advisorTimeout === defaults.advisor_timeout
+    && state.timeoutMaxRetries === (defaults.timeout_max_retries || 3)
+    && state.timeoutRetryIntervalSeconds === (defaults.timeout_retry_interval_seconds || 30)
     && state.resultReviewConcurrency === defaults.result_review_concurrency
     && !state.runtimeOverridesText.trim()
   );
@@ -336,7 +380,6 @@ const isCreateTaskConfigUntouched = (state: CreateTaskState) => {
 
 const resolveDefaultProfile = (profiles: DataflowScanProfile[]) =>
   profiles.find((item) => item.is_default && item.enabled)
-  || profiles.find((item) => item.is_default)
   || profiles.find((item) => item.enabled)
   || null;
 
@@ -360,11 +403,11 @@ const buildCreateTaskConfigOverrides = (
   if (shouldSend(state.maxReviewCycles, baseline.max_review_cycles)) {
     overrides.max_review_cycles = state.maxReviewCycles;
   }
-  if (shouldSend(state.workerTimeout, baseline.worker_timeout)) {
-    overrides.worker_timeout = state.workerTimeout;
+  if (shouldSend(state.timeoutMaxRetries, baseline.timeout_max_retries || 3)) {
+    overrides.timeout_max_retries = state.timeoutMaxRetries;
   }
-  if (shouldSend(state.advisorTimeout, baseline.advisor_timeout)) {
-    overrides.advisor_timeout = state.advisorTimeout;
+  if (shouldSend(state.timeoutRetryIntervalSeconds, baseline.timeout_retry_interval_seconds || 30)) {
+    overrides.timeout_retry_interval_seconds = state.timeoutRetryIntervalSeconds;
   }
   if (shouldSend(state.resultReviewConcurrency, baseline.result_review_concurrency)) {
     overrides.result_review_concurrency = state.resultReviewConcurrency;
@@ -380,14 +423,15 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [profiles, setProfiles] = useState<DataflowScanProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profilesLoading, setProfilesLoading] = useState(false);
-  const [runs, setRuns] = useState<DataflowFileserverRunSummary[]>([]);
-  const [runsError, setRunsError] = useState('');
+  const [tasks, setTasks] = useState<DataflowScanTask[]>([]);
+  const [tasksError, setTasksError] = useState('');
   const [loading, setLoading] = useState(true);
   const [runQuery, setRunQuery] = useState('');
   const [runStatusFilter, setRunStatusFilter] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
+  const loadTasksPromiseRef = useRef<Promise<void> | null>(null);
 
   const openTaskDetail = async (
     task: Pick<DataflowScanTask, 'task_id' | 'latest_execution_id'>,
@@ -415,6 +459,15 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         fileserverRunSummary: run,
       },
     });
+  };
+
+  const openTaskRowDetail = async (task: DataflowScanTask) => {
+    const run = taskLatestRun(task);
+    if (run.history_run_id && run.name) {
+      openRunDetail(run as DataflowFileserverRunSummary);
+      return;
+    }
+    await openTaskDetail(task, { retry: 3 });
   };
 
   const loadProfiles = async (options?: { force?: boolean }) => {
@@ -445,16 +498,30 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   const load = async () => {
     if (!projectId) return;
-    setLoading(true);
-    setRunsError('');
+    if (loadTasksPromiseRef.current) {
+      return loadTasksPromiseRef.current;
+    }
+    const promise = (async () => {
+      setLoading(true);
+      setTasksError('');
+      try {
+        const payload = await executionApi.listTasks({ projectId });
+        setTasks(payload);
+      } catch (error: any) {
+        setTasks([]);
+        setTasksError(error?.message || '读取任务列表失败');
+        notify(`加载数据流漏洞挖掘任务列表失败: ${error?.message || error || '未知错误'}`, 'error');
+      } finally {
+        setLoading(false);
+      }
+    })();
+    loadTasksPromiseRef.current = promise;
     try {
-      setRuns(await executionApi.listHistoryRuns(projectId));
-    } catch (error: any) {
-      setRuns([]);
-      setRunsError(error?.message || '读取任务列表失败');
-      notify(`加载数据流漏洞挖掘任务列表失败: ${error?.message || error || '未知错误'}`, 'error');
+      await promise;
     } finally {
-      setLoading(false);
+      if (loadTasksPromiseRef.current === promise) {
+        loadTasksPromiseRef.current = null;
+      }
     }
   };
 
@@ -467,34 +534,42 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     void load();
   }, [projectId]);
 
-  const filteredRuns = useMemo(() => {
+  const filteredTasks = useMemo(() => {
     const text = runQuery.trim().toLowerCase();
-    return runs.filter((run) => {
-      if (runStatusFilter && run.status !== runStatusFilter) return false;
+    return tasks.filter((task) => {
+      const run = taskLatestRun(task);
+      const normalizedStatus = normalizeRunStatus(taskDisplayStatus(task));
+      if (runStatusFilter && normalizedStatus !== runStatusFilter) return false;
       if (!text) return true;
       return [
+        task.title,
+        task.task_id,
+        task.status,
+        task.message,
+        task.latest_execution_id,
+        task.profile_id,
         run.name,
         run.status,
+        STATUS_META[normalizedStatus]?.label,
         run.model,
         run.provider,
         run.workflow_mode,
         run.linked_task_id,
         run.linked_execution_id,
-        run.profile_id,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
     });
-  }, [runQuery, runStatusFilter, runs]);
+  }, [runQuery, runStatusFilter, tasks]);
 
   const stats = useMemo(() => {
     return {
-      total: runs.length,
-      running: runs.filter((run) => ['pending', 'queued', 'running', 'cancel_requested'].includes(run.status)).length,
-      succeeded: runs.filter((run) => ['succeeded', 'completed'].includes(run.status)).length,
-      failed: runs.filter((run) => run.status === 'failed').length,
-      linked: runs.filter((run) => Boolean(run.linked_task_id)).length,
-      unlinked: runs.filter((run) => !run.linked_task_id).length,
+      total: tasks.length,
+      running: tasks.filter((task) => isActiveTaskStatus(taskDisplayStatus(task))).length,
+      succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'completed').length,
+      failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed').length,
+      withRun: tasks.filter((task) => Boolean(taskLatestRun(task).history_run_id)).length,
+      withoutRun: tasks.filter((task) => !taskLatestRun(task).history_run_id).length,
     };
-  }, [runs]);
+  }, [tasks]);
 
   const submitCreateTask = async () => {
     if (!projectId) {
@@ -551,7 +626,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         <PageHeader
           eyebrow="Dataflow Vulnerability Mining"
           title="数据流漏洞挖掘"
-          description="任务列表改为统一 runs 视图，通过后端单一接口聚合当前执行 run 与历史 run，不再拆分“当前 / 历史”两套列表。"
         >
           <button
             onClick={() => {
@@ -578,12 +652,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         </PageHeader>
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-          <MetricCard label="Run 总数" value={stats.total} icon={<Layers size={17} />} />
+          <MetricCard label="任务总数" value={stats.total} icon={<Layers size={17} />} />
           <MetricCard label="运行中" value={stats.running} icon={<Activity size={17} />} />
           <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-50/70" />
           <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
-          <MetricCard label="已补齐任务" value={stats.linked} icon={<FileSearch size={17} />} />
-          <MetricCard label="待补齐任务" value={stats.unlinked} icon={<Archive size={17} />} />
+          <MetricCard label="已生成 Run" value={stats.withRun} icon={<FileSearch size={17} />} />
+          <MetricCard label="待同步 Run" value={stats.withoutRun} icon={<Archive size={17} />} />
         </section>
 
         <section>
@@ -592,12 +666,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-sm font-black text-slate-900">任务列表</div>
-                  <div className="mt-1 text-xs text-slate-500">所有 run 统一从 `/api/dataflow-vuln-scanner/history-runs` 获取；详情页可按需补齐任务信息并继续使用取消、重试、删除能力。</div>
                 </div>
                 <div className="text-xs font-bold text-slate-500">
-                  {filteredRuns.length === runs.length
-                    ? `${runs.length} 个 run`
-                    : `${filteredRuns.length} / ${runs.length} 个 run`}
+                  {filteredTasks.length === tasks.length
+                    ? `${tasks.length} 个任务`
+                    : `${filteredTasks.length} / ${tasks.length} 个任务`}
                 </div>
               </div>
               <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -606,7 +679,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <input
                     value={runQuery}
                     onChange={(event) => setRunQuery(event.target.value)}
-                    placeholder="搜索 Run、任务 ID、执行 ID、模型、状态或工作流模式"
+                    placeholder="搜索任务名、任务 ID、执行 ID、模型、状态或工作流模式"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </div>
@@ -617,13 +690,16 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                   >
                     <option value="">全部状态</option>
-                    {Object.entries(STATUS_META).map(([key, meta]) => <option key={key} value={key}>{meta.label}</option>)}
+                    {RUN_STATUS_FILTER_KEYS.map((key) => {
+                      const meta = STATUS_META[key];
+                      return <option key={key} value={key}>{meta.label}</option>;
+                    })}
                   </select>
                 </div>
               </div>
-              {runsError ? (
+              {tasksError ? (
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">
-                  {runsError}
+                  {tasksError}
                 </div>
               ) : null}
             </div>
@@ -643,16 +719,20 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRuns.map((run) => {
-                    const secondaryLine = run.linked_task_id
-                      ? `任务 ${shortId(run.linked_task_id, 18)} · 执行 ${shortId(run.linked_execution_id || run.name, 18)}`
-                      : `${run.workflow_mode || run.provider || '待补齐任务信息'}`;
+                  {filteredTasks.map((task) => {
+                    const run = taskLatestRun(task);
+                    const displayStatus = taskDisplayStatus(task);
+                    const hasRun = Boolean(run.history_run_id && run.name);
+                    const displayName = task.title || run.name || task.task_id;
+                    const secondaryLine = hasRun
+                      ? `任务 ${shortId(task.task_id, 18)} · Run ${shortId(run.name || '', 18)}`
+                      : `任务 ${shortId(task.task_id, 18)} · 执行 ${shortId(task.latest_execution_id || '-', 18)}`;
                     return (
                       <tr
-                        key={run.history_run_id || run.name}
-                        onClick={() => openRunDetail(run)}
+                        key={task.task_id}
+                        onClick={() => void openTaskRowDetail(task)}
                         className="cursor-pointer border-t border-slate-100 bg-white hover:bg-cyan-50/50"
-                        title="查看任务运行详情"
+                        title={hasRun ? '查看任务运行详情' : '查看任务记录，Run 同步后会自动进入详情'}
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
@@ -660,23 +740,38 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <FileSearch size={17} />
                             </div>
                             <div className="min-w-0">
-                              <div className="font-black text-slate-900">{shortId(run.name, 32)}</div>
+                              <div className="font-black text-slate-900">{shortId(displayName, 32)}</div>
                               <div className="mt-1 truncate text-xs text-slate-500">{secondaryLine}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3"><StatusBadge status={run.status} /></td>
+                        <td className="px-4 py-3"><StatusBadge status={displayStatus} /></td>
                         <td className="px-4 py-3">
                           <div className="font-bold text-slate-700">{run.model || '-'}</div>
                           <div className="mt-1 text-xs text-slate-500">{formatThinking(run.thinking)}</div>
                         </td>
-                        <td className="px-4 py-3 font-bold text-slate-700">{run.cycles_used || 0} / {run.max_cycles || 0}</td>
-                        <td className="px-4 py-3 text-slate-600">
-                          <div>{run.result_count || 0} / {run.passed_count || 0} 通过</div>
-                          <div className="mt-1 text-xs text-slate-500">{run.failed_count || 0} 失败</div>
+                        <td className="px-4 py-3 font-bold text-slate-700">
+                          {hasRun ? `${run.cycles_used || 0} / ${run.max_cycles || 0}` : `尝试 ${task.latest_attempt_no || 0}`}
                         </td>
-                        <td className="px-4 py-3 text-xs text-slate-500">{formatEpochTime(run.start_epoch)}</td>
-                        <td className="px-4 py-3 text-slate-600">{formatSeconds(run.duration_seconds || 0)}</td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {hasRun ? (
+                            <>
+                              <div>{run.result_count || 0} / {run.passed_count || 0} 通过</div>
+                              <div className="mt-1 text-xs text-slate-500">{run.failed_count || 0} 失败</div>
+                            </>
+                          ) : (
+                            <>
+                              <div>{task.message || '等待 Run 生成/同步'}</div>
+                              <div className="mt-1 text-xs text-slate-500">Execution: {shortId(task.latest_execution_id || '-', 18)}</div>
+                            </>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500">
+                          {run.start_epoch ? formatEpochTime(run.start_epoch) : formatDateTime(task.started_at || task.created_at)}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {run.duration_seconds ? formatSeconds(run.duration_seconds || 0) : formatDuration(task.started_at || task.created_at, task.finished_at)}
+                        </td>
                         <td className="px-4 py-3 text-right text-cyan-700">
                           <ChevronRight size={17} className="ml-auto" />
                         </td>
@@ -686,9 +781,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 </tbody>
               </table>
 
-              {!loading && !runsError && filteredRuns.length === 0 ? (
+              {!loading && !tasksError && filteredTasks.length === 0 ? (
                 <div className="p-6">
-                  <EmptyPanel title="暂无 Runs" description="当前筛选条件下没有可展示的数据流漏洞挖掘 run。" />
+                  <EmptyPanel title="暂无任务" description="当前筛选条件下没有可展示的数据流漏洞挖掘任务。" />
                 </div>
               ) : null}
               {loading ? (
@@ -861,7 +956,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
           <PageHeader
             eyebrow="Dataflow Vulnerability Mining"
             title="正在进入 Run 详情"
-            description="该入口会先解析 task 对应的 history Run，然后进入统一 Run 详情页。"
+            description="该入口会先定位任务对应的 Run，然后进入详情页。"
           >
             <button
               onClick={goBack}
@@ -886,7 +981,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
             </div>
             {loadError ? (
               <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
-                任务详情已经统一到 history-runs。若这是刚创建的任务，请等待后端完成 Run 目录初始化后再重试。
+                暂时未找到该任务对应的 Run。若这是刚创建的任务，请等待后端完成 Run 目录初始化后再重试。
               </div>
             ) : null}
           </div>
@@ -902,7 +997,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
         <PageHeader
           eyebrow="Dataflow Vulnerability Mining"
           title="缺少 Run 入口"
-          description="Run 详情已经统一到 history-runs，请从任务列表选择一个 Run 后进入。"
+          description="请从任务列表选择一个 Run 后进入。"
         >
           <button
             type="button"
@@ -982,8 +1077,8 @@ const CreateTaskDialog: React.FC<{
                       model: payload.model,
                       reviewProfile: payload.review_profile || 'balanced',
                       maxReviewCycles: payload.max_review_cycles,
-                      workerTimeout: payload.worker_timeout,
-                      advisorTimeout: payload.advisor_timeout,
+                      timeoutMaxRetries: payload.timeout_max_retries || 3,
+                      timeoutRetryIntervalSeconds: payload.timeout_retry_interval_seconds || 30,
                       resultReviewConcurrency: payload.result_review_concurrency,
                     });
                   }}
@@ -1092,19 +1187,21 @@ const CreateTaskDialog: React.FC<{
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">最大评审轮次</span>
-                <input type="number" value={state.maxReviewCycles} onChange={(event) => onChange({ ...state, maxReviewCycles: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
+                <input type="number" min={1} value={state.maxReviewCycles} onChange={(event) => onChange({ ...state, maxReviewCycles: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
+              </label>
+              <label>
+                <span className="text-xs font-black text-slate-600">Pi Timeout 最大次数</span>
+                <input type="number" min={1} value={state.timeoutMaxRetries} onChange={(event) => onChange({ ...state, timeoutMaxRetries: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 3；Pi/provider 连续返回 timeout 达到该次数后任务失败。</span>
+              </label>
+              <label>
+                <span className="text-xs font-black text-slate-600">Pi Timeout 重试间隔（秒）</span>
+                <input type="number" min={0} value={state.timeoutRetryIntervalSeconds} onChange={(event) => onChange({ ...state, timeoutRetryIntervalSeconds: Math.max(0, Number(event.target.value) || 0) })} className={FORM_INPUT_CLASS} />
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 30；收到 Pi 自身 timeout 后等待该秒数再重发同一提示词。</span>
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">结果评审并发</span>
-                <input type="number" value={state.resultReviewConcurrency} onChange={(event) => onChange({ ...state, resultReviewConcurrency: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
-              </label>
-              <label>
-                <span className="text-xs font-black text-slate-600">Worker Timeout</span>
-                <input type="number" value={state.workerTimeout} onChange={(event) => onChange({ ...state, workerTimeout: Number(event.target.value) || 60 })} className={FORM_INPUT_CLASS} />
-              </label>
-              <label>
-                <span className="text-xs font-black text-slate-600">Advisor Timeout</span>
-                <input type="number" value={state.advisorTimeout} onChange={(event) => onChange({ ...state, advisorTimeout: Number(event.target.value) || 60 })} className={FORM_INPUT_CLASS} />
+                <input type="number" min={1} value={state.resultReviewConcurrency} onChange={(event) => onChange({ ...state, resultReviewConcurrency: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
               </label>
             </div>
 
@@ -1156,13 +1253,10 @@ interface ProfileFormState {
   model: string;
   reviewProfile: string;
   maxReviewCycles: number;
-  workerTimeout: number;
-  advisorTimeout: number;
   resultReviewConcurrency: number;
   runtimeOverridesText: string;
   isDefault: boolean;
   enabled: boolean;
-  maxConcurrency: number;
   defaultPriority: number;
   maxRetryCount: number;
   executionTimeoutSeconds: number;
@@ -1178,13 +1272,10 @@ const blankProfileForm = (): ProfileFormState => {
     model: payload.model,
     reviewProfile: payload.review_profile || 'balanced',
     maxReviewCycles: payload.max_review_cycles,
-    workerTimeout: payload.worker_timeout,
-    advisorTimeout: payload.advisor_timeout,
     resultReviewConcurrency: payload.result_review_concurrency,
     runtimeOverridesText: '{}',
     isDefault: true,
     enabled: true,
-    maxConcurrency: 1,
     defaultPriority: 100,
     maxRetryCount: 3,
     executionTimeoutSeconds: 7200,
@@ -1201,13 +1292,10 @@ const formFromProfile = (profile: DataflowScanProfile): ProfileFormState => {
     model: payload.model,
     reviewProfile: payload.review_profile || 'balanced',
     maxReviewCycles: payload.max_review_cycles,
-    workerTimeout: payload.worker_timeout,
-    advisorTimeout: payload.advisor_timeout,
     resultReviewConcurrency: payload.result_review_concurrency,
     runtimeOverridesText: JSON.stringify(payload.runtime_overrides || {}, null, 2),
     isDefault: profile.is_default,
     enabled: profile.enabled,
-    maxConcurrency: profile.max_concurrency,
     defaultPriority: profile.default_priority,
     maxRetryCount: profile.max_retry_count,
     executionTimeoutSeconds: profile.execution_timeout_seconds,
@@ -1223,14 +1311,11 @@ const profilePayloadFromForm = (projectId: string, form: ProfileFormState) => ({
     model: form.model.trim(),
     review_profile: form.reviewProfile,
     max_review_cycles: form.maxReviewCycles,
-    worker_timeout: form.workerTimeout,
-    advisor_timeout: form.advisorTimeout,
     result_review_concurrency: form.resultReviewConcurrency,
     runtime_overrides: parseJsonObject(form.runtimeOverridesText, 'Profile runtime_overrides'),
   },
   is_default: form.isDefault,
   enabled: form.enabled,
-  max_concurrency: form.maxConcurrency,
   default_priority: form.defaultPriority,
   max_retry_count: form.maxRetryCount,
   execution_timeout_seconds: form.executionTimeoutSeconds,
@@ -1480,12 +1565,6 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string }> = ({ projec
                 </Field>
                 <Field label="结果评审并发">
                   <NumberInput value={form.resultReviewConcurrency} onChange={(value) => setForm({ ...form, resultReviewConcurrency: value })} />
-                </Field>
-                <Field label="Worker 超时秒数">
-                  <NumberInput value={form.workerTimeout} onChange={(value) => setForm({ ...form, workerTimeout: value })} />
-                </Field>
-                <Field label="Advisor 超时秒数">
-                  <NumberInput value={form.advisorTimeout} onChange={(value) => setForm({ ...form, advisorTimeout: value })} />
                 </Field>
                 <Field label="最大重试次数">
                   <NumberInput value={form.maxRetryCount} onChange={(value) => setForm({ ...form, maxRetryCount: value })} />

@@ -8,11 +8,12 @@ const PREFIX = `${API_BASE}/api/dataflow-vuln-scanner`;
 
 export interface DataflowProfileConfigPayload {
   model: string;
-  thinking?: string;
   review_profile?: string;
   max_review_cycles: number;
-  worker_timeout: number;
-  advisor_timeout: number;
+  worker_timeout?: number;
+  advisor_timeout?: number;
+  timeout_max_retries?: number;
+  timeout_retry_interval_seconds?: number;
   result_review_concurrency: number;
   runtime_overrides: Record<string, any>;
 }
@@ -27,7 +28,6 @@ export interface DataflowScanProfile {
   compiled_config: Record<string, any>;
   is_default: boolean;
   enabled: boolean;
-  max_concurrency: number;
   default_priority: number;
   max_retry_count: number;
   execution_timeout_seconds: number;
@@ -69,6 +69,7 @@ export interface DataflowScanTask {
   project_id: string;
   profile_id: string;
   profile_version: number;
+  title?: string;
   status: string;
   latest_attempt_no: number;
   retry_count: number;
@@ -80,6 +81,7 @@ export interface DataflowScanTask {
   finished_at?: string | null;
   message?: string | null;
   latest_execution_id?: string | null;
+  latest_run?: Partial<DataflowHistoryRunSummary> | null;
 }
 
 export interface DataflowScanTaskDetail extends DataflowScanTask {
@@ -154,8 +156,8 @@ export interface DataflowCreateTaskPayload {
   provider?: string;
   review_profile?: string;
   max_review_cycles?: number;
-  worker_timeout?: number;
-  advisor_timeout?: number;
+  timeout_max_retries?: number;
+  timeout_retry_interval_seconds?: number;
   result_review_concurrency?: number;
   scan_options?: Record<string, any>;
   artifact_refs?: DataflowArtifactRef[];
@@ -171,7 +173,6 @@ export interface DataflowProfilePayload {
   config_payload: DataflowProfileConfigPayload;
   is_default: boolean;
   enabled: boolean;
-  max_concurrency: number;
   default_priority: number;
   max_retry_count: number;
   execution_timeout_seconds: number;
@@ -278,7 +279,6 @@ export interface DataflowHistoryRunRetryPayload {
   extra_cycles?: number;
   model?: string | null;
   provider?: string | null;
-  thinking?: string | null;
   clean_workspace?: boolean;
 }
 
