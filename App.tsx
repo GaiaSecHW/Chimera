@@ -42,6 +42,7 @@ const AppShell: React.FC = () => {
   const [activeAiHelperKey, setActiveAiHelperKey] = useState<string>('');
   const [activeProcessMonitorServiceKey, setActiveProcessMonitorServiceKey] = useState<string>('');
   const [activeB2STaskId, setActiveB2STaskId] = useState<string>('');
+  const [activeB2SItemId, setActiveB2SItemId] = useState<string>('');
   const [activeSystemAnalysisTaskId, setActiveSystemAnalysisTaskId] = useState<string>('');
   const [activeEntryAnalysisTaskId, setActiveEntryAnalysisTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
@@ -522,6 +523,7 @@ const AppShell: React.FC = () => {
                     activeAiHelperKey,
                     activeProcessMonitorServiceKey,
                     activeB2STaskId,
+                    activeB2SItemId,
                     activeSystemAnalysisTaskId,
                     activeEntryAnalysisTaskId,
                     activeBinarySecurityTaskId,
@@ -535,6 +537,7 @@ const AppShell: React.FC = () => {
                     setActiveJobTemplateId: (id) => setActiveJobTemplateId(id),
                     setActiveAppWorkflowId: (id) => setActiveAppWorkflowId(id),
                     setActiveB2STaskId: (id) => setActiveB2STaskId(id),
+                    setActiveB2SItemId: (id) => setActiveB2SItemId(id),
                     setActiveSystemAnalysisTaskId: (id) => setActiveSystemAnalysisTaskId(id),
                     setActiveEntryAnalysisTaskId: (id) => setActiveEntryAnalysisTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),

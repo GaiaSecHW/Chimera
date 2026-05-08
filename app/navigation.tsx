@@ -159,6 +159,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-b2s-queue',
   'pentest-exec-b2s-result',
   'pentest-exec-b2s-detail',
+  'pentest-exec-b2s-advanced',
   'pentest-exec-dataflow-vuln',
   'pentest-exec-dataflow-vuln-task-list',
   'pentest-exec-dataflow-vuln-task-detail',
@@ -337,7 +338,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           { id: 'system-analysis-task', label: '任务队列', aliases: ['system-analysis-detail'], requiresProject: true },
           { id: 'system-analysis-config', label: '分析配置', requiresProject: true },
         ] },
-        { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail'], requiresProject: true },
+        { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
         { id: 'pentest-threat', label: '入口分析', icon: Zap, requiresProject: true, subItems: [
           { id: 'entry-analysis-task', label: '任务队列', requiresProject: true },
           { id: 'entry-analysis-config', label: '分析配置', requiresProject: true },

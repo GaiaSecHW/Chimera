@@ -62,6 +62,7 @@ import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
 import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
+import { B2STaskAdvancedPage } from '../pages/execution/B2STaskAdvancedPage';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
@@ -97,6 +98,7 @@ export interface ViewRegistryContext {
   activeAiHelperKey: string;
   activeProcessMonitorServiceKey: string;
   activeB2STaskId: string;
+  activeB2SItemId: string;
   activeSystemAnalysisTaskId: string;
   activeEntryAnalysisTaskId: string;
   activeBinarySecurityTaskId: string;
@@ -110,6 +112,7 @@ export interface ViewRegistryContext {
   setActiveJobTemplateId: (id: string) => void;
   setActiveAppWorkflowId: (id: string) => void;
   setActiveB2STaskId: (id: string) => void;
+  setActiveB2SItemId: (id: string) => void;
   setActiveSystemAnalysisTaskId: (id: string) => void;
   setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
@@ -349,6 +352,19 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskId={ctx.activeB2STaskId}
           onBack={() => ctx.setCurrentView('pentest-exec-b2s')}
+          onOpenAdvanced={(itemId) => {
+            ctx.setActiveB2SItemId(itemId);
+            ctx.setCurrentView('pentest-exec-b2s-advanced');
+          }}
+        />
+      );
+    case 'pentest-exec-b2s-advanced':
+      return (
+        <B2STaskAdvancedPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeB2STaskId}
+          itemId={ctx.activeB2SItemId}
+          onBack={() => ctx.setCurrentView('pentest-exec-b2s-detail')}
         />
       );
     case 'binary-security':

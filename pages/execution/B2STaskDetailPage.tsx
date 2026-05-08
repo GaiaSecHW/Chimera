@@ -13,6 +13,7 @@ interface Props {
   projectId: string;
   taskId: string;
   onBack: () => void;
+  onOpenAdvanced?: (itemId: string) => void;
 }
 
 type B2SItem = B2STaskDetail['items'][number];
@@ -316,7 +317,7 @@ const fileKindLabel = (path: string) => {
   return languageFromPath(path).toUpperCase();
 };
 
-export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }) => {
+export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, onOpenAdvanced }) => {
   const executionApi = api.domains.execution;
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -862,14 +863,26 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack }
                           <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2"><span>当前函数</span><span className="max-w-[170px] truncate font-black text-slate-800" title={progress?.current_function || '-'}>{progress?.current_function || '-'}</span></div>
                           <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2"><span>更新时间</span><span className="font-black text-slate-800">{formatDateTime(item.finished_at || detail.updated_at)}</span></div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setExpandedItems((current) => ({ ...current, [item.id]: !expanded }))}
-                          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
-                        >
-                          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                          {expanded ? '收起高级信息' : '展开高级信息'}
-                        </button>
+                        <div className="mt-4 grid grid-cols-1 gap-2">
+                          {detail.mode === 'deep' && onOpenAdvanced && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenAdvanced(item.id)}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
+                            >
+                              <Code2 size={14} />
+                              查看高级信息
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedItems((current) => ({ ...current, [item.id]: !expanded }))}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                          >
+                            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            {expanded ? '收起基础信息' : '展开基础信息'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
