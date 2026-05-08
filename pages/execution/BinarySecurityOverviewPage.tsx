@@ -84,6 +84,19 @@ const MODULE_SELECTION_OPTIONS = [
   { value: 'manual_confirm', label: '系统分析后人工确认' },
 ] as const;
 
+const isDirectoryAlreadyExistsError = (error: any) => {
+  const message = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+  return (
+    error?.status === 409 ||
+    code.includes('conflict') ||
+    code.includes('already') ||
+    message.includes('已存在') ||
+    message.includes('already exists') ||
+    message.includes('conflict')
+  );
+};
+
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
@@ -382,27 +395,24 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       const inputDir = created.summary?.input_dir || `/app/secflow-app-binary-security/${prepared.task_id}/input`;
       const tempUploadDir = created.summary?.temp_upload_dir || `/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
-      const ensureProjectPath = async (path: string) => {
-        if (!path || ensuredDirs.has(path)) return;
-        const parts = path.split('/').filter(Boolean);
-        let current = '';
+      const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
+        if (!basePath || !relativeDir) return;
+        const normalizedBase = basePath.replace(/^\/+|\/+$/g, '');
+        const parts = relativeDir.split('/').filter(Boolean);
+        let current = normalizedBase;
         for (const part of parts) {
           current = current ? `${current}/${part}` : part;
           if (ensuredDirs.has(current)) continue;
           try {
             await fileserverApi.createProjectFilesystemDirectory({ project_id: projectId, path: current });
           } catch (error: any) {
-            if (!String(error?.message || '').includes('已存在')) {
+            if (!isDirectoryAlreadyExistsError(error)) {
               throw error;
             }
           }
           ensuredDirs.add(current);
         }
       };
-      // Backend is expected to prepare these directories, but source uploads
-      // fail hard if fileserver-side temp dir is missing. Create them here as
-      // a client-side safeguard before uploading.
-      await ensureProjectPath(isSourceTask ? tempUploadDir : inputDir);
       for (const file of files) {
         const rel = isSourceTask ? file.name : file.name;
         const normalizedRel = rel.replace(/\\/g, '/');
@@ -410,7 +420,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         const uploadBase = isSourceTask ? tempUploadDir : inputDir;
         const uploadPath = relDir ? `${uploadBase}/${relDir}` : uploadBase;
         if (relDir) {
-          await ensureProjectPath(`app/secflow-app-binary-security/${prepared.task_id}/${isSourceTask ? `run/upload-tmp/${relDir}` : `input/${relDir}`}`);
+          await ensureUploadSubdirectories(uploadBase, relDir);
         }
         await fileserverApi.uploadProjectFilesystemFile(
           {
