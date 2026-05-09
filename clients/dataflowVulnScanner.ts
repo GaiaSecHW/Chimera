@@ -226,6 +226,7 @@ export interface DataflowRunSummary {
   model: string;
   provider: string;
   thinking: string;
+  review_profile: string;
   max_cycles: number;
   cycles_used: number;
   result_count: number;

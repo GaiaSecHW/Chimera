@@ -32,12 +32,17 @@ const DASHBOARD_HTML = `
       <section class="page-header-card">
         <div class="page-header-copy">
           <p class="page-eyebrow">Dataflow Vulnerability Mining</p>
-          <h1 class="page-title">Run 详情</h1>
-          <p class="page-description">当前详情由微服务后端统一读取 /data Run 目录展示，集中查看当前 Run 的概览、轮次、结果、会话、文件、日志与任务关联信息。</p>
+          <div class="page-title-row">
+            <h1 id="runName" class="page-title">Run 详情</h1>
+            <span id="runStatus" class="badge badge-pending">加载中</span>
+            <span id="runMode" class="badge badge-mode" style="display:none"></span>
+          </div>
+          <p id="runSubtitle" class="page-description">统一查看当前 Run 的概览、轮次、结果、会话、文件、日志与任务关联信息。</p>
+          <div id="runMeta" class="detail-meta header-run-meta"></div>
         </div>
         <div class="page-header-actions">
           <label class="toggle-label">
-            <input type="checkbox" id="autoRefresh">
+            <input type="checkbox" id="autoRefresh" checked>
             <span class="toggle-slider"></span>
             自动刷新
           </label>
@@ -56,15 +61,6 @@ const DASHBOARD_HTML = `
       </div>
 
       <div id="runDetail" class="run-detail" style="display:none">
-        <div class="detail-header">
-          <div class="detail-title">
-            <h2 id="runName"></h2>
-            <span id="runStatus" class="badge"></span>
-            <span id="runMode" class="badge badge-mode"></span>
-          </div>
-          <div id="runMeta" class="detail-meta"></div>
-        </div>
-
         <nav class="tabs">
           <button class="tab active" data-tab="overview">概览</button>
           <button class="tab" data-tab="cycles">评审轮次</button>
@@ -255,7 +251,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
 .page-header-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding: 20px;
@@ -267,6 +263,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
 .page-header-copy {
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .page-eyebrow {
@@ -278,12 +275,20 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 }
 
 .page-title {
-  margin-top: 8px;
   color: #020617;
   font-size: 28px;
   line-height: 1.15;
   font-weight: 900;
   letter-spacing: -0.02em;
+}
+
+.page-title-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .page-description {
@@ -299,6 +304,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 10px;
 }
 
@@ -397,7 +403,6 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 }
 
 .welcome,
-.detail-header,
 .card,
 .session-header-card,
 .session-group,
@@ -441,28 +446,16 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   line-height: 1.7;
 }
 
-.detail-header {
-  margin-bottom: 18px;
-  padding: 22px 24px;
-  border-radius: 26px;
-}
-
-.detail-title {
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.detail-title h2 {
-  font-size: 26px;
-  line-height: 1.2;
-  font-weight: 800;
-  color: var(--text-bright);
-}
-
 .detail-meta {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px 14px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.header-run-meta {
+  margin-top: 12px;
 }
 
 .detail-meta span {
@@ -1163,7 +1156,6 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
     justify-content: space-between;
   }
 
-  .detail-header,
   .card,
   .session-header-card,
   .session-group {
@@ -1171,7 +1163,6 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
     border-radius: 20px;
   }
 
-  .detail-title h2,
   .session-header-card h1 {
     font-size: 20px;
   }
@@ -1809,21 +1800,24 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const runNameEl = this.$('runName');
       if (runNameEl) runNameEl.textContent = name;
       const statusEl = this.$('runStatus');
+      const statusText = summary?.status || 'pending';
       if (statusEl) {
-        statusEl.className = `badge badge-${summary?.status || 'pending'}`;
-        statusEl.textContent = summary?.status || 'loading';
+        statusEl.className = `badge badge-${statusText}`;
+        statusEl.textContent = this.statusLabel(statusText);
       }
       const modeEl = this.$('runMode');
       if (modeEl) {
         modeEl.textContent = summary?.workflow_mode || '';
         modeEl.style.display = summary?.workflow_mode ? '' : 'none';
       }
+      const subtitleEl = this.$('runSubtitle');
+      if (subtitleEl) subtitleEl.textContent = '正在解析当前 Run，完成后会展示概览、轮次、结果、会话、文件与日志。';
       const metaEl = this.$('runMeta');
       if (metaEl) {
         metaEl.innerHTML = `
           <span>🤖 ${this.esc(summary?.model || '-')}</span>
-          <span>🧠 ${this.esc(summary?.thinking || '-')}</span>
-          <span>🔄 ${summary?.cycles_used || 0} cycles</span>
+          <span>🎚️ ${this.esc(this.reviewProfileLabel(summary?.review_profile || ''))}</span>
+          <span>🔄 ${summary?.cycles_used || 0}${summary?.max_cycles ? ` / ${summary.max_cycles}` : ''} 轮</span>
           <span>⏳ 正在加载详细信息...</span>
         `;
       }
@@ -1916,6 +1910,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           model: data.model,
           provider: data.provider,
           thinking: data.thinking,
+          review_profile: data.review_profile,
           max_cycles: data.max_cycles,
           cycles_used: data.cycles_used,
           result_count: data.result_count,
@@ -1949,7 +1944,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const statusEl = this.$('runStatus');
       if (statusEl) {
         statusEl.className = `badge badge-${data.status}`;
-        statusEl.textContent = data.status;
+        statusEl.textContent = this.statusLabel(data.status);
       }
       const modeEl = this.$('runMode');
       const lastCycle = cycles[cycles.length - 1];
@@ -1958,22 +1953,27 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         modeEl.textContent = mode;
         modeEl.style.display = mode ? '' : 'none';
       }
+      const subtitleEl = this.$('runSubtitle');
+      if (subtitleEl) {
+        const updated = data.updated_at ? ` · 最近同步 ${this.esc(data.updated_at)}` : '';
+        subtitleEl.innerHTML = `统一查看当前 Run 的概览、轮次、结果、会话、文件、日志与任务关联信息${updated}`;
+      }
 
       const c = data.config || {};
-      const advisorCount = (c.global_review_advisors || []).length;
       const metaEl = this.$('runMeta');
       if (metaEl) {
-        const thinking = String(c.thinking || '').trim() || '不支持/未启用';
+        const reviewProfile = String(c.review_profile || data.review_profile || '').trim();
+        const model = String(c.model || data.model || '').trim() || '-';
+        const cycleText = `${data.cycles_used || cycles.length}${data.max_cycles ? ` / ${data.max_cycles}` : ''} 轮`;
+        const resultText = `${data.result_count ?? 0} 个结果`;
         metaEl.innerHTML = `
-      <span>🤖 ${this.esc(c.model)}</span>
-      <span>🧠 ${this.esc(thinking)}</span>
-      <span>🔄 ${data.cycles_used || cycles.length} cycles</span>
-      <span>⏱️ ${c.timeout_seconds}s</span>
-      <span>🎯 ${c.parallel_result_review ? '并行结果评审' : '串行结果评审'}${c.parallel_result_review_limit ? ` ×${c.parallel_result_review_limit}` : ''}</span>
-      ${advisorCount ? `<span>🧩 全局参谋 ${advisorCount}</span>` : ''}
-      <span class="run-duration" id="runDuration">⏳ ${this.fmtDuration(this._estimateDuration(data))}</span>
-      ${data.error ? `<span class="text-error">⚠️ ${this.esc(data.error).substring(0, 80)}</span>` : ''}
-    `;
+          <span>🤖 ${this.esc(model)}</span>
+          <span>🎚️ ${this.esc(this.reviewProfileLabel(reviewProfile))}</span>
+          <span>🔄 ${this.esc(cycleText)}</span>
+          <span>📄 ${this.esc(resultText)}</span>
+          <span class="run-duration" id="runDuration">⏳ ${this.fmtDuration(this._estimateDuration(data))}</span>
+          ${data.error ? `<span class="text-error">⚠️ ${this.esc(data.error).substring(0, 120)}</span>` : ''}
+        `;
       }
       this._startDurationTimer(data.status === 'running');
       this.updateActionButtons(data);
@@ -3162,9 +3162,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return (bytes / 1024 / 1024).toFixed(1) + 'M';
     },
 
-    statusBadge(status: string, extra = '') {
+    statusLabel(status: string) {
       const s = String(status || 'unknown').toLowerCase();
-      const label = ({
+      return ({
         completed: '完成',
         succeeded: '成功',
         failed: '失败',
@@ -3191,7 +3191,24 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         blocked_external_source: '外部源码阻塞',
         no_workspace: '无工作区',
       } as Record<string, string>)[s] || s;
+    },
+
+    statusBadge(status: string, extra = '') {
+      const s = String(status || 'unknown').toLowerCase();
+      const label = this.statusLabel(s);
       return `<span class="badge badge-${s} ${extra}">${label}</span>`;
+    },
+
+    reviewProfileLabel(profile: string) {
+      const raw = String(profile || '').trim();
+      const normalized = raw.toLowerCase();
+      const label = ({
+        fast: '快速档',
+        balanced: '平衡档',
+        audit: '审计档',
+        strict: '审计档',
+      } as Record<string, string>)[normalized];
+      return label || (raw ? `档位 ${raw}` : '档位未解析');
     },
 
     outcomeBadge(outcome: string) {
