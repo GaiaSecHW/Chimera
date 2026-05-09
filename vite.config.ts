@@ -11,12 +11,8 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        sourcemapIgnoreList: (sourcePath) => sourcePath.includes('node_modules'),
         proxy: {
-          '/api/app/dataflow-analyse': {
-            target: 'http://172.31.23.188:18090',
-            changeOrigin: true,
-            secure: false,
-          },
           '/api': {
             target: 'http://secflow.ai.icsl.huawei.com',
             changeOrigin: true,

@@ -43,7 +43,7 @@ const STATUS_OPTIONS = [
 
 const FILESERVER_CONTAINER_ROOT = '/data/files';
 const TASK_WORKSPACE_SEGMENT = 'app/secflow-app-firmware-unpacker';
-type DetailTab = 'overview' | 'metrics' | 'events' | 'session' | 'result';
+type DetailTab = 'overview' | 'metrics' | 'events' | 'session' | 'evolution' | 'result';
 
 function sameJsonValue(left: unknown, right: unknown) {
   try {
@@ -202,6 +202,10 @@ function formatEventTypeLabel(eventType: string | null | undefined) {
     orphan_recovered: '孤儿收敛',
     task_result_cache_refreshed: '结果缓存刷新',
     task_result_cache_refresh_failed: '缓存刷新失败',
+    skill_generation_queued: '自进化入队',
+    skill_generation_started: '自进化开始',
+    skill_generation_completed: '自进化完成',
+    skill_generation_failed: '自进化失败',
   };
   const raw = String(eventType || 'event');
   return labels[raw] || raw;
@@ -239,11 +243,14 @@ function eventDetailRows(detail: Record<string, any> | null) {
     provider_role: 'LLM 角色',
     stage_from: '来源阶段',
     stage_to: '目标阶段',
+    job_id: '任务',
+    skill_generation_status: '自进化状态',
+    generated_skill_path: '生成结果',
   };
   const priority = [
     'reason', 'error', 'owner_id', 'runner_pid', 'signal', 'from', 'to',
     'round', 'matched_skill', 'fallback_to_llm', 'result_status', 'rounds',
-    'retry_mode', 'provider_role', 'stage_from', 'stage_to',
+    'retry_mode', 'provider_role', 'job_id', 'skill_generation_status', 'generated_skill_path', 'stage_from', 'stage_to',
   ];
   const orderedKeys = [
     ...priority.filter((key) => Object.prototype.hasOwnProperty.call(detail, key)),
@@ -283,6 +290,18 @@ function EventDetailBlock({ detail }: { detail: Record<string, any> | null }) {
       </details>
     </div>
   );
+}
+
+function formatSkillGenerationStatus(status: string | null | undefined) {
+  const raw = String(status || '').toLowerCase();
+  const labels: Record<string, string> = {
+    pending: '排队中',
+    running: '生成中',
+    success: '生成成功',
+    failed: '生成失败',
+    not_applicable: '未触发',
+  };
+  return labels[raw] || (status || '-');
 }
 
 function MetricBar({ label, value, tone = 'blue' }: { label: string; value: number | null | undefined; tone?: 'blue' | 'emerald' | 'amber' | 'rose' }) {
@@ -1016,6 +1035,7 @@ function TaskDetailPanel({
               { id: 'metrics' as const, label: '观测' },
               { id: 'events' as const, label: '事件记录' },
               { id: 'session' as const, label: '智能体会话' },
+              { id: 'evolution' as const, label: '自进化' },
               { id: 'result' as const, label: '结果' },
             ].map((tab) => (
               <button
@@ -1753,6 +1773,84 @@ function TaskDetailPanel({
                 error={sessionError || null}
               />
             </div>
+          </section>
+        ) : null}
+
+        {activeTab === 'evolution' ? (
+          <section className="space-y-4">
+            <section className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">SKILL 执行状态</div>
+                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>命中 SKILL</span>
+                    <span className="max-w-[240px] truncate font-mono text-xs text-slate-800">{task.matched_skill || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>SKILL 版本</span>
+                    <span className="font-bold text-slate-800">{task.matched_skill_version ?? '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>匹配得分</span>
+                    <span className="font-bold text-slate-800">{task.matched_skill_score ?? '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>是否回退到 LLM</span>
+                    <span className="font-bold text-slate-800">{task.fallback_to_llm ? '是' : '否'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">SKILL 生成结果</div>
+                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>沉淀状态</span>
+                    <span className="font-bold text-slate-800">{formatSkillGenerationStatus(task.skill_generation_status)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>候选状态</span>
+                    <span className="font-bold text-slate-800">{task.generated_skill_status || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>累计成功次数</span>
+                    <span className="font-bold text-slate-800">{task.promotion_success_count ?? '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>开始时间</span>
+                    <span className="font-bold text-slate-800">{fmtTime(task.skill_generation_started_at)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span>完成时间</span>
+                    <span className="font-bold text-slate-800">{fmtTime(task.skill_generation_completed_at)}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">生成产物</div>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <div className="text-xs font-bold text-slate-500">候选 SKILL 路径</div>
+                  <div className="mt-1 break-all rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+                    {task.generated_skill_path || '-'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-500">异步任务 ID</div>
+                  <div className="mt-1 break-all rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+                    {task.skill_generation_job_id || '-'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-500">失败原因</div>
+                  <div className="mt-1 min-h-[64px] rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                    {task.skill_generation_error || '无'}
+                  </div>
+                </div>
+              </div>
+            </section>
           </section>
         ) : null}
 

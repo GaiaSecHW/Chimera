@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { HashRouter, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Loader2, AlertCircle, Shield, Lock } from 'lucide-react';
 import { ViewType, SecurityProject, UserInfo, Agent, EnvTemplate, StaticPackage, PackageStats, AdminDashboardStats } from './types/types';
@@ -79,6 +79,9 @@ const AppShell: React.FC = () => {
   const [vulnServiceHealthy, setVulnServiceHealthy] = useState<boolean | null>(null);
   const [configCenterServiceHealthy, setConfigCenterServiceHealthy] = useState<boolean | null>(null);
 
+  const locationRef = useRef(location);
+  useEffect(() => { locationRef.current = location; }, [location]);
+
   const navigateToView = useCallback((nextView: ViewType | string, options?: { path?: string }) => {
     const normalizedView = String(nextView || DEFAULT_VIEW);
     const requestedPath = String(options?.path || '').trim();
@@ -87,10 +90,13 @@ const AppShell: React.FC = () => {
         ? `/${normalizedView}?path=${encodeURIComponent(requestedPath)}`
         : `/${normalizedView}`;
     setCurrentView(normalizedView);
-    if (!isServiceTerminalWindow && `${location.pathname}${location.search}` !== targetUrl) {
-      navigate(targetUrl);
+    if (!isServiceTerminalWindow) {
+      const loc = locationRef.current;
+      if (`${loc.pathname}${loc.search}` !== targetUrl) {
+        navigate(targetUrl);
+      }
     }
-  }, [isServiceTerminalWindow, location.pathname, location.search, navigate]);
+  }, [isServiceTerminalWindow, navigate]);
 
   const normalizeServiceHealth = (status?: AggregatedServiceHealth | null): boolean | null => {
     if (status === 'healthy') return true;
@@ -124,7 +130,8 @@ const AppShell: React.FC = () => {
     if (routeView !== currentView) {
       setCurrentView(routeView);
     }
-  }, [currentView, isServiceTerminalWindow, routeView]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isServiceTerminalWindow, routeView]);
 
   useEffect(() => {
     if (isServiceTerminalWindow) return;
