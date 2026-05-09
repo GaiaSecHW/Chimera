@@ -1,3 +1,4 @@
+/* @refresh reset */
 import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 
@@ -21,7 +22,7 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   pi_max_retries: -1,
   pi_retry_delay: 10,
   max_trace_depth: 5,
-  callee_concurrency: -1,
+  callee_concurrency: 4,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -243,8 +244,8 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
               <FieldRow label="max_trace_depth" hint="最大追踪深度">
                 <NumberInput value={config.max_trace_depth} min={1} max={20} onChange={(v) => patch({ max_trace_depth: v })} />
               </FieldRow>
-              <FieldRow label="callee_concurrency" hint="-1 = 自动">
-                <NumberInput value={config.callee_concurrency} min={-1} max={32} onChange={(v) => patch({ callee_concurrency: v })} />
+              <FieldRow label="callee_concurrency" hint="BFS 并行度 1-64">
+                <NumberInput value={config.callee_concurrency} min={1} max={64} onChange={(v) => patch({ callee_concurrency: v })} />
               </FieldRow>
             </div>
           </SectionCard>

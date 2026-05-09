@@ -64,7 +64,7 @@ const formatNodeType = (nodeType: PickerNode['node_type']) => {
 export const ProjectFilesystemPickerModal: React.FC<{
   isOpen: boolean;
   projectId: string;
-  selectionMode: 'file' | 'directory';
+  selectionMode: 'file' | 'directory' | 'any';
   backend?: 'fileserver' | 'dataflowVulnScanner';
   title: string;
   description: string;
@@ -146,9 +146,10 @@ export const ProjectFilesystemPickerModal: React.FC<{
     }
   };
 
-  const isNodeSelectable = (node: PickerNode) => (
-    selectionMode === 'file' ? node.node_type === 'file' : node.node_type !== 'file'
-  );
+  const isNodeSelectable = (node: PickerNode) => {
+    if (selectionMode === 'any') return true;
+    return selectionMode === 'file' ? node.node_type === 'file' : node.node_type !== 'file';
+  };
 
   const collectNodesByIds = (nodes: PickerNode[], ids: Set<string>, result: PickerNode[] = []): PickerNode[] => {
     nodes.forEach((node) => {
