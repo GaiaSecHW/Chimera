@@ -4,8 +4,9 @@ import { Loader2, RefreshCw, Save, Settings } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
+import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 
-type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis';
+type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis' | 'entry-analysis';
 
 export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution;
@@ -95,6 +96,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
               label: '系统分析',
               service: 'secflow-app-system-analyse',
             },
+            {
+              id: 'entry-analysis' as ConfigTab,
+              label: '入口分析',
+              service: 'secflow-app-entry-analyse',
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -176,8 +182,10 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
         </section>
       ) : activeTab === 'firmware-unpacker' ? (
         <FirmwareUnpackConfigPage projectId="" embedded />
-      ) : (
+      ) : activeTab === 'system-analysis' ? (
         <SystemAnalysisConfigPage projectId={projectId} embedded />
+      ) : (
+        <EntryAnalysisConfigPage projectId={projectId} embedded />
       )}
     </div>
   );

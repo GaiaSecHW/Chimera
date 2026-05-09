@@ -1,10 +1,33 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Loader2, RefreshCw, RotateCcw, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {
+  ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy,
+  FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Search, ScrollText,
+  Trash2, XCircle,
+} from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppEaStageEvent, AppEaTaskDetail } from '../../types/types';
+import { FileWatchMessage } from '../../clients/fileserver';
+import {
+  AppEaEvaluationRound,
+  AppEaSessionEvent,
+  AppEaSessionMeta,
+  AppEaSessionSnapshot,
+  AppEaStageEvent,
+  AppEaTaskDetail,
+  AppEaTaskEvaluation,
+  AppEaTaskResult,
+} from '../../types/types';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import {
+  clearBinarySecurityReturnContext,
+  hasBinarySecurityReturnContext,
+  navigateBackToBinarySecurityTask,
+} from '../../utils/executionReturnContext';
+import { AgentSessionViewer } from './AgentSessionViewer';
+import { TaskOriginCard } from './taskOrigin';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -24,387 +47,497 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
-function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
+const STAGE_STEPS = [
+  { key: 'init', label: '模块加载', desc: '扫描目标路径，加载模块文件', triggers: ['task_start', 'module_load', 'task_resume'], artifactSubpath: 'run' },
+  { key: 'analyse', label: '入口分析', desc: 'Worker 分析入口点并生成候选结果', triggers: ['round_start', 'worker_start', 'master_worker_start'], artifactSubpath: 'run/sessions' },
+  { key: 'judge', label: '裁判综合', desc: 'Judge 评审 Worker 输出并投票', triggers: ['judge_start', 'judge_eval', 'judge_end'], artifactSubpath: 'run' },
+  { key: 'finish', label: '生成结果', desc: '输出 Markdown、functions.list 与运行报告', triggers: ['round_end', 'task_end'], artifactSubpath: 'output' },
+];
+
+type DetailTab = 'overview' | 'session' | 'result' | 'evaluation';
+type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {
   if (!startedAt || !finishedAt) return '-';
-  const secs = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000);
+  const secs = Math.max(0, Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000));
   if (secs < 60) return `${secs}s`;
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}m${s}s`;
+  return `${Math.floor(secs / 60)}m${secs % 60}s`;
 }
 
-function formatLiveDuration(startedAt: string | null | undefined, nowSecs: number): string {
+function formatLiveDuration(startedAt?: string | null, nowSecs = Math.floor(Date.now() / 1000)): string {
   if (!startedAt) return '-';
   const secs = Math.max(0, nowSecs - Math.floor(new Date(startedAt).getTime() / 1000));
   if (secs < 60) return `${secs}s`;
-  const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}m${s}s`;
+  return `${Math.floor(secs / 60)}m${secs % 60}s`;
 }
 
-interface RoundState {
-  num: number;
-  phase: 'pending' | 'worker' | 'judge' | 'passed' | 'failed' | 'reflection';
-  passed?: boolean;
-  passCount?: number;
-  totalJudges?: number;
+function formatNumber(value: unknown, digits = 0): string {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  return num.toLocaleString('zh-CN', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
-function deriveRounds(events: AppEaStageEvent[], maxRounds: number): RoundState[] {
-  const map = new Map<number, RoundState>();
-  for (const evt of events) {
-    const d = evt.data ?? {};
-    const rnd = typeof d.round === 'number' ? d.round : undefined;
-    if (!rnd) continue;
-    if (evt.type === 'round_start') {
-      if (!map.has(rnd)) map.set(rnd, { num: rnd, phase: 'worker' });
-    } else if (evt.type === 'worker_start') {
-      if (!map.has(rnd)) map.set(rnd, { num: rnd, phase: 'worker' });
-    } else if (evt.type === 'judge_start') {
-      const s = map.get(rnd);
-      if (s && s.phase === 'worker') map.set(rnd, { ...s, phase: 'judge' });
-    } else if (evt.type === 'round_reflection') {
-      const s = map.get(rnd);
-      if (s) map.set(rnd, { ...s, phase: 'reflection' });
-    } else if (evt.type === 'round_end') {
-      map.set(rnd, {
-        num: rnd,
-        phase: d.passed ? 'passed' : 'failed',
-        passed: Boolean(d.passed),
-        passCount: typeof d.pass_count === 'number' ? d.pass_count : undefined,
-        totalJudges: typeof d.total_judges === 'number' ? d.total_judges : undefined,
-      });
-    }
-  }
-  const shown = Math.max(maxRounds, Math.max(0, ...Array.from(map.keys())));
-  return Array.from({ length: shown || 1 }, (_, i) => {
-    const r = map.get(i + 1);
-    return r ?? { num: i + 1, phase: 'pending' };
+function formatCost(value: unknown): string {
+  const num = Number(value);
+  return Number.isFinite(num) ? `$${num.toFixed(4)}` : '-';
+}
+
+function formatRate(value: unknown): string {
+  const num = Number(value);
+  return Number.isFinite(num) ? `${Math.round(num * 100)}%` : '-';
+}
+
+function extractFsRelPath(path: string, projectId: string): string | null {
+  const prefix = `/data/files/${projectId}`;
+  if (!path.startsWith(prefix)) return null;
+  const rel = path.slice(prefix.length).replace(/\/+$/, '');
+  return rel.startsWith('/') ? rel : `/${rel}`;
+}
+
+function openInFileExplorer(fsPath: string) {
+  sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
+  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: fsPath } }));
+}
+
+function normalizeJoinPath(basePath: string, relativePath: string): string {
+  return `${basePath.replace(/\/+$/, '')}/${relativePath.replace(/^\/+/, '')}`;
+}
+
+function parseParts(content: unknown): Array<Record<string, any>> {
+  if (typeof content === 'string') return [{ type: 'text', text: content }];
+  if (!Array.isArray(content)) return [];
+  return content.map((item) => {
+    const part = item && typeof item === 'object' ? item as Record<string, any> : {};
+    if (part.type === 'text') return { type: 'text', text: part.text || '' };
+    if (part.type === 'thinking') return { type: 'thinking', text: part.thinking || '' };
+    if (part.type === 'toolCall') return { type: 'toolCall', name: part.name || '', id: part.id || '', arguments: part.arguments || {} };
+    if (part.type === 'toolResult') return { type: 'toolResult', text: part.text || '' };
+    return { type: 'unknown', detail: JSON.stringify(part).slice(0, 200) };
   });
 }
 
-function formatEaEvent(evt: AppEaStageEvent): string {
+function parseSessionDelta(lines: string[], startLine: number): { events: AppEaSessionEvent[]; warnings: string[]; sessionMeta: Record<string, any> | null } {
+  const events: AppEaSessionEvent[] = [];
+  const warnings: string[] = [];
+  let sessionMeta: Record<string, any> | null = null;
+  lines.forEach((raw, index) => {
+    const lineNo = startLine + index;
+    const line = String(raw || '').trim();
+    if (!line) return;
+    let obj: Record<string, any>;
+    try {
+      obj = JSON.parse(line);
+    } catch {
+      warnings.push(`第 ${lineNo} 行 JSON 解析失败`);
+      events.push({ type: 'raw', line: lineNo, event_index: lineNo, raw_line: line.slice(0, 200), summary: line.slice(0, 200) });
+      return;
+    }
+    if (obj.type === 'session') {
+      sessionMeta = { id: obj.id || '', version: obj.version || '', timestamp: obj.timestamp || '', cwd: obj.cwd || '' };
+      return;
+    }
+    if (obj.type === 'model_change') {
+      events.push({ type: 'model_change', line: lineNo, event_index: lineNo, timestamp: obj.timestamp || '', display_timestamp: obj.timestamp || '', provider: obj.provider || '', modelId: obj.modelId || '', raw_line: line });
+      return;
+    }
+    if (obj.type === 'thinking_level_change') {
+      events.push({ type: 'thinking_level_change', line: lineNo, event_index: lineNo, timestamp: obj.timestamp || '', display_timestamp: obj.timestamp || '', thinkingLevel: obj.thinkingLevel || '', thinkingLevelClass: `thinking-${obj.thinkingLevel || 'off'}`, raw_line: line });
+      return;
+    }
+    if (obj.type === 'message') {
+      const msg = obj.message && typeof obj.message === 'object' ? obj.message : {};
+      const role = String(msg.role || '');
+      const eventData: AppEaSessionEvent = { type: 'message', line: lineNo, event_index: lineNo, timestamp: obj.timestamp || '', display_timestamp: obj.timestamp || '', role, render_role: role, parts: parseParts(msg.content || []), raw_line: line };
+      if (role === 'toolResult') {
+        eventData.toolCallId = msg.toolCallId || msg.tool_call_id || '';
+        eventData.toolName = msg.toolName || msg.tool_name || '';
+        eventData.isError = Boolean(msg.isError || msg.is_error);
+      }
+      events.push(eventData);
+      return;
+    }
+    events.push({ type: String(obj.type || 'unknown_event'), line: lineNo, event_index: lineNo, display_timestamp: obj.timestamp || '', raw_line: line, summary: JSON.stringify(obj).slice(0, 200) });
+  });
+  return { events, warnings, sessionMeta };
+}
+
+function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): StepStatus[] {
+  const statuses: StepStatus[] = STAGE_STEPS.map(() => 'pending');
+  if (taskStatus === 'pending') return statuses;
+  if (taskStatus === 'passed') return STAGE_STEPS.map(() => 'completed');
+  let last = -1;
+  for (const evt of events) {
+    STAGE_STEPS.forEach((step, index) => {
+      if (step.triggers.includes(evt.type)) last = Math.max(last, index);
+    });
+  }
+  if (last < 0) {
+    statuses[0] = taskStatus === 'running' ? 'running' : ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'pending';
+    return statuses;
+  }
+  for (let i = 0; i < STAGE_STEPS.length; i += 1) {
+    if (i < last) statuses[i] = 'completed';
+    if (i === last) statuses[i] = ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'running';
+  }
+  return statuses;
+}
+
+function formatEvent(evt: AppEaStageEvent): string {
   const ts = new Date(evt.ts * 1000).toLocaleTimeString('zh-CN');
-  const d = evt.data ?? {};
+  const d = evt.data || {};
   switch (evt.type) {
     case 'task_start': return `[${ts}] 任务开始`;
-    case 'round_start': return `[${ts}] ▶ 第 ${d.round ?? ''} 轮开始  workers=${d.workers ?? ''}  judges=${d.judges ?? ''}`;
-    case 'round_end': return `[${ts}] ✓ 第 ${d.round ?? ''} 轮结束  passed=${d.passed ?? ''}`;
-    case 'worker_start': return `[${ts}] ▶ Worker[${d.worker_idx ?? ''}] 开始分析  files=${d.file_count ?? ''}`;
-    case 'worker_end': return `[${ts}] ✓ Worker[${d.worker_idx ?? ''}] 分析完成`;
-    case 'workers_skipped': return `[${ts}] ⏭ Round ${d.round ?? ''} 跳过文件重分析（Master Worker 直接根据反馈修正）  workers=${d.workers ?? ''}`;
-    case 'master_worker_start': return `[${ts}] ▶ Master Worker Round ${d.round ?? ''} 开始合并  workers=${d.workers ?? ''}`;
-    case 'master_worker_done': return `[${ts}] ✓ Master Worker Round ${d.round ?? ''} 合并完成  entry_file_found=${d.entry_file_found ?? ''}`;
-    case 'judge_start': return `[${ts}] ▶ Judge[${d.judge_idx ?? ''}] 开始评审`;
-    case 'judge_end': return `[${ts}] ✓ Judge[${d.judge_idx ?? ''}] 评审完成  passed=${d.passed ?? ''}`;
-    case 'pi_output': {
-      const text = (d.text ?? '').replace(/\n+/g, ' ').trim().slice(0, 150);
-      if (!text) return '';
-      return `[${ts}] │ ${text}`;
-    }
+    case 'task_resume': return `[${ts}] 断点续跑 start_round=${d.start_round ?? ''}`;
+    case 'module_load': return `[${ts}] ▶ 加载模块: ${d.module ?? ''}`;
+    case 'module_found': return `[${ts}] │ 模块文件: ${d.file_count ?? ''} 个`;
+    case 'module_ready': return `[${ts}] ✓ 模块就绪: ${d.entry_count ?? ''} 个入口点`;
+    case 'round_start': return `[${ts}] ▶ 第 ${d.round ?? ''} 轮开始`;
+    case 'worker_start': return `[${ts}] │ Worker ${d.worker_id ?? d.worker_idx ?? ''}: ${d.entry ?? ''}`;
+    case 'worker_end': return `[${ts}] ✓ Worker ${d.worker_idx ?? ''} 完成`;
+    case 'master_worker_start': return `[${ts}] ▶ Master Worker Round ${d.round ?? ''} 开始合并`;
+    case 'master_worker_done': return `[${ts}] ✓ Master Worker Round ${d.round ?? ''} 合并完成`;
+    case 'judge_start': return `[${ts}] ▶ Judge ${d.judge_id ?? d.judge_idx ?? ''} 开始评审`;
+    case 'judge_end': return `[${ts}] ✓ Judge ${d.judge_idx ?? ''} 评审完成 passed=${d.passed ?? ''}`;
+    case 'round_end': return `[${ts}] ✓ 第 ${d.round ?? ''} 轮结束 passed=${d.passed ?? ''}`;
     case 'error': return `[${ts}] ✗ 错误: ${d.error ?? JSON.stringify(d)}`;
-    case 'task_end': return `[${ts}] 任务结束  status=${d.status ?? ''}`;
-    default: {
-      const text = (d.text ?? d.output ?? '').replace(/\n+/g, ' ').trim().slice(0, 120);
-      return text ? `[${ts}] ${evt.type}: ${text}` : `[${ts}] ${evt.type}`;
-    }
+    case 'task_end': return `[${ts}] 任务结束 status=${d.status ?? ''}`;
+    default: return `[${ts}] ${evt.type}: ${String(d.text ?? d.output ?? JSON.stringify(d)).replace(/\n+/g, ' ').slice(0, 150)}`;
   }
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex gap-3">
-      <span className="w-24 shrink-0 text-xs text-slate-400">{label}</span>
-      <span className="text-xs text-slate-700 break-all">{value}</span>
-    </div>
-  );
+  return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-slate-400">{label}</span><span className="text-xs text-slate-700 break-all">{value}</span></div>;
 }
 
-export const EntryAnalysisTaskDetailPage: React.FC<{
-  projectId: string;
-  taskId: string;
-  onBack: () => void;
-}> = ({ projectId: _projectId, taskId, onBack }) => {
+function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
+  return <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div><div className="text-slate-400">{icon}</div></div><div className="mt-3 text-2xl font-black text-slate-900">{value}</div></div>;
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  return <article className="prose prose-slate max-w-none prose-headings:font-black prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-code:text-rose-700"><ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown></article>;
+}
+
+export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: string; onBack: () => void }> = ({ projectId, taskId, onBack }) => {
   const appApi = api.domains.execution.appEntryAnalyse;
+  const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
   const hasReturnContext = hasBinarySecurityReturnContext();
-
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
+  const [result, setResult] = useState<AppEaTaskResult | null>(null);
+  const [evaluation, setEvaluation] = useState<AppEaTaskEvaluation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resultLoading, setResultLoading] = useState(false);
+  const [evaluationLoading, setEvaluationLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  const [resultView, setResultView] = useState<'final' | 'functions' | 'report' | 'json'>('final');
   const [restarting, setRestarting] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
+  const [resuming, setResuming] = useState(false);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
+  const [logsExpanded, setLogsExpanded] = useState(true);
+  const logRef = useRef<HTMLDivElement>(null);
+  const [sessions, setSessions] = useState<AppEaSessionMeta[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
+  const [sessionSnapshot, setSessionSnapshot] = useState<AppEaSessionSnapshot | null>(null);
+  const [sessionEvents, setSessionEvents] = useState<AppEaSessionEvent[]>([]);
+  const [sessionWarnings, setSessionWarnings] = useState<string[]>([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [sessionLive, setSessionLive] = useState(false);
+  const [sessionWatchStartLine, setSessionWatchStartLine] = useState(0);
+  const sessionSocketRef = useRef<WebSocket | null>(null);
+  const [evaluationKeyword, setEvaluationKeyword] = useState('');
+  const [evaluationStatus, setEvaluationStatus] = useState('');
+  const [expandedRound, setExpandedRound] = useState<number | null>(null);
+
+  const handleBack = () => {
+    const parentTaskId = String(detail?.parent_task_id || '').trim();
+    if (detail?.task_origin_type === 'binary_security' && parentTaskId) {
+      clearBinarySecurityReturnContext();
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+        detail: detail.parent_task_type === 'source'
+          ? { view: 'source-security-detail', sourceSecurityTaskId: parentTaskId }
+          : { view: 'binary-security-detail', binarySecurityTaskId: parentTaskId },
+      }));
+      return;
+    }
+    if (navigateBackToBinarySecurityTask()) return;
+    onBack();
+  };
 
   const loadDetail = async () => {
     if (!taskId) return;
     setLoading(true);
+    try { setDetail(await appApi.getTask(taskId)); }
+    catch (err: any) { notify(`加载任务详情失败: ${err?.message || err}`, 'error'); }
+    finally { setLoading(false); }
+  };
+
+  const loadResult = async () => {
+    setResultLoading(true);
+    try { setResult(await appApi.getTaskResult(taskId)); }
+    catch (err: any) { notify(`加载任务结果失败: ${err?.message || err}`, 'error'); }
+    finally { setResultLoading(false); }
+  };
+
+  const loadEvaluation = async () => {
+    setEvaluationLoading(true);
+    try { setEvaluation(await appApi.getTaskEvaluation(taskId)); }
+    catch (err: any) { notify(`加载观测指标失败: ${err?.message || err}`, 'error'); }
+    finally { setEvaluationLoading(false); }
+  };
+
+  const closeSessionSocket = () => {
+    if (sessionSocketRef.current) {
+      sessionSocketRef.current.close();
+      sessionSocketRef.current = null;
+    }
+    setSessionLive(false);
+  };
+
+  const loadSessions = async (silent = false) => {
+    if (!silent) setSessionsLoading(true);
+    setSessionsError(null);
     try {
-      const d = await appApi.getTask(taskId);
-      setDetail(d);
+      const data = await appApi.listTaskSessions(taskId);
+      setSessions(data);
+      setSelectedSessionPath((current) => current && data.some((item) => item.relative_path === current)
+        ? current
+        : data.find((item) => item.is_active)?.relative_path || data[0]?.relative_path || null);
     } catch (err: any) {
-      notify(`加载任务详情失败: ${err?.message || err}`, 'error');
+      setSessionsError(err?.message || String(err));
     } finally {
-      setLoading(false);
+      if (!silent) setSessionsLoading(false);
     }
   };
 
-  useEffect(() => {
-    void loadDetail();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taskId]);
+  const loadSessionFile = async (path: string) => {
+    setSessionLoading(true);
+    setSessionError(null);
+    try {
+      const snapshot = await appApi.getTaskSessionFile(taskId, path);
+      setSessionSnapshot(snapshot);
+      setSessionWatchStartLine(snapshot.line_count || 0);
+      setSessionEvents(snapshot.events || []);
+      setSessionWarnings(snapshot.warnings || []);
+    } catch (err: any) {
+      setSessionSnapshot(null);
+      setSessionEvents([]);
+      setSessionWarnings([]);
+      setSessionError(err?.message || String(err));
+    } finally {
+      setSessionLoading(false);
+    }
+  };
 
-  // Live clock
+  useEffect(() => { void loadDetail(); }, [taskId]);
+  useEffect(() => () => closeSessionSocket(), []);
   useEffect(() => {
-    const timer = setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Auto-refresh when running/pending
-  const isActive = detail?.status === 'running' || detail?.status === 'pending';
+    if (!detail || !['pending', 'running'].includes(detail.status)) return;
+    const timer = window.setInterval(() => void loadDetail(), 5000);
+    return () => window.clearInterval(timer);
+  }, [detail?.status, taskId]);
   useEffect(() => {
-    if (!isActive) return;
-    const timer = setInterval(() => void loadDetail(), 5000);
-    return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, taskId]);
+    if (!detail || !['pending', 'running'].includes(detail.status)) return;
+    const timer = window.setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [detail?.status]);
+  useEffect(() => {
+    if (logsExpanded && logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [detail?.stages_json?.events?.length, logsExpanded]);
+  useEffect(() => { if (activeTab === 'result') void loadResult(); }, [activeTab, taskId]);
+  useEffect(() => { if (activeTab === 'evaluation') void loadEvaluation(); }, [activeTab, taskId]);
+  useEffect(() => {
+    if (activeTab !== 'session') { closeSessionSocket(); return; }
+    void loadSessions();
+  }, [activeTab, taskId]);
+  useEffect(() => {
+    if (activeTab !== 'session' || !detail || !['pending', 'running'].includes(detail.status)) return;
+    const timer = window.setInterval(() => void loadSessions(true), 12000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, detail?.status, taskId]);
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath) return;
+    closeSessionSocket();
+    void loadSessionFile(selectedSessionPath);
+  }, [activeTab, selectedSessionPath, taskId]);
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath || !sessionSnapshot || !detail?.output_path || !['pending', 'running'].includes(detail.status)) return;
+    const absPath = normalizeJoinPath(`${detail.output_path}/${detail.task_id}/run/sessions`, selectedSessionPath);
+    const watchPath = extractFsRelPath(absPath, projectId);
+    if (!watchPath) return;
+    closeSessionSocket();
+    const socket = fileserverApi.openProjectFileWatchWebSocket(projectId, watchPath, {
+      path_mode: 'project_filesystem',
+      read_mode: 'line',
+      start_from: 'head',
+      start_line: sessionWatchStartLine,
+    });
+    sessionSocketRef.current = socket;
+    socket.onopen = () => setSessionLive(true);
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'delta' && message.read_mode === 'line') {
+          const parsed = parseSessionDelta(message.lines || [], (message.from_line ?? sessionWatchStartLine) + 1);
+          if (parsed.events.length) setSessionEvents((current) => current.concat(parsed.events));
+          if (parsed.warnings.length) setSessionWarnings((current) => Array.from(new Set(current.concat(parsed.warnings))));
+          setSessionSnapshot((current) => current ? {
+            ...current,
+            session_meta: parsed.sessionMeta ? { ...current.session_meta, ...parsed.sessionMeta } : current.session_meta,
+            line_count: message.to_line ?? current.line_count,
+          } : current);
+        } else if (message.type === 'file_event' && ['truncated', 'renamed'].includes(message.event)) {
+          void loadSessionFile(selectedSessionPath);
+        } else if (message.type === 'error') {
+          setSessionError(message.message || '会话订阅失败');
+        }
+      } catch (err: any) {
+        setSessionError(err?.message || String(err));
+      }
+    };
+    socket.onerror = () => setSessionLive(false);
+    socket.onclose = () => setSessionLive(false);
+    return () => { if (sessionSocketRef.current === socket) closeSessionSocket(); else socket.close(); };
+  }, [activeTab, selectedSessionPath, sessionSnapshot?.path, sessionWatchStartLine, detail?.status, detail?.output_path, detail?.task_id, projectId]);
 
   const handleCancel = async () => {
     if (!detail) return;
-    setCancelling(true);
-    try {
-      await appApi.cancelTask(detail.task_id);
-      notify('任务已取消', 'success');
-      void loadDetail();
-    } catch (err: any) {
-      notify(`取消失败: ${err?.message || err}`, 'error');
-    } finally {
-      setCancelling(false);
-    }
+    try { await appApi.cancelTask(detail.task_id); notify('任务已取消', 'success'); await loadDetail(); }
+    catch (err: any) { notify(`取消失败: ${err?.message || err}`, 'error'); }
   };
-
+  const handleDelete = async () => {
+    if (!detail) return;
+    const ok = await showConfirm({ title: '删除任务', message: `确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`, confirmText: '确认删除', cancelText: '取消', danger: true });
+    if (!ok) return;
+    try { await appApi.deleteTask(detail.task_id, true); notify('任务已删除', 'success'); handleBack(); }
+    catch (err: any) { notify(`删除失败: ${err?.message || err}`, 'error'); }
+  };
   const handleRestart = async () => {
     if (!detail) return;
     setRestarting(true);
-    try {
-      const newTask = await appApi.restartTask(detail.task_id);
-      notify(`已创建新任务: ${newTask.task_id}`, 'success');
-      // navigate to new task
-      onBack();
-      // small delay then open new task via sessionStorage trigger
-      setTimeout(() => {
-        sessionStorage.setItem('secflow:entryAnalysisTaskId', newTask.task_id);
-        window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-task' } }));
-      }, 50);
-    } catch (err: any) {
-      notify(`重启失败: ${err?.message || err}`, 'error');
-    } finally {
-      setRestarting(false);
-    }
+    try { await appApi.restartTask(detail.task_id); notify('任务已重新启动', 'success'); await loadDetail(); if (activeTab === 'result') await loadResult(); }
+    catch (err: any) { notify(`重启失败: ${err?.message || err}`, 'error'); }
+    finally { setRestarting(false); }
+  };
+  const handleResume = async () => {
+    if (!detail) return;
+    setResuming(true);
+    try { await appApi.resumeTask(detail.task_id); notify('已从断点继续', 'success'); await loadDetail(); if (activeTab === 'result') await loadResult(); }
+    catch (err: any) { notify(`断点续跑失败: ${err?.message || err}`, 'error'); }
+    finally { setResuming(false); }
   };
 
-  const handleBack = () => {
-    if (hasReturnContext && navigateBackToBinarySecurityTask()) return;
-    onBack();
-  };
-
-  const events: AppEaStageEvent[] = detail?.stages_json?.events ?? [];
+  const events = detail?.stages_json?.events || [];
+  const statusSteps = detail ? deriveStepStatuses(detail.status, events) : STAGE_STEPS.map((): StepStatus => 'pending');
+  const logLines = events.map(formatEvent);
+  const groupedSessions = useMemo(() => {
+    const map = new Map<string, AppEaSessionMeta[]>();
+    sessions.forEach((session) => map.set(session.stage_group, [...(map.get(session.stage_group) || []), session]));
+    return Array.from(map.entries());
+  }, [sessions]);
+  const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
+  const resultRootFsPath = result?.output_root ? extractFsRelPath(result.output_root, projectId) : null;
+  const resultContent = resultView === 'final'
+    ? result?.result_markdown || ''
+    : resultView === 'functions'
+      ? result?.functions_list_markdown || ''
+      : resultView === 'report'
+        ? result?.run_report_markdown || ''
+        : JSON.stringify(result?.result_json || {}, null, 2);
+  const markdownResultContent = resultView === 'functions' ? `\`\`\`text\n${resultContent}\n\`\`\`` : resultContent;
+  const evaluationRounds = evaluation?.rounds || [];
+  const statuses = Array.from(new Set(evaluationRounds.map((item) => item.status).filter(Boolean) as string[]));
+  const filteredRounds = evaluationRounds.filter((round) => {
+    const keyword = evaluationKeyword.trim().toLowerCase();
+    if (keyword && !String(round.module_name || '').toLowerCase().includes(keyword)) return false;
+    if (evaluationStatus && round.status !== evaluationStatus) return false;
+    return true;
+  });
+  const avgJudgeScore = (() => {
+    const scores = evaluationRounds.map((item) => Number(item.metrics?.avg_judge_score)).filter(Number.isFinite);
+    return scores.length ? scores.reduce((sum, item) => sum + item, 0) / scores.length : null;
+  })();
+  const expanded = filteredRounds.find((item) => item.round === expandedRound) || null;
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
-
-      {/* ── Top action bar ─────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-        >
-          <ArrowLeft size={16} />
-          {hasReturnContext ? '返回原任务' : '返回任务列表'}
-        </button>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void loadDetail()}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            <RefreshCw size={14} />刷新
-          </button>
-          {detail && (detail.status === 'running' || detail.status === 'pending') ? (
-            <button
-              type="button"
-              onClick={() => void handleCancel()}
-              disabled={cancelling}
-              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60"
-            >
-              {cancelling ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
-              取消
+      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <button onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              <ArrowLeft size={14} />{hasReturnContext ? '返回原任务' : '返回任务列表'}
             </button>
-          ) : null}
-          {detail && !['pending', 'running'].includes(detail.status) ? (
-            <button
-              type="button"
-              onClick={() => void handleRestart()}
-              disabled={restarting}
-              className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-violet-700 disabled:opacity-60"
-            >
-              {restarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
-              重新运行
-            </button>
-          ) : null}
+            <p className="mt-4 text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">{detail?.task_name || '任务详情'}</h1>
+              {detail ? <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[detail.status]}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
+            </div>
+            <p className="mt-2 text-sm text-slate-500 break-all">{detail?.input_path || '正在加载任务详情。'}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {detail && ['running', 'pending'].includes(detail.status) ? <button onClick={() => void handleCancel()} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">取消任务</button> : null}
+            {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleRestart()} disabled={restarting} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50">{restarting ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}重新运行</button> : null}
+            {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleResume()} disabled={resuming} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50">{resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}断点续跑</button> : null}
+            {detail ? <button onClick={() => void handleDelete()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Trash2 size={13} />删除任务</button> : null}
+            <button onClick={() => { void loadDetail(); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading ? 'animate-spin' : ''} /></button>
+          </div>
         </div>
-      </div>
+        {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
+      </section>
 
-      {/* ── Hero ───────────────────────────────────────────── */}
-      {loading && !detail ? (
-        <div className="flex items-center gap-2 text-sm text-slate-500 py-8 justify-center">
-          <Loader2 size={16} className="animate-spin" />加载中...
-        </div>
-      ) : detail ? (
-        <>
-          <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis · 任务详情</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{detail.task_name}</h1>
-            <div className="mt-3 flex items-center gap-3 flex-wrap">
-              <span className={`rounded-lg px-3 py-1 text-sm font-semibold ${STATUS_COLOR[detail.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                {STATUS_LABEL[detail.status] ?? detail.status}
-              </span>
-              <span className="font-mono text-xs text-slate-400">{detail.task_id}</span>
+      {loading && !detail ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm"><div className="flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div></section> : null}
+
+      {detail ? <>
+        <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">{[
+            ['overview', '总览'], ['session', '智能体会话'], ['result', '结果'], ['evaluation', '观测指标'],
+          ].map(([id, label]) => <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-2xl px-5 py-3 text-sm font-black transition ${activeTab === id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>{label}</button>)}</div>
+        </section>
+
+        {activeTab === 'overview' ? <>
+          <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
+              <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
+                <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
+                <InfoRow label="创建时间" value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
+                <InfoRow label="模块目录" value={<span className="font-mono">{detail.input_path}</span>} />
+                <InfoRow label="开始时间" value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
+                <InfoRow label="源码目录" value={detail.source_path ? <span className="font-mono">{detail.source_path}</span> : '-'} />
+                <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
+                <InfoRow label="分析模块" value={detail.module_name || '-'} />
+                <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
+                <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono">{detail.output_path}</span> : '-'} />
+                <InfoRow label="描述" value={detail.task_description || '-'} />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
+              <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
+                const state = statusSteps[index];
+                const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : '';
+                const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
+                return <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-white text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-slate-900">{step.label}</p><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{artifactFsPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+              })}</div>
             </div>
           </section>
-
-          {/* ── Round progress ───────────────────────────────── */}
-          {events.length > 0 ? (() => {
-            const maxRounds = (detail.task_config_json?.max_rounds as number | undefined) ?? 0;
-            const rounds = deriveRounds(events, maxRounds);
-            return (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-base font-black text-slate-900 mb-4">
-                  分析进度
-                  <span className="ml-2 text-sm font-normal text-slate-400">
-                    {rounds.filter(r => r.phase === 'passed').length}/{rounds.length} 轮通过
-                  </span>
-                </h2>
-                <div className="flex flex-wrap items-stretch gap-2">
-                  {rounds.map((r) => {
-                    const isActive = r.phase === 'worker' || r.phase === 'judge' || r.phase === 'reflection';
-                    const borderCls =
-                      r.phase === 'passed' ? 'border-emerald-200 bg-emerald-50' :
-                      r.phase === 'failed' ? 'border-amber-200 bg-amber-50' :
-                      isActive ? 'border-blue-200 bg-blue-50' :
-                      'border-slate-200 bg-white';
-                    const icon =
-                      r.phase === 'passed' ? <span className="text-emerald-600 text-base">✓</span> :
-                      r.phase === 'failed' ? <span className="text-amber-600 text-base">✗</span> :
-                      isActive ? <Loader2 size={15} className="animate-spin text-blue-500" /> :
-                      <span className="text-slate-300 text-base font-black">{r.num}</span>;
-                    const label =
-                      r.phase === 'passed' ? `通过 ${r.passCount ?? ''}/${r.totalJudges ?? ''}` :
-                      r.phase === 'failed' ? `未通过 ${r.passCount ?? ''}/${r.totalJudges ?? ''}` :
-                      r.phase === 'worker' ? 'Worker 分析中' :
-                      r.phase === 'judge' ? 'Judge 评审中' :
-                      r.phase === 'reflection' ? '强制续轮' :
-                      '等待中';
-                    return (
-                      <div key={r.num} className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl border min-w-[80px] ${borderCls}`}>
-                        {icon}
-                        <span className="text-xs font-bold text-slate-700">Round {r.num}</span>
-                        <span className="text-xs text-slate-500 text-center leading-tight">{label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })() : null}
-
-          {/* ── Info cards ───────────────────────────────────── */}
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3">
-              <h2 className="text-base font-black text-slate-900 mb-1">基本信息</h2>
-              <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
-              <InfoRow label="目标路径" value={<span className="font-mono">{detail.input_path}</span>} />
-              {detail.output_path ? <InfoRow label="输出路径" value={<span className="font-mono">{detail.output_path}</span>} /> : null}
-              {detail.task_description ? <InfoRow label="描述" value={detail.task_description} /> : null}
-              {detail.created_by ? <InfoRow label="创建人" value={detail.created_by} /> : null}
-              <InfoRow label="创建时间" value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
-              {detail.started_at ? <InfoRow label="开始时间" value={new Date(detail.started_at).toLocaleString('zh-CN')} /> : null}
-              {detail.finished_at ? (
-                <>
-                  <InfoRow label="完成时间" value={new Date(detail.finished_at).toLocaleString('zh-CN')} />
-                  <InfoRow label="耗时" value={formatDuration(detail.started_at, detail.finished_at)} />
-                </>
-              ) : detail.started_at && isActive ? (
-                <InfoRow label="运行时长" value={<span className="text-blue-600 font-semibold">{formatLiveDuration(detail.started_at, clockNow)}</span>} />
-              ) : null}
-            </section>
-
-            {detail.error ? (
-              <section className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
-                <h2 className="text-base font-black text-red-700 mb-2">错误信息</h2>
-                <pre className="rounded-lg bg-red-50 px-4 py-3 text-xs text-red-700 whitespace-pre-wrap break-all overflow-auto max-h-64">{detail.error}</pre>
-              </section>
-            ) : detail.result_json ? (
-              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-base font-black text-slate-900 mb-2">分析结果</h2>
-                <pre className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-xs text-slate-700 whitespace-pre-wrap break-all overflow-auto max-h-64">{JSON.stringify(detail.result_json, null, 2)}</pre>
-              </section>
-            ) : (
-              <div className="hidden xl:flex items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400">
-                暂无分析结果
-              </div>
-            )}
-          </div>
-
-          {/* ── Stage events ─────────────────────────────────── */}
-          {events.length > 0 ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-base font-black text-slate-900 mb-4">执行日志 <span className="text-sm font-normal text-slate-400">({events.length} 条)</span></h2>
-              <div className="rounded-xl bg-slate-900 px-4 py-4 max-h-[480px] overflow-auto space-y-0.5">
-                {[...events].reverse().map((evt, i) => {
-                  const line = formatEaEvent(evt);
-                  if (!line) return null;
-                  return (
-                    <p key={i} className={`font-mono text-xs leading-5 whitespace-pre-wrap break-all ${
-                      evt.type === 'error' ? 'text-red-400' :
-                      evt.type === 'task_end' ? 'text-emerald-400' :
-                      evt.type === 'round_end' || evt.type === 'worker_end' || evt.type === 'judge_end' ? 'text-blue-300' :
-                      'text-slate-300'
-                    }`}>{line}</p>
-                  );
-                })}
-              </div>
-            </section>
-          ) : null}
-
-          {/* ── Prompt content ───────────────────────────────── */}
-          {detail.prompt_content ? (
-            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-              <details>
-                <summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-slate-700 hover:bg-slate-50">
-                  分析 Prompt
-                </summary>
-                <pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre>
-              </details>
-            </section>
-          ) : null}
-
-          {/* ── Result JSON (if also shown above as card) ────── */}
-          {detail.result_json && !detail.error ? (
-            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-              <details>
-                <summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-slate-700 hover:bg-slate-50">
-                  完整结果 JSON
-                </summary>
-                <pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-96 overflow-auto border-t border-slate-100">{JSON.stringify(detail.result_json, null, 2)}</pre>
-              </details>
-            </section>
-          ) : null}
-        </>
-      ) : (
-        !loading ? <div className="py-16 text-center text-sm text-slate-400">未指定任务或任务不存在。</div> : null
-      )}
+          {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"><h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><button onClick={() => setLogsExpanded((v) => !v)} className="flex w-full items-center justify-between gap-3 text-left"><div><h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">分析日志</h2><p className="mt-1 text-xs text-slate-400">{logLines.length} 条事件</p></div>{logsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>{logsExpanded ? logLines.length === 0 ? <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-xs text-slate-400">暂无阶段事件</div> : <div ref={logRef} className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-xs leading-relaxed text-slate-300">{logLines.map((line, index) => <div key={index} className={line.includes('✗') ? 'text-red-400' : line.includes('▶') ? 'text-violet-300' : line.includes('✓') ? 'text-emerald-400' : line.includes('│') ? 'text-slate-400 text-[11px]' : 'text-slate-300'}>{line}</div>)}</div> : null}</section>
+          {detail.prompt_content ? <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-slate-700 hover:bg-slate-50">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre></details></section> : null}
+        </> : activeTab === 'session' ? (
+          <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div><div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => <div key={group}><div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{group === 'root' ? '根会话' : group}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-black">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{session.relative_path}</div></div><span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}>{session.is_active ? '活跃' : '历史'}</span></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>)}</div>}</aside>
+            <div className="space-y-4">{sessionWarnings.length > 0 ? <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm"><div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div><ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">{sessionWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></section> : null}<AgentSessionViewer sessionMeta={selectedSession} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
+          </section>
+        ) : activeTab === 'result' ? (
+          <section className="space-y-4"><div className="grid gap-4 xl:grid-cols-5"><MetricCard label="函数数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div><div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>{resultLoading ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">加载结果中...</section> : !result ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">暂无结果数据</section> : !result.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 shadow-sm text-center text-sm text-slate-500">任务完成后可查看结果，当前状态：{STATUS_LABEL[result.status] || result.status}</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_300px]"><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终结果'], ['functions', 'functions.list'], ['report', '运行报告'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}>{label}</button>)}</div></aside><main className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="border-b border-slate-200 pb-4 text-2xl font-black tracking-tight text-slate-900">{resultView === 'final' ? '最终结果' : resultView === 'functions' ? '函数列表' : resultView === 'report' ? '运行报告' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultContent ? resultView === 'json' ? <pre className="rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{resultContent}</pre> : <MarkdownContent content={markdownResultContent} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">函数列表</div><div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">{result.functions.length ? result.functions.map((fn) => <div key={fn} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">{fn}</div>) : <div className="rounded-xl border border-dashed border-slate-300 px-3 py-6 text-center text-xs text-slate-400">没有 functions.list 内容</div>}</div></aside></section>}</section>
+        ) : (
+          <section className="space-y-4">{evaluationLoading ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">加载观测指标中...</section> : !evaluation || !evaluation.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500"><BarChart3 size={20} /></div><div className="mt-4 text-base font-bold text-slate-800">当前任务尚未生成观测指标</div><div className="mt-2 text-sm text-slate-500">任务至少完成一个 Worker/Judge 轮次后会出现观测数据。</div></section> : <><section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MetricCard label="总轮数" value={formatNumber(evaluation.summary?.round_count ?? evaluation.rounds.length)} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={formatNumber(evaluation.summary?.passed_round_count)} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(evaluation.summary?.total_tokens)} icon={<ScrollText size={18} />} /><MetricCard label="总 Cost" value={formatCost(evaluation.summary?.total_cost)} icon={<ScrollText size={18} />} /><MetricCard label="最终通过率" value={formatRate(evaluation.summary?.effectiveness?.final_round_pass_rate)} icon={<CheckCircle2 size={18} />} /></section><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2><p className="mt-1 text-xs text-slate-400">展示每一轮 Worker/Judge 的观测指标，点击行展开完整 JSON</p></div><div className="flex flex-wrap gap-2"><div className="relative"><Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" /><input value={evaluationKeyword} onChange={(e) => setEvaluationKeyword(e.target.value)} placeholder="模块过滤" className="rounded-xl border border-slate-200 py-2 pl-8 pr-3 text-xs" /></div><select value={evaluationStatus} onChange={(e) => setEvaluationStatus(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs"><option value="">全部状态</option>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></div></div><div className="mt-4 overflow-auto rounded-2xl border border-slate-200"><table className="min-w-full divide-y divide-slate-200 text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-3 py-3">Round</th><th className="px-3 py-3">状态</th><th className="px-3 py-3">通过</th><th className="px-3 py-3">Judge 分</th><th className="px-3 py-3">通过率</th><th className="px-3 py-3">Token</th><th className="px-3 py-3">Cost</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{filteredRounds.map((round) => <React.Fragment key={`${round.round}-${round.status}`}><tr onClick={() => setExpandedRound(expandedRound === round.round ? null : Number(round.round))} className="cursor-pointer hover:bg-slate-50"><td className="px-3 py-3 font-mono text-slate-700">{round.round}</td><td className="px-3 py-3 font-bold text-slate-700">{round.status}</td><td className="px-3 py-3">{formatNumber(round.metrics?.pass_count)} / {formatNumber(round.metrics?.total_judges)}</td><td className="px-3 py-3">{formatNumber(round.metrics?.avg_judge_score, 1)}</td><td className="px-3 py-3">{formatRate(round.metrics?.review_pass_rate)}</td><td className="px-3 py-3">{formatNumber(round.metrics?.token_total)}</td><td className="px-3 py-3">{formatCost(round.metrics?.cost)}</td></tr>{expanded?.round === round.round ? <tr><td colSpan={7} className="bg-slate-950 p-4"><pre className="max-h-96 overflow-auto text-xs text-slate-100">{JSON.stringify(expanded, null, 2)}</pre></td></tr> : null}</React.Fragment>)}</tbody></table>{filteredRounds.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">没有符合过滤条件的轮次</div> : null}</div></section></>}</section>
+        )}
+      </> : !loading ? <div className="py-16 text-center text-sm text-slate-400">未指定任务或任务不存在。</div> : null}
     </div>
   );
 };

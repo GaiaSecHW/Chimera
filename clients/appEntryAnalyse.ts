@@ -1,8 +1,12 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppEaSessionMeta,
+  AppEaSessionSnapshot,
   AppEaTaskCreateRequest,
   AppEaTaskDetail,
+  AppEaTaskEvaluation,
   AppEaTaskItem,
+  AppEaTaskResult,
   EntryAnalysisModelsConfig,
   EntryAnalysisPromptTemplate,
   EntryAnalysisServiceConfig,
@@ -57,6 +61,20 @@ export const appEntryAnalyseApi = {
 
   getTask: async (taskId: string): Promise<AppEaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
+  getTaskResult: async (taskId: string): Promise<AppEaTaskResult> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
+
+  getTaskEvaluation: async (taskId: string): Promise<AppEaTaskEvaluation> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/evaluation`, { headers: getHeaders() })),
+
+  listTaskSessions: async (taskId: string): Promise<AppEaSessionMeta[]> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionFile: async (taskId: string, path: string): Promise<AppEaSessionSnapshot> => {
+    const query = new URLSearchParams({ path }).toString();
+    return handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/file?${query}`, { headers: getHeaders() }));
+  },
 
   cancelTask: async (taskId: string): Promise<AppEaTaskItem> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/cancel`, {

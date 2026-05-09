@@ -447,6 +447,7 @@ function TaskDetailPanel({
   onRefreshResultCache,
   resultRefreshingTaskId,
   onActiveTabChange,
+  refreshRequest,
 }: {
   task: FirmwareUnpackTask | null;
   loading: boolean;
@@ -471,6 +472,7 @@ function TaskDetailPanel({
   onRefreshResultCache: (id: string) => void;
   resultRefreshingTaskId: string;
   onActiveTabChange?: (tab: DetailTab) => void;
+  refreshRequest?: number;
 }) {
   const fileserverApi = api.domains.assets.fileserver;
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
@@ -478,6 +480,7 @@ function TaskDetailPanel({
   const [timeline, setTimeline] = useState<FirmwareTaskEvent[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineError, setTimelineError] = useState('');
+  const [expandedEventKey, setExpandedEventKey] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<FirmwareTaskMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState('');
@@ -502,6 +505,7 @@ function TaskDetailPanel({
   const [sessionLive, setSessionLive] = useState(false);
   const [sessionWatchStartLine, setSessionWatchStartLine] = useState(0);
   const sessionSocketRef = useRef<WebSocket | null>(null);
+  const lastRefreshRequestRef = useRef(refreshRequest ?? 0);
 
   const closeSessionSocket = useCallback(() => {
     if (sessionSocketRef.current) {
@@ -660,11 +664,21 @@ function TaskDetailPanel({
     }
   }, [fileserverApi, task?.output_path, task?.project_id]);
 
+  const refreshCurrentDetail = useCallback(() => {
+    if (!task?.id) return;
+    onRefresh(task.id);
+    if (activeTab === 'metrics') void loadMetrics();
+    if (activeTab === 'events') void loadTimeline();
+    if (activeTab === 'result') void loadResult();
+    if (activeTab === 'session') void loadSessions();
+  }, [activeTab, loadMetrics, loadResult, loadSessions, loadTimeline, onRefresh, task?.id]);
+
   useEffect(() => {
     setActiveTab('overview');
     setTimeline([]);
     setTimelineError('');
     setTimelineLoading(false);
+    setExpandedEventKey(null);
     setMetrics(null);
     setMetricsError('');
     setMetricsLoading(false);
@@ -685,6 +699,13 @@ function TaskDetailPanel({
     setSessionError('');
     closeSessionSocket();
   }, [closeSessionSocket, task?.id]);
+
+  useEffect(() => {
+    const next = refreshRequest ?? 0;
+    if (next === lastRefreshRequestRef.current) return;
+    lastRefreshRequestRef.current = next;
+    refreshCurrentDetail();
+  }, [refreshCurrentDetail, refreshRequest]);
 
   useEffect(() => {
     if (activeTab !== 'events' || !task?.id) return;
@@ -947,13 +968,7 @@ function TaskDetailPanel({
             <p className="mt-2 break-all font-mono text-[11px] text-slate-500">{task.id}</p>
           </div>
           <button
-            onClick={() => {
-              onRefresh(task.id);
-              if (activeTab === 'metrics') void loadMetrics();
-              if (activeTab === 'events') void loadTimeline();
-              if (activeTab === 'result') void loadResult();
-              if (activeTab === 'session') void loadSessions();
-            }}
+            onClick={refreshCurrentDetail}
             className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
             title="刷新详情"
           >
@@ -1517,15 +1532,15 @@ function TaskDetailPanel({
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-black text-slate-900">事件时间线</h2>
-                <p className="mt-1 text-sm text-slate-500">按时间顺序展示后台记录的关键事件</p>
+                <h2 className="text-lg font-black text-slate-900">事件记录</h2>
+                <p className="mt-1 text-sm text-slate-500">紧凑展示后台记录的关键事件，点击详情查看结构化数据</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">总事件数</div>
                   <div className="mt-1 text-lg font-black text-slate-900">{timeline.length}</div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">展示区间</div>
                   <div className="mt-1 text-sm font-bold text-slate-700">
                     {timelineItems.length > 0 ? `${fmtTime(timelineItems[0].created_at)} -> ${fmtTime(timelineItems[timelineItems.length - 1].created_at)}` : '-'}
@@ -1549,60 +1564,95 @@ function TaskDetailPanel({
                   暂无事件
                 </div>
               ) : (
-                <div className="relative pl-2">
-                  <div className="absolute bottom-0 left-[19px] top-0 w-px bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200" />
-                  <div className="space-y-3">
-                    {timelineItems.map((event) => {
-                      const tone = event._tone;
-                      const Icon = tone.icon;
-                      return (
-                        <div key={event._key} className="relative flex gap-4">
-                          <div className="relative z-10 flex w-10 shrink-0 justify-center">
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-2xl border shadow-lg ${tone.node} ${tone.glow}`}>
-                              <Icon size={14} />
-                            </div>
-                          </div>
-
-                          <div className="min-w-0 flex-1 pb-1">
-                            <div className="rounded-[1.25rem] border bg-white px-4 py-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                              <div className="flex items-center gap-3">
-                                <div className="min-w-0 flex flex-1 items-center gap-2 overflow-hidden">
-                                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${tone.badge}`}>
-                                      {formatEventTypeLabel(event.event_type)}
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-[1080px] w-full divide-y divide-slate-100 text-left text-xs">
+                      <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                        <tr>
+                          <th className="w-14 px-3 py-2">#</th>
+                          <th className="w-40 px-3 py-2">时间</th>
+                          <th className="w-40 px-3 py-2">事件</th>
+                          <th className="w-28 px-3 py-2">阶段</th>
+                          <th className="w-24 px-3 py-2">状态</th>
+                          <th className="px-3 py-2">摘要</th>
+                          <th className="w-44 px-3 py-2">来源</th>
+                          <th className="w-20 px-3 py-2 text-right">详情</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {timelineItems.map((event) => {
+                          const expanded = expandedEventKey === event._key;
+                          const detailRows = eventDetailRows(event.detail);
+                          return (
+                            <React.Fragment key={event._key}>
+                              <tr className="align-middle hover:bg-slate-50/80">
+                                <td className="px-3 py-2 font-mono text-[11px] font-bold text-slate-400">#{event._index}</td>
+                                <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px] font-semibold text-slate-600">
+                                  {fmtTime(event.created_at)}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="inline-flex max-w-[150px] items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-black text-sky-700">
+                                    <span className="truncate">{formatEventTypeLabel(event.event_type)}</span>
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2">
+                                  {event.stage_key ? (
+                                    <span className="inline-flex max-w-[110px] rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+                                      <span className="truncate">{phaseDisplayLabel(event.stage_key)}</span>
                                     </span>
-                                    {event.stage_key ? (
-                                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
-                                        {phaseDisplayLabel(event.stage_key)}
-                                      </span>
-                                    ) : null}
-                                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
-                                      #{event._index}
+                                  ) : (
+                                    <span className="text-slate-400">-</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {event.status ? (
+                                    <span className={`inline-flex max-w-[90px] rounded-full border px-2 py-0.5 text-[11px] font-bold ${roundStatusTone(event.status)}`}>
+                                      <span className="truncate">{event.status}</span>
                                     </span>
-                                  </div>
-                                  <div className="min-w-0 truncate text-sm font-black text-slate-900">
+                                  ) : (
+                                    <span className="text-slate-400">-</span>
+                                  )}
+                                </td>
+                                <td className="max-w-[360px] px-3 py-2">
+                                  <div className="truncate font-bold text-slate-800" title={event.summary || '系统事件'}>
                                     {event.summary || '系统事件'}
                                   </div>
-                                </div>
-                                <div className="shrink-0 text-right">
-                                  <div className="text-xs font-black text-slate-700">{fmtTime(event.created_at)}</div>
-                                  <div className="text-[10px] text-slate-500">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</div>
-                                </div>
-                              </div>
-
-                              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                                <span className={`inline-flex h-2.5 w-2.5 rounded-full bg-gradient-to-br ${tone.line}`} />
-                                <span>固件解包事件</span>
-                                {event.created_by ? <span>· {event.created_by}</span> : null}
-                                {event.owner_id ? <span>· {event.owner_id}</span> : null}
-                              </div>
-
-                              <EventDetailBlock detail={event.detail} />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                                </td>
+                                <td className="max-w-[176px] px-3 py-2 text-[11px] text-slate-500">
+                                  <div className="truncate" title={event.created_by || '-'}>
+                                    {event.created_by || '-'}
+                                  </div>
+                                  {event.owner_id ? (
+                                    <div className="mt-0.5 truncate font-mono text-[10px] text-slate-400" title={event.owner_id}>
+                                      {event.owner_id}
+                                    </div>
+                                  ) : null}
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <button
+                                    type="button"
+                                    disabled={detailRows.length === 0}
+                                    onClick={() => setExpandedEventKey(expanded ? null : event._key)}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    <ChevronRight size={12} className={expanded ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                                    {detailRows.length > 0 ? '查看' : '无'}
+                                  </button>
+                                </td>
+                              </tr>
+                              {expanded && detailRows.length > 0 ? (
+                                <tr className="bg-slate-50/80">
+                                  <td className="px-3 py-3" />
+                                  <td colSpan={7} className="px-3 py-3">
+                                    <EventDetailBlock detail={event.detail} />
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
@@ -2067,6 +2117,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [logModalPhase, setLogModalPhase] = useState('');
   const [resultRefreshingTaskId, setResultRefreshingTaskId] = useState('');
   const [detailActiveTab, setDetailActiveTab] = useState<DetailTab>('overview');
+  const [detailRefreshRequest, setDetailRefreshRequest] = useState(0);
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
@@ -2446,6 +2497,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     if (navigateBackToBinarySecurityTask()) return;
     setActiveTaskId('');
   };
+  const handlePageRefresh = () => {
+    if (showingDetail) {
+      setDetailRefreshRequest((value) => value + 1);
+      return;
+    }
+    fetchTasks(true);
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -2588,10 +2646,18 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => fetchTasks(true)}
+            onClick={handlePageRefresh}
             className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"
           >
-            <RefreshCw size={12} /> 刷新列表
+            {showingDetail ? (
+              <>
+                <RefreshCw size={12} /> 刷新详情
+              </>
+            ) : (
+              <>
+                <RefreshCw size={12} /> 刷新列表
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -2621,6 +2687,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           onRefreshResultCache={handleRefreshResultCache}
           resultRefreshingTaskId={resultRefreshingTaskId}
           onActiveTabChange={setDetailActiveTab}
+          refreshRequest={detailRefreshRequest}
         />
       ) : (
       <div className="space-y-4">
