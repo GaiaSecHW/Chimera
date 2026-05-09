@@ -261,6 +261,85 @@ export interface FirmwareTaskMetricsResult {
   matched_skill: string | null;
 }
 
+export interface FirmwareTaskRoundTokenMetrics {
+  input: number;
+  output: number;
+  cache_read: number;
+  cache_write: number;
+  total: number;
+  cost: number;
+}
+
+export interface FirmwareTaskRoundOutputMetrics {
+  output_file_count: number;
+  output_dir_count: number;
+  output_total_size_bytes: number;
+  largest_file_size_bytes: number;
+}
+
+export interface FirmwareTaskRoundDeltaMetrics {
+  file_count_delta: number;
+  dir_count_delta: number;
+  size_bytes_delta: number;
+  baseline_round: number | null;
+}
+
+export interface FirmwareTaskRoundAgentMetrics {
+  status?: string | null;
+  passed?: boolean;
+  duration_seconds: number | null;
+  response_preview?: string | null;
+  review_preview?: string | null;
+  provider_role?: string | null;
+  session_file?: string | null;
+}
+
+export interface FirmwareTaskRoundMetric {
+  round: number;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_seconds: number | null;
+  executor: FirmwareTaskRoundAgentMetrics;
+  reviewer: FirmwareTaskRoundAgentMetrics;
+  tokens: FirmwareTaskRoundTokenMetrics;
+  output_snapshot: FirmwareTaskRoundOutputMetrics;
+  output_delta: FirmwareTaskRoundDeltaMetrics;
+  artifacts: {
+    summary_present: boolean;
+    reason_present: boolean;
+    warnings: string[];
+    summary_preview: string | null;
+    reason_preview: string | null;
+  };
+  context: {
+    matched_skill: string | null;
+    fallback_to_llm: boolean;
+    provider_role: string | null;
+  };
+  source_path: string | null;
+  raw: Record<string, any>;
+}
+
+export interface FirmwareTaskMetricsRounds {
+  available: boolean;
+  round_count: number;
+  completed_round_count: number;
+  failed_round_count: number;
+  running_round: number | null;
+  total_duration_seconds: number;
+  total_tokens: number;
+  total_cost: number;
+  output_growth_bytes: number;
+  latest_round: number | null;
+  summary: {
+    status_counts: Record<string, number>;
+    stage_summary: Record<string, { round_count: number; duration_seconds: number; token_total: number }>;
+  };
+  items: FirmwareTaskRoundMetric[];
+  warnings: string[];
+}
+
 export interface FirmwareTaskMetricsHealth {
   is_terminal: boolean;
   has_owner: boolean;
@@ -277,6 +356,7 @@ export interface FirmwareTaskMetrics {
   events: FirmwareTaskMetricsEvents;
   sessions: FirmwareTaskMetricsSessions;
   result: FirmwareTaskMetricsResult;
+  rounds: FirmwareTaskMetricsRounds;
   health: FirmwareTaskMetricsHealth;
 }
 
@@ -665,6 +745,7 @@ const normalizeTaskMetrics = (value: unknown): FirmwareTaskMetrics => {
   const events = asRecord(record.events);
   const sessions = asRecord(record.sessions);
   const result = asRecord(record.result);
+  const rounds = asRecord(record.rounds);
   const health = asRecord(record.health);
   const containers = asArray(resource.containers).map((item) => {
     const entry = asRecord(item);
@@ -738,6 +819,107 @@ const normalizeTaskMetrics = (value: unknown): FirmwareTaskMetrics => {
       fallback_to_llm: asBoolean(result.fallback_to_llm),
       matched_skill: asNullableString(result.matched_skill),
     },
+    rounds: (() => {
+      const summary = asRecord(rounds.summary);
+      const statusCounts = asRecord(summary.status_counts);
+      const stageSummaryRecord = asRecord(summary.stage_summary);
+      const stage_summary: Record<string, { round_count: number; duration_seconds: number; token_total: number }> = {};
+      Object.entries(stageSummaryRecord).forEach(([key, value]) => {
+        const item = asRecord(value);
+        stage_summary[key] = {
+          round_count: asNumber(item.round_count, 0),
+          duration_seconds: asNumber(item.duration_seconds, 0),
+          token_total: asNumber(item.token_total, 0),
+        };
+      });
+      const items = asArray(rounds.items).map((value) => {
+        const item = asRecord(value);
+        const executor = asRecord(item.executor);
+        const reviewer = asRecord(item.reviewer);
+        const tokens = asRecord(item.tokens);
+        const outputSnapshot = asRecord(item.output_snapshot);
+        const outputDelta = asRecord(item.output_delta);
+        const artifacts = asRecord(item.artifacts);
+        const context = asRecord(item.context);
+        return {
+          round: asNumber(item.round, 0),
+          status: asString(item.status, 'unknown'),
+          started_at: asNullableString(item.started_at),
+          completed_at: asNullableString(item.completed_at),
+          duration_seconds: asNullableNumber(item.duration_seconds),
+          executor: {
+            status: asNullableString(executor.status),
+            duration_seconds: asNullableNumber(executor.duration_seconds),
+            response_preview: asNullableString(executor.response_preview),
+            provider_role: asNullableString(executor.provider_role),
+            session_file: asNullableString(executor.session_file),
+          },
+          reviewer: {
+            passed: asBoolean(reviewer.passed),
+            duration_seconds: asNullableNumber(reviewer.duration_seconds),
+            review_preview: asNullableString(reviewer.review_preview),
+            provider_role: asNullableString(reviewer.provider_role),
+            session_file: asNullableString(reviewer.session_file),
+          },
+          tokens: {
+            input: asNumber(tokens.input, 0),
+            output: asNumber(tokens.output, 0),
+            cache_read: asNumber(tokens.cache_read, 0),
+            cache_write: asNumber(tokens.cache_write, 0),
+            total: asNumber(tokens.total, 0),
+            cost: asNumber(tokens.cost, 0),
+          },
+          output_snapshot: {
+            output_file_count: asNumber(outputSnapshot.output_file_count, 0),
+            output_dir_count: asNumber(outputSnapshot.output_dir_count, 0),
+            output_total_size_bytes: asNumber(outputSnapshot.output_total_size_bytes, 0),
+            largest_file_size_bytes: asNumber(outputSnapshot.largest_file_size_bytes, 0),
+          },
+          output_delta: {
+            file_count_delta: asNumber(outputDelta.file_count_delta, 0),
+            dir_count_delta: asNumber(outputDelta.dir_count_delta, 0),
+            size_bytes_delta: asNumber(outputDelta.size_bytes_delta, 0),
+            baseline_round: asNullableNumber(outputDelta.baseline_round),
+          },
+          artifacts: {
+            summary_present: asBoolean(artifacts.summary_present),
+            reason_present: asBoolean(artifacts.reason_present),
+            warnings: asArray(artifacts.warnings).map((warning) => asString(warning)).filter(Boolean),
+            summary_preview: asNullableString(artifacts.summary_preview),
+            reason_preview: asNullableString(artifacts.reason_preview),
+          },
+          context: {
+            matched_skill: asNullableString(context.matched_skill),
+            fallback_to_llm: asBoolean(context.fallback_to_llm),
+            provider_role: asNullableString(context.provider_role),
+          },
+          source_path: asNullableString(item.source_path),
+          raw: asRecord(item.raw),
+        };
+      });
+      const normalizedStatusCounts: Record<string, number> = {};
+      Object.entries(statusCounts).forEach(([key, value]) => {
+        normalizedStatusCounts[key] = asNumber(value, 0);
+      });
+      return {
+        available: asBoolean(rounds.available),
+        round_count: asNumber(rounds.round_count, 0),
+        completed_round_count: asNumber(rounds.completed_round_count, 0),
+        failed_round_count: asNumber(rounds.failed_round_count, 0),
+        running_round: asNullableNumber(rounds.running_round),
+        total_duration_seconds: asNumber(rounds.total_duration_seconds, 0),
+        total_tokens: asNumber(rounds.total_tokens, 0),
+        total_cost: asNumber(rounds.total_cost, 0),
+        output_growth_bytes: asNumber(rounds.output_growth_bytes, 0),
+        latest_round: asNullableNumber(rounds.latest_round),
+        summary: {
+          status_counts: normalizedStatusCounts,
+          stage_summary,
+        },
+        items,
+        warnings: asArray(rounds.warnings).map((warning) => asString(warning)).filter(Boolean),
+      };
+    })(),
     health: {
       is_terminal: asBoolean(health.is_terminal),
       has_owner: asBoolean(health.has_owner),

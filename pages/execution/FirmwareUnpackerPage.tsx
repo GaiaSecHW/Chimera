@@ -5,7 +5,7 @@ import {
   AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Clock,
   FolderOpen, Loader2, Package, Play, RefreshCw,
   Square, Trash2, XCircle, ListTodo, RotateCcw, Search, X, Plus, Terminal, Sparkles,
-  Activity, Cpu, Database, Info, Radio,
+  Activity, BarChart3, Cpu, Database, Info, Radio,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FileWatchMessage } from '../../clients/fileserver';
@@ -116,8 +116,46 @@ function formatBytes(bytes: number | null | undefined): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
+function formatNumber(value: number | null | undefined, digits = 0): string {
+  if (value == null || !Number.isFinite(value)) return '-';
+  return value.toLocaleString('zh-CN', {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  });
+}
+
+function formatCost(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '-';
+  if (value === 0) return '$0';
+  return `$${value.toFixed(value < 0.01 ? 6 : 4)}`;
+}
+
 function resultEntryKindLabel(kind: string | null | undefined): string {
   return String(kind || '').toLowerCase() === 'dir' ? '目录' : '文件';
+}
+
+function roundStatusLabel(status: string | null | undefined): string {
+  const raw = String(status || 'unknown');
+  const labels: Record<string, string> = {
+    review_passed: '评审通过',
+    review_failed: '评审未通过',
+    success: '成功',
+    failed: '失败',
+    running: '运行中',
+    cancelled: '已取消',
+    unknown: '未知',
+  };
+  return labels[raw] || raw;
+}
+
+function roundStatusTone(status: string | null | undefined): string {
+  const raw = String(status || '').toLowerCase();
+  if (['review_passed', 'success', 'completed'].includes(raw)) return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (['review_failed'].includes(raw)) return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (['failed', 'error'].includes(raw)) return 'border-red-200 bg-red-50 text-red-700';
+  if (['running', 'active'].includes(raw)) return 'border-blue-200 bg-blue-50 text-blue-700';
+  if (['cancelled', 'cancelling'].includes(raw)) return 'border-slate-200 bg-slate-50 text-slate-600';
+  return 'border-slate-200 bg-slate-50 text-slate-600';
 }
 
 function inferTimelineTone(event: FirmwareTaskEvent) {
@@ -437,6 +475,11 @@ function TaskDetailPanel({
   const [metrics, setMetrics] = useState<FirmwareTaskMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [metricsError, setMetricsError] = useState('');
+  const [roundKeywordFilter, setRoundKeywordFilter] = useState('');
+  const [roundStatusFilter, setRoundStatusFilter] = useState('');
+  const [roundReviewFilter, setRoundReviewFilter] = useState('');
+  const [roundFallbackFilter, setRoundFallbackFilter] = useState('');
+  const [expandedMetricRound, setExpandedMetricRound] = useState<number | null>(null);
   const [result, setResult] = useState<FirmwareTaskResult | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [resultError, setResultError] = useState('');
@@ -611,6 +654,11 @@ function TaskDetailPanel({
     setMetrics(null);
     setMetricsError('');
     setMetricsLoading(false);
+    setRoundKeywordFilter('');
+    setRoundStatusFilter('');
+    setRoundReviewFilter('');
+    setRoundFallbackFilter('');
+    setExpandedMetricRound(null);
     setResult(null);
     setResultError('');
     setActiveResultDoc('summary');
@@ -793,6 +841,31 @@ function TaskDetailPanel({
       selectedPath,
     };
   }, [activeResultDoc, result?.reason_path, result?.reason_text, result?.summary_path, result?.summary_text]);
+  const roundItems = metrics?.rounds.items || [];
+  const roundStatuses = useMemo(
+    () => Array.from(new Set(roundItems.map((item) => item.status).filter(Boolean))).sort(),
+    [roundItems],
+  );
+  const filteredRoundItems = useMemo(() => {
+    const keyword = roundKeywordFilter.trim().toLowerCase();
+    return roundItems.filter((item) => {
+      const searchable = [
+        item.context.matched_skill,
+        item.artifacts.summary_preview,
+        item.artifacts.reason_preview,
+        item.executor.response_preview,
+        item.reviewer.review_preview,
+      ].filter(Boolean).join('\n').toLowerCase();
+      if (keyword && !searchable.includes(keyword)) return false;
+      if (roundStatusFilter && item.status !== roundStatusFilter) return false;
+      if (roundReviewFilter === 'passed' && !item.reviewer.passed) return false;
+      if (roundReviewFilter === 'failed' && item.reviewer.passed) return false;
+      if (roundFallbackFilter === 'yes' && !item.context.fallback_to_llm) return false;
+      if (roundFallbackFilter === 'no' && item.context.fallback_to_llm) return false;
+      return true;
+    });
+  }, [roundFallbackFilter, roundItems, roundKeywordFilter, roundReviewFilter, roundStatusFilter]);
+  const latestRoundMetric = roundItems.length > 0 ? roundItems[roundItems.length - 1] : null;
 
   if (!task) {
     return (
@@ -1151,7 +1224,247 @@ function TaskDetailPanel({
                       ) : null}
                     </div>
                   </div>
-                </section>
+	                </section>
+
+                {metrics.rounds.warnings.length > 0 ? (
+                  <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-sm font-bold text-amber-800">
+                      <AlertCircle size={16} />
+                      部分轮次观测文件读取异常
+                    </div>
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                      {metrics.rounds.warnings.map((warning, index) => (
+                        <li key={`${warning}-${index}`}>{warning}</li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                      <BarChart3 size={14} />
+                      总轮数
+                    </div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{metrics.rounds.round_count}</div>
+                    <div className="mt-1 text-xs text-slate-500">完成 {metrics.rounds.completed_round_count} · 失败 {metrics.rounds.failed_round_count}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前 / 最新轮次</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">
+                      #{metrics.progress.current_round ?? metrics.rounds.running_round ?? metrics.rounds.latest_round ?? '-'}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">计划 {metrics.progress.total_rounds ?? '-'} 轮</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">总 Token</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{formatNumber(metrics.rounds.total_tokens)}</div>
+                    <div className="mt-1 text-xs text-slate-500">Cost {formatCost(metrics.rounds.total_cost)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">轮次总耗时</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{formatSeconds(metrics.rounds.total_duration_seconds)}</div>
+                    <div className="mt-1 text-xs text-slate-500">输出增长 {formatBytes(metrics.rounds.output_growth_bytes)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前输出文件</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{metrics.result.output_file_count}</div>
+                    <div className="mt-1 text-xs text-slate-500">目录 {metrics.result.output_dir_count} · {formatBytes(metrics.result.output_total_size_bytes)}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话数</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{metrics.sessions.session_count}</div>
+                    <div className="mt-1 text-xs text-slate-500">运行 {metrics.sessions.running_session_count} · 失败 {metrics.sessions.failed_session_count}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">事件数</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{metrics.events.event_count}</div>
+                    <div className="mt-1 truncate text-xs text-slate-500">{metrics.events.latest_event_type ? formatEventTypeLabel(metrics.events.latest_event_type) : '暂无最新事件'}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最大文件</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{formatBytes(metrics.result.largest_file_size_bytes)}</div>
+                    <div className="mt-1 text-xs text-slate-500">顶层条目 {metrics.result.top_level_entry_count}</div>
+                  </div>
+                </div>
+
+                {!metrics.rounds.available ? (
+                  <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                      <BarChart3 size={20} />
+                    </div>
+                    <div className="mt-4 text-base font-bold text-slate-800">当前任务尚未生成轮次观测指标</div>
+                    <div className="mt-2 text-sm text-slate-500">任务至少完成一轮执行与评审后，会在 run/round_XXX/results.json 中生成观测数据。</div>
+                  </section>
+                ) : (
+                  <>
+                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次汇总</h2>
+                          <p className="mt-1 text-xs text-slate-400">按轮次聚合执行、评审、Token 与 output 增长指标</p>
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          最新轮次：#{metrics.rounds.latest_round ?? '-'} · 最新输出 {latestRoundMetric ? formatBytes(latestRoundMetric.output_snapshot.output_total_size_bytes) : '-'}
+                        </div>
+                      </div>
+                      <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-black text-slate-700">状态分布</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {Object.entries(metrics.rounds.summary.status_counts).map(([status, count]) => (
+                              <span key={status} className={`rounded-full border px-3 py-1 text-xs font-bold ${roundStatusTone(status)}`}>
+                                {roundStatusLabel(status)} {count}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {Object.entries(metrics.rounds.summary.stage_summary).map(([stage, item]) => (
+                          <div key={stage} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="text-xs font-black text-slate-700">{phaseDisplayLabel(stage)}</div>
+                            <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-600">
+                              <div>轮次 <span className="font-bold text-slate-900">{item.round_count}</span></div>
+                              <div>耗时 <span className="font-bold text-slate-900">{formatSeconds(item.duration_seconds)}</span></div>
+                              <div>Token <span className="font-bold text-slate-900">{formatNumber(item.token_total)}</span></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2>
+                          <p className="mt-1 text-xs text-slate-400">展示每一轮执行和评审的产物、耗时、Token 与输出变化，点击行展开完整 results.json</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <div className="relative">
+                            <Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                            <input
+                              value={roundKeywordFilter}
+                              onChange={(event) => setRoundKeywordFilter(event.target.value)}
+                              placeholder="搜索技能/摘要"
+                              className="w-44 rounded-xl border border-slate-200 py-2 pl-8 pr-3 text-xs outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+                            />
+                          </div>
+                          <select
+                            value={roundStatusFilter}
+                            onChange={(event) => setRoundStatusFilter(event.target.value)}
+                            className="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-blue-300"
+                          >
+                            <option value="">全部状态</option>
+                            {roundStatuses.map((status) => <option key={status} value={status}>{roundStatusLabel(status)}</option>)}
+                          </select>
+                          <select
+                            value={roundReviewFilter}
+                            onChange={(event) => setRoundReviewFilter(event.target.value)}
+                            className="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-blue-300"
+                          >
+                            <option value="">全部评审</option>
+                            <option value="passed">评审通过</option>
+                            <option value="failed">评审未通过</option>
+                          </select>
+                          <select
+                            value={roundFallbackFilter}
+                            onChange={(event) => setRoundFallbackFilter(event.target.value)}
+                            className="rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-blue-300"
+                          >
+                            <option value="">全部策略</option>
+                            <option value="yes">回退 LLM</option>
+                            <option value="no">未回退 LLM</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200">
+                        <table className="min-w-[1180px] w-full text-left text-xs">
+                          <thead className="bg-slate-50 text-[11px] uppercase tracking-[0.14em] text-slate-400">
+                            <tr>
+                              <th className="px-3 py-3">Round</th>
+                              <th className="px-3 py-3">状态</th>
+                              <th className="px-3 py-3">耗时</th>
+                              <th className="px-3 py-3">Executor</th>
+                              <th className="px-3 py-3">Reviewer</th>
+                              <th className="px-3 py-3">文件</th>
+                              <th className="px-3 py-3">输出大小</th>
+                              <th className="px-3 py-3">本轮增长</th>
+                              <th className="px-3 py-3">Token</th>
+                              <th className="px-3 py-3">Cost</th>
+                              <th className="px-3 py-3">策略</th>
+                              <th className="px-3 py-3">告警</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {filteredRoundItems.map((round) => (
+                              <React.Fragment key={round.round}>
+                                <tr
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => setExpandedMetricRound((current) => current === round.round ? null : round.round)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                      event.preventDefault();
+                                      setExpandedMetricRound((current) => current === round.round ? null : round.round);
+                                    }
+                                  }}
+                                  className="cursor-pointer bg-white transition hover:bg-slate-50"
+                                >
+                                  <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round}</td>
+                                  <td className="px-3 py-3">
+                                    <span className={`rounded-full border px-2 py-0.5 font-bold ${roundStatusTone(round.status)}`}>{roundStatusLabel(round.status)}</span>
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-600">{formatSeconds(round.duration_seconds)}</td>
+                                  <td className="px-3 py-3 max-w-[180px] truncate text-slate-600">{round.executor.response_preview || round.executor.status || '-'}</td>
+                                  <td className="px-3 py-3 max-w-[180px] truncate text-slate-600">
+                                    <span className={round.reviewer.passed ? 'font-bold text-emerald-700' : 'font-bold text-amber-700'}>
+                                      {round.reviewer.passed ? '通过' : '未通过'}
+                                    </span>
+                                    {round.reviewer.review_preview ? ` · ${round.reviewer.review_preview}` : ''}
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-600">{round.output_snapshot.output_file_count} / {round.output_snapshot.output_dir_count}</td>
+                                  <td className="px-3 py-3 font-mono text-slate-600">{formatBytes(round.output_snapshot.output_total_size_bytes)}</td>
+                                  <td className="px-3 py-3 font-mono text-slate-600">{formatBytes(round.output_delta.size_bytes_delta)}</td>
+                                  <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.tokens.total)}</td>
+                                  <td className="px-3 py-3 font-mono text-slate-600">{formatCost(round.tokens.cost)}</td>
+                                  <td className="px-3 py-3 text-slate-600">
+                                    <div className="flex flex-wrap gap-1">
+                                      {round.context.fallback_to_llm ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-700">LLM</span> : null}
+                                      {round.context.matched_skill ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">{round.context.matched_skill}</span> : null}
+                                      {!round.context.fallback_to_llm && !round.context.matched_skill ? '-' : null}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-600">{round.artifacts.warnings.length || '-'}</td>
+                                </tr>
+                                {expandedMetricRound === round.round ? (
+                                  <tr>
+                                    <td colSpan={12} className="bg-slate-950 px-4 py-4">
+                                      {round.source_path ? (
+                                        <div className="mb-3 break-all rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 font-mono text-[11px] text-slate-400">
+                                          {round.source_path}
+                                        </div>
+                                      ) : null}
+                                      <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-all text-xs leading-6 text-slate-200">
+                                        {JSON.stringify(round.raw || round, null, 2)}
+                                      </pre>
+                                    </td>
+                                  </tr>
+                                ) : null}
+                              </React.Fragment>
+                            ))}
+                            {filteredRoundItems.length === 0 ? (
+                              <tr>
+                                <td colSpan={12} className="px-4 py-10 text-center text-sm text-slate-500">
+                                  当前筛选条件下没有轮次记录
+                                </td>
+                              </tr>
+                            ) : null}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </>
+                )}
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
