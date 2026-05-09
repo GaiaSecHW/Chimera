@@ -186,6 +186,15 @@ const emptyForm = {
   task_description: '',
 };
 
+const SORT_OPTIONS = [
+  { value: 'created_at', label: '创建时间' },
+  { value: 'updated_at', label: '更新时间' },
+  { value: 'started_at', label: '开始时间' },
+  { value: 'finished_at', label: '结束时间' },
+  { value: 'status', label: '任务状态' },
+  { value: 'task_name', label: '任务名称' },
+];
+
 export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appEntryAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -202,6 +211,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
@@ -249,7 +261,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     if (!projectId) return;
     setLoading(true);
     try {
-      const resp = await appApi.listTasks({ project_id: projectId, page: p, per_page: perPage });
+      const resp = await appApi.listTasks({
+        project_id: projectId,
+        page: p,
+        per_page: perPage,
+        status: statusFilter,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      });
       setTasks(resp.items || []);
       setTotal(resp.total || 0);
     } catch (err: any) {
@@ -257,9 +276,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage]);
+  }, [projectId, page, perPage, statusFilter, sortBy, sortOrder]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage]);
+  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -846,6 +865,36 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               />
               秒
             </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="任务状态筛选"
+            >
+              <option value="">全部状态</option>
+              {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="排序字段"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>按{option.label}排序</option>
+              ))}
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="排序方向"
+            >
+              <option value="desc">降序</option>
+              <option value="asc">升序</option>
+            </select>
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}

@@ -22,8 +22,8 @@ import {
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import {
-  clearBinarySecurityReturnContext,
-  hasBinarySecurityReturnContext,
+  hasBinarySecurityReturnTarget,
+  navigateBackByTaskOrigin,
   navigateBackToBinarySecurityTask,
 } from '../../utils/executionReturnContext';
 import { AgentSessionViewer } from './AgentSessionViewer';
@@ -221,8 +221,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const appApi = api.domains.execution.appEntryAnalyse;
   const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
-  const hasReturnContext = hasBinarySecurityReturnContext();
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
+  const hasReturnContext = hasBinarySecurityReturnTarget(detail);
   const [result, setResult] = useState<AppEaTaskResult | null>(null);
   const [evaluation, setEvaluation] = useState<AppEaTaskEvaluation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -252,16 +252,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [expandedRound, setExpandedRound] = useState<number | null>(null);
 
   const handleBack = () => {
-    const parentTaskId = String(detail?.parent_task_id || '').trim();
-    if (detail?.task_origin_type === 'binary_security' && parentTaskId) {
-      clearBinarySecurityReturnContext();
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
-        detail: detail.parent_task_type === 'source'
-          ? { view: 'source-security-detail', sourceSecurityTaskId: parentTaskId }
-          : { view: 'binary-security-detail', binarySecurityTaskId: parentTaskId },
-      }));
-      return;
-    }
+    if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();
   };

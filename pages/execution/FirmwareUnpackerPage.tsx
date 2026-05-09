@@ -14,7 +14,7 @@ import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProj
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
 import { blobToText, buildFirmwareSessionMeta, buildSessionSnapshotFromText, FirmwareSessionIndexItem, normalizeFirmwareSessionIndex, parseSessionJsonlDelta } from './sessionParsing';
@@ -2492,8 +2492,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   const showingDetail = Boolean(activeTaskId);
-  const hasReturnContext = hasBinarySecurityReturnContext();
+  const hasReturnContext = hasBinarySecurityReturnTarget(activeTask);
   const handleDetailBack = () => {
+    if (navigateBackByTaskOrigin(activeTask)) return;
     if (navigateBackToBinarySecurityTask()) return;
     setActiveTaskId('');
   };

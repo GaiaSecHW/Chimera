@@ -34,6 +34,7 @@ import {
   DataflowProfileConfigPayload,
   DataflowScanProfile,
   DataflowScanTask,
+  DataflowScanTaskDetail,
   DataflowCreateTaskPayload,
   DataflowHistoryRunResolve,
 } from '../../clients/dataflowVulnScanner';
@@ -44,7 +45,7 @@ import {
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
-import { navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: { label: '待启动', className: 'bg-slate-100 text-slate-700 border-slate-200', icon: <Clock size={13} /> },
@@ -194,9 +195,10 @@ const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
-const buildHistoryRunDetailPath = (run: Pick<DataflowFileserverRunSummary, 'name' | 'history_run_id' | 'root_path'>) => {
+const buildHistoryRunDetailPath = (run: Pick<DataflowFileserverRunSummary, 'name' | 'history_run_id' | 'root_path'> & { linked_task_id?: string | null }) => {
   const params = new URLSearchParams();
   if (run.history_run_id) params.set('history_run_id', run.history_run_id);
+  if (run.linked_task_id) params.set('linked_task_id', run.linked_task_id);
   params.set('fileserver_run', run.name);
   params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
   return `/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`;
@@ -206,6 +208,7 @@ const historyRunResolveToRouteTarget = (resolved: DataflowHistoryRunResolve) => 
   name: resolved.run_name,
   history_run_id: resolved.history_run_id,
   root_path: resolved.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
+  linked_task_id: resolved.linked_task_id || null,
 });
 
 const statusMeta = (status?: string | null) => STATUS_META[String(status || '').toLowerCase()] || {
@@ -754,6 +757,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const taskId = routeTaskId || '';
   const requestedRunId = useMemo(() => new URLSearchParams(location.search).get('run_id') || '', [location.search]);
   const historyRunId = useMemo(() => new URLSearchParams(location.search).get('history_run_id') || '', [location.search]);
+  const linkedTaskId = useMemo(() => new URLSearchParams(location.search).get('linked_task_id') || '', [location.search]);
   const fileserverRunName = useMemo(() => new URLSearchParams(location.search).get('fileserver_run') || '', [location.search]);
   const fileserverRootPath = useMemo(
     () => new URLSearchParams(location.search).get('fileserver_root') || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
@@ -765,8 +769,12 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const isHistoryBootstrapMode = isSyntheticFileserverTask && Boolean(historyRunId && !fileserverRunName);
   const [detailLoading, setDetailLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [linkedTaskDetail, setLinkedTaskDetail] = useState<DataflowScanTaskDetail | null>(null);
 
   const goBack = () => {
+    if (navigateBackByTaskOrigin(linkedTaskDetail)) {
+      return;
+    }
     if (navigateBackToBinarySecurityTask()) {
       return;
     }
@@ -782,6 +790,11 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     setDetailLoading(true);
     setLoadError('');
     try {
+      try {
+        setLinkedTaskDetail(await executionApi.getTask(targetTaskId));
+      } catch {
+        setLinkedTaskDetail(null);
+      }
       for (let attempt = 0; attempt < 6; attempt += 1) {
         try {
           const resolved = await executionApi.resolveHistoryRunByTask(projectId, targetTaskId, preferredRunId);
@@ -804,6 +817,24 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     if (isFileserverMode || isHistoryBootstrapMode) return;
     void resolveTaskRouteToHistoryRun(taskId, requestedRunId);
   }, [taskId, requestedRunId, isFileserverMode, isHistoryBootstrapMode, fileserverRunName, fileserverRootPath, projectId]);
+
+  useEffect(() => {
+    if (!linkedTaskId || !projectId) {
+      if (isSyntheticFileserverTask) setLinkedTaskDetail(null);
+      return;
+    }
+    let cancelled = false;
+    executionApi.getTask(linkedTaskId)
+      .then((task) => {
+        if (!cancelled) setLinkedTaskDetail(task);
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedTaskDetail(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [executionApi, isSyntheticFileserverTask, linkedTaskId, projectId]);
 
   useEffect(() => {
     if (!isHistoryBootstrapMode || !historyRunId) return;
