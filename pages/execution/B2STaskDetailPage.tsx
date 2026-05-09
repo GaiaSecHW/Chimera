@@ -6,7 +6,7 @@ import { B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
-import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard } from './taskOrigin';
 
 interface Props {
@@ -331,8 +331,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [previewContent, setPreviewContent] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const hasReturnContext = hasBinarySecurityReturnContext();
+  const hasReturnContext = hasBinarySecurityReturnTarget(detail);
   const handleBack = () => {
+    if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();
   };

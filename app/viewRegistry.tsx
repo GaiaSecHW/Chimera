@@ -310,7 +310,15 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-threat':
     case 'entry-analysis-root':
     case 'entry-analysis-task':
-      return <EntryAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+      return (
+        <EntryAnalysisTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(id) => {
+            ctx.setActiveEntryAnalysisTaskId(id);
+            ctx.setCurrentView('entry-analysis-detail');
+          }}
+        />
+      );
     case 'entry-analysis-detail':
       return (
         <EntryAnalysisTaskDetailPage

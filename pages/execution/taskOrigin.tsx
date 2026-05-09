@@ -1,4 +1,5 @@
 import React from 'react';
+import { navigateBackByTaskOrigin } from '../../utils/executionReturnContext';
 
 type OriginInfo = {
   analysis_mode?: string | null;
@@ -34,16 +35,7 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export function navigateToParentBinarySecurityTask(origin: OriginInfo) {
-  const parentTaskId = String(origin.parent_task_id || '').trim();
-  if (!parentTaskId) return;
-  const taskType = String(origin.parent_task_type || '').trim() === 'source' ? 'source' : 'binary';
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
-    detail: {
-      view: taskType === 'source' ? 'source-security-detail' : 'binary-security-detail',
-      binarySecurityTaskId: taskType === 'binary' ? parentTaskId : undefined,
-      sourceSecurityTaskId: taskType === 'source' ? parentTaskId : undefined,
-    },
-  }));
+  navigateBackByTaskOrigin(origin);
 }
 
 export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean }> = ({ origin, compact = false }) => {

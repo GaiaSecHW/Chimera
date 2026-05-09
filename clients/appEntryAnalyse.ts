@@ -1,8 +1,12 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppEaSessionMeta,
+  AppEaSessionSnapshot,
   AppEaTaskCreateRequest,
   AppEaTaskDetail,
+  AppEaTaskEvaluation,
   AppEaTaskItem,
+  AppEaTaskResult,
   EntryAnalysisModelsConfig,
   EntryAnalysisPromptTemplate,
   EntryAnalysisServiceConfig,
@@ -47,16 +51,34 @@ export const appEntryAnalyseApi = {
     page?: number;
     per_page?: number;
     status?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
   }): Promise<{ items: AppEaTaskItem[]; total: number; page: number; per_page: number }> => {
     const query = new URLSearchParams({ project_id: params.project_id });
     if (params.page) query.append('page', String(params.page));
     if (params.per_page) query.append('per_page', String(params.per_page));
     if (params.status) query.append('status', params.status);
+    if (params.sort_by) query.append('sort_by', params.sort_by);
+    if (params.sort_order) query.append('sort_order', params.sort_order);
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
   },
 
   getTask: async (taskId: string): Promise<AppEaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
+  getTaskResult: async (taskId: string): Promise<AppEaTaskResult> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
+
+  getTaskEvaluation: async (taskId: string): Promise<AppEaTaskEvaluation> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/evaluation`, { headers: getHeaders() })),
+
+  listTaskSessions: async (taskId: string): Promise<AppEaSessionMeta[]> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionFile: async (taskId: string, path: string): Promise<AppEaSessionSnapshot> => {
+    const query = new URLSearchParams({ path }).toString();
+    return handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/file?${query}`, { headers: getHeaders() }));
+  },
 
   cancelTask: async (taskId: string): Promise<AppEaTaskItem> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/cancel`, {

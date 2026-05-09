@@ -3,6 +3,7 @@ import { CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, 
 
 import { api } from '../../clients/api';
 import { AppEaStageEvent, AppEaTaskDetail, AppEaTaskItem } from '../../types/types';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -185,18 +186,37 @@ const emptyForm = {
   task_description: '',
 };
 
-export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+const SORT_OPTIONS = [
+  { value: 'created_at', label: '创建时间' },
+  { value: 'updated_at', label: '更新时间' },
+  { value: 'started_at', label: '开始时间' },
+  { value: 'finished_at', label: '结束时间' },
+  { value: 'status', label: '任务状态' },
+  { value: 'task_name', label: '任务名称' },
+];
+
+export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appEntryAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
+  const autoRefreshStorageKey = `secflow:entryAnalysis:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `secflow:entryAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchCancelling, setBatchCancelling] = useState(false);
   const [tasks, setTasks] = useState<AppEaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -228,13 +248,27 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const storedTaskId = sessionStorage.getItem('secflow:entryAnalysisTaskId');
+    if (!storedTaskId) return;
+    sessionStorage.removeItem('secflow:entryAnalysisTaskId');
+    if (onOpenTask) onOpenTask(storedTaskId);
+  }, [onOpenTask]);
+
   // ── Load task list ──────────────────────────────────────────────────────
 
   const loadTasks = useCallback(async (p = page) => {
     if (!projectId) return;
     setLoading(true);
     try {
-      const resp = await appApi.listTasks({ project_id: projectId, page: p, per_page: perPage });
+      const resp = await appApi.listTasks({
+        project_id: projectId,
+        page: p,
+        per_page: perPage,
+        status: statusFilter,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      });
       setTasks(resp.items || []);
       setTotal(resp.total || 0);
     } catch (err: any) {
@@ -242,9 +276,40 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage]);
+  }, [projectId, page, perPage, statusFilter, sortBy, sortOrder]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage]);
+  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
+    const storedInterval = localStorage.getItem(refreshIntervalStorageKey);
+    setAutoRefreshEnabled(storedEnabled === 'true');
+    if (storedInterval) {
+      const parsed = Number(storedInterval);
+      setRefreshIntervalSec(Number.isFinite(parsed) ? Math.max(5, Math.floor(parsed)) : 10);
+    } else {
+      setRefreshIntervalSec(10);
+    }
+  }, [autoRefreshStorageKey, refreshIntervalStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(autoRefreshStorageKey, String(autoRefreshEnabled));
+  }, [autoRefreshEnabled, autoRefreshStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(refreshIntervalStorageKey, String(refreshIntervalSec));
+  }, [refreshIntervalSec, refreshIntervalStorageKey]);
+
+  useEffect(() => {
+    setSelectedTaskIds((current) => {
+      const validIds = new Set(tasks.map((task) => task.task_id));
+      const next = new Set<string>();
+      current.forEach((taskId) => {
+        if (validIds.has(taskId)) next.add(taskId);
+      });
+      return next;
+    });
+  }, [tasks]);
 
   // ── Load task detail ────────────────────────────────────────────────────
 
@@ -261,22 +326,26 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
   };
 
   const handleSelectTask = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setModalOpen(true);
-    void loadDetail(taskId);
+    if (onOpenTask) {
+      onOpenTask(taskId);
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: taskId } }));
   };
 
   // ── Auto-poll when tasks are running or pending ─────────────────────────
   const hasActiveTasks = tasks.some((t) => t.status === 'running' || t.status === 'pending');
+  const hasActiveDetail = Boolean(detail && (detail.status === 'running' || detail.status === 'pending'));
   useEffect(() => {
-    if (!hasActiveTasks) return;
+    if (!autoRefreshEnabled) return;
+    if (!hasActiveTasks && !hasActiveDetail) return;
     const timer = setInterval(() => {
       void loadTasks(page);
       if (selectedTaskId && modalOpen) void loadDetail(selectedTaskId);
-    }, 5000);
+    }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasActiveTasks, projectId, page, selectedTaskId, modalOpen]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, hasActiveDetail, projectId, page, selectedTaskId, modalOpen]);
 
   // Auto-scroll logs to bottom when new events arrive
   useEffect(() => {
@@ -346,14 +415,133 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
   };
 
   const handleDelete = async (taskId: string, taskName: string) => {
-    if (!window.confirm(`确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`)) return;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: `确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
     try {
       await appApi.deleteTask(taskId, true);
       notify('任务已删除', 'success');
       if (selectedTaskId === taskId) { setModalOpen(false); setSelectedTaskId(''); }
+      setSelectedTaskIds((current) => {
+        const next = new Set(current);
+        next.delete(taskId);
+        return next;
+      });
       await loadTasks(page);
     } catch (err: any) {
       notify(`删除失败: ${err?.message || err}`, 'error');
+    }
+  };
+
+  const toggleTaskSelection = (taskId: string, checked: boolean) => {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(taskId);
+      else next.delete(taskId);
+      return next;
+    });
+  };
+
+  const toggleAllPageSelection = (checked: boolean) => {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      if (checked) tasks.forEach((task) => next.add(task.task_id));
+      else tasks.forEach((task) => next.delete(task.task_id));
+      return next;
+    });
+  };
+
+  const handleBatchDelete = async () => {
+    const taskIds = Array.from(selectedTaskIds);
+    if (taskIds.length === 0) {
+      notify('请先选择要删除的任务', 'error');
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '批量删除任务',
+      message: `确定要批量删除 ${taskIds.length} 个入口分析任务及其输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    setBatchDeleting(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const taskId of taskIds) {
+      try {
+        await appApi.deleteTask(taskId, true);
+        success += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstError) firstError = err?.message || String(err);
+      }
+    }
+    setBatchDeleting(false);
+    setSelectedTaskIds(new Set());
+    if (selectedTaskId && taskIds.includes(selectedTaskId)) {
+      closeModal();
+    }
+    await loadTasks(page);
+
+    if (failed === 0) {
+      notify(`批量删除成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量删除完成，成功 ${success} / ${taskIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量删除失败：${firstError || '未知错误'}`, 'error');
+    }
+  };
+
+  const handleBatchCancel = async () => {
+    const activeIds = tasks
+      .filter((task) => selectedTaskIds.has(task.task_id) && (task.status === 'pending' || task.status === 'running'))
+      .map((task) => task.task_id);
+    if (activeIds.length === 0) {
+      notify('已选择任务中没有可取消的等待中或运行中任务', 'error');
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '批量取消任务',
+      message: `确定要取消 ${activeIds.length} 个等待中/运行中的入口分析任务吗？任务记录和输出文件会保留。`,
+      confirmText: '确认取消',
+      cancelText: '返回',
+      danger: false,
+    });
+    if (!confirmed) return;
+
+    setBatchCancelling(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const taskId of activeIds) {
+      try {
+        await appApi.cancelTask(taskId);
+        success += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstError) firstError = err?.message || String(err);
+      }
+    }
+    setBatchCancelling(false);
+    await loadTasks(page);
+    if (selectedTaskId && activeIds.includes(selectedTaskId)) {
+      void loadDetail(selectedTaskId);
+    }
+
+    if (failed === 0) {
+      notify(`批量取消成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量取消完成，成功 ${success} / ${activeIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量取消失败：${firstError || '未知错误'}`, 'error');
     }
   };
 
@@ -392,6 +580,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
   };
 
   const totalPages = Math.ceil(total / perPage);
+  const allPageSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
+  const hasSelection = selectedTaskIds.size > 0;
 
   const stageStatuses = detail
     ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
@@ -651,7 +841,60 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-2 mb-4">
           <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={autoRefreshEnabled}
+                onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+              />
+              自动刷新
+            </label>
+            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+              间隔
+              <input
+                type="number"
+                min={5}
+                step={1}
+                value={refreshIntervalSec}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
+                }}
+                className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+              />
+              秒
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="任务状态筛选"
+            >
+              <option value="">全部状态</option>
+              {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="排序字段"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>按{option.label}排序</option>
+              ))}
+            </select>
+            <select
+              value={sortOrder}
+              onChange={(e) => { setSortOrder(e.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="排序方向"
+            >
+              <option value="desc">降序</option>
+              <option value="asc">升序</option>
+            </select>
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
@@ -672,20 +915,92 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string }> = ({ project
           </div>
         </div>
 
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <span>
+            自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
+          </span>
+          {autoRefreshEnabled && !hasActiveTasks && !hasActiveDetail ? (
+            <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
+          ) : null}
+          {autoRefreshEnabled && (hasActiveTasks || hasActiveDetail) ? (
+            <span className="text-violet-600">检测到活跃任务，按设定间隔自动刷新</span>
+          ) : null}
+        </div>
+
+        {hasSelection ? (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={allPageSelected}
+                  onChange={(e) => toggleAllPageSelection(e.target.checked)}
+                />
+                全选当前页（{tasks.length} 条）
+              </label>
+              <span className="text-sm font-semibold text-violet-700">已选择 {selectedTaskIds.size} 个任务</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => void handleBatchCancel()}
+                disabled={batchCancelling}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+              >
+                {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                批量取消
+              </button>
+              <button
+                onClick={() => setSelectedTaskIds(new Set())}
+                disabled={batchDeleting || batchCancelling}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                清除选择
+              </button>
+              <button
+                onClick={() => void handleBatchDelete()}
+                disabled={batchDeleting}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                批量删除（{selectedTaskIds.size}）
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-slate-500 py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
         ) : tasks.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
         ) : (
           <div className="space-y-2 max-h-[640px] overflow-auto pr-1">
+            <label className="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={allPageSelected}
+                onChange={(e) => toggleAllPageSelection(e.target.checked)}
+              />
+              全选当前页（{tasks.length} 条）
+            </label>
             {tasks.map((t) => (
               <div
                 key={t.task_id}
-                className="group relative rounded-xl border border-slate-200 bg-white transition-colors hover:bg-slate-50 hover:border-slate-300"
+                className={`group relative rounded-xl border bg-white transition-colors hover:bg-slate-50 hover:border-slate-300 ${
+                  selectedTaskIds.has(t.task_id) ? 'border-violet-300 bg-violet-50/40' : 'border-slate-200'
+                }`}
               >
+                <div className="absolute left-3 top-3 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedTaskIds.has(t.task_id)}
+                    onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`选择任务 ${t.task_name}`}
+                  />
+                </div>
                 <button
                   onClick={() => handleSelectTask(t.task_id)}
-                  className="w-full p-4 text-left"
+                  className="w-full p-4 pl-10 text-left"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">

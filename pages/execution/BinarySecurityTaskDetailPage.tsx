@@ -194,6 +194,8 @@ type DownstreamTaskState = {
   error?: string;
 };
 
+type DetailTab = 'overview' | 'stages' | 'timeline' | 'artifacts';
+
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
   const navigate = useNavigate();
@@ -202,10 +204,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timeline, setTimeline] = useState<any[]>([]);
   const [artifacts, setArtifacts] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [artifactsLoading, setArtifactsLoading] = useState(false);
+  const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
   const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
@@ -221,27 +227,22 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const isSourceTask = taskType === 'source';
   const canActOnTask = Boolean(detail);
   const taskRetrySupported = Boolean(detail?.task_retry_supported);
-  const taskRetryReason = detail?.task_retry_reason || '当前任务不可安全重试';
+  const taskRetryReason = detail?.task_retry_reason || '当前任务不可从头重试';
+  const taskContinueSupported = Boolean(detail && ['failed', 'partial_success', 'cancelled'].includes(detail.status));
+  const taskContinueReason = detail?.status === 'success'
+    ? '当前任务已全部成功，没有需要继续的阶段'
+    : detail && ['pending', 'dispatching', 'running', 'pending_upload', 'uploading', 'ready_to_start'].includes(detail.status)
+      ? '当前任务正在执行、排队或上传中，不能手动继续'
+      : '当前任务状态不支持手动继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
 
-  const load = async () => {
+  const loadTask = async () => {
     if (!projectId || !taskId) return;
     setLoading(true);
     setError(null);
     try {
-      const [task, timelineResp, artifactsResp, moduleSelectionResp] = await Promise.all([
-        executionApi.binarySecurity.getTask(projectId, taskId),
-        executionApi.binarySecurity.getTimeline(projectId, taskId),
-        executionApi.binarySecurity.getArtifacts(projectId, taskId),
-        executionApi.binarySecurity.getModuleSelection(projectId, taskId).catch(() => null),
-      ]);
+      const task = await executionApi.binarySecurity.getTask(projectId, taskId);
       setDetail(task);
-      setModuleSelection(moduleSelectionResp);
-      const defaultKeys = (moduleSelectionResp?.selected_modules?.length
-        ? moduleSelectionResp.selected_modules
-        : moduleSelectionResp?.candidate_modules || []
-      ).map((item) => String(item.module_key || '')).filter(Boolean);
-      setSelectedModuleKeys(defaultKeys);
       setSelectedStage((current) => {
         const nextStageSequence = task.stage_sequence?.length ? task.stage_sequence : DEFAULT_BINARY_STAGE_SEQUENCE;
         if (current && nextStageSequence.includes(current)) {
@@ -249,8 +250,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         }
         return task.current_stage && nextStageSequence.includes(task.current_stage) ? task.current_stage : nextStageSequence[0];
       });
-      setTimeline(timelineResp.events || []);
-      setArtifacts(artifactsResp);
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
@@ -258,19 +257,89 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
+  const loadModuleSelection = async () => {
+    if (!projectId || !taskId) return;
+    setModuleSelectionLoading(true);
+    try {
+      const moduleSelectionResp = await executionApi.binarySecurity.getModuleSelection(projectId, taskId);
+      setModuleSelection(moduleSelectionResp);
+      const defaultKeys = (moduleSelectionResp?.selected_modules?.length
+        ? moduleSelectionResp.selected_modules
+        : moduleSelectionResp?.candidate_modules || []
+      ).map((item) => String(item.module_key || '')).filter(Boolean);
+      setSelectedModuleKeys(defaultKeys);
+    } catch {
+      setModuleSelection(null);
+    } finally {
+      setModuleSelectionLoading(false);
+    }
+  };
+
+  const loadTimeline = async () => {
+    if (!projectId || !taskId) return;
+    setTimelineLoading(true);
+    setError(null);
+    try {
+      const timelineResp = await executionApi.binarySecurity.getTimeline(projectId, taskId);
+      setTimeline(timelineResp.events || []);
+    } catch (e: any) {
+      setError(e?.message || '加载事件时间线失败');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  const loadArtifacts = async () => {
+    if (!projectId || !taskId) return;
+    setArtifactsLoading(true);
+    setError(null);
+    try {
+      setArtifacts(await executionApi.binarySecurity.getArtifacts(projectId, taskId));
+    } catch (e: any) {
+      setError(e?.message || '加载产物文件失败');
+    } finally {
+      setArtifactsLoading(false);
+    }
+  };
+
+  const refreshActiveTab = async () => {
+    await loadTask();
+    if (activeTab === 'overview' && detail?.status === 'pending_module_confirmation') await loadModuleSelection();
+    if (activeTab === 'timeline') await loadTimeline();
+    if (activeTab === 'artifacts') await loadArtifacts();
+  };
+
   useEffect(() => {
-    void load();
+    void loadTask();
   }, [projectId, taskId]);
 
   useEffect(() => {
     if (!detail || TERMINAL.has(detail.status)) return;
     if (detail.status === 'pending_module_confirmation') return;
-    const timer = window.setInterval(() => void load(), 5000);
+    const timer = window.setInterval(() => void loadTask(), 5000);
     return () => window.clearInterval(timer);
   }, [detail?.status, projectId, taskId]);
 
   useEffect(() => {
-    if (!detail || !projectId || !selectedStage) return;
+    if (activeTab === 'overview' && detail?.status === 'pending_module_confirmation' && !moduleSelection && !moduleSelectionLoading) {
+      void loadModuleSelection();
+    }
+  }, [activeTab, detail?.status, moduleSelection, moduleSelectionLoading, projectId, taskId]);
+
+  useEffect(() => {
+    if (activeTab === 'timeline' && timeline.length === 0 && !timelineLoading) {
+      void loadTimeline();
+    }
+  }, [activeTab, timeline.length, timelineLoading, projectId, taskId]);
+
+  useEffect(() => {
+    if (activeTab === 'artifacts' && !artifacts && !artifactsLoading) {
+      void loadArtifacts();
+    }
+  }, [activeTab, artifacts, artifactsLoading, projectId, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'stages' || !detail || !projectId || !selectedStage) return;
     const stageItems = detail.stage_items.filter((item) => item.stage_name === selectedStage);
     const fetchableItems = stageItems.filter((item) => item.downstream_task_id);
     if (fetchableItems.length === 0) {
@@ -331,7 +400,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => {
       cancelled = true;
     };
-  }, [detail, projectId, selectedStage]);
+  }, [activeTab, detail, projectId, selectedStage]);
 
   useEffect(() => {
     const node = stageFlowRef.current;
@@ -382,15 +451,34 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const observer = new ResizeObserver(() => updateLayout());
     observer.observe(node);
     return () => observer.disconnect();
-  }, [isSourceTask, stageSequence]);
+  }, [activeTab, isSourceTask, stageSequence]);
 
-  const runAction = async (action: 'cancel' | 'retry' | 'delete') => {
+  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete') => {
     if (!projectId || !taskId) return;
     if (action === 'delete') {
       const confirmed = await showConfirm({
         title: '删除任务',
         message: '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',
         confirmText: '确认删除',
+        cancelText: '取消',
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
+    if (action === 'continue') {
+      const confirmed = await showConfirm({
+        title: '继续任务',
+        message: '将从当前连续成功阶段的下一个阶段开始继续推进。该阶段及后续阶段的旧编排记录和结果摘要会被清空并重新创建，前序连续成功阶段会保留。是否继续？',
+        confirmText: '确认继续',
+        cancelText: '取消',
+      });
+      if (!confirmed) return;
+    }
+    if (action === 'retry') {
+      const confirmed = await showConfirm({
+        title: '从头重试总任务',
+        message: '总任务重试会清空当前任务所有阶段的编排记录和结果摘要，并从第一阶段重新开始。该操作不同于“继续任务”，是否确认从头重试？',
+        confirmText: '确认从头重试',
         cancelText: '取消',
         danger: true,
       });
@@ -405,7 +493,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         return;
       }
       if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
-      await load();
+      if (action === 'continue') await executionApi.binarySecurity.continueTask(projectId, taskId);
+      await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || `${action} 失败`);
     } finally {
@@ -421,7 +510,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
     const confirmed = await showConfirm({
       title: '重试阶段',
-      message: `将重试阶段“${STAGE_LABELS[stageName] || stageName}”。这只会重跑当前阶段，后续阶段结果会保留但标记为过期。是否继续？`,
+      message: `将重试阶段“${STAGE_LABELS[stageName] || stageName}”的全部子任务。阶段重试只影响当前阶段，不会清空、重跑或标记后续阶段。是否继续？`,
       confirmText: '确认重试',
       cancelText: '取消',
     });
@@ -429,7 +518,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setActionLoading(`stage:${stageName}`);
     try {
       await executionApi.binarySecurity.retryStage(projectId, taskId, stageName);
-      await load();
+      await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || '阶段重试失败');
     } finally {
@@ -459,7 +548,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         item_id: options?.itemId,
         force: options?.force,
       });
-      await load();
+      await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || '同步下游状态失败');
     } finally {
@@ -477,7 +566,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setError(null);
     try {
       await executionApi.binarySecurity.confirmModuleSelection(projectId, taskId, selectedModuleKeys);
-      await load();
+      await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || '确认模块失败');
     } finally {
@@ -671,6 +760,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return <div className="px-8 pb-10 pt-8 text-sm text-slate-500">未指定任务。</div>;
   }
 
+  const tabs: Array<{ key: DetailTab; label: string; hint: string }> = [
+    { key: 'overview', label: '总览', hint: '任务基础信息与模块确认' },
+    { key: 'stages', label: '阶段任务', hint: '阶段图与下游子任务' },
+    { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
+    { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
+  ];
+
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -679,7 +775,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           返回任务列表
         </button>
         <div className="flex gap-3">
-          <button type="button" onClick={() => void load()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
+          <button type="button" onClick={() => void refreshActiveTab()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
             <RefreshCw size={16} />
             刷新
           </button>
@@ -700,7 +796,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             disabled={actionLoading !== '' || !taskRetrySupported}
             className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
-            重试
+            从头重试
+          </button>
+          <button
+            type="button"
+            title={taskContinueSupported ? undefined : taskContinueReason}
+            onClick={() => void runAction('continue')}
+            disabled={actionLoading !== '' || !taskContinueSupported}
+            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-60"
+          >
+            {actionLoading === 'continue' ? '继续中...' : '继续'}
           </button>
           <button type="button" onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !canActOnTask} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
         </div>
@@ -729,7 +834,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">产物目录</div>
-                    <div className="mt-1 break-all font-mono text-xs text-slate-700">{artifacts?.fileserver_path || detail.output_root}</div>
+                    <div className="mt-1 break-all font-mono text-xs text-slate-700">{detail.output_root}</div>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">模块策略</div>
@@ -774,6 +879,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
 
+          <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="grid gap-2 md:grid-cols-4">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`rounded-[1.2rem] px-4 py-3 text-left transition ${
+                    activeTab === tab.key
+                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="text-sm font-black">{tab.label}</div>
+                  <div className={`mt-1 text-[11px] ${activeTab === tab.key ? 'text-slate-300' : 'text-slate-400'}`}>{tab.hint}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {activeTab === 'overview' ? (
+            <>
           {requiresModuleConfirmation ? (
             <section className="rounded-[2rem] border border-amber-200 bg-amber-50/70 p-6 shadow-sm">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -828,18 +955,47 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 })}
               </div>
             </section>
+          ) : moduleSelectionLoading ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">正在加载模块确认信息...</section>
+          ) : (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-black text-slate-900">任务总览</h2>
+              <p className="mt-2 text-sm text-slate-500">当前页只加载任务主详情。阶段子任务、事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">任务类型</div>
+                  <div className="mt-1 font-black text-slate-900">{isSourceTask ? '源码扫描' : '二进制类扫描'}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">阶段数</div>
+                  <div className="mt-1 font-black text-slate-900">{stageSequence.length}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">当前状态</div>
+                  <div className="mt-1 font-black text-slate-900">{detail.status}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">队列位置</div>
+                  <div className="mt-1 font-black text-slate-900">{detail.is_queued ? `第 ${detail.queue_position || '-'} 位` : '未排队'}</div>
+                </div>
+              </div>
+            </section>
+          )}
+            </>
           ) : null}
 
+          {activeTab === 'stages' ? (
+            <>
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <h2 className="text-xl font-black text-slate-900">阶段概览</h2>
-                <p className="mt-1 text-sm text-slate-500">点击阶段筛选下方子任务；重试能力由后端按下游任务是否可原地重试动态判定。</p>
+                <p className="mt-1 text-sm text-slate-500">点击阶段筛选下方子任务；阶段重试会重跑当前阶段全部子任务，不影响其他阶段。</p>
               </div>
             </div>
             {!detail.task_retry_supported && detail.task_retry_reason ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                总任务重试不可用：{detail.task_retry_reason}
+                总任务从头重试不可用：{detail.task_retry_reason}
               </div>
             ) : null}
 
@@ -1057,7 +1213,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               })}
             </div>
           </section>
+            </>
+          ) : null}
 
+          {activeTab === 'timeline' ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -1077,7 +1236,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
 
             <div className="mt-4">
-              {timelineItems.length === 0 ? (
+              {timelineLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
+                  正在加载事件时间线...
+                </div>
+              ) : timelineItems.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
                   暂无事件
                 </div>
@@ -1133,18 +1296,29 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               )}
             </div>
           </section>
+          ) : null}
 
+          {activeTab === 'artifacts' ? (
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">产物文件</h2>
             <div className="mt-3 text-xs text-slate-500">工作目录：{artifacts?.workspace_root || '-'}</div>
             <div className="mt-5 max-h-[420px] space-y-2 overflow-auto">
-              {(artifacts?.files || []).map((file: any) => (
+              {artifactsLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
+                  正在加载产物文件...
+                </div>
+              ) : (artifacts?.files || []).length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
+                  暂无产物文件
+                </div>
+              ) : (artifacts?.files || []).map((file: any) => (
                 <div key={file.path} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
                   {file.path}
                 </div>
               ))}
             </div>
           </section>
+          ) : null}
         </>
       ) : null}
     </div>

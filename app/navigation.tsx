@@ -336,10 +336,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, aliases: ['pentest-exec-firmware-task-list'], requiresProject: true },
         { id: 'pentest-system', label: '系统分析', icon: Activity, aliases: ['system-analysis-task', 'system-analysis-detail'], requiresProject: true },
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
-        { id: 'pentest-threat', label: '入口分析', icon: Zap, requiresProject: true, subItems: [
-          { id: 'entry-analysis-task', label: '任务队列', requiresProject: true },
-          { id: 'entry-analysis-config', label: '分析配置', requiresProject: true },
-        ] },
+        { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
         { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, requiresProject: true, subItems: [
           { id: 'dataflow-analysis-task', label: '任务队列', requiresProject: true },
           { id: 'dataflow-analysis-config', label: '分析配置', requiresProject: true },

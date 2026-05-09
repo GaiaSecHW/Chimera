@@ -2598,6 +2598,48 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   task_config_json?: Record<string, any> | null;
 }
 
+export interface AppEaTaskResultSummary {
+  module_name?: string | null;
+  function_count: number;
+  round_count: number;
+  passed_round_count: number;
+  total_duration_ms?: number | null;
+  total_tokens: number;
+  total_cost?: number | null;
+}
+
+export interface AppEaTaskResult {
+  task_id: string;
+  available: boolean;
+  status: string;
+  output_root?: string | null;
+  result_file_path?: string | null;
+  functions_list_path?: string | null;
+  run_report_path?: string | null;
+  run_result_path?: string | null;
+  result_markdown?: string | null;
+  functions_list_markdown?: string | null;
+  functions: string[];
+  run_report_markdown?: string | null;
+  result_json?: Record<string, any> | null;
+  summary: AppEaTaskResultSummary;
+  warnings: string[];
+}
+
+export interface AppEaTaskEvaluation {
+  task_id: string;
+  status: string;
+  available: boolean;
+  summary?: Record<string, any> | null;
+  rounds: AppSaEvaluationRound[];
+  warnings: string[];
+}
+
+export type AppEaSessionMeta = AppSaSessionMeta;
+export type AppEaSessionEvent = AppSaSessionEvent;
+export type AppEaSessionSnapshot = AppSaSessionSnapshot;
+export type AppEaEvaluationRound = AppSaEvaluationRound;
+
 export interface AppEaTaskCreateRequest {
   project_id: string;
   task_name: string;

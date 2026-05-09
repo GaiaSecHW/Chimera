@@ -36,7 +36,7 @@ import {
 import { FileWatchMessage } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
 
@@ -524,8 +524,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const appApi = api.domains.execution.appSystemAnalyse;
   const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
-  const hasReturnContext = hasBinarySecurityReturnContext();
   const [detail, setDetail] = useState<AppSaTaskDetail | null>(null);
+  const hasReturnContext = hasBinarySecurityReturnTarget(detail);
   const [result, setResult] = useState<AppSaTaskResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultLoading, setResultLoading] = useState(false);
@@ -557,6 +557,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const sessionSocketRef = useRef<WebSocket | null>(null);
 
   const handleBack = () => {
+    if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();
   };
