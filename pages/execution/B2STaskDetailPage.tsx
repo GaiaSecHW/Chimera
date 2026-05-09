@@ -702,7 +702,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <div className="flex flex-col gap-2 border-b border-emerald-100 bg-emerald-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-black text-slate-900">还原结果</h2>
-              <div className="mt-1 text-xs font-semibold text-emerald-800/70">优先预览最终 C / 头文件 / IDA 直出 C，长文件名自动换行。</div>
             </div>
             <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{generatedFiles.length} 个文件</div>
           </div>
@@ -780,7 +779,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h2 className="text-xl font-black text-slate-900">执行明细</h2>
-            <div className="mt-1 text-sm font-semibold text-slate-500">按 ELF 展示状态、阶段、函数批次和诊断信息。</div>
           </div>
           {detail && (
             <div className="flex flex-wrap gap-2 text-xs font-black">

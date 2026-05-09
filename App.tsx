@@ -147,6 +147,7 @@ const AppShell: React.FC = () => {
         helperKey?: string;
         processMonitorServiceKey?: string;
         b2sTaskId?: string;
+        b2sItemId?: string;
         systemAnalysisTaskId?: string;
         entryAnalysisTaskId?: string;
         binarySecurityTaskId?: string;
@@ -158,6 +159,10 @@ const AppShell: React.FC = () => {
       const b2sTaskId = String(detail?.b2sTaskId || '').trim();
       if (b2sTaskId) {
         setActiveB2STaskId(b2sTaskId);
+      }
+      const b2sItemId = String(detail?.b2sItemId || '').trim();
+      if (b2sItemId) {
+        setActiveB2SItemId(b2sItemId);
       }
       const systemAnalysisTaskId = String(detail?.systemAnalysisTaskId || '').trim();
       if (systemAnalysisTaskId) {
