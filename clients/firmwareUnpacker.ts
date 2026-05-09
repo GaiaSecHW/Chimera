@@ -37,7 +37,7 @@ export interface FirmwareUnpackTask {
   parent_task_display?: string | null;
   firmware_path: string;
   output_path: string;
-  /** pending | running | cancelling | cancelled | success | failed */
+  /** pending | retry_preparing | running | cancelling | cancelled | success | failed */
   status: string;
   worker_id: string | null;
   result_status: string | null;
@@ -85,12 +85,16 @@ export interface FirmwareTaskProgressPhase {
   status: string;
   detail: string | null;
   updated_at: string | null;
+  current_round: number | null;
+  total_rounds: number | null;
 }
 
 export interface FirmwareTaskProgress {
   task_id: string;
   current_phase: string | null;
   summary: string | null;
+  current_round: number | null;
+  total_rounds: number | null;
   phases: FirmwareTaskProgressPhase[];
 }
 
@@ -121,6 +125,239 @@ export interface FirmwareTaskEvent {
 export interface FirmwareTaskEventList {
   total: number;
   items: FirmwareTaskEvent[];
+}
+
+export interface FirmwareTaskTopLevelEntry {
+  name: string;
+  kind: string;
+  file_count: number;
+  dir_count: number;
+  total_size_bytes: number;
+}
+
+export interface FirmwareTaskExtensionBreakdownItem {
+  extension: string;
+  file_count: number;
+  total_size_bytes: number;
+}
+
+export interface FirmwareTaskLargestFileItem {
+  path: string;
+  size_bytes: number;
+}
+
+export interface FirmwareTaskDeepestPath {
+  path: string;
+  depth: number;
+}
+
+export interface FirmwareTaskResultSummary {
+  top_level_entries: FirmwareTaskTopLevelEntry[];
+  file_extension_breakdown: FirmwareTaskExtensionBreakdownItem[];
+  largest_files: FirmwareTaskLargestFileItem[];
+  deepest_path: FirmwareTaskDeepestPath | null;
+  output_file_count: number;
+  output_dir_count: number;
+  output_total_size_bytes: number;
+  largest_file_path: string | null;
+  largest_file_size_bytes: number;
+  top_level_entry_count: number;
+  avg_file_size_bytes: number;
+  small_file_count: number;
+  medium_file_count: number;
+  large_file_count: number;
+  matched_skill: string | null;
+  fallback_to_llm: boolean;
+  generated_skill_path: string | null;
+  promotion_success_count: number;
+  executor_rounds: number;
+  session_count: number;
+  event_count: number;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_seconds: number | null;
+}
+
+export interface FirmwareTaskResult {
+  task_id: string;
+  available: boolean;
+  status: string;
+  output_root: string | null;
+  run_root: string | null;
+  summary_path: string | null;
+  reason_path: string | null;
+  tokens_summary_path: string | null;
+  summary_text: string | null;
+  reason_text: string | null;
+  warnings: string[];
+  summary: FirmwareTaskResultSummary;
+}
+
+export interface FirmwareTaskMetricsTask {
+  status: string;
+  result_status: string | null;
+  current_stage: string | null;
+  owner_id: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  last_progress_at: string | null;
+  duration_seconds: number | null;
+  queue_wait_seconds: number | null;
+  running_seconds: number | null;
+}
+
+export interface FirmwareTaskMetricsResource {
+  available: boolean;
+  pod_name: string | null;
+  namespace: string | null;
+  cpu_millicores: number | null;
+  memory_mib: number | null;
+  pod_cpu_limit_millicores: number | null;
+  pod_memory_limit_mib: number | null;
+  cpu_usage_percent: number | null;
+  memory_usage_percent: number | null;
+  containers: FirmwareTaskResourceContainer[];
+  message: string | null;
+}
+
+export interface FirmwareTaskMetricsProgress {
+  current_phase: string | null;
+  current_round: number | null;
+  total_rounds: number | null;
+  phase_count: number;
+  completed_phase_count: number;
+  failed_phase_count: number;
+  running_phase_count: number;
+}
+
+export interface FirmwareTaskMetricsEvents {
+  event_count: number;
+  latest_event_type: string | null;
+  latest_event_summary: string | null;
+  latest_event_at: string | null;
+}
+
+export interface FirmwareTaskMetricsSessions {
+  session_count: number;
+  running_session_count: number;
+  failed_session_count: number;
+  closed_session_count: number;
+}
+
+export interface FirmwareTaskMetricsResult {
+  cache_available: boolean;
+  cache_updated_at: string | null;
+  output_file_count: number;
+  output_dir_count: number;
+  output_total_size_bytes: number;
+  largest_file_size_bytes: number;
+  top_level_entry_count: number;
+  small_file_count: number;
+  medium_file_count: number;
+  large_file_count: number;
+  executor_rounds: number;
+  fallback_to_llm: boolean;
+  matched_skill: string | null;
+}
+
+export interface FirmwareTaskRoundTokenMetrics {
+  input: number;
+  output: number;
+  cache_read: number;
+  cache_write: number;
+  total: number;
+  cost: number;
+}
+
+export interface FirmwareTaskRoundOutputMetrics {
+  output_file_count: number;
+  output_dir_count: number;
+  output_total_size_bytes: number;
+  largest_file_size_bytes: number;
+}
+
+export interface FirmwareTaskRoundDeltaMetrics {
+  file_count_delta: number;
+  dir_count_delta: number;
+  size_bytes_delta: number;
+  baseline_round: number | null;
+}
+
+export interface FirmwareTaskRoundAgentMetrics {
+  status?: string | null;
+  passed?: boolean;
+  duration_seconds: number | null;
+  response_preview?: string | null;
+  review_preview?: string | null;
+  provider_role?: string | null;
+  session_file?: string | null;
+}
+
+export interface FirmwareTaskRoundMetric {
+  round: number;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_seconds: number | null;
+  executor: FirmwareTaskRoundAgentMetrics;
+  reviewer: FirmwareTaskRoundAgentMetrics;
+  tokens: FirmwareTaskRoundTokenMetrics;
+  output_snapshot: FirmwareTaskRoundOutputMetrics;
+  output_delta: FirmwareTaskRoundDeltaMetrics;
+  artifacts: {
+    summary_present: boolean;
+    reason_present: boolean;
+    warnings: string[];
+    summary_preview: string | null;
+    reason_preview: string | null;
+  };
+  context: {
+    matched_skill: string | null;
+    fallback_to_llm: boolean;
+    provider_role: string | null;
+  };
+  source_path: string | null;
+  raw: Record<string, any>;
+}
+
+export interface FirmwareTaskMetricsRounds {
+  available: boolean;
+  round_count: number;
+  completed_round_count: number;
+  failed_round_count: number;
+  running_round: number | null;
+  total_duration_seconds: number;
+  total_tokens: number;
+  total_cost: number;
+  output_growth_bytes: number;
+  latest_round: number | null;
+  summary: {
+    status_counts: Record<string, number>;
+    stage_summary: Record<string, { round_count: number; duration_seconds: number; token_total: number }>;
+  };
+  items: FirmwareTaskRoundMetric[];
+  warnings: string[];
+}
+
+export interface FirmwareTaskMetricsHealth {
+  is_terminal: boolean;
+  has_owner: boolean;
+  resource_available: boolean;
+  result_cache_available: boolean;
+  warnings: string[];
+}
+
+export interface FirmwareTaskMetrics {
+  task_id: string;
+  task: FirmwareTaskMetricsTask;
+  resource: FirmwareTaskMetricsResource;
+  progress: FirmwareTaskMetricsProgress;
+  events: FirmwareTaskMetricsEvents;
+  sessions: FirmwareTaskMetricsSessions;
+  result: FirmwareTaskMetricsResult;
+  rounds: FirmwareTaskMetricsRounds;
+  health: FirmwareTaskMetricsHealth;
 }
 
 export interface FirmwareUnpackTaskList {
@@ -300,7 +537,7 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
     firmware_path: asString(record.firmware_path),
     output_path: asString(record.output_path),
     status: asString(record.status, 'unknown'),
-    worker_id: asNullableString(record.worker_id),
+    worker_id: asNullableString(record.owner_id ?? record.worker_id),
     result_status: asNullableString(record.result_status),
     result_message: asNullableString(record.result_message),
     rounds: asNullableNumber(record.rounds),
@@ -374,12 +611,16 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
       status: asString(entry.status, 'pending'),
       detail: asNullableString(entry.detail),
       updated_at: asNullableString(entry.updated_at),
+      current_round: asNullableNumber(entry.current_round),
+      total_rounds: asNullableNumber(entry.total_rounds),
     };
   });
   return {
     task_id: asString(record.task_id),
     current_phase: asNullableString(record.current_phase),
     summary: asNullableString(record.summary),
+    current_round: asNullableNumber(record.current_round),
+    total_rounds: asNullableNumber(record.total_rounds),
     phases,
   };
 };
@@ -422,6 +663,270 @@ const normalizeTaskEventList = (value: unknown): FirmwareTaskEventList => {
   return {
     total: asNumber(record.total, items.length),
     items,
+  };
+};
+
+const normalizeTaskResult = (value: unknown): FirmwareTaskResult => {
+  const record = asRecord(value);
+  const summary = asRecord(record.summary);
+  return {
+    task_id: asString(record.task_id),
+    available: asBoolean(record.available),
+    status: asString(record.status, 'unknown'),
+    output_root: asNullableString(record.output_root),
+    run_root: asNullableString(record.run_root),
+    summary_path: asNullableString(record.summary_path),
+    reason_path: asNullableString(record.reason_path),
+    tokens_summary_path: asNullableString(record.tokens_summary_path),
+    summary_text: asNullableString(record.summary_text),
+    reason_text: asNullableString(record.reason_text),
+    warnings: asArray(record.warnings).map((item) => asString(item)).filter(Boolean),
+    summary: {
+      top_level_entries: asArray(summary.top_level_entries).map((item) => {
+        const entry = asRecord(item);
+        return {
+          name: asString(entry.name),
+          kind: asString(entry.kind, 'file'),
+          file_count: asNumber(entry.file_count, 0),
+          dir_count: asNumber(entry.dir_count, 0),
+          total_size_bytes: asNumber(entry.total_size_bytes, 0),
+        };
+      }),
+      file_extension_breakdown: asArray(summary.file_extension_breakdown).map((item) => {
+        const entry = asRecord(item);
+        return {
+          extension: asString(entry.extension, '(none)'),
+          file_count: asNumber(entry.file_count, 0),
+          total_size_bytes: asNumber(entry.total_size_bytes, 0),
+        };
+      }),
+      largest_files: asArray(summary.largest_files).map((item) => {
+        const entry = asRecord(item);
+        return {
+          path: asString(entry.path),
+          size_bytes: asNumber(entry.size_bytes, 0),
+        };
+      }).filter((item) => item.path),
+      deepest_path: summary.deepest_path && typeof summary.deepest_path === 'object' && !Array.isArray(summary.deepest_path)
+        ? {
+            path: asString(asRecord(summary.deepest_path).path),
+            depth: asNumber(asRecord(summary.deepest_path).depth, 0),
+          }
+        : null,
+      output_file_count: asNumber(summary.output_file_count, 0),
+      output_dir_count: asNumber(summary.output_dir_count, 0),
+      output_total_size_bytes: asNumber(summary.output_total_size_bytes, 0),
+      largest_file_path: asNullableString(summary.largest_file_path),
+      largest_file_size_bytes: asNumber(summary.largest_file_size_bytes, 0),
+      top_level_entry_count: asNumber(summary.top_level_entry_count, 0),
+      avg_file_size_bytes: asNumber(summary.avg_file_size_bytes, 0),
+      small_file_count: asNumber(summary.small_file_count, 0),
+      medium_file_count: asNumber(summary.medium_file_count, 0),
+      large_file_count: asNumber(summary.large_file_count, 0),
+      matched_skill: asNullableString(summary.matched_skill),
+      fallback_to_llm: asBoolean(summary.fallback_to_llm),
+      generated_skill_path: asNullableString(summary.generated_skill_path),
+      promotion_success_count: asNumber(summary.promotion_success_count, 0),
+      executor_rounds: asNumber(summary.executor_rounds, 0),
+      session_count: asNumber(summary.session_count, 0),
+      event_count: asNumber(summary.event_count, 0),
+      started_at: asNullableString(summary.started_at),
+      completed_at: asNullableString(summary.completed_at),
+      duration_seconds: summary.duration_seconds == null ? null : asNumber(summary.duration_seconds, 0),
+    },
+  };
+};
+
+const normalizeTaskMetrics = (value: unknown): FirmwareTaskMetrics => {
+  const record = asRecord(value);
+  const task = asRecord(record.task);
+  const resource = asRecord(record.resource);
+  const progress = asRecord(record.progress);
+  const events = asRecord(record.events);
+  const sessions = asRecord(record.sessions);
+  const result = asRecord(record.result);
+  const rounds = asRecord(record.rounds);
+  const health = asRecord(record.health);
+  const containers = asArray(resource.containers).map((item) => {
+    const entry = asRecord(item);
+    return {
+      name: asNullableString(entry.name),
+      cpu_millicores: asNumber(entry.cpu_millicores, 0),
+      memory_mib: asNumber(entry.memory_mib, 0),
+    };
+  });
+  return {
+    task_id: asString(record.task_id),
+    task: {
+      status: asString(task.status, 'unknown'),
+      result_status: asNullableString(task.result_status),
+      current_stage: asNullableString(task.current_stage),
+      owner_id: asNullableString(task.owner_id),
+      created_at: asNullableString(task.created_at),
+      started_at: asNullableString(task.started_at),
+      completed_at: asNullableString(task.completed_at),
+      last_progress_at: asNullableString(task.last_progress_at),
+      duration_seconds: asNullableNumber(task.duration_seconds),
+      queue_wait_seconds: asNullableNumber(task.queue_wait_seconds),
+      running_seconds: asNullableNumber(task.running_seconds),
+    },
+    resource: {
+      available: asBoolean(resource.available),
+      pod_name: asNullableString(resource.pod_name),
+      namespace: asNullableString(resource.namespace),
+      cpu_millicores: asNullableNumber(resource.cpu_millicores),
+      memory_mib: asNullableNumber(resource.memory_mib),
+      pod_cpu_limit_millicores: asNullableNumber(resource.pod_cpu_limit_millicores),
+      pod_memory_limit_mib: asNullableNumber(resource.pod_memory_limit_mib),
+      cpu_usage_percent: asNullableNumber(resource.cpu_usage_percent),
+      memory_usage_percent: asNullableNumber(resource.memory_usage_percent),
+      containers,
+      message: asNullableString(resource.message),
+    },
+    progress: {
+      current_phase: asNullableString(progress.current_phase),
+      current_round: asNullableNumber(progress.current_round),
+      total_rounds: asNullableNumber(progress.total_rounds),
+      phase_count: asNumber(progress.phase_count, 0),
+      completed_phase_count: asNumber(progress.completed_phase_count, 0),
+      failed_phase_count: asNumber(progress.failed_phase_count, 0),
+      running_phase_count: asNumber(progress.running_phase_count, 0),
+    },
+    events: {
+      event_count: asNumber(events.event_count, 0),
+      latest_event_type: asNullableString(events.latest_event_type),
+      latest_event_summary: asNullableString(events.latest_event_summary),
+      latest_event_at: asNullableString(events.latest_event_at),
+    },
+    sessions: {
+      session_count: asNumber(sessions.session_count, 0),
+      running_session_count: asNumber(sessions.running_session_count, 0),
+      failed_session_count: asNumber(sessions.failed_session_count, 0),
+      closed_session_count: asNumber(sessions.closed_session_count, 0),
+    },
+    result: {
+      cache_available: asBoolean(result.cache_available),
+      cache_updated_at: asNullableString(result.cache_updated_at),
+      output_file_count: asNumber(result.output_file_count, 0),
+      output_dir_count: asNumber(result.output_dir_count, 0),
+      output_total_size_bytes: asNumber(result.output_total_size_bytes, 0),
+      largest_file_size_bytes: asNumber(result.largest_file_size_bytes, 0),
+      top_level_entry_count: asNumber(result.top_level_entry_count, 0),
+      small_file_count: asNumber(result.small_file_count, 0),
+      medium_file_count: asNumber(result.medium_file_count, 0),
+      large_file_count: asNumber(result.large_file_count, 0),
+      executor_rounds: asNumber(result.executor_rounds, 0),
+      fallback_to_llm: asBoolean(result.fallback_to_llm),
+      matched_skill: asNullableString(result.matched_skill),
+    },
+    rounds: (() => {
+      const summary = asRecord(rounds.summary);
+      const statusCounts = asRecord(summary.status_counts);
+      const stageSummaryRecord = asRecord(summary.stage_summary);
+      const stage_summary: Record<string, { round_count: number; duration_seconds: number; token_total: number }> = {};
+      Object.entries(stageSummaryRecord).forEach(([key, value]) => {
+        const item = asRecord(value);
+        stage_summary[key] = {
+          round_count: asNumber(item.round_count, 0),
+          duration_seconds: asNumber(item.duration_seconds, 0),
+          token_total: asNumber(item.token_total, 0),
+        };
+      });
+      const items = asArray(rounds.items).map((value) => {
+        const item = asRecord(value);
+        const executor = asRecord(item.executor);
+        const reviewer = asRecord(item.reviewer);
+        const tokens = asRecord(item.tokens);
+        const outputSnapshot = asRecord(item.output_snapshot);
+        const outputDelta = asRecord(item.output_delta);
+        const artifacts = asRecord(item.artifacts);
+        const context = asRecord(item.context);
+        return {
+          round: asNumber(item.round, 0),
+          status: asString(item.status, 'unknown'),
+          started_at: asNullableString(item.started_at),
+          completed_at: asNullableString(item.completed_at),
+          duration_seconds: asNullableNumber(item.duration_seconds),
+          executor: {
+            status: asNullableString(executor.status),
+            duration_seconds: asNullableNumber(executor.duration_seconds),
+            response_preview: asNullableString(executor.response_preview),
+            provider_role: asNullableString(executor.provider_role),
+            session_file: asNullableString(executor.session_file),
+          },
+          reviewer: {
+            passed: asBoolean(reviewer.passed),
+            duration_seconds: asNullableNumber(reviewer.duration_seconds),
+            review_preview: asNullableString(reviewer.review_preview),
+            provider_role: asNullableString(reviewer.provider_role),
+            session_file: asNullableString(reviewer.session_file),
+          },
+          tokens: {
+            input: asNumber(tokens.input, 0),
+            output: asNumber(tokens.output, 0),
+            cache_read: asNumber(tokens.cache_read, 0),
+            cache_write: asNumber(tokens.cache_write, 0),
+            total: asNumber(tokens.total, 0),
+            cost: asNumber(tokens.cost, 0),
+          },
+          output_snapshot: {
+            output_file_count: asNumber(outputSnapshot.output_file_count, 0),
+            output_dir_count: asNumber(outputSnapshot.output_dir_count, 0),
+            output_total_size_bytes: asNumber(outputSnapshot.output_total_size_bytes, 0),
+            largest_file_size_bytes: asNumber(outputSnapshot.largest_file_size_bytes, 0),
+          },
+          output_delta: {
+            file_count_delta: asNumber(outputDelta.file_count_delta, 0),
+            dir_count_delta: asNumber(outputDelta.dir_count_delta, 0),
+            size_bytes_delta: asNumber(outputDelta.size_bytes_delta, 0),
+            baseline_round: asNullableNumber(outputDelta.baseline_round),
+          },
+          artifacts: {
+            summary_present: asBoolean(artifacts.summary_present),
+            reason_present: asBoolean(artifacts.reason_present),
+            warnings: asArray(artifacts.warnings).map((warning) => asString(warning)).filter(Boolean),
+            summary_preview: asNullableString(artifacts.summary_preview),
+            reason_preview: asNullableString(artifacts.reason_preview),
+          },
+          context: {
+            matched_skill: asNullableString(context.matched_skill),
+            fallback_to_llm: asBoolean(context.fallback_to_llm),
+            provider_role: asNullableString(context.provider_role),
+          },
+          source_path: asNullableString(item.source_path),
+          raw: asRecord(item.raw),
+        };
+      });
+      const normalizedStatusCounts: Record<string, number> = {};
+      Object.entries(statusCounts).forEach(([key, value]) => {
+        normalizedStatusCounts[key] = asNumber(value, 0);
+      });
+      return {
+        available: asBoolean(rounds.available),
+        round_count: asNumber(rounds.round_count, 0),
+        completed_round_count: asNumber(rounds.completed_round_count, 0),
+        failed_round_count: asNumber(rounds.failed_round_count, 0),
+        running_round: asNullableNumber(rounds.running_round),
+        total_duration_seconds: asNumber(rounds.total_duration_seconds, 0),
+        total_tokens: asNumber(rounds.total_tokens, 0),
+        total_cost: asNumber(rounds.total_cost, 0),
+        output_growth_bytes: asNumber(rounds.output_growth_bytes, 0),
+        latest_round: asNullableNumber(rounds.latest_round),
+        summary: {
+          status_counts: normalizedStatusCounts,
+          stage_summary,
+        },
+        items,
+        warnings: asArray(rounds.warnings).map((warning) => asString(warning)).filter(Boolean),
+      };
+    })(),
+    health: {
+      is_terminal: asBoolean(health.is_terminal),
+      has_owner: asBoolean(health.has_owner),
+      resource_available: asBoolean(health.resource_available),
+      result_cache_available: asBoolean(health.result_cache_available),
+      warnings: asArray(health.warnings).map((item) => asString(item)).filter(Boolean),
+    },
   };
 };
 
@@ -672,6 +1177,18 @@ export const firmwareUnpackerApi = {
     return normalizeTaskEventList(await handleResponse(r));
   },
 
+  /** GET /api/app/firmware-unpacker/tasks/{id}/result */
+  getTaskResult: async (taskId: string): Promise<FirmwareTaskResult> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/result`, { headers: getHeaders() });
+    return normalizeTaskResult(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/tasks/{id}/metrics */
+  getTaskMetrics: async (taskId: string): Promise<FirmwareTaskMetrics> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/metrics`, { headers: getHeaders() });
+    return normalizeTaskMetrics(await handleResponse(r));
+  },
+
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */
   deleteTask: async (taskId: string) => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}`, {
@@ -693,6 +1210,15 @@ export const firmwareUnpackerApi = {
   /** POST /api/app/firmware-unpacker/tasks/{id}/retry */
   retryTask: async (taskId: string) => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(r);
+  },
+
+  /** POST /api/app/firmware-unpacker/tasks/{id}/refresh-result-cache */
+  refreshTaskResultCache: async (taskId: string) => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/refresh-result-cache`, {
       method: 'POST',
       headers: getHeaders(),
     });

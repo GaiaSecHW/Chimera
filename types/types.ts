@@ -2113,6 +2113,7 @@ export interface LlmProviderSummary {
   is_default: boolean;
   api_base: string;
   model: string;
+  model_context_window: number;
   api_key: string;
   organization?: string | null;
   api_version?: string | null;
@@ -2143,6 +2144,7 @@ export interface LlmProviderDetail {
   is_default: boolean;
   api_base: string;
   model: string;
+  model_context_window: number;
   api_key: string;
   organization?: string | null;
   api_version?: string | null;
@@ -2165,6 +2167,7 @@ export interface LlmProviderUpsertRequest {
   is_default: boolean;
   api_base: string;
   model: string;
+  model_context_window: number;
   api_key: string;
   organization?: string | null;
   api_version?: string | null;
@@ -2345,6 +2348,8 @@ export interface AgentIngressRouteInfo {
 export interface AppSaTaskItem {
   task_id: string;
   project_id: string;
+  analysis_mode?: 'binary' | 'source' | null;
+  analysis_mode_label?: string | null;
   task_origin_type?: 'manual' | 'binary_security' | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
@@ -2429,6 +2434,58 @@ export interface AppSaTaskResult {
   warnings: string[];
 }
 
+export interface AppSaEvaluationSummary {
+  task_id?: string;
+  task_status?: string;
+  error?: string | null;
+  generated_at?: string;
+  module_count?: number;
+  completed_module_count?: number;
+  failed_module_count?: number;
+  completed_modules?: string[];
+  failed_modules?: string[];
+  round_count?: number;
+  avg_rounds_per_module?: number;
+  total_duration_ms?: number;
+  avg_duration_ms?: number;
+  total_token_usage?: Record<string, any>;
+  total_tokens?: number;
+  total_cost?: number;
+  stage_summary?: Record<string, Record<string, any>>;
+  effectiveness?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface AppSaEvaluationRound {
+  task_id?: string;
+  module_name?: string;
+  stage?: string;
+  round?: number;
+  stage_round?: number;
+  status?: string;
+  started_at?: string;
+  ended_at?: string;
+  duration_ms?: number;
+  worker?: Record<string, any>;
+  judges?: Array<Record<string, any>>;
+  metrics?: Record<string, any>;
+  effectiveness?: Record<string, any>;
+  module_completed?: boolean;
+  completion_reason?: string;
+  extra?: Record<string, any>;
+  source_path?: string;
+  [key: string]: any;
+}
+
+export interface AppSaTaskEvaluation {
+  task_id: string;
+  status: string;
+  available: boolean;
+  summary?: AppSaEvaluationSummary | null;
+  rounds: AppSaEvaluationRound[];
+  warnings: string[];
+}
+
 export interface AppSaSessionMeta {
   session_id: string;
   session_name: string;
@@ -2472,18 +2529,6 @@ export interface AppSaSessionSnapshot {
   line_count: number;
 }
 
-export interface AppSaSessionWsMessage {
-  type: 'session_snapshot' | 'session_delta' | 'session_rotated' | 'error' | 'pong';
-  path?: string;
-  session_meta?: Record<string, any>;
-  warnings?: string[];
-  line_count?: number;
-  event_count?: number;
-  offset?: number;
-  events?: AppSaSessionEvent[];
-  message?: string;
-}
-
 export interface AppSaTaskCreateRequest {
   project_id: string;
   task_name: string;
@@ -2492,6 +2537,7 @@ export interface AppSaTaskCreateRequest {
   task_description?: string;
   prompt_template_id?: string;
   prompt_content?: string;
+  analysis_mode?: 'binary' | 'source';
   analyse_targets?: string[];
   binary_arch?: string[];
   task_origin_type?: 'manual' | 'binary_security';

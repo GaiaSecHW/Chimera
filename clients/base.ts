@@ -91,6 +91,7 @@ export const handleResponse = async (response: Response) => {
     const errorData = typeof parsed === 'string' ? { detail: parsed } : (parsed || { detail: 'Unknown error' });
     const message = extractErrorMessage(errorData, response.status);
     const error = new Error(message);
+    (error as any).status = response.status;
     if (errorData.code) (error as any).code = errorData.code;
     if (errorData.details) (error as any).details = errorData.details;
     throw error;

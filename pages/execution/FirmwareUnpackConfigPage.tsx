@@ -23,6 +23,10 @@ const LLM_MODEL_FIELDS: Record<string, string> = {
   llm_config_file_key_skill_author: 'llm_model_skill_author',
   llm_config_file_key_skill_executor: 'llm_model_skill_executor',
 };
+const MAX_RETRIES_ACTION_OPTIONS = [
+  { value: 'success', label: '通过', description: '达到最大重试次数后，任务按成功收敛。' },
+  { value: 'failed', label: '失败', description: '达到最大重试次数后，任务按失败收敛。' },
+] as const;
 
 function fmtTime(iso: string | null) {
   if (!iso) return '-';
@@ -88,6 +92,8 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
       'reserved_cpu_millis',
       'reserved_memory_mb',
       'max_concurrent',
+      'max_retries',
+      'max_retries_reached_action',
       ...LLM_ROLE_FIELDS.map((item) => item.key),
       ...Object.values(LLM_MODEL_FIELDS),
     ]),
@@ -103,6 +109,10 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     configMap.get('manual_max_concurrent'),
   ].filter((item): item is FirmwareConfigEntry => Boolean(item));
   const genericConfigItems = configItems.filter((item) => !concurrencyConfigKeys.has(item.key));
+  const maxRetriesEntry = configMap.get('max_retries') || null;
+  const maxRetriesActionEntry = configMap.get('max_retries_reached_action') || null;
+  const maxRetriesValue = draftValues.max_retries ?? maxRetriesEntry?.value ?? '';
+  const maxRetriesActionValue = draftValues.max_retries_reached_action ?? maxRetriesActionEntry?.value ?? 'success';
   const llmRoleConfigs = LLM_ROLE_FIELDS.map((field) => ({
     ...field,
     entry: configMap.get(field.key) || null,
@@ -453,6 +463,70 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             ))}
           </div>
         </div>
+
+        {(maxRetriesEntry || maxRetriesActionEntry) && (
+          <div className="mb-5 rounded-2xl bg-white p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-rose-600">Retry Policy</p>
+                <p className="mt-2 text-sm font-semibold text-slate-800">最大重试次数与超限默认动作</p>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              控制通用 LLM 解包链路的最大轮次，以及当结果落为 `max_retries_reached` 时，默认按通过还是失败收敛。
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {maxRetriesEntry && (
+                <ConfigRow
+                  entry={maxRetriesEntry}
+                  value={maxRetriesValue}
+                  onChange={(value) => updateDraftValue(maxRetriesEntry.key, value)}
+                  dirty={maxRetriesValue !== maxRetriesEntry.value}
+                />
+              )}
+              {maxRetriesActionEntry && (
+                <div className="rounded-2xl bg-white p-5">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-xs font-black font-mono text-slate-700">{maxRetriesActionEntry.key}</span>
+                    <span className="text-[10px] rounded-full bg-slate-100 px-1.5 py-0.5 text-slate-500">{maxRetriesActionEntry.value_type}</span>
+                    {maxRetriesActionValue !== maxRetriesActionEntry.value && <span className="text-[10px] font-semibold text-amber-600">未保存</span>}
+                  </div>
+                  {maxRetriesActionEntry.description && (
+                    <p className="mb-3 text-[11px] text-slate-400">{maxRetriesActionEntry.description}</p>
+                  )}
+                  <div className="space-y-2">
+                    {MAX_RETRIES_ACTION_OPTIONS.map((option) => {
+                      const active = maxRetriesActionValue === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => updateDraftValue(maxRetriesActionEntry.key, option.value)}
+                          className={`flex w-full items-start justify-between rounded-xl border px-4 py-3 text-left transition ${
+                            active
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                          }`}
+                        >
+                          <div>
+                            <div className="text-sm font-bold">{option.label}</div>
+                            <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</div>
+                          </div>
+                          <span className={`rounded-full px-2 py-1 text-[10px] font-black ${active ? 'bg-white/10 text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'}`}>
+                            {option.value}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-[10px] text-slate-400">
+                    更新于 {fmtTime(maxRetriesActionEntry.updated_at)}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {configLoading && configItems.length === 0 ? (
           <div className="flex items-center justify-center py-8 text-slate-400">

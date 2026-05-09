@@ -79,13 +79,18 @@ const AppShell: React.FC = () => {
   const [vulnServiceHealthy, setVulnServiceHealthy] = useState<boolean | null>(null);
   const [configCenterServiceHealthy, setConfigCenterServiceHealthy] = useState<boolean | null>(null);
 
-  const navigateToView = useCallback((nextView: ViewType | string) => {
+  const navigateToView = useCallback((nextView: ViewType | string, options?: { path?: string }) => {
     const normalizedView = String(nextView || DEFAULT_VIEW);
+    const requestedPath = String(options?.path || '').trim();
+    const targetUrl =
+      normalizedView === 'project-file-explorer' && requestedPath
+        ? `/${normalizedView}?path=${encodeURIComponent(requestedPath)}`
+        : `/${normalizedView}`;
     setCurrentView(normalizedView);
-    if (!isServiceTerminalWindow && location.pathname !== `/${normalizedView}`) {
-      navigate(`/${normalizedView}`);
+    if (!isServiceTerminalWindow && `${location.pathname}${location.search}` !== targetUrl) {
+      navigate(targetUrl);
     }
-  }, [isServiceTerminalWindow, location.pathname, navigate]);
+  }, [isServiceTerminalWindow, location.pathname, location.search, navigate]);
 
   const normalizeServiceHealth = (status?: AggregatedServiceHealth | null): boolean | null => {
     if (status === 'healthy') return true;
@@ -134,10 +139,27 @@ const AppShell: React.FC = () => {
         view?: string;
         helperKey?: string;
         processMonitorServiceKey?: string;
+        b2sTaskId?: string;
+        systemAnalysisTaskId?: string;
+        entryAnalysisTaskId?: string;
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
+        path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
+      const requestedPath = String(detail?.path || '').trim();
+      const b2sTaskId = String(detail?.b2sTaskId || '').trim();
+      if (b2sTaskId) {
+        setActiveB2STaskId(b2sTaskId);
+      }
+      const systemAnalysisTaskId = String(detail?.systemAnalysisTaskId || '').trim();
+      if (systemAnalysisTaskId) {
+        setActiveSystemAnalysisTaskId(systemAnalysisTaskId);
+      }
+      const entryAnalysisTaskId = String(detail?.entryAnalysisTaskId || '').trim();
+      if (entryAnalysisTaskId) {
+        setActiveEntryAnalysisTaskId(entryAnalysisTaskId);
+      }
       const binarySecurityTaskId = String(detail?.binarySecurityTaskId || '').trim();
       if (binarySecurityTaskId) {
         setActiveBinarySecurityTaskId(binarySecurityTaskId);
@@ -147,7 +169,7 @@ const AppShell: React.FC = () => {
         setActiveSourceSecurityTaskId(sourceSecurityTaskId);
       }
       if (nextView) {
-        navigateToView(nextView);
+        navigateToView(nextView, requestedPath ? { path: requestedPath } : undefined);
       }
       const helperKey = String(detail?.helperKey || '').trim();
       if (helperKey) {

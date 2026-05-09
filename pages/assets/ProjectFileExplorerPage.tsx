@@ -35,6 +35,7 @@ import {
   SecurityProject,
 } from '../../types/types';
 import { api } from '../../clients/api';
+import { useLocation } from 'react-router-dom';
 import { showConfirm, showPrompt } from '../../components/DialogService';
 
 type NodeSource = 'virtual' | 'fileserver' | 'pvc';
@@ -270,6 +271,27 @@ const inferPreviewModeByName = (filename: string, contentType?: string | null): 
 };
 
 const buildFsPathNodeId = (path: string) => `fs:path:${encodeURIComponent(path)}`;
+const normalizeFsPathForOpen = (input: string) => {
+  const raw = (input || '').trim();
+  if (!raw) return '/';
+  const prefixed = raw.startsWith('/') ? raw : `/${raw}`;
+  const normalized = prefixed.replace(/\/{2,}/g, '/');
+  return normalized || '/';
+};
+const getUrlRequestedFsPath = () => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search || '');
+  let raw = params.get('path');
+  if (!raw) {
+    const hash = window.location.hash || '';
+    const queryPart = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : '';
+    if (queryPart) {
+      raw = new URLSearchParams(queryPart).get('path');
+    }
+  }
+  if (!raw) return null;
+  return normalizeFsPathForOpen(raw);
+};
 const parentFsPath = (path: string) => {
   const raw = (path || '/').trim() || '/';
   if (raw === '/') return '/';
@@ -493,6 +515,7 @@ const collectTreeFromDirectoryHandle = async (
 };
 
 export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: SecurityProject[] }> = ({ projectId, projects }) => {
+  const location = useLocation();
   const assetApi = api.domains.assets;
   const projectName = projects.find((item) => item.id === projectId)?.name || projectId;
 
@@ -523,6 +546,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     if (p) sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
     return p;
   });
+  const [pendingUrlPath, setPendingUrlPath] = useState<string | null>(() => getUrlRequestedFsPath());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<UnifiedExplorerNode | null>(null);
@@ -569,8 +593,13 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   // Listen for navigate-to-path requests from other views (e.g. task output button)
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ view?: string }>).detail;
+      const detail = (e as CustomEvent<{ view?: string; path?: string }>).detail;
       if (detail?.view !== 'project-file-explorer') return;
+      const eventPath = String(detail?.path || '').trim();
+      if (eventPath) {
+        setPendingUrlPath(normalizeFsPathForOpen(eventPath));
+        return;
+      }
       const p = sessionStorage.getItem('secflow:fileExplorerNavigatePath');
       if (p) {
         sessionStorage.removeItem('secflow:fileExplorerNavigatePath');
@@ -599,6 +628,92 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
     void openNode(node);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingNavPath, loading]);
+
+  // Open target path from URL query: ?path=/a/b/c (directory or file)
+  useEffect(() => {
+    if (!pendingUrlPath || loading || !projectId) return;
+    const requestedPath = normalizeFsPathForOpen(pendingUrlPath);
+    setPendingUrlPath(null);
+
+    const openRequestedPath = async () => {
+      const loadFsDirectoryChain = async (path: string) => {
+        const parts = path.split('/').filter(Boolean);
+        let currentPath = '/';
+        let currentNodeId = `fs:root:${projectId}`;
+
+        // Ensure root is loaded first.
+        const rootPayload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, '/');
+        const rootDirs = rootPayload.directories.map((item) => toFsPathNode(projectId, item));
+        const rootFiles = rootPayload.files.map((item) => toFsPathNode(projectId, item));
+        updateNodeChildren(currentNodeId, sortNodes(rootDirs.concat(rootFiles)));
+        setExpandedNodes((prev) => {
+          const next = new Set(prev);
+          next.add(currentNodeId);
+          return next;
+        });
+
+        for (const part of parts) {
+          const nextPath = currentPath === '/' ? `/${part}` : `${currentPath}/${part}`;
+          const payload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, nextPath);
+          const directories = payload.directories.map((item) => toFsPathNode(projectId, item));
+          const files = payload.files.map((item) => toFsPathNode(projectId, item));
+          const nextNodeId = buildFsPathNodeId(nextPath);
+
+          // Current parent should already exist in tree from previous iteration.
+          updateNodeChildren(nextNodeId, sortNodes(directories.concat(files)));
+          setExpandedNodes((prev) => {
+            const next = new Set(prev);
+            next.add(nextNodeId);
+            return next;
+          });
+
+          currentPath = nextPath;
+          currentNodeId = nextNodeId;
+          setSelectedNodeId(nextNodeId);
+        }
+      };
+
+      try {
+        // 1) Try as directory first
+        if (requestedPath === '/') {
+          await openNode({
+            id: `fs:root:${projectId}`,
+            source: 'virtual',
+            nodeType: 'fileserver-root',
+            name: '项目文件（Fileserver）',
+            hasChildren: true,
+            children: [],
+            projectId,
+          });
+          return;
+        }
+        await loadFsDirectoryChain(requestedPath);
+        return;
+      } catch {
+        // 2) Not a directory: try as file
+      }
+
+      const parentPath = parentFsPath(requestedPath);
+      await loadFsDirectoryChain(parentPath === '/' ? '/' : parentPath);
+      const parentPayload = await assetApi.fileserver.getProjectFilesystemChildren(projectId, parentPath);
+      const target = parentPayload.files.map((item) => toFsPathNode(projectId, item)).find((item) => item.path === requestedPath);
+      if (!target) {
+        alert(`URL 指定路径不存在：${requestedPath}`);
+        return;
+      }
+      await openFileNode(target);
+    };
+
+    void openRequestedPath();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingUrlPath, loading, projectId]);
+
+  useEffect(() => {
+    const parsed = getUrlRequestedFsPath();
+    if (parsed) {
+      setPendingUrlPath(parsed);
+    }
+  }, [location.pathname, location.search, location.hash]);
 
   const clearPreview = () => {
     setPreviewFile(null);

@@ -34,6 +34,10 @@ const statusTone = (status: string) => {
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     case 'dispatching':
       return 'bg-sky-50 text-sky-700 border-sky-200';
+    case 'pending_module_confirmation':
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'waiting_confirmation':
+      return 'bg-amber-50 text-amber-700 border-amber-200';
     default:
       return 'bg-blue-50 text-blue-700 border-blue-200';
   }
@@ -74,6 +78,24 @@ const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'vuln_scan', label: '数据流漏洞挖掘最大并行数' },
 ];
 const SOURCE_ARCHIVE_ACCEPT = '.zip,.tar,.tar.gz,.tgz,.tar.bz2,.tbz2,.tar.xz,.txz';
+const MODULE_RISK_OPTIONS = ['高', '中', '低'] as const;
+const MODULE_SELECTION_OPTIONS = [
+  { value: 'auto', label: '按风险自动推进' },
+  { value: 'manual_confirm', label: '系统分析后人工确认' },
+] as const;
+
+const isDirectoryAlreadyExistsError = (error: any) => {
+  const message = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+  return (
+    error?.status === 409 ||
+    code.includes('conflict') ||
+    code.includes('already') ||
+    message.includes('已存在') ||
+    message.includes('already exists') ||
+    message.includes('conflict')
+  );
+};
 
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
@@ -97,6 +119,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
+  const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
+  const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>({
     firmware_unpack: 4,
     system_analysis: 4,
@@ -236,7 +260,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       success: items.filter((item) => item.status === 'success').length,
       partial: items.filter((item) => item.status === 'partial_success').length,
       failed: items.filter((item) => item.status === 'failed').length,
-      modules: items.reduce((sum, item) => sum + (item.high_risk_module_count || 0), 0),
+      modules: items.reduce((sum, item) => sum + (item.selected_module_count || 0), 0),
       entries: items.reduce((sum, item) => sum + (item.entry_count || 0), 0),
       vulns: items.reduce((sum, item) => sum + (item.vuln_result_count || 0), 0),
       firmwares: items.reduce((sum, item) => sum + (item.firmware_item_count || 0), 0),
@@ -261,6 +285,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setUploadSpeed({});
     setMaxRetries(2);
     setContinueOnFailure(true);
+    setModuleSelectionMode('auto');
+    setModuleRiskLevels(['高']);
     setStageParallelism({
       system_analysis: 4,
       entry_analysis: 4,
@@ -340,6 +366,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setCreateError(`存在重复${isSourceTask ? '路径' : '文件名'}: ${duplicateNames[0]}`);
       return;
     }
+    if (moduleRiskLevels.length === 0) {
+      setCreateError('至少选择一个模块风险等级');
+      return;
+    }
     setSubmitting(true);
     try {
       const inputFiles: BinarySecurityInputFile[] = files.map((file) => ({
@@ -358,32 +388,31 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           max_retries_per_item: maxRetries,
           continue_on_item_failure: continueOnFailure,
           stage_parallelism: stageParallelism,
+          module_selection_mode: moduleSelectionMode,
+          module_risk_levels: moduleRiskLevels,
         },
       });
       const inputDir = created.summary?.input_dir || `/app/secflow-app-binary-security/${prepared.task_id}/input`;
       const tempUploadDir = created.summary?.temp_upload_dir || `/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
-      const ensureProjectPath = async (path: string) => {
-        if (!path || ensuredDirs.has(path)) return;
-        const parts = path.split('/').filter(Boolean);
-        let current = '';
+      const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
+        if (!basePath || !relativeDir) return;
+        const normalizedBase = basePath.replace(/^\/+|\/+$/g, '');
+        const parts = relativeDir.split('/').filter(Boolean);
+        let current = normalizedBase;
         for (const part of parts) {
           current = current ? `${current}/${part}` : part;
           if (ensuredDirs.has(current)) continue;
           try {
             await fileserverApi.createProjectFilesystemDirectory({ project_id: projectId, path: current });
           } catch (error: any) {
-            if (!String(error?.message || '').includes('已存在')) {
+            if (!isDirectoryAlreadyExistsError(error)) {
               throw error;
             }
           }
           ensuredDirs.add(current);
         }
       };
-      // Backend is expected to prepare these directories, but source uploads
-      // fail hard if fileserver-side temp dir is missing. Create them here as
-      // a client-side safeguard before uploading.
-      await ensureProjectPath(isSourceTask ? tempUploadDir : inputDir);
       for (const file of files) {
         const rel = isSourceTask ? file.name : file.name;
         const normalizedRel = rel.replace(/\\/g, '/');
@@ -391,7 +420,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         const uploadBase = isSourceTask ? tempUploadDir : inputDir;
         const uploadPath = relDir ? `${uploadBase}/${relDir}` : uploadBase;
         if (relDir) {
-          await ensureProjectPath(`app/secflow-app-binary-security/${prepared.task_id}/${isSourceTask ? `run/upload-tmp/${relDir}` : `input/${relDir}`}`);
+          await ensureUploadSubdirectories(uploadBase, relDir);
         }
         await fileserverApi.uploadProjectFilesystemFile(
           {
@@ -568,7 +597,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 xl:grid-cols-6">
                       <div>当前阶段：<span className="font-bold text-slate-900">{formatStageLabel(item.current_stage)}</span></div>
                       <div>{isSourceTask ? '源码文件' : '固件数'}：<span className="font-bold text-slate-900">{item.firmware_item_count}</span></div>
-                      <div>{isSourceTask ? '高危模块' : '已解包'}：<span className="font-bold text-slate-900">{isSourceTask ? item.high_risk_module_count : item.unpacked_firmware_count}</span></div>
+                      <div>{isSourceTask ? '已选模块' : '已解包'}：<span className="font-bold text-slate-900">{isSourceTask ? item.selected_module_count : item.unpacked_firmware_count}</span></div>
                       <div>{isSourceTask ? '入口数量' : '解包失败'}：<span className="font-bold text-slate-900">{isSourceTask ? item.entry_count : item.failed_firmware_count}</span></div>
                       <div>漏洞结果：<span className="font-bold text-slate-900">{item.vuln_result_count}</span></div>
                       <div>开始时间：<span className="font-bold text-slate-900">{fmt(item.started_at)}</span></div>
@@ -693,6 +722,50 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">模块推进方式</div>
+                    <div className="mt-3 grid gap-2">
+                      {MODULE_SELECTION_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                          <input
+                            type="radio"
+                            name="moduleSelectionMode"
+                            checked={moduleSelectionMode === option.value}
+                            onChange={() => setModuleSelectionMode(option.value)}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-black text-slate-900">后续分析模块风险等级</div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {MODULE_RISK_OPTIONS.map((risk) => (
+                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={moduleRiskLevels.includes(risk)}
+                            onChange={(event) => {
+                              setModuleRiskLevels((current) => {
+                                if (event.target.checked) return current.includes(risk) ? current : current.concat(risk);
+                                return current.filter((item) => item !== risk);
+                              });
+                            }}
+                          />
+                          {risk}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      先按风险等级筛选候选模块；若选择人工确认，系统分析完成后再由人工从候选模块中确认最终推进集合。
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -1,3 +1,4 @@
+import http from 'http';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -11,8 +12,20 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
         proxy: {
+          '/api/app/dataflow-analyse': {
+            target: 'http://172.31.23.188:18090',
+            changeOrigin: true,
+            secure: false,
+          },
           '/api': {
             target: 'http://secflow.ai.icsl.huawei.com',
+            changeOrigin: true,
+            secure: false,
+            ws: true,
+            agent: new http.Agent({ keepAlive: false }),
+          },
+          '/ws': {
+            target: 'ws://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
             ws: true,

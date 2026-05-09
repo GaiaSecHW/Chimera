@@ -123,7 +123,7 @@ function extractFsRelPath(outputPath: string, projectId: string): string | null 
 
 function openInFileExplorer(fsPath: string) {
   sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer' } }));
+  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: fsPath } }));
 }
 
 function formatEventLog(evt: AppDfaStageEvent): string {
@@ -187,15 +187,43 @@ interface EntryItem {
   taint_vars: string;
 }
 
+/** Extract clean comma-separated variable names from new-format taint field.
+ * Input examples:  aHeader`🔴 `aMessage`🔴   /   aSingle`🟡   /   aConfig`⚠️
+ */
+function extractTaintVars(raw: string): string {
+  const matches = [...raw.matchAll(/`?(\w+)`[^\w\s]/gu)];
+  if (matches.length > 0) return matches.map((m) => m[1]).join(',');
+  // Fallback: strip backticks and emoji, collapse whitespace
+  return raw.replace(/`/g, '').replace(/[^\w\s,]/gu, '').replace(/\s+/g, ' ').trim();
+}
+
 function parseFunctionsList(content: string): EntryItem[] {
-  return content
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith('#'))
-    .map((raw) => {
-      const parts = raw.split(':');
-      return { raw, source_file: parts[0] ?? '', function_name: parts[1] ?? '', line_hint: parts[2] ?? '', taint_vars: parts[3] ?? '' };
-    });
+  const result: EntryItem[] = [];
+  for (const raw of content.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    // Skip section-header lines: "污点变量:#::文件"
+    if (line.startsWith('\u6c61\u70b9\u53d8\u91cf')) continue;
+    const dIdx = line.indexOf('::');
+    if (dIdx !== -1) {
+      // New format: <taint_raw>:<seq_num>::<source_file>
+      const source_file = line.slice(dIdx + 2);
+      const left = line.slice(0, dIdx); // "<taint_raw>:<seq_num>"
+      const lastColon = left.lastIndexOf(':');
+      const taint_raw = lastColon !== -1 ? left.slice(0, lastColon) : left;
+      const line_hint = lastColon !== -1 ? left.slice(lastColon + 1) : '';
+      // Skip entries with no taint vars (无 / 无（...）)
+      if (!taint_raw.trim() || /^\u65e0/.test(taint_raw)) continue;
+      const taint_vars = extractTaintVars(taint_raw);
+      result.push({ raw: line, source_file, function_name: '', line_hint, taint_vars });
+    } else {
+      // Old format: file:func:line:taint
+      if (line.startsWith('#')) continue;
+      const parts = line.split(':');
+      result.push({ raw: line, source_file: parts[0] ?? '', function_name: parts[1] ?? '', line_hint: parts[2] ?? '', taint_vars: parts[3] ?? '' });
+    }
+  }
+  return result;
 }
 
 const emptyForm = {
@@ -835,7 +863,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                     <p className="text-xs text-slate-500 mb-1">从清单中选择入口函数（共 {entryList.length} 项）</p>
                     <select
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-mono"
-                      value={form.function_name ? `${form.source_file}:${form.function_name}:${form.line_hint}` : ''}
+                      value={form.source_file ? `${form.source_file}:${form.function_name}:${form.line_hint}` : ''}
                       onChange={(e) => {
                         const v = e.target.value;
                         const found = entryList.find((i) => `${i.source_file}:${i.function_name}:${i.line_hint}` === v);
@@ -847,7 +875,9 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                       <option value="">-- 请选择入口函数 --</option>
                       {entryList.map((item, idx) => (
                         <option key={idx} value={`${item.source_file}:${item.function_name}:${item.line_hint}`}>
-                          {item.source_file}  {item.function_name}  {item.line_hint}
+                          {item.function_name
+                            ? `${item.source_file}  ${item.function_name}  ${item.line_hint}`
+                            : `#${item.line_hint}  ${item.source_file}`}
                           {item.taint_vars ? `  [${item.taint_vars}]` : ''}
                         </option>
                       ))}

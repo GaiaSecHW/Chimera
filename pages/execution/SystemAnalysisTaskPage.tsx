@@ -40,9 +40,12 @@ const emptyForm = {
   input_path: '',
   output_path: '',
   task_description: '',
+  analysis_mode: 'binary' as 'binary' | 'source',
   analyse_targets: ['all'] as string[],
   binary_arch: ['all'] as string[],
 };
+
+const SOURCE_MODE_DEFAULT_TARGETS = ['source', 'script', 'config'];
 
 export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
@@ -57,11 +60,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
+  const [analysisModeFilter, setAnalysisModeFilter] = useState<'' | 'binary' | 'source'>('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const [form, setForm] = useState(emptyForm);
+  const [analysisScopeTouched, setAnalysisScopeTouched] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
@@ -74,6 +79,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       sessionStorage.removeItem('secflow:systemAnalysisInputPath');
       setCreateModalOpen(true);
       setForm({ ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` });
+      setAnalysisScopeTouched(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,7 +97,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     if (!projectId) return;
     setLoading(true);
     try {
-      const resp = await appApi.listTasks({ project_id: projectId, page: p, per_page: perPage });
+      const resp = await appApi.listTasks({ project_id: projectId, page: p, per_page: perPage, analysis_mode: analysisModeFilter });
       setTasks(resp.items || []);
       setTotal(resp.total || 0);
     } catch (err: any) {
@@ -99,9 +105,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage]);
+  }, [projectId, page, perPage, analysisModeFilter]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage]);
+  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, analysisModeFilter]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -165,11 +171,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         input_path: form.input_path.trim(),
         output_path: form.output_path.trim() || undefined,
         task_description: form.task_description.trim() || undefined,
+        analysis_mode: form.analysis_mode,
         analyse_targets: form.analyse_targets.length > 0 && !form.analyse_targets.includes('all') ? form.analyse_targets : undefined,
         binary_arch: form.binary_arch.length > 0 && !form.binary_arch.includes('all') ? form.binary_arch : undefined,
       });
       notify(`任务创建成功: ${resp.task_id}`, 'success');
       setForm({ ...emptyForm });
+      setAnalysisScopeTouched(false);
       setCreateModalOpen(false);
       setPage(1);
       await loadTasks(1);
@@ -335,6 +343,16 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               秒
             </label>
             <select
+              value={analysisModeFilter}
+              onChange={(e) => { setAnalysisModeFilter(e.target.value as '' | 'binary' | 'source'); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="分析模式筛选"
+            >
+              <option value="">全部模式</option>
+              <option value="binary">二进制模式</option>
+              <option value="source">源码模式</option>
+            </select>
+            <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
               className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
@@ -345,7 +363,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` }); }}
+            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` }); setAnalysisScopeTouched(false); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
               <Plus size={13} />新建任务
             </button>
@@ -531,6 +549,41 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 />
               </label>
 
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold text-slate-600">分析模式</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {[
+                    { value: 'binary' as const, label: '二进制模式', desc: '面向固件、解包目录、二进制与系统组件分析' },
+                    { value: 'source' as const, label: '源码模式', desc: '面向源码项目、代码模块、脚本与配置分析' },
+                  ].map((option) => (
+                    <label
+                      key={option.value}
+                      className={`cursor-pointer rounded-xl border px-3 py-2 text-sm ${
+                        form.analysis_mode === option.value ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-slate-50 text-slate-600'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="analysis_mode"
+                        className="mr-2"
+                        checked={form.analysis_mode === option.value}
+                        onChange={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            analysis_mode: option.value,
+                            analyse_targets: !analysisScopeTouched
+                              ? (option.value === 'source' ? SOURCE_MODE_DEFAULT_TARGETS : ['all'])
+                              : prev.analyse_targets,
+                          }));
+                        }}
+                      />
+                      <span className="font-semibold">{option.label}</span>
+                      <span className="mt-1 block text-xs opacity-75">{option.desc}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               {/* Per-task analysis scope */}
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold text-slate-600">分析范围 <span className="font-normal text-slate-400">(覆盖服务默认配置，默认 all)</span></p>
@@ -544,6 +597,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                           className="rounded"
                           checked={form.analyse_targets.includes(t)}
                           onChange={(e) => {
+                            setAnalysisScopeTouched(true);
                             setForm((p) => {
                               let next = e.target.checked
                                 ? (t === 'all' ? ['all'] : p.analyse_targets.filter(x => x !== 'all').concat(t))
