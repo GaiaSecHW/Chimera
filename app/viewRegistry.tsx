@@ -50,6 +50,7 @@ import { DataflowVulnConfigPage, DataflowVulnTaskDetailPage, DataflowVulnTaskLis
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
+import { TerminalSecurityIpcVulnPage } from '../pages/execution/TerminalSecurityIpcVulnPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
@@ -418,6 +419,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'binary-security-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
+    case 'terminal-security-ipc-vuln':
+      return <TerminalSecurityIpcVulnPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
