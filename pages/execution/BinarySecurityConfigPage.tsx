@@ -7,6 +7,14 @@ import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 
 type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis' | 'entry-analysis';
+const ORCHESTRATOR_STAGE_FIELDS = [
+  { key: 'firmware_unpack', label: '固件解包' },
+  { key: 'system_analysis', label: '系统分析' },
+  { key: 'binary_to_source', label: '二进制逆向' },
+  { key: 'entry_analysis', label: '入口分析' },
+  { key: 'dataflow_analysis', label: '数据流分析' },
+  { key: 'vuln_scan', label: '数据流漏洞挖掘' },
+] as const;
 
 export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution;
@@ -17,15 +25,29 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
   const [message, setMessage] = useState<string | null>(null);
   const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
   const [dispatchTimeoutSeconds, setDispatchTimeoutSeconds] = useState(60);
+  const [maxRetriesPerItem, setMaxRetriesPerItem] = useState(2);
+  const [continueOnItemFailure, setContinueOnItemFailure] = useState(true);
+  const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(
+    Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
+  );
 
   const load = async () => {
     setLoading(true);
     setError(null);
     setMessage(null);
     try {
-      const data = await executionApi.binarySecurity.getServiceConfig();
-      setMaxConcurrentTasks(data.config.max_concurrent_tasks);
-      setDispatchTimeoutSeconds(data.config.dispatch_timeout_seconds);
+      const [serviceData, projectData] = await Promise.all([
+        executionApi.binarySecurity.getServiceConfig(),
+        executionApi.binarySecurity.getProjectConfig(projectId),
+      ]);
+      setMaxConcurrentTasks(serviceData.config.max_concurrent_tasks);
+      setDispatchTimeoutSeconds(serviceData.config.dispatch_timeout_seconds);
+      setMaxRetriesPerItem(projectData.config.max_retries_per_item);
+      setContinueOnItemFailure(projectData.config.continue_on_item_failure);
+      setStageParallelism({
+        ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
+        ...(projectData.config.stage_parallelism || {}),
+      });
     } catch (e: any) {
       setError(e?.message || '加载配置失败');
     } finally {
@@ -35,19 +57,40 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [projectId]);
 
   const save = async () => {
     setSaving(true);
     setError(null);
     setMessage(null);
     try {
-      const data = await executionApi.binarySecurity.updateServiceConfig({
-        max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 50)),
-        dispatch_timeout_seconds: Math.max(10, Math.min(600, Number(dispatchTimeoutSeconds) || 60)),
+      const normalizedStageParallelism = Object.fromEntries(
+        ORCHESTRATOR_STAGE_FIELDS.map((field) => [
+          field.key,
+          Math.max(1, Math.min(32, Number(stageParallelism[field.key]) || 4)),
+        ]),
+      );
+      const [serviceData, projectData] = await Promise.all([
+        executionApi.binarySecurity.updateServiceConfig({
+          max_concurrent_tasks: Math.max(1, Math.min(200, Number(maxConcurrentTasks) || 50)),
+          dispatch_timeout_seconds: Math.max(10, Math.min(600, Number(dispatchTimeoutSeconds) || 60)),
+        }),
+        executionApi.binarySecurity.updateProjectConfig(projectId, {
+          max_stage_parallelism: Math.max(...Object.values(normalizedStageParallelism)),
+          max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
+          continue_on_item_failure: continueOnItemFailure,
+          stage_parallelism: normalizedStageParallelism,
+          stage_options: Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, { enabled: true }])),
+        }),
+      ]);
+      setMaxConcurrentTasks(serviceData.config.max_concurrent_tasks);
+      setDispatchTimeoutSeconds(serviceData.config.dispatch_timeout_seconds);
+      setMaxRetriesPerItem(projectData.config.max_retries_per_item);
+      setContinueOnItemFailure(projectData.config.continue_on_item_failure);
+      setStageParallelism({
+        ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
+        ...(projectData.config.stage_parallelism || {}),
       });
-      setMaxConcurrentTasks(data.config.max_concurrent_tasks);
-      setDispatchTimeoutSeconds(data.config.dispatch_timeout_seconds);
       setMessage('配置已保存');
     } catch (e: any) {
       setError(e?.message || '保存失败');
@@ -164,6 +207,50 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
                 className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
               />
             </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl bg-white p-5">
+            <div className="text-sm font-bold text-slate-700">任务创建默认策略</div>
+            <div className="mt-2 text-xs text-slate-500">
+              创建二进制任务和源码任务时，阶段并发配置、子任务重试次数和失败处理策略默认取自这里。
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+              {ORCHESTRATOR_STAGE_FIELDS.map((field) => (
+                <div key={field.key}>
+                  <div className="mb-2 text-sm font-bold text-slate-700">{field.label}</div>
+                  <input
+                    type="number"
+                    min={1}
+                    max={32}
+                    disabled={loading || saving}
+                    value={stageParallelism[field.key] ?? 4}
+                    onChange={(e) => setStageParallelism((current) => ({ ...current, [field.key]: Number(e.target.value || 4) }))}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                  />
+                </div>
+              ))}
+              <div>
+                <div className="mb-2 text-sm font-bold text-slate-700">子任务默认重试次数</div>
+                <input
+                  type="number"
+                  min={0}
+                  max={20}
+                  disabled={loading || saving}
+                  value={maxRetriesPerItem}
+                  onChange={(e) => setMaxRetriesPerItem(Number(e.target.value || 0))}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                />
+              </div>
+            </div>
+            <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                checked={continueOnItemFailure}
+                onChange={(e) => setContinueOnItemFailure(e.target.checked)}
+                disabled={loading || saving}
+              />
+              子任务失败时继续推进其他子任务
+            </label>
           </div>
 
           <div className="mt-6 flex items-center justify-end gap-3">

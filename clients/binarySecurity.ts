@@ -384,6 +384,15 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
+  updateProjectConfig: async (projectId: string, payload: BinarySecurityProjectConfig['config']): Promise<BinarySecurityProjectConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(resp);
+  },
+
   getServiceConfig: async (): Promise<BinarySecurityServiceConfig> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/service/config`, {
       headers: getHeaders(),

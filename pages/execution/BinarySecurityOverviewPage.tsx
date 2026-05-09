@@ -83,6 +83,14 @@ const MODULE_SELECTION_OPTIONS = [
   { value: 'auto', label: '按风险自动推进' },
   { value: 'manual_confirm', label: '系统分析后人工确认' },
 ] as const;
+const DEFAULT_STAGE_PARALLELISM = {
+  firmware_unpack: 4,
+  system_analysis: 4,
+  binary_to_source: 4,
+  entry_analysis: 4,
+  dataflow_analysis: 4,
+  vuln_scan: 4,
+};
 
 const isDirectoryAlreadyExistsError = (error: any) => {
   const message = String(error?.message || '').toLowerCase();
@@ -117,18 +125,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [defaultStageParallelism, setDefaultStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
+  const [defaultMaxRetries, setDefaultMaxRetries] = useState(2);
+  const [defaultContinueOnFailure, setDefaultContinueOnFailure] = useState(true);
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
-  const [stageParallelism, setStageParallelism] = useState<Record<string, number>>({
-    firmware_unpack: 4,
-    system_analysis: 4,
-    binary_to_source: 4,
-    entry_analysis: 4,
-    dataflow_analysis: 4,
-    vuln_scan: 4,
-  });
+  const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
 
   const isSourceTask = taskType === 'source';
   const pageTitle = isSourceTask ? '源码扫描' : '二进制安全';
@@ -152,11 +156,20 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setLoading(true);
     setError(null);
     try {
-      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
+      const [data, projectConfig] = await Promise.all([
+        executionApi.binarySecurity.listTasks(projectId, undefined, taskType),
+        executionApi.binarySecurity.getProjectConfig(projectId),
+      ]);
       setItems(data.items || []);
       setRunningCount(data.running_count || 0);
       setQueuedCount(data.queued_count || 0);
       setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
+      setDefaultStageParallelism({
+        ...DEFAULT_STAGE_PARALLELISM,
+        ...(projectConfig.config.stage_parallelism || {}),
+      });
+      setDefaultMaxRetries(projectConfig.config.max_retries_per_item ?? 2);
+      setDefaultContinueOnFailure(projectConfig.config.continue_on_item_failure ?? true);
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
@@ -283,16 +296,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setFiles([]);
     setUploadProgress({});
     setUploadSpeed({});
-    setMaxRetries(2);
-    setContinueOnFailure(true);
+    setMaxRetries(defaultMaxRetries);
+    setContinueOnFailure(defaultContinueOnFailure);
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
     setStageParallelism({
-      system_analysis: 4,
-      entry_analysis: 4,
-      dataflow_analysis: 4,
-      vuln_scan: 4,
-      ...(isSourceTask ? {} : { firmware_unpack: 4, binary_to_source: 4 }),
+      ...defaultStageParallelism,
     });
     setCreateError(null);
   };
