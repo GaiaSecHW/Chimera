@@ -51,6 +51,11 @@ export interface FirmwareUnpackTask {
   generated_skill_path: string | null;
   generated_skill_status: string | null;
   promotion_success_count: number | null;
+  skill_generation_status: string | null;
+  skill_generation_error: string | null;
+  skill_generation_job_id: string | null;
+  skill_generation_started_at: string | null;
+  skill_generation_completed_at: string | null;
   created_at: string | null;
   started_at: string | null;
   completed_at: string | null;
@@ -169,7 +174,13 @@ export interface FirmwareTaskResultSummary {
   matched_skill: string | null;
   fallback_to_llm: boolean;
   generated_skill_path: string | null;
+  generated_skill_status: string | null;
   promotion_success_count: number;
+  skill_generation_status: string | null;
+  skill_generation_error: string | null;
+  skill_generation_job_id: string | null;
+  skill_generation_started_at: string | null;
+  skill_generation_completed_at: string | null;
   executor_rounds: number;
   session_count: number;
   event_count: number;
@@ -549,6 +560,11 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
     generated_skill_path: asNullableString(record.generated_skill_path),
     generated_skill_status: asNullableString(record.generated_skill_status),
     promotion_success_count: asNullableNumber(record.promotion_success_count),
+    skill_generation_status: asNullableString(record.skill_generation_status),
+    skill_generation_error: asNullableString(record.skill_generation_error),
+    skill_generation_job_id: asNullableString(record.skill_generation_job_id),
+    skill_generation_started_at: asNullableString(record.skill_generation_started_at),
+    skill_generation_completed_at: asNullableString(record.skill_generation_completed_at),
     created_at: asNullableString(record.created_at),
     started_at: asNullableString(record.started_at),
     completed_at: asNullableString(record.completed_at),
@@ -726,7 +742,13 @@ const normalizeTaskResult = (value: unknown): FirmwareTaskResult => {
       matched_skill: asNullableString(summary.matched_skill),
       fallback_to_llm: asBoolean(summary.fallback_to_llm),
       generated_skill_path: asNullableString(summary.generated_skill_path),
+      generated_skill_status: asNullableString(summary.generated_skill_status),
       promotion_success_count: asNumber(summary.promotion_success_count, 0),
+      skill_generation_status: asNullableString(summary.skill_generation_status),
+      skill_generation_error: asNullableString(summary.skill_generation_error),
+      skill_generation_job_id: asNullableString(summary.skill_generation_job_id),
+      skill_generation_started_at: asNullableString(summary.skill_generation_started_at),
+      skill_generation_completed_at: asNullableString(summary.skill_generation_completed_at),
       executor_rounds: asNumber(summary.executor_rounds, 0),
       session_count: asNumber(summary.session_count, 0),
       event_count: asNumber(summary.event_count, 0),
