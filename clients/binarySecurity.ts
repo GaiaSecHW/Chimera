@@ -101,6 +101,51 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     completed_at?: string | null;
     updated_at?: string | null;
   }>;
+  overview_nodes: BinarySecurityOverviewNode[];
+}
+
+export interface BinarySecurityOverviewBusinessDetail {
+  total_items: number;
+  success_items: number;
+  failed_items: number;
+  skipped_items: number;
+  running_items: number;
+  cancelled_items: number;
+  downstream_status_counts: Record<string, number>;
+  downstream_services: string[];
+  representative_item_key?: string | null;
+  representative_downstream_task_id?: string | null;
+}
+
+export interface BinarySecurityOverviewArchiveDetail {
+  job_count: number;
+  success_count: number;
+  failed_count: number;
+  running_count: number;
+  applying_count: number;
+  pending_count: number;
+  first_created_at?: string | null;
+  last_updated_at?: string | null;
+  duration_seconds?: number | null;
+  latest_error?: string | null;
+  jobs: BinarySecurityTaskDetail['archive_jobs'];
+}
+
+export interface BinarySecurityOverviewNode {
+  node_id: string;
+  node_type: 'business' | 'archive' | string;
+  stage_name: string;
+  sequence_no: number;
+  title: string;
+  status: string;
+  status_label: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  updated_at?: string | null;
+  last_error?: string | null;
+  retry_supported: boolean;
+  retry_reason?: string | null;
+  detail: BinarySecurityOverviewBusinessDetail | BinarySecurityOverviewArchiveDetail;
 }
 
 export interface BinarySecurityModuleSelection {

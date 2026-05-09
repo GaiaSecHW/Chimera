@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Info, Loader2, PauseCircle, RefreshCw, Sparkles, Trash2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { BinarySecurityModuleSelection, BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityModuleSelection, BinarySecurityOverviewNode, BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { api } from '../../clients/api';
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
@@ -75,6 +75,8 @@ const statusTone = (status: string) => {
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     case 'running':
       return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'applying':
+      return 'bg-violet-50 text-violet-700 border-violet-200';
     case 'dispatching':
       return 'bg-sky-50 text-sky-700 border-sky-200';
     case 'queued':
@@ -97,6 +99,8 @@ const stageNodeTone = (status: string, selected: boolean) => {
       return `border-rose-300 bg-rose-50 text-rose-800 ${selectedDepth}`;
     case 'running':
       return `border-blue-300 bg-blue-50 text-blue-800 ${selectedDepth}`;
+    case 'applying':
+      return `border-violet-300 bg-violet-50 text-violet-800 ${selectedDepth}`;
     case 'cancelled':
       return `border-slate-300 bg-slate-100 text-slate-600 ${selectedDepth}`;
     case 'waiting_confirmation':
@@ -118,6 +122,8 @@ const stageConnectorTone = (status: string) => {
       return 'text-rose-400';
     case 'running':
       return 'text-blue-400';
+    case 'applying':
+      return 'text-violet-400';
     default:
       return 'text-slate-400';
   }
@@ -215,6 +221,10 @@ const ARCHIVE_STATUS_LABELS: Record<string, string> = {
 };
 
 const archiveStatusLabel = (status: string) => ARCHIVE_STATUS_LABELS[status] || status || 'pending';
+const BUSINESS_STAGE_CARD_WIDTH = 148;
+const ARCHIVE_STAGE_CARD_WIDTH = 108;
+const STAGE_CONNECTOR_WIDTH = 20;
+const STAGE_FLOW_VERTICAL_BREAKPOINT = 820;
 
 const durationLabel = (started?: string | null, ended?: string | null) => {
   if (!started) return '-';
@@ -468,31 +478,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const updateLayout = () => {
       const width = node.clientWidth;
       if (!width) return;
-      if (isSourceTask) {
-        const compactCardWidth = 156;
-        const compactConnectorWidth = 28;
-        const nodeCount = Math.max(1, stageSequence.length * 2);
-        const compactTotalWidth = compactCardWidth * nodeCount + compactConnectorWidth * Math.max(0, nodeCount - 1);
-        if (width < Math.min(760, compactTotalWidth)) {
-          setStageFlowLayout({
-            mode: 'vertical',
-            cardWidth: Math.max(0, width),
-            connectorWidth: 32,
-          });
-          return;
-        }
-        setStageFlowLayout({
-          mode: 'horizontal',
-          cardWidth: compactCardWidth,
-          connectorWidth: compactConnectorWidth,
-        });
-        return;
-      }
-      const compactCardWidth = 156;
-      const compactConnectorWidth = 28;
-      const nodeCount = Math.max(1, stageSequence.length * 2);
-      const compactTotalWidth = compactCardWidth * nodeCount + compactConnectorWidth * Math.max(0, nodeCount - 1);
-      if (width < compactTotalWidth) {
+      if (width < STAGE_FLOW_VERTICAL_BREAKPOINT) {
         setStageFlowLayout({
           mode: 'vertical',
           cardWidth: Math.max(0, width),
@@ -500,11 +486,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         });
         return;
       }
-
       setStageFlowLayout({
         mode: 'horizontal',
-        cardWidth: compactCardWidth,
-        connectorWidth: compactConnectorWidth,
+        cardWidth: BUSINESS_STAGE_CARD_WIDTH,
+        connectorWidth: STAGE_CONNECTOR_WIDTH,
       });
     };
 
@@ -512,7 +497,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const observer = new ResizeObserver(() => updateLayout());
     observer.observe(node);
     return () => observer.disconnect();
-  }, [activeTab, isSourceTask, stageSequence]);
+  }, [activeTab, stageSequence]);
 
   const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete') => {
     if (!projectId || !taskId) return;
@@ -635,104 +620,26 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
-  const stageCards = useMemo(() => {
-    const summaryMap = new Map((detail?.stage_summaries || []).map((stage) => [stage.stage_name, stage]));
-    const itemStats = detail?.item_stats || {};
-    return stageSequence.map((stageName, index) => {
-      const summary = summaryMap.get(stageName);
-      const counts = itemStats[stageName] || {};
-      const inferredStatus = counts.total && counts.failed && !counts.running
-        ? 'failed'
-        : counts.total && counts.success === counts.total
-          ? 'success'
-          : detail?.status === 'running' && detail?.current_stage === stageName
-            ? 'running'
-            : 'pending';
-      return {
-        stage_name: stageName,
-        sequence_no: index + 1,
-        label: STAGE_LABELS[stageName] || stageName,
-        status: summary?.status || inferredStatus,
-        total_items: summary?.total_items ?? counts.total ?? 0,
-        success_items: summary?.success_items ?? counts.success ?? 0,
-        failed_items: summary?.failed_items ?? counts.failed ?? 0,
-        skipped_items: summary?.skipped_items ?? counts.skipped ?? 0,
-        running_items: summary?.running_items ?? counts.running ?? 0,
-        last_error: summary?.last_error ?? null,
-        has_run: Boolean(summary),
-        retryable: Boolean(summary?.retry_supported),
-        retry_reason: summary?.retry_reason ?? null,
-        stale: staleStages.has(stageName),
-      };
-    });
-  }, [detail, stageSequence]);
-
-  const archiveJobsByStage = useMemo(() => {
-    const grouped = new Map<string, ArchiveJob[]>();
-    for (const job of detail?.archive_jobs || []) {
-      const items = grouped.get(job.stage_name) || [];
-      items.push(job);
-      grouped.set(job.stage_name, items);
-    }
-    return grouped;
-  }, [detail?.archive_jobs]);
-
-  const archiveCards = useMemo(() => {
-    return stageSequence.map((stageName, index) => {
-      const jobs = archiveJobsByStage.get(stageName) || [];
-      const success = jobs.filter((job) => job.archive_status === 'success').length;
-      const failed = jobs.filter((job) => job.archive_status === 'failed').length;
-      const running = jobs.filter((job) => ['running', 'archived', 'applying'].includes(job.archive_status)).length;
-      const pending = jobs.filter((job) => job.archive_status === 'pending').length;
-      const status = jobs.length === 0
-        ? 'pending'
-        : failed > 0
-          ? 'failed'
-          : running > 0
-            ? 'running'
-            : pending > 0
-              ? 'pending'
-              : success === jobs.length
-                ? 'success'
-                : 'pending';
-      const createdTimes = jobs.map((job) => job.created_at).filter(Boolean).sort() as string[];
-      const updatedTimes = jobs.map((job) => job.completed_at || job.updated_at || job.started_at || job.created_at).filter(Boolean).sort() as string[];
-      return {
-        kind: 'archive' as const,
-        id: `archive:${stageName}`,
-        stage_name: stageName,
-        sequence_no: index + 1,
-        label: '产物归档',
-        status,
-        total_jobs: jobs.length,
-        success_jobs: success,
-        failed_jobs: failed,
-        running_jobs: running,
-        pending_jobs: pending,
-        first_created_at: createdTimes[0] || null,
-        last_updated_at: updatedTimes[updatedTimes.length - 1] || null,
-        jobs,
-      };
-    });
-  }, [archiveJobsByStage, stageSequence]);
-
   const stageDisplayNodes = useMemo(() => {
-    const archiveByStage = new Map(archiveCards.map((card) => [card.stage_name, card]));
-    return stageCards.flatMap((stage) => [
-      { kind: 'business' as const, id: `business:${stage.stage_name}`, ...stage },
-      archiveByStage.get(stage.stage_name)!,
-    ]);
-  }, [archiveCards, stageCards]);
+    return ((detail?.overview_nodes || []) as BinarySecurityOverviewNode[]).map((node) => ({
+      ...node,
+      id: node.node_id,
+      kind: node.node_type === 'archive' ? 'archive' as const : 'business' as const,
+      label: node.title,
+      retryable: node.retry_supported,
+      stale: staleStages.has(node.stage_name),
+    }));
+  }, [detail?.overview_nodes, staleStages]);
 
-  const selectedStageCard = useMemo(
-    () => stageCards.find((stage) => stage.stage_name === selectedStage) || null,
-    [selectedStage, stageCards],
+  const selectedArchiveNode = useMemo(
+    () => stageDisplayNodes.find((node) => node.node_type === 'archive' && node.stage_name === selectedStage) || null,
+    [selectedStage, stageDisplayNodes],
   );
-  const selectedArchiveCard = useMemo(
-    () => archiveCards.find((stage) => stage.stage_name === selectedStage) || null,
-    [archiveCards, selectedStage],
-  );
-  const selectedArchiveJobs = selectedArchiveCard?.jobs || [];
+  const selectedArchiveJobs = useMemo(() => {
+    if (!selectedArchiveNode || selectedArchiveNode.node_type !== 'archive') return [] as ArchiveJob[];
+    const detailPayload = selectedArchiveNode.detail as BinarySecurityOverviewNode['detail'] & { jobs?: ArchiveJob[] };
+    return detailPayload.jobs || [];
+  }, [selectedArchiveNode]);
   const requiresModuleConfirmation = detail?.status === 'pending_module_confirmation' && Boolean(moduleSelection?.requires_confirmation);
 
   const filteredStageItems = useMemo(() => {
@@ -1130,6 +1037,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <div
                       role="button"
                       tabIndex={0}
+                      title={stage.kind === 'archive' ? `产物归档 · ${STAGE_LABELS[stage.stage_name] || stage.stage_name} · ${archiveStatusLabel(stage.status)}` : undefined}
+                      aria-label={stage.kind === 'archive' ? `产物归档 ${STAGE_LABELS[stage.stage_name] || stage.stage_name} ${archiveStatusLabel(stage.status)}` : undefined}
                       onClick={() => {
                         setSelectedStage(stage.stage_name);
                         setSelectedNodeKind(stage.kind);
@@ -1141,86 +1050,86 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           setSelectedNodeKind(stage.kind);
                         }
                       }}
-                      style={stageFlowLayout.mode === 'horizontal' ? { width: `${stageFlowLayout.cardWidth}px` } : undefined}
-                      className={`rounded-[1.75rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${stageFlowLayout.mode === 'horizontal' ? 'shrink-0' : 'w-full'} ${stageNodeTone(stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind)}`}
+                      style={stageFlowLayout.mode === 'horizontal'
+                        ? { width: `${stage.kind === 'archive' ? ARCHIVE_STAGE_CARD_WIDTH : stageFlowLayout.cardWidth}px` }
+                        : undefined}
+                      className={`rounded-[1.75rem] border text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${
+                        stage.kind === 'archive'
+                          ? stageFlowLayout.mode === 'horizontal'
+                            ? 'flex h-[96px] shrink-0 flex-col justify-between p-3'
+                            : 'mx-auto flex min-h-[96px] w-full max-w-[220px] flex-col justify-between p-3'
+                          : stageFlowLayout.mode === 'horizontal'
+                            ? 'shrink-0 p-4'
+                            : 'w-full p-4'
+                      } ${stageNodeTone(stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind)}`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">
-                            {stage.kind === 'archive' ? `Archive ${stage.sequence_no}` : `Stage ${stage.sequence_no}`}
-                          </div>
-                          <div className="mt-2 text-base font-black">{stage.label}</div>
-                          {stage.kind === 'archive' ? (
-                            <div className="mt-1 text-[11px] font-bold opacity-70">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
-                          {stage.kind === 'business' && stage.stale ? (
-                            <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
-                              已过期
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
                       {stage.kind === 'archive' ? (
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
-                          <div>任务 {stage.total_jobs}</div>
-                          <div>完成 {stage.success_jobs}</div>
-                          <div>失败 {stage.failed_jobs}</div>
-                          <div>处理中 {stage.running_jobs + stage.pending_jobs}</div>
-                        </div>
+                        <>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">Archive</div>
+                            <div className="h-2.5 w-2.5 rounded-full border border-current bg-current/15" />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-sm font-black leading-none">产物归档</div>
+                            <div className="text-[11px] font-semibold leading-tight opacity-75">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
+                          </div>
+                          <div className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-center text-[10px] font-black leading-none">
+                            {stage.status_label || archiveStatusLabel(stage.status)}
+                          </div>
+                        </>
                       ) : (
-                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
-                          <div>总数 {stage.total_items}</div>
-                          <div>成功 {stage.success_items}</div>
-                          <div>失败 {stage.failed_items}</div>
-                          <div>运行 {stage.running_items}</div>
-                        </div>
+                        <>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">
+                                {`Stage ${stage.sequence_no}`}
+                              </div>
+                              <div className="mt-2 text-base font-black">{stage.label}</div>
+                            </div>
+                            <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
+                          </div>
+                          <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
+                            <div>总数 {(stage.detail as any)?.total_items ?? 0}</div>
+                            <div>成功 {(stage.detail as any)?.success_items ?? 0}</div>
+                            <div>失败 {(stage.detail as any)?.failed_items ?? 0}</div>
+                            <div>运行 {(stage.detail as any)?.running_items ?? 0}</div>
+                          </div>
+                          <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
+                            {stage.status_label || stage.status}
+                          </div>
+                          <div className="mt-3 flex items-center justify-between gap-2">
+                            {staleStages.has(stage.stage_name) ? (
+                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700">
+                                结果已过期
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-semibold opacity-70">点击查看子任务</span>
+                            )}
+                            <button
+                              type="button"
+                              title={stage.retryable ? undefined : stage.retry_reason || '当前阶段不可安全重试'}
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                stage.retryable
+                                  ? 'bg-slate-900 text-white'
+                                  : 'bg-slate-200 text-slate-500'
+                              }`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (!stage.retryable || actionLoading !== '') return;
+                                void retryStage(stage.stage_name);
+                              }}
+                              disabled={!stage.retryable || actionLoading !== ''}
+                            >
+                              {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
+                            </button>
+                          </div>
+                          {!stage.retryable && stage.retry_reason ? (
+                            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+                              {stage.retry_reason}
+                            </div>
+                          ) : null}
+                        </>
                       )}
-                      <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
-                        {stage.kind === 'archive' ? archiveStatusLabel(stage.status) : stage.status}
-                      </div>
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        {stage.kind === 'archive' ? (
-                          <span className="text-[11px] font-semibold opacity-70">点击查看归档任务</span>
-                        ) : staleStages.has(stage.stage_name) ? (
-                          <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700">
-                            结果已过期
-                          </span>
-                        ) : (
-                          <span className="text-[11px] font-semibold opacity-70">点击查看子任务</span>
-                        )}
-                        {stage.kind === 'business' ? (
-                          <button
-                            type="button"
-                            title={stage.retryable ? undefined : stage.retry_reason || '当前阶段不可安全重试'}
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                              stage.retryable
-                                ? 'bg-slate-900 text-white'
-                                : 'bg-slate-200 text-slate-500'
-                            }`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (!stage.retryable || actionLoading !== '') return;
-                              void retryStage(stage.stage_name);
-                            }}
-                            disabled={!stage.retryable || actionLoading !== ''}
-                          >
-                            {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
-                          </button>
-                        ) : null}
-                      </div>
-                      {stage.kind === 'archive' && stage.total_jobs > 0 ? (
-                        <div className="mt-2 text-[11px] font-semibold opacity-70">
-                          {fmtTime(stage.first_created_at)} {'->'} {fmtTime(stage.last_updated_at)}
-                        </div>
-                      ) : null}
-                      {stage.kind === 'business' && !stage.retryable && stage.retry_reason ? (
-                        <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
-                          {stage.retry_reason}
-                        </div>
-                      ) : null}
                     </div>
                     {index < stageDisplayNodes.length - 1 ? (
                       stageFlowLayout.mode === 'horizontal' ? (
@@ -1260,23 +1169,23 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <div className="mt-5 space-y-3">
               {selectedNodeKind === 'archive' ? (
                 <>
-                  {selectedArchiveCard ? (
+                  {selectedArchiveNode ? (
                     <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                         <div className="text-xs font-bold text-slate-400">归档任务</div>
-                        <div className="mt-1 text-lg font-black text-slate-900">{selectedArchiveCard.total_jobs}</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{(selectedArchiveNode.detail as any)?.job_count ?? 0}</div>
                       </div>
                       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                         <div className="text-xs font-bold text-emerald-500">完成</div>
-                        <div className="mt-1 text-lg font-black text-emerald-800">{selectedArchiveCard.success_jobs}</div>
+                        <div className="mt-1 text-lg font-black text-emerald-800">{(selectedArchiveNode.detail as any)?.success_count ?? 0}</div>
                       </div>
                       <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
                         <div className="text-xs font-bold text-rose-500">失败</div>
-                        <div className="mt-1 text-lg font-black text-rose-800">{selectedArchiveCard.failed_jobs}</div>
+                        <div className="mt-1 text-lg font-black text-rose-800">{(selectedArchiveNode.detail as any)?.failed_count ?? 0}</div>
                       </div>
                       <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
                         <div className="text-xs font-bold text-blue-500">总耗时</div>
-                        <div className="mt-1 text-lg font-black text-blue-800">{durationLabel(selectedArchiveCard.first_created_at, selectedArchiveCard.last_updated_at)}</div>
+                        <div className="mt-1 text-lg font-black text-blue-800">{durationLabel((selectedArchiveNode.detail as any)?.first_created_at, (selectedArchiveNode.detail as any)?.last_updated_at)}</div>
                       </div>
                     </div>
                   ) : null}
