@@ -1898,8 +1898,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         }
         this.currentRunData = data;
         this.currentSummary = {
-          run_id: data.run_id || data.history_run_id || '',
-          history_run_id: data.history_run_id,
+          run_id: data.run_id || '',
           project_id: data.project_id,
           source_type: data.source_type,
           source_key: data.source_key,
@@ -1986,7 +1985,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
     currentRunId() {
-      return String(this.currentRunData?.run_id || this.currentRunData?.history_run_id || this.currentSummary?.run_id || this.currentSummary?.history_run_id || '');
+      return String(this.currentRunData?.run_id || this.currentSummary?.run_id || '');
     },
 
     isActiveRunStatus(statusText: string) {
@@ -2077,7 +2076,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const commandDisplay = this.runCommandDisplay(data);
       const rows = [
-        ['Run ID', data.run_id || data.history_run_id || '-'],
+        ['Run ID', data.run_id || '-'],
         ['Task ID', data.linked_task_id || '-'],
         ['Execution ID', data.linked_execution_id || '-'],
         ['Profile ID', data.profile_id || '-'],

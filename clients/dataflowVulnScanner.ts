@@ -112,7 +112,6 @@ export interface DataflowScanTaskAttempt {
   attempt_no: number;
   status: string;
   run_id?: string | null;
-  history_run_id?: string | null;
   owner_pod_id?: string | null;
   lease_expires_at?: string | null;
   process_pid?: number | null;
@@ -210,7 +209,6 @@ export interface DataflowRunFile {
 
 export interface DataflowRunSummary {
   run_id: string;
-  history_run_id?: string;
   project_id: string;
   source_type: string;
   source_key: string;
@@ -274,7 +272,6 @@ export interface DataflowRunCycle {
 
 export interface DataflowRunResolve {
   run_id: string;
-  history_run_id?: string;
   project_id: string;
   run_name: string;
   root_path: string;
@@ -286,7 +283,6 @@ export interface DataflowRunResolve {
 export interface DataflowRunMutationResponse {
   success: boolean;
   run_id: string;
-  history_run_id?: string;
   project_id: string;
   status: string;
   message: string;
@@ -303,15 +299,6 @@ export interface DataflowRunRetryPayload {
   provider?: string | null;
   clean_workspace?: boolean;
 }
-
-export type DataflowHistoryRunSummary = DataflowRunSummary;
-export type DataflowHistoryRunFile = DataflowRunFile;
-export type DataflowHistoryRunSession = DataflowRunSession;
-export type DataflowHistoryRunDetail = DataflowRunDetail;
-export type DataflowHistoryRunCycle = DataflowRunCycle;
-export type DataflowHistoryRunResolve = DataflowRunResolve;
-export type DataflowHistoryRunMutationResponse = DataflowRunMutationResponse;
-export type DataflowHistoryRunRetryPayload = DataflowRunRetryPayload;
 
 const withQuery = (path: string, params: Record<string, string | number | undefined | null>) => {
   const query = new URLSearchParams();
@@ -485,48 +472,6 @@ export const dataflowVulnScannerApi = {
     });
     return handleResponse(response);
   },
-
-  listHistoryRuns: async (projectId: string): Promise<DataflowHistoryRunSummary[]> =>
-    dataflowVulnScannerApi.listRuns(projectId),
-
-  resolveHistoryRun: async (projectId: string, runName: string, rootPath: string): Promise<DataflowHistoryRunResolve> =>
-    dataflowVulnScannerApi.resolveRun(projectId, runName, rootPath),
-
-  resolveHistoryRunByTask: async (projectId: string, taskId: string, executionId?: string | null): Promise<DataflowHistoryRunResolve> =>
-    dataflowVulnScannerApi.resolveRunByTask(projectId, taskId, executionId),
-
-  getHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunDetail> =>
-    dataflowVulnScannerApi.getRun(historyRunId),
-
-  getHistoryRunCycle: async (historyRunId: string, cycle: number): Promise<DataflowHistoryRunCycle> =>
-    dataflowVulnScannerApi.getRunCycle(historyRunId, cycle),
-
-  listHistoryRunSessions: async (historyRunId: string): Promise<DataflowHistoryRunSession[]> =>
-    dataflowVulnScannerApi.listRunSessions(historyRunId),
-
-  listHistoryRunFiles: async (historyRunId: string, limit = 1200): Promise<DataflowHistoryRunFile[]> =>
-    dataflowVulnScannerApi.listRunFiles(historyRunId, limit),
-
-  getHistoryRunFile: async (historyRunId: string, path: string): Promise<{ path: string; type: string; content: string }> =>
-    dataflowVulnScannerApi.getRunFile(historyRunId, path),
-
-  getHistoryRunSessionFile: async (historyRunId: string, path: string): Promise<Record<string, any>> =>
-    dataflowVulnScannerApi.getRunSessionFile(historyRunId, path),
-
-  getHistoryRunLog: async (historyRunId: string, lines = 300): Promise<{ content: string }> =>
-    dataflowVulnScannerApi.getRunLog(historyRunId, lines),
-
-  adoptHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> =>
-    dataflowVulnScannerApi.adoptRun(historyRunId),
-
-  cancelHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> =>
-    dataflowVulnScannerApi.cancelRun(historyRunId),
-
-  retryHistoryRun: async (historyRunId: string, payload: DataflowHistoryRunRetryPayload = {}): Promise<DataflowHistoryRunMutationResponse> =>
-    dataflowVulnScannerApi.retryRun(historyRunId, payload),
-
-  deleteHistoryRun: async (historyRunId: string): Promise<DataflowHistoryRunMutationResponse> =>
-    dataflowVulnScannerApi.deleteRun(historyRunId),
 
   cancelTask: async (taskId: string): Promise<DataflowScanTask> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/cancel`, {

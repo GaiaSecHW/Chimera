@@ -207,9 +207,9 @@ const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
-const buildRunDetailPath = (run: Pick<DataflowFileserverRunSummary, 'name' | 'run_id' | 'history_run_id' | 'root_path'>) => {
+const buildRunDetailPath = (run: Pick<DataflowFileserverRunSummary, 'name' | 'run_id' | 'root_path'>) => {
   const params = new URLSearchParams();
-  const runId = run.run_id || run.history_run_id || '';
+  const runId = run.run_id || '';
   if (runId) params.set('run_id', runId);
   params.set('fileserver_run', run.name);
   params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
@@ -218,7 +218,7 @@ const buildRunDetailPath = (run: Pick<DataflowFileserverRunSummary, 'name' | 'ru
 
 const runResolveToRouteTarget = (resolved: DataflowRunResolve) => ({
   name: resolved.run_name,
-  run_id: resolved.run_id || resolved.history_run_id || '',
+  run_id: resolved.run_id || '',
   root_path: resolved.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
 });
 
@@ -228,16 +228,18 @@ const taskRunSummary = (task: DataflowScanTask): Partial<DataflowFileserverRunSu
     : (task.latest_run && typeof task.latest_run === 'object' ? task.latest_run : {});
 
 const taskRunLocator = (task: DataflowScanTask): Partial<DataflowFileserverRunSummary> => {
+  const summary = taskRunSummary(task);
   const explicitPath = String(task.run_path || '').trim();
   const pathParts = explicitPath.split('/').filter(Boolean);
   const pathName = pathParts[pathParts.length - 1] || '';
   const pathRoot = pathParts.length > 1 ? `/${pathParts.slice(0, -1).join('/')}` : '';
   return {
-    name: task.run_name || pathName,
-    root_path: task.runs_root || pathRoot,
-    path: task.run_path || '',
+    ...summary,
+    name: task.run_name || summary.name || pathName,
+    root_path: task.runs_root || summary.root_path || pathRoot,
+    path: task.run_path || summary.path || '',
     linked_task_id: task.task_id,
-    linked_execution_id: task.latest_execution_id,
+    linked_execution_id: task.latest_execution_id || summary.linked_execution_id,
   };
 };
 
@@ -465,10 +467,27 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     task: Pick<DataflowScanTask, 'task_id' | 'latest_execution_id'>,
     options?: { retry?: number }
   ) => {
+    let taskForResolve = task;
+    try {
+      const detail = await executionApi.getTask(task.task_id);
+      const run = taskRunLocator(detail);
+      if (run.name && run.root_path) {
+        navigate(buildRunDetailPath(run as DataflowFileserverRunSummary), {
+          state: {
+            fileserverRunSummary: run,
+          },
+        });
+        return true;
+      }
+      taskForResolve = detail;
+    } catch {
+      // Fall through to the resolver endpoint. This keeps old/pending task
+      // links usable even if the task-detail fetch races with creation.
+    }
     const maxAttempts = Math.max(options?.retry ?? 1, 1);
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
-        const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, task.latest_execution_id);
+        const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, taskForResolve.latest_execution_id);
         navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)));
         return true;
       } catch {
@@ -476,7 +495,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       }
       if (attempt + 1 < maxAttempts) await wait(500);
     }
-    const runQuery = task.latest_execution_id ? `?execution_id=${encodeURIComponent(task.latest_execution_id)}` : '';
+    const runQuery = taskForResolve.latest_execution_id ? `?execution_id=${encodeURIComponent(taskForResolve.latest_execution_id)}` : '';
     navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(task.task_id)}${runQuery}`);
     return false;
   };
@@ -898,7 +917,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const taskId = routeTaskId || '';
   const routeRunId = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get('run_id') || params.get('history_run_id') || '';
+    return params.get('run_id') || '';
   }, [location.search]);
   const requestedExecutionId = useMemo(() => new URLSearchParams(location.search).get('execution_id') || '', [location.search]);
   const fileserverRunName = useMemo(() => new URLSearchParams(location.search).get('fileserver_run') || '', [location.search]);
@@ -929,9 +948,21 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     setDetailLoading(true);
     setLoadError('');
     try {
+      const taskDetail = await executionApi.getTask(targetTaskId);
+      const run = taskRunLocator(taskDetail);
+      if (run.name && run.root_path) {
+        navigate(buildRunDetailPath(run as DataflowFileserverRunSummary), {
+          replace: true,
+          state: {
+            fileserverRunSummary: run,
+          },
+        });
+        return;
+      }
+      const executionId = preferredExecutionId || taskDetail.latest_execution_id || '';
       for (let attempt = 0; attempt < 6; attempt += 1) {
         try {
-          const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, preferredExecutionId);
+          const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, executionId);
           navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)), { replace: true });
           return;
         } catch (error: any) {
@@ -962,7 +993,6 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
         if (cancelled) return;
         const params = new URLSearchParams(location.search);
         params.set('run_id', run.run_id || routeRunId);
-        params.delete('history_run_id');
         params.set('fileserver_run', run.name);
         params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
         navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`, {
