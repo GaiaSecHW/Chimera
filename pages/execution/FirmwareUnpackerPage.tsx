@@ -932,7 +932,7 @@ function TaskDetailPanel({
 
   const running = !isTerminal(task.status);
   const canDelete = isTerminal(task.status);
-  const canRetry = task.status === 'failed' || task.status === 'cancelled' || task.status === 'max_retries_reached';
+  const canRetry = task.status === 'success' || task.status === 'failed' || task.status === 'cancelled' || task.status === 'max_retries_reached';
   const metricsHealthItems = metrics
     ? ([
         { label: '任务终态', ok: metrics.health.is_terminal, hint: metrics.health.is_terminal ? '已完成' : '执行中' },
