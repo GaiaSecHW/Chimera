@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FolderOpen, Loader2, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppSaTaskItem } from '../../types/types';
@@ -65,6 +65,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchCancelling, setBatchCancelling] = useState(false);
+  const [batchRestarting, setBatchRestarting] = useState(false);
   const [tasks, setTasks] = useState<AppSaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -292,6 +294,89 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
   };
 
+  const handleBatchCancel = async () => {
+    const activeIds = tasks
+      .filter((task) => selectedTaskIds.has(task.task_id) && (task.status === 'pending' || task.status === 'running'))
+      .map((task) => task.task_id);
+    if (activeIds.length === 0) {
+      notify('已选择任务中没有可停止的等待中或运行中任务', 'error');
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '批量停止任务',
+      message: `确定要停止 ${activeIds.length} 个等待中/运行中的系统分析任务吗？任务记录和输出文件会保留。`,
+      confirmText: '确认停止',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+
+    setBatchCancelling(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const taskId of activeIds) {
+      try {
+        await appApi.cancelTask(taskId);
+        success += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstError) firstError = err?.message || String(err);
+      }
+    }
+    setBatchCancelling(false);
+    await loadTasks(page);
+
+    if (failed === 0) {
+      notify(`批量停止成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量停止完成，成功 ${success} / ${activeIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量停止失败：${firstError || '未知错误'}`, 'error');
+    }
+  };
+
+  const handleBatchRestart = async () => {
+    const restartableIds = tasks
+      .filter((task) => selectedTaskIds.has(task.task_id) && task.status !== 'pending' && task.status !== 'running')
+      .map((task) => task.task_id);
+    if (restartableIds.length === 0) {
+      notify('已选择任务中没有可重试的终态任务', 'error');
+      return;
+    }
+    const skipped = selectedTaskIds.size - restartableIds.length;
+    const confirmed = await showConfirm({
+      title: '批量重试任务',
+      message: `确定要重试 ${restartableIds.length} 个系统分析任务吗？${skipped > 0 ? `将跳过 ${skipped} 个等待中/运行中的任务。` : ''}`,
+      confirmText: '确认重试',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+
+    setBatchRestarting(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const taskId of restartableIds) {
+      try {
+        await appApi.restartTask(taskId);
+        success += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstError) firstError = err?.message || String(err);
+      }
+    }
+    setBatchRestarting(false);
+    await loadTasks(page);
+
+    if (failed === 0) {
+      notify(`批量重试成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量重试完成，成功 ${success} / ${restartableIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量重试失败：${firstError || '未知错误'}`, 'error');
+    }
+  };
+
   const totalPages = Math.ceil(total / perPage);
   const allPageSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
   const hasSelection = selectedTaskIds.size > 0;
@@ -433,7 +518,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         </div>
 
         {hasSelection ? (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3">
             <div className="flex items-center gap-3">
               <label className="inline-flex items-center gap-2 text-sm text-slate-600">
                 <input
@@ -443,16 +528,41 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                 />
                 全选当前页（{tasks.length} 条）
               </label>
-              <span className="text-sm font-semibold text-red-700">已选择 {selectedTaskIds.size} 个任务</span>
+              <span className="text-sm font-semibold text-cyan-700">已选择 {selectedTaskIds.size} 个任务</span>
             </div>
-            <button
-              onClick={() => void handleBatchDelete()}
-              disabled={batchDeleting}
-              className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
-            >
-              {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-              批量删除（{selectedTaskIds.size}）
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => void handleBatchCancel()}
+                disabled={batchCancelling || batchDeleting || batchRestarting}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+              >
+                {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                批量停止
+              </button>
+              <button
+                onClick={() => void handleBatchRestart()}
+                disabled={batchRestarting || batchCancelling || batchDeleting}
+                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+              >
+                {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                批量重试
+              </button>
+              <button
+                onClick={() => setSelectedTaskIds(new Set())}
+                disabled={batchDeleting || batchCancelling || batchRestarting}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                清除选择
+              </button>
+              <button
+                onClick={() => void handleBatchDelete()}
+                disabled={batchDeleting || batchCancelling || batchRestarting}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                批量删除（{selectedTaskIds.size}）
+              </button>
+            </div>
           </div>
         ) : null}
 

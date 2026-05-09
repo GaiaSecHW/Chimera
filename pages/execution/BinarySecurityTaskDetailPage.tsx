@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Info, Loader2, PauseCircle, RefreshCw, Sparkles, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Info, Loader2, PauseCircle, RefreshCw, Sparkles, Trash2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { BinarySecurityModuleSelection, BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
@@ -195,6 +195,40 @@ type DownstreamTaskState = {
 };
 
 type DetailTab = 'overview' | 'stages' | 'timeline' | 'artifacts';
+type StageNodeKind = 'business' | 'archive';
+type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
+
+const ARCHIVE_EVENT_LABELS: Record<string, string> = {
+  downstream_archive_job_queued: '归档已排队',
+  downstream_archive_job_reused: '复用归档任务',
+  downstream_archive_job_completed: '归档完成',
+  downstream_output_copy_skipped: '归档跳过',
+};
+
+const ARCHIVE_STATUS_LABELS: Record<string, string> = {
+  pending: '等待归档',
+  running: '归档中',
+  archived: '状态应用中',
+  applying: '状态应用中',
+  success: '归档完成',
+  failed: '归档失败',
+};
+
+const archiveStatusLabel = (status: string) => ARCHIVE_STATUS_LABELS[status] || status || 'pending';
+
+const durationLabel = (started?: string | null, ended?: string | null) => {
+  if (!started) return '-';
+  const startMs = new Date(started).getTime();
+  const endMs = ended ? new Date(ended).getTime() : Date.now();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return '-';
+  const seconds = Math.round((endMs - startMs) / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${rest}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+};
 
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
@@ -205,6 +239,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [artifacts, setArtifacts] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineClearing, setTimelineClearing] = useState(false);
   const [artifactsLoading, setArtifactsLoading] = useState(false);
   const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
@@ -213,6 +248,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
+  const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
   const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
     mode: 'horizontal',
@@ -248,6 +284,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         if (current && nextStageSequence.includes(current)) {
           return current;
         }
+        setSelectedNodeKind('business');
         return task.current_stage && nextStageSequence.includes(task.current_stage) ? task.current_stage : nextStageSequence[0];
       });
     } catch (e: any) {
@@ -286,6 +323,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       setError(e?.message || '加载事件时间线失败');
     } finally {
       setTimelineLoading(false);
+    }
+  };
+
+  const clearTimeline = async () => {
+    if (!projectId || !taskId || timelineClearing) return;
+    const confirmed = await showConfirm({
+      title: '清空事件时间线',
+      message: `将删除当前${isSourceTask ? '源码任务' : '二进制任务'}的全部事件时间线记录。该操作不影响任务状态、阶段结果和产物文件，删除后不可恢复，是否继续？`,
+      confirmText: '确认清空',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setTimelineClearing(true);
+    setError(null);
+    try {
+      await executionApi.binarySecurity.clearTimeline(projectId, taskId);
+      setTimeline([]);
+    } catch (e: any) {
+      setError(e?.message || '清空事件时间线失败');
+    } finally {
+      setTimelineClearing(false);
     }
   };
 
@@ -339,7 +398,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [activeTab, artifacts, artifactsLoading, projectId, taskId]);
 
   useEffect(() => {
-    if (activeTab !== 'stages' || !detail || !projectId || !selectedStage) return;
+    if (activeTab !== 'stages' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
     const stageItems = detail.stage_items.filter((item) => item.stage_name === selectedStage);
     const fetchableItems = stageItems.filter((item) => item.downstream_task_id);
     if (fetchableItems.length === 0) {
@@ -400,7 +459,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => {
       cancelled = true;
     };
-  }, [activeTab, detail, projectId, selectedStage]);
+  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage]);
 
   useEffect(() => {
     const node = stageFlowRef.current;
@@ -412,7 +471,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       if (isSourceTask) {
         const compactCardWidth = 156;
         const compactConnectorWidth = 28;
-        const compactTotalWidth = compactCardWidth * stageSequence.length + compactConnectorWidth * Math.max(0, stageSequence.length - 1);
+        const nodeCount = Math.max(1, stageSequence.length * 2);
+        const compactTotalWidth = compactCardWidth * nodeCount + compactConnectorWidth * Math.max(0, nodeCount - 1);
         if (width < Math.min(760, compactTotalWidth)) {
           setStageFlowLayout({
             mode: 'vertical',
@@ -430,7 +490,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       }
       const compactCardWidth = 156;
       const compactConnectorWidth = 28;
-      const compactTotalWidth = compactCardWidth * stageSequence.length + compactConnectorWidth * Math.max(0, stageSequence.length - 1);
+      const nodeCount = Math.max(1, stageSequence.length * 2);
+      const compactTotalWidth = compactCardWidth * nodeCount + compactConnectorWidth * Math.max(0, nodeCount - 1);
       if (width < compactTotalWidth) {
         setStageFlowLayout({
           mode: 'vertical',
@@ -606,10 +667,72 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     });
   }, [detail, stageSequence]);
 
+  const archiveJobsByStage = useMemo(() => {
+    const grouped = new Map<string, ArchiveJob[]>();
+    for (const job of detail?.archive_jobs || []) {
+      const items = grouped.get(job.stage_name) || [];
+      items.push(job);
+      grouped.set(job.stage_name, items);
+    }
+    return grouped;
+  }, [detail?.archive_jobs]);
+
+  const archiveCards = useMemo(() => {
+    return stageSequence.map((stageName, index) => {
+      const jobs = archiveJobsByStage.get(stageName) || [];
+      const success = jobs.filter((job) => job.archive_status === 'success').length;
+      const failed = jobs.filter((job) => job.archive_status === 'failed').length;
+      const running = jobs.filter((job) => ['running', 'archived', 'applying'].includes(job.archive_status)).length;
+      const pending = jobs.filter((job) => job.archive_status === 'pending').length;
+      const status = jobs.length === 0
+        ? 'pending'
+        : failed > 0
+          ? 'failed'
+          : running > 0
+            ? 'running'
+            : pending > 0
+              ? 'pending'
+              : success === jobs.length
+                ? 'success'
+                : 'pending';
+      const createdTimes = jobs.map((job) => job.created_at).filter(Boolean).sort() as string[];
+      const updatedTimes = jobs.map((job) => job.completed_at || job.updated_at || job.started_at || job.created_at).filter(Boolean).sort() as string[];
+      return {
+        kind: 'archive' as const,
+        id: `archive:${stageName}`,
+        stage_name: stageName,
+        sequence_no: index + 1,
+        label: '产物归档',
+        status,
+        total_jobs: jobs.length,
+        success_jobs: success,
+        failed_jobs: failed,
+        running_jobs: running,
+        pending_jobs: pending,
+        first_created_at: createdTimes[0] || null,
+        last_updated_at: updatedTimes[updatedTimes.length - 1] || null,
+        jobs,
+      };
+    });
+  }, [archiveJobsByStage, stageSequence]);
+
+  const stageDisplayNodes = useMemo(() => {
+    const archiveByStage = new Map(archiveCards.map((card) => [card.stage_name, card]));
+    return stageCards.flatMap((stage) => [
+      { kind: 'business' as const, id: `business:${stage.stage_name}`, ...stage },
+      archiveByStage.get(stage.stage_name)!,
+    ]);
+  }, [archiveCards, stageCards]);
+
   const selectedStageCard = useMemo(
     () => stageCards.find((stage) => stage.stage_name === selectedStage) || null,
     [selectedStage, stageCards],
   );
+  const selectedArchiveCard = useMemo(
+    () => archiveCards.find((stage) => stage.stage_name === selectedStage) || null,
+    [archiveCards, selectedStage],
+  );
+  const selectedArchiveJobs = selectedArchiveCard?.jobs || [];
   const requiresModuleConfirmation = detail?.status === 'pending_module_confirmation' && Boolean(moduleSelection?.requires_confirmation);
 
   const filteredStageItems = useMemo(() => {
@@ -624,6 +747,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       _key: event.id || `${event.event_type || 'event'}-${event.created_at || index}-${index}`,
       _index: index + 1,
       _tone: inferTimelineTone(event),
+      _eventLabel: ARCHIVE_EVENT_LABELS[event.event_type] || event.event_type || 'event',
     }));
   }, [timeline]);
 
@@ -1001,77 +1125,104 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
             <div ref={stageFlowRef} className="mt-6 overflow-x-auto">
               <div className={stageFlowLayout.mode === 'horizontal' ? 'inline-flex items-center justify-start pb-2 pr-2' : 'flex flex-col items-stretch'}>
-                {stageCards.map((stage, index) => (
-                  <React.Fragment key={stage.stage_name}>
+                {stageDisplayNodes.map((stage, index) => (
+                  <React.Fragment key={stage.id}>
                     <div
                       role="button"
                       tabIndex={0}
-                      onClick={() => setSelectedStage(stage.stage_name)}
+                      onClick={() => {
+                        setSelectedStage(stage.stage_name);
+                        setSelectedNodeKind(stage.kind);
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
                           setSelectedStage(stage.stage_name);
+                          setSelectedNodeKind(stage.kind);
                         }
                       }}
                       style={stageFlowLayout.mode === 'horizontal' ? { width: `${stageFlowLayout.cardWidth}px` } : undefined}
-                      className={`rounded-[1.75rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${stageFlowLayout.mode === 'horizontal' ? 'shrink-0' : 'w-full'} ${stageNodeTone(stage.status, selectedStage === stage.stage_name)}`}
+                      className={`rounded-[1.75rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${stageFlowLayout.mode === 'horizontal' ? 'shrink-0' : 'w-full'} ${stageNodeTone(stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind)}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">Stage {stage.sequence_no}</div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">
+                            {stage.kind === 'archive' ? `Archive ${stage.sequence_no}` : `Stage ${stage.sequence_no}`}
+                          </div>
                           <div className="mt-2 text-base font-black">{stage.label}</div>
+                          {stage.kind === 'archive' ? (
+                            <div className="mt-1 text-[11px] font-bold opacity-70">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
+                          ) : null}
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
-                          {stage.stale ? (
+                          {stage.kind === 'business' && stage.stale ? (
                             <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">
                               已过期
                             </span>
                           ) : null}
                         </div>
                       </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
-                        <div>总数 {stage.total_items}</div>
-                        <div>成功 {stage.success_items}</div>
-                        <div>失败 {stage.failed_items}</div>
-                        <div>运行 {stage.running_items}</div>
-                      </div>
+                      {stage.kind === 'archive' ? (
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
+                          <div>任务 {stage.total_jobs}</div>
+                          <div>完成 {stage.success_jobs}</div>
+                          <div>失败 {stage.failed_jobs}</div>
+                          <div>处理中 {stage.running_jobs + stage.pending_jobs}</div>
+                        </div>
+                      ) : (
+                        <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
+                          <div>总数 {stage.total_items}</div>
+                          <div>成功 {stage.success_items}</div>
+                          <div>失败 {stage.failed_items}</div>
+                          <div>运行 {stage.running_items}</div>
+                        </div>
+                      )}
                       <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
-                        {stage.status}
+                        {stage.kind === 'archive' ? archiveStatusLabel(stage.status) : stage.status}
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-2">
-                        {staleStages.has(stage.stage_name) ? (
+                        {stage.kind === 'archive' ? (
+                          <span className="text-[11px] font-semibold opacity-70">点击查看归档任务</span>
+                        ) : staleStages.has(stage.stage_name) ? (
                           <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700">
                             结果已过期
                           </span>
                         ) : (
                           <span className="text-[11px] font-semibold opacity-70">点击查看子任务</span>
                         )}
-                        <button
-                          type="button"
-                          title={stage.retryable ? undefined : stage.retry_reason || '当前阶段不可安全重试'}
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                            stage.retryable
-                              ? 'bg-slate-900 text-white'
-                              : 'bg-slate-200 text-slate-500'
-                          }`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            if (!stage.retryable || actionLoading !== '') return;
-                            void retryStage(stage.stage_name);
-                          }}
-                          disabled={!stage.retryable || actionLoading !== ''}
-                        >
-                          {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
-                        </button>
+                        {stage.kind === 'business' ? (
+                          <button
+                            type="button"
+                            title={stage.retryable ? undefined : stage.retry_reason || '当前阶段不可安全重试'}
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                              stage.retryable
+                                ? 'bg-slate-900 text-white'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (!stage.retryable || actionLoading !== '') return;
+                              void retryStage(stage.stage_name);
+                            }}
+                            disabled={!stage.retryable || actionLoading !== ''}
+                          >
+                            {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
+                          </button>
+                        ) : null}
                       </div>
-                      {!stage.retryable && stage.retry_reason ? (
+                      {stage.kind === 'archive' && stage.total_jobs > 0 ? (
+                        <div className="mt-2 text-[11px] font-semibold opacity-70">
+                          {fmtTime(stage.first_created_at)} {'->'} {fmtTime(stage.last_updated_at)}
+                        </div>
+                      ) : null}
+                      {stage.kind === 'business' && !stage.retryable && stage.retry_reason ? (
                         <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
                           {stage.retry_reason}
                         </div>
                       ) : null}
                     </div>
-                    {index < stageCards.length - 1 ? (
+                    {index < stageDisplayNodes.length - 1 ? (
                       stageFlowLayout.mode === 'horizontal' ? (
                         <div className={`shrink-0 ${stageConnectorTone(stage.status)}`} style={{ width: `${stageFlowLayout.connectorWidth}px` }}>
                           <svg viewBox="0 0 100 24" className="block h-6 w-full overflow-visible" fill="none" aria-hidden="true">
@@ -1097,15 +1248,84 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <div>
-                <h2 className="text-xl font-black text-slate-900">阶段子任务</h2>
+                <h2 className="text-xl font-black text-slate-900">{selectedNodeKind === 'archive' ? '产物归档任务' : '阶段子任务'}</h2>
                 <p className="mt-1 text-sm text-slate-500">
                   当前筛选：
                   <span className="ml-2 font-bold text-slate-900">{STAGE_LABELS[selectedStage] || selectedStage}</span>
+                  {selectedNodeKind === 'archive' ? <span className="ml-2 text-slate-400">/ 产物归档</span> : null}
                 </p>
               </div>
             </div>
 
             <div className="mt-5 space-y-3">
+              {selectedNodeKind === 'archive' ? (
+                <>
+                  {selectedArchiveCard ? (
+                    <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="text-xs font-bold text-slate-400">归档任务</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{selectedArchiveCard.total_jobs}</div>
+                      </div>
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                        <div className="text-xs font-bold text-emerald-500">完成</div>
+                        <div className="mt-1 text-lg font-black text-emerald-800">{selectedArchiveCard.success_jobs}</div>
+                      </div>
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+                        <div className="text-xs font-bold text-rose-500">失败</div>
+                        <div className="mt-1 text-lg font-black text-rose-800">{selectedArchiveCard.failed_jobs}</div>
+                      </div>
+                      <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+                        <div className="text-xs font-bold text-blue-500">总耗时</div>
+                        <div className="mt-1 text-lg font-black text-blue-800">{durationLabel(selectedArchiveCard.first_created_at, selectedArchiveCard.last_updated_at)}</div>
+                      </div>
+                    </div>
+                  ) : null}
+                  {selectedArchiveJobs.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
+                      当前阶段暂无归档记录，等待下游阶段产物归档。
+                    </div>
+                  ) : selectedArchiveJobs.map((job) => (
+                    <div key={job.id} className={`rounded-[1.5rem] border p-5 ${stageNodeTone(job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status, false)}`}>
+                      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(job.archive_status === 'archived' || job.archive_status === 'applying' ? 'running' : job.archive_status)}`}>
+                              {archiveStatusLabel(job.archive_status)}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                              尝试 {job.attempts || 0}
+                            </span>
+                          </div>
+                          <div className="mt-3 break-all text-base font-black text-slate-900">{job.item_key || job.item_id}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-600">
+                          {fmt(job.created_at)} {'->'} {fmt(job.completed_at || job.updated_at)}
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
+                        <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2">
+                          <span className="text-slate-400">下游服务</span>
+                          <div className="mt-1 font-mono text-slate-800">{job.downstream_service || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2">
+                          <span className="text-slate-400">下游任务 ID</span>
+                          <div className="mt-1 break-all font-mono text-slate-800">{job.downstream_task_id || '-'}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 xl:col-span-2">
+                          <span className="text-slate-400">归档路径</span>
+                          <div className="mt-1 break-all font-mono text-slate-800">{job.archive_root || '-'}</div>
+                        </div>
+                      </div>
+                      {job.error_message ? (
+                        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                          {job.error_message}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <>
               {staleStages.has(selectedStage) ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
                   由于上游阶段 {STAGE_LABELS[detail.summary?.stale_from_stage || ''] || detail.summary?.stale_from_stage || '-'} 已重试，当前阶段结果基于旧上游产物。
@@ -1211,6 +1431,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
                 );
               })}
+                </>
+              )}
             </div>
           </section>
             </>
@@ -1223,7 +1445,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <h2 className="text-xl font-black text-slate-900">事件时间线</h2>
                 <p className="mt-1 text-sm text-slate-500">按时间顺序展示最近 80 条编排事件</p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-start gap-2">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">总事件数</div>
                   <div className="mt-1 text-lg font-black text-slate-900">{timeline.length}</div>
@@ -1232,6 +1454,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">展示区间</div>
                   <div className="mt-1 text-sm font-bold text-slate-700">{timelineItems.length > 0 ? `${fmtTime(timelineItems[0].created_at)} -> ${fmtTime(timelineItems[timelineItems.length - 1].created_at)}` : '-'}</div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => void clearTimeline()}
+                  disabled={timelineClearing || timelineLoading || timeline.length === 0}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {timelineClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  清空时间线
+                </button>
               </div>
             </div>
 
@@ -1266,7 +1497,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <div className="min-w-0 flex flex-1 items-center gap-2 overflow-hidden">
                                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                                     <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${tone.badge}`}>
-                                      {event.event_type || 'event'}
+                                      {event._eventLabel}
                                     </span>
                                     {event.stage_name ? (
                                       <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">

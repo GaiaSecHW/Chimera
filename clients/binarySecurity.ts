@@ -85,6 +85,22 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     started_at?: string | null;
     finished_at?: string | null;
   }>;
+  archive_jobs: Array<{
+    id: string;
+    stage_name: string;
+    item_id: string;
+    item_key?: string | null;
+    downstream_service?: string | null;
+    downstream_task_id?: string | null;
+    archive_status: string;
+    archive_root?: string | null;
+    error_message?: string | null;
+    attempts: number;
+    created_at?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    updated_at?: string | null;
+  }>;
 }
 
 export interface BinarySecurityModuleSelection {
@@ -145,6 +161,7 @@ export interface BinarySecurityActionResult {
   message: string;
   cancelled_downstream_count?: number;
   deleted_downstream_count?: number;
+  deleted_event_count?: number;
   cleanup_status?: string | null;
 }
 
@@ -173,6 +190,14 @@ export const binarySecurityApi = {
 
   getTimeline: async (projectId: string, taskId: string): Promise<BinarySecurityTimeline> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  clearTimeline: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline`, {
+      method: 'DELETE',
       headers: getHeaders(),
     });
     return handleResponse(resp);

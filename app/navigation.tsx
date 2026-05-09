@@ -349,10 +349,15 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       ],
     },
     {
+      title: 'WEB安全',
+      items: [
+        { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
+      ],
+    },
+    {
       title: '安全执行',
       items: [
         { id: 'pentest-exec-code', label: '在线代码审计', icon: Code2, requiresProject: true, healthKey: 'codeAuditHealth' },
-        { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
         { id: 'security-assessment', label: '安全评估', icon: ClipboardCheck, requiresProject: true },
         { id: 'pentest-report', label: '测试报告', icon: FileText, requiresProject: true },
       ],
