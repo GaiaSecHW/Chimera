@@ -100,6 +100,18 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     started_at?: string | null;
     completed_at?: string | null;
     updated_at?: string | null;
+    copy_stats?: {
+      copied_files?: number;
+      copied_dirs?: number;
+      copied_symlinks?: number;
+      skipped_errors?: number;
+      error_truncated?: boolean;
+      errors?: Array<{
+        source?: string;
+        target?: string;
+        error?: string;
+      }>;
+    };
   }>;
   overview_nodes: BinarySecurityOverviewNode[];
 }

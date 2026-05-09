@@ -1225,6 +1225,43 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <div className="mt-1 break-all font-mono text-slate-800">{job.archive_root || '-'}</div>
                         </div>
                       </div>
+                      {job.copy_stats ? (
+                        <div className="mt-3 rounded-xl border border-slate-200 bg-white/85 p-3">
+                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 xl:grid-cols-4">
+                            <div>
+                              <div className="text-slate-400">文件</div>
+                              <div className="mt-1 font-black text-slate-900">{job.copy_stats.copied_files || 0}</div>
+                            </div>
+                            <div>
+                              <div className="text-slate-400">目录</div>
+                              <div className="mt-1 font-black text-slate-900">{job.copy_stats.copied_dirs || 0}</div>
+                            </div>
+                            <div>
+                              <div className="text-slate-400">符号链接</div>
+                              <div className="mt-1 font-black text-slate-900">{job.copy_stats.copied_symlinks || 0}</div>
+                            </div>
+                            <div>
+                              <div className="text-slate-400">跳过错误</div>
+                              <div className={`mt-1 font-black ${(job.copy_stats.skipped_errors || 0) > 0 ? 'text-amber-700' : 'text-slate-900'}`}>
+                                {job.copy_stats.skipped_errors || 0}
+                              </div>
+                            </div>
+                          </div>
+                          {(job.copy_stats.errors || []).length > 0 ? (
+                            <div className="mt-3 space-y-2">
+                              {(job.copy_stats.errors || []).slice(0, 5).map((error, index) => (
+                                <div key={`${job.id}-copy-error-${index}`} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                  <div className="break-all font-mono">{error.source || '-'}</div>
+                                  <div className="mt-1 break-all text-amber-700">{error.error || '-'}</div>
+                                </div>
+                              ))}
+                              {job.copy_stats.error_truncated || (job.copy_stats.errors || []).length > 5 ? (
+                                <div className="text-xs font-semibold text-amber-700">仅显示部分归档错误，完整明细请查看事件 payload。</div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {job.error_message ? (
                         <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
                           {job.error_message}
