@@ -1,4 +1,5 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+/* @refresh reset */
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, FolderOpen, List, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
@@ -150,6 +151,55 @@ function computeRoundProgress(events: AppDfaStageEvent[]): RoundProgress {
     if (evt.type === 'worker_done') workersDone++;
   }
   return { round, func, workersDone, workersTotal, tracedCount: tracedFuncs.size };
+}
+
+// ── DFA Dataflow Tree ─────────────────────────────────────────────────────────
+
+interface DfaTreeNode {
+  name: string;
+  depth: number;
+  status: 'pending' | 'running' | 'done';
+  children: DfaTreeNode[];
+}
+
+function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNode | null {
+  const calleesMap  = new Map<string, string[]>();      // parent → valid callees
+  const nodeDepth   = new Map<string, number>();
+  const nodeSt      = new Map<string, 'running' | 'done'>();
+  let rootName: string | null = null;
+
+  for (const evt of events) {
+    const d = evt.data ?? {};
+    if (evt.type === 'trace_start') {
+      const fn = ((d.function ?? d.task) as string | undefined)?.trim();
+      if (!fn) continue;
+      const depth = (d.depth as number) ?? 0;
+      if (!nodeDepth.has(fn) || nodeDepth.get(fn)! > depth) nodeDepth.set(fn, depth);
+      if (!nodeSt.has(fn)) nodeSt.set(fn, 'running');
+      if (rootName === null && depth === 0) rootName = fn;
+    } else if (evt.type === 'trace_callees') {
+      const fn = (d.function as string | undefined)?.trim();
+      const callees = (d.callees as string[] | undefined) ?? [];
+      if (fn) { calleesMap.set(fn, callees); nodeSt.set(fn, 'done'); }
+    }
+  }
+
+  if (!['running', 'pending'].includes(taskStatus)) {
+    for (const [fn, st] of nodeSt) if (st === 'running') nodeSt.set(fn, 'done');
+  }
+
+  if (!rootName) return null;
+
+  const build = (name: string, inheritDepth: number, visited = new Set<string>()): DfaTreeNode => {
+    if (visited.has(name)) return { name, depth: inheritDepth, status: 'done', children: [] };
+    visited.add(name);
+    const depth = nodeDepth.get(name) ?? inheritDepth;
+    const status = nodeSt.get(name) ?? 'pending';
+    const children = (calleesMap.get(name) ?? []).map((cn) => build(cn, depth + 1, new Set(visited)));
+    return { name, depth, status, children };
+  };
+
+  return build(rootName, 0);
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
@@ -504,6 +554,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
 
   const events = detail?.stages_json?.events ?? [];
   const roundProgress = computeRoundProgress(events);
+  const dfaTree = detail ? buildDfaTree(events, detail.status) : null;
 
   const logLines = events.map(formatEventLog).filter(Boolean);
 
@@ -661,6 +712,21 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                     })}
                   </div>
                 </div>
+
+                {/* Dataflow Call Tree */}
+                {dfaTree ? (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      数据流调用树
+                      <span className="ml-2 normal-case font-normal text-slate-400">
+                        {dfaTree.status === 'running' ? '分析中…' : `已完成`}
+                      </span>
+                    </h3>
+                    <div className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 max-h-72 overflow-auto">
+                      <DfaTreeNodeView node={dfaTree} depth={0} />
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Error */}
                 {detail.error ? (
@@ -1038,6 +1104,54 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+// ── DFA Tree Node Component ───────────────────────────────────────────────────
+
+const DfaTreeNodeView: React.FC<{ node: DfaTreeNode; depth?: number }> = ({ node, depth = 0 }) => {
+  const [expanded, setExpanded] = useState(depth < 3);
+  const hasChildren = node.children.length > 0;
+  const shortName = node.name.includes('::')
+    ? node.name.split('::').pop()!
+    : node.name.split('/').pop() ?? node.name;
+
+  return (
+    <div>
+      <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded-sm min-h-5 ${node.status === 'running' ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+        {node.status === 'running'
+          ? <Loader2 size={9} className="animate-spin text-blue-400 shrink-0" />
+          : node.status === 'done'
+          ? <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+          : <div className="w-1.5 h-1.5 rounded-full border border-slate-300 shrink-0" />}
+        <span
+          className={`text-[11px] font-mono truncate ${
+            node.status === 'running' ? 'text-blue-700 font-semibold max-w-[200px]' :
+            node.status === 'done'    ? 'text-slate-700 max-w-[200px]' :
+                                        'text-slate-400 italic max-w-[200px]'
+          }`}
+          title={node.name}
+        >{shortName}</span>
+        <span className="text-[9px] text-slate-300 font-mono shrink-0">d{node.depth}</span>
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="ml-auto shrink-0 flex items-center gap-0.5 text-[10px] text-violet-400 hover:text-violet-600"
+          >
+            {expanded ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+            <span className="font-mono text-[9px]">{node.children.length}</span>
+          </button>
+        ) : null}
+      </div>
+      {hasChildren && expanded ? (
+        <div className="ml-3 border-l border-dashed border-slate-200">
+          {node.children.map((child, i) => (
+            <DfaTreeNodeView key={`${child.name}-${i}`} node={child} depth={depth + 1} />
+          ))}
         </div>
       ) : null}
     </div>
