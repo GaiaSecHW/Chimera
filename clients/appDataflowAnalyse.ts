@@ -83,6 +83,6 @@ export const appDataflowAnalyseApi = {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ project_id: config.project_id, config }),
-    }, { retries: 3, retryDelayMs: 500 })),
+    }, { retries: 5, retryDelayMs: 800 })),
 
 };

@@ -94,8 +94,8 @@ const AgentInstanceList: React.FC<{
           <div className="flex-1">
             <ModelSelect value={agent.model} options={modelOptions} onChange={(v) => update(i, { model: v })} />
           </div>
-          <button onClick={() => remove(i)}
-            className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50">
+          <button onClick={() => remove(i)} disabled={agents.length <= 1}
+            className="flex-shrink-0 rounded-lg border border-red-100 p-2 text-red-400 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed">
             <Trash2 size={14} />
           </button>
         </div>
@@ -179,6 +179,11 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
   }, [projectId]);
 
   const handleSave = async () => {
+    const agents = config.workers?.agents ?? [];
+    if (agents.length === 0 || agents.every((a) => !a.model)) {
+      notify('Agent 实例列表至少需要一个有效的模型配置', 'error');
+      return;
+    }
     setSaving(true);
     try {
       const saved = await dfaApi.saveConfig({ ...config, project_id: projectId });
