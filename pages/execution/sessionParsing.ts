@@ -7,6 +7,7 @@ const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
   medium: 'medium',
   high: 'high',
   'x-high': 'xhigh',
+  xhigh: 'xhigh',
 };
 
 export interface FirmwareSessionIndexItem {
@@ -50,7 +51,31 @@ const asNullableNumber = (value: unknown): number | null => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-function parseSessionMessageParts(content: unknown): Array<Record<string, any>> {
+const nestedRecord = (value: Record<string, any>, key: string): Record<string, any> => asRecord(value[key]);
+
+const firstString = (...values: unknown[]): string => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value;
+    if (value != null && typeof value !== 'object') {
+      const text = String(value).trim();
+      if (text) return text;
+    }
+  }
+  return '';
+};
+
+const nestedSdkSpecific = (...records: Record<string, any>[]): Record<string, any> => {
+  for (const record of records) {
+    const sdk = nestedRecord(record, 'sdk_specific');
+    if (Object.keys(sdk).length) return sdk;
+    const runtime = nestedRecord(record, 'runtime_config');
+    const runtimeSdk = nestedRecord(runtime, 'sdk_specific');
+    if (Object.keys(runtimeSdk).length) return runtimeSdk;
+  }
+  return {};
+};
+
+export function parseSessionMessageParts(content: unknown): Array<Record<string, any>> {
   const parts: Array<Record<string, any>> = [];
   if (typeof content === 'string') {
     parts.push({ type: 'text', text: content });
@@ -64,7 +89,7 @@ function parseSessionMessageParts(content: unknown): Array<Record<string, any>> 
     if (contentType === 'text') {
       parts.push({ type: 'text', text: part.text || '' });
     } else if (contentType === 'thinking') {
-      parts.push({ type: 'thinking', text: part.thinking || '' });
+      parts.push({ type: 'thinking', text: part.thinking || part.text || '' });
     } else if (contentType === 'toolCall') {
       parts.push({
         type: 'toolCall',
@@ -75,17 +100,112 @@ function parseSessionMessageParts(content: unknown): Array<Record<string, any>> 
     } else if (contentType === 'toolResult') {
       parts.push({ type: 'toolResult', text: part.text || '' });
     } else {
-      parts.push({ type: 'unknown', detail: String(item).slice(0, 200) });
+      parts.push({ type: 'unknown', detail: JSON.stringify(part).slice(0, 200) });
     }
   }
   return parts;
 }
 
-function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, lineNo: number): {
+export function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, lineNo: number): {
   sessionMeta?: Record<string, any>;
   event?: AppSaSessionEvent;
 } {
   const eventType = String(obj.type || '');
+  const payload = nestedRecord(obj, 'payload');
+  const data = nestedRecord(obj, 'data');
+  const config = nestedRecord(obj, 'config');
+  const metadata = nestedRecord(obj, 'metadata');
+  const options = nestedRecord(obj, 'options');
+  const settings = nestedRecord(obj, 'settings');
+  const message = obj.message && typeof obj.message === 'object' ? obj.message as Record<string, any> : {};
+  const sdk = nestedSdkSpecific(obj, payload, data, config, metadata, options, settings);
+  const modelProvider = firstString(
+    obj.provider,
+    obj.modelProvider,
+    obj.model_provider,
+    payload.provider,
+    data.provider,
+    config.provider,
+    metadata.provider,
+    options.provider,
+    settings.provider,
+    message.provider,
+    sdk.provider
+  );
+  const modelId = firstString(
+    obj.modelId,
+    obj.modelID,
+    obj.model_id,
+    obj.model,
+    obj.modelName,
+    obj.model_name,
+    payload.modelId,
+    payload.model_id,
+    payload.model,
+    data.modelId,
+    data.model_id,
+    data.model,
+    config.model,
+    metadata.modelId,
+    metadata.model_id,
+    metadata.model,
+    options.modelId,
+    options.model_id,
+    options.model,
+    settings.modelId,
+    settings.model_id,
+    settings.model,
+    message.modelId,
+    message.model_id,
+    message.model,
+    sdk.model
+  );
+  const thinkingLevel = firstString(
+    obj.thinkingLevel,
+    obj.thinking_level,
+    obj.thinking,
+    obj.reasoningEffort,
+    obj.reasoning_effort,
+    obj.level,
+    payload.thinkingLevel,
+    payload.thinking_level,
+    payload.thinking,
+    payload.reasoning_effort,
+    payload.level,
+    data.thinkingLevel,
+    data.thinking_level,
+    data.thinking,
+    data.reasoning_effort,
+    data.level,
+    config.thinkingLevel,
+    config.thinking_level,
+    config.thinking,
+    config.reasoning_effort,
+    config.level,
+    metadata.thinkingLevel,
+    metadata.thinking_level,
+    metadata.thinking,
+    metadata.reasoning_effort,
+    metadata.level,
+    options.thinkingLevel,
+    options.thinking_level,
+    options.thinking,
+    options.reasoning_effort,
+    options.level,
+    settings.thinkingLevel,
+    settings.thinking_level,
+    settings.thinking,
+    settings.reasoning_effort,
+    settings.level,
+    message.thinkingLevel,
+    message.thinking_level,
+    message.thinking,
+    message.reasoning_effort,
+    message.level,
+    sdk.thinking,
+    sdk.reasoning_effort,
+    sdk.level
+  );
   if (eventType === 'session') {
     return {
       sessionMeta: {
@@ -93,10 +213,13 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
         version: obj.version || '',
         timestamp: obj.timestamp || '',
         cwd: obj.cwd || '',
+        provider: modelProvider,
+        model: modelId,
+        thinking: thinkingLevel,
       },
     };
   }
-  if (eventType === 'model_change') {
+  if (['model_change', 'model', 'model_changed', 'set_model'].includes(eventType) || (modelId && !eventType.startsWith('message'))) {
     return {
       event: {
         type: 'model_change',
@@ -104,14 +227,14 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
         event_index: lineNo,
         timestamp: obj.timestamp || '',
         display_timestamp: obj.timestamp || '',
-        provider: obj.provider || '',
-        modelId: obj.modelId || '',
+        provider: modelProvider,
+        modelId,
         raw_line: rawLine,
       },
     };
   }
-  if (eventType === 'thinking_level_change') {
-    const level = String(obj.thinkingLevel || '');
+  if (['thinking_level_change', 'thinking_level', 'thinking', 'reasoning_effort_change', 'reasoning_effort'].includes(eventType) || (thinkingLevel && !eventType.startsWith('message'))) {
+    const level = thinkingLevel;
     return {
       event: {
         type: 'thinking_level_change',
@@ -125,8 +248,8 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
       },
     };
   }
-  if (eventType === 'message') {
-    const msg = obj.message && typeof obj.message === 'object' ? obj.message as Record<string, any> : {};
+  if (eventType === 'message' || eventType === 'message_end') {
+    const msg = message;
     const role = String(msg.role || '');
     const event: AppSaSessionEvent = {
       type: 'message',
@@ -156,6 +279,22 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
       raw_line: rawLine.slice(0, 200),
     },
   };
+}
+
+export function mergeAgentSessionToolResults(events: AppSaSessionEvent[]) {
+  const result: Array<AppSaSessionEvent & { _toolResults?: AppSaSessionEvent[] }> = [];
+  for (const event of events) {
+    if (event.type === 'message' && event.role === 'toolResult') {
+      const last = result[result.length - 1];
+      if (last && last.type === 'message' && last.role === 'assistant') {
+        if (!last._toolResults) last._toolResults = [];
+        last._toolResults.push(event);
+        continue;
+      }
+    }
+    result.push({ ...event });
+  }
+  return result;
 }
 
 export function parseSessionJsonlDelta(lines: string[], startLine: number): SessionDeltaParseResult {

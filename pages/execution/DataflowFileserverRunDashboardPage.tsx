@@ -18,7 +18,10 @@ import {
   listDataflowFileserverRunSessions,
   retryDataflowFileserverRun,
 } from '../../clients/dataflowVulnRunsFileserver';
+import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
+import { AppSaSessionEvent } from '../../types/types';
 import { DATAFLOW_DASHBOARD_MIRROR_CSS } from './DataflowFileserverRunDashboardCss';
+import { mergeAgentSessionToolResults, parseAgentSessionJsonlDelta } from './agentSessionParsing';
 
 const DASHBOARD_HTML = `
 <div class="dfv-dashboard-root">
@@ -664,7 +667,6 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 .cycle-metrics,
 .issue-item,
 .review-card,
-.call-row,
 .file-row,
 .accordion-header,
 .accordion-body,
@@ -771,11 +773,133 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   font-size: 13px;
 }
 
-.call-row {
-  margin-bottom: 6px;
-  padding: 8px 10px;
+.session-browser-shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.session-browser-nav,
+.session-viewer-pane {
+  min-height: 520px;
+}
+
+.session-browser-nav {
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.session-nav-header,
+.session-viewer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.session-nav-list {
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.session-nav-item {
+  width: 100%;
+  padding: 12px;
+  text-align: left;
   border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.session-nav-item:hover {
+  border-color: #67e8f9;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.08);
+}
+
+.session-nav-item.active {
+  border-color: #0f766e;
+  background: linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%);
+  box-shadow: 0 14px 28px rgba(15, 118, 110, 0.10);
+}
+
+.session-nav-title {
+  color: var(--text-bright);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.session-nav-path {
+  margin-top: 4px;
+  word-break: break-all;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+}
+
+.session-nav-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.session-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.session-live-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-live-dot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.session-live-dot.live::before {
+  background: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14);
+}
+
+.session-warning-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+.session-warning-item {
+  padding: 8px 10px;
+  border: 1px solid #fde68a;
   border-radius: 14px;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 11px;
+}
+
+.session-message-list {
+  display: grid;
+  gap: 12px;
+  max-height: calc(100vh - 330px);
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .log-viewer {
@@ -907,12 +1031,62 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   border-radius: 0 0 18px 18px;
 }
 
-.file-toolbar {
-  gap: 10px;
-  margin-bottom: 14px;
+.file-browser-shell {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.42fr) minmax(0, 1fr);
+  gap: 16px;
+  min-height: calc(100vh - 285px);
 }
 
-.file-toolbar input {
+.file-browser-nav,
+.file-preview-pane {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
+}
+
+.file-browser-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-browser-titlebar,
+.file-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.10), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.file-count-pill {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #0e7490;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.file-toolbar {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.file-toolbar input,
+.file-toolbar select {
+  width: 100%;
   padding: 10px 12px;
   background: #ffffff;
   color: var(--text);
@@ -921,9 +1095,294 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   font-size: 12px;
 }
 
-.file-toolbar input:focus {
+.file-toolbar input:focus,
+.file-toolbar select:focus {
+  outline: none;
   border-color: #67e8f9;
   box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+}
+
+.file-filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.file-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.file-quick-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #dbe4ee;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-quick-card:hover {
+  border-color: #67e8f9;
+  background: #ecfeff;
+}
+
+.file-quick-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.file-quick-icon {
+  display: inline-grid;
+  grid-row: span 2;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.file-quick-main {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-quick-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tree-panel {
+  flex: 1 1 auto;
+  min-height: 280px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.file-dir-row,
+.file-tree-file {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.file-dir-row {
+  grid-template-columns: 16px 44px minmax(0, 1fr);
+  gap: 6px;
+  padding: 8px 8px 8px calc(8px + var(--level, 0) * 18px);
+  color: #334155;
+}
+
+.file-dir-row:hover,
+.file-tree-file:hover {
+  background: #f1f5f9;
+}
+
+.file-dir-arrow {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.file-dir-icon {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.file-dir-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tree-file {
+  grid-template-columns: 10px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  padding: 8px 8px 8px calc(12px + var(--level, 0) * 18px);
+}
+
+.file-tree-file.selected {
+  background: #ecfeff;
+  box-shadow: inset 0 0 0 1px #67e8f9;
+}
+
+.file-kind-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.file-kind-markdown { background: #0891b2; }
+.file-kind-json { background: #f59e0b; }
+.file-kind-jsonl { background: #6366f1; }
+.file-kind-log { background: #ef4444; }
+.file-kind-text { background: #10b981; }
+.file-kind-other { background: #64748b; }
+
+.file-tree-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-bright);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-tree-meta,
+.file-tree-size {
+  color: var(--text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.file-preview-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-preview-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-preview-title .file-kind-dot {
+  flex-shrink: 0;
+}
+
+.file-preview-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-bright);
+  font-size: 15px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-path {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.file-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.file-preview-meta span {
+  padding: 5px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.file-preview-body {
+  flex: 1 1 auto;
+  min-height: 320px;
+  overflow: auto;
+  padding: 18px;
+}
+
+.file-preview-code {
+  min-height: 100%;
+  margin: 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: #0f172a;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.file-preview-empty,
+.file-browser-empty,
+.file-jsonl-hint {
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  padding: 28px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.file-preview-empty p,
+.file-jsonl-hint p {
+  max-width: 460px;
+  line-height: 1.7;
+}
+
+.file-preview-empty-icon,
+.file-jsonl-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 14px;
+  border-radius: 24px;
+  background: #ecfeff;
+  color: #0e7490;
+  font-weight: 900;
+}
+
+.file-jsonl-hint {
+  grid-template-columns: auto minmax(0, 420px);
+  gap: 18px;
+  justify-content: center;
+  text-align: left;
 }
 
 .file-row {
@@ -1029,6 +1488,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 }
 
 .user-message {
+  padding: 14px 18px;
   background: linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%);
   color: var(--text);
   border: 1px solid #bae6fd;
@@ -1117,6 +1577,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 }
 
 .tool-result-message {
+  padding: 14px 16px;
   background: #ecfdf5;
   border: 1px solid #bbf7d0;
   border-radius: 18px;
@@ -1167,12 +1628,41 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
     font-size: 20px;
   }
 
-  .file-row {
-    grid-template-columns: minmax(0, 1fr);
+  .file-browser-shell,
+  .session-browser-shell {
+    grid-template-columns: 1fr;
   }
 
-  .call-row {
-    flex-wrap: wrap;
+  .file-browser-nav,
+  .file-preview-pane,
+  .session-browser-nav,
+  .session-viewer-pane {
+    border-radius: 20px;
+    min-height: auto;
+  }
+
+  .file-tree-panel,
+  .file-preview-body,
+  .session-nav-list,
+  .session-message-list {
+    max-height: none;
+  }
+
+  .file-preview-header {
+    flex-direction: column;
+  }
+
+  .file-preview-actions {
+    justify-content: flex-start;
+  }
+
+  .file-jsonl-hint {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .file-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .log-toolbar {
@@ -1225,119 +1715,6 @@ const getFileType = (path: string) => {
 
 const uniqueValues = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
 
-const parseSessionJsonl = (content: string, path: string) => {
-  const events: Record<string, any>[] = [];
-  let sessionMeta: Record<string, any> = {};
-
-  content.split(/\r?\n/).forEach((line, index) => {
-    const lineNo = index + 1;
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    let obj: Record<string, any>;
-    try {
-      const parsed = JSON.parse(trimmed);
-      obj = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : { type: 'raw', text: trimmed };
-    } catch {
-      events.push({ type: 'raw', line: lineNo, text: trimmed.slice(0, 200) });
-      return;
-    }
-
-    const etype = obj.type || '';
-
-    if (etype === 'session') {
-      sessionMeta = {
-        id: obj.id || '',
-        version: obj.version || '',
-        timestamp: obj.timestamp || '',
-        cwd: obj.cwd || '',
-      };
-      return;
-    }
-
-    if (etype === 'model_change') {
-      events.push({
-        type: 'model_change',
-        line: lineNo,
-        timestamp: obj.timestamp || '',
-        provider: obj.provider || '',
-        modelId: obj.modelId || '',
-      });
-      return;
-    }
-
-    if (etype === 'thinking_level_change') {
-      events.push({
-        type: 'thinking_level_change',
-        line: lineNo,
-        timestamp: obj.timestamp || '',
-        thinkingLevel: obj.thinkingLevel || '',
-      });
-      return;
-    }
-
-    if (etype === 'message') {
-      const msg = obj.message || {};
-      const role = msg.role || '';
-      const ts = obj.timestamp || '';
-      const contentValue = msg.content || [];
-      const extra: Record<string, any> = {};
-      if (role === 'toolResult') {
-        extra.toolCallId = msg.toolCallId || msg.tool_call_id || '';
-        extra.toolName = msg.toolName || msg.tool_name || '';
-        extra.isError = msg.isError || msg.is_error || false;
-      }
-
-      const parts: Record<string, any>[] = [];
-      if (typeof contentValue === 'string') {
-        parts.push({ type: 'text', text: contentValue });
-      } else if (Array.isArray(contentValue)) {
-        contentValue.forEach((part: any) => {
-          if (!part || typeof part !== 'object') return;
-          const ct = part.type || '';
-          if (ct === 'text') {
-            parts.push({ type: 'text', text: part.text || '' });
-          } else if (ct === 'thinking') {
-            parts.push({ type: 'thinking', text: part.thinking || '' });
-          } else if (ct === 'toolCall') {
-            parts.push({
-              type: 'toolCall',
-              name: part.name || '',
-              id: part.id || '',
-              arguments: part.arguments || {},
-            });
-          } else if (ct === 'toolResult') {
-            parts.push({ type: 'toolResult', text: part.text || '' });
-          } else {
-            parts.push({ type: 'unknown', detail: String(part).slice(0, 200) });
-          }
-        });
-      }
-
-      events.push({
-        type: 'message',
-        line: lineNo,
-        timestamp: ts,
-        role,
-        parts,
-        ...extra,
-      });
-      return;
-    }
-
-    events.push({
-      type: etype || 'unknown_event',
-      line: lineNo,
-      summary: String(obj).slice(0, 200),
-    });
-  });
-
-  return {
-    path,
-    session_meta: sessionMeta,
-    events,
-  };
-};
-
 interface DashboardAppOptions {
   projectId: string;
   rootPath: string;
@@ -1356,6 +1733,31 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     currentFiles: [] as DataflowFileserverRunFile[],
     runSessions: [] as DataflowFileserverRunSession[],
     runLog: '',
+    sessionBrowser: {
+      selectedRun: '',
+      selectedPath: '',
+      loading: false,
+      error: '',
+      live: false,
+      notice: '',
+      data: null as Record<string, any> | null,
+      events: [] as AppSaSessionEvent[],
+      warnings: [] as string[],
+      lineCount: 0,
+      sessionMeta: {} as Record<string, any>,
+    },
+    fileBrowser: {
+      selectedPath: '',
+      searchQuery: '',
+      categoryFilter: 'all',
+      typeFilter: 'all',
+      previewRun: '',
+      previewPath: '',
+      previewContent: '',
+      previewLoading: false,
+      previewError: '',
+      expandedDirs: {} as Record<string, boolean>,
+    },
     tabCacheByRun: {} as Record<string, {
       overview: DataflowFileserverRunOverview | null;
       sessionsLoaded: boolean;
@@ -1383,9 +1785,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     _durationTimer: null as ReturnType<typeof setInterval> | null,
     _durationSeconds: 0,
     _destroyed: false,
+    _sessionSocket: null as WebSocket | null,
+    _sessionSocketKey: '',
+    _sessionLoadSeq: 0,
     _toolResultText: {} as Record<string, { preview: string; full: string; expanded: boolean }>,
     _handleClick: null as ((event: Event) => void) | null,
     _handleInput: null as ((event: Event) => void) | null,
+    _handleChange: null as ((event: Event) => void) | null,
     runsRootPath: normalizeProjectPath(rootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT),
     root,
 
@@ -1533,6 +1939,22 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             return;
           }
 
+          const selectSession = target.closest('[data-action="select-session"]') as HTMLElement | null;
+          if (selectSession) {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.selectSessionInBrowser(selectSession.dataset.path || '');
+            return;
+          }
+
+          const refreshSessions = target.closest('[data-action="refresh-sessions"]') as HTMLElement | null;
+          if (refreshSessions) {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.loadSessions(true);
+            return;
+          }
+
           const fileClose = target.closest('[data-action="file-close"]') as HTMLElement | null;
           if (fileClose) {
             event.preventDefault();
@@ -1552,6 +1974,30 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             event.preventDefault();
             event.stopPropagation();
             void this.openSessionFile(openSession.dataset.run || '', openSession.dataset.path || '');
+            return;
+          }
+
+          const selectFile = target.closest('[data-action="select-file"]') as HTMLElement | null;
+          if (selectFile) {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.selectFileInBrowser(selectFile.dataset.path || '');
+            return;
+          }
+
+          const previewModal = target.closest('[data-action="preview-file-modal"]') as HTMLElement | null;
+          if (previewModal) {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.openFile(this.currentRun || '', previewModal.dataset.path || this.fileBrowser.selectedPath || '');
+            return;
+          }
+
+          const toggleFileDir = target.closest('[data-action="toggle-file-dir"]') as HTMLElement | null;
+          if (toggleFileDir) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.toggleFileDirectory(toggleFileDir.dataset.dir || '');
             return;
           }
 
@@ -1603,10 +2049,27 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             return;
           }
           if (target.id === 'fileSearchInput') {
-            this.filterFiles(target.value);
+            this.fileBrowser.searchQuery = target.value;
+            this.renderFiles(this.currentFiles);
           }
         };
         this.root.addEventListener('input', this._handleInput);
+      }
+
+      if (!this._handleChange) {
+        this._handleChange = (event: Event) => {
+          const target = event.target as HTMLSelectElement | null;
+          if (!target) return;
+          if (target.id === 'fileCategoryFilter') {
+            this.fileBrowser.categoryFilter = target.value || 'all';
+            this.renderFiles(this.currentFiles);
+          }
+          if (target.id === 'fileTypeFilter') {
+            this.fileBrowser.typeFilter = target.value || 'all';
+            this.renderFiles(this.currentFiles);
+          }
+        };
+        this.root.addEventListener('change', this._handleChange);
       }
     },
 
@@ -1621,12 +2084,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     destroy() {
       this._destroyed = true;
+      this.closeSessionSocket();
       if (this.refreshTimer) clearInterval(this.refreshTimer);
       if (this._durationTimer) clearInterval(this._durationTimer);
       if (this._handleClick) this.root.removeEventListener('click', this._handleClick);
       if (this._handleInput) this.root.removeEventListener('input', this._handleInput);
+      if (this._handleChange) this.root.removeEventListener('change', this._handleChange);
       this._handleClick = null;
       this._handleInput = null;
+      this._handleChange = null;
     },
 
     startAutoRefresh() {
@@ -1918,6 +2384,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           failed_count: data.failed_count,
           workflow_mode: data.workflow_mode,
           updated_at: data.updated_at,
+          process_state: data.process_state,
+          retry_command_display: data.retry_command_display,
         };
         this.runSessions = runCache.sessions;
         this.currentFiles = runCache.files;
@@ -1992,24 +2460,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(String(statusText || '').toLowerCase());
     },
 
-    isRetryableRunStatus(statusText: string) {
-      return [
-        'cancelled',
-        'failed',
-        'interrupted',
-        'stopped',
-        'review_error',
-        'review_plateau',
-        'summary_incomplete',
-        'runtime_output_limit',
-        'runtime_timeout',
-        'blocked_context_window',
-        'blocked_quota',
-        'provider_rate_limited',
-        'model_contract_violation',
-        'blocked_external_source',
-        'error',
-      ].includes(String(statusText || '').toLowerCase());
+    runProcessState(data?: Partial<DataflowFileserverRunSummary> | null) {
+      const state = data?.process_state;
+      return state && typeof state === 'object' ? state : {};
+    },
+
+    canRetryRun(data?: Partial<DataflowFileserverRunSummary> | null) {
+      return this.runProcessState(data).can_retry === true;
+    },
+
+    retryDisabledReason(data?: Partial<DataflowFileserverRunSummary> | null) {
+      const state = this.runProcessState(data);
+      return String(state.reason || '后端尚未确认该 Run 可重试，请刷新后再试。');
     },
 
     updateActionButton(id: string, options: { disabled: boolean; hidden?: boolean; text?: string }) {
@@ -2025,7 +2487,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const hasRun = !!this.currentRun && !!current;
       const linked = !!(current?.linked_task_id || current?.linked_execution_id);
       const active = this.isActiveRunStatus(String(current?.status || ''));
-      const retryable = this.isRetryableRunStatus(String(current?.status || ''));
+      const retryable = this.canRetryRun(current);
       const busy = this._mutationBusy;
       this.updateActionButton('btnAdoptRun', {
         disabled: !hasRun || linked || !!busy,
@@ -2049,13 +2511,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     taskActionButtons(data: DataflowFileserverRunOverview) {
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const active = this.isActiveRunStatus(data.status);
-      const retryable = this.isRetryableRunStatus(data.status);
+      const retryable = this.canRetryRun(data);
+      const retryReason = this.retryDisabledReason(data);
       const busy = !!this._mutationBusy;
       return `
         <div class="task-action-panel">
           <button class="btn btn-sm" data-action="adopt-run" ${linked || busy ? 'disabled' : ''}>关联任务记录</button>
           <button class="btn btn-sm btn-warning" data-action="cancel-run" ${!linked || !active || busy ? 'disabled' : ''}>取消 Run</button>
-          <button class="btn btn-sm" data-action="retry-run" ${!retryable || busy ? 'disabled' : ''} title="取消/失败/可恢复异常的 Run 可重试">重试 Run</button>
+          <button class="btn btn-sm" data-action="retry-run" ${!retryable || busy ? 'disabled' : ''} title="${this.esc(retryable ? 'run_vuln_scan.py 进程不存在或心跳过期，可以通过 --resume 重试' : retryReason)}">重试 Run</button>
           <button class="btn btn-sm btn-danger" data-action="delete-open" ${busy ? 'disabled' : ''}>删除 Run</button>
         </div>
       `;
@@ -2070,11 +2533,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return command.map((item: any) => String(item)).join(' ');
     },
 
+    retryCommandDisplay(data: DataflowFileserverRunOverview) {
+      return String(data.retry_command_display || '').trim();
+    },
+
     renderTaskInfo(data: DataflowFileserverRunOverview) {
       const el = this.$('taskInfoCard');
       if (!el) return;
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const commandDisplay = this.runCommandDisplay(data);
+      const retryCommandDisplay = this.retryCommandDisplay(data);
       const rows = [
         ['Run ID', data.run_id || '-'],
         ['Task ID', data.linked_task_id || '-'],
@@ -2113,6 +2581,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             <div class="text-muted" style="margin-top:8px;font-size:12px">任务开始运行并产生 execution_started 事件后会显示完整命令。</div>
           </div>
         `}
+        ${retryCommandDisplay ? `
+          <div class="run-command-block">
+            <div class="run-command-title">
+              <span>重试 Run 命令</span>
+              <span>${this.esc(data.linked_execution_id || data.name || '')}</span>
+            </div>
+            <pre class="run-command-pre">${this.esc(retryCommandDisplay)}</pre>
+          </div>
+        ` : ''}
         ${this.taskActionButtons(data)}
       `;
     },
@@ -2449,96 +2926,404 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
     },
 
+    getSessionPath(session: DataflowFileserverRunSession) {
+      return String((session as any).jsonl_path || '');
+    },
+
+    getJsonlSessions(sessions: DataflowFileserverRunSession[]) {
+      return sessions
+        .filter((s: any) => (s.format === 'jsonl' || s.format === 'hybrid') && this.getSessionPath(s))
+        .sort((a: any, b: any) => Number(b.mtime || 0) - Number(a.mtime || 0));
+    },
+
+    getSessionDisplayName(session: Record<string, any>) {
+      const path = String(session.jsonl_path || '');
+      const basename = path.split('/').filter(Boolean).pop() || '';
+      return String(session.display_name || session.worker_id || basename || session.session_id || 'Session');
+    },
+
+    getSelectedSession() {
+      const selectedPath = this.sessionBrowser.selectedPath;
+      if (!selectedPath) return null;
+      return this.getJsonlSessions(this.runSessions).find((session: any) => this.getSessionPath(session) === selectedPath) || null;
+    },
+
+    resetSessionBrowser(selectedPath = '') {
+      this.closeSessionSocket();
+      this.sessionBrowser = {
+        selectedRun: this.currentRun || '',
+        selectedPath,
+        loading: false,
+        error: '',
+        live: false,
+        notice: '',
+        data: null,
+        events: [],
+        warnings: [],
+        lineCount: 0,
+        sessionMeta: {},
+      };
+    },
+
+    selectSessionPathForRender(jsonlSessions: DataflowFileserverRunSession[]) {
+      if (!jsonlSessions.length) return '';
+      const currentPath = this.sessionBrowser.selectedRun === this.currentRun ? this.sessionBrowser.selectedPath : '';
+      if (currentPath && jsonlSessions.some((session: any) => this.getSessionPath(session) === currentPath)) {
+        return currentPath;
+      }
+      return this.getSessionPath(jsonlSessions[0]);
+    },
+
     renderSessions(sessions: DataflowFileserverRunSession[]) {
       const el = this.$('sessionsContainer');
       if (!el) return;
-      if (!sessions.length) { el.innerHTML = '<div class="empty-state">暂无会话记录</div>'; return; }
+      if (!sessions.length) {
+        this.resetSessionBrowser('');
+        el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+        return;
+      }
 
-      const jsonlSessions = sessions.filter((s: any) => s.format === 'jsonl' || s.format === 'hybrid');
-      const callSessions = sessions.filter((s: any) => s.format !== 'jsonl');
-
-      let html = '';
+      const jsonlSessions = this.getJsonlSessions(sessions);
+      const selectedPath = this.selectSessionPathForRender(jsonlSessions);
+      const selectedChanged = selectedPath !== this.sessionBrowser.selectedPath || this.sessionBrowser.selectedRun !== this.currentRun;
+      if (selectedChanged) {
+        this.resetSessionBrowser(selectedPath);
+      }
 
       if (jsonlSessions.length) {
-        html += '<div class="card-title" style="margin-bottom:8px">会话文件 (JSONL)</div>';
-        jsonlSessions.forEach((s: any) => {
-          const sessionText = String(s.session_id || '');
-          const sessionIdShort = sessionText.length > 40 ? sessionText.substring(0, 40) + '…' : sessionText;
-          html += `
-          <div class="session-group">
-            <div class="session-name" style="display:flex;align-items:center;gap:8px">
-              <span>${this.esc(s.worker_id)}</span>
-              <span class="text-muted" style="font-size:11px">${this.fmtSize(s.size)}</span>
-              <span class="action-link" data-action="open-session" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(s.jsonl_path)}">查看对话</span>
-            </div>
-            <div class="text-muted" style="font-size:11px;margin-bottom:6px">${this.esc(sessionIdShort)}</div>
-          </div>`;
-        });
-      }
-
-      if (callSessions.length) {
-        html += '<div class="card-title mt-8" style="margin-bottom:8px">会话记录 (Calls)</div>';
-        callSessions.forEach((s: any) => {
-          const calls = Array.isArray(s.calls) ? s.calls : [];
-          const callHtml = calls.map((c: any) => {
-            const attempts = Array.isArray(c.attempts) ? c.attempts : [];
-            const attemptCount = attempts.length;
-            const timeoutFailures = Number(c.timeout_failures || 0);
-            const timeoutLimitRaw = Number(c.timeout_max_retries);
-            const timeoutLimit = Number.isFinite(timeoutLimitRaw) ? timeoutLimitRaw : 0;
-            const restartedAttempts = attempts.filter((a: any) =>
-              a && a.retry_kind === 'runtime_timeout_restart' && a.will_retry
-            ).length;
-            const effectiveSessionId = String(c.effective_session_id || '');
-            const switchedSession = effectiveSessionId && effectiveSessionId !== String(s.session_id || '');
-            const outputBytes = Number(c.output_total_bytes || c.output_len || 0);
-            const stdoutTraceLimit = Number((c.trace_limits || {}).stdout_bytes || 0);
-            const stdoutLimitText = stdoutTraceLimit > 0 ? `stdout trace ${this.fmtSize(stdoutTraceLimit)}` : 'stdout trace limit';
-            const attemptTitle = attempts.map((a: any) => {
-              const parts = [
-                '#' + (a.attempt || '?'),
-                a.status || 'unknown',
-                a.error_code || '',
-                a.session_id ? 'session=' + a.session_id : '',
-                a.will_retry ? 'will_retry' : '',
-              ].filter(Boolean);
-              return parts.join(' · ');
-            }).join('\n');
-            const retryBadges = [
-              attemptCount > 1 ? `<span class="badge badge-sm badge-mode" title="${this.attr(attemptTitle)}">attempts ×${attemptCount}</span>` : '',
-              restartedAttempts > 0 ? `<span class="badge badge-sm badge-warning">重启 ${restartedAttempts}/${timeoutLimit}</span>` : '',
-              timeoutFailures > 0 && restartedAttempts === 0 ? `<span class="badge badge-sm badge-failed">超时 ${timeoutFailures}</span>` : '',
-              switchedSession ? `<span class="badge badge-sm badge-mode" title="${this.attr(effectiveSessionId)}">新 session</span>` : '',
-              c.stdout_soft_limit_exceeded ? `<span class="badge badge-sm badge-warning" title="${this.attr(stdoutLimitText)}">stdout 截断</span>` : '',
-              c.events_truncated_count > 0 ? `<span class="badge badge-sm badge-warning">events 截断</span>` : '',
-            ].join('');
-            return `
-              <div class="call-row">
-                <div class="call-turn">#${c.turn}</div>
-                <div class="call-agent">${this.esc(c.agent_id)}</div>
-                <div class="call-size">↑${this.fmtSize(c.user_prompt_len)} ↓${this.fmtSize(outputBytes)}</div>
-                <div class="call-duration">${c.duration_ms ? (c.duration_ms / 1000).toFixed(1) + 's' : '-'}</div>
-                <div class="call-status" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">${this.statusBadge(c.status, 'badge-sm')}${retryBadges}</div>
-                <div class="file-actions">
-                  ${Object.entries({user_prompt:'Prompt', system_prompt:'System', response:'Response', stdout:'Stdout', stderr:'Stderr', request:'Req'}).map(([key,label]) =>
-                    c.files && c.files[key] ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files[key])}">${label}</span>` : ''
-                  ).join('')}
-                  ${c.files && c.files.stdout_events ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files.stdout_events)}">Events</span>` : ''}
-                </div>
-                ${attemptCount > 1 ? `<div class="text-muted" style="font-size:11px;flex:1" title="${this.attr(attemptTitle)}">timeout/process attempts 已聚合在当前 call，避免与业务 turn 错位</div>` : ''}
-                ${c.error ? `<div class="text-error" style="font-size:11px;flex:1">${this.esc(c.error).substring(0, 60)}</div>` : ''}
+        const navHtml = jsonlSessions.map((s: any) => {
+          const path = this.getSessionPath(s);
+          const selected = path === selectedPath;
+          const warnings = Array.isArray(s.warnings) ? s.warnings : [];
+          return `
+            <button class="session-nav-item ${selected ? 'active' : ''}" type="button" data-action="select-session" data-path="${this.attr(path)}">
+              <div class="session-nav-title">${this.esc(this.getSessionDisplayName(s))}</div>
+              <div class="session-nav-path">${this.esc(path)}</div>
+              <div class="session-nav-meta">
+                <span>${this.fmtSize(Number(s.size || 0))}</span>
+                <span>事件 ${Number(s.event_count || 0)}</span>
+                <span>行 ${Number(s.line_count || 0)}</span>
+                <span>${this.fmtDate(Number(s.mtime || 0))}</span>
+                ${warnings.length ? '<span class="badge badge-sm badge-warning">解析提示</span>' : ''}
               </div>
-            `;
-          }).join('');
-          html += `
-          <div class="session-group">
-            <div class="session-name">${this.esc(s.session_id)}</div>
-            ${callHtml}
-          </div>`;
-        });
+            </button>
+          `;
+        }).join('');
+        el.innerHTML = `
+          <div class="session-browser-shell">
+            <div class="card session-browser-nav">
+              <div class="session-nav-header">
+                <div>
+                  <div class="card-title">智能体会话</div>
+                  <div class="text-muted" style="font-size:12px;margin-top:4px">${jsonlSessions.length} 个 JSONL 对话文件</div>
+                </div>
+                <button class="btn btn-sm" type="button" data-action="refresh-sessions">刷新</button>
+              </div>
+              <div class="session-nav-list">${navHtml}</div>
+            </div>
+            <div id="sessionViewerPane" class="card session-viewer-pane">${this.renderSessionViewerPane()}</div>
+          </div>
+        `;
+        if (selectedPath && !this.sessionBrowser.loading && !this.sessionBrowser.data) {
+          void this.loadSessionIntoBrowser(selectedPath);
+        } else if (selectedPath && this.sessionBrowser.data && this.isRunActive()) {
+          if (!this._sessionSocket && this.sessionBrowser.notice) {
+            void this.loadSessionIntoBrowser(selectedPath, { force: true });
+          } else {
+            this.startSessionLiveWatch(selectedPath);
+          }
+        }
+        return;
       }
 
-      el.innerHTML = html || '<div class="empty-state">暂无会话记录</div>';
+      this.resetSessionBrowser('');
+      el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+    },
+
+    async selectSessionInBrowser(path: string) {
+      if (!path || !this.currentRun) return;
+      if (path === this.sessionBrowser.selectedPath && this.sessionBrowser.selectedRun === this.currentRun) return;
+      this.resetSessionBrowser(path);
+      this.renderSessions(this.runSessions);
+      await this.loadSessionIntoBrowser(path);
+    },
+
+    normalizeSessionSnapshot(data: Record<string, any>) {
+      const content = typeof data.content === 'string' ? data.content : '';
+      const lines = content
+        ? content.split(/\r?\n/)
+        : Array.isArray(data.lines)
+          ? data.lines.map((line: any) => String(line ?? ''))
+          : Array.isArray(data.raw_lines)
+            ? data.raw_lines.map((line: any) => String(line ?? ''))
+            : [];
+      if (lines.length) {
+        const parsed = parseAgentSessionJsonlDelta(lines, 1);
+        const apiWarnings = Array.isArray(data.warnings) ? data.warnings : [];
+        const lineCount = Number(data.line_count || (lines[lines.length - 1] === '' ? lines.length - 1 : lines.length) || parsed.lineCount || 0);
+        return {
+          ...data,
+          session_meta: {
+            ...(data.session_meta || {}),
+            ...(parsed.sessionMeta || {}),
+          },
+          events: parsed.events,
+          warnings: Array.from(new Set(apiWarnings.concat(parsed.warnings))),
+          line_count: lineCount,
+        };
+      }
+      return {
+        ...data,
+        session_meta: data.session_meta || {},
+        events: Array.isArray(data.events) ? data.events : [],
+        warnings: Array.isArray(data.warnings) ? data.warnings : [],
+        line_count: Number(data.line_count || this.maxEventLine(Array.isArray(data.events) ? data.events : []) || 0),
+      };
+    },
+
+    async loadSessionIntoBrowser(path: string, options: { force?: boolean } = {}) {
+      if (!this.currentRun || !path) return;
+      const runName = this.currentRun;
+      const seq = ++this._sessionLoadSeq;
+      const runCache = this.getRunCache(runName);
+      this.sessionBrowser.loading = true;
+      this.sessionBrowser.error = '';
+      this.sessionBrowser.notice = '';
+      this.renderSessionPaneOnly();
+      try {
+        if (options.force) delete runCache.sessionViews[path];
+        const cached = this.isRunActive() ? null : runCache.sessionViews[path];
+        const data = cached || this.normalizeSessionSnapshot(await getDataflowFileserverRunSessionFile(projectId, this.runsRootPath, runName, path));
+        runCache.sessionViews[path] = data;
+        if (this._destroyed || seq !== this._sessionLoadSeq || this.currentRun !== runName || this.sessionBrowser.selectedPath !== path) return;
+        const events = Array.isArray(data.events) ? data.events : [];
+        const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+        const lineCount = Number(data.line_count || this.maxEventLine(events) || 0);
+        this.sessionBrowser = {
+          ...this.sessionBrowser,
+          selectedRun: runName,
+          selectedPath: path,
+          loading: false,
+          error: '',
+          data,
+          events,
+          warnings,
+          lineCount,
+          sessionMeta: data.session_meta || {},
+        };
+        this.renderSessionPaneOnly();
+        this.startSessionLiveWatch(path);
+      } catch (e: any) {
+        if (this._destroyed || seq !== this._sessionLoadSeq || this.currentRun !== runName || this.sessionBrowser.selectedPath !== path) return;
+        this.sessionBrowser.loading = false;
+        this.sessionBrowser.error = e?.message || '加载会话文件失败';
+        this.renderSessionPaneOnly();
+      }
+    },
+
+    renderSessionPaneOnly() {
+      const pane = this.$('sessionViewerPane');
+      if (pane) pane.innerHTML = this.renderSessionViewerPane();
+    },
+
+    renderSessionViewerPane() {
+      const path = this.sessionBrowser.selectedPath;
+      const selected = this.getSelectedSession();
+      if (!path || !selected) {
+        return '<div class="empty-state">请选择左侧 JSONL 会话</div>';
+      }
+      if (this.sessionBrowser.error) {
+        return `
+          <div class="session-viewer-header">
+            <div>
+              <div class="card-title">${this.esc(this.getSessionDisplayName(selected))}</div>
+              <div class="text-muted" style="font-size:12px;margin-top:4px">${this.esc(path)}</div>
+            </div>
+          </div>
+          <div class="empty-state text-error">${this.esc(this.sessionBrowser.error)}</div>
+        `;
+      }
+      if (!this.sessionBrowser.data) {
+        return '<div class="empty-state">正在加载会话内容...</div>';
+      }
+      const data = {
+        ...(this.sessionBrowser.data || {}),
+        session_meta: this.sessionBrowser.sessionMeta || {},
+        events: this.sessionBrowser.events || [],
+        warnings: this.sessionBrowser.warnings || [],
+        line_count: this.sessionBrowser.lineCount || 0,
+      };
+      return this.renderSessionConversation(data, {
+        inline: true,
+        runName: this.currentRun || '',
+        selectedPath: path,
+        selectedSession: selected,
+        live: this.sessionBrowser.live,
+        notice: this.sessionBrowser.notice,
+      });
+    },
+
+    isRunActive() {
+      const status = String(this.currentRunData?.status || '').toLowerCase();
+      return ['pending', 'queued', 'running', 'cancel_requested'].includes(status);
+    },
+
+    maxEventLine(events: Record<string, any>[]) {
+      return events.reduce((max: number, event: any) => Math.max(max, Number(event.line || event.event_index || 0)), 0);
+    },
+
+    closeSessionSocket() {
+      const socket = this._sessionSocket as WebSocket | null;
+      this._sessionSocket = null;
+      this._sessionSocketKey = '';
+      if (socket) {
+        try {
+          if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ action: 'close' }));
+        } catch {}
+        try { socket.close(); } catch {}
+      }
+      if (this.sessionBrowser.live) {
+        this.sessionBrowser.live = false;
+        this.renderSessionPaneOnly();
+      }
+    },
+
+    resolveSessionWatchPath(session: Record<string, any>, path: string) {
+      const explicit = String(session.watch_project_path || '').trim();
+      if (explicit) return normalizeProjectPath(explicit);
+      const atomic = String(this.currentRunData?.atomic_work_path || '').trim();
+      if (!atomic) return '';
+      const absolutePath = `${atomic.replace(/\/+$/, '')}/${String(path || '').replace(/^\/+/, '')}`;
+      const prefix = `/data/files/${projectId}`;
+      if (!absolutePath.startsWith(prefix)) return '';
+      const rel = absolutePath.slice(prefix.length).replace(/\/+$/, '');
+      return rel.startsWith('/') ? rel : `/${rel}`;
+    },
+
+    startSessionLiveWatch(path: string) {
+      if (!path || this.getActiveTab() !== 'sessions') return;
+      const selected = this.getSelectedSession();
+      if (!selected) return;
+      if (!this.isRunActive()) {
+        this.closeSessionSocket();
+        this.sessionBrowser.live = false;
+        this.sessionBrowser.notice = '';
+        this.renderSessionPaneOnly();
+        return;
+      }
+      const watchPath = this.resolveSessionWatchPath(selected as Record<string, any>, path);
+      if (!watchPath) {
+        this.sessionBrowser.live = false;
+        this.sessionBrowser.notice = '无法解析实时监听路径，已降级为自动刷新。';
+        this.renderSessionPaneOnly();
+        return;
+      }
+      const socketKey = `${this.currentRun || ''}:${path}:${watchPath}`;
+      if (
+        this._sessionSocketKey === socketKey &&
+        this._sessionSocket &&
+        [WebSocket.OPEN, WebSocket.CONNECTING].includes(this._sessionSocket.readyState)
+      ) {
+        return;
+      }
+      this.closeSessionSocket();
+      this._sessionSocketKey = socketKey;
+      let socket: WebSocket;
+      try {
+        socket = fileserverApi.openProjectFileWatchWebSocket(projectId, watchPath, {
+          path_mode: 'project_filesystem',
+          read_mode: 'line',
+          start_from: 'head',
+          start_line: Number(this.sessionBrowser.lineCount || this.maxEventLine(this.sessionBrowser.events || []) || 0),
+        });
+      } catch (e: any) {
+        this.sessionBrowser.live = false;
+        this.sessionBrowser.notice = e?.message || '实时监听创建失败，已保留自动刷新。';
+        this.renderSessionPaneOnly();
+        return;
+      }
+      this._sessionSocket = socket;
+      socket.onopen = () => {
+        if (this._sessionSocket !== socket || this._sessionSocketKey !== socketKey) return;
+        this.sessionBrowser.live = true;
+        this.sessionBrowser.notice = '';
+        this.renderSessionPaneOnly();
+      };
+      socket.onmessage = (event) => this.handleSessionWatchMessage(socket, socketKey, event);
+      socket.onerror = () => {
+        if (this._sessionSocket !== socket || this._sessionSocketKey !== socketKey) return;
+        this.sessionBrowser.live = false;
+        this.sessionBrowser.notice = '实时监听暂时不可用，已保留自动刷新。';
+        this.renderSessionPaneOnly();
+      };
+      socket.onclose = () => {
+        if (this._sessionSocket !== socket || this._sessionSocketKey !== socketKey) return;
+        this.sessionBrowser.live = false;
+        this.renderSessionPaneOnly();
+      };
+    },
+
+    handleSessionWatchMessage(socket: WebSocket, socketKey: string, event: MessageEvent) {
+      if (this._sessionSocket !== socket || this._sessionSocketKey !== socketKey) return;
+      try {
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'snapshot' || message.type === 'heartbeat') return;
+        if (message.type === 'delta') {
+          if (message.read_mode !== 'line') return;
+          const deltaLines = Array.isArray(message.lines) ? message.lines : [];
+          if (!deltaLines.length) return;
+          const parsed = parseAgentSessionJsonlDelta(deltaLines, (message.from_line ?? this.sessionBrowser.lineCount) + 1);
+          const existingMaxLine = this.maxEventLine(this.sessionBrowser.events || []);
+          const newEvents = parsed.events.filter((evt: any) => !evt.line || Number(evt.line) > existingMaxLine);
+          if (newEvents.length) {
+            this.sessionBrowser.events = (this.sessionBrowser.events || []).concat(newEvents);
+          }
+          if (parsed.warnings.length) {
+            this.sessionBrowser.warnings = Array.from(new Set((this.sessionBrowser.warnings || []).concat(parsed.warnings)));
+          }
+          if (parsed.sessionMeta) {
+            this.sessionBrowser.sessionMeta = { ...(this.sessionBrowser.sessionMeta || {}), ...parsed.sessionMeta };
+          }
+          this.sessionBrowser.lineCount = Number(message.to_line || this.sessionBrowser.lineCount || this.maxEventLine(this.sessionBrowser.events || []));
+          this.sessionBrowser.live = true;
+          this.sessionBrowser.notice = '';
+          if (this.sessionBrowser.data) {
+            this.sessionBrowser.data = {
+              ...this.sessionBrowser.data,
+              session_meta: this.sessionBrowser.sessionMeta,
+              events: this.sessionBrowser.events,
+              warnings: this.sessionBrowser.warnings,
+              line_count: this.sessionBrowser.lineCount,
+            };
+          }
+          this.renderSessionPaneOnly();
+          return;
+        }
+        if (message.type === 'file_event') {
+          if (message.event === 'truncated' || message.event === 'renamed') {
+            this.sessionBrowser.live = false;
+            this.sessionBrowser.notice = '会话文件已重置，正在重新加载。';
+            this.renderSessionPaneOnly();
+            void this.loadSessionIntoBrowser(this.sessionBrowser.selectedPath, { force: true });
+            return;
+          }
+          if (message.event === 'deleted') {
+            this.sessionBrowser.live = false;
+            this.sessionBrowser.error = '会话文件已删除';
+            this.closeSessionSocket();
+            this.renderSessionPaneOnly();
+          }
+          return;
+        }
+        if (message.type === 'error') {
+          this.sessionBrowser.live = false;
+          this.sessionBrowser.notice = message.message || '会话实时订阅失败，已保留自动刷新。';
+          this.renderSessionPaneOnly();
+        }
+      } catch (e: any) {
+        this.sessionBrowser.notice = e?.message || '会话实时消息解析失败。';
+        this.renderSessionPaneOnly();
+      }
     },
 
     async ensureRunData(runName: string) {
@@ -2563,7 +3348,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     async openSessionFile(runName: string, path: string) {
       try {
         const runCache = this.getRunCache(runName);
-        const data = runCache.sessionViews[path] || await getDataflowFileserverRunSessionFile(projectId, this.runsRootPath, runName, path);
+        const cached = this.isRunActive() ? null : runCache.sessionViews[path];
+        const data = cached || this.normalizeSessionSnapshot(await getDataflowFileserverRunSessionFile(projectId, this.runsRootPath, runName, path));
         runCache.sessionViews[path] = data;
         const title = this.$('fileModalTitle');
         if (title) title.textContent = data.path || path;
@@ -2576,18 +3362,42 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       } catch (e) { console.error('openSessionFile failed', e); alert('Failed to load session file'); }
     },
 
-    renderSessionConversation(data: Record<string, any>) {
+    renderSessionConversation(data: Record<string, any>, options: Record<string, any> = {}) {
       const meta = data.session_meta || {};
-      const events = data.events || [];
+      const events = Array.isArray(data.events) ? data.events : [];
+      const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+      const selectedSession = options.selectedSession || {};
+      const title = options.inline && selectedSession ? this.getSessionDisplayName(selectedSession) : 'Session';
+      const runName = String(options.runName || this.currentRun || '');
+      const selectedPath = String(options.selectedPath || data.path || '');
+      const sessionModel = String(selectedSession.model || selectedSession.raw_model || meta.model || '').trim();
+      const sessionProvider = String(selectedSession.provider || meta.provider || '').trim();
+      const sessionThinking = String(selectedSession.thinking || meta.thinking || '').trim();
 
       let html = '';
 
       html += '<div class="session-header-card">';
-      html += '<h1>Session</h1>';
+      html += '<div class="session-viewer-header">';
+      html += `<div><h1>${this.esc(title)}</h1>`;
+      if (selectedPath) html += `<div class="text-muted" style="font-size:12px;word-break:break-all">${this.esc(selectedPath)}</div>`;
+      html += '</div>';
+      html += '<div class="session-inline-actions">';
+      if (options.inline) {
+        html += `<span class="badge badge-sm ${options.live ? 'badge-passed' : 'badge-unknown'} session-live-dot ${options.live ? 'live' : ''}">${options.live ? '实时连接中' : '自动刷新'}</span>`;
+        html += `<button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(runName)}" data-path="${this.attr(selectedPath)}">放大查看</button>`;
+      }
+      html += '</div></div>';
+      if (options.notice) {
+        html += `<div class="session-warning-list"><div class="session-warning-item">${this.esc(options.notice)}</div></div>`;
+      }
+      if (warnings.length) {
+        html += `<div class="session-warning-list">${warnings.slice(0, 5).map((warning: any) => `<div class="session-warning-item">${this.esc(warning)}</div>`).join('')}</div>`;
+      }
       html += '<div class="session-header-info">';
       if (meta.id) html += `<div class="info-item"><span class="info-label">Session ID</span><span class="info-value">${this.esc(meta.id)}</span></div>`;
       if (meta.timestamp) html += `<div class="info-item"><span class="info-label">Started</span><span class="info-value">${this.esc(meta.timestamp)}</span></div>`;
       if (meta.cwd) html += `<div class="info-item"><span class="info-label">Working Dir</span><span class="info-value">${this.esc(meta.cwd)}</span></div>`;
+      if (data.line_count) html += `<div class="info-item"><span class="info-label">Lines</span><span class="info-value">${Number(data.line_count || 0)}</span></div>`;
       html += '</div></div>';
 
       const msgEvents = events.filter((e: any) => e.type === 'message');
@@ -2604,7 +3414,27 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       html += '</div>';
 
       const mergedEvents = this._mergeToolResults(events);
+      const hasModelEvent = events.some((event: any) => event.type === 'model_change');
+      const hasThinkingEvent = events.some((event: any) => event.type === 'thinking_level_change');
+      if (!hasModelEvent && (sessionModel || sessionProvider || this.currentRunData?.model || this.currentRunData?.provider)) {
+        const modelSource = sessionModel || sessionProvider ? 'Session 配置' : 'Run 配置';
+        const modelText = sessionModel
+          ? (sessionProvider && !sessionModel.startsWith(`${sessionProvider}/`) ? `${sessionProvider}/${sessionModel}` : sessionModel)
+          : [this.currentRunData?.provider, this.currentRunData?.model].filter(Boolean).join('/');
+        html += `<div class="model-change-event">Model: <span class="model-name">${this.esc(modelText)}</span> <span class="text-muted">(${modelSource})</span></div>`;
+      }
+      if (!hasThinkingEvent && (sessionThinking || this.currentRunData?.thinking)) {
+        const thinkingText = sessionThinking || String(this.currentRunData.thinking || '');
+        const thinkingSource = sessionThinking ? 'Session 配置' : 'Run 配置';
+        const level = thinkingText.toLowerCase();
+        const colorCls = 'thinking-' + (({off:'off',minimal:'minimal',low:'low',medium:'medium',high:'high',xhigh:'xhigh','x-high':'xhigh'} as Record<string, string>)[level] || 'off');
+        html += `<div class="thinking-level-event"><span class="thinking-level-label ${colorCls}">Thinking: ${this.esc(thinkingText)}</span> <span class="text-muted">(${thinkingSource})</span></div>`;
+      }
+      html += '<div class="session-message-list">';
 
+      if (!mergedEvents.length) {
+        html += '<div class="empty-state">Empty session</div>';
+      }
       for (const event of mergedEvents) {
         if (event.type === 'model_change') {
           html += `<div class="model-change-event">Model: <span class="model-name">${this.esc(event.provider || '')}/${this.esc(event.modelId || '')}</span></div>`;
@@ -2623,25 +3453,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         }
         if (event.type !== 'raw') {
           html += `<div class="model-change-event text-muted" style="font-size:10px">[Line ${event.line}] ${this.esc(event.type)}: ${this.esc(event.summary || '').substring(0, 80)}</div>`;
+        } else {
+          html += `<div class="model-change-event text-muted" style="font-size:10px">[Line ${event.line}] ${this.esc(event.summary || event.raw_line || '').substring(0, 120)}</div>`;
         }
       }
+      html += '</div>';
 
       return html || '<div class="empty-state">Empty session</div>';
     },
 
     _mergeToolResults(events: Record<string, any>[]) {
-      const result: Record<string, any>[] = [];
-      for (const event of events) {
-        if (event.type === 'message' && event.role === 'toolResult') {
-          if (result.length > 0 && result[result.length - 1].type === 'message' && result[result.length - 1].role === 'assistant') {
-            if (!result[result.length - 1]._toolResults) result[result.length - 1]._toolResults = [];
-            result[result.length - 1]._toolResults.push(event);
-          }
-          continue;
-        }
-        result.push(event);
-      }
-      return result;
+      return mergeAgentSessionToolResults(events as AppSaSessionEvent[]);
     },
 
     renderPiMessage(event: Record<string, any>) {
@@ -2799,48 +3621,404 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
     },
 
+    normalizeFilePath(path: string) {
+      return String(path || '').replace(/^\/+/g, '').replace(/\/+/g, '/');
+    },
+
+    fileTypeBucket(file: DataflowFileserverRunFile | Record<string, any>) {
+      const path = String(file?.path || file?.name || '').toLowerCase();
+      const type = String(file?.type || getFileType(path)).toLowerCase();
+      if (type === 'jsonl' || path.endsWith('.jsonl')) return 'jsonl';
+      if (type === 'json' || path.endsWith('.json')) return 'json';
+      if (type === 'markdown' || path.endsWith('.md') || path.endsWith('.markdown')) return 'markdown';
+      if (path.endsWith('.log')) return 'log';
+      if (path.endsWith('.txt') || type === 'text') return 'text';
+      return 'other';
+    },
+
+    fileTypeLabel(type: string) {
+      return ({
+        all: '全部类型',
+        markdown: 'Markdown',
+        json: 'JSON',
+        jsonl: 'JSONL 会话',
+        log: 'Log',
+        text: 'Text',
+        other: 'Other',
+      } as Record<string, string>)[String(type || 'other')] || String(type || 'Other');
+    },
+
+    categoryLabel(category: string) {
+      const c = String(category || 'Workspace');
+      return ({
+        'Run Root': 'Run 根目录',
+        Input: '输入文件',
+        Outputs: '输出摘要',
+        'Outputs / Results': '漏洞结果',
+        'Outputs / Supporting Docs': '支撑文档',
+        Meta: '运行元数据',
+        'Meta / Result Manifests': '结果清单',
+        'Meta / Reflections': '反思记录',
+        'Meta / Review Summaries': '评审汇总',
+        'Meta / Cycle Metrics': '轮次指标',
+        'Meta / Review Feedback': '评审反馈',
+        'Meta / Summary Snapshots': 'Summary 快照',
+        'Reviews / Global': '全局评审',
+        'Reviews / Results': '结果评审',
+        Sessions: '会话记录',
+      } as Record<string, string>)[c] || c;
+    },
+
+    fmtTimestamp(value: number) {
+      const num = Number(value || 0);
+      if (!num) return '-';
+      const date = new Date(num < 10_000_000_000 ? num * 1000 : num);
+      if (Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleString('zh-CN', { hour12: false });
+    },
+
+    getFileByPath(path: string, files = this.currentFiles) {
+      const normalized = this.normalizeFilePath(path);
+      return (files || []).find((file: any) => this.normalizeFilePath(file.path) === normalized) || null;
+    },
+
+    chooseDefaultFile(files: DataflowFileserverRunFile[]) {
+      if (!files.length) return null;
+      const priority = [
+        (f: any) => f.path === 'summary.md',
+        (f: any) => f.path === 'final_output/summary.md',
+        (f: any) => f.path === 'run.log',
+        (f: any) => String(f.path || '').startsWith('results/') && String(f.path || '').endsWith('.md'),
+        (f: any) => String(f.path || '').startsWith('final_output/results/') && String(f.path || '').endsWith('.md'),
+      ];
+      for (const matcher of priority) {
+        const found = files.find((file: any) => matcher(file));
+        if (found) return found;
+      }
+      return files[0];
+    },
+
+    filteredFiles(files: DataflowFileserverRunFile[]) {
+      const query = String(this.fileBrowser.searchQuery || '').trim().toLowerCase();
+      const category = String(this.fileBrowser.categoryFilter || 'all');
+      const type = String(this.fileBrowser.typeFilter || 'all');
+      return (files || []).filter((file: any) => {
+        const haystack = [
+          file.path,
+          file.name,
+          file.category,
+          this.categoryLabel(file.category || ''),
+          file.type,
+          this.fileTypeLabel(this.fileTypeBucket(file)),
+        ].join(' ').toLowerCase();
+        const matchesQuery = !query || haystack.includes(query);
+        const matchesCategory = category === 'all' || String(file.category || 'Workspace') === category;
+        const matchesType = type === 'all' || this.fileTypeBucket(file) === type;
+        return matchesQuery && matchesCategory && matchesType;
+      });
+    },
+
+    quickFileTargets(files: DataflowFileserverRunFile[]) {
+      const defs = [
+        {
+          key: 'summary',
+          icon: 'S',
+          label: 'Summary',
+          hint: '最终摘要',
+          match: (file: any) => ['summary.md', 'final_output/summary.md'].includes(String(file.path || '')),
+        },
+        {
+          key: 'results',
+          icon: 'R',
+          label: 'Results',
+          hint: '漏洞结果',
+          match: (file: any) => /^results\/.*\.md$/.test(String(file.path || '')) || /^final_output\/results\/.*\.md$/.test(String(file.path || '')),
+        },
+        {
+          key: 'docs',
+          icon: 'D',
+          label: 'Docs',
+          hint: '支撑文档',
+          match: (file: any) => String(file.path || '').startsWith('supporting_docs/'),
+        },
+        {
+          key: 'coverage',
+          icon: 'C',
+          label: 'Coverage',
+          hint: '覆盖账本',
+          match: (file: any) => String(file.path || '').endsWith('coverage_ledger.json'),
+        },
+        {
+          key: 'manifest',
+          icon: 'M',
+          label: 'Manifest',
+          hint: '结果清单',
+          match: (file: any) => String(file.path || '').endsWith('results_manifest.json'),
+        },
+        {
+          key: 'log',
+          icon: 'L',
+          label: 'Run Log',
+          hint: '运行日志',
+          match: (file: any) => String(file.path || '') === 'run.log',
+        },
+      ];
+      return defs.map((def) => {
+        const matches = files.filter((file: any) => def.match(file));
+        return { ...def, target: matches[0] || null, count: matches.length };
+      });
+    },
+
+    buildFileTree(files: DataflowFileserverRunFile[]) {
+      const root: any = { name: '', path: '', dirs: {}, files: [] };
+      (files || []).forEach((file: any) => {
+        const parts = this.normalizeFilePath(file.path).split('/').filter(Boolean);
+        let node = root;
+        const dirParts: string[] = [];
+        parts.slice(0, -1).forEach((part: string) => {
+          dirParts.push(part);
+          const dirPath = dirParts.join('/');
+          if (!node.dirs[part]) node.dirs[part] = { name: part, path: dirPath, dirs: {}, files: [] };
+          node = node.dirs[part];
+        });
+        node.files.push(file);
+      });
+      return root;
+    },
+
+    renderFileTreeNode(node: any, level = 0, searchActive = false) {
+      const dirs = Object.values(node.dirs || {}).sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
+      const files = [...(node.files || [])].sort((a: any, b: any) => String(a.path).localeCompare(String(b.path)));
+      let html = '';
+      dirs.forEach((dir: any) => {
+        const explicit = this.fileBrowser.expandedDirs[dir.path];
+        const open = searchActive || (explicit !== undefined ? explicit : level < 1);
+        html += `
+          <button class="file-dir-row ${open ? 'open' : ''}" type="button" data-action="toggle-file-dir" data-dir="${this.attr(dir.path)}" style="--level:${level}">
+            <span class="file-dir-arrow">${open ? '▾' : '▸'}</span>
+            <span class="file-dir-icon">folder</span>
+            <span class="file-dir-name">${this.esc(dir.name)}</span>
+          </button>
+        `;
+        if (open) html += this.renderFileTreeNode(dir, level + 1, searchActive);
+      });
+      files.forEach((file: any) => {
+        const selected = this.normalizeFilePath(file.path) === this.normalizeFilePath(this.fileBrowser.selectedPath);
+        const bucket = this.fileTypeBucket(file);
+        html += `
+          <button class="file-tree-file ${selected ? 'selected' : ''}" type="button" data-action="select-file" data-path="${this.attr(file.path)}" title="${this.attr(file.path)}" style="--level:${level}">
+            <span class="file-kind-dot file-kind-${this.attr(bucket)}"></span>
+            <span class="file-tree-name">${this.esc(file.name || String(file.path || '').split('/').pop() || file.path)}</span>
+            <span class="file-tree-meta">${this.esc(this.fileTypeLabel(bucket))}</span>
+            <span class="file-tree-size">${this.fmtSize(Number(file.size || 0))}</span>
+          </button>
+        `;
+      });
+      return html;
+    },
+
     renderFiles(files: DataflowFileserverRunFile[]) {
       const el = this.$('filesContainer');
       if (!el) return;
       if (!files.length) { el.innerHTML = '<div class="empty-state">暂无文件</div>'; return; }
 
-      const groups: Record<string, DataflowFileserverRunFile[]> = {};
-      files.forEach((f: any) => {
-        const category = f.category || 'Workspace';
-        if (!groups[category]) groups[category] = [];
-        groups[category].push(f);
-      });
-
-      const body = Object.entries(groups).map(([category, items]) => `
-      <div class="file-group">
-        <div class="file-group-title">${this.esc(category)} (${items.length})</div>
-        ${items.map((f: any) => `
-          <div class="file-row" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(f.path)}" title="${this.attr(f.path)}">
-            <div class="file-path">${this.esc(f.path)}</div>
-            <div class="file-type">${this.esc(f.type)}</div>
-            <div class="file-size">${this.fmtSize(f.size)}</div>
-          </div>
-        `).join('')}
-      </div>
-    `).join('');
-
+      const categories = uniqueValues(files.map((file: any) => String(file.category || 'Workspace'))).sort();
+      const typeOrder = ['markdown', 'json', 'jsonl', 'log', 'text', 'other'];
+      const types = typeOrder.filter((type) => files.some((file: any) => this.fileTypeBucket(file) === type));
+      const filtered = this.filteredFiles(files);
+      const selectedStillVisible = filtered.some((file: any) => this.normalizeFilePath(file.path) === this.normalizeFilePath(this.fileBrowser.selectedPath));
+      if (!selectedStillVisible) {
+        this.fileBrowser.selectedPath = this.chooseDefaultFile(filtered)?.path || '';
+      }
+      const selectedFile = this.getFileByPath(this.fileBrowser.selectedPath, files);
+      const quickTargets = this.quickFileTargets(files);
+      const searchActive = !!String(this.fileBrowser.searchQuery || '').trim();
+      const treeHtml = filtered.length
+        ? this.renderFileTreeNode(this.buildFileTree(filtered), 0, searchActive)
+        : '<div class="file-browser-empty">没有匹配的关键文件</div>';
+      const quickHtml = quickTargets.map((item: any) => item.target ? `
+        <button class="file-quick-card" type="button" data-action="select-file" data-path="${this.attr(item.target.path)}">
+          <span class="file-quick-icon">${this.esc(item.icon)}</span>
+          <span class="file-quick-main">${this.esc(item.label)}</span>
+          <span class="file-quick-hint">${this.esc(item.hint)}${item.count > 1 ? ` · ${item.count}` : ''}</span>
+        </button>
+      ` : `
+        <button class="file-quick-card disabled" type="button" disabled>
+          <span class="file-quick-icon">${this.esc(item.icon)}</span>
+          <span class="file-quick-main">${this.esc(item.label)}</span>
+          <span class="file-quick-hint">未生成</span>
+        </button>
+      `).join('');
+      const categoryOptions = [
+        `<option value="all">全部分类</option>`,
+        ...categories.map((category) => `<option value="${this.attr(category)}" ${this.fileBrowser.categoryFilter === category ? 'selected' : ''}>${this.esc(this.categoryLabel(category))}</option>`),
+      ].join('');
+      const typeOptions = [
+        `<option value="all">全部类型</option>`,
+        ...types.map((type) => `<option value="${this.attr(type)}" ${this.fileBrowser.typeFilter === type ? 'selected' : ''}>${this.esc(this.fileTypeLabel(type))}</option>`),
+      ].join('');
       el.innerHTML = `
-      <div class="file-toolbar">
-        <input id="fileSearchInput" placeholder="搜索文件路径 / 分类...">
-        <span class="text-muted">${files.length} files</span>
+      <div class="file-browser-shell">
+        <aside class="file-browser-nav">
+          <div class="file-browser-titlebar">
+            <div>
+              <div class="card-title">Run 关键文件浏览</div>
+              <div class="text-muted">后端精选文件索引，不是完整磁盘目录</div>
+            </div>
+            <span class="file-count-pill">${filtered.length}/${files.length}</span>
+          </div>
+          <div class="file-toolbar">
+            <input id="fileSearchInput" value="${this.attr(this.fileBrowser.searchQuery)}" placeholder="搜索文件路径 / 分类 / 类型...">
+            <div class="file-filter-row">
+              <select id="fileCategoryFilter">${categoryOptions}</select>
+              <select id="fileTypeFilter">${typeOptions}</select>
+            </div>
+          </div>
+          <div class="file-quick-grid">${quickHtml}</div>
+          <div class="file-tree-panel">${treeHtml}</div>
+        </aside>
+        <section class="file-preview-pane" id="filePreviewPane">
+          ${this.renderFilePreviewShell(selectedFile)}
+        </section>
       </div>
-      ${body}
     `;
+      if (selectedFile && (
+        this.fileBrowser.previewRun !== this.currentRun ||
+        this.normalizeFilePath(this.fileBrowser.previewPath) !== this.normalizeFilePath(selectedFile.path)
+      )) {
+        void this.loadSelectedFilePreview(selectedFile.path);
+      }
     },
 
     filterFiles(query: string) {
-      const q = String(query || '').toLowerCase();
-      const filtered = this.currentFiles.filter((f: any) =>
-        String(f.path || '').toLowerCase().includes(q) || String(f.category || '').toLowerCase().includes(q) || String(f.type || '').toLowerCase().includes(q)
-      );
-      this.renderFiles(filtered);
+      this.fileBrowser.searchQuery = String(query || '');
+      this.renderFiles(this.currentFiles);
       const input = this.$('fileSearchInput') as HTMLInputElement | null;
       if (input) { input.value = query; input.focus(); }
+    },
+
+    toggleFileDirectory(dir: string) {
+      if (!dir) return;
+      const current = this.fileBrowser.expandedDirs[dir];
+      this.fileBrowser.expandedDirs[dir] = current === undefined ? false : !current;
+      this.renderFiles(this.currentFiles);
+    },
+
+    async selectFileInBrowser(path: string) {
+      const file = this.getFileByPath(path);
+      if (!file) return;
+      this.fileBrowser.selectedPath = file.path;
+      this.renderFiles(this.currentFiles);
+    },
+
+    renderFilePreviewShell(file: DataflowFileserverRunFile | null) {
+      if (!file) {
+        return `
+          <div class="file-preview-empty">
+            <div class="file-preview-empty-icon">files</div>
+            <div class="card-title">选择一个文件</div>
+            <p>使用左侧快速入口、目录树或搜索结果来查看 Run 关键产物。</p>
+          </div>
+        `;
+      }
+      const bucket = this.fileTypeBucket(file);
+      const isCurrent = this.fileBrowser.previewRun === this.currentRun && this.normalizeFilePath(this.fileBrowser.previewPath) === this.normalizeFilePath(file.path);
+      const loading = this.fileBrowser.previewLoading && isCurrent;
+      const error = isCurrent ? this.fileBrowser.previewError : '';
+      const content = isCurrent ? this.fileBrowser.previewContent : '';
+      return `
+        <div class="file-preview-header">
+          <div class="file-preview-title">
+            <span class="file-kind-dot file-kind-${this.attr(bucket)}"></span>
+            <div>
+              <div class="file-preview-name">${this.esc(file.name || file.path)}</div>
+              <div class="file-preview-path">${this.esc(file.path)}</div>
+            </div>
+          </div>
+          <div class="file-preview-actions">
+            ${bucket === 'jsonl' ? `<button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(file.path)}">查看对话</button>` : ''}
+            <button class="btn btn-sm" type="button" data-action="preview-file-modal" data-path="${this.attr(file.path)}">放大查看</button>
+          </div>
+        </div>
+        <div class="file-preview-meta">
+          <span>${this.esc(this.categoryLabel(file.category || 'Workspace'))}</span>
+          <span>${this.esc(this.fileTypeLabel(bucket))}</span>
+          <span>${this.fmtSize(Number(file.size || 0))}</span>
+          <span>${this.fmtTimestamp(Number(file.mtime || 0))}</span>
+        </div>
+        <div class="file-preview-body">
+          ${loading ? '<div class="file-browser-empty">正在加载文件内容...</div>' : ''}
+          ${error ? `<div class="file-browser-empty text-error">${this.esc(error)}</div>` : ''}
+          ${!loading && !error ? this.renderFilePreviewContent(file, content) : ''}
+        </div>
+      `;
+    },
+
+    renderFilePreviewContent(file: DataflowFileserverRunFile, content: string) {
+      const bucket = this.fileTypeBucket(file);
+      if (bucket === 'jsonl') {
+        return `
+          <div class="file-jsonl-hint">
+            <div class="file-jsonl-icon">JSONL</div>
+            <div>
+              <div class="card-title">会话记录文件</div>
+              <p>这个文件更适合使用结构化会话查看器阅读，可以直接跳转到格式化对话。</p>
+              <button class="btn btn-sm" type="button" data-action="open-session" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(file.path)}">查看格式化对话</button>
+            </div>
+          </div>
+        `;
+      }
+      if (bucket === 'markdown') return this.renderMarkdown(content || '(empty)');
+      if (bucket === 'json') {
+        try {
+          return `<pre class="file-preview-code">${this.esc(JSON.stringify(JSON.parse(content || '{}'), null, 2))}</pre>`;
+        } catch {
+          return `<pre class="file-preview-code">${this.esc(content || '(empty)')}</pre>`;
+        }
+      }
+      return `<pre class="file-preview-code">${this.esc(content || '(empty)')}</pre>`;
+    },
+
+    renderFilePreviewPane() {
+      const pane = this.$('filePreviewPane');
+      if (!pane) return;
+      pane.innerHTML = this.renderFilePreviewShell(this.getFileByPath(this.fileBrowser.selectedPath));
+    },
+
+    async loadSelectedFilePreview(path: string) {
+      if (!this.currentRun || !path) return;
+      const file = this.getFileByPath(path);
+      if (!file) return;
+      const bucket = this.fileTypeBucket(file);
+      this.fileBrowser.selectedPath = file.path;
+      this.fileBrowser.previewRun = this.currentRun;
+      this.fileBrowser.previewPath = file.path;
+      this.fileBrowser.previewError = '';
+      if (bucket === 'jsonl') {
+        this.fileBrowser.previewLoading = false;
+        this.fileBrowser.previewContent = '';
+        this.renderFilePreviewPane();
+        return;
+      }
+      const runName = this.currentRun;
+      this.fileBrowser.previewLoading = true;
+      this.renderFilePreviewPane();
+      try {
+        const content = await this.readRunFileText(runName, file.path);
+        if (this.currentRun !== runName || this.normalizeFilePath(this.fileBrowser.selectedPath) !== this.normalizeFilePath(file.path)) return;
+        this.fileBrowser.previewContent = content;
+        this.fileBrowser.previewError = '';
+      } catch (error: any) {
+        if (this.currentRun !== runName) return;
+        console.error('load file preview failed', error);
+        this.fileBrowser.previewContent = '';
+        this.fileBrowser.previewError = error?.message || '文件内容加载失败';
+      } finally {
+        if (this.currentRun === runName && this.normalizeFilePath(this.fileBrowser.selectedPath) === this.normalizeFilePath(file.path)) {
+          this.fileBrowser.previewLoading = false;
+          this.renderFilePreviewPane();
+        }
+      }
     },
 
     renderLogToolbar(runCache: {
@@ -2949,12 +4127,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     switchTab(tab: string, force = false) {
       this.$all('.tab').forEach((t: HTMLElement) => t.classList.toggle('active', t.dataset.tab === tab));
       this.$all('.tab-content').forEach((t: HTMLElement) => t.classList.toggle('active', t.id === `tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
+      if (tab !== 'sessions') this.closeSessionSocket();
       if (tab === 'sessions') this.loadSessions(force);
       if (tab === 'files') this.loadFiles(force);
       if (tab === 'log') this.loadLog(force);
     },
 
     async openFile(runName: string, path: string) {
+      if (!runName || !path) return;
       try {
         const content = await this.readRunFileText(runName, path);
         const data = { path, type: getFileType(path), content };
@@ -3087,12 +4267,25 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
     },
 
-	    async retryCurrentRun() {
-	      if (!this.currentRun || !this.currentRunId()) return;
-	      if (!this.isRetryableRunStatus(String(this.currentRunData?.status || this.currentSummary?.status || ''))) {
-	        alert('当前 Run 状态不可重试。运行中的 Run 请先取消并等待进入终态；已完成的 Run 不需要重试。');
-	        return;
-	      }
+    async retryCurrentRun() {
+      if (!this.currentRun || !this.currentRunId()) return;
+      try {
+        const latest = await inspectDataflowFileserverRunOverview(projectId, this.runsRootPath, this.currentRun, { force: true });
+        this.currentRunData = latest;
+        this.currentSummary = {
+          ...(this.currentSummary || {}),
+          ...latest,
+        };
+        this.renderRunDetail(latest);
+      } catch (error: any) {
+        alert(error?.message || '刷新 Run 状态失败，暂不能重试');
+        return;
+      }
+      const current = this.currentRunData || this.currentSummary;
+      if (!this.canRetryRun(current)) {
+        alert(this.retryDisabledReason(current));
+        return;
+      }
       const extraCyclesText = window.prompt('追加评审轮次', '5');
       if (extraCyclesText === null) return;
       const extraCycles = Number.parseInt(extraCyclesText, 10);
@@ -3160,6 +4353,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (bytes < 1024) return bytes + 'B';
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'K';
       return (bytes / 1024 / 1024).toFixed(1) + 'M';
+    },
+
+    fmtDate(epochSeconds: number) {
+      if (!epochSeconds) return '-';
+      return new Date(epochSeconds * 1000).toLocaleString('zh-CN');
     },
 
     statusLabel(status: string) {

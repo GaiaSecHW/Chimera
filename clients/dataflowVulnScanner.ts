@@ -113,7 +113,6 @@ export interface DataflowScanTaskAttempt {
   status: string;
   run_id?: string | null;
   owner_pod_id?: string | null;
-  lease_expires_at?: string | null;
   process_pid?: number | null;
   process_host?: string | null;
   process_status?: string | null;
@@ -207,6 +206,25 @@ export interface DataflowRunFile {
   type: string;
 }
 
+export interface DataflowRunProcessState {
+  can_retry?: boolean;
+  is_running?: boolean;
+  is_queued?: boolean;
+  reason?: string;
+  source?: string;
+  checked_at?: string;
+  stale_after_seconds?: number;
+  heartbeat_at?: string;
+  heartbeat_age_seconds?: number | null;
+  pid?: number | string | null;
+  pod_id?: string | null;
+  run_status?: string;
+  trigger_status?: string;
+  execution_status?: string;
+  process_status?: string;
+  [key: string]: any;
+}
+
 export interface DataflowRunSummary {
   run_id: string;
   project_id: string;
@@ -234,6 +252,8 @@ export interface DataflowRunSummary {
   failed_count: number;
   workflow_mode: string;
   updated_at?: string | null;
+  process_state?: DataflowRunProcessState;
+  retry_command_display?: string | null;
 }
 
 export interface DataflowRunSession {
@@ -243,6 +263,17 @@ export interface DataflowRunSession {
   jsonl_path?: string;
   size: number;
   mtime: number;
+  event_count?: number;
+  line_count?: number;
+  warnings?: string[];
+  display_name?: string;
+  stage_group?: string;
+  role_name?: string;
+  watch_project_path?: string;
+  model?: string;
+  raw_model?: string;
+  provider?: string;
+  thinking?: string;
   calls: Record<string, any>[];
 }
 
@@ -484,14 +515,6 @@ export const dataflowVulnScannerApi = {
 
   retryTask: async (taskId: string): Promise<DataflowScanTask> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/retry`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    return handleResponse(response);
-  },
-
-  requeueTask: async (taskId: string): Promise<DataflowScanTask> => {
-    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/requeue`, {
       method: 'POST',
       headers: getHeaders(),
     });

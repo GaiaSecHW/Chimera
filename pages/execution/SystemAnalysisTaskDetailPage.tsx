@@ -39,6 +39,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
+import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -69,22 +70,6 @@ const STAGE_STEPS = [
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 type DetailTab = 'overview' | 'session' | 'result' | 'evaluation';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
-
-const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
-  off: 'off',
-  minimal: 'minimal',
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-  'x-high': 'xhigh',
-};
-
-type SessionDeltaParseResult = {
-  sessionMeta: Record<string, any> | null;
-  events: AppSaSessionEvent[];
-  warnings: string[];
-  lineCount: number;
-};
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
@@ -234,147 +219,6 @@ function normalizeJoinPath(basePath: string, relativePath: string): string {
   const base = basePath.replace(/\/+$/, '');
   const relative = relativePath.replace(/^\/+/, '');
   return `${base}/${relative}`;
-}
-
-function parseSessionMessageParts(content: unknown): Array<Record<string, any>> {
-  const parts: Array<Record<string, any>> = [];
-  if (typeof content === 'string') {
-    parts.push({ type: 'text', text: content });
-    return parts;
-  }
-  if (!Array.isArray(content)) return parts;
-  for (const item of content) {
-    if (!item || typeof item !== 'object') continue;
-    const part = item as Record<string, any>;
-    const contentType = String(part.type || '');
-    if (contentType === 'text') {
-      parts.push({ type: 'text', text: part.text || '' });
-    } else if (contentType === 'thinking') {
-      parts.push({ type: 'thinking', text: part.thinking || '' });
-    } else if (contentType === 'toolCall') {
-      parts.push({
-        type: 'toolCall',
-        name: part.name || '',
-        id: part.id || '',
-        arguments: part.arguments || {},
-      });
-    } else if (contentType === 'toolResult') {
-      parts.push({ type: 'toolResult', text: part.text || '' });
-    } else {
-      parts.push({ type: 'unknown', detail: String(item).slice(0, 200) });
-    }
-  }
-  return parts;
-}
-
-function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, lineNo: number): {
-  sessionMeta?: Record<string, any>;
-  event?: AppSaSessionEvent;
-} {
-  const eventType = String(obj.type || '');
-  if (eventType === 'session') {
-    return {
-      sessionMeta: {
-        id: obj.id || '',
-        version: obj.version || '',
-        timestamp: obj.timestamp || '',
-        cwd: obj.cwd || '',
-      },
-    };
-  }
-  if (eventType === 'model_change') {
-    return {
-      event: {
-        type: 'model_change',
-        line: lineNo,
-        event_index: lineNo,
-        timestamp: obj.timestamp || '',
-        display_timestamp: obj.timestamp || '',
-        provider: obj.provider || '',
-        modelId: obj.modelId || '',
-        raw_line: rawLine,
-      },
-    };
-  }
-  if (eventType === 'thinking_level_change') {
-    const level = String(obj.thinkingLevel || '');
-    return {
-      event: {
-        type: 'thinking_level_change',
-        line: lineNo,
-        event_index: lineNo,
-        timestamp: obj.timestamp || '',
-        display_timestamp: obj.timestamp || '',
-        thinkingLevel: level,
-        thinkingLevelClass: `thinking-${SESSION_THINKING_LEVEL_MAP[level.toLowerCase()] || 'off'}`,
-        raw_line: rawLine,
-      },
-    };
-  }
-  if (eventType === 'message') {
-    const msg = obj.message && typeof obj.message === 'object' ? obj.message as Record<string, any> : {};
-    const role = String(msg.role || '');
-    const event: AppSaSessionEvent = {
-      type: 'message',
-      line: lineNo,
-      event_index: lineNo,
-      timestamp: obj.timestamp || '',
-      display_timestamp: obj.timestamp || '',
-      role,
-      render_role: role,
-      parts: parseSessionMessageParts(msg.content),
-      raw_line: rawLine,
-    };
-    if (role === 'toolResult') {
-      event.toolCallId = msg.toolCallId || msg.tool_call_id || '';
-      event.toolName = msg.toolName || msg.tool_name || '';
-      event.isError = Boolean(msg.isError ?? msg.is_error ?? false);
-    }
-    return { event };
-  }
-  return {
-    event: {
-      type: eventType || 'unknown_event',
-      line: lineNo,
-      event_index: lineNo,
-      display_timestamp: obj.timestamp || '',
-      summary: JSON.stringify(obj).slice(0, 200),
-      raw_line: rawLine.slice(0, 200),
-    },
-  };
-}
-
-function parseSessionJsonlDelta(lines: string[], startLine: number): SessionDeltaParseResult {
-  const events: AppSaSessionEvent[] = [];
-  const warnings: string[] = [];
-  let sessionMeta: Record<string, any> | null = null;
-  let lineCount = 0;
-
-  lines.forEach((rawLine, index) => {
-    const lineNo = startLine + index;
-    const trimmed = rawLine.trim();
-    if (!trimmed) return;
-    lineCount += 1;
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        events.push({ type: 'raw', line: lineNo, raw_line: trimmed.slice(0, 200), summary: trimmed.slice(0, 200) });
-        return;
-      }
-      const mapped = parseSessionJsonlObject(parsed as Record<string, any>, trimmed, lineNo);
-      if (mapped.sessionMeta) {
-        sessionMeta = mapped.sessionMeta;
-      }
-      if (mapped.event) {
-        events.push(mapped.event);
-      }
-    } catch {
-      warnings.push(`第 ${lineNo} 行 JSON 解析失败`);
-      events.push({ type: 'raw', line: lineNo, raw_line: trimmed.slice(0, 200), summary: trimmed.slice(0, 200) });
-    }
-  });
-
-  return { sessionMeta, events, warnings, lineCount };
 }
 
 function openInFileExplorer(fsPath: string) {
@@ -769,7 +613,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
           if (message.read_mode !== 'line') return;
           const deltaLines = Array.isArray(message.lines) ? message.lines : [];
           if (deltaLines.length === 0) return;
-          const parsed = parseSessionJsonlDelta(deltaLines, (message.from_line ?? sessionWatchStartLine) + 1);
+          const parsed = parseAgentSessionJsonlDelta(deltaLines, (message.from_line ?? sessionWatchStartLine) + 1);
           if (parsed.events.length > 0) {
             setSessionEvents((current) => current.concat(parsed.events));
           }

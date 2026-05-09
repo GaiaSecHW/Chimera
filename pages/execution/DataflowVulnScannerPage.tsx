@@ -3,7 +3,6 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
-  Archive,
   ArrowLeft,
   CheckCircle2,
   ChevronRight,
@@ -630,8 +629,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       running: tasks.filter((task) => isActiveTaskStatus(taskDisplayStatus(task))).length,
       succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'completed').length,
       failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed').length,
-      withRun: tasks.filter((task) => Boolean(taskRunLocator(task).name && taskRunLocator(task).root_path)).length,
-      withoutRun: tasks.filter((task) => !(taskRunLocator(task).name && taskRunLocator(task).root_path)).length,
     };
   }, [tasks]);
 
@@ -715,13 +712,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           </button>
         </PageHeader>
 
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-6">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <MetricCard label="任务总数" value={stats.total} icon={<Layers size={17} />} />
           <MetricCard label="运行中" value={stats.running} icon={<Activity size={17} />} />
           <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-50/70" />
           <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
-          <MetricCard label="Run 目录" value={stats.withRun} icon={<FileSearch size={17} />} />
-          <MetricCard label="待生成 Run" value={stats.withoutRun} icon={<Archive size={17} />} />
         </section>
 
         <section>
@@ -922,7 +917,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const taskId = routeTaskId || '';
   const routeRunId = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get('run_id') || params.get('history_run_id') || '';
+    return params.get('run_id') || '';
   }, [location.search]);
   const requestedExecutionId = useMemo(() => new URLSearchParams(location.search).get('execution_id') || '', [location.search]);
   const linkedTaskId = useMemo(() => new URLSearchParams(location.search).get('linked_task_id') || '', [location.search]);
@@ -1027,7 +1022,6 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
         if (cancelled) return;
         const params = new URLSearchParams(location.search);
         params.set('run_id', run.run_id || routeRunId);
-        params.delete('history_run_id');
         params.set('fileserver_run', run.name);
         params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
         navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`, {
@@ -1321,12 +1315,12 @@ const CreateTaskDialog: React.FC<{
               <label>
                 <span className="text-xs font-black text-slate-600">Pi Timeout 最大次数</span>
                 <input type="number" min={1} value={state.timeoutMaxRetries} onChange={(event) => onChange({ ...state, timeoutMaxRetries: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
-                <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 3；Pi/provider 连续返回 timeout 达到该次数后任务失败。</span>
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 3；Pi/provider 返回 timeout 时按该次数重发同一提示词。</span>
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">Pi Timeout 重试间隔（秒）</span>
                 <input type="number" min={0} value={state.timeoutRetryIntervalSeconds} onChange={(event) => onChange({ ...state, timeoutRetryIntervalSeconds: Math.max(0, Number(event.target.value) || 0) })} className={FORM_INPUT_CLASS} />
-                <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 30；收到 Pi 自身 timeout 后等待该秒数再重发同一提示词。</span>
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 30；仅在最大次数大于 1 时生效。</span>
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">结果评审并发</span>
@@ -1406,7 +1400,7 @@ const blankProfileForm = (): ProfileFormState => {
     isDefault: true,
     enabled: true,
     defaultPriority: 100,
-    maxRetryCount: 3,
+    maxRetryCount: 0,
     executionTimeoutSeconds: 0,
   };
 };
@@ -1426,8 +1420,8 @@ const formFromProfile = (profile: DataflowScanProfile): ProfileFormState => {
     isDefault: profile.is_default,
     enabled: profile.enabled,
     defaultPriority: profile.default_priority,
-    maxRetryCount: profile.max_retry_count,
-    executionTimeoutSeconds: profile.execution_timeout_seconds,
+    maxRetryCount: 0,
+    executionTimeoutSeconds: 0,
   };
 };
 
@@ -1694,12 +1688,6 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string }> = ({ projec
                 </Field>
                 <Field label="结果评审并发">
                   <NumberInput value={form.resultReviewConcurrency} onChange={(value) => setForm({ ...form, resultReviewConcurrency: value })} />
-                </Field>
-                <Field label="最大重试次数">
-                  <NumberInput value={form.maxRetryCount} onChange={(value) => setForm({ ...form, maxRetryCount: value })} />
-                </Field>
-                <Field label="执行超时秒数（0=不限制）">
-                  <NumberInput value={form.executionTimeoutSeconds} onChange={(value) => setForm({ ...form, executionTimeoutSeconds: Math.max(0, value) })} />
                 </Field>
               </div>
               <Field label="描述">

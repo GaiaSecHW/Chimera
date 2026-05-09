@@ -66,16 +66,20 @@ const resolveRun = async (
 export const inspectDataflowFileserverRunOverview = async (
   projectId: string,
   rootPath: string,
-  runName: string
+  runName: string,
+  options?: { force?: boolean }
 ): Promise<DataflowFileserverRunOverview> => {
   const cacheKey = resolveCacheKey(projectId, rootPath, runName);
   const now = Date.now();
+  if (options?.force) {
+    overviewCache.delete(cacheKey);
+  }
   const cached = overviewCache.get(cacheKey);
   if (cached && cached.expiresAt > now) {
     return cached.promise;
   }
   const promise = (async () => {
-    const resolved = await resolveRun(projectId, rootPath, runName);
+    const resolved = await resolveRun(projectId, rootPath, runName, { force: options?.force });
     return dataflowVulnScannerApi.getRun(resolved.run_id);
   })();
   overviewCache.set(cacheKey, { promise, expiresAt: now + OVERVIEW_CACHE_TTL_MS });

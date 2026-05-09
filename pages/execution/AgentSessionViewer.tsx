@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { Bot, Loader2, Wrench } from 'lucide-react';
 
 import { AppSaSessionEvent, AppSaSessionMeta } from '../../types/types';
+import { mergeAgentSessionToolResults } from './agentSessionParsing';
 
 const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
   <div className="markdown-body break-words leading-6">
@@ -38,22 +39,6 @@ function formatTime(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleTimeString('zh-CN');
-}
-
-function mergeToolResults(events: AppSaSessionEvent[]) {
-  const result: Array<AppSaSessionEvent & { _toolResults?: AppSaSessionEvent[] }> = [];
-  for (const event of events) {
-    if (event.type === 'message' && event.role === 'toolResult') {
-      const last = result[result.length - 1];
-      if (last && last.type === 'message' && last.role === 'assistant') {
-        if (!last._toolResults) last._toolResults = [];
-        last._toolResults.push(event);
-        continue;
-      }
-    }
-    result.push({ ...event });
-  }
-  return result;
 }
 
 const ThinkingBlock: React.FC<{ text: string }> = ({ text }) => {
@@ -152,7 +137,7 @@ export const AgentSessionViewer: React.FC<{
   live?: boolean;
   error?: string | null;
 }> = ({ sessionMeta, sessionHeader, events, loading = false, live = false, error = null }) => {
-  const merged = useMemo(() => mergeToolResults(events), [events]);
+  const merged = useMemo(() => mergeAgentSessionToolResults(events), [events]);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
