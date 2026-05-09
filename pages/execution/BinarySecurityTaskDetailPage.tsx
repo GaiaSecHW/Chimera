@@ -42,15 +42,15 @@ const DOWNSTREAM_DETAIL_SUPPORT: Record<string, { supported: boolean; reason?: s
   system_analysis: { supported: true },
   binary_to_source: { supported: true },
   entry_analysis: { supported: true },
-  dataflow_analysis: { supported: false, reason: '数据流分析微服务当前未实现独立任务详情页面，仅提供任务列表内嵌详情。' },
+  dataflow_analysis: { supported: false, reason: '数据流分析当前未实现独立任务详情页面，仅支持任务列表内嵌详情。' },
   vuln_scan: { supported: true },
 };
 
 function downstreamDetailSupport(stageName: string, downstreamTaskId?: string | null) {
   if (!downstreamTaskId?.trim()) {
-    return { supported: false, reason: '该阶段子任务尚未创建下游微服务任务。' };
+    return { supported: false, reason: '该阶段子任务尚未创建下游任务。' };
   }
-  return DOWNSTREAM_DETAIL_SUPPORT[stageName] || { supported: false, reason: '该阶段尚未配置可跳转的微服务详情页面。' };
+  return DOWNSTREAM_DETAIL_SUPPORT[stageName] || { supported: false, reason: '该阶段尚未配置可跳转的任务详情页面。' };
 }
 
 const statusTone = (status: string) => {
@@ -1249,7 +1249,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   key={item.id}
                   role={detailSupport.supported ? 'button' : undefined}
                   tabIndex={detailSupport.supported ? 0 : undefined}
-                  title={detailSupport.supported ? '打开微服务任务详情' : detailSupport.reason}
+                  title={detailSupport.supported ? '打开子任务详情' : detailSupport.reason}
                   onClick={detailSupport.supported ? () => openDownstreamTaskDetail(item) : undefined}
                   onKeyDown={detailSupport.supported ? (event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -1299,7 +1299,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 openDownstreamTaskDetail(item);
                               }}
                             >
-                              查看微服务详情
+                              查看任务详情
                             </button>
                           ) : (
                             <span
@@ -1307,7 +1307,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               title={detailSupport.reason}
                             >
                               <Info className="h-3.5 w-3.5" />
-                              不支持跳转详情
+                              不支持查看任务详情
                             </span>
                           )}
                         </div>
