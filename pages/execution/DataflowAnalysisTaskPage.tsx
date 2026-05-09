@@ -46,12 +46,21 @@ function formatTsDuration(startTs: number | null, endTs: number | null): string 
 // ── DFA Stage Steps ───────────────────────────────────────────────────────────
 
 const STAGE_STEPS = [
-  { key: 'init',    label: '任务初始化', desc: '解析入口函数 / 配置模型',       triggers: ['task_start'],                    artifactSubpath: '' },
-  { key: 'trace',   label: '函数追踪',   desc: '递归追踪数据流调用链',          triggers: ['trace_start'],                   artifactSubpath: 'run/workspace' },
-  { key: 'analyse', label: '多轮分析',   desc: '并发 Worker 深度安全分析',      triggers: ['round_start', 'worker_start'],   artifactSubpath: 'run/sessions' },
-  { key: 'judge',   label: '评估汇总',   desc: 'Judge 评估可信度 / 反思建议',   triggers: ['judge_start', 'judge_summary'],  artifactSubpath: 'run/sessions' },
-  { key: 'report',  label: '结果输出',   desc: '合并全链路分析报告',            triggers: ['task_end'],                      artifactSubpath: 'output' },
+  { key: 'init',    label: '任务初始化', desc: '解析入口函数 / 配置模型',  artifactSubpath: '' },
+  { key: 'trace',   label: '函数追踪',   desc: '递归追踪数据流调用链',    artifactSubpath: 'run/workspace' },
+  { key: 'analyse', label: '多轮分析',   desc: '并发 Worker 深度安全分析', artifactSubpath: 'run/sessions' },
+  { key: 'judge',   label: '评估汇总',   desc: 'Judge 评估可信度 / 反思', artifactSubpath: 'run/sessions' },
+  { key: 'report',  label: '结果输出',   desc: '合并全链路分析报告',       artifactSubpath: 'output' },
 ];
+
+/** 事件类型 → 阶段索引 (0=初始化, 1=追踪, 2=分析, 3=评估, 4=输出) */
+const EVT_STAGE: Record<string, number> = {
+  task_start: 0,
+  trace_start: 1, trace_skip: 1, trace_callees: 1,
+  round_start: 2, worker_start: 2, worker_done: 2,
+  judge_start: 3, judge_eval: 3, judge_summary: 3, judge_done: 3, judge_result: 3,
+  task_end: 4,
+};
 
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
@@ -60,31 +69,34 @@ function deriveStepStatuses(taskStatus: string, events: AppDfaStageEvent[]): Ste
   if (taskStatus === 'pending') return statuses;
   if (taskStatus === 'passed') return STAGE_STEPS.map(() => 'completed');
 
-  let lastSeenStep = -1;
+  // 状态机：遍历事件流确定当前阶段
+  // round_end(passed=false) 保持在 judge 阶段，等待下一轮 round_start 退回到 analyse；
+  // round_end(passed=true) 推进到 report 阶段。
+  // trace_start/round_start 允许在函数间来回切换阶段（多函数递归追踪）。
+  let stage = -1;
   for (const evt of events) {
-    for (let i = 0; i < STAGE_STEPS.length; i++) {
-      if (STAGE_STEPS[i].triggers.some((t) => t === evt.type)) {
-        if (i > lastSeenStep) lastSeenStep = i;
-      }
+    if (evt.type === 'round_end') {
+      if (evt.data?.passed) stage = 4;
+      // passed=false：保持在 judge，等 round_start 退回 analyse
+    } else if (evt.type !== 'round_reflection') {
+      const s = EVT_STAGE[evt.type];
+      if (s !== undefined) stage = s;
     }
   }
 
-  if (lastSeenStep === -1) {
+  if (stage === -1) {
     if (taskStatus === 'running') statuses[0] = 'running';
     else if (['error', 'failed', 'cancelled'].includes(taskStatus)) statuses[0] = 'failed';
     return statuses;
   }
 
+  const isTerminal = ['error', 'failed', 'cancelled'].includes(taskStatus);
   for (let i = 0; i < STAGE_STEPS.length; i++) {
-    if (i < lastSeenStep) {
+    if (i < stage) {
       statuses[i] = 'completed';
-    } else if (i === lastSeenStep) {
-      statuses[i] = ['error', 'failed', 'cancelled'].includes(taskStatus) ? 'failed' : 'running';
+    } else if (i === stage) {
+      statuses[i] = isTerminal ? 'failed' : 'running';
     }
-  }
-
-  if (['error', 'failed'].includes(taskStatus) && lastSeenStep >= 0) {
-    statuses[lastSeenStep] = 'failed';
   }
   return statuses;
 }
@@ -96,11 +108,14 @@ function computeStageTimes(events: AppDfaStageEvent[]): Array<{ startTs: number 
     if (evt.type === 'task_end') taskEndTs = evt.ts;
   }
   for (const evt of events) {
-    for (let i = 0; i < STAGE_STEPS.length; i++) {
-      if (STAGE_STEPS[i].triggers.some((t) => t === evt.type)) {
-        if (result[i].startTs === null) result[i].startTs = evt.ts;
-        break;
-      }
+    let stageIdx: number | undefined;
+    if (evt.type === 'round_end') {
+      stageIdx = evt.data?.passed ? 4 : undefined;
+    } else if (evt.type !== 'round_reflection') {
+      stageIdx = EVT_STAGE[evt.type];
+    }
+    if (stageIdx !== undefined && result[stageIdx].startTs === null) {
+      result[stageIdx].startTs = evt.ts;
     }
   }
   for (let i = 0; i < STAGE_STEPS.length; i++) {
@@ -112,6 +127,24 @@ function computeStageTimes(events: AppDfaStageEvent[]): Array<{ startTs: number 
     result[i].endTs = endTs;
   }
   return result;
+}
+
+/** 当前正在分析的函数名（最近一个 trace_start 事件） */
+function computeCurrentFunction(events: AppDfaStageEvent[]): string {
+  let fn = '';
+  for (const evt of events) {
+    if (evt.type === 'trace_start' && evt.data?.function) fn = evt.data.function as string;
+  }
+  return fn;
+}
+
+/** 已追踪函数数量（trace_start 事件去重） */
+function computeTracedCount(events: AppDfaStageEvent[]): number {
+  const seen = new Set<string>();
+  for (const evt of events) {
+    if (evt.type === 'trace_start' && evt.data?.function) seen.add(evt.data.function as string);
+  }
+  return seen.size;
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
@@ -464,7 +497,11 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
     ? computeStageTimes(detail.stages_json?.events ?? [])
     : STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null }));
 
-  const logLines = (detail?.stages_json?.events ?? []).map(formatEventLog).filter(Boolean);
+  const events = detail?.stages_json?.events ?? [];
+  const currentFunction = computeCurrentFunction(events);
+  const tracedCount = computeTracedCount(events);
+
+  const logLines = events.map(formatEventLog).filter(Boolean);
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -587,6 +624,13 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                           </div>
                           <div className={`mt-2 text-center px-1 ${st === 'running' ? 'text-blue-600' : st === 'completed' ? 'text-violet-600' : st === 'failed' ? 'text-red-500' : 'text-slate-400'}`}>
                             <div className="text-xs font-semibold">{step.label}</div>
+                            {/* 追踪阶段: 显示已追踪函数数 + 当前函数名 */}
+                            {i === 1 && st === 'running' && tracedCount > 0 ? (
+                              <div className="text-[10px] font-mono text-blue-500 mt-0.5 leading-tight">
+                                {tracedCount} 个函数
+                                {currentFunction ? <span className="block truncate max-w-[80px]" title={currentFunction}>{currentFunction.split('::').pop()}</span> : null}
+                              </div>
+                            ) : null}
                             <div className="text-[10px] text-slate-400 leading-tight mt-0.5 hidden sm:block">{step.desc}</div>
                             {timingStr ? <div className="text-[10px] font-mono text-slate-500 mt-0.5">&#9201; {timingStr}</div> : null}
                             {artifactFsPath && (st === 'completed' || st === 'running') ? (

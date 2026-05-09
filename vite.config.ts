@@ -12,11 +12,6 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
         proxy: {
-          '/api/app/dataflow-analyse': {
-            target: 'http://172.31.23.188:18090',
-            changeOrigin: true,
-            secure: false,
-          },
           '/api': {
             target: 'http://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
