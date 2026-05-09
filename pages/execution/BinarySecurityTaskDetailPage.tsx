@@ -222,6 +222,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const canActOnTask = Boolean(detail);
   const taskRetrySupported = Boolean(detail?.task_retry_supported);
   const taskRetryReason = detail?.task_retry_reason || '当前任务不可安全重试';
+  const taskContinueSupported = Boolean(detail && ['failed', 'partial_success', 'cancelled'].includes(detail.status));
+  const taskContinueReason = detail?.status === 'success'
+    ? '当前任务已全部成功，没有需要继续的阶段'
+    : detail && ['pending', 'dispatching', 'running', 'pending_upload', 'uploading', 'ready_to_start'].includes(detail.status)
+      ? '当前任务正在执行、排队或上传中，不能手动继续'
+      : '当前任务状态不支持手动继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
 
   const load = async () => {
@@ -384,7 +390,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => observer.disconnect();
   }, [isSourceTask, stageSequence]);
 
-  const runAction = async (action: 'cancel' | 'retry' | 'delete') => {
+  const runAction = async (action: 'cancel' | 'retry' | 'continue' | 'delete') => {
     if (!projectId || !taskId) return;
     if (action === 'delete') {
       const confirmed = await showConfirm({
@@ -393,6 +399,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         confirmText: '确认删除',
         cancelText: '取消',
         danger: true,
+      });
+      if (!confirmed) return;
+    }
+    if (action === 'continue') {
+      const confirmed = await showConfirm({
+        title: '继续任务',
+        message: '将从最后一个已成功阶段的下一个阶段开始继续推进。目标阶段及后续阶段的旧编排记录和结果摘要会被清空并重新创建，前序成功阶段会保留。是否继续？',
+        confirmText: '确认继续',
+        cancelText: '取消',
       });
       if (!confirmed) return;
     }
@@ -405,6 +420,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         return;
       }
       if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
+      if (action === 'continue') await executionApi.binarySecurity.continueTask(projectId, taskId);
       await load();
     } catch (e: any) {
       setError(e?.message || `${action} 失败`);
@@ -701,6 +717,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
             重试
+          </button>
+          <button
+            type="button"
+            title={taskContinueSupported ? undefined : taskContinueReason}
+            onClick={() => void runAction('continue')}
+            disabled={actionLoading !== '' || !taskContinueSupported}
+            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-60"
+          >
+            {actionLoading === 'continue' ? '继续中...' : '继续'}
           </button>
           <button type="button" onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !canActOnTask} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
         </div>

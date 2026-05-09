@@ -36,7 +36,7 @@ import {
 import { FileWatchMessage } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { clearBinarySecurityReturnContext, hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
 
@@ -556,7 +556,22 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [sessionLive, setSessionLive] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
 
+  const navigateBackByTaskOrigin = () => {
+    const parentTaskId = String(detail?.parent_task_id || '').trim();
+    const isBinarySecurityOrigin = String(detail?.task_origin_type || '').trim() === 'binary_security';
+    if (!isBinarySecurityOrigin || !parentTaskId) return false;
+    const parentTaskType = String(detail?.parent_task_type || '').trim() === 'source' ? 'source' : 'binary';
+    clearBinarySecurityReturnContext();
+    window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+      detail: parentTaskType === 'source'
+        ? { view: 'source-security-detail', sourceSecurityTaskId: parentTaskId }
+        : { view: 'binary-security-detail', binarySecurityTaskId: parentTaskId },
+    }));
+    return true;
+  };
+
   const handleBack = () => {
+    if (navigateBackByTaskOrigin()) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();
   };
