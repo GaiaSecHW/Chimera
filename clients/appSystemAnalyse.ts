@@ -70,11 +70,13 @@ export const appSystemAnalyseApi = {
     page?: number;
     per_page?: number;
     status?: string;
+    analysis_mode?: 'binary' | 'source' | '';
   }): Promise<{ items: AppSaTaskItem[]; total: number; page: number; per_page: number }> => {
     const query = new URLSearchParams({ project_id: params.project_id });
     if (params.page) query.append('page', String(params.page));
     if (params.per_page) query.append('per_page', String(params.per_page));
     if (params.status) query.append('status', params.status);
+    if (params.analysis_mode) query.append('analysis_mode', params.analysis_mode);
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
   },
 

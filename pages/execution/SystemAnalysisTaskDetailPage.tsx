@@ -37,7 +37,7 @@ import { FileWatchMessage } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
-import { TaskOriginCard } from './taskOrigin';
+import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -912,6 +912,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const resultAvailable = Boolean(result?.available);
   const moduleCount = result?.summary.module_count || result?.modules.length || 0;
   const highRiskCount = result?.summary.high_risk_module_count || result?.modules.filter((item) => item.risk_level === '高').length || 0;
+  const analysisModeInfo = detail ? getAnalysisModeInfo(detail) : null;
   const selectedSession = useMemo(
     () => sessions.find((item) => item.relative_path === selectedSessionPath) || null,
     [sessions, selectedSessionPath],
@@ -978,6 +979,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               {detail ? (
                 <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[detail.status] ?? 'bg-slate-100 text-slate-600'}`}>
                   {STATUS_LABEL[detail.status] ?? detail.status}
+                </span>
+              ) : null}
+              {analysisModeInfo ? (
+                <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${analysisModeInfo.className}`}>
+                  {analysisModeInfo.label}
                 </span>
               ) : null}
             </div>

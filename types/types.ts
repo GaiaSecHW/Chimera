@@ -2348,6 +2348,8 @@ export interface AgentIngressRouteInfo {
 export interface AppSaTaskItem {
   task_id: string;
   project_id: string;
+  analysis_mode?: 'binary' | 'source' | null;
+  analysis_mode_label?: string | null;
   task_origin_type?: 'manual' | 'binary_security' | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
@@ -2535,6 +2537,7 @@ export interface AppSaTaskCreateRequest {
   task_description?: string;
   prompt_template_id?: string;
   prompt_content?: string;
+  analysis_mode?: 'binary' | 'source';
   analyse_targets?: string[];
   binary_arch?: string[];
   task_origin_type?: 'manual' | 'binary_security';
