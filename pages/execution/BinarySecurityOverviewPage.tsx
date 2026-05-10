@@ -169,6 +169,13 @@ const dominantStatusLabel = (counts?: Record<string, number>) => {
   return `${status} ${count}`;
 };
 
+const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archive']) => {
+  const successCount = num(archive?.success_count);
+  const failedCount = num(archive?.failed_count);
+  if (successCount === 0 && failedCount === 0) return '暂无结果';
+  return `成功 ${successCount} · 失败 ${failedCount}`;
+};
+
 const ProjectStatCard: React.FC<{ label: string; value: number; hint: string }> = ({ label, value, hint }) => (
   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
     <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</div>
@@ -207,7 +214,6 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
   const businessTotal = num(business.total_items);
   const archiveTotal = num(archive.job_count);
   const businessRate = percent(num(business.success_items), businessTotal);
-  const archiveRate = percent(num(archive.success_count), archiveTotal);
   const hasData = businessTotal > 0 || archiveTotal > 0;
 
   return (
@@ -215,7 +221,7 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-sm font-black text-slate-900">{formatStageLabel(aggregate.stage_name)}</div>
-          <div className="mt-1 text-xs text-slate-500">业务 {dominantStatusLabel(business.status_counts)} · 归档 {dominantStatusLabel(archive.status_counts)}</div>
+          <div className="mt-1 text-xs text-slate-500">业务 {dominantStatusLabel(business.status_counts)} · 归档 {archiveResultLabel(archive)}</div>
         </div>
         <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-500">#{aggregate.sequence_no}</span>
       </div>
@@ -242,18 +248,14 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
             归档结果
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <StageMetricPill label="任务" value={archiveTotal} />
             <StageMetricPill label="成功" value={num(archive.success_count)} tone="text-emerald-700" />
             <StageMetricPill label="失败" value={num(archive.failed_count)} tone="text-rose-700" />
-            <StageMetricPill label="运行" value={num(archive.running_count)} tone="text-blue-700" />
-            <StageMetricPill label="应用中" value={num(archive.applying_count)} tone="text-amber-700" />
-            <StageMetricPill label="等待" value={num(archive.pending_count)} tone="text-slate-600" />
           </div>
         </div>
       </div>
 
       <div className="mt-3 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white">
-        {hasData ? `业务成功率 ${businessRate}% · 归档完成率 ${archiveRate}%` : '暂无执行'}
+        {hasData ? `业务成功率 ${businessRate}%` : '暂无执行'}
       </div>
     </div>
   );
@@ -286,6 +288,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [defaultContinueOnFailure, setDefaultContinueOnFailure] = useState(true);
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
+  const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
@@ -657,10 +660,16 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             <ShieldAlert size={18} className="text-rose-600" />
             <h2 className="text-xl font-black text-slate-900">当前项目统计</h2>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600">
+          <button
+            type="button"
+            onClick={() => setStageStatsExpanded((value) => !value)}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+            aria-expanded={stageStatsExpanded}
+          >
             <BarChart3 size={14} />
-            阶段汇总
-          </div>
+            {stageStatsExpanded ? '收起阶段汇总' : `展开阶段汇总${orderedStageAggregates.length ? ` (${orderedStageAggregates.length})` : ''}`}
+            <ChevronRight size={14} className={`transition-transform ${stageStatsExpanded ? 'rotate-90' : ''}`} />
+          </button>
         </div>
         <div className="mt-2 text-sm text-slate-500">任务、固件和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
@@ -672,17 +681,19 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           <ProjectStatCard label="漏洞结果" value={stats.vuln_result_count} hint={`队列最大并发 ${maxConcurrentTasks}`} />
         </div>
 
-        {orderedStageAggregates.length > 0 ? (
-          <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {orderedStageAggregates.map((aggregate) => (
-              <StageAggregateCard key={aggregate.stage_name} aggregate={aggregate} />
-            ))}
-          </div>
-        ) : (
-          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm font-semibold text-slate-400">
-            暂无阶段汇总统计
-          </div>
-        )}
+        {stageStatsExpanded ? (
+          orderedStageAggregates.length > 0 ? (
+            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+              {orderedStageAggregates.map((aggregate) => (
+                <StageAggregateCard key={aggregate.stage_name} aggregate={aggregate} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm font-semibold text-slate-400">
+              暂无阶段汇总统计
+            </div>
+          )
+        ) : null}
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">

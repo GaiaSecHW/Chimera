@@ -1185,7 +1185,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     });
     if (item.stage_name === 'firmware_unpack') {
       sessionStorage.setItem('secflow:firmwareUnpackerTaskId', downstreamTaskId);
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'pentest-exec-firmware-unpacker' } }));
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+        detail: {
+          view: 'pentest-exec-firmware-unpacker',
+          firmwareUnpackerTaskId: downstreamTaskId,
+        },
+      }));
       return;
     }
     if (item.stage_name === 'system_analysis') {

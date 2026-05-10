@@ -22,6 +22,8 @@ import { blobToText, buildFirmwareSessionMeta, buildSessionSnapshotFromText, Fir
 interface Props {
   projectId: string;
   projects?: SecurityProject[];
+  initialTaskId?: string;
+  onActiveTaskChange?: (taskId: string) => void;
 }
 
 const fwApi = api.domains.execution.firmwareUnpacker;
@@ -2445,7 +2447,7 @@ function TaskDetailPanel({
   );
 }
 
-export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = [] }) => {
+export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = [], initialTaskId = '', onActiveTaskChange }) => {
   const { notify, feedbackNodes } = useUiFeedback();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -2458,7 +2460,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [activeTaskId, setActiveTaskId] = useState('');
+  const [activeTaskId, setActiveTaskId] = useState(() => initialTaskId.trim());
   const [detailLoading, setDetailLoading] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState('');
   const [resourceUsage, setResourceUsage] = useState<FirmwareTaskResourceUsage | null>(null);
@@ -2473,13 +2475,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [resultRefreshingTaskId, setResultRefreshingTaskId] = useState('');
   const [detailActiveTab, setDetailActiveTab] = useState<DetailTab>('overview');
   const [detailRefreshRequest, setDetailRefreshRequest] = useState(0);
-
-  useEffect(() => {
-    const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
-    if (!storedTaskId) return;
-    sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
-    setActiveTaskId(storedTaskId);
-  }, []);
+  const normalizedInitialTaskId = initialTaskId.trim();
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -2549,14 +2545,21 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       if (currentWorker) query.worker_id = currentWorker;
       if (currentSearch) query.search = currentSearch;
       const res = await fwApi.listTasks(query);
-      setTasks((prev) => sameJsonValue(prev, res.items) ? prev : res.items);
+      setTasks((prev) => {
+        let next = res.items;
+        if (activeTaskId && !next.some((task) => task.id === activeTaskId)) {
+          const activeFromPrev = prev.find((task) => task.id === activeTaskId);
+          if (activeFromPrev) next = [activeFromPrev, ...next];
+        }
+        return sameJsonValue(prev, next) ? prev : next;
+      });
       setTotal((prev) => prev === res.total ? prev : res.total);
     } catch (e: any) {
       if (!options?.silent) setListError(e?.message || '加载失败');
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [page, pageSize, projectId, filterStatus, filterSearch, filterWorker]);
+  }, [activeTaskId, page, pageSize, projectId, filterStatus, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string, options?: {
     showDetailLoading?: boolean;
@@ -2570,10 +2573,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     if (isActive && showDetailLoading) setDetailLoading(true);
     try {
       const task = await fwApi.getTask(id);
-      setTasks((prev) => prev.map((item) => {
-        if (item.id !== id) return item;
-        return sameJsonValue(item, task) ? item : task;
-      }));
+      setTasks((prev) => {
+        const exists = prev.some((item) => item.id === id);
+        if (!exists) return [task, ...prev];
+        return prev.map((item) => {
+          if (item.id !== id) return item;
+          return sameJsonValue(item, task) ? item : task;
+        });
+      });
       if (isActive && (refreshResource || refreshProgress)) {
         const [usage, taskProgress] = await Promise.all([
           refreshResource ? fwApi.getTaskResourceUsage(id).catch(() => null) : Promise.resolve(undefined),
@@ -2639,8 +2646,35 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   useEffect(() => {
     fetchTasks(true);
     setSelected(new Set());
-    setActiveTaskId('');
-  }, [projectId]);
+    const storedTaskId = normalizedInitialTaskId || sessionStorage.getItem('secflow:firmwareUnpackerTaskId')?.trim();
+    if (storedTaskId) {
+      sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
+      setActiveTaskId(storedTaskId);
+      setDetailActiveTab('overview');
+    } else {
+      setActiveTaskId('');
+    }
+  }, [projectId, normalizedInitialTaskId]);
+
+  useEffect(() => {
+    if (!normalizedInitialTaskId) return;
+    setActiveTaskId(normalizedInitialTaskId);
+    setDetailActiveTab('overview');
+  }, [normalizedInitialTaskId]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {};
+      if (detail.view !== 'pentest-exec-firmware-unpacker' && detail.view !== 'pentest-exec-firmware-task-list') return;
+      const taskId = String(detail.firmwareUnpackerTaskId || detail.taskId || '').trim();
+      if (!taskId) return;
+      sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
+      setActiveTaskId(taskId);
+      setDetailActiveTab('overview');
+    };
+    window.addEventListener('secflow-navigate-view', handler as EventListener);
+    return () => window.removeEventListener('secflow-navigate-view', handler as EventListener);
+  }, []);
 
   useEffect(() => {
     fetchTasks();
@@ -2650,16 +2684,6 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     const maxPage = Math.max(0, Math.ceil(total / pageSize) - 1);
     if (page > maxPage) setPage(maxPage);
   }, [page, pageSize, total]);
-
-  useEffect(() => {
-    if (!taskItems.length && activeTaskId) {
-      setActiveTaskId('');
-      return;
-    }
-    if (activeTaskId && !taskItems.some((task) => task.id === activeTaskId)) {
-      setActiveTaskId('');
-    }
-  }, [taskItems, activeTaskId]);
 
   useEffect(() => {
     if (!activeTaskId) {
@@ -2675,9 +2699,16 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setLogModalPhase('');
       return;
     }
+    if (!taskItems.some((task) => task.id === activeTaskId)) {
+      void refreshOne(activeTaskId, {
+        showDetailLoading: true,
+        refreshProgress: false,
+        refreshResource: false,
+      });
+    }
     loadResourceUsage(activeTaskId);
     loadTaskProgress(activeTaskId);
-  }, [activeTaskId, loadResourceUsage, loadTaskProgress]);
+  }, [activeTaskId, loadResourceUsage, loadTaskProgress, refreshOne, taskItems]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2869,6 +2900,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const handleDetailBack = () => {
     if (navigateBackByTaskOrigin(activeTask)) return;
     if (navigateBackToBinarySecurityTask()) return;
+    onActiveTaskChange?.('');
     setActiveTaskId('');
   };
   const handlePageRefresh = () => {

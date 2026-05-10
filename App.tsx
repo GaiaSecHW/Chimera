@@ -46,6 +46,7 @@ const AppShell: React.FC = () => {
   const [activeSystemAnalysisTaskId, setActiveSystemAnalysisTaskId] = useState<string>('');
   const [activeEntryAnalysisTaskId, setActiveEntryAnalysisTaskId] = useState<string>('');
   const [activeDataflowAnalysisTaskId, setActiveDataflowAnalysisTaskId] = useState<string>('');
+  const [activeFirmwareUnpackerTaskId, setActiveFirmwareUnpackerTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -83,9 +84,15 @@ const AppShell: React.FC = () => {
   const locationRef = useRef(location);
   useEffect(() => { locationRef.current = location; }, [location]);
 
-  const navigateToView = useCallback((nextView: ViewType | string, options?: { path?: string }) => {
+  const navigateToView = useCallback((nextView: ViewType | string, options?: { path?: string; keepFirmwareDetail?: boolean }) => {
     const normalizedView = String(nextView || DEFAULT_VIEW);
     const requestedPath = String(options?.path || '').trim();
+    if (
+      (normalizedView === 'pentest-exec-firmware-unpacker' || normalizedView === 'pentest-exec-firmware-task-list')
+      && !options?.keepFirmwareDetail
+    ) {
+      setActiveFirmwareUnpackerTaskId('');
+    }
     const targetUrl =
       normalizedView === 'project-file-explorer' && requestedPath
         ? `/${normalizedView}?path=${encodeURIComponent(requestedPath)}`
@@ -152,6 +159,7 @@ const AppShell: React.FC = () => {
         systemAnalysisTaskId?: string;
         entryAnalysisTaskId?: string;
         dataflowAnalysisTaskId?: string;
+        firmwareUnpackerTaskId?: string;
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
         path?: string;
@@ -178,6 +186,10 @@ const AppShell: React.FC = () => {
       if (dataflowAnalysisTaskId) {
         setActiveDataflowAnalysisTaskId(dataflowAnalysisTaskId);
       }
+      const firmwareUnpackerTaskId = String(detail?.firmwareUnpackerTaskId || '').trim();
+      if (firmwareUnpackerTaskId) {
+        setActiveFirmwareUnpackerTaskId(firmwareUnpackerTaskId);
+      }
       const binarySecurityTaskId = String(detail?.binarySecurityTaskId || '').trim();
       if (binarySecurityTaskId) {
         setActiveBinarySecurityTaskId(binarySecurityTaskId);
@@ -187,7 +199,10 @@ const AppShell: React.FC = () => {
         setActiveSourceSecurityTaskId(sourceSecurityTaskId);
       }
       if (nextView) {
-        navigateToView(nextView, requestedPath ? { path: requestedPath } : undefined);
+        navigateToView(nextView, {
+          ...(requestedPath ? { path: requestedPath } : {}),
+          keepFirmwareDetail: Boolean(firmwareUnpackerTaskId),
+        });
       }
       const helperKey = String(detail?.helperKey || '').trim();
       if (helperKey) {
@@ -567,6 +582,7 @@ const AppShell: React.FC = () => {
                     activeSystemAnalysisTaskId,
                     activeEntryAnalysisTaskId,
                     activeDataflowAnalysisTaskId,
+                    activeFirmwareUnpackerTaskId,
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
                     selectedStaticPkgIds,
@@ -582,6 +598,7 @@ const AppShell: React.FC = () => {
                     setActiveSystemAnalysisTaskId: (id) => setActiveSystemAnalysisTaskId(id),
                     setActiveEntryAnalysisTaskId: (id) => setActiveEntryAnalysisTaskId(id),
                     setActiveDataflowAnalysisTaskId: (id) => setActiveDataflowAnalysisTaskId(id),
+                    setActiveFirmwareUnpackerTaskId: (id) => setActiveFirmwareUnpackerTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),

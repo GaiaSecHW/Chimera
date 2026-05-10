@@ -104,6 +104,7 @@ export interface ViewRegistryContext {
   activeSystemAnalysisTaskId: string;
   activeEntryAnalysisTaskId: string;
   activeDataflowAnalysisTaskId: string;
+  activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
@@ -119,6 +120,7 @@ export interface ViewRegistryContext {
   setActiveSystemAnalysisTaskId: (id: string) => void;
   setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveDataflowAnalysisTaskId: (id: string) => void;
+  setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
@@ -356,7 +358,14 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ExecutionWorkPlatformPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-firmware-unpacker':
     case 'pentest-exec-firmware-task-list':
-      return <FirmwareUnpackerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+      return (
+        <FirmwareUnpackerPage
+          projectId={ctx.selectedProjectId}
+          projects={ctx.projects}
+          initialTaskId={ctx.activeFirmwareUnpackerTaskId}
+          onActiveTaskChange={ctx.setActiveFirmwareUnpackerTaskId}
+        />
+      );
     case 'pentest-exec-firmware-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s':
