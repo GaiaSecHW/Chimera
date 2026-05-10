@@ -38,5 +38,6 @@ export const api = {
   binarySecurity: executionClients.binarySecurity,
   binaryToSource: executionClients.binaryToSource,
   dataflowVulnScanner: executionClients.dataflowVulnScanner,
+  ipcAudit: executionClients.ipcAudit,
   vuln: vulnClients.vuln,
 };

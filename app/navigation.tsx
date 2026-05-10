@@ -146,7 +146,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'binary-security-detail',
   'source-security',
   'source-security-detail',
-  'terminal-security-ipc-vuln',
+  'mobile-security-ipc-vuln',
   'security-assessment',
   'pentest-system',
   'pentest-threat',
@@ -218,7 +218,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'security-assessment' ||
     view.startsWith('binary-security') ||
     view.startsWith('source-security') ||
-    view.startsWith('terminal-security-') ||
+    view.startsWith('mobile-security-') ||
     view.startsWith('pentest-') ||
     view.startsWith('entry-analysis-') ||
     view.startsWith('system-analysis-') ||
@@ -354,7 +354,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '终端安全',
       items: [
-        { id: 'terminal-security-ipc-vuln', label: 'IPC漏洞扫描', icon: Terminal, requiresProject: true },
+        { id: 'mobile-security-ipc-vuln', label: 'IPC漏洞扫描', icon: Terminal, requiresProject: true },
       ],
     },
     {
