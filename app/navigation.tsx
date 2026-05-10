@@ -340,7 +340,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-system', label: '系统分析', icon: Activity, aliases: ['system-analysis-task', 'system-analysis-detail'], requiresProject: true },
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
         { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
-        { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, aliases: ['dataflow-analysis-task'], requiresProject: true },
+        { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, aliases: ['dataflow-analysis-task', 'dataflow-analysis-detail'], requiresProject: true },
         { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
         { id: 'binary-security-config', label: '参数配置', icon: Settings, aliases: ['pentest-exec-dataflow-vuln-system-config'], requiresProject: true },
       ],

@@ -2790,6 +2790,99 @@ export interface AppDfaTaskCreateRequest {
   parent_stage_item_key?: string;
 }
 
+export interface AppDfaSessionMeta {
+  session_id: string;
+  session_name: string;
+  relative_path: string;
+  stage_group: string;
+  role_name: string;
+  size: number;
+  mtime: number;
+  event_count: number;
+  message_count?: number;
+  is_active: boolean;
+  display_name: string;
+}
+
+export interface AppDfaSessionEvent {
+  type: string;
+  event_index?: number;
+  line?: number;
+  timestamp?: string;
+  display_timestamp?: string;
+  role?: string;
+  render_role?: string;
+  parts?: Array<Record<string, any>>;
+  message?: Record<string, any>;
+  provider?: string;
+  model?: string;
+  modelId?: string;
+  thinkingLevel?: string;
+  raw_line?: string;
+  summary?: string;
+  [key: string]: any;
+}
+
+export interface AppDfaSessionSnapshot {
+  task_id: string;
+  path: string;
+  line_count: number;
+  events: AppDfaSessionEvent[];
+  warnings: string[];
+  session_meta?: Record<string, any> | null;
+  meta?: AppDfaSessionMeta;
+}
+
+export interface AppDfaResultFile {
+  name: string;
+  relative_path: string;
+  markdown?: string;
+  size: number;
+  mtime: number;
+}
+
+export interface AppDfaTaskResult {
+  task_id: string;
+  available: boolean;
+  status: AppDfaTaskItem['status'];
+  output_root: string;
+  warnings: string[];
+  result_markdown: string;
+  run_report_markdown: string;
+  result_json?: Record<string, any> | null;
+  output_files: AppDfaResultFile[];
+  dataflow_files: AppDfaResultFile[];
+  summary: {
+    function_count: number;
+    round_count: number;
+    passed_round_count: number;
+    total_tokens: number;
+    total_cost: number;
+    effectiveness?: Record<string, any>;
+  };
+}
+
+export interface AppDfaEvaluationRound {
+  round?: number;
+  status?: string;
+  passed?: boolean;
+  function?: string;
+  func?: string;
+  entry?: string;
+  metrics?: Record<string, any>;
+  token_usage?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface AppDfaTaskEvaluation {
+  task_id: string;
+  available: boolean;
+  status: AppDfaTaskItem['status'];
+  summary: AppDfaTaskResult['summary'];
+  rounds: AppDfaEvaluationRound[];
+  warnings: string[];
+}
+
 
 // ─── Dataflow Analysis Config/Models Types ────────────────────────────────────
 

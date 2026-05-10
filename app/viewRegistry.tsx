@@ -29,6 +29,7 @@ import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPag
 import { SystemAnalysisTaskDetailPage } from '../pages/execution/SystemAnalysisTaskDetailPage';
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
+import { DataflowAnalysisTaskDetailPage } from '../pages/execution/DataflowAnalysisTaskDetailPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
@@ -102,6 +103,7 @@ export interface ViewRegistryContext {
   activeB2SItemId: string;
   activeSystemAnalysisTaskId: string;
   activeEntryAnalysisTaskId: string;
+  activeDataflowAnalysisTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
@@ -116,6 +118,7 @@ export interface ViewRegistryContext {
   setActiveB2SItemId: (id: string) => void;
   setActiveSystemAnalysisTaskId: (id: string) => void;
   setActiveEntryAnalysisTaskId: (id: string) => void;
+  setActiveDataflowAnalysisTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
@@ -242,7 +245,23 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-dataflow':
     case 'dataflow-analysis-task':
-      return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+      return (
+        <DataflowAnalysisTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveDataflowAnalysisTaskId(taskId);
+            ctx.setCurrentView('dataflow-analysis-detail');
+          }}
+        />
+      );
+    case 'dataflow-analysis-detail':
+      return (
+        <DataflowAnalysisTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeDataflowAnalysisTaskId}
+          onBack={() => ctx.setCurrentView('dataflow-analysis-task')}
+        />
+      );
     case 'dataflow-analysis-config':
       return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'workflow-instances':

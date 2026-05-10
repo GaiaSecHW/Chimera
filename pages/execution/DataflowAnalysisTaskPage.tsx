@@ -328,7 +328,7 @@ const emptyForm = {
   taint_vars: '',
 };
 
-export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appDataflowAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
   const autoRefreshStorageKey = `secflow:dataflowAnalysis:autoRefresh:${projectId || 'default'}`;
@@ -443,24 +443,26 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const handleSelectTask = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setModalOpen(true);
-    void loadDetail(taskId);
+    if (onOpenTask) {
+      onOpenTask(taskId);
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+      detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: taskId },
+    }));
   };
 
   // ── Auto-poll when tasks are running or pending ───────────────────────────
   const hasActiveTasks = tasks.some((t) => t.status === 'running' || t.status === 'pending');
-  const hasActiveDetail = Boolean(detail && (detail.status === 'running' || detail.status === 'pending'));
   useEffect(() => {
     if (!autoRefreshEnabled) return;
-    if (!hasActiveTasks && !hasActiveDetail) return;
+    if (!hasActiveTasks) return;
     const timer = setInterval(() => {
       void loadTasks(page);
-      if (selectedTaskId && modalOpen) void loadDetail(selectedTaskId);
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, hasActiveDetail, projectId, page, selectedTaskId, modalOpen]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, projectId, page]);
 
   // Auto-scroll logs to bottom when new events arrive
   useEffect(() => {
@@ -1089,10 +1091,10 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
           <span>
             自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
           </span>
-          {autoRefreshEnabled && !hasActiveTasks && !hasActiveDetail ? (
+          {autoRefreshEnabled && !hasActiveTasks ? (
             <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
           ) : null}
-          {autoRefreshEnabled && (hasActiveTasks || hasActiveDetail) ? (
+          {autoRefreshEnabled && hasActiveTasks ? (
             <span className="text-violet-600">检测到活跃任务，按设定间隔自动刷新</span>
           ) : null}
         </div>
@@ -1224,7 +1226,6 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
           <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
             <div className="p-6 space-y-4">
-              {detail ? <TaskOriginCard origin={detail} /> : null}
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-slate-900">新建数据流分析任务</h2>
                 <button onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>

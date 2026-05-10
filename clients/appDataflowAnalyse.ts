@@ -1,10 +1,14 @@
 import { API_BASE, getHeaders, handleResponse, fetchWithRetry } from './base';
 import {
   AppDfaServiceConfig,
+  AppDfaSessionMeta,
+  AppDfaSessionSnapshot,
   AppDfaStagesJson,
   AppDfaTaskCreateRequest,
   AppDfaTaskDetail,
+  AppDfaTaskEvaluation,
   AppDfaTaskItem,
+  AppDfaTaskResult,
 } from '../types/types';
 
 const BASE = `${API_BASE}/api/app/dataflow-analyse`;
@@ -54,6 +58,21 @@ export const appDataflowAnalyseApi = {
 
   getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: AppDfaStagesJson }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
+
+  getTaskResult: async (taskId: string): Promise<AppDfaTaskResult> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
+
+  getTaskEvaluation: async (taskId: string): Promise<AppDfaTaskEvaluation> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/evaluation`, { headers: getHeaders() })),
+
+  listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionFile: async (taskId: string, path: string): Promise<AppDfaSessionSnapshot> =>
+    handleResponse(await fetch(
+      `${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/file?path=${encodeURIComponent(path)}`,
+      { headers: getHeaders() },
+    )),
 
   restartTask: async (taskId: string): Promise<AppDfaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/restart`, {

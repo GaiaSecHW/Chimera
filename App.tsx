@@ -45,6 +45,7 @@ const AppShell: React.FC = () => {
   const [activeB2SItemId, setActiveB2SItemId] = useState<string>('');
   const [activeSystemAnalysisTaskId, setActiveSystemAnalysisTaskId] = useState<string>('');
   const [activeEntryAnalysisTaskId, setActiveEntryAnalysisTaskId] = useState<string>('');
+  const [activeDataflowAnalysisTaskId, setActiveDataflowAnalysisTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -150,6 +151,7 @@ const AppShell: React.FC = () => {
         b2sItemId?: string;
         systemAnalysisTaskId?: string;
         entryAnalysisTaskId?: string;
+        dataflowAnalysisTaskId?: string;
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
         path?: string;
@@ -171,6 +173,10 @@ const AppShell: React.FC = () => {
       const entryAnalysisTaskId = String(detail?.entryAnalysisTaskId || '').trim();
       if (entryAnalysisTaskId) {
         setActiveEntryAnalysisTaskId(entryAnalysisTaskId);
+      }
+      const dataflowAnalysisTaskId = String(detail?.dataflowAnalysisTaskId || '').trim();
+      if (dataflowAnalysisTaskId) {
+        setActiveDataflowAnalysisTaskId(dataflowAnalysisTaskId);
       }
       const binarySecurityTaskId = String(detail?.binarySecurityTaskId || '').trim();
       if (binarySecurityTaskId) {
@@ -560,6 +566,7 @@ const AppShell: React.FC = () => {
                     activeB2SItemId,
                     activeSystemAnalysisTaskId,
                     activeEntryAnalysisTaskId,
+                    activeDataflowAnalysisTaskId,
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
                     selectedStaticPkgIds,
@@ -574,6 +581,7 @@ const AppShell: React.FC = () => {
                     setActiveB2SItemId: (id) => setActiveB2SItemId(id),
                     setActiveSystemAnalysisTaskId: (id) => setActiveSystemAnalysisTaskId(id),
                     setActiveEntryAnalysisTaskId: (id) => setActiveEntryAnalysisTaskId(id),
+                    setActiveDataflowAnalysisTaskId: (id) => setActiveDataflowAnalysisTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),

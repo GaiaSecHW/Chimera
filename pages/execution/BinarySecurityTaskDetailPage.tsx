@@ -42,7 +42,7 @@ const DOWNSTREAM_DETAIL_SUPPORT: Record<string, { supported: boolean; reason?: s
   system_analysis: { supported: true },
   binary_to_source: { supported: true },
   entry_analysis: { supported: true },
-  dataflow_analysis: { supported: false, reason: '数据流分析当前未实现独立任务详情页面，仅支持任务列表内嵌详情。' },
+  dataflow_analysis: { supported: true },
   vuln_scan: { supported: true },
 };
 
@@ -966,6 +966,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
     if (item.stage_name === 'entry_analysis') {
       window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: downstreamTaskId } }));
+      return;
+    }
+    if (item.stage_name === 'dataflow_analysis') {
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: downstreamTaskId } }));
       return;
     }
     sessionStorage.setItem('secflow:dataflowVulnTaskId', downstreamTaskId);
