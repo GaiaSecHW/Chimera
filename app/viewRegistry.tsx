@@ -46,7 +46,7 @@ import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPag
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
-import { DataflowVulnConfigPage, DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
+import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
@@ -240,6 +240,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-dataflow':
     case 'dataflow-analysis-task':
       return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
     case 'dataflow-analysis-config':
@@ -425,9 +426,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln-task-detail':
-      return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln-task-list')} />;
+      return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln')} />;
     case 'pentest-exec-dataflow-vuln-system-config':
-      return <DataflowVulnConfigPage projectId={ctx.selectedProjectId} />;
+      return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} initialTab="dataflow-vuln" />;
     case 'pentest-report':
       return <ReportsPage />;
     case 'security-assessment':

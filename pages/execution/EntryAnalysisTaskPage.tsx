@@ -211,7 +211,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [tasks, setTasks] = useState<AppEaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(100);
   const [statusFilter, setStatusFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -947,7 +947,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
               title="每页显示条数"
             >
-              {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+              {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
@@ -1027,7 +1027,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         ) : tasks.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
         ) : (
-          <div className="space-y-2 max-h-[640px] overflow-auto pr-1">
+          <div className="space-y-2 pr-1">
             <label className="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
               <input
                 type="checkbox"

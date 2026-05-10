@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, Info, Loader2, PauseCircle, RefreshCw, Sparkles, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, Info, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { BinarySecurityModuleSelection, BinarySecurityOverviewNode, BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
@@ -136,55 +136,9 @@ const stageItemTone = (selected: boolean) => (
 );
 
 const detailPanelTone = 'rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700';
-const detailCodeTone = 'max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs text-slate-100';
 
 const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
 const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
-
-const timelineGreenTone = {
-  line: 'from-emerald-200 via-emerald-300 to-emerald-100',
-  node: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  glow: 'shadow-emerald-100/80',
-};
-
-const inferTimelineTone = (event: any) => {
-  const raw = `${event?.event_type || ''} ${event?.message || ''}`.toLowerCase();
-  if (raw.includes('fail') || raw.includes('error')) {
-    return {
-      icon: CheckCircle2,
-      ...timelineGreenTone,
-    };
-  }
-  if (raw.includes('cancel')) {
-    return {
-      icon: CheckCircle2,
-      ...timelineGreenTone,
-    };
-  }
-  if (raw.includes('success') || raw.includes('complete') || raw.includes('finish')) {
-    return {
-      icon: CheckCircle2,
-      ...timelineGreenTone,
-    };
-  }
-  if (raw.includes('running') || raw.includes('dispatch') || raw.includes('start') || raw.includes('retry')) {
-    return {
-      icon: CheckCircle2,
-      ...timelineGreenTone,
-    };
-  }
-  if (raw.includes('stale')) {
-    return {
-      icon: CheckCircle2,
-      ...timelineGreenTone,
-    };
-  }
-  return {
-    icon: Sparkles,
-    ...timelineGreenTone,
-  };
-};
 
 type DownstreamTaskDetail =
   | { kind: 'firmware_unpack'; data: FirmwareUnpackTask }
@@ -200,7 +154,7 @@ type DownstreamTaskState = {
   error?: string;
 };
 
-type DetailTab = 'overview' | 'stages' | 'timeline' | 'artifacts';
+type DetailTab = 'overview' | 'timeline' | 'artifacts';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 
@@ -210,6 +164,279 @@ const ARCHIVE_EVENT_LABELS: Record<string, string> = {
   downstream_archive_job_completed: '归档完成',
   downstream_output_copy_skipped: '归档跳过',
 };
+
+const TIMELINE_EVENT_LABELS: Record<string, string> = {
+  task_created: '任务创建',
+  task_upload_pending: '等待上传',
+  task_upload_started: '上传校验开始',
+  source_archives_extracted: '源码解压完成',
+  task_upload_completed: '上传完成',
+  task_ready_to_start: '任务就绪',
+  task_start_requested: '任务入队',
+  firmware_items_initialized: '固件输入初始化',
+  source_tree_initialized: '源码输入初始化',
+  task_continue_requested: '继续执行',
+  task_retried: '任务重试',
+  stage_retry_requested: '阶段重试',
+  stage_retry_started: '阶段重跑',
+  stage_started: '阶段开始',
+  stage_finished: '阶段完成',
+  stage_failed: '阶段失败',
+  stage_skipped: '阶段跳过',
+  module_selection_confirmed: '模块确认',
+  downstream_status_sync_requested: '同步下游状态',
+  downstream_status_sync_skipped: '跳过状态同步',
+  downstream_status_synced: '下游状态已同步',
+  downstream_marked_stale: '下游结果过期',
+  task_cancelled: '任务取消',
+  task_delete_requested: '删除请求',
+  task_completed: '任务完成',
+  task_failed: '任务失败',
+  task_partial_success: '部分成功',
+  ...ARCHIVE_EVENT_LABELS,
+};
+
+const DOWNSTREAM_SUMMARY_LABELS: Record<string, string> = {
+  result_file: '结果文件',
+  result_externalized: '外置结果',
+  status: '结果状态',
+  error: '错误信息',
+  module_name: '模块',
+  module_count: '模块数',
+  round_count: '轮次数',
+  total_duration_ms: '总耗时',
+  total_tokens: 'Token',
+  profile_id: 'Profile',
+  profile_version: 'Profile 版本',
+  run_name: 'Run',
+  run_path: 'Run 路径',
+  runs_root: 'Runs Root',
+  workspace_path: '工作目录',
+  data_flow_path: '数据流结果',
+  source_path: '源码目录',
+  model: '模型',
+  review_profile: '评审档位',
+  max_review_cycles: '最大评审轮次',
+  result_review_concurrency: '评审并发',
+};
+
+const RESULT_SUMMARY_KEYS = [
+  'status',
+  'module_name',
+  'module_count',
+  'round_count',
+  'total_duration_ms',
+  'total_tokens',
+  'result_file',
+  'error',
+];
+
+const VULN_METADATA_KEYS = [
+  'run_name',
+  'profile_id',
+  'profile_version',
+  'model',
+  'review_profile',
+  'max_review_cycles',
+  'result_review_concurrency',
+  'workspace_path',
+  'data_flow_path',
+  'source_path',
+  'run_path',
+  'runs_root',
+];
+
+const timelineLevelTone = (level?: string | null) => {
+  switch (String(level || '').toLowerCase()) {
+    case 'error':
+      return 'border-rose-200 bg-rose-50 text-rose-700';
+    case 'warning':
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    case 'success':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    default:
+      return 'border-sky-200 bg-sky-50 text-sky-700';
+  }
+};
+
+const formatTimelineLevelLabel = (level?: string | null) => {
+  const raw = String(level || '').toLowerCase();
+  const labels: Record<string, string> = {
+    info: '信息',
+    warning: '警告',
+    error: '错误',
+    success: '成功',
+  };
+  return labels[raw] || (level || '-');
+};
+
+const formatTimelineEventTypeLabel = (eventType?: string | null) => TIMELINE_EVENT_LABELS[String(eventType || '')] || eventType || 'event';
+
+const formatDurationMs = (value: unknown): string => {
+  const ms = Number(value);
+  if (!Number.isFinite(ms) || ms < 0) return '-';
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${rest}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+};
+
+const tokenTotalFromValue = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Record<string, any>;
+  const direct = Number(record.total ?? record.total_tokens ?? record.token_total);
+  if (Number.isFinite(direct)) return direct;
+  const pieces = ['input', 'output', 'cache_read', 'cache_write', 'prompt_tokens', 'completion_tokens']
+    .map((key) => Number(record[key]))
+    .filter((item) => Number.isFinite(item));
+  if (!pieces.length) return null;
+  return pieces.reduce((sum, item) => sum + item, 0);
+};
+
+const formatDownstreamSummaryValue = (key: string, value: unknown): string => {
+  if (value == null || value === '') return '-';
+  if (key === 'total_duration_ms') return formatDurationMs(value);
+  if (key === 'total_tokens') {
+    const total = tokenTotalFromValue(value);
+    return total == null ? '-' : total.toLocaleString();
+  }
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (typeof value === 'number') return Number.isFinite(value) ? value.toLocaleString() : '-';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return `${value.length} 项`;
+  if (typeof value === 'object') return `${Object.keys(value as Record<string, any>).length} 个字段`;
+  return String(value);
+};
+
+function DownstreamSummaryGrid({
+  payload,
+  preferredKeys,
+  emptyText = '当前下游任务尚未生成结构化结果摘要。',
+}: {
+  payload?: Record<string, any> | null;
+  preferredKeys: string[];
+  emptyText?: string;
+}) {
+  if (!payload || Object.keys(payload).length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-xs text-slate-500">
+        {emptyText}
+      </div>
+    );
+  }
+  const selectedKeys = preferredKeys.filter((key) => payload[key] != null && payload[key] !== '');
+  const fallbackKeys = Object.keys(payload)
+    .filter((key) => !selectedKeys.includes(key) && payload[key] != null && payload[key] !== '')
+    .slice(0, Math.max(0, 8 - selectedKeys.length));
+  const rows = [...selectedKeys, ...fallbackKeys].slice(0, 8);
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-4 text-xs text-slate-500">
+        {emptyText}
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 gap-3 text-xs text-slate-600 md:grid-cols-2 xl:grid-cols-4">
+      {rows.map((key) => (
+        <div key={key} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+          <div className="text-slate-400">{DOWNSTREAM_SUMMARY_LABELS[key] || key}</div>
+          <div className="mt-1 break-all font-semibold text-slate-800">{formatDownstreamSummaryValue(key, payload[key])}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const formatTimelineDetailValue = (value: unknown): string => {
+  if (value == null) return '-';
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '-';
+  if (typeof value === 'string') return value || '-';
+  try {
+    const text = JSON.stringify(value);
+    return text.length > 160 ? `${text.slice(0, 160)}...` : text;
+  } catch {
+    return String(value);
+  }
+};
+
+const timelineDetailRows = (payload: Record<string, any> | null) => {
+  if (!payload || Object.keys(payload).length === 0) return [];
+  const labels: Record<string, string> = {
+    target_stage: '目标阶段',
+    last_success_stage: '最后成功阶段',
+    cleared_stages: '清理阶段',
+    retry_semantics: '重试语义',
+    archive_job_id: '归档任务 ID',
+    archive_status: '归档状态',
+    downstream_service: '下游服务',
+    downstream_task_id: '下游任务 ID',
+    downstream_status: '下游状态',
+    mapped_status: '映射状态',
+    selected_module_keys: '已选模块',
+    stage_name: '阶段',
+    item_id: '子任务 ID',
+    item_key: '子任务 Key',
+    force: '强制同步',
+    input_files: '输入文件',
+    uploaded_files: '上传文件数',
+    archive_count: '归档数',
+    extracted_file_count: '解压文件数',
+    source: '源路径',
+    target: '目标路径',
+    error: '错误',
+    message: '消息',
+  };
+  const priority = [
+    'target_stage', 'last_success_stage', 'cleared_stages', 'retry_semantics',
+    'archive_job_id', 'archive_status', 'downstream_service', 'downstream_task_id',
+    'downstream_status', 'mapped_status', 'selected_module_keys', 'stage_name',
+    'item_id', 'item_key', 'force', 'uploaded_files', 'archive_count', 'extracted_file_count', 'error',
+  ];
+  const orderedKeys = [
+    ...priority.filter((key) => Object.prototype.hasOwnProperty.call(payload, key)),
+    ...Object.keys(payload).filter((key) => !priority.includes(key)).sort(),
+  ];
+  return orderedKeys.map((key) => ({
+    key,
+    label: labels[key] || key,
+    value: formatTimelineDetailValue(payload[key]),
+  }));
+};
+
+function TimelineDetailBlock({ payload }: { payload: Record<string, any> | null }) {
+  const rows = timelineDetailRows(payload);
+  if (rows.length === 0) return null;
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3">
+      <div className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">
+        <Info size={12} />
+        事件细节
+      </div>
+      <div className="grid gap-2 md:grid-cols-2">
+        {rows.slice(0, 8).map((row) => (
+          <div key={row.key} className="min-w-0 rounded-xl border border-white bg-white px-3 py-2 text-xs">
+            <div className="font-bold text-slate-400">{row.label}</div>
+            <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
+          </div>
+        ))}
+      </div>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">
+          查看原始 JSON
+        </summary>
+        <pre className="mt-2 max-h-48 overflow-auto rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      </details>
+    </div>
+  );
+}
 
 const ARCHIVE_STATUS_LABELS: Record<string, string> = {
   pending: '等待归档',
@@ -221,10 +448,10 @@ const ARCHIVE_STATUS_LABELS: Record<string, string> = {
 };
 
 const archiveStatusLabel = (status: string) => ARCHIVE_STATUS_LABELS[status] || status || 'pending';
-const BUSINESS_STAGE_CARD_WIDTH = 148;
-const ARCHIVE_STAGE_CARD_WIDTH = 108;
-const STAGE_CONNECTOR_WIDTH = 20;
-const STAGE_FLOW_VERTICAL_BREAKPOINT = 820;
+const BUSINESS_STAGE_CARD_WIDTH = 240;
+const ARCHIVE_STAGE_CARD_WIDTH = 180;
+const STAGE_CONNECTOR_WIDTH = 24;
+const STAGE_FLOW_VERTICAL_BREAKPOINT = 1120;
 
 const durationLabel = (started?: string | null, ended?: string | null) => {
   if (!started) return '-';
@@ -239,6 +466,10 @@ const durationLabel = (started?: string | null, ended?: string | null) => {
   const hours = Math.floor(minutes / 60);
   return `${hours}h ${minutes % 60}m`;
 };
+
+const shouldShowStageRetryReason = (status?: string | null, retryable?: boolean, retryReason?: string | null) => (
+  Boolean(!retryable && retryReason && ['failed', 'partial_success', 'cancelled'].includes(String(status || '')))
+);
 
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
@@ -255,6 +486,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState<string>('');
+  const [expandedEventKey, setExpandedEventKey] = useState<string | null>(null);
+  const [timelinePage, setTimelinePage] = useState(1);
+  const [timelinePageSize, setTimelinePageSize] = useState(200);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
@@ -351,10 +586,34 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     try {
       await executionApi.binarySecurity.clearTimeline(projectId, taskId);
       setTimeline([]);
+      setExpandedEventKey(null);
     } catch (e: any) {
       setError(e?.message || '清空事件时间线失败');
     } finally {
       setTimelineClearing(false);
+    }
+  };
+
+  const deleteTimelineEvent = async (eventId: string, eventKey: string) => {
+    if (!projectId || !taskId || !eventId || deletingEventId) return;
+    const confirmed = await showConfirm({
+      title: '删除事件',
+      message: '将删除当前事件记录。该操作不影响任务状态、阶段结果和产物文件，删除后不可恢复，是否继续？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeletingEventId(eventId);
+    setError(null);
+    try {
+      await executionApi.binarySecurity.deleteTimelineEvent(projectId, taskId, eventId);
+      setTimeline((current) => current.filter((event) => event.id !== eventId));
+      setExpandedEventKey((current) => (current === eventKey ? null : current));
+    } catch (e: any) {
+      setError(e?.message || '删除事件失败');
+    } finally {
+      setDeletingEventId(null);
     }
   };
 
@@ -408,7 +667,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [activeTab, artifacts, artifactsLoading, projectId, taskId]);
 
   useEffect(() => {
-    if (activeTab !== 'stages' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
+    if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
     const stageItems = detail.stage_items.filter((item) => item.stage_name === selectedStage);
     const fetchableItems = stageItems.filter((item) => item.downstream_task_id);
     if (fetchableItems.length === 0) {
@@ -635,6 +894,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     () => stageDisplayNodes.find((node) => node.node_type === 'archive' && node.stage_name === selectedStage) || null,
     [selectedStage, stageDisplayNodes],
   );
+  const selectedBusinessStageNode = useMemo(
+    () => stageDisplayNodes.find((node) => node.kind === 'business' && node.stage_name === selectedStage) || null,
+    [selectedStage, stageDisplayNodes],
+  );
   const selectedArchiveJobs = useMemo(() => {
     if (!selectedArchiveNode || selectedArchiveNode.node_type !== 'archive') return [] as ArchiveJob[];
     const detailPayload = selectedArchiveNode.detail as BinarySecurityOverviewNode['detail'] & { jobs?: ArchiveJob[] };
@@ -648,15 +911,36 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [detail, selectedStage]);
 
   const timelineItems = useMemo(() => {
-    const events = timeline.slice(-80);
-    return events.map((event, index) => ({
+    return timeline.map((event, index) => ({
       ...event,
       _key: event.id || `${event.event_type || 'event'}-${event.created_at || index}-${index}`,
       _index: index + 1,
-      _tone: inferTimelineTone(event),
-      _eventLabel: ARCHIVE_EVENT_LABELS[event.event_type] || event.event_type || 'event',
+      _eventLabel: formatTimelineEventTypeLabel(event.event_type),
+      _sourceLabel: event.item_key || event.item_id || '-',
     }));
   }, [timeline]);
+  const timelineTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(timelineItems.length / Math.max(1, timelinePageSize))),
+    [timelineItems.length, timelinePageSize],
+  );
+  const normalizedTimelinePage = Math.min(Math.max(1, timelinePage), timelineTotalPages);
+  const pagedTimelineItems = useMemo(() => {
+    const start = (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize);
+    return timelineItems.slice(start, start + Math.max(1, timelinePageSize));
+  }, [normalizedTimelinePage, timelineItems, timelinePageSize]);
+  const timelineRangeStart = timelineItems.length === 0 ? 0 : (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize) + 1;
+  const timelineRangeEnd = timelineItems.length === 0 ? 0 : Math.min(normalizedTimelinePage * Math.max(1, timelinePageSize), timelineItems.length);
+
+  useEffect(() => {
+    setTimelinePage(1);
+    setExpandedEventKey(null);
+  }, [timelinePageSize, taskId]);
+
+  useEffect(() => {
+    if (timelinePage > timelineTotalPages) {
+      setTimelinePage(timelineTotalPages);
+    }
+  }, [timelinePage, timelineTotalPages]);
 
   const openDownstreamTaskDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     const downstreamTaskId = item.downstream_task_id?.trim();
@@ -720,7 +1004,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <div className={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
             <div className={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
           </div>
-          <pre className={detailCodeTone}>{JSON.stringify(task.result_json || {}, null, 2)}</pre>
+          <DownstreamSummaryGrid payload={task.result_json} preferredKeys={RESULT_SUMMARY_KEYS} />
         </div>
       );
     }
@@ -755,7 +1039,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <div className={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
             <div className={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
           </div>
-          <pre className={detailCodeTone}>{JSON.stringify(task.result_json || {}, null, 2)}</pre>
+          <DownstreamSummaryGrid payload={task.result_json} preferredKeys={RESULT_SUMMARY_KEYS} />
         </div>
       );
     }
@@ -767,7 +1051,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <div className={detailPanelTone}>输入目录：{task.input_path || '-'}</div>
             <div className={detailPanelTone}>输出目录：{task.output_path || '-'}</div>
           </div>
-          <pre className={detailCodeTone}>{JSON.stringify(task.result_json || {}, null, 2)}</pre>
+          <DownstreamSummaryGrid payload={task.result_json} preferredKeys={RESULT_SUMMARY_KEYS} />
         </div>
       );
     }
@@ -782,7 +1066,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <div className={detailPanelTone}>重试次数：{task.retry_count} / {task.max_retry_count}</div>
           <div className={detailPanelTone}>执行尝试数：{task.attempts?.length || 0}</div>
         </div>
-        <pre className={detailCodeTone}>{JSON.stringify(task.task_metadata || {}, null, 2)}</pre>
+        <DownstreamSummaryGrid payload={task.task_metadata} preferredKeys={VULN_METADATA_KEYS} emptyText="当前漏洞扫描任务尚未记录元数据摘要。" />
       </div>
     );
   };
@@ -792,8 +1076,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }
 
   const tabs: Array<{ key: DetailTab; label: string; hint: string }> = [
-    { key: 'overview', label: '总览', hint: '任务基础信息与模块确认' },
-    { key: 'stages', label: '阶段任务', hint: '阶段图与下游子任务' },
+    { key: 'overview', label: '总览', hint: '任务基础信息、模块确认与阶段任务' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
     { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
   ];
@@ -911,7 +1194,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           </section>
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
-            <div className="grid gap-2 md:grid-cols-4">
+            <div className="grid gap-2 md:grid-cols-3">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -991,7 +1274,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : (
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-black text-slate-900">任务总览</h2>
-              <p className="mt-2 text-sm text-slate-500">当前页只加载任务主详情。阶段子任务、事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
+              <p className="mt-2 text-sm text-slate-500">总览包含任务主详情、阶段流转和下游子任务；事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">任务类型</div>
@@ -1015,7 +1298,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </>
           ) : null}
 
-          {activeTab === 'stages' ? (
+          {activeTab === 'overview' ? (
             <>
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -1056,8 +1339,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       className={`rounded-[1.75rem] border text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${
                         stage.kind === 'archive'
                           ? stageFlowLayout.mode === 'horizontal'
-                            ? 'flex h-[96px] shrink-0 flex-col justify-between p-3'
-                            : 'mx-auto flex min-h-[96px] w-full max-w-[220px] flex-col justify-between p-3'
+                            ? 'flex min-h-[172px] shrink-0 flex-col justify-between p-4'
+                            : 'mx-auto flex min-h-[172px] w-full max-w-[260px] flex-col justify-between p-4'
                           : stageFlowLayout.mode === 'horizontal'
                             ? 'shrink-0 p-4'
                             : 'w-full p-4'
@@ -1072,6 +1355,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <div className="space-y-1">
                             <div className="text-sm font-black leading-none">产物归档</div>
                             <div className="text-[11px] font-semibold leading-tight opacity-75">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
+                          </div>
+                          <div className="mt-3 space-y-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
+                            <div className="flex justify-between gap-2">
+                              <span className="opacity-60">开始</span>
+                              <span className="text-right font-mono">{fmt(stage.started_at)}</span>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                              <span className="opacity-60">结束</span>
+                              <span className="text-right font-mono">{fmt(stage.finished_at)}</span>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                              <span className="opacity-60">耗时</span>
+                              <span className="text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                            </div>
                           </div>
                           <div className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-center text-[10px] font-black leading-none">
                             {stage.status_label || archiveStatusLabel(stage.status)}
@@ -1094,6 +1391,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <div>失败 {(stage.detail as any)?.failed_items ?? 0}</div>
                             <div>运行 {(stage.detail as any)?.running_items ?? 0}</div>
                           </div>
+                          <div className="mt-3 grid gap-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
+                            <div className="flex justify-between gap-2">
+                              <span className="opacity-60">开始</span>
+                              <span className="text-right font-mono">{fmt(stage.started_at)}</span>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                              <span className="opacity-60">结束</span>
+                              <span className="text-right font-mono">{fmt(stage.finished_at)}</span>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                              <span className="opacity-60">耗时</span>
+                              <span className="text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                            </div>
+                          </div>
                           <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
                             {stage.status_label || stage.status}
                           </div>
@@ -1107,7 +1418,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             )}
                             <button
                               type="button"
-                              title={stage.retryable ? undefined : stage.retry_reason || '当前阶段不可安全重试'}
+                              title={shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason) ? stage.retry_reason || '当前阶段不可安全重试' : undefined}
                               className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
                                 stage.retryable
                                   ? 'bg-slate-900 text-white'
@@ -1123,7 +1434,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
                             </button>
                           </div>
-                          {!stage.retryable && stage.retry_reason ? (
+                          {shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason) ? (
                             <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
                               {stage.retry_reason}
                             </div>
@@ -1165,6 +1476,37 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </p>
               </div>
             </div>
+
+            {selectedNodeKind === 'business' && selectedBusinessStageNode ? (
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">阶段状态</div>
+                  <div className="mt-1">
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(selectedBusinessStageNode.status)}`}>
+                      {selectedBusinessStageNode.status_label || selectedBusinessStageNode.status}
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">开始时间</div>
+                  <div className="mt-1 text-sm font-black text-slate-900">{fmt(selectedBusinessStageNode.started_at)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">结束时间</div>
+                  <div className="mt-1 text-sm font-black text-slate-900">{fmt(selectedBusinessStageNode.finished_at)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">阶段耗时</div>
+                  <div className="mt-1 text-sm font-black text-slate-900">{durationLabel(selectedBusinessStageNode.started_at, selectedBusinessStageNode.finished_at)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">子任务</div>
+                  <div className="mt-1 text-sm font-black text-slate-900">
+                    {(selectedBusinessStageNode.detail as any)?.success_items ?? 0} / {(selectedBusinessStageNode.detail as any)?.total_items ?? 0} 成功
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-5 space-y-3">
               {selectedNodeKind === 'archive' ? (
@@ -1296,80 +1638,99 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   } : undefined}
                   className={`rounded-[1.5rem] border p-5 transition ${detailSupport.supported ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus:outline-none' : ''} ${stageItemTone(item.stage_name === selectedStage)}`}
                 >
-                  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
-                              {STAGE_LABELS[item.stage_name] || item.stage_name}
-                            </span>
-                            <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
-                          </div>
-                          <div className="mt-3 text-base font-black text-slate-900">
-                            {item.item_name || item.item_key}
-                          </div>
+                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                          {STAGE_LABELS[item.stage_name] || item.stage_name}
+                        </span>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                          重试 {item.retry_count || 0}
+                        </span>
+                      </div>
+                      <div className="mt-3 break-all text-lg font-black text-slate-900">
+                        {item.item_name || item.item_key}
+                      </div>
+                      <div className="mt-2 break-all font-mono text-xs text-slate-500">{item.item_key}</div>
+
+                      <div className="mt-4 grid gap-3 text-xs text-slate-600 md:grid-cols-3">
+                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                          <span className="text-slate-400">开始时间</span>
+                          <div className="mt-1 font-bold text-slate-800">{fmt(item.started_at)}</div>
                         </div>
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
-                            {fmt(item.started_at)} {'->'} {fmt(item.finished_at)}
-                          </div>
-                          {item.downstream_task_id ? (
-                            <button
-                              type="button"
-                              className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700 disabled:opacity-60"
-                              disabled={actionLoading !== ''}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id });
-                              }}
-                            >
-                              同步状态
-                            </button>
-                          ) : null}
-                          {detailSupport.supported ? (
-                            <button
-                              type="button"
-                              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                openDownstreamTaskDetail(item);
-                              }}
-                            >
-                              查看任务详情
-                            </button>
-                          ) : (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-500"
-                              title={detailSupport.reason}
-                            >
-                              <Info className="h-3.5 w-3.5" />
-                              不支持查看任务详情
-                            </span>
-                          )}
+                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                          <span className="text-slate-400">结束时间</span>
+                          <div className="mt-1 font-bold text-slate-800">{fmt(item.finished_at)}</div>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                          <span className="text-slate-400">耗时</span>
+                          <div className="mt-1 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</div>
                         </div>
                       </div>
-                      <div className="mt-4 grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">下游服务</span>
-                          <div className="mt-1 font-mono text-slate-800">{item.downstream_service || '-'}</div>
+                    </div>
+
+                    <aside className="rounded-2xl border border-slate-200 bg-white/85 p-4">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">下游任务</div>
+                      <div className="mt-3 space-y-3 text-xs text-slate-600">
+                        <div>
+                          <div className="text-slate-400">服务</div>
+                          <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_service || '-'}</div>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">下游任务 ID</span>
+                        <div>
+                          <div className="text-slate-400">任务 ID</div>
                           <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
                         </div>
                       </div>
-                      {item.error_message ? (
-                        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
-                          {item.error_message}
-                        </div>
-                      ) : null}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {item.downstream_task_id ? (
+                          <button
+                            type="button"
+                            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700 disabled:opacity-60"
+                            disabled={actionLoading !== ''}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id });
+                            }}
+                          >
+                            同步状态
+                          </button>
+                        ) : null}
+                        {detailSupport.supported ? (
+                          <button
+                            type="button"
+                            className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openDownstreamTaskDetail(item);
+                            }}
+                          >
+                            查看任务详情
+                          </button>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-500"
+                            title={detailSupport.reason}
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                            不支持查看任务详情
+                          </span>
+                        )}
+                      </div>
                       {!detailSupport.supported ? (
                         <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
                           {detailSupport.reason}
                         </div>
                       ) : null}
-                      <div className="mt-4">
+                    </aside>
+
+                    <div className="xl:col-span-2">
+                      {item.error_message ? (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                          {item.error_message}
+                        </div>
+                      ) : null}
+                      <div className={item.error_message ? 'mt-4' : ''}>
                         {renderDownstreamDetail(item)}
                       </div>
                     </div>
@@ -1398,8 +1759,29 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">展示区间</div>
-                  <div className="mt-1 text-sm font-bold text-slate-700">{timelineItems.length > 0 ? `${fmtTime(timelineItems[0].created_at)} -> ${fmtTime(timelineItems[timelineItems.length - 1].created_at)}` : '-'}</div>
+                  <div className="mt-1 text-sm font-bold text-slate-700">{pagedTimelineItems.length > 0 ? `${fmtTime(pagedTimelineItems[0].created_at)} -> ${fmtTime(pagedTimelineItems[pagedTimelineItems.length - 1].created_at)}` : '-'}</div>
                 </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">分页</div>
+                  <div className="mt-1 text-sm font-bold text-slate-700">
+                    {timelineRangeStart}-{timelineRangeEnd} / {timelineItems.length}
+                  </div>
+                </div>
+                <label className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500">
+                  <span className="mr-2 uppercase tracking-[0.16em] text-slate-400">每页</span>
+                  <select
+                    value={timelinePageSize}
+                    onChange={(event) => {
+                      const next = Math.min(2000, Math.max(200, Number(event.target.value) || 200));
+                      setTimelinePageSize(next);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm font-bold text-slate-700 outline-none"
+                  >
+                    {[200, 500, 1000, 2000].map((size) => (
+                      <option key={size} value={size}>{size}</option>
+                    ))}
+                  </select>
+                </label>
                 <button
                   type="button"
                   onClick={() => void clearTimeline()}
@@ -1422,55 +1804,120 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   暂无事件
                 </div>
               ) : (
-                <div className="relative pl-2">
-                  <div className="absolute bottom-0 left-[19px] top-0 w-px bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200" />
-                  <div className="space-y-2.5">
-                    {timelineItems.map((event) => {
-                      const tone = event._tone;
-                      const Icon = tone.icon;
-                      const isRunningTone = Icon === Loader2;
-                      return (
-                        <div key={event._key} className="relative flex gap-3">
-                          <div className="relative z-10 flex w-10 shrink-0 justify-center">
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-2xl border shadow-lg ${tone.node} ${tone.glow}`}>
-                              <Icon size={14} className={isRunningTone ? 'animate-spin' : ''} />
-                            </div>
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className={`rounded-[1.25rem] border bg-white px-4 py-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md`}>
-                              <div className="flex items-center gap-2.5">
-                                <div className="min-w-0 flex flex-1 items-center gap-2 overflow-hidden">
-                                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${tone.badge}`}>
-                                      {event._eventLabel}
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-[1080px] w-full divide-y divide-slate-100 text-left text-xs">
+                      <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                        <tr>
+                          <th className="w-14 px-3 py-2">#</th>
+                          <th className="w-44 px-3 py-2">时间</th>
+                          <th className="w-44 px-3 py-2">事件</th>
+                          <th className="w-28 px-3 py-2">阶段</th>
+                          <th className="w-24 px-3 py-2">级别</th>
+                          <th className="px-3 py-2">摘要</th>
+                          <th className="w-44 px-3 py-2">来源</th>
+                          <th className="w-36 px-3 py-2 text-right">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {pagedTimelineItems.map((event) => {
+                          const expanded = expandedEventKey === event._key;
+                          return (
+                            <React.Fragment key={event._key}>
+                              <tr className="align-middle hover:bg-slate-50/80">
+                                <td className="px-3 py-2 font-mono text-[11px] font-bold text-slate-400">#{event._index}</td>
+                                <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px] font-semibold text-slate-600">
+                                  {fmt(event.created_at)}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className="inline-flex max-w-[160px] items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-black text-sky-700">
+                                    <span className="truncate">{event._eventLabel}</span>
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2">
+                                  {event.stage_name ? (
+                                    <span className="inline-flex max-w-[110px] rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+                                      <span className="truncate">{STAGE_LABELS[event.stage_name] || event.stage_name}</span>
                                     </span>
-                                    {event.stage_name ? (
-                                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
-                                        {STAGE_LABELS[event.stage_name] || event.stage_name}
-                                      </span>
-                                    ) : null}
-                                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
-                                      #{event._index}
-                                    </span>
-                                  </div>
-                                  <div className="min-w-0 truncate text-sm font-black text-slate-900">
+                                  ) : (
+                                    <span className="text-slate-400">-</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <span className={`inline-flex max-w-[90px] rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineLevelTone(event.level)}`}>
+                                    <span className="truncate">{formatTimelineLevelLabel(event.level)}</span>
+                                  </span>
+                                </td>
+                                <td className="max-w-[360px] px-3 py-2">
+                                  <div className="truncate font-bold text-slate-800" title={event.message || '系统事件'}>
                                     {event.message || '系统事件'}
                                   </div>
-                                </div>
-                                <div className="shrink-0 text-right">
-                                  <div className="text-xs font-black text-slate-700">{fmtTime(event.created_at)}</div>
-                                  <div className="text-[10px] text-slate-500">{fmt(event.created_at)}</div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                                </td>
+                                <td className="px-3 py-2 text-[11px] text-slate-500">
+                                  <div className="truncate font-mono" title={event._sourceLabel}>
+                                    {event._sourceLabel}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  <div className="flex items-center justify-end gap-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedEventKey(expanded ? null : event._key)}
+                                      className="text-[11px] font-black text-slate-500 transition hover:text-slate-900"
+                                    >
+                                      {expanded ? '收起' : '查看'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void deleteTimelineEvent(event.id, event._key)}
+                                      disabled={deletingEventId === event.id || timelineClearing}
+                                      className="text-[11px] font-black text-rose-600 transition hover:text-rose-800 disabled:opacity-40"
+                                    >
+                                      {deletingEventId === event.id ? '删除中' : '删除'}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                              {expanded ? (
+                                <tr className="bg-slate-50/60">
+                                  <td colSpan={8} className="px-3 py-3">
+                                    <TimelineDetailBlock payload={event.payload} />
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
+              {timelineItems.length > 0 ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm text-slate-500">
+                    第 {normalizedTimelinePage} / {timelineTotalPages} 页
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTimelinePage((current) => Math.max(1, current - 1))}
+                      disabled={normalizedTimelinePage <= 1}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40"
+                    >
+                      上一页
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))}
+                      disabled={normalizedTimelinePage >= timelineTotalPages}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </section>
           ) : null}

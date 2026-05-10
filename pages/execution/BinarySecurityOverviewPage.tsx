@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, Loader2, Plus, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
+import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityInputFile, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityInputFile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
@@ -68,6 +68,8 @@ const fmtSize = (value: number) => {
   return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 };
 const fmtSpeed = (value: number) => `${fmtSize(value)}/s`;
+const num = (value?: number | null) => Number.isFinite(value || 0) ? Number(value || 0) : 0;
+const percent = (part: number, total: number) => total > 0 ? Math.round((part / total) * 100) : 0;
 
 const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'firmware_unpack', label: '固件解包最大并行数' },
@@ -92,6 +94,49 @@ const DEFAULT_STAGE_PARALLELISM = {
   vuln_scan: 4,
 };
 
+const emptyProjectStats = (): BinarySecurityProjectStats => ({
+  total: 0,
+  running: 0,
+  success: 0,
+  partial_success: 0,
+  failed: 0,
+  cancelled: 0,
+  selected_module_count: 0,
+  candidate_module_count: 0,
+  high_risk_module_count: 0,
+  entry_count: 0,
+  vuln_result_count: 0,
+  input_count: 0,
+  unpacked_firmware_count: 0,
+  failed_firmware_count: 0,
+});
+
+const emptyStageAggregates = (): BinarySecurityProjectStageAggregate[] => [];
+
+const deriveProjectStats = (items: BinarySecurityTask[]): BinarySecurityProjectStats => {
+  const stats = emptyProjectStats();
+  stats.total = items.length;
+  items.forEach((item) => {
+    if (TERMINAL.has(item.status)) {
+      if (item.status === 'success') stats.success += 1;
+      if (item.status === 'partial_success') stats.partial_success += 1;
+      if (item.status === 'failed') stats.failed += 1;
+      if (item.status === 'cancelled') stats.cancelled += 1;
+    } else {
+      stats.running += 1;
+    }
+    stats.selected_module_count += item.selected_module_count || 0;
+    stats.candidate_module_count += item.candidate_module_count || 0;
+    stats.high_risk_module_count += item.high_risk_module_count || 0;
+    stats.entry_count += item.entry_count || 0;
+    stats.vuln_result_count += item.vuln_result_count || 0;
+    stats.input_count += item.firmware_item_count || 0;
+    stats.unpacked_firmware_count += item.unpacked_firmware_count || 0;
+    stats.failed_firmware_count += item.failed_firmware_count || 0;
+  });
+  return stats;
+};
+
 const isDirectoryAlreadyExistsError = (error: any) => {
   const message = String(error?.message || '').toLowerCase();
   const code = String(error?.code || '').toLowerCase();
@@ -105,9 +150,120 @@ const isDirectoryAlreadyExistsError = (error: any) => {
   );
 };
 
+const stageAccent = (stageName: string) => {
+  const map: Record<string, string> = {
+    firmware_unpack: 'border-l-emerald-400',
+    system_analysis: 'border-l-sky-400',
+    binary_to_source: 'border-l-cyan-400',
+    entry_analysis: 'border-l-amber-400',
+    dataflow_analysis: 'border-l-indigo-400',
+    vuln_scan: 'border-l-rose-400',
+  };
+  return map[stageName] || 'border-l-slate-300';
+};
+
+const dominantStatusLabel = (counts?: Record<string, number>) => {
+  const entries = Object.entries(counts || {}).filter(([, count]) => count > 0);
+  if (entries.length === 0) return '暂无执行';
+  const [status, count] = entries.sort((a, b) => b[1] - a[1])[0];
+  return `${status} ${count}`;
+};
+
+const ProjectStatCard: React.FC<{ label: string; value: number; hint: string }> = ({ label, value, hint }) => (
+  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+    <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</div>
+    <div className="mt-2 text-2xl font-black text-slate-900">{value}</div>
+    <div className="mt-1 text-sm text-slate-500">{hint}</div>
+  </div>
+);
+
+const StageMetricPill: React.FC<{ label: string; value: number; tone?: string }> = ({ label, value, tone = 'text-slate-800' }) => (
+  <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
+    <span className="text-xs font-semibold text-slate-500">{label}</span>
+    <span className={`text-sm font-black ${tone}`}>{value}</span>
+  </div>
+);
+
+const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggregate }> = ({ aggregate }) => {
+  const business = aggregate.business || {
+    task_count: 0,
+    total_items: 0,
+    success_items: 0,
+    failed_items: 0,
+    skipped_items: 0,
+    running_items: 0,
+    cancelled_items: 0,
+    status_counts: {},
+  };
+  const archive = aggregate.archive || {
+    job_count: 0,
+    success_count: 0,
+    failed_count: 0,
+    running_count: 0,
+    applying_count: 0,
+    pending_count: 0,
+    status_counts: {},
+  };
+  const businessTotal = num(business.total_items);
+  const archiveTotal = num(archive.job_count);
+  const businessRate = percent(num(business.success_items), businessTotal);
+  const archiveRate = percent(num(archive.success_count), archiveTotal);
+  const hasData = businessTotal > 0 || archiveTotal > 0;
+
+  return (
+    <div className={`rounded-2xl border border-l-4 border-slate-200 bg-white p-4 shadow-sm ${stageAccent(aggregate.stage_name)}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-sm font-black text-slate-900">{formatStageLabel(aggregate.stage_name)}</div>
+          <div className="mt-1 text-xs text-slate-500">业务 {dominantStatusLabel(business.status_counts)} · 归档 {dominantStatusLabel(archive.status_counts)}</div>
+        </div>
+        <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-500">#{aggregate.sequence_no}</span>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-black text-slate-700">
+            <Layers3 size={14} className="text-slate-400" />
+            业务执行
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <StageMetricPill label="任务" value={num(business.task_count)} />
+            <StageMetricPill label="总项" value={businessTotal} />
+            <StageMetricPill label="成功" value={num(business.success_items)} tone="text-emerald-700" />
+            <StageMetricPill label="失败" value={num(business.failed_items)} tone="text-rose-700" />
+            <StageMetricPill label="运行" value={num(business.running_items)} tone="text-blue-700" />
+            <StageMetricPill label="跳过/取消" value={num(business.skipped_items) + num(business.cancelled_items)} tone="text-slate-600" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-100 bg-white p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-black text-slate-700">
+            <Archive size={14} className="text-slate-400" />
+            归档结果
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <StageMetricPill label="任务" value={archiveTotal} />
+            <StageMetricPill label="成功" value={num(archive.success_count)} tone="text-emerald-700" />
+            <StageMetricPill label="失败" value={num(archive.failed_count)} tone="text-rose-700" />
+            <StageMetricPill label="运行" value={num(archive.running_count)} tone="text-blue-700" />
+            <StageMetricPill label="应用中" value={num(archive.applying_count)} tone="text-amber-700" />
+            <StageMetricPill label="等待" value={num(archive.pending_count)} tone="text-slate-600" />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white">
+        {hasData ? `业务成功率 ${businessRate}% · 归档完成率 ${archiveRate}%` : '暂无执行'}
+      </div>
+    </div>
+  );
+};
+
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
+  const [projectStats, setProjectStats] = useState<BinarySecurityProjectStats>(() => emptyProjectStats());
+  const [projectStageAggregates, setProjectStageAggregates] = useState<BinarySecurityProjectStageAggregate[]>(() => emptyStageAggregates());
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [runningCount, setRunningCount] = useState(0);
   const [queuedCount, setQueuedCount] = useState(0);
@@ -160,7 +316,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         executionApi.binarySecurity.listTasks(projectId, undefined, taskType),
         executionApi.binarySecurity.getProjectConfig(projectId),
       ]);
-      setItems(data.items || []);
+      const nextItems = data.items || [];
+      setItems(nextItems);
+      setProjectStats(data.project_stats || deriveProjectStats(nextItems));
+      setProjectStageAggregates(Array.isArray(data.project_stage_aggregates) ? data.project_stage_aggregates : emptyStageAggregates());
       setRunningCount(data.running_count || 0);
       setQueuedCount(data.queued_count || 0);
       setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
@@ -264,23 +423,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setSelectedTaskIds((current) => current.filter((id) => items.some((item) => item.id === id)));
   }, [items]);
 
-  const stats = useMemo(() => {
-    const total = items.length;
-    const running = items.filter((item) => !TERMINAL.has(item.status)).length;
-    return {
-      total,
-      running,
-      success: items.filter((item) => item.status === 'success').length,
-      partial: items.filter((item) => item.status === 'partial_success').length,
-      failed: items.filter((item) => item.status === 'failed').length,
-      modules: items.reduce((sum, item) => sum + (item.selected_module_count || 0), 0),
-      entries: items.reduce((sum, item) => sum + (item.entry_count || 0), 0),
-      vulns: items.reduce((sum, item) => sum + (item.vuln_result_count || 0), 0),
-      firmwares: items.reduce((sum, item) => sum + (item.firmware_item_count || 0), 0),
-      unpacked: items.reduce((sum, item) => sum + (item.unpacked_firmware_count || 0), 0),
-      unpackFailed: items.reduce((sum, item) => sum + (item.failed_firmware_count || 0), 0),
-    };
-  }, [items]);
+  const stats = projectStats;
+  const orderedStageAggregates = useMemo(() => {
+    const byStage = new Map(projectStageAggregates.map((item) => [item.stage_name, item]));
+    return stages.map((stage) => byStage.get(stage)).filter((item): item is BinarySecurityProjectStageAggregate => Boolean(item));
+  }, [projectStageAggregates, stages]);
 
   const totalUploadBytes = useMemo(() => files.reduce((sum, file) => sum + (file.size || 0), 0), [files]);
   const activeUploadSpeed = useMemo(
@@ -505,33 +652,37 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       )}
 
       <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-        <div className="flex items-center gap-2">
-          <ShieldAlert size={18} className="text-rose-600" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={18} className="text-rose-600" />
             <h2 className="text-xl font-black text-slate-900">当前项目统计</h2>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600">
+            <BarChart3 size={14} />
+            阶段汇总
+          </div>
         </div>
         <div className="mt-2 text-sm text-slate-500">任务、固件和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
-        <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <div className="rounded-2xl bg-white px-4 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务总数</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{stats.total}</div>
-            <div className="mt-1 text-sm text-slate-500">运行中 {runningCount} · 排队中 {queuedCount}</div>
-          </div>
-          <div className="rounded-2xl bg-white px-4 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{isSourceTask ? '源码输入' : '固件解包'}</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{isSourceTask ? stats.firmwares : stats.unpacked}</div>
-            <div className="mt-1 text-sm text-slate-500">{isSourceTask ? `源码文件 ${stats.firmwares}` : `总固件 ${stats.firmwares} · 失败 ${stats.unpackFailed}`}</div>
-          </div>
-          <div className="rounded-2xl bg-white px-4 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">分析结果</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{stats.modules}</div>
-            <div className="mt-1 text-sm text-slate-500">高危模块 · 入口 {stats.entries}</div>
-          </div>
-          <div className="rounded-2xl bg-white px-4 py-4">
-            <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">队列配置</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{maxConcurrentTasks}</div>
-            <div className="mt-1 text-sm text-slate-500">最大并发任务数 · 已完成 {stats.success} · 失败 {stats.failed}</div>
-          </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
+          <ProjectStatCard label="任务总数" value={stats.total} hint={`成功 ${stats.success} · 部分成功 ${stats.partial_success} · 失败 ${stats.failed}`} />
+          <ProjectStatCard label="运行中任务" value={stats.running} hint={`全局运行 ${runningCount} · 排队 ${queuedCount}`} />
+          <ProjectStatCard label={isSourceTask ? '源码输入' : '固件输入'} value={stats.input_count} hint={isSourceTask ? '当前项目源码输入总量' : `已解包 ${stats.unpacked_firmware_count} · 失败 ${stats.failed_firmware_count}`} />
+          <ProjectStatCard label="已选模块" value={stats.selected_module_count} hint={`候选 ${stats.candidate_module_count} · 高危 ${stats.high_risk_module_count}`} />
+          <ProjectStatCard label="入口结果" value={stats.entry_count} hint="入口分析产出总量" />
+          <ProjectStatCard label="漏洞结果" value={stats.vuln_result_count} hint={`队列最大并发 ${maxConcurrentTasks}`} />
         </div>
+
+        {orderedStageAggregates.length > 0 ? (
+          <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+            {orderedStageAggregates.map((aggregate) => (
+              <StageAggregateCard key={aggregate.stage_name} aggregate={aggregate} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-8 text-center text-sm font-semibold text-slate-400">
+            暂无阶段汇总统计
+          </div>
+        )}
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">

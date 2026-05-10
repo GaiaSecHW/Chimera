@@ -94,6 +94,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
       'max_concurrent',
       'max_retries',
       'max_retries_reached_action',
+      'reuse_agent_between_rounds',
       ...LLM_ROLE_FIELDS.map((item) => item.key),
       ...Object.values(LLM_MODEL_FIELDS),
     ]),
@@ -111,8 +112,10 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   const genericConfigItems = configItems.filter((item) => !concurrencyConfigKeys.has(item.key));
   const maxRetriesEntry = configMap.get('max_retries') || null;
   const maxRetriesActionEntry = configMap.get('max_retries_reached_action') || null;
+  const reuseAgentEntry = configMap.get('reuse_agent_between_rounds') || null;
   const maxRetriesValue = draftValues.max_retries ?? maxRetriesEntry?.value ?? '';
   const maxRetriesActionValue = draftValues.max_retries_reached_action ?? maxRetriesActionEntry?.value ?? 'success';
+  const reuseAgentValue = (draftValues.reuse_agent_between_rounds ?? reuseAgentEntry?.value ?? 'true').toLowerCase();
   const llmRoleConfigs = LLM_ROLE_FIELDS.map((field) => ({
     ...field,
     entry: configMap.get(field.key) || null,
@@ -463,6 +466,52 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             ))}
           </div>
         </div>
+
+        {reuseAgentEntry && (
+          <div className="mb-5 rounded-2xl bg-white p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-rose-600">Agent Session Policy</p>
+                <p className="mt-2 text-sm font-semibold text-slate-800">轮次间智能体复用策略</p>
+              </div>
+              {reuseAgentValue === 'true' ? (
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">复用</span>
+              ) : (
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200">每轮新建</span>
+              )}
+            </div>
+            <p className="mt-3 text-xs text-slate-500">
+              开启后，同一个任务的 LLM 解包执行器和评审器会在不同重试轮次之间复用同一个 Pi 智能体会话，保留上下文。关闭后每一轮都会创建独立智能体会话。
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {[
+                { value: 'true', label: '复用同一个智能体', description: '默认策略。多轮 retry 共享 executor/reviewer 上下文。' },
+                { value: 'false', label: '每轮新建智能体', description: '每轮 retry 独立上下文，便于隔离轮次影响。' },
+              ].map((option) => {
+                const active = reuseAgentValue === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => updateDraftValue(reuseAgentEntry.key, option.value)}
+                    className={`rounded-xl border px-4 py-3 text-left transition ${
+                      active
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                    }`}
+                  >
+                    <div className="text-sm font-bold">{option.label}</div>
+                    <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</div>
+                  </button>
+                );
+              })}
+            </div>
+            {reuseAgentValue !== reuseAgentEntry.value && <p className="mt-2 text-[10px] font-semibold text-amber-600">未保存</p>}
+            <p className="mt-2 text-[10px] text-slate-400">
+              更新于 {fmtTime(reuseAgentEntry.updated_at)}
+            </p>
+          </div>
+        )}
 
         {(maxRetriesEntry || maxRetriesActionEntry) && (
           <div className="mb-5 rounded-2xl bg-white p-5">

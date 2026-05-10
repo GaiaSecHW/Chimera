@@ -5,8 +5,10 @@ import { api } from '../../clients/api';
 import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
+import { DataflowAnalysisConfigPage } from './DataflowAnalysisConfigPage';
+import { DataflowVulnConfigPage } from './DataflowVulnScannerPage';
 
-type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis' | 'entry-analysis';
+type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis' | 'entry-analysis' | 'dataflow-analysis' | 'dataflow-vuln';
 const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'firmware_unpack', label: '固件解包' },
   { key: 'system_analysis', label: '系统分析' },
@@ -16,9 +18,9 @@ const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'vuln_scan', label: '数据流漏洞挖掘' },
 ] as const;
 
-export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?: ConfigTab }> = ({ projectId, initialTab = 'binary-security' }) => {
   const executionApi = api.domains.execution;
-  const [activeTab, setActiveTab] = useState<ConfigTab>('binary-security');
+  const [activeTab, setActiveTab] = useState<ConfigTab>(initialTab);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,10 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
   useEffect(() => {
     void load();
   }, [projectId]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const save = async () => {
     setSaving(true);
@@ -143,6 +149,16 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
               id: 'entry-analysis' as ConfigTab,
               label: '入口分析',
               service: 'secflow-app-entry-analyse',
+            },
+            {
+              id: 'dataflow-analysis' as ConfigTab,
+              label: '数据流分析',
+              service: 'secflow-app-dataflow-analyse',
+            },
+            {
+              id: 'dataflow-vuln' as ConfigTab,
+              label: '数据流漏洞挖掘',
+              service: 'secflow-app-dataflow-vuln-scanner',
             },
           ].map((tab) => (
             <button
@@ -271,8 +287,12 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string }> = ({ proj
         <FirmwareUnpackConfigPage projectId="" embedded />
       ) : activeTab === 'system-analysis' ? (
         <SystemAnalysisConfigPage projectId={projectId} embedded />
-      ) : (
+      ) : activeTab === 'entry-analysis' ? (
         <EntryAnalysisConfigPage projectId={projectId} embedded />
+      ) : activeTab === 'dataflow-analysis' ? (
+        <DataflowAnalysisConfigPage projectId={projectId} embedded />
+      ) : (
+        <DataflowVulnConfigPage projectId={projectId} embedded />
       )}
     </div>
   );

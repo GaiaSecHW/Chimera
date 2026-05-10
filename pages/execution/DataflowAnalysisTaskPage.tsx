@@ -338,7 +338,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   const [tasks, setTasks] = useState<AppDfaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(100);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -559,7 +559,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   const logLines = events.map(formatEventLog).filter(Boolean);
 
   return (
-    <div className="px-8 pt-8 pb-10 space-y-6">
+    <div className="flex h-[calc(100vh-4rem)] flex-col gap-6 overflow-hidden px-8 pt-8 pb-10">
       {feedbackNodes}
       <FileServerPickerModal
         projectId={projectId}
@@ -815,7 +815,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
       </div>
 
       {/* ── Task list ───────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-2 mb-4">
           <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
           <div className="flex items-center gap-2">
@@ -825,7 +825,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
               className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
               title="每页显示条数"
             >
-              {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+              {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
@@ -844,11 +844,11 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500 py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
+          <div className="flex min-h-0 flex-1 items-center gap-2 text-sm text-slate-500 py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
         ) : tasks.length === 0 ? (
-          <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
+          <div className="flex min-h-0 flex-1 items-center justify-center py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
         ) : (
-          <div className="space-y-2 max-h-[640px] overflow-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {tasks.map((t) => (
               <div
                 key={t.task_id}

@@ -59,6 +59,47 @@ export interface BinarySecurityTask {
   task_retry_reason?: string | null;
 }
 
+export interface BinarySecurityProjectStats {
+  total: number;
+  running: number;
+  success: number;
+  partial_success: number;
+  failed: number;
+  cancelled: number;
+  selected_module_count: number;
+  candidate_module_count: number;
+  high_risk_module_count: number;
+  entry_count: number;
+  vuln_result_count: number;
+  input_count: number;
+  unpacked_firmware_count: number;
+  failed_firmware_count: number;
+}
+
+export interface BinarySecurityProjectStageAggregate {
+  stage_name: string;
+  sequence_no: number;
+  business: {
+    task_count: number;
+    total_items: number;
+    success_items: number;
+    failed_items: number;
+    skipped_items: number;
+    running_items: number;
+    cancelled_items: number;
+    status_counts: Record<string, number>;
+  };
+  archive: {
+    job_count: number;
+    success_count: number;
+    failed_count: number;
+    running_count: number;
+    applying_count: number;
+    pending_count: number;
+    status_counts: Record<string, number>;
+  };
+}
+
 export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   description?: string | null;
   output_root: string;
@@ -227,7 +268,15 @@ export const binarySecurityApi = {
     projectId: string,
     status?: string,
     taskType?: BinarySecurityTaskType,
-  ): Promise<{ total: number; running_count: number; queued_count: number; max_concurrent_tasks: number; items: BinarySecurityTask[] }> => {
+  ): Promise<{
+    total: number;
+    running_count: number;
+    queued_count: number;
+    max_concurrent_tasks: number;
+    project_stats?: BinarySecurityProjectStats;
+    project_stage_aggregates?: BinarySecurityProjectStageAggregate[];
+    items: BinarySecurityTask[];
+  }> => {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
     if (taskType) params.set('task_type', taskType);
@@ -254,6 +303,14 @@ export const binarySecurityApi = {
 
   clearTimeline: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  deleteTimelineEvent: async (projectId: string, taskId: string, eventId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline/${eventId}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
