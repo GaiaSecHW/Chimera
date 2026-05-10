@@ -17,6 +17,7 @@ export interface BinarySecurityTask {
   name: string;
   status: string;
   current_stage?: string | null;
+  last_error?: string | null;
   firmware_path: string;
   stage_sequence: string[];
   is_queued: boolean;

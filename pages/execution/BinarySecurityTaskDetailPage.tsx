@@ -471,6 +471,237 @@ const shouldShowStageRetryReason = (status?: string | null, retryable?: boolean,
   Boolean(!retryable && retryReason && ['failed', 'partial_success', 'cancelled'].includes(String(status || '')))
 );
 
+type TaskStatusReason = {
+  tone: 'ok' | 'info' | 'warn' | 'error' | 'muted';
+  title: string;
+  description: string;
+  evidence: Array<{ label: string; value: string }>;
+};
+
+const reasonToneClass = (tone: TaskStatusReason['tone']) => {
+  switch (tone) {
+    case 'ok':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+    case 'warn':
+      return 'border-amber-200 bg-amber-50 text-amber-800';
+    case 'error':
+      return 'border-rose-200 bg-rose-50 text-rose-800';
+    case 'muted':
+      return 'border-slate-200 bg-slate-50 text-slate-700';
+    default:
+      return 'border-sky-200 bg-sky-50 text-sky-800';
+  }
+};
+
+const firstText = (...values: Array<unknown>): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+};
+
+const summarizeCount = (count: number, unit = '项') => `${count.toLocaleString()} ${unit}`;
+
+function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusReason {
+  const stageSummaries = detail.stage_summaries || [];
+  const stageItems = detail.stage_items || [];
+  const archiveJobs = detail.archive_jobs || [];
+  const currentStageLabel = STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-';
+  const failedStages = stageSummaries.filter((stage) => ['failed', 'partial_success'].includes(stage.status));
+  const cancelledStages = stageSummaries.filter((stage) => stage.status === 'cancelled');
+  const runningStages = stageSummaries.filter((stage) => ['running', 'dispatching', 'applying'].includes(stage.status));
+  const pendingStages = stageSummaries.filter((stage) => stage.status === 'pending');
+  const failedItems = stageItems.filter((item) => item.status === 'failed');
+  const runningItems = stageItems.filter((item) => ['running', 'dispatching'].includes(item.status));
+  const cancelledItems = stageItems.filter((item) => item.status === 'cancelled');
+  const failedArchiveJobs = archiveJobs.filter((job) => job.archive_status === 'failed');
+  const runningArchiveJobs = archiveJobs.filter((job) => ['pending', 'running', 'archived', 'applying'].includes(job.archive_status));
+  const latestFailedStage = failedStages[failedStages.length - 1];
+  const latestFailedItem = failedItems[failedItems.length - 1];
+  const latestFailedArchive = failedArchiveJobs[failedArchiveJobs.length - 1];
+  const latestRunningItem = runningItems[runningItems.length - 1];
+  const staleStages = (detail.summary?.stale_stages as string[] | undefined) || [];
+  const staleFromStage = String(detail.summary?.stale_from_stage || '');
+
+  if (detail.status === 'success') {
+    return {
+      tone: 'ok',
+      title: '任务已完成',
+      description: '所有已启用阶段完成，且没有失败的阶段子任务或归档任务阻断总任务收敛。',
+      evidence: [
+        { label: '成功阶段', value: summarizeCount(stageSummaries.filter((stage) => stage.status === 'success').length, '个') },
+        { label: '归档完成', value: `${archiveJobs.filter((job) => job.archive_status === 'success').length} / ${archiveJobs.length || 0}` },
+      ],
+    };
+  }
+
+  if (detail.status === 'failed') {
+    const reason = firstText(
+      detail.last_error,
+      latestFailedStage?.last_error,
+      latestFailedItem?.error_message,
+      latestFailedArchive?.error_message,
+    );
+    const failedStageName = latestFailedStage?.stage_name || latestFailedItem?.stage_name || latestFailedArchive?.stage_name || detail.current_stage;
+    return {
+      tone: 'error',
+      title: `任务失败于 ${STAGE_LABELS[failedStageName || ''] || failedStageName || '当前阶段'}`,
+      description: reason || '当前任务存在失败阶段、失败子任务或归档失败记录，编排器因此将总任务置为失败。',
+      evidence: [
+        { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
+        { label: '失败子任务', value: summarizeCount(failedItems.length) },
+        { label: '归档失败', value: summarizeCount(failedArchiveJobs.length) },
+      ],
+    };
+  }
+
+  if (detail.status === 'partial_success') {
+    const reason = firstText(
+      detail.last_error,
+      latestFailedStage?.last_error,
+      latestFailedItem?.error_message,
+      latestFailedArchive?.error_message,
+    );
+    return {
+      tone: 'warn',
+      title: '任务部分成功',
+      description: reason || '任务已完成可推进的部分，但仍存在失败或取消的阶段子任务，需要按需查看失败项或手动重试对应阶段。',
+      evidence: [
+        { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
+        { label: '失败子任务', value: summarizeCount(failedItems.length) },
+        { label: '取消子任务', value: summarizeCount(cancelledItems.length) },
+      ],
+    };
+  }
+
+  if (detail.status === 'cancelled') {
+    return {
+      tone: 'muted',
+      title: '任务已取消',
+      description: firstText(detail.last_error) || '用户或编排器已取消任务，未完成阶段和仍在运行的子任务会被标记为取消。',
+      evidence: [
+        { label: '取消阶段', value: cancelledStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
+        { label: '取消子任务', value: summarizeCount(cancelledItems.length) },
+      ],
+    };
+  }
+
+  if (detail.status === 'pending_module_confirmation' || detail.status === 'waiting_confirmation') {
+    return {
+      tone: 'warn',
+      title: '等待人工确认模块',
+      description: '系统分析已经产生候选模块，当前模块策略要求人工确认后才会继续进入后续阶段。',
+      evidence: [
+        { label: '候选模块', value: summarizeCount(detail.candidate_module_count) },
+        { label: '已选模块', value: summarizeCount(detail.selected_module_count) },
+        { label: '风险等级', value: (detail.selected_risk_levels || []).join(' / ') || '-' },
+      ],
+    };
+  }
+
+  if (detail.status === 'running' || detail.status === 'dispatching') {
+    const runningArchive = runningArchiveJobs[runningArchiveJobs.length - 1];
+    return {
+      tone: 'info',
+      title: detail.status === 'dispatching' ? `正在调度 ${currentStageLabel}` : `正在执行 ${currentStageLabel}`,
+      description: runningArchive
+        ? `当前正在处理 ${STAGE_LABELS[runningArchive.stage_name] || runningArchive.stage_name} 的产物归档，归档完成后才会应用阶段结果或继续推进。`
+        : latestRunningItem
+          ? `当前阶段已有下游子任务在执行：${latestRunningItem.downstream_task_id || latestRunningItem.item_key}。`
+          : '编排器正在推进当前阶段，等待下游微服务返回结果或创建阶段子任务。',
+      evidence: [
+        { label: '当前阶段', value: currentStageLabel },
+        { label: '运行子任务', value: summarizeCount(runningItems.length) },
+        { label: '进行中归档', value: summarizeCount(runningArchiveJobs.length) },
+      ],
+    };
+  }
+
+  if (detail.status === 'queued') {
+    return {
+      tone: 'info',
+      title: '任务正在队列中等待调度',
+      description: '当前任务已经入队，但尚未获得 binary-security 编排器执行名额。',
+      evidence: [
+        { label: '队列位置', value: detail.queue_position ? `第 ${detail.queue_position} 位` : '-' },
+        { label: '调度实例', value: detail.dispatcher_instance_id || '-' },
+      ],
+    };
+  }
+
+  if (detail.status === 'pending_upload' || detail.status === 'uploading') {
+    return {
+      tone: 'info',
+      title: detail.status === 'uploading' ? '正在处理输入文件' : '等待上传输入文件',
+      description: detail.status === 'uploading'
+        ? '后端正在校验或整理上传文件，完成后任务会进入就绪或自动启动。'
+        : '任务记录已经创建，但输入文件尚未完成上传。',
+      evidence: [
+        { label: '输入目录', value: detail.firmware_path || '-' },
+        { label: '输入数量', value: summarizeCount(detail.firmware_item_count) },
+      ],
+    };
+  }
+
+  if (detail.status === 'ready_to_start' || detail.status === 'pending') {
+    return {
+      tone: 'info',
+      title: detail.status === 'ready_to_start' ? '任务已就绪' : '任务等待启动',
+      description: detail.status === 'ready_to_start'
+        ? '输入文件已准备完成，等待启动请求或调度器领取。'
+        : '任务尚未进入实际执行阶段，后续阶段保持等待状态。',
+      evidence: [
+        { label: '待执行阶段', value: summarizeCount(pendingStages.length, '个') },
+        { label: '阶段序列', value: detail.stage_sequence.map((stage) => STAGE_LABELS[stage] || stage).join(' -> ') || '-' },
+      ],
+    };
+  }
+
+  if (staleStages.length > 0) {
+    return {
+      tone: 'warn',
+      title: '存在过期下游结果',
+      description: `上游阶段 ${STAGE_LABELS[staleFromStage] || staleFromStage || '-'} 重试后，后续阶段结果保留但需要重新评估。`,
+      evidence: [
+        { label: '过期阶段', value: staleStages.map((stage) => STAGE_LABELS[stage] || stage).join(' / ') },
+        { label: '当前状态', value: detail.status },
+      ],
+    };
+  }
+
+  return {
+    tone: 'muted',
+    title: '当前状态由编排器记录决定',
+    description: firstText(detail.last_error) || '当前详情中没有更具体的失败、运行或等待原因；请结合阶段概览和事件时间线进一步定位。',
+    evidence: [
+      { label: '当前状态', value: detail.status || '-' },
+      { label: '当前阶段', value: currentStageLabel },
+    ],
+  };
+}
+
+function TaskStatusReasonCard({ reason }: { reason: TaskStatusReason }) {
+  return (
+    <div className={`rounded-2xl border px-3 py-3 ${reasonToneClass(reason.tone)}`}>
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">状态原因</div>
+          <div className="mt-1 text-sm font-black">{reason.title}</div>
+          <div className="mt-1 text-xs leading-5 opacity-85">{reason.description}</div>
+        </div>
+        <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[360px]">
+          {reason.evidence.slice(0, 3).map((item) => (
+            <div key={item.label} className="rounded-xl border border-current/10 bg-white/55 px-2.5 py-2 text-xs">
+              <div className="font-bold opacity-55">{item.label}</div>
+              <div className="mt-1 break-all font-black">{item.value || '-'}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
   const navigate = useNavigate();
@@ -516,6 +747,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       ? '当前任务正在执行、排队或上传中，不能手动继续'
       : '当前任务状态不支持手动继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
+  const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
 
   const loadTask = async () => {
     if (!projectId || !taskId) return;
@@ -1145,6 +1377,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail.status)}`}>{detail.status}</span>
                   <span className="text-sm text-slate-500">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
+                {taskStatusReason ? (
+                  <div className="mt-4">
+                    <TaskStatusReasonCard reason={taskStatusReason} />
+                  </div>
+                ) : null}
                 <div className="mt-4 grid gap-2">
                   <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{isSourceTask ? '源码目录' : '输入目录'}</div>
