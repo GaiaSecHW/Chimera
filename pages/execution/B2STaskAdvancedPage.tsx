@@ -283,9 +283,35 @@ const ISSUE_DETAILS: Record<string, string> = {
 };
 const RISK_TEXT: Record<string, string> = { low: '低', 'low-medium': '低-中', medium: '中', high: '高', unknown: '未知' };
 const QUALITY_DIMENSION_GROUPS = [
-  { name: '代码逻辑准确性', keys: ['completeness', 'control_flow', 'return_semantics', 'input_validation', 'call_fidelity'] },
-  { name: '数据结构准确性', keys: ['type_struct_fidelity'] },
-  { name: '可读性', keys: ['completeness', 'type_struct_fidelity'] },
+  {
+    name: '代码逻辑准确性',
+    terms: [
+      { key: 'completeness', weight: 0.15 },
+      { key: 'control_flow', weight: 0.25 },
+      { key: 'return_semantics', weight: 0.2 },
+      { key: 'input_validation', weight: 0.25 },
+      { key: 'call_fidelity', weight: 0.15 },
+    ],
+    formula: 'Qlogic = 0.15·Ccmp + 0.25·CFG + 0.20·RET + 0.25·COND + 0.15·CALL',
+  },
+  {
+    name: '数据结构准确性',
+    terms: [
+      { key: 'type_struct_fidelity', weight: 0.55 },
+      { key: 'call_fidelity', weight: 0.25 },
+      { key: 'completeness', weight: 0.2 },
+    ],
+    formula: 'Qstruct = 0.55·TYPEstruct + 0.25·CALL + 0.20·Ccmp',
+  },
+  {
+    name: '可读性',
+    terms: [
+      { key: 'completeness', weight: 0.45 },
+      { key: 'type_struct_fidelity', weight: 0.35 },
+      { key: 'call_fidelity', weight: 0.2 },
+    ],
+    formula: 'Qread = 0.45·Ccmp + 0.35·TYPEstruct + 0.20·CALL',
+  },
 ];
 const PanelCard: React.FC<{ title: string; right?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, right, children, className = '' }) => (
   <div className={`rounded-panel border border-slate-200 bg-white/90 p-5 shadow-panel ring-1 ring-slate-900/[0.03] ${className}`}>
@@ -306,14 +332,15 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
   const dimensionGroups = QUALITY_DIMENSION_GROUPS;
   const dimensionRounds = useMemo(() => analytics.radar.slice(0, 3), [analytics]);
   const qualityDimensionColors = [CHART_COLORS.logic, CHART_COLORS.structure, CHART_COLORS.readability];
-  const dimensionScore = (round: B2SReviewAnalytics['radar'][number], keys: string[]) => {
-    const values = keys.map((key) => Number((round as any)?.[key] || 0));
-    return values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
+  const dimensionScore = (round: B2SReviewAnalytics['radar'][number], terms: Array<{ key: string; weight: number }>) => {
+    const totalWeight = terms.reduce((sum, term) => sum + term.weight, 0);
+    const weighted = terms.reduce((sum, term) => sum + Number((round as any)?.[term.key] || 0) * term.weight, 0);
+    return totalWeight > 0 ? Math.round(weighted / totalWeight) : 0;
   };
   const dimensionRows = dimensionGroups.map((item, groupIndex) => {
     const values = dimensionRounds.map((round) => ({
       attemptNo: round.attempt_no,
-      value: dimensionScore(round, item.keys),
+      value: dimensionScore(round, item.terms),
     }));
     const firstValue = values[0]?.value || 0;
     const finalValue = values[values.length - 1]?.value || 0;
@@ -323,14 +350,21 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
       bgClass: ['bg-blue-50', 'bg-violet-50', 'bg-emerald-50'][groupIndex] || 'bg-slate-50',
       borderClass: ['border-blue-100', 'border-violet-100', 'border-emerald-100'][groupIndex] || 'border-slate-100',
       badgeClass: ['bg-blue-100 text-blue-700', 'bg-violet-100 text-violet-700', 'bg-emerald-100 text-emerald-700'][groupIndex] || 'bg-slate-100 text-slate-700',
+      description: [
+        '控制流、返回值和关键条件是否符合原始程序',
+        '类型、结构体和参数含义是否还原合理',
+        '命名、代码结构和表达是否便于人工审查',
+      ][groupIndex] || '评估该维度的最终质量表现',
+      formula: item.formula,
       firstValue,
       finalValue,
       improvement: Math.max(0, finalValue - firstValue),
+      improvementPercent: firstValue > 0 ? Math.round((Math.max(0, finalValue - firstValue) / firstValue) * 100) : 0,
     };
   });
   const qualityTrend = dimensionRounds.map((round) => ({
     round: `第${round.attempt_no}轮`,
-    ...Object.fromEntries(dimensionGroups.map((item) => [item.name, dimensionScore(round, item.keys)])),
+    ...Object.fromEntries(dimensionGroups.map((item) => [item.name, dimensionScore(round, item.terms)])),
   }));
   const firstQualityScore = dimensionRows.length ? Math.round(dimensionRows.reduce((sum, row) => sum + row.firstValue, 0) / dimensionRows.length) : first.semantic_score;
   const finalQualityScore = dimensionRows.length ? Math.round(dimensionRows.reduce((sum, row) => sum + row.finalValue, 0) / dimensionRows.length) : analytics.summary.final_confidence;
@@ -414,8 +448,8 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <PanelCard title="逐轮质量趋势" right={<div className="flex flex-wrap gap-3 text-[11px] font-black">{dimensionGroups.map((item, index) => <span key={item.name} className={['text-chart-logic', 'text-chart-structure', 'text-chart-readability'][index] || 'text-slate-500'}>● {item.name}</span>)}</div>}>
-          <div className="h-[270px]">
+        <PanelCard title="逐轮质量趋势" className="flex h-full flex-col" right={<div className="flex flex-wrap gap-3 text-[11px] font-black">{dimensionGroups.map((item, index) => <span key={item.name} className={['text-chart-logic', 'text-chart-structure', 'text-chart-readability'][index] || 'text-slate-500'}>● {item.name}</span>)}</div>}>
+          <div className="min-h-[360px] flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={qualityTrend} margin={{ top: 20, right: 26, left: 0, bottom: 12 }}>
                 <CartesianGrid stroke={CHART_COLORS.grid} strokeDasharray="4 5" strokeOpacity={0.8} vertical={false} />
@@ -440,17 +474,16 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
           </div>
         </PanelCard>
 
-        <PanelCard title="反编译质量提升" right={<div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">最终分 / 提升值</div>}>
+        <PanelCard title="质量评分拆解" right={<div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">初始 → 最终</div>}>
           <div className="space-y-3">
             {dimensionRows.map((row) => (
               <div key={row.name} className={`rounded-2xl border ${row.borderClass} ${row.bgClass} p-4`}>
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className={`text-sm font-black ${row.labelClass}`}>{row.name}</div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">
-                      <span>第1轮 {row.firstValue}</span>
-                      <span className="text-slate-300">→</span>
-                      <span>第{last.attempt_no}轮 {row.finalValue}</span>
+                    <div className="mt-1.5 text-xs font-medium leading-5 text-slate-500">{row.description}</div>
+                    <div className="mt-2 rounded-xl bg-white/70 px-3 py-2 font-mono text-[11px] font-semibold leading-5 tracking-tight text-slate-500 ring-1 ring-slate-200/70">
+                      {row.formula}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
@@ -458,7 +491,7 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
                       <div className={`text-4xl font-black leading-none ${row.labelClass}`}>{row.finalValue}</div>
                       <div className="mt-1 text-[10px] font-black text-slate-400">最终分</div>
                     </div>
-                    <div className={`rounded-2xl px-3 py-2 text-sm font-black ${row.badgeClass}`}>+{row.improvement}</div>
+                    <div className={`rounded-2xl px-3 py-2 text-sm font-black ${row.badgeClass}`}>+{row.improvementPercent}%</div>
                   </div>
                 </div>
               </div>
