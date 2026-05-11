@@ -159,14 +159,29 @@ type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 type BlockingActionKind = '' | 'retry' | 'continue';
 
-const BLOCKING_ACTION_COPY: Record<Exclude<BlockingActionKind, ''>, { title: string; message: string }> = {
+const BLOCKING_ACTION_COPY: Record<
+  Exclude<BlockingActionKind, ''>,
+  {
+    confirmTitle: string;
+    confirmMessage: string;
+    confirmText: string;
+    progressTitle: string;
+    progressMessage: string;
+  }
+> = {
   retry: {
-    title: '正在从头重试总任务',
-    message: '系统正在重置任务状态并重新发起执行，请勿重复点击或执行其他操作。',
+    confirmTitle: '从头重试总任务',
+    confirmMessage: '总任务重试会清空当前任务所有阶段的编排记录和结果摘要，并从第一阶段重新开始。该操作不同于“继续任务”，是否确认从头重试？',
+    confirmText: '确认从头重试',
+    progressTitle: '正在从头重试总任务',
+    progressMessage: '系统正在重置任务状态并重新发起执行，请勿重复点击或执行其他操作。',
   },
   continue: {
-    title: '正在继续任务',
-    message: '系统正在定位下一个可执行阶段并恢复推进，请勿重复点击或执行其他操作。',
+    confirmTitle: '继续任务',
+    confirmMessage: '将从当前连续成功阶段的下一个阶段开始继续推进。该阶段及后续阶段的旧编排记录和结果摘要会被清空并重新创建，前序连续成功阶段会保留。是否继续？',
+    confirmText: '确认继续',
+    progressTitle: '正在继续任务',
+    progressMessage: '系统正在定位下一个可执行阶段并恢复推进，请勿重复点击或执行其他操作。',
   },
 };
 
@@ -733,7 +748,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timelinePage, setTimelinePage] = useState(1);
   const [timelinePageSize, setTimelinePageSize] = useState(200);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [expandedStageItemId, setExpandedStageItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingBlockingAction, setPendingBlockingAction] = useState<BlockingActionKind>('');
   const [blockingAction, setBlockingAction] = useState<BlockingActionKind>('');
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
@@ -1015,29 +1032,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       });
       if (!confirmed) return;
     }
-    if (action === 'continue') {
-      const confirmed = await showConfirm({
-        title: '继续任务',
-        message: '将从当前连续成功阶段的下一个阶段开始继续推进。该阶段及后续阶段的旧编排记录和结果摘要会被清空并重新创建，前序连续成功阶段会保留。是否继续？',
-        confirmText: '确认继续',
-        cancelText: '取消',
-      });
-      if (!confirmed) return;
-    }
-    if (action === 'retry') {
-      const confirmed = await showConfirm({
-        title: '从头重试总任务',
-        message: '总任务重试会清空当前任务所有阶段的编排记录和结果摘要，并从第一阶段重新开始。该操作不同于“继续任务”，是否确认从头重试？',
-        confirmText: '确认从头重试',
-        cancelText: '取消',
-        danger: true,
-      });
-      if (!confirmed) return;
-    }
     setActionLoading(action);
-    if (action === 'retry' || action === 'continue') {
-      setBlockingAction(action);
-    }
     try {
       if (action === 'cancel') await executionApi.binarySecurity.cancelTask(projectId, taskId);
       if (action === 'delete') {
@@ -1045,15 +1040,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         onBack();
         return;
       }
-      if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
-      if (action === 'continue') await executionApi.binarySecurity.continueTask(projectId, taskId);
       await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || `${action} 失败`);
     } finally {
-      if (action === 'retry' || action === 'continue') {
-        setBlockingAction('');
-      }
       setActionLoading('');
     }
   };
@@ -1188,10 +1178,31 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [timelinePageSize, taskId]);
 
   useEffect(() => {
+    setExpandedStageItemId(null);
+  }, [selectedStage, selectedNodeKind, taskId]);
+
+  useEffect(() => {
     if (timelinePage > timelineTotalPages) {
       setTimelinePage(timelineTotalPages);
     }
   }, [timelinePage, timelineTotalPages]);
+
+  const executeBlockingTaskAction = async (action: Exclude<BlockingActionKind, ''>) => {
+    if (!projectId || !taskId) return;
+    setActionLoading(action);
+    setBlockingAction(action);
+    setPendingBlockingAction('');
+    try {
+      if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
+      if (action === 'continue') await executionApi.binarySecurity.continueTask(projectId, taskId);
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || `${action} 失败`);
+    } finally {
+      setBlockingAction('');
+      setActionLoading('');
+    }
+  };
 
   const openDownstreamTaskDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     const downstreamTaskId = item.downstream_task_id?.trim();
@@ -1340,22 +1351,105 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
     { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
   ];
+  const modalAction = blockingAction || pendingBlockingAction;
+  const modalCopy = modalAction ? BLOCKING_ACTION_COPY[modalAction] : null;
+  const modalRunning = Boolean(blockingAction);
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
-      {blockingAction ? (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[1.75rem] border border-slate-200 bg-white px-6 py-6 shadow-[0_24px_80px_-24px_rgba(15,23,42,0.55)]">
-            <div className="flex items-start gap-4">
-              <div className="mt-0.5 rounded-2xl bg-sky-50 p-3 text-sky-600">
-                <Loader2 size={24} className="animate-spin" />
+      {modalAction && modalCopy ? (
+        <div className="fixed inset-0 z-[120] bg-slate-950/50 backdrop-blur-sm">
+          <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
+            <div className="flex h-full w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.6)]">
+              <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-5 sm:px-8">
+                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Task Action</div>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="rounded-2xl bg-sky-50 p-3 text-sky-600">
+                    <Loader2 size={24} className={modalRunning ? 'animate-spin' : ''} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black tracking-tight text-slate-900">
+                      {modalRunning ? modalCopy.progressTitle : modalCopy.confirmTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {isSourceTask ? '源码任务总览详情' : '二进制任务总览详情'}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="min-w-0">
-                <h3 className="text-lg font-black text-slate-900">{BLOCKING_ACTION_COPY[blockingAction].title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{BLOCKING_ACTION_COPY[blockingAction].message}</p>
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-                  <Loader2 size={12} className="animate-spin" />
-                  正在加载，请稍候
+              <div className="flex-1 overflow-auto px-6 py-6 sm:px-8 sm:py-8">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 sm:p-6">
+                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                      {modalRunning ? '执行中' : '确认操作'}
+                    </div>
+                    <p className="mt-4 text-base leading-7 text-slate-700">
+                      {modalRunning ? modalCopy.progressMessage : modalCopy.confirmMessage}
+                    </p>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">任务</div>
+                        <div className="mt-2 break-all font-mono text-xs text-slate-700">{taskId}</div>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">当前阶段</div>
+                        <div className="mt-2 font-bold text-slate-900">
+                          {STAGE_LABELS[detail?.current_stage || ''] || detail?.current_stage || '-'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                      {modalRunning
+                        ? '任务状态刷新前请不要离开当前页面或重复提交相同操作。'
+                        : '确认后将立即提交后台执行，并进入阻塞式进度提示。'}
+                    </div>
+                  </div>
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5 sm:p-6">
+                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">状态</div>
+                    <div className="mt-4 space-y-3">
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-xs font-bold text-slate-400">任务名称</div>
+                        <div className="mt-1 text-sm font-black text-slate-900">{detail?.name || '-'}</div>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-xs font-bold text-slate-400">当前状态</div>
+                        <div className="mt-2">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail?.status || '')}`}>
+                            {detail?.status || '-'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-xs font-bold text-slate-400">操作类型</div>
+                        <div className="mt-1 text-sm font-black text-slate-900">
+                          {modalAction === 'retry' ? '从头重试' : '继续任务'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-8 flex flex-wrap justify-end gap-3">
+                  {!modalRunning ? (
+                    <button
+                      type="button"
+                      onClick={() => setPendingBlockingAction('')}
+                      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      取消
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={modalRunning}
+                    onClick={() => {
+                      if (!pendingBlockingAction) return;
+                      void executeBlockingTaskAction(pendingBlockingAction);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {modalRunning ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {modalRunning ? '处理中...' : modalCopy.confirmText}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1385,7 +1479,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button
             type="button"
             title={taskRetrySupported ? undefined : taskRetryReason}
-            onClick={() => void runAction('retry')}
+            onClick={() => setPendingBlockingAction('retry')}
             disabled={actionLoading !== '' || !taskRetrySupported}
             className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
@@ -1394,7 +1488,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button
             type="button"
             title={taskContinueSupported ? undefined : taskContinueReason}
-            onClick={() => void runAction('continue')}
+            onClick={() => setPendingBlockingAction('continue')}
             disabled={actionLoading !== '' || !taskContinueSupported}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-60"
           >
@@ -1904,124 +1998,148 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               ) : null}
               {filteredStageItems.length === 0 ? (
-                <div className="text-sm text-slate-400">当前筛选下暂无子任务</div>
-              ) : filteredStageItems.map((item) => {
-                const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
-                return (
-                <div
-                  key={item.id}
-                  role={detailSupport.supported ? 'button' : undefined}
-                  tabIndex={detailSupport.supported ? 0 : undefined}
-                  title={detailSupport.supported ? '打开子任务详情' : detailSupport.reason}
-                  onClick={detailSupport.supported ? () => openDownstreamTaskDetail(item) : undefined}
-                  onKeyDown={detailSupport.supported ? (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      openDownstreamTaskDetail(item);
-                    }
-                  } : undefined}
-                  className={`rounded-[1.5rem] border p-5 transition ${detailSupport.supported ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus:outline-none' : ''} ${stageItemTone(item.stage_name === selectedStage)}`}
-                >
-                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
-                          {STAGE_LABELS[item.stage_name] || item.stage_name}
-                        </span>
-                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
-                          重试 {item.retry_count || 0}
-                        </span>
-                      </div>
-                      <div className="mt-3 break-all text-lg font-black text-slate-900">
-                        {item.item_name || item.item_key}
-                      </div>
-                      <div className="mt-2 break-all font-mono text-xs text-slate-500">{item.item_key}</div>
-
-                      <div className="mt-4 grid gap-3 text-xs text-slate-600 md:grid-cols-3">
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">开始时间</span>
-                          <div className="mt-1 font-bold text-slate-800">{fmt(item.started_at)}</div>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">结束时间</span>
-                          <div className="mt-1 font-bold text-slate-800">{fmt(item.finished_at)}</div>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">耗时</span>
-                          <div className="mt-1 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <aside className="rounded-2xl border border-slate-200 bg-white/85 p-4">
-                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">下游任务</div>
-                      <div className="mt-3 space-y-3 text-xs text-slate-600">
-                        <div>
-                          <div className="text-slate-400">服务</div>
-                          <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_service || '-'}</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">任务 ID</div>
-                          <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {item.downstream_task_id ? (
-                          <button
-                            type="button"
-                            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700 disabled:opacity-60"
-                            disabled={actionLoading !== ''}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id });
-                            }}
-                          >
-                            同步状态
-                          </button>
-                        ) : null}
-                        {detailSupport.supported ? (
-                          <button
-                            type="button"
-                            className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openDownstreamTaskDetail(item);
-                            }}
-                          >
-                            查看任务详情
-                          </button>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-500"
-                            title={detailSupport.reason}
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                            不支持查看任务详情
-                          </span>
-                        )}
-                      </div>
-                      {!detailSupport.supported ? (
-                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-                          {detailSupport.reason}
-                        </div>
-                      ) : null}
-                    </aside>
-
-                    <div className="xl:col-span-2">
-                      {item.error_message ? (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
-                          {item.error_message}
-                        </div>
-                      ) : null}
-                      <div className={item.error_message ? 'mt-4' : ''}>
-                        {renderDownstreamDetail(item)}
-                      </div>
-                    </div>
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
+                  当前筛选下暂无子任务
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-[1200px] w-full divide-y divide-slate-100 text-left text-xs">
+                      <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                        <tr>
+                          <th className="w-24 px-3 py-3">状态</th>
+                          <th className="min-w-[260px] px-3 py-3">子任务</th>
+                          <th className="w-24 px-3 py-3">重试</th>
+                          <th className="w-44 px-3 py-3">开始时间</th>
+                          <th className="w-44 px-3 py-3">结束时间</th>
+                          <th className="w-28 px-3 py-3">耗时</th>
+                          <th className="min-w-[180px] px-3 py-3">下游服务</th>
+                          <th className="min-w-[220px] px-3 py-3">下游任务 ID</th>
+                          <th className="w-52 px-3 py-3 text-right">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {filteredStageItems.map((item) => {
+                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
+                          const expanded = expandedStageItemId === item.id;
+                          return (
+                            <React.Fragment key={item.id}>
+                              <tr className="align-top transition hover:bg-slate-50/80">
+                                <td className="px-3 py-3">
+                                  <div className="flex flex-col gap-2">
+                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
+                                      {item.status}
+                                    </span>
+                                    <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                      {STAGE_LABELS[item.stage_name] || item.stage_name}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <div className="min-w-0">
+                                    <div className="break-all text-sm font-black text-slate-900">
+                                      {item.item_name || item.item_key}
+                                    </div>
+                                    <div className="mt-1 break-all font-mono text-[11px] text-slate-500">
+                                      {item.item_key}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3 font-bold text-slate-700">{item.retry_count || 0}</td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.started_at)}</td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.finished_at)}</td>
+                                <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</td>
+                                <td className="px-3 py-3">
+                                  <div className="break-all font-mono text-[11px] text-slate-600">{item.downstream_service || '-'}</div>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <div className="break-all font-mono text-[11px] text-slate-600">{item.downstream_task_id || '-'}</div>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedStageItemId(expanded ? null : item.id)}
+                                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700 transition hover:bg-slate-50"
+                                    >
+                                      {expanded ? '收起详情' : '查看详情'}
+                                    </button>
+                                    {item.downstream_task_id ? (
+                                      <button
+                                        type="button"
+                                        className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700 disabled:opacity-60"
+                                        disabled={actionLoading !== ''}
+                                        onClick={() => void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id })}
+                                      >
+                                        同步状态
+                                      </button>
+                                    ) : null}
+                                    {detailSupport.supported ? (
+                                      <button
+                                        type="button"
+                                        className="rounded-full border border-slate-200 bg-slate-900 px-3 py-2 text-[11px] font-black text-white"
+                                        onClick={() => openDownstreamTaskDetail(item)}
+                                      >
+                                        查看任务详情
+                                      </button>
+                                    ) : (
+                                      <span
+                                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-500"
+                                        title={detailSupport.reason}
+                                      >
+                                        <Info className="h-3.5 w-3.5" />
+                                        不支持跳转
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              {expanded ? (
+                                <tr className="bg-slate-50/70">
+                                  <td colSpan={9} className="px-4 py-4">
+                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
+                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+                                        <aside className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">下游任务</div>
+                                          <div className="mt-3 space-y-3 text-xs text-slate-600">
+                                            <div>
+                                              <div className="text-slate-400">服务</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_service || '-'}</div>
+                                            </div>
+                                            <div>
+                                              <div className="text-slate-400">任务 ID</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
+                                            </div>
+                                          </div>
+                                          {!detailSupport.supported ? (
+                                            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+                                              {detailSupport.reason}
+                                            </div>
+                                          ) : null}
+                                        </aside>
+                                        <div>
+                                          {item.error_message ? (
+                                            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                                              {item.error_message}
+                                            </div>
+                                          ) : null}
+                                          <div className={item.error_message ? 'mt-4' : ''}>
+                                            {renderDownstreamDetail(item)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-                );
-              })}
+              )}
                 </>
               )}
             </div>
