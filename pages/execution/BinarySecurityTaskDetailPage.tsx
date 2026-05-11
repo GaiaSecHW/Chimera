@@ -772,12 +772,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const canActOnTask = Boolean(detail);
   const taskRetrySupported = Boolean(detail?.task_retry_supported);
   const taskRetryReason = detail?.task_retry_reason || '当前任务不可从头重试';
-  const taskContinueSupported = Boolean(detail && ['failed', 'partial_success', 'cancelled'].includes(detail.status));
-  const taskContinueReason = detail?.status === 'success'
-    ? '当前任务已全部成功，没有需要继续的阶段'
-    : detail && ['pending', 'dispatching', 'running', 'pending_upload', 'uploading', 'ready_to_start'].includes(detail.status)
-      ? '当前任务正在执行、排队或上传中，不能手动继续'
-      : '当前任务状态不支持手动继续';
+  const taskContinueSupported = Boolean(detail?.task_continue_supported);
+  const taskContinueReason = detail?.task_continue_reason || '当前任务不可继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
   const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
 
@@ -1423,7 +1419,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       {modalAction && modalCopy ? (
         <div className="fixed inset-0 z-[120] bg-slate-950/50 backdrop-blur-sm">
           <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
-            <div className="flex h-full w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.6)]">
+            <div className="flex w-full max-w-5xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.6)] sm:max-h-[calc(100vh-4rem)]">
               <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-5 sm:px-8">
                 <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Task Action</div>
                 <div className="mt-2 flex items-center gap-3">

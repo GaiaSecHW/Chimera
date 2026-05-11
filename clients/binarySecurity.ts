@@ -58,6 +58,8 @@ export interface BinarySecurityTask {
   }>;
   task_retry_supported: boolean;
   task_retry_reason?: string | null;
+  task_continue_supported: boolean;
+  task_continue_reason?: string | null;
 }
 
 export interface BinarySecurityProjectStats {
@@ -284,6 +286,7 @@ export const binarySecurityApi = {
     const q = params.size > 0 ? `?${params.toString()}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),
+      cache: 'no-store',
     });
     return handleResponse(resp);
   },
