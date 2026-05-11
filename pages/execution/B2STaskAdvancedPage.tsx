@@ -314,7 +314,7 @@ const QUALITY_DIMENSION_GROUPS = [
   },
 ];
 const PanelCard: React.FC<{ title: string; right?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, right, children, className = '' }) => (
-  <div className={`rounded-panel border border-slate-200 bg-white/90 p-5 shadow-panel ring-1 ring-slate-900/[0.03] ${className}`}>
+  <div className={`rounded-none border border-slate-200 bg-white/90 p-5 shadow-panel ring-1 ring-slate-900/[0.03] ${className}`}>
     <div className="mb-4 flex min-h-6 items-center justify-between gap-3">
       <div className="text-[14px] font-black tracking-[0.04em] text-slate-900">{title}</div>
       {right}
@@ -371,41 +371,16 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
   const finalQualityLabel = finalQualityScore >= 90 ? '优秀' : finalQualityScore >= 80 ? '良好' : finalQualityScore >= 70 ? '可用' : '待优化';
   const averageImprovement = Math.max(0, finalQualityScore - firstQualityScore);
   const improvementPercent = firstQualityScore > 0 ? Math.round((averageImprovement / firstQualityScore) * 100) : 0;
-  const summaryCards = [
-    {
-      label: '最终还原质量',
-      value: finalQualityLabel,
-      sub: `逻辑准确/结构准确/可读性均分 ${finalQualityScore}`,
-      tone: 'text-indigo-700',
-      badgeClass: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-      dotClass: 'bg-indigo-500',
-      cardClass: 'border-indigo-100 bg-gradient-to-br from-indigo-50 to-white',
-    },
-    {
-      label: '相较初始提升',
-      value: `+${improvementPercent}%`,
-      sub: `初始版本 ${firstQualityScore} → 最终版本 ${finalQualityScore}`,
-      tone: 'text-amber-700',
-      badgeClass: 'bg-amber-50 text-amber-700 ring-amber-200',
-      dotClass: 'bg-amber-500',
-    },
-    {
-      label: '遗留问题数',
-      value: remainingCount,
-      sub: `已修复 ${resolvedCount}/${analytics.issues.length || 0}`,
-      tone: remainingCount > 0 ? 'text-rose-700' : 'text-emerald-700',
-      badgeClass: remainingCount > 0 ? 'bg-rose-50 text-rose-700 ring-rose-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-      dotClass: remainingCount > 0 ? 'bg-rose-500' : 'bg-emerald-500',
-    },
-    {
-      label: '评审结论',
-      value: analytics.summary.final_verdict === 'PASS' ? '通过' : analytics.summary.final_verdict === 'FAIL' ? '未通过' : '未知',
-      sub: `完成 ${last.attempt_no} 轮评审`,
-      tone: analytics.summary.final_verdict === 'PASS' ? 'text-emerald-700' : 'text-rose-700',
-      badgeClass: analytics.summary.final_verdict === 'PASS' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-rose-50 text-rose-700 ring-rose-200',
-      dotClass: analytics.summary.final_verdict === 'PASS' ? 'bg-emerald-500' : 'bg-rose-500',
-    },
-  ];
+  const verdictPassed = analytics.summary.final_verdict === 'PASS';
+  const verdictFailed = analytics.summary.final_verdict === 'FAIL';
+  const verdictLabel = verdictPassed ? '通过' : verdictFailed ? '未通过' : '未知';
+  const verdictTone = verdictPassed ? 'text-emerald-700' : verdictFailed ? 'text-rose-700' : 'text-slate-700';
+  const verdictBg = verdictPassed ? 'from-emerald-50 via-white to-white border-emerald-100' : verdictFailed ? 'from-rose-50 via-white to-white border-rose-100' : 'from-slate-50 via-white to-white border-slate-200';
+  const conclusionText = verdictPassed
+    ? `多轮评审已完成，当前未发现阻断问题，遗留问题 ${remainingCount} 项。`
+    : verdictFailed
+      ? `评审仍未通过，当前遗留问题 ${remainingCount} 项，建议优先查看闭环证据。`
+      : `评审结论暂不可判定，建议查看各轮评审详情与中间产物。`;
   const roundSummaries = analytics.attempts.map((attempt, index) => {
     const discovered = analytics.issues.filter((issue) => issue.introduced_attempt === attempt.attempt_no);
     const resolved = analytics.issues.filter((issue) => issue.resolved_attempt === attempt.attempt_no);
@@ -424,32 +399,51 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
   });
 
   return (
-    <section className="overflow-hidden rounded-section border border-slate-200 bg-review-panel p-6 shadow-section">
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"><ShieldCheck size={21} /></div>
-        <div>
-          <div className="text-lg font-black tracking-[0.18em] text-slate-900">代码还原质量迭代追踪</div>
-          <div className="mt-0.5 text-xs font-bold text-slate-500">逐轮追踪问题发现、修复进度与代码质量变化</div>
+    <section className="overflow-hidden rounded-none border border-slate-200 bg-white p-6 shadow-section">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"><ShieldCheck size={20} /></div>
+        <div className="min-w-0 flex-1">
+          <div className="text-lg font-black tracking-[0.12em] text-slate-900">代码还原质量迭代追踪</div>
+          <div className="mt-0.5 text-xs font-bold text-slate-500">按照“结论 → 指标 → 分析依据 → 闭环证据”查看多轮评审结果</div>
         </div>
         {analytics.summary.mock && <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-cyan-700">模拟数据</div>}
       </div>
 
-      <div className="mb-5 grid gap-4 md:grid-cols-4">
-        {summaryCards.map((card) => (
-          <div key={card.label} className={`rounded-panel border bg-white/90 px-5 py-4 shadow-sm ring-1 ring-slate-900/[0.03] ${card.cardClass || 'border-slate-200'}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-black tracking-[0.08em] text-slate-500">{card.label}</div>
-              <div className={`h-2.5 w-2.5 rounded-full ${card.dotClass}`} />
-            </div>
-            <div className={`mt-3 text-4xl font-black leading-none ${card.tone}`}>{card.value}</div>
-            <div className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 ${card.badgeClass}`}>{card.sub}</div>
+      <div className={`mb-4 rounded-none border bg-gradient-to-br p-5 shadow-sm ring-1 ring-slate-900/[0.03] ${verdictBg}`}>
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <div className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">最终结论</div>
+            <div className={`mt-2 text-5xl font-black leading-none tracking-tight ${verdictTone}`}>{verdictLabel}</div>
+            <div className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">{conclusionText}</div>
           </div>
-        ))}
+          <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[430px]">
+            <div className="rounded-none border border-white/70 bg-white/75 px-4 py-3 text-center shadow-sm">
+              <div className="text-[11px] font-black tracking-[0.12em] text-slate-400">最终质量</div>
+              <div className="mt-1 flex items-baseline justify-center gap-2">
+                <span className="text-3xl font-black text-indigo-700">{finalQualityScore}</span>
+                <span className="text-sm font-black text-amber-700">+{improvementPercent}%</span>
+              </div>
+              <div className="mt-1 text-xs font-black text-indigo-600">{finalQualityLabel} · {firstQualityScore} → {finalQualityScore}</div>
+            </div>
+            <div className="rounded-none border border-white/70 bg-white/75 px-4 py-3 text-center shadow-sm">
+              <div className="text-[11px] font-black tracking-[0.12em] text-slate-400">问题闭环</div>
+              <div className={`mt-1 text-3xl font-black ${remainingCount > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{resolvedCount}/{analytics.issues.length || 0}</div>
+              <div className="mt-1 text-xs font-black text-slate-500">遗留 {remainingCount}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div>
+          <div className="text-base font-black tracking-[0.08em] text-slate-900">分析依据</div>
+          <div className="mt-0.5 text-xs font-semibold text-slate-500">趋势图与评分拆解用于解释最终结论，不作为新的主结论。</div>
+        </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <PanelCard title="逐轮质量趋势" className="flex h-full flex-col" right={<div className="flex flex-wrap gap-3 text-[11px] font-black">{dimensionGroups.map((item, index) => <span key={item.name} className={['text-chart-logic', 'text-chart-structure', 'text-chart-readability'][index] || 'text-slate-500'}>● {item.name}</span>)}</div>}>
-          <div className="min-h-[360px] flex-1">
+          <div className="min-h-[320px] flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={qualityTrend} margin={{ top: 20, right: 26, left: 0, bottom: 12 }}>
                 <CartesianGrid stroke={CHART_COLORS.grid} strokeDasharray="4 5" strokeOpacity={0.8} vertical={false} />
@@ -477,12 +471,12 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
         <PanelCard title="质量评分拆解" right={<div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">初始 → 最终</div>}>
           <div className="space-y-3">
             {dimensionRows.map((row) => (
-              <div key={row.name} className={`rounded-2xl border ${row.borderClass} ${row.bgClass} p-4`}>
+              <div key={row.name} className={`rounded-none border ${row.borderClass} ${row.bgClass} p-4`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className={`text-sm font-black ${row.labelClass}`}>{row.name}</div>
                     <div className="mt-1.5 text-xs font-medium leading-5 text-slate-500">{row.description}</div>
-                    <div className="mt-2 rounded-xl bg-white/70 px-3 py-2 font-mono text-[11px] font-semibold leading-5 tracking-tight text-slate-500 ring-1 ring-slate-200/70">
+                    <div className="mt-2 rounded-none bg-white/70 px-3 py-2 font-mono text-[11px] font-semibold leading-5 tracking-tight text-slate-500 ring-1 ring-slate-200/70">
                       {row.formula}
                     </div>
                   </div>
@@ -499,6 +493,11 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
           </div>
         </PanelCard>
 
+        <div id="b2s-review-evidence" className="scroll-mt-24 mt-2 xl:col-span-2">
+          <div className="text-base font-black tracking-[0.08em] text-slate-900">评审闭环证据</div>
+          <div className="mt-0.5 text-xs font-semibold text-slate-500">按轮次追溯问题发现、修复和最终闭环过程。</div>
+        </div>
+
         <PanelCard title="评审闭环时间线" className="xl:col-span-2" right={<div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">已解决 {resolvedCount} · 未解决 {remainingCount}</div>}>
           <div className="relative pl-10">
             <div className="absolute bottom-4 left-[18px] top-3 w-px bg-slate-300" />
@@ -512,19 +511,19 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
                 return (
                   <details key={attempt.attempt_no} className="group relative">
                     <div className={`absolute -left-[28px] top-6 z-10 h-3.5 w-3.5 rounded-full ring-[6px] ring-white ${passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                    <summary className={`list-none cursor-pointer rounded-timeline border bg-white/90 p-4 shadow-sm transition hover:border-slate-300 hover:bg-white [&::-webkit-details-marker]:hidden ${round.isFinal ? 'ring-2 ring-emerald-100' : ''}`}>
+                    <summary className={`list-none cursor-pointer rounded-none border bg-white/90 p-4 shadow-sm transition hover:border-slate-300 hover:bg-white [&::-webkit-details-marker]:hidden ${round.isFinal ? 'ring-2 ring-emerald-100' : ''}`}>
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="min-w-[108px]">
                           <div className="text-xs font-black text-slate-500">第 {attempt.attempt_no} 轮</div>
                           <div className={`mt-1 text-xl font-black leading-none ${passed ? 'text-emerald-700' : 'text-rose-700'}`}>{round.verdictLabel}</div>
                         </div>
                         <div className="grid flex-1 grid-cols-2 gap-2 md:grid-cols-6">
-                          <div className="rounded-2xl bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">已验证</div><div className="mt-0.5 text-sm font-black text-emerald-700">{attempt.verified_functions}/{attempt.total_functions}</div></div>
-                          <div className="rounded-2xl bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">阻断</div><div className={`mt-0.5 text-sm font-black ${attempt.blocking_issues ? 'text-rose-700' : 'text-emerald-700'}`}>{attempt.blocking_issues}</div></div>
-                          <div className="rounded-2xl bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">语义分</div><div className="mt-0.5 text-sm font-black text-violet-700">{attempt.semantic_score}</div></div>
-                          <div className="rounded-2xl bg-rose-50 px-3 py-2"><div className="text-[10px] font-black text-rose-400">发现</div><div className="mt-0.5 text-sm font-black text-rose-700">{round.discovered.length}</div></div>
-                          <div className="rounded-2xl bg-emerald-50 px-3 py-2"><div className="text-[10px] font-black text-emerald-500">解决</div><div className="mt-0.5 text-sm font-black text-emerald-700">{round.resolved.length}</div></div>
-                          <div className="rounded-2xl bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">未闭环</div><div className="mt-0.5 text-sm font-black text-slate-800">{round.openAtRound.length}</div></div>
+                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">已验证</div><div className="mt-0.5 text-sm font-black text-emerald-700">{attempt.verified_functions}/{attempt.total_functions}</div></div>
+                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">阻断</div><div className={`mt-0.5 text-sm font-black ${attempt.blocking_issues ? 'text-rose-700' : 'text-emerald-700'}`}>{attempt.blocking_issues}</div></div>
+                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">语义分</div><div className="mt-0.5 text-sm font-black text-violet-700">{attempt.semantic_score}</div></div>
+                          <div className="rounded-none bg-rose-50 px-3 py-2"><div className="text-[10px] font-black text-rose-400">发现</div><div className="mt-0.5 text-sm font-black text-rose-700">{round.discovered.length}</div></div>
+                          <div className="rounded-none bg-emerald-50 px-3 py-2"><div className="text-[10px] font-black text-emerald-500">解决</div><div className="mt-0.5 text-sm font-black text-emerald-700">{round.resolved.length}</div></div>
+                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">未闭环</div><div className="mt-0.5 text-sm font-black text-slate-800">{round.openAtRound.length}</div></div>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className={`rounded-full border px-3 py-1 text-xs font-black ${badge}`}>{round.isFinal ? '最终轮' : passed ? '已通过' : '需修复'}</div>
@@ -535,7 +534,7 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
                       </div>
                     </summary>
 
-                    <div className={`mt-3 rounded-detail border ${border} ${bg} p-5`}>
+                    <div className={`mt-3 rounded-none border ${border} ${bg} p-5`}>
                       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600">
                         <span>本轮发现 {round.discovered.length} 项</span>
                         <span className="text-slate-300">/</span>
@@ -548,13 +547,13 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
                         <div>
                           <div className="mb-2 flex items-center justify-between border-b border-slate-200 pb-2"><div className="text-xs font-black tracking-[0.08em] text-rose-700">本轮发现</div><div className="text-[11px] font-bold text-slate-500">{round.discovered.length} 项</div></div>
                           <div className="space-y-2">
-                            {round.discovered.length ? round.discovered.map((issue, idx) => <div key={`d-${attempt.attempt_no}-${issue.id}`} className="rounded-2xl border border-slate-200 bg-white/85 p-3"><div className="flex items-start gap-3"><div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-black text-rose-700">{idx + 1}</div><div className="min-w-0"><div className="text-sm font-black text-slate-900">{ISSUE_LABELS[issue.label] || issue.label}</div><div className="mt-1 text-xs font-medium leading-5 text-slate-500">{ISSUE_DETAILS[issue.label] || `${issue.category} · ${issue.severity}`}</div><div className="mt-1 font-mono text-[11px] font-bold text-slate-500">{issue.function}</div></div></div></div>) : <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">本轮未新增阻断问题</div>}
+                            {round.discovered.length ? round.discovered.map((issue, idx) => <div key={`d-${attempt.attempt_no}-${issue.id}`} className="rounded-none border border-slate-200 bg-white/85 p-3"><div className="flex items-start gap-3"><div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-black text-rose-700">{idx + 1}</div><div className="min-w-0"><div className="text-sm font-black text-slate-900">{ISSUE_LABELS[issue.label] || issue.label}</div><div className="mt-1 text-xs font-medium leading-5 text-slate-500">{ISSUE_DETAILS[issue.label] || `${issue.category} · ${issue.severity}`}</div><div className="mt-1 font-mono text-[11px] font-bold text-slate-500">{issue.function}</div></div></div></div>) : <div className="rounded-none border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">本轮未新增阻断问题</div>}
                           </div>
                         </div>
                         <div>
                           <div className="mb-2 flex items-center justify-between border-b border-slate-200 pb-2"><div className="text-xs font-black tracking-[0.08em] text-emerald-700">本轮解决</div><div className="text-[11px] font-bold text-slate-500">{round.resolved.length} 项</div></div>
                           <div className="space-y-2">
-                            {round.resolved.length ? round.resolved.map((issue) => <div key={`r-${attempt.attempt_no}-${issue.id}`} className="grid grid-cols-[minmax(0,1fr)_76px] items-center gap-2 rounded-2xl border border-slate-200 bg-white/85 p-3"><div className="min-w-0"><div className="truncate text-sm font-black text-slate-900">{ISSUE_LABELS[issue.label] || issue.label}</div><div className="mt-1 font-mono text-[11px] font-bold text-slate-500">第 {issue.introduced_attempt} 轮发现</div></div><div className="rounded-xl bg-emerald-100 px-2 py-2 text-center text-xs font-black text-emerald-700">已解决</div></div>) : <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">本轮暂无已关闭问题</div>}
+                            {round.resolved.length ? round.resolved.map((issue) => <div key={`r-${attempt.attempt_no}-${issue.id}`} className="grid grid-cols-[minmax(0,1fr)_76px] items-center gap-2 rounded-none border border-slate-200 bg-white/85 p-3"><div className="min-w-0"><div className="truncate text-sm font-black text-slate-900">{ISSUE_LABELS[issue.label] || issue.label}</div><div className="mt-1 font-mono text-[11px] font-bold text-slate-500">第 {issue.introduced_attempt} 轮发现</div></div><div className="rounded-none bg-emerald-100 px-2 py-2 text-center text-xs font-black text-emerald-700">已解决</div></div>) : <div className="rounded-none border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">本轮暂无已关闭问题</div>}
                           </div>
                         </div>
                       </div>
@@ -614,14 +613,14 @@ const PiSessionPreview: React.FC<{ file: B2SAdvancedFile }> = ({ file }) => {
   });
   return (
     <div className="h-full overflow-auto bg-code-panel p-5 text-slate-100">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">
+      <div className="rounded-none border border-slate-700 bg-slate-900/80 p-4">
         <div className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Pi Agent Session</div>
         <div className="mt-2 break-all font-mono text-xs text-slate-400">{file.name}</div>
         <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-300 md:grid-cols-4">
-          <div className="rounded-xl bg-slate-800 px-3 py-2">消息<br /><span className="text-lg font-black text-white">{messages.length}</span></div>
-          <div className="rounded-xl bg-slate-800 px-3 py-2">工具调用<br /><span className="text-lg font-black text-white">{toolCalls.length}</span></div>
-          <div className="rounded-xl bg-slate-800 px-3 py-2">模型<br /><span className="font-black text-white">{modelChanges[0]?.modelId || '-'}</span></div>
-          <div className="rounded-xl bg-slate-800 px-3 py-2">会话 ID<br /><span className="font-mono font-black text-white">{header?.id || '-'}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">消息<br /><span className="text-lg font-black text-white">{messages.length}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">工具调用<br /><span className="text-lg font-black text-white">{toolCalls.length}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">模型<br /><span className="font-black text-white">{modelChanges[0]?.modelId || '-'}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">会话 ID<br /><span className="font-mono font-black text-white">{header?.id || '-'}</span></div>
         </div>
       </div>
       <div className="mt-4 space-y-3">
@@ -638,7 +637,7 @@ const PiSessionPreview: React.FC<{ file: B2SAdvancedFile }> = ({ file }) => {
                 ? JSON.stringify(entry, null, 2)
                 : '';
           return (
-            <article key={`${entry.id || index}-${index}`} className={`rounded border p-[18px] ${isUser ? 'border-slate-700 bg-chat-user' : isAssistant ? 'border-transparent bg-transparent' : isTool ? 'border-emerald-500/25 bg-emerald-950/25' : 'border-slate-700 bg-slate-900/60'}`}>
+            <article key={`${entry.id || index}-${index}`} className={`rounded-none border p-[18px] ${isUser ? 'border-slate-700 bg-chat-user' : isAssistant ? 'border-transparent bg-transparent' : isTool ? 'border-emerald-500/25 bg-emerald-950/25' : 'border-slate-700 bg-slate-900/60'}`}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest">
                 <span className={`${isUser ? 'text-blue-300' : isAssistant ? 'text-emerald-300' : isTool ? 'text-amber-300' : 'text-slate-300'}`}>{role}</span>
                 <span className="font-mono text-slate-500">{entry.timestamp || entry.id || ''}</span>
@@ -805,18 +804,20 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
         </button>
       </div>
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
+      {error && <div className="rounded-none border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
 
-      <section className="rounded-card border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <section className="rounded-none border border-slate-200 bg-white/85 px-5 py-3 shadow-sm">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-[11px] font-black tracking-[0.18em] text-violet-600">反编译任务</div>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">#{advanced?.sequence_no || item?.sequence_no || '-'}</span>
-              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700">{advanced?.mode_label || detail?.mode_label || '-'}</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">
+              <span className="text-violet-600">反编译任务</span>
+              <span className="text-slate-300">·</span>
+              <span>#{advanced?.sequence_no || item?.sequence_no || '-'}</span>
+              <span className="text-slate-300">·</span>
+              <span>{advanced?.mode_label || detail?.mode_label || '-'}</span>
             </div>
-            <div className="mt-2 break-words text-xl font-black tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
-            <div className="mt-1 break-all font-mono text-[11px] font-semibold text-slate-500">任务 {taskId} · item {itemId}</div>
+            <div className="mt-1 break-words text-lg font-black tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
+            <div className="mt-0.5 break-all font-mono text-[10px] font-semibold text-slate-400">task {taskId} · item {itemId}</div>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-black">
             <span className="rounded-full bg-violet-50 px-3 py-1.5 text-violet-700 ring-1 ring-violet-100">Batch {totalBatches}</span>
@@ -828,7 +829,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
 
       <ReviewEffectivenessPanel analytics={reviewAnalytics} />
 
-      <section className="overflow-hidden rounded-card border border-slate-200 bg-white shadow-sm">
+      <section id="b2s-artifacts" className="scroll-mt-24 overflow-hidden rounded-none border border-slate-200 bg-white shadow-sm">
         {loading && !advanced ? (
           <div className="flex items-center gap-2 p-8 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : files.length === 0 ? (
@@ -840,7 +841,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
               <div className="max-h-[680px] overflow-auto p-3">
                 {groupedFiles.map((group) => (
                   <div key={group.stage} className="mb-4">
-                    <div className="sticky top-0 z-10 mb-2 rounded-xl border border-slate-200 bg-slate-100/95 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 shadow-sm backdrop-blur">{group.stage}</div>
+                    <div className="sticky top-0 z-10 mb-2 rounded-none border border-slate-200 bg-slate-100/95 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 shadow-sm backdrop-blur">{group.stage}</div>
                     {group.sections.map((section) => (
                       <div key={`${group.stage}-${section.name}`} className="mb-3 ml-1 border-l-2 border-slate-200 pl-3">
                         <div className="mb-2 text-[11px] font-black tracking-[0.12em] text-slate-700">{section.name}</div>
@@ -851,8 +852,8 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                               const active = selectedPath === file.path;
                               const metaLine = [agent, role].filter(Boolean).join(' · ');
                               return (
-                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`mb-2 flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition ${active ? 'border-violet-300 bg-white shadow-sm ring-2 ring-violet-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}>
-                                  <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
+                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`mb-2 flex w-full items-start gap-3 rounded-none border px-3 py-3 text-left transition ${active ? 'border-violet-300 bg-white shadow-sm ring-2 ring-violet-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}>
+                                  <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-none ${active ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
                                     {languageFromPath(file.name) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
                                   </div>
                                   <div className="min-w-0 flex-1">
