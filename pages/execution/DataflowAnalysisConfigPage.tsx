@@ -186,7 +186,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
   const handleSave = async () => {
     const agents = config.workers?.agents ?? [];
     if (agents.length === 0 || agents.every((a) => !a.model)) {
-      notify('Agent 实例列表至少需要一个有效的模型配置', 'error');
+      notify('保存失败：请在「Workers 配置」中至少添加一个 Agent 实例并选择模型', 'error');
       return;
     }
     setSaving(true);
@@ -306,7 +306,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
           {/* Workers */}
           <RoleConfigBlock
             title="Workers 配置"
-            subtitle="执行数据流分析工作的 Agent"
+            subtitle="执行数据流分析工作的 Agent（必填：至少添加一个 Agent 并选择模型才能保存）"
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
