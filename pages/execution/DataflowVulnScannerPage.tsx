@@ -36,6 +36,7 @@ import {
   DataflowScanTaskDetail,
   DataflowCreateTaskPayload,
   DataflowRunResolve,
+  DataflowRunProcessState,
 } from '../../clients/dataflowVulnScanner';
 import {
   DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
@@ -50,6 +51,7 @@ const STATUS_META: Record<string, { label: string; className: string; icon: Reac
   pending: { label: '待启动', className: 'bg-slate-100 text-slate-700 border-slate-200', icon: <Clock size={13} /> },
   queued: { label: '启动中', className: 'bg-sky-50 text-sky-700 border-sky-200', icon: <Clock size={13} /> },
   running: { label: '运行中', className: 'bg-cyan-50 text-cyan-700 border-cyan-200', icon: <Activity size={13} /> },
+  runtime_lost: { label: '运行失联', className: 'bg-orange-50 text-orange-700 border-orange-200', icon: <AlertTriangle size={13} /> },
   cancel_requested: { label: '取消中', className: 'bg-amber-50 text-amber-700 border-amber-200', icon: <PauseCircle size={13} /> },
   delete_requested: { label: '删除中', className: 'bg-rose-50 text-rose-700 border-rose-200', icon: <PauseCircle size={13} /> },
   completed: { label: '已完成', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <CheckCircle2 size={13} /> },
@@ -62,6 +64,7 @@ const RUN_STATUS_FILTER_KEYS = [
   'pending',
   'queued',
   'running',
+  'runtime_lost',
   'cancel_requested',
   'delete_requested',
   'completed',
@@ -145,6 +148,14 @@ const formatSeconds = (seconds: number) => {
   if (seconds < 60) return `${Math.floor(seconds)}s`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
   return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+};
+
+const processLostHint = (state?: DataflowRunProcessState | null) => {
+  if (!state || typeof state !== 'object') return '';
+  const age = Number(state.heartbeat_age_seconds);
+  const ageText = Number.isFinite(age) && age > 0 ? `，心跳已中断 ${formatSeconds(age)}` : '';
+  const podText = state.pod_id ? `Pod ${state.pod_id}` : '后端 Pod';
+  return `${podText} 不再汇报进程状态${ageText}`;
 };
 
 const shortId = (value?: string | null, size = 12) => {
@@ -231,6 +242,29 @@ const taskRunSummary = (task: DataflowScanTask): Partial<DataflowFileserverRunSu
     ? task.run
     : (task.latest_run && typeof task.latest_run === 'object' ? task.latest_run : {});
 
+const ACTIVE_STATUS_VALUES = new Set(['pending', 'queued', 'running', 'cancel_requested', 'delete_requested']);
+const RUNTIME_LOST_SOURCES = new Set(['stale_process_heartbeat', 'stale_active_record']);
+
+const taskProcessState = (task: DataflowScanTask): DataflowRunProcessState => {
+  const summary = taskRunSummary(task);
+  const state = summary.process_state;
+  return state && typeof state === 'object' ? state : {};
+};
+
+const isRuntimeLostProcess = (status: string | undefined | null, state?: DataflowRunProcessState | null) => {
+  if (!state || typeof state !== 'object') return false;
+  const statusText = String(status || state.run_status || state.trigger_status || state.execution_status || '').trim().toLowerCase();
+  if (statusText && !ACTIVE_STATUS_VALUES.has(statusText)) return false;
+  return (
+    state.display_status === 'runtime_lost'
+    || state.stale === true
+    || RUNTIME_LOST_SOURCES.has(String(state.source || ''))
+  );
+};
+
+const isTaskRuntimeLost = (task: DataflowScanTask) =>
+  isRuntimeLostProcess(task.status, taskProcessState(task));
+
 const taskRunLocator = (task: DataflowScanTask): Partial<DataflowFileserverRunSummary> => {
   const summary = taskRunSummary(task);
   const explicitPath = String(task.run_path || '').trim();
@@ -257,7 +291,8 @@ const taskRunDirectoryPath = (task: DataflowScanTask) => {
   return `${rootPath}/${name}`;
 };
 
-const taskDisplayStatus = (task: DataflowScanTask) => String(task.status || '');
+const taskDisplayStatus = (task: DataflowScanTask) =>
+  isTaskRuntimeLost(task) ? 'runtime_lost' : String(task.status || '');
 
 const normalizeRunStatus = (status?: string | null) => {
   const value = String(status || '').trim().toLowerCase();
@@ -598,6 +633,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     return tasks.filter((task) => {
       const run = taskRunLocator(task);
       const runSummary = taskRunSummary(task);
+      const processState = taskProcessState(task);
       const normalizedStatus = normalizeRunStatus(taskDisplayStatus(task));
       if (runStatusFilter && normalizedStatus !== runStatusFilter) return false;
       if (!text) return true;
@@ -617,6 +653,10 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         runSummary.model,
         runSummary.provider,
         runSummary.workflow_mode,
+        processState.reason,
+        processState.source,
+        processState.display_label,
+        processState.pod_id,
         run.linked_task_id,
         run.linked_execution_id,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
@@ -628,7 +668,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       total: tasks.length,
       running: tasks.filter((task) => isActiveTaskStatus(taskDisplayStatus(task))).length,
       succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'completed').length,
-      failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed').length,
+      failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed' || isTaskRuntimeLost(task)).length,
+      runtimeLost: tasks.filter((task) => isTaskRuntimeLost(task)).length,
     };
   }, [tasks]);
 
@@ -716,7 +757,13 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           <MetricCard label="任务总数" value={stats.total} icon={<Layers size={17} />} />
           <MetricCard label="运行中" value={stats.running} icon={<Activity size={17} />} />
           <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-50/70" />
-          <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
+          <MetricCard
+            label="失败"
+            value={stats.failed}
+            icon={<AlertTriangle size={17} />}
+            tone="bg-rose-50/70"
+            hint={stats.runtimeLost ? `含 ${stats.runtimeLost} 个运行失联` : undefined}
+          />
         </section>
 
         <section>
@@ -782,7 +829,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   {filteredTasks.map((task) => {
                     const run = taskRunLocator(task);
                     const runSummary = taskRunSummary(task);
+                    const processState = taskProcessState(task);
                     const displayStatus = taskDisplayStatus(task);
+                    const runtimeLost = displayStatus === 'runtime_lost';
                     const hasRun = Boolean(run.name && run.root_path);
                     const taskId = task.task_id || run.linked_task_id || '';
                     const executionId = task.latest_execution_id || run.linked_execution_id || '';
@@ -821,7 +870,17 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             <div className="text-xs font-bold text-slate-400">Run 初始化中</div>
                           )}
                         </td>
-                        <td className="px-4 py-3"><StatusBadge status={displayStatus} /></td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={displayStatus} />
+                          {runtimeLost ? (
+                            <div
+                              className="mt-1 max-w-[240px] text-xs font-bold leading-5 text-orange-700"
+                              title={processState.reason || processLostHint(processState)}
+                            >
+                              {processLostHint(processState) || '后端进程心跳过期，可重试 Run'}
+                            </div>
+                          ) : null}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="font-bold text-slate-700">{runSummary.model || '-'}</div>
                           <div className="mt-1 text-xs text-slate-500">{formatThinking(runSummary.thinking)}</div>

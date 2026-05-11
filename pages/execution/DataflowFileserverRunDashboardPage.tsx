@@ -653,7 +653,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   color: #5b21b6;
 }
 
-.badge-warning {
+.badge-warning, .badge-runtime_lost {
   background: #fffbeb;
   border-color: #fde68a;
   color: var(--warning);
@@ -1561,6 +1561,10 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   color: var(--success);
 }
 
+.text-warning {
+  color: var(--warning);
+}
+
 .text-error {
   color: var(--error);
 }
@@ -2340,14 +2344,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const arrow = collapsed ? '▶' : '▼';
         const runsHtml = group.runs.map((r: DataflowFileserverRunSummary) => {
           const timeLabel = (r.start_time || '').split(' ')[1] || '--:--:--';
+          const displayStatus = this.displayRunStatus(r);
+          const runtimeLostHint = displayStatus === 'runtime_lost' ? this.processStateSummary(r) : '';
           return `
           <div class="run-item ${this.currentRun === r.name ? 'active' : ''}"
                data-action="select-run"
                data-run="${this.attr(r.name)}">
             <div class="run-item-header">
               <span class="run-item-name" title="${this.esc(r.name)}">${this.esc(this.shortName(r.name))}</span>
-              ${this.statusBadge(r.status, 'badge-sm')}
+              ${this.statusBadge(displayStatus, 'badge-sm')}
             </div>
+            ${runtimeLostHint ? `<div class="run-item-time text-warning">${this.esc(runtimeLostHint)}</div>` : ''}
             <div class="run-item-time">🕒 ${this.esc(timeLabel)}</div>
             <div class="run-item-stats">
               <span>🔄 ${r.cycles_used}/${r.max_cycles}</span>
@@ -2423,7 +2430,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const runNameEl = this.$('runName');
       if (runNameEl) runNameEl.textContent = name;
       const statusEl = this.$('runStatus');
-      const statusText = summary?.status || 'pending';
+      const statusText = this.displayRunStatus(summary || { status: 'pending' });
       if (statusEl) {
         statusEl.className = `badge badge-${statusText}`;
         statusEl.textContent = this.statusLabel(statusText);
@@ -2567,9 +2574,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const runNameEl = this.$('runName');
       if (runNameEl) runNameEl.textContent = data.name;
       const statusEl = this.$('runStatus');
+      const displayStatus = this.displayRunStatus(data);
       if (statusEl) {
-        statusEl.className = `badge badge-${data.status}`;
-        statusEl.textContent = this.statusLabel(data.status);
+        statusEl.className = `badge badge-${displayStatus}`;
+        statusEl.textContent = this.statusLabel(displayStatus);
       }
       const modeEl = this.$('runMode');
       const lastCycle = cycles[cycles.length - 1];
@@ -2597,10 +2605,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           <span>🔄 ${this.esc(cycleText)}</span>
           <span>📄 ${this.esc(resultText)}</span>
           <span class="run-duration" id="runDuration">⏳ ${this.fmtDuration(this._estimateDuration(data))}</span>
+          ${displayStatus === 'runtime_lost' ? `<span class="text-warning">⚠️ ${this.esc(this.processStateSummary(data)).substring(0, 160)}</span>` : ''}
           ${data.error ? `<span class="text-error">⚠️ ${this.esc(data.error).substring(0, 120)}</span>` : ''}
         `;
       }
-      this._startDurationTimer(data.status === 'running');
+      this._startDurationTimer(displayStatus === 'running');
       this.updateActionButtons(data);
 
       this.renderOverview(data);
@@ -2620,6 +2629,30 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     runProcessState(data?: Partial<DataflowFileserverRunSummary> | null) {
       const state = data?.process_state;
       return state && typeof state === 'object' ? state : {};
+    },
+
+    isRuntimeLostRun(data?: Partial<DataflowFileserverRunSummary> | null) {
+      const state = this.runProcessState(data);
+      const statusText = String(data?.status || state.run_status || state.trigger_status || state.execution_status || '').toLowerCase();
+      const active = ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(statusText);
+      if (!active) return false;
+      return state.display_status === 'runtime_lost'
+        || state.stale === true
+        || ['stale_process_heartbeat', 'stale_active_record'].includes(String(state.source || ''));
+    },
+
+    displayRunStatus(data?: Partial<DataflowFileserverRunSummary> | null) {
+      return this.isRuntimeLostRun(data) ? 'runtime_lost' : String(data?.status || 'unknown');
+    },
+
+    processStateSummary(data?: Partial<DataflowFileserverRunSummary> | null) {
+      const state = this.runProcessState(data);
+      if (!state || !Object.keys(state).length) return '';
+      const age = Number(state.heartbeat_age_seconds);
+      const ageText = Number.isFinite(age) && age > 0 ? `，心跳已中断 ${this.fmtDuration(age)}` : '';
+      const podText = state.pod_id ? `Pod ${state.pod_id}` : '后端 Pod';
+      const lostDetail = `${podText} 不再汇报 run_vuln_scan.py 进程${ageText}`;
+      return state.reason ? `${state.reason}（${lostDetail}）` : lostDetail;
     },
 
     canRetryRun(data?: Partial<DataflowFileserverRunSummary> | null) {
@@ -2644,6 +2677,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const hasRun = !!this.currentRun && !!current;
       const linked = !!(current?.linked_task_id || current?.linked_execution_id);
       const active = this.isActiveRunStatus(String(current?.status || ''));
+      const processState = this.runProcessState(current);
+      const lost = this.isRuntimeLostRun(current);
+      const cancellable = active && !lost && (processState.is_running === true || processState.is_queued === true || processState.can_retry !== true);
       const retryable = this.canRetryRun(current);
       const busy = this._mutationBusy;
       this.updateActionButton('btnAdoptRun', {
@@ -2652,7 +2688,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         text: busy === 'adopt' ? '正在关联...' : '关联任务记录',
       });
       this.updateActionButton('btnCancelRun', {
-        disabled: !hasRun || !linked || !active || !!busy,
+        disabled: !hasRun || !linked || !cancellable || !!busy,
         text: busy === 'cancel' ? '正在取消...' : '取消 Run',
       });
       this.updateActionButton('btnRetryRun', {
@@ -2668,13 +2704,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     taskActionButtons(data: DataflowFileserverRunOverview) {
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const active = this.isActiveRunStatus(data.status);
+      const processState = this.runProcessState(data);
+      const lost = this.isRuntimeLostRun(data);
+      const cancellable = active && !lost && (processState.is_running === true || processState.is_queued === true || processState.can_retry !== true);
       const retryable = this.canRetryRun(data);
       const retryReason = this.retryDisabledReason(data);
       const busy = !!this._mutationBusy;
       return `
         <div class="task-action-panel">
           <button class="btn btn-sm" data-action="adopt-run" ${linked || busy ? 'disabled' : ''}>关联任务记录</button>
-          <button class="btn btn-sm btn-warning" data-action="cancel-run" ${!linked || !active || busy ? 'disabled' : ''}>取消 Run</button>
+          <button class="btn btn-sm btn-warning" data-action="cancel-run" ${!linked || !cancellable || busy ? 'disabled' : ''} title="${this.esc(lost ? '后端进程已经失联，无需取消；请使用重试 Run 通过 --resume 继续。' : '停止当前 run_vuln_scan.py 进程')}">取消 Run</button>
           <button class="btn btn-sm" data-action="retry-run" ${!retryable || busy ? 'disabled' : ''} title="${this.esc(retryable ? 'run_vuln_scan.py 进程不存在或心跳过期，可以通过 --resume 重试' : retryReason)}">重试 Run</button>
           <button class="btn btn-sm btn-danger" data-action="delete-open" ${busy ? 'disabled' : ''}>删除 Run</button>
         </div>
@@ -2700,6 +2739,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const commandDisplay = this.runCommandDisplay(data);
       const retryCommandDisplay = this.retryCommandDisplay(data);
+      const displayStatus = this.displayRunStatus(data);
+      const processState = this.runProcessState(data);
+      const processSummary = this.processStateSummary(data);
       const rows = [
         ['Run ID', data.run_id || '-'],
         ['Task ID', data.linked_task_id || '-'],
@@ -2714,8 +2756,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         <div class="card-title">任务 / Run 信息</div>
         <div class="task-state-line">
           <span class="badge ${linked ? 'badge-succeeded' : 'badge-warning'}">${linked ? '已关联任务记录' : '未关联任务记录'}</span>
+          <span class="badge badge-${this.attr(displayStatus)}">${this.esc(this.statusLabel(displayStatus))}</span>
           <span class="text-muted">${linked ? '当前 Run 已关联任务与执行记录，可以统一使用取消、重试、删除能力。' : '点击“关联任务记录”会创建任务与执行记录并绑定该 Run，不会启动扫描。'}</span>
         </div>
+        ${displayStatus === 'runtime_lost' ? `
+          <div class="task-state-line" title="${this.attr(processState.reason || processSummary)}">
+            <span class="badge badge-runtime_lost">后端进程失联</span>
+            <span class="text-warning">${this.esc(processSummary || 'run_vuln_scan.py 心跳已过期，任务并未正常运行；可使用重试 Run 通过 --resume 继续。')}</span>
+          </div>
+        ` : ''}
         <div class="task-info-grid">
           ${rows.map(([label, value]) => `
             <div class="task-info-row">
@@ -3414,6 +3463,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
     isRunActive() {
+      if (this.isRuntimeLostRun(this.currentRunData)) return false;
       const status = String(this.currentRunData?.status || '').toLowerCase();
       return ['pending', 'queued', 'running', 'cancel_requested'].includes(status);
     },
@@ -4454,7 +4504,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const startMs = new Date(m[1]+'-'+m[2]+'-'+m[3]+'T'+m[4]+':'+m[5]+':'+m[6]+'Z').getTime();
       if (isNaN(startMs)) return 0;
 
-      if (data.status === 'running') {
+      if (data.status === 'running' && !this.isRuntimeLostRun(data)) {
         const nowMs = Date.now();
         const dur = Math.floor((nowMs - startMs) / 1000);
         return dur > 0 ? dur : 0;
@@ -4617,6 +4667,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         succeeded: '成功',
         failed: '失败',
         running: '运行中',
+        runtime_lost: '运行失联',
         passed: '通过',
         pending: '等待',
         queued: '排队',
