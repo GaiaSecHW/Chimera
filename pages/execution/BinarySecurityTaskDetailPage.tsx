@@ -157,6 +157,18 @@ type DownstreamTaskState = {
 type DetailTab = 'overview' | 'timeline' | 'artifacts';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
+type BlockingActionKind = '' | 'retry' | 'continue';
+
+const BLOCKING_ACTION_COPY: Record<Exclude<BlockingActionKind, ''>, { title: string; message: string }> = {
+  retry: {
+    title: '正在从头重试总任务',
+    message: '系统正在重置任务状态并重新发起执行，请勿重复点击或执行其他操作。',
+  },
+  continue: {
+    title: '正在继续任务',
+    message: '系统正在定位下一个可执行阶段并恢复推进，请勿重复点击或执行其他操作。',
+  },
+};
 
 const ARCHIVE_EVENT_LABELS: Record<string, string> = {
   downstream_archive_job_queued: '归档已排队',
@@ -722,6 +734,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timelinePageSize, setTimelinePageSize] = useState(200);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [blockingAction, setBlockingAction] = useState<BlockingActionKind>('');
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
@@ -1022,6 +1035,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       if (!confirmed) return;
     }
     setActionLoading(action);
+    if (action === 'retry' || action === 'continue') {
+      setBlockingAction(action);
+    }
     try {
       if (action === 'cancel') await executionApi.binarySecurity.cancelTask(projectId, taskId);
       if (action === 'delete') {
@@ -1035,6 +1051,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     } catch (e: any) {
       setError(e?.message || `${action} 失败`);
     } finally {
+      if (action === 'retry' || action === 'continue') {
+        setBlockingAction('');
+      }
       setActionLoading('');
     }
   };
@@ -1324,6 +1343,25 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
+      {blockingAction ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[1.75rem] border border-slate-200 bg-white px-6 py-6 shadow-[0_24px_80px_-24px_rgba(15,23,42,0.55)]">
+            <div className="flex items-start gap-4">
+              <div className="mt-0.5 rounded-2xl bg-sky-50 p-3 text-sky-600">
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-lg font-black text-slate-900">{BLOCKING_ACTION_COPY[blockingAction].title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{BLOCKING_ACTION_COPY[blockingAction].message}</p>
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                  <Loader2 size={12} className="animate-spin" />
+                  正在加载，请稍候
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
           <ArrowLeft size={16} />
