@@ -536,6 +536,7 @@ export const ProjectFileExplorerPage: React.FC<{ projectId: string; projects: Se
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedListNodeIds, setSelectedListNodeIds] = useState<Set<string>>(new Set());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [dragHoverNodeId, setDragHoverNodeId] = useState<string | null>(null);
   const [gatewayLoadingNodeIds, setGatewayLoadingNodeIds] = useState<Set<string>>(new Set());
@@ -1600,6 +1601,69 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     return currentItems.filter((item) => item.name.toLowerCase().includes(keyword));
   }, [currentItems, searchTerm]);
 
+  useEffect(() => {
+    setSelectedListNodeIds((prev) => {
+      if (!prev.size) return prev;
+      const visible = new Set(filteredItems.map((item) => item.id));
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (visible.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [filteredItems]);
+
+  const toggleListNodeSelection = (nodeId: string, checked: boolean) => {
+    setSelectedListNodeIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(nodeId);
+      else next.delete(nodeId);
+      return next;
+    });
+  };
+
+  const handleBulkDeleteFromList = async () => {
+    const selectedItems = filteredItems.filter((item) => selectedListNodeIds.has(item.id));
+    if (selectedItems.length === 0) return;
+
+    const confirmed = await showConfirm({
+      title: '批量删除资源',
+      message: `确认删除已选中的 ${selectedItems.length} 项吗？目录将由后端递归删除（支持非空目录）。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    setBusyAction(`delete-bulk:${selectedItems.length}`);
+    const failed: Array<{ name: string; message: string }> = [];
+    try {
+      for (const node of selectedItems) {
+        try {
+          if (node.source === 'fileserver' && node.path) {
+            await assetApi.fileserver.deleteProjectFilesystemNode(projectId, node.path, true);
+          } else if (node.source === 'pvc' && node.resourceId && node.path) {
+            await assetApi.resources.deletePvcBrowserNode(node.resourceId, node.path);
+          }
+        } catch (error: any) {
+          failed.push({ name: node.name, message: error?.message || '删除失败' });
+        }
+      }
+
+      setSelectedListNodeIds(new Set());
+      await refreshCurrentView();
+    } finally {
+      setBusyAction('');
+    }
+
+    if (failed.length > 0) {
+      const preview = failed.slice(0, 5).map((item) => `${item.name}: ${item.message}`).join('\n');
+      alert(`批量删除完成，成功 ${selectedItems.length - failed.length}，失败 ${failed.length}\n${preview}`);
+      return;
+    }
+    alert(`批量删除完成，成功删除 ${selectedItems.length} 项`);
+  };
+
   const renderNodeIcon = (node: UnifiedExplorerNode, expanded: boolean) => {
     if (node.nodeType === 'workspace') return <FolderTree size={14} className="text-slate-500" />;
     if (node.nodeType === 'fileserver-root') return <HardDrive size={14} className="text-sky-600" />;
@@ -2014,6 +2078,36 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                 </div>
               ) : (
                 <div className="min-h-0 flex-1 overflow-auto p-4">
+                  <div className="mb-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <div className="text-xs font-semibold text-slate-600">已选中 {selectedListNodeIds.size} 项</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => setSelectedListNodeIds(new Set(filteredItems.map((item) => item.id)))}
+                        disabled={filteredItems.length === 0}
+                      >
+                        全选筛选结果
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => setSelectedListNodeIds(new Set())}
+                        disabled={selectedListNodeIds.size === 0}
+                      >
+                        清空
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void handleBulkDeleteFromList()}
+                        disabled={selectedListNodeIds.size === 0}
+                      >
+                        <Trash2 size={12} />
+                        删除所选
+                      </button>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-[minmax(0,1fr)_120px_190px] gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
                     <div>名称</div>
                     <div>大小</div>
@@ -2071,6 +2165,14 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                         }}
                       >
                         <div className="flex min-w-0 items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedListNodeIds.has(item.id)}
+                            onChange={(event) => toggleListNodeSelection(item.id, event.target.checked)}
+                            onClick={(event) => event.stopPropagation()}
+                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                            aria-label={`选择 ${item.name}`}
+                          />
                           {renderNodeIcon(item, expandedNodes.has(item.id))}
                           <span className="truncate font-semibold text-slate-700">{item.name}</span>
                           {item.specialBadge && <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-black text-sky-700">{item.specialBadge}</span>}

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FileWatchMessage } from '../../clients/fileserver';
-import { FirmwareTaskEvent, FirmwareTaskLog, FirmwareTaskMetrics, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareTaskResult, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
+import { FirmwareTaskEvent, FirmwareTaskLog, FirmwareTaskMetrics, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareTaskResult, FirmwareTaskRoundMetric, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
 import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
@@ -22,6 +22,8 @@ import { blobToText, buildFirmwareSessionMeta, buildSessionSnapshotFromText, Fir
 interface Props {
   projectId: string;
   projects?: SecurityProject[];
+  initialTaskId?: string;
+  onActiveTaskChange?: (taskId: string) => void;
 }
 
 const fwApi = api.domains.execution.firmwareUnpacker;
@@ -40,6 +42,7 @@ const STATUS_OPTIONS = [
   { value: 'success', label: '成功' },
   { value: 'failed', label: '失败' },
 ];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const FILESERVER_CONTAINER_ROOT = '/data/files';
 const TASK_WORKSPACE_SEGMENT = 'app/secflow-app-firmware-unpacker';
@@ -344,6 +347,267 @@ function TaskStatusBadge({ status }: { status: string }) {
   );
 }
 
+function RoundDetailMetricCard({ label, value, hint }: { label: string; value: string; hint?: string | null }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
+      <div className="mt-2 text-xl font-black text-slate-900">{value}</div>
+      {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
+    </div>
+  );
+}
+
+function RoundDetailField({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+      <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">{label}</div>
+      <div className={`mt-1 text-sm text-slate-700 ${mono ? 'break-all font-mono text-[12px]' : ''}`}>{value}</div>
+    </div>
+  );
+}
+
+function pickRoundSummaryText(round: FirmwareTaskRoundMetric, kind: 'executor' | 'reviewer'): string {
+  const raw = round.raw && typeof round.raw === 'object' ? round.raw : {};
+  const rawAgent = raw[kind] && typeof raw[kind] === 'object' ? raw[kind] as Record<string, any> : {};
+  const candidates = kind === 'executor'
+    ? [
+        round.artifacts.summary_text,
+        rawAgent.response,
+        rawAgent.result,
+        raw.response,
+        round.executor.response_preview,
+        round.artifacts.summary_preview,
+      ]
+    : [
+        round.artifacts.reason_text,
+        rawAgent.review_result,
+        rawAgent.response,
+        raw.review,
+        round.reviewer.review_preview,
+        round.artifacts.reason_preview,
+      ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) return candidate;
+  }
+  return kind === 'executor' ? '暂无工作总结' : '暂无评审总结';
+}
+
+function RoundAgentCard({
+  title,
+  round,
+  kind,
+}: {
+  title: string;
+  round: FirmwareTaskRoundMetric;
+  kind: 'executor' | 'reviewer';
+}) {
+  const agent = kind === 'executor' ? round.executor : round.reviewer;
+  const preview = kind === 'executor' ? round.executor.response_preview : round.reviewer.review_preview;
+  const statusNode = kind === 'reviewer'
+    ? (
+        <span className={round.reviewer.passed ? 'font-bold text-emerald-700' : 'font-bold text-amber-700'}>
+          {round.reviewer.passed ? '通过' : '未通过'}
+        </span>
+      )
+    : (agent.status || '-');
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-black text-slate-900">{title}</div>
+        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${kind === 'reviewer' ? (round.reviewer.passed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700') : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+          {statusNode}
+        </span>
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <RoundDetailField label="耗时" value={formatSeconds(agent.duration_seconds)} />
+        <RoundDetailField label="角色" value={agent.provider_role || round.context.provider_role || '-'} />
+        <RoundDetailField label="会话文件" value={agent.session_file || '-'} mono />
+        <RoundDetailField label="状态" value={kind === 'reviewer' ? statusNode : (agent.status || '-')} />
+      </div>
+      <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">摘要</div>
+        <div className="mt-2 text-sm leading-6 text-slate-700">{preview || '暂无摘要'}</div>
+      </div>
+    </section>
+  );
+}
+
+function RoundDetailModal({
+  round,
+  onClose,
+}: {
+  round: FirmwareTaskRoundMetric;
+  onClose: () => void;
+}) {
+  const [activeSummaryTab, setActiveSummaryTab] = useState<'executor' | 'reviewer'>('executor');
+  const activeSummaryTitle = activeSummaryTab === 'executor' ? '工作总结' : '评审总结';
+  const activeSummaryText = pickRoundSummaryText(round, activeSummaryTab);
+  const activeSummaryMeta = activeSummaryTab === 'executor'
+    ? {
+        status: round.executor.status || '-',
+        duration: formatSeconds(round.executor.duration_seconds),
+        role: round.executor.provider_role || round.context.provider_role || '-',
+        session: round.executor.session_file || '-',
+      }
+    : {
+        status: round.reviewer.passed ? '通过' : '未通过',
+        duration: formatSeconds(round.reviewer.duration_seconds),
+        role: round.reviewer.provider_role || round.context.provider_role || '-',
+        session: round.reviewer.session_file || '-',
+      };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
+      <div className="flex max-h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Round Detail</p>
+            <h3 className="mt-2 text-xl font-black text-slate-900">轮次 #{round.round} 结果详情</h3>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${roundStatusTone(round.status)}`}>{roundStatusLabel(round.status)}</span>
+              {round.context.fallback_to_llm ? <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-700">回退 LLM</span> : null}
+              {round.context.matched_skill ? <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">{round.context.matched_skill}</span> : null}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-5 overflow-auto px-6 py-5">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <RoundDetailMetricCard label="耗时" value={formatSeconds(round.duration_seconds)} hint={`${fmtTime(round.started_at)} -> ${fmtTime(round.completed_at)}`} />
+            <RoundDetailMetricCard label="Token" value={formatNumber(round.tokens.total)} hint={`输入 ${formatNumber(round.tokens.input)} · 输出 ${formatNumber(round.tokens.output)}`} />
+            <RoundDetailMetricCard label="Cost" value={formatCost(round.tokens.cost)} hint={`缓存读 ${formatNumber(round.tokens.cache_read)} · 写 ${formatNumber(round.tokens.cache_write)}`} />
+            <RoundDetailMetricCard label="输出大小" value={formatBytes(round.output_snapshot.output_total_size_bytes)} hint={`文件 ${round.output_snapshot.output_file_count} · 目录 ${round.output_snapshot.output_dir_count}`} />
+            <RoundDetailMetricCard label="本轮增长" value={formatBytes(round.output_delta.size_bytes_delta)} hint={`文件 ${round.output_delta.file_count_delta} · 目录 ${round.output_delta.dir_count_delta}`} />
+            <RoundDetailMetricCard label="告警数" value={String(round.artifacts.warnings.length)} hint={round.artifacts.summary_present || round.artifacts.reason_present ? '已生成文档产物' : '未生成文档产物'} />
+          </div>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="text-sm font-black text-slate-900">策略与来源</div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <RoundDetailField label="命中工具" value={round.context.matched_skill || '-'} />
+              <RoundDetailField label="回退到 LLM" value={round.context.fallback_to_llm ? '是' : '否'} />
+              <RoundDetailField label="Provider Role" value={round.context.provider_role || '-'} />
+              <RoundDetailField label="基线轮次" value={round.output_delta.baseline_round == null ? '-' : `#${round.output_delta.baseline_round}`} />
+            </div>
+            {round.source_path ? (
+              <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">results.json 路径</div>
+                <div className="mt-2 break-all font-mono text-[12px] text-slate-700">{round.source_path}</div>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-black text-slate-900">工作与评审总结</div>
+                <div className="mt-1 text-xs text-slate-500">默认展示结构化摘要，原始 JSON 仅作为额外信息折叠查看</div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'executor' as const, label: '工作总结', hint: round.executor.status || '-' },
+                  { key: 'reviewer' as const, label: '评审总结', hint: round.reviewer.passed ? '通过' : '未通过' },
+                ].map((tab) => {
+                  const active = activeSummaryTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setActiveSummaryTab(tab.key)}
+                      className={`rounded-xl border px-3 py-2 text-xs font-bold transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      {tab.label}
+                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-white/15 text-slate-100' : 'bg-slate-100 text-slate-500'}`}>
+                        {tab.hint}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+              <div className="space-y-3">
+                <RoundAgentCard title="执行器" round={round} kind="executor" />
+                <RoundAgentCard title="评审器" round={round} kind="reviewer" />
+              </div>
+              <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">{activeSummaryTitle}</div>
+                    <div className="mt-1 text-xs text-slate-500">Markdown 解析视图，适合直接阅读完整内容</div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-600">状态：{activeSummaryMeta.status}</span>
+                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-600">耗时：{activeSummaryMeta.duration}</span>
+                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-600">角色：{activeSummaryMeta.role}</span>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-5">
+                  <div className="mb-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">会话文件</div>
+                  <div className="break-all font-mono text-[12px] text-slate-600">{activeSummaryMeta.session}</div>
+                  <article className="prose prose-slate mt-5 max-w-none text-sm leading-7 prose-headings:font-black prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {activeSummaryText}
+                    </ReactMarkdown>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-sm font-black text-slate-900">产物快照</div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <RoundDetailField label="输出文件数" value={String(round.output_snapshot.output_file_count)} />
+                <RoundDetailField label="输出目录数" value={String(round.output_snapshot.output_dir_count)} />
+                <RoundDetailField label="总大小" value={formatBytes(round.output_snapshot.output_total_size_bytes)} />
+                <RoundDetailField label="最大文件" value={formatBytes(round.output_snapshot.largest_file_size_bytes)} />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="text-sm font-black text-slate-900">文档与告警</div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <RoundDetailField label="总结文档" value={round.artifacts.summary_present ? '已生成' : '未生成'} />
+                <RoundDetailField label="改进文档" value={round.artifacts.reason_present ? '已生成' : '未生成'} />
+              </div>
+              {round.artifacts.warnings.length > 0 ? (
+                <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <div className="text-[11px] font-black uppercase tracking-[0.12em] text-amber-700">告警</div>
+                  <div className="mt-2 space-y-2 text-sm text-amber-800">
+                    {round.artifacts.warnings.map((warning, index) => (
+                      <div key={`${warning}-${index}`} className="rounded-xl border border-amber-200 bg-white/60 px-3 py-2">
+                        {warning}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          </div>
+
+          <details className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+            <summary className="cursor-pointer text-sm font-black text-slate-700">
+              查看原始 results.json
+            </summary>
+            <pre className="mt-3 max-h-[420px] overflow-auto rounded-2xl bg-slate-950 px-4 py-4 text-[12px] leading-6 text-slate-100 whitespace-pre-wrap break-words">
+              {JSON.stringify(round.raw || round, null, 2)}
+            </pre>
+          </details>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PhaseStatusBadge({ status }: { status: string }) {
   const cfg: Record<string, string> = {
     pending: 'bg-slate-100 text-slate-500',
@@ -507,7 +771,7 @@ function TaskDetailPanel({
   const [roundStatusFilter, setRoundStatusFilter] = useState('');
   const [roundReviewFilter, setRoundReviewFilter] = useState('');
   const [roundFallbackFilter, setRoundFallbackFilter] = useState('');
-  const [expandedMetricRound, setExpandedMetricRound] = useState<number | null>(null);
+  const [selectedMetricRound, setSelectedMetricRound] = useState<FirmwareTaskRoundMetric | null>(null);
   const [result, setResult] = useState<FirmwareTaskResult | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [resultError, setResultError] = useState('');
@@ -705,7 +969,7 @@ function TaskDetailPanel({
     setRoundStatusFilter('');
     setRoundReviewFilter('');
     setRoundFallbackFilter('');
-    setExpandedMetricRound(null);
+    setSelectedMetricRound(null);
     setResult(null);
     setResultError('');
     setActiveResultDoc('summary');
@@ -917,6 +1181,8 @@ function TaskDetailPanel({
     return roundItems.filter((item) => {
       const searchable = [
         item.context.matched_skill,
+        item.artifacts.summary_text,
+        item.artifacts.reason_text,
         item.artifacts.summary_preview,
         item.artifacts.reason_preview,
         item.executor.response_preview,
@@ -1356,7 +1622,7 @@ function TaskDetailPanel({
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2>
-                          <p className="mt-1 text-xs text-slate-400">展示每一轮执行和评审的产物、耗时、Token 与输出变化，点击行展开完整 results.json</p>
+                          <p className="mt-1 text-xs text-slate-400">展示每一轮执行和评审的产物、耗时、Token 与输出变化，点击行打开结构化轮次详情</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <div className="relative">
@@ -1421,11 +1687,11 @@ function TaskDetailPanel({
                                 <tr
                                   role="button"
                                   tabIndex={0}
-                                  onClick={() => setExpandedMetricRound((current) => current === round.round ? null : round.round)}
+                                  onClick={() => setSelectedMetricRound(round)}
                                   onKeyDown={(event) => {
                                     if (event.key === 'Enter' || event.key === ' ') {
                                       event.preventDefault();
-                                      setExpandedMetricRound((current) => current === round.round ? null : round.round);
+                                      setSelectedMetricRound(round);
                                     }
                                   }}
                                   className="cursor-pointer bg-white transition hover:bg-slate-50"
@@ -1456,20 +1722,6 @@ function TaskDetailPanel({
                                   </td>
                                   <td className="px-3 py-3 text-slate-600">{round.artifacts.warnings.length || '-'}</td>
                                 </tr>
-                                {expandedMetricRound === round.round ? (
-                                  <tr>
-                                    <td colSpan={12} className="bg-slate-950 px-4 py-4">
-                                      {round.source_path ? (
-                                        <div className="mb-3 break-all rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 font-mono text-[11px] text-slate-400">
-                                          {round.source_path}
-                                        </div>
-                                      ) : null}
-                                      <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-all text-xs leading-6 text-slate-200">
-                                        {JSON.stringify(round.raw || round, null, 2)}
-                                      </pre>
-                                    </td>
-                                  </tr>
-                                ) : null}
                               </React.Fragment>
                             ))}
                             {filteredRoundItems.length === 0 ? (
@@ -2184,11 +2436,18 @@ function TaskDetailPanel({
           </div>
         </div>
       )}
+
+      {selectedMetricRound && (
+        <RoundDetailModal
+          round={selectedMetricRound}
+          onClose={() => setSelectedMetricRound(null)}
+        />
+      )}
     </div>
   );
 }
 
-export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = [] }) => {
+export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = [], initialTaskId = '', onActiveTaskChange }) => {
   const { notify, feedbackNodes } = useUiFeedback();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -2201,7 +2460,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [activeTaskId, setActiveTaskId] = useState('');
+  const [activeTaskId, setActiveTaskId] = useState(() => initialTaskId.trim());
   const [detailLoading, setDetailLoading] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState('');
   const [resourceUsage, setResourceUsage] = useState<FirmwareTaskResourceUsage | null>(null);
@@ -2216,19 +2475,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [resultRefreshingTaskId, setResultRefreshingTaskId] = useState('');
   const [detailActiveTab, setDetailActiveTab] = useState<DetailTab>('overview');
   const [detailRefreshRequest, setDetailRefreshRequest] = useState(0);
-
-  useEffect(() => {
-    const storedTaskId = sessionStorage.getItem('secflow:firmwareUnpackerTaskId');
-    if (!storedTaskId) return;
-    sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
-    setActiveTaskId(storedTaskId);
-  }, []);
+  const normalizedInitialTaskId = initialTaskId.trim();
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
   const [filterWorker, setFilterWorker] = useState('');
   const [page, setPage] = useState(0);
-  const PAGE_SIZE = 20;
+  const [pageSize, setPageSize] = useState(20);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const taskItems = Array.isArray(tasks) ? tasks : [];
@@ -2254,7 +2507,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     setCreateModalOpen(true);
   }, [resetCreateForm]);
 
-  const fetchTasks = useCallback(async (resetPage = false, options?: { silent?: boolean }) => {
+  const fetchTasks = useCallback(async (resetPage = false, options?: {
+    silent?: boolean;
+    pageOverride?: number;
+    pageSizeOverride?: number;
+    statusOverride?: string;
+    searchOverride?: string;
+    workerOverride?: string;
+  }) => {
     if (!projectId) {
       if (resetPage) setPage(0);
       setTasks([]);
@@ -2269,26 +2529,37 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setLoading(true);
       setListError('');
     }
-    const currentPage = resetPage ? 0 : page;
+    const currentPage = resetPage ? 0 : options?.pageOverride ?? page;
+    const currentPageSize = options?.pageSizeOverride ?? pageSize;
+    const currentStatus = options?.statusOverride ?? filterStatus;
+    const currentSearch = options?.searchOverride ?? filterSearch;
+    const currentWorker = options?.workerOverride ?? filterWorker;
     if (resetPage) setPage(0);
     try {
       const query: TaskListQuery = {
         project_id: projectId,
-        limit: PAGE_SIZE,
-        offset: currentPage * PAGE_SIZE,
+        limit: currentPageSize,
+        offset: currentPage * currentPageSize,
       };
-      if (filterStatus) query.status = filterStatus;
-      if (filterWorker) query.worker_id = filterWorker;
-      if (filterSearch) query.search = filterSearch;
+      if (currentStatus) query.status = currentStatus;
+      if (currentWorker) query.worker_id = currentWorker;
+      if (currentSearch) query.search = currentSearch;
       const res = await fwApi.listTasks(query);
-      setTasks((prev) => sameJsonValue(prev, res.items) ? prev : res.items);
+      setTasks((prev) => {
+        let next = res.items;
+        if (activeTaskId && !next.some((task) => task.id === activeTaskId)) {
+          const activeFromPrev = prev.find((task) => task.id === activeTaskId);
+          if (activeFromPrev) next = [activeFromPrev, ...next];
+        }
+        return sameJsonValue(prev, next) ? prev : next;
+      });
       setTotal((prev) => prev === res.total ? prev : res.total);
     } catch (e: any) {
       if (!options?.silent) setListError(e?.message || '加载失败');
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [page, projectId, filterStatus, filterSearch, filterWorker]);
+  }, [activeTaskId, page, pageSize, projectId, filterStatus, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string, options?: {
     showDetailLoading?: boolean;
@@ -2302,10 +2573,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     if (isActive && showDetailLoading) setDetailLoading(true);
     try {
       const task = await fwApi.getTask(id);
-      setTasks((prev) => prev.map((item) => {
-        if (item.id !== id) return item;
-        return sameJsonValue(item, task) ? item : task;
-      }));
+      setTasks((prev) => {
+        const exists = prev.some((item) => item.id === id);
+        if (!exists) return [task, ...prev];
+        return prev.map((item) => {
+          if (item.id !== id) return item;
+          return sameJsonValue(item, task) ? item : task;
+        });
+      });
       if (isActive && (refreshResource || refreshProgress)) {
         const [usage, taskProgress] = await Promise.all([
           refreshResource ? fwApi.getTaskResourceUsage(id).catch(() => null) : Promise.resolve(undefined),
@@ -2371,22 +2646,44 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   useEffect(() => {
     fetchTasks(true);
     setSelected(new Set());
-    setActiveTaskId('');
-  }, [projectId]);
+    const storedTaskId = normalizedInitialTaskId || sessionStorage.getItem('secflow:firmwareUnpackerTaskId')?.trim();
+    if (storedTaskId) {
+      sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
+      setActiveTaskId(storedTaskId);
+      setDetailActiveTab('overview');
+    } else {
+      setActiveTaskId('');
+    }
+  }, [projectId, normalizedInitialTaskId]);
+
+  useEffect(() => {
+    if (!normalizedInitialTaskId) return;
+    setActiveTaskId(normalizedInitialTaskId);
+    setDetailActiveTab('overview');
+  }, [normalizedInitialTaskId]);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {};
+      if (detail.view !== 'pentest-exec-firmware-unpacker' && detail.view !== 'pentest-exec-firmware-task-list') return;
+      const taskId = String(detail.firmwareUnpackerTaskId || detail.taskId || '').trim();
+      if (!taskId) return;
+      sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
+      setActiveTaskId(taskId);
+      setDetailActiveTab('overview');
+    };
+    window.addEventListener('secflow-navigate-view', handler as EventListener);
+    return () => window.removeEventListener('secflow-navigate-view', handler as EventListener);
+  }, []);
 
   useEffect(() => {
     fetchTasks();
   }, [page]);
 
   useEffect(() => {
-    if (!taskItems.length && activeTaskId) {
-      setActiveTaskId('');
-      return;
-    }
-    if (activeTaskId && !taskItems.some((task) => task.id === activeTaskId)) {
-      setActiveTaskId('');
-    }
-  }, [taskItems, activeTaskId]);
+    const maxPage = Math.max(0, Math.ceil(total / pageSize) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [page, pageSize, total]);
 
   useEffect(() => {
     if (!activeTaskId) {
@@ -2402,9 +2699,16 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setLogModalPhase('');
       return;
     }
+    if (!taskItems.some((task) => task.id === activeTaskId)) {
+      void refreshOne(activeTaskId, {
+        showDetailLoading: true,
+        refreshProgress: false,
+        refreshResource: false,
+      });
+    }
     loadResourceUsage(activeTaskId);
     loadTaskProgress(activeTaskId);
-  }, [activeTaskId, loadResourceUsage, loadTaskProgress]);
+  }, [activeTaskId, loadResourceUsage, loadTaskProgress, refreshOne, taskItems]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2588,12 +2892,15 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     setSelected(checked ? new Set(taskItems.map((task) => task.id)) : new Set());
   };
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const pageStart = total === 0 ? 0 : page * pageSize + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(total, page * pageSize + taskItems.length);
   const showingDetail = Boolean(activeTaskId);
   const hasReturnContext = hasBinarySecurityReturnTarget(activeTask);
   const handleDetailBack = () => {
     if (navigateBackByTaskOrigin(activeTask)) return;
     if (navigateBackToBinarySecurityTask()) return;
+    onActiveTaskChange?.('');
     setActiveTaskId('');
   };
   const handlePageRefresh = () => {
@@ -2839,8 +3146,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             <select
               value={filterStatus}
               onChange={(e) => {
-                setFilterStatus(e.target.value);
-                fetchTasks(true);
+                const nextStatus = e.target.value;
+                setFilterStatus(nextStatus);
+                fetchTasks(true, { statusOverride: nextStatus });
               }}
               className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
             >
@@ -2854,7 +3162,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               <input
                 value={filterSearch}
                 onChange={(e) => setFilterSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true, { searchOverride: filterSearch })}
                 placeholder="搜索固件路径..."
                 className="w-44 rounded-lg border border-slate-200 bg-white py-1.5 pl-7 pr-8 text-xs text-slate-700 outline-none focus:border-blue-300"
               />
@@ -2862,7 +3170,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 <button
                   onClick={() => {
                     setFilterSearch('');
-                    fetchTasks(true);
+                    fetchTasks(true, { searchOverride: '' });
                   }}
                   className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
                 >
@@ -2874,7 +3182,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             <input
               value={filterWorker}
               onChange={(e) => setFilterWorker(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true)}
+              onKeyDown={(e) => e.key === 'Enter' && fetchTasks(true, { workerOverride: filterWorker })}
               placeholder="Worker ID 过滤..."
               className="w-36 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-300"
             />
@@ -2941,25 +3249,59 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             </div>
           )}
 
-          {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-center gap-2">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div className="text-xs text-slate-500">
+              共 {total} 条，当前显示 {pageStart}-{pageEnd}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                每页
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    const nextSize = Number(e.target.value) || 20;
+                    setPageSize(nextSize);
+                    fetchTasks(true, { pageSizeOverride: nextSize });
+                  }}
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+                条
+              </label>
               <button
                 disabled={page === 0}
-                onClick={() => setPage((current) => current - 1)}
+                onClick={() => setPage(0)}
+                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              >
+                首页
+              </button>
+              <button
+                disabled={page === 0}
+                onClick={() => setPage((current) => Math.max(0, current - 1))}
                 className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
               >
                 上一页
               </button>
-              <span className="text-xs text-slate-500">{page + 1} / {totalPages}</span>
+              <span className="min-w-16 text-center text-xs text-slate-500">{page + 1} / {totalPages}</span>
               <button
                 disabled={page >= totalPages - 1}
-                onClick={() => setPage((current) => current + 1)}
+                onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
                 className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
               >
                 下一页
               </button>
+              <button
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage(totalPages - 1)}
+                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+              >
+                末页
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
       )}

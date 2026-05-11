@@ -29,6 +29,7 @@ import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPag
 import { SystemAnalysisTaskDetailPage } from '../pages/execution/SystemAnalysisTaskDetailPage';
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
+import { DataflowAnalysisTaskDetailPage } from '../pages/execution/DataflowAnalysisTaskDetailPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
@@ -46,10 +47,11 @@ import { ExecutionCodeAuditPage } from '../pages/execution/ExecutionCodeAuditPag
 import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatformPage';
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
-import { DataflowVulnConfigPage, DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
+import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
+import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcVulnPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
@@ -101,6 +103,8 @@ export interface ViewRegistryContext {
   activeB2SItemId: string;
   activeSystemAnalysisTaskId: string;
   activeEntryAnalysisTaskId: string;
+  activeDataflowAnalysisTaskId: string;
+  activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
@@ -115,6 +119,8 @@ export interface ViewRegistryContext {
   setActiveB2SItemId: (id: string) => void;
   setActiveSystemAnalysisTaskId: (id: string) => void;
   setActiveEntryAnalysisTaskId: (id: string) => void;
+  setActiveDataflowAnalysisTaskId: (id: string) => void;
+  setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
@@ -239,8 +245,25 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'system-analysis-config':
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-dataflow':
     case 'dataflow-analysis-task':
-      return <DataflowAnalysisTaskPage projectId={ctx.selectedProjectId} />;
+      return (
+        <DataflowAnalysisTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            ctx.setActiveDataflowAnalysisTaskId(taskId);
+            ctx.setCurrentView('dataflow-analysis-detail');
+          }}
+        />
+      );
+    case 'dataflow-analysis-detail':
+      return (
+        <DataflowAnalysisTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeDataflowAnalysisTaskId}
+          onBack={() => ctx.setCurrentView('dataflow-analysis-task')}
+        />
+      );
     case 'dataflow-analysis-config':
       return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'workflow-instances':
@@ -335,7 +358,14 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ExecutionWorkPlatformPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-firmware-unpacker':
     case 'pentest-exec-firmware-task-list':
-      return <FirmwareUnpackerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+      return (
+        <FirmwareUnpackerPage
+          projectId={ctx.selectedProjectId}
+          projects={ctx.projects}
+          initialTaskId={ctx.activeFirmwareUnpackerTaskId}
+          onActiveTaskChange={ctx.setActiveFirmwareUnpackerTaskId}
+        />
+      );
     case 'pentest-exec-firmware-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-b2s':
@@ -418,13 +448,15 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'binary-security-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
+    case 'mobile-security-ipc-vuln':
+      return <MobileSecurityIpcVulnPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln-task-detail':
-      return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln-task-list')} />;
+      return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln')} />;
     case 'pentest-exec-dataflow-vuln-system-config':
-      return <DataflowVulnConfigPage projectId={ctx.selectedProjectId} />;
+      return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} initialTab="dataflow-vuln" />;
     case 'pentest-report':
       return <ReportsPage />;
     case 'security-assessment':

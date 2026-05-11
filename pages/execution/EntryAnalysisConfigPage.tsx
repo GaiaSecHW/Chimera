@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Plus, RefreshCw, Settings, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import {
@@ -218,32 +218,11 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
     notify('已重置为默认值（尚未保存）', 'info');
   };
 
-  const reload = () => {
-    setLoading(true);
-    entryAnalysis.getConfig(projectId)
-      .then((cfg) => {
-        const base = defaultConfig(projectId);
-        const safe: EntryAnalysisServiceConfig = {
-          ...base,
-          ...cfg,
-          project_id: projectId,
-          workers: { ...base.workers, ...(cfg.workers && typeof cfg.workers === 'object' ? cfg.workers : {}) },
-          judges: { ...base.judges, ...(cfg.judges && typeof cfg.judges === 'object' ? cfg.judges : {}) },
-        };
-        setConfig(safe);
-      })
-      .catch((err) => {
-        notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-        setConfig(defaultConfig(projectId));
-      })
-      .finally(() => setLoading(false));
-  };
-
   return (
-    <div className={embedded ? 'space-y-4' : 'px-8 pt-8 pb-10 space-y-6'}>
+    <div className={embedded ? 'space-y-6' : 'px-8 pt-8 pb-10 space-y-6'}>
       {feedbackNodes}
 
-      {!embedded ? (
+      {!embedded && (
         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
@@ -251,39 +230,6 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}
-        </section>
-      ) : (
-        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Settings size={18} className="text-rose-600" />
-                <h2 className="text-xl font-black text-slate-900">入口分析参数配置</h2>
-                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
-                  secflow-app-entry-analyse
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-slate-500">
-                当前 Tab 中的全部配置项都归属于 `secflow-app-entry-analyse` 微服务，用于控制入口分析服务的分析轮次、重试策略、Worker 和 Judge 模型行为。
-              </p>
-              {config.updated_at && (
-                <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={reload}
-              disabled={loading || saving}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-            >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              刷新
-            </button>
-          </div>
-
-          <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-            配置立即生效于后端服务，所有该项目下的入口分析任务默认共享这些参数。修改后无需重启。
-          </div>
         </section>
       )}
 

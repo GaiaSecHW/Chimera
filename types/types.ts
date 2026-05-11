@@ -1867,11 +1867,12 @@ export type ViewType =
   | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-detail' | 'system-analysis-history' | 'system-analysis-prompt' | 'system-analysis-config'
   | 'workflow-instances' | 'workflow-instance-detail' | 'workflow-instance-logs' | 'workflow-jobs' | 'workflow-job-detail' | 'workflow-apps' | 'workflow-app-detail' | 'workflow-app-instances' | 'workflow-app-instance-detail'
   | 'pentest-root' | 'pentest-system'
-  | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work'
+  | 'pentest-threat' | 'pentest-exec-code' | 'pentest-exec-work' | 'pentest-dataflow'
   | 'pentest-exec-firmware-unpacker' | 'pentest-exec-firmware-task-list' | 'pentest-exec-firmware-config'
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
   | 'source-security' | 'source-security-detail'
+  | 'mobile-security-ipc-vuln'
   | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'
   | 'pentest-report'
   | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config'
@@ -2787,6 +2788,99 @@ export interface AppDfaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+}
+
+export interface AppDfaSessionMeta {
+  session_id: string;
+  session_name: string;
+  relative_path: string;
+  stage_group: string;
+  role_name: string;
+  size: number;
+  mtime: number;
+  event_count: number;
+  message_count?: number;
+  is_active: boolean;
+  display_name: string;
+}
+
+export interface AppDfaSessionEvent {
+  type: string;
+  event_index?: number;
+  line?: number;
+  timestamp?: string;
+  display_timestamp?: string;
+  role?: string;
+  render_role?: string;
+  parts?: Array<Record<string, any>>;
+  message?: Record<string, any>;
+  provider?: string;
+  model?: string;
+  modelId?: string;
+  thinkingLevel?: string;
+  raw_line?: string;
+  summary?: string;
+  [key: string]: any;
+}
+
+export interface AppDfaSessionSnapshot {
+  task_id: string;
+  path: string;
+  line_count: number;
+  events: AppDfaSessionEvent[];
+  warnings: string[];
+  session_meta?: Record<string, any> | null;
+  meta?: AppDfaSessionMeta;
+}
+
+export interface AppDfaResultFile {
+  name: string;
+  relative_path: string;
+  markdown?: string;
+  size: number;
+  mtime: number;
+}
+
+export interface AppDfaTaskResult {
+  task_id: string;
+  available: boolean;
+  status: AppDfaTaskItem['status'];
+  output_root: string;
+  warnings: string[];
+  result_markdown: string;
+  run_report_markdown: string;
+  result_json?: Record<string, any> | null;
+  output_files: AppDfaResultFile[];
+  dataflow_files: AppDfaResultFile[];
+  summary: {
+    function_count: number;
+    round_count: number;
+    passed_round_count: number;
+    total_tokens: number;
+    total_cost: number;
+    effectiveness?: Record<string, any>;
+  };
+}
+
+export interface AppDfaEvaluationRound {
+  round?: number;
+  status?: string;
+  passed?: boolean;
+  function?: string;
+  func?: string;
+  entry?: string;
+  metrics?: Record<string, any>;
+  token_usage?: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface AppDfaTaskEvaluation {
+  task_id: string;
+  available: boolean;
+  status: AppDfaTaskItem['status'];
+  summary: AppDfaTaskResult['summary'];
+  rounds: AppDfaEvaluationRound[];
+  warnings: string[];
 }
 
 

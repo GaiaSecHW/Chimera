@@ -1,5 +1,6 @@
+/* @refresh reset */
 import React, { useEffect, useState } from 'react';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Settings, Trash2 } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppDfaAgentInstance, AppDfaRoleConfig, AppDfaServiceConfig, LlmProviderSummary } from '../../types/types';
@@ -21,7 +22,7 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   pi_max_retries: -1,
   pi_retry_delay: 10,
   max_trace_depth: 5,
-  callee_concurrency: -1,
+  callee_concurrency: 4,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -128,7 +129,7 @@ const RoleConfigBlock: React.FC<{
 
 // ─── 主页面 ────────────────────────────────────────────────────────────────────
 
-export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?: boolean }> = ({ projectId, embedded = false }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const dfaApi = api.domains.execution.appDataflowAnalyse;
 
@@ -162,7 +163,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
     };
   };
 
-  useEffect(() => {
+  const reload = () => {
     let cancelled = false;
     setLoading(true);
     dfaApi.getConfig(projectId)
@@ -175,13 +176,17 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
+  };
+
+  useEffect(() => {
+    return reload();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const handleSave = async () => {
     const agents = config.workers?.agents ?? [];
     if (agents.length === 0 || agents.every((a) => !a.model)) {
-      notify('Agent 实例列表至少需要一个有效的模型配置', 'error');
+      notify('保存失败：请在「Workers 配置」中至少添加一个 Agent 实例并选择模型', 'error');
       return;
     }
     setSaving(true);
@@ -202,19 +207,50 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
   };
 
   return (
-    <div className="px-8 pt-8 pb-10 space-y-6">
+    <div className={embedded ? 'space-y-6' : 'px-8 pt-8 pb-10 space-y-6'}>
       {feedbackNodes}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          配置 secflow-app-dataflow-analyse 数据流分析引擎的运行参数，修改后点击「保存配置」生效。
-        </p>
-        {config.updated_at && (
-          <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
-        )}
-      </section>
+      {!embedded ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            配置 secflow-app-dataflow-analyse 数据流分析引擎的运行参数，修改后点击「保存配置」生效。
+          </p>
+          {config.updated_at && (
+            <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+          )}
+        </section>
+      ) : (
+        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Settings size={18} className="text-rose-600" />
+                <h2 className="text-xl font-black text-slate-900">数据流分析参数配置</h2>
+                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-rose-700">
+                  secflow-app-dataflow-analyse
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-slate-500">
+                当前 Tab 中的全部配置项都归属于 `secflow-app-dataflow-analyse` 微服务，用于控制数据流分析服务的追踪深度、轮次、重试和 Agent 模型行为。
+              </p>
+              {config.updated_at && (
+                <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => { void reload(); }}
+              disabled={loading || saving}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+              刷新
+            </button>
+          </div>
+        </section>
+      )}
 
       {loading ? (
         <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
@@ -243,8 +279,8 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
               <FieldRow label="max_trace_depth" hint="最大追踪深度">
                 <NumberInput value={config.max_trace_depth} min={1} max={20} onChange={(v) => patch({ max_trace_depth: v })} />
               </FieldRow>
-              <FieldRow label="callee_concurrency" hint="-1 = 自动">
-                <NumberInput value={config.callee_concurrency} min={-1} max={32} onChange={(v) => patch({ callee_concurrency: v })} />
+              <FieldRow label="callee_concurrency" hint="BFS 并行度 1-64">
+                <NumberInput value={config.callee_concurrency} min={1} max={64} onChange={(v) => patch({ callee_concurrency: v })} />
               </FieldRow>
             </div>
           </SectionCard>
@@ -270,7 +306,7 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string }> = ({ pr
           {/* Workers */}
           <RoleConfigBlock
             title="Workers 配置"
-            subtitle="执行数据流分析工作的 Agent"
+            subtitle="执行数据流分析工作的 Agent（必填：至少添加一个 Agent 并选择模型才能保存）"
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}

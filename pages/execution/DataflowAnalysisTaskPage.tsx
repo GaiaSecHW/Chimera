@@ -1,8 +1,10 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+/* @refresh reset */
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, FolderOpen, List, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem } from '../../types/types';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -25,9 +27,11 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
-function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
-  if (!startedAt || !finishedAt) return '-';
-  const secs = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000);
+function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
+  if (!startedAt) return '-';
+  const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
+  const endSecs = finishedAt ? Math.floor(new Date(finishedAt).getTime() / 1000) : nowSecs;
+  const secs = Math.max(0, endSecs - startSecs);
   if (secs < 60) return `${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -150,6 +154,55 @@ function computeRoundProgress(events: AppDfaStageEvent[]): RoundProgress {
     if (evt.type === 'worker_done') workersDone++;
   }
   return { round, func, workersDone, workersTotal, tracedCount: tracedFuncs.size };
+}
+
+// ── DFA Dataflow Tree ─────────────────────────────────────────────────────────
+
+interface DfaTreeNode {
+  name: string;
+  depth: number;
+  status: 'pending' | 'running' | 'done';
+  children: DfaTreeNode[];
+}
+
+function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNode | null {
+  const calleesMap  = new Map<string, string[]>();      // parent → valid callees
+  const nodeDepth   = new Map<string, number>();
+  const nodeSt      = new Map<string, 'running' | 'done'>();
+  let rootName: string | null = null;
+
+  for (const evt of events) {
+    const d = evt.data ?? {};
+    if (evt.type === 'trace_start') {
+      const fn = ((d.function ?? d.task) as string | undefined)?.trim();
+      if (!fn) continue;
+      const depth = (d.depth as number) ?? 0;
+      if (!nodeDepth.has(fn) || nodeDepth.get(fn)! > depth) nodeDepth.set(fn, depth);
+      if (!nodeSt.has(fn)) nodeSt.set(fn, 'running');
+      if (rootName === null && depth === 0) rootName = fn;
+    } else if (evt.type === 'trace_callees') {
+      const fn = (d.function as string | undefined)?.trim();
+      const callees = (d.callees as string[] | undefined) ?? [];
+      if (fn) { calleesMap.set(fn, callees); nodeSt.set(fn, 'done'); }
+    }
+  }
+
+  if (!['running', 'pending'].includes(taskStatus)) {
+    for (const [fn, st] of nodeSt) if (st === 'running') nodeSt.set(fn, 'done');
+  }
+
+  if (!rootName) return null;
+
+  const build = (name: string, inheritDepth: number, visited = new Set<string>()): DfaTreeNode => {
+    if (visited.has(name)) return { name, depth: inheritDepth, status: 'done', children: [] };
+    visited.add(name);
+    const depth = nodeDepth.get(name) ?? inheritDepth;
+    const status = nodeSt.get(name) ?? 'pending';
+    const children = (calleesMap.get(name) ?? []).map((cn) => build(cn, depth + 1, new Set(visited)));
+    return { name, depth, status, children };
+  };
+
+  return build(rootName, 0);
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
@@ -277,18 +330,28 @@ const emptyForm = {
   taint_vars: '',
 };
 
-export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appDataflowAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
+  const autoRefreshStorageKey = `secflow:dataflowAnalysis:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `secflow:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [batchCancelling, setBatchCancelling] = useState(false);
+  const [batchRestarting, setBatchRestarting] = useState(false);
   const [tasks, setTasks] = useState<AppDfaTaskItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(100);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
+  const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -325,7 +388,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
     if (!projectId) return;
     setLoading(true);
     try {
-      const resp = await appApi.listTasks({ project_id: projectId, page: p, per_page: perPage });
+      const resp = await appApi.listTasks({ project_id: projectId, page: p, per_page: perPage, status: statusFilter });
       setTasks(resp.items || []);
       setTotal(resp.total || 0);
     } catch (err: any) {
@@ -333,9 +396,40 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage]);
+  }, [projectId, page, perPage, statusFilter]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage]);
+  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter]);
+
+  useEffect(() => {
+    const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
+    const storedInterval = localStorage.getItem(refreshIntervalStorageKey);
+    setAutoRefreshEnabled(storedEnabled === 'true');
+    if (storedInterval) {
+      const parsed = Number(storedInterval);
+      setRefreshIntervalSec(Number.isFinite(parsed) ? Math.max(5, Math.floor(parsed)) : 10);
+    } else {
+      setRefreshIntervalSec(10);
+    }
+  }, [autoRefreshStorageKey, refreshIntervalStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(autoRefreshStorageKey, String(autoRefreshEnabled));
+  }, [autoRefreshEnabled, autoRefreshStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(refreshIntervalStorageKey, String(refreshIntervalSec));
+  }, [refreshIntervalSec, refreshIntervalStorageKey]);
+
+  useEffect(() => {
+    setSelectedTaskIds((current) => {
+      const validIds = new Set(tasks.map((task) => task.task_id));
+      const next = new Set<string>();
+      current.forEach((taskId) => {
+        if (validIds.has(taskId)) next.add(taskId);
+      });
+      return next;
+    });
+  }, [tasks]);
 
   // ── Load task detail ──────────────────────────────────────────────────────
 
@@ -352,22 +446,33 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const handleSelectTask = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setModalOpen(true);
-    void loadDetail(taskId);
+    if (onOpenTask) {
+      onOpenTask(taskId);
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+      detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: taskId },
+    }));
   };
 
   // ── Auto-poll when tasks are running or pending ───────────────────────────
   const hasActiveTasks = tasks.some((t) => t.status === 'running' || t.status === 'pending');
+  const hasActiveDetail = Boolean(detail && (detail.status === 'running' || detail.status === 'pending'));
   useEffect(() => {
+    if (!hasActiveTasks && !hasActiveDetail) return;
+    const timer = window.setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveTasks, hasActiveDetail]);
+
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
     if (!hasActiveTasks) return;
     const timer = setInterval(() => {
       void loadTasks(page);
-      if (selectedTaskId && modalOpen) void loadDetail(selectedTaskId);
-    }, 5000);
+    }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasActiveTasks, projectId, page, selectedTaskId, modalOpen]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, projectId, page]);
 
   // Auto-scroll logs to bottom when new events arrive
   useEffect(() => {
@@ -447,14 +552,177 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const handleDelete = async (taskId: string, taskName: string) => {
-    if (!window.confirm(`确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`)) return;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: `确定要删除任务「${taskName}」及其所有输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
     try {
       await appApi.deleteTask(taskId, true);
       notify('任务已删除', 'success');
       if (selectedTaskId === taskId) { setModalOpen(false); setSelectedTaskId(''); }
+      setSelectedTaskIds((current) => {
+        const next = new Set(current);
+        next.delete(taskId);
+        return next;
+      });
       await loadTasks(page);
     } catch (err: any) {
       notify(`删除失败: ${err?.message || err}`, 'error');
+    }
+  };
+
+  const toggleTaskSelection = (taskId: string, checked: boolean) => {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(taskId);
+      else next.delete(taskId);
+      return next;
+    });
+  };
+
+  const toggleAllPageSelection = (checked: boolean) => {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      if (checked) tasks.forEach((task) => next.add(task.task_id));
+      else tasks.forEach((task) => next.delete(task.task_id));
+      return next;
+    });
+  };
+
+  const handleBatchDelete = async () => {
+    const taskIds = Array.from(selectedTaskIds);
+    if (taskIds.length === 0) {
+      notify('请先选择要删除的任务', 'error');
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '批量删除任务',
+      message: `确定要批量删除 ${taskIds.length} 个数据流分析任务及其输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    setBatchDeleting(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const taskId of taskIds) {
+      try {
+        await appApi.deleteTask(taskId, true);
+        success += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstError) firstError = err?.message || String(err);
+      }
+    }
+    setBatchDeleting(false);
+    setSelectedTaskIds(new Set());
+    if (selectedTaskId && taskIds.includes(selectedTaskId)) {
+      closeModal();
+    }
+    await loadTasks(page);
+
+    if (failed === 0) {
+      notify(`批量删除成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量删除完成，成功 ${success} / ${taskIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量删除失败：${firstError || '未知错误'}`, 'error');
+    }
+  };
+
+  const handleBatchCancel = async () => {
+    const activeIds = tasks
+      .filter((task) => selectedTaskIds.has(task.task_id) && (task.status === 'pending' || task.status === 'running'))
+      .map((task) => task.task_id);
+    if (activeIds.length === 0) {
+      notify('已选择任务中没有可取消的等待中或运行中任务', 'error');
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '批量取消任务',
+      message: `确定要取消 ${activeIds.length} 个等待中/运行中的数据流分析任务吗？任务记录和输出文件会保留。`,
+      confirmText: '确认取消',
+      cancelText: '返回',
+    });
+    if (!confirmed) return;
+
+    setBatchCancelling(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const taskId of activeIds) {
+      try {
+        await appApi.cancelTask(taskId);
+        success += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstError) firstError = err?.message || String(err);
+      }
+    }
+    setBatchCancelling(false);
+    await loadTasks(page);
+    if (selectedTaskId && activeIds.includes(selectedTaskId)) {
+      void loadDetail(selectedTaskId);
+    }
+
+    if (failed === 0) {
+      notify(`批量取消成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量取消完成，成功 ${success} / ${activeIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量取消失败：${firstError || '未知错误'}`, 'error');
+    }
+  };
+
+  const handleBatchRestart = async () => {
+    const restartableIds = tasks
+      .filter((task) => selectedTaskIds.has(task.task_id) && task.status !== 'pending' && task.status !== 'running')
+      .map((task) => task.task_id);
+    if (restartableIds.length === 0) {
+      notify('已选择任务中没有可重试的终态任务', 'error');
+      return;
+    }
+    const skipped = selectedTaskIds.size - restartableIds.length;
+    const confirmed = await showConfirm({
+      title: '批量重试任务',
+      message: `确定要重试 ${restartableIds.length} 个数据流分析任务吗？${skipped > 0 ? `将跳过 ${skipped} 个等待中/运行中的任务。` : ''}`,
+      confirmText: '确认重试',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+
+    setBatchRestarting(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+    for (const taskId of restartableIds) {
+      try {
+        await appApi.restartTask(taskId);
+        success += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (!firstError) firstError = err?.message || String(err);
+      }
+    }
+    setBatchRestarting(false);
+    await loadTasks(page);
+    if (selectedTaskId && restartableIds.includes(selectedTaskId)) {
+      void loadDetail(selectedTaskId);
+    }
+
+    if (failed === 0) {
+      notify(`批量重试成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量重试完成，成功 ${success} / ${restartableIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量重试失败：${firstError || '未知错误'}`, 'error');
     }
   };
 
@@ -493,6 +761,8 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const totalPages = Math.ceil(total / perPage);
+  const allPageSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
+  const hasSelection = selectedTaskIds.size > 0;
 
   const stageStatuses = detail
     ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
@@ -504,6 +774,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
 
   const events = detail?.stages_json?.events ?? [];
   const roundProgress = computeRoundProgress(events);
+  const dfaTree = detail ? buildDfaTree(events, detail.status) : null;
 
   const logLines = events.map(formatEventLog).filter(Boolean);
 
@@ -596,7 +867,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                   {detail.output_path ? <InfoRow label="输出路径" value={<span className="font-mono break-all">{detail.output_path}</span>} /> : <div />}
                   {detail.finished_at ? <InfoRow label="完成时间" value={new Date(detail.finished_at).toLocaleString('zh-CN')} /> : <div />}
                   {detail.task_description ? <InfoRow label="描述" value={detail.task_description} /> : null}
-                  {detail.started_at ? <InfoRow label="耗时" value={formatDuration(detail.started_at, detail.finished_at ?? undefined)} /> : null}
+                  {detail.started_at ? <InfoRow label="耗时" value={formatDuration(detail.started_at, detail.finished_at ?? undefined, clockNow)} /> : null}
                 </div>
 
                 {/* Stage Progress */}
@@ -661,6 +932,21 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                     })}
                   </div>
                 </div>
+
+                {/* Dataflow Call Tree */}
+                {dfaTree ? (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                      数据流调用树
+                      <span className="ml-2 normal-case font-normal text-slate-400">
+                        {dfaTree.status === 'running' ? '分析中…' : `已完成`}
+                      </span>
+                    </h3>
+                    <div className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 max-h-72 overflow-auto">
+                      <DfaTreeNodeView node={dfaTree} depth={0} />
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Error */}
                 {detail.error ? (
@@ -752,14 +1038,48 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-2 mb-4">
           <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={autoRefreshEnabled}
+                onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+              />
+              自动刷新
+            </label>
+            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+              间隔
+              <input
+                type="number"
+                min={5}
+                step={1}
+                value={refreshIntervalSec}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
+                }}
+                className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+              />
+              秒
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="任务状态筛选"
+            >
+              <option value="">全部状态</option>
+              {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
             <select
               value={perPage}
               onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
               className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
               title="每页显示条数"
             >
-              {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+              {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
@@ -777,20 +1097,100 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
           </div>
         </div>
 
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <span>
+            自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}
+          </span>
+          {autoRefreshEnabled && !hasActiveTasks ? (
+            <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
+          ) : null}
+          {autoRefreshEnabled && hasActiveTasks ? (
+            <span className="text-violet-600">检测到活跃任务，按设定间隔自动刷新</span>
+          ) : null}
+        </div>
+
+        {hasSelection ? (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={allPageSelected}
+                  onChange={(e) => toggleAllPageSelection(e.target.checked)}
+                />
+                全选当前页（{tasks.length} 条）
+              </label>
+              <span className="text-sm font-semibold text-violet-700">已选择 {selectedTaskIds.size} 个任务</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => void handleBatchCancel()}
+                disabled={batchCancelling || batchDeleting || batchRestarting}
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+              >
+                {batchCancelling ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                批量取消
+              </button>
+              <button
+                onClick={() => void handleBatchRestart()}
+                disabled={batchRestarting || batchCancelling || batchDeleting}
+                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"
+              >
+                {batchRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                批量重试
+              </button>
+              <button
+                onClick={() => setSelectedTaskIds(new Set())}
+                disabled={batchDeleting || batchCancelling || batchRestarting}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                清除选择
+              </button>
+              <button
+                onClick={() => void handleBatchDelete()}
+                disabled={batchDeleting || batchCancelling || batchRestarting}
+                className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
+              >
+                {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                批量删除（{selectedTaskIds.size}）
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-slate-500 py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
         ) : tasks.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
         ) : (
-          <div className="space-y-2 max-h-[640px] overflow-auto pr-1">
+          <div className="space-y-2 pr-1">
+            <label className="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={allPageSelected}
+                onChange={(e) => toggleAllPageSelection(e.target.checked)}
+              />
+              全选当前页（{tasks.length} 条）
+            </label>
             {tasks.map((t) => (
               <div
                 key={t.task_id}
-                className="group relative rounded-xl border border-slate-200 bg-white transition-colors hover:bg-slate-50 hover:border-slate-300"
+                className={`group relative rounded-xl border bg-white transition-colors hover:bg-slate-50 hover:border-slate-300 ${
+                  selectedTaskIds.has(t.task_id) ? 'border-violet-300 bg-violet-50/40' : 'border-slate-200'
+                }`}
               >
+                <div className="absolute left-3 top-3 z-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedTaskIds.has(t.task_id)}
+                    onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`选择任务 ${t.task_name}`}
+                  />
+                </div>
                 <button
                   onClick={() => handleSelectTask(t.task_id)}
-                  className="w-full p-4 text-left"
+                  className="w-full p-4 pl-10 text-left"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -806,7 +1206,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
                   </div>
                   <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
                     <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
-                    <span>耗时: {formatDuration(t.started_at, t.finished_at)}</span>
+                    <span>耗时: {formatDuration(t.started_at, t.finished_at, clockNow)}</span>
                   </div>
                 </button>
                 <button
@@ -836,7 +1236,6 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
           <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
             <div className="p-6 space-y-4">
-              {detail ? <TaskOriginCard origin={detail} /> : null}
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-slate-900">新建数据流分析任务</h2>
                 <button onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
@@ -1038,6 +1437,54 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string }> = ({ proj
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+// ── DFA Tree Node Component ───────────────────────────────────────────────────
+
+const DfaTreeNodeView: React.FC<{ node: DfaTreeNode; depth?: number }> = ({ node, depth = 0 }) => {
+  const [expanded, setExpanded] = useState(depth < 3);
+  const hasChildren = node.children.length > 0;
+  const shortName = node.name.includes('::')
+    ? node.name.split('::').pop()!
+    : node.name.split('/').pop() ?? node.name;
+
+  return (
+    <div>
+      <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded-sm min-h-5 ${node.status === 'running' ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+        {node.status === 'running'
+          ? <Loader2 size={9} className="animate-spin text-blue-400 shrink-0" />
+          : node.status === 'done'
+          ? <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+          : <div className="w-1.5 h-1.5 rounded-full border border-slate-300 shrink-0" />}
+        <span
+          className={`text-[11px] font-mono truncate ${
+            node.status === 'running' ? 'text-blue-700 font-semibold max-w-[200px]' :
+            node.status === 'done'    ? 'text-slate-700 max-w-[200px]' :
+                                        'text-slate-400 italic max-w-[200px]'
+          }`}
+          title={node.name}
+        >{shortName}</span>
+        <span className="text-[9px] text-slate-300 font-mono shrink-0">d{node.depth}</span>
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="ml-auto shrink-0 flex items-center gap-0.5 text-[10px] text-violet-400 hover:text-violet-600"
+          >
+            {expanded ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
+            <span className="font-mono text-[9px]">{node.children.length}</span>
+          </button>
+        ) : null}
+      </div>
+      {hasChildren && expanded ? (
+        <div className="ml-3 border-l border-dashed border-slate-200">
+          {node.children.map((child, i) => (
+            <DfaTreeNodeView key={`${child.name}-${i}`} node={child} depth={depth + 1} />
+          ))}
         </div>
       ) : null}
     </div>

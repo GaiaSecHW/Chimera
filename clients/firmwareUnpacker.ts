@@ -322,6 +322,8 @@ export interface FirmwareTaskRoundMetric {
     warnings: string[];
     summary_preview: string | null;
     reason_preview: string | null;
+    summary_text?: string | null;
+    reason_text?: string | null;
   };
   context: {
     matched_skill: string | null;
@@ -909,6 +911,8 @@ const normalizeTaskMetrics = (value: unknown): FirmwareTaskMetrics => {
             warnings: asArray(artifacts.warnings).map((warning) => asString(warning)).filter(Boolean),
             summary_preview: asNullableString(artifacts.summary_preview),
             reason_preview: asNullableString(artifacts.reason_preview),
+            summary_text: asNullableString(artifacts.summary_text),
+            reason_text: asNullableString(artifacts.reason_text),
           },
           context: {
             matched_skill: asNullableString(context.matched_skill),

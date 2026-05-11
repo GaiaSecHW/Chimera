@@ -145,6 +145,90 @@ export interface B2STaskItemAdvanced {
   ida_files: B2SAdvancedFile[];
 }
 
+export interface B2SReviewAnalyticsAttempt {
+  attempt_no: number;
+  verdict: string;
+  total_functions: number;
+  verified_functions: number;
+  blocking_issues: number;
+  warnings: number;
+  semantic_score: number;
+  confidence: number;
+}
+
+export interface B2SReviewAnalyticsIssue {
+  id: string;
+  label: string;
+  function: string;
+  category: string;
+  severity: string;
+  introduced_attempt: number;
+  resolved_attempt?: number | null;
+  status: string;
+}
+
+export interface B2SReviewAnalyticsFunction {
+  function: string;
+  attempts: Array<{ attempt_no: number; risk: string; score: number }>;
+}
+
+export interface B2SReviewAnalyticsRadar {
+  attempt_no: number;
+  completeness: number;
+  control_flow: number;
+  return_semantics: number;
+  input_validation: number;
+  call_fidelity: number;
+  type_struct_fidelity: number;
+}
+
+export interface B2SReviewAnalytics {
+  task_id: string;
+  item_id: string;
+  summary: {
+    attempts: number;
+    final_verdict: string;
+    final_confidence: number;
+    issue_closure_rate: number;
+    residual_risk: string;
+    mock: boolean;
+  };
+  attempts: B2SReviewAnalyticsAttempt[];
+  issues: B2SReviewAnalyticsIssue[];
+  function_matrix: B2SReviewAnalyticsFunction[];
+  radar: B2SReviewAnalyticsRadar[];
+}
+
+export const MOCK_B2S_REVIEW_ANALYTICS: B2SReviewAnalytics = {
+  task_id: 'mock-task',
+  item_id: 'mock-item',
+  summary: { attempts: 3, final_verdict: 'PASS', final_confidence: 92, issue_closure_rate: 1, residual_risk: 'low', mock: true },
+  attempts: [
+    { attempt_no: 1, verdict: 'FAIL', total_functions: 10, verified_functions: 7, blocking_issues: 4, warnings: 0, semantic_score: 61, confidence: 58 },
+    { attempt_no: 2, verdict: 'FAIL', total_functions: 10, verified_functions: 9, blocking_issues: 1, warnings: 1, semantic_score: 82, confidence: 76 },
+    { attempt_no: 3, verdict: 'PASS', total_functions: 10, verified_functions: 10, blocking_issues: 0, warnings: 1, semantic_score: 96, confidence: 92 },
+  ],
+  issues: [
+    { id: 'I1', label: 'Length Logic', function: 'sub_880', category: 'Validation', severity: 'blocking', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved' },
+    { id: 'I2', label: 'Return Code', function: 'sub_880', category: 'Return', severity: 'blocking', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved' },
+    { id: 'I3', label: 'Extra Check', function: 'sub_880', category: 'Validation', severity: 'major', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved' },
+    { id: 'I4', label: 'Semantic', function: 'sub_E74', category: 'Semantic', severity: 'major', introduced_attempt: 2, resolved_attempt: 3, status: 'resolved' },
+  ],
+  function_matrix: ['.init_proc', 'sub_880', 'start', 'sub_E74', 'sub_E90', 'sub_EC0', 'sub_F00', 'sub_F50', 'sub_F60', '.term_proc'].map((name) => ({
+    function: name,
+    attempts: [
+      { attempt_no: 1, risk: name === 'sub_880' ? 'critical' : 'passed', score: name === 'sub_880' ? 42 : 82 },
+      { attempt_no: 2, risk: name === 'sub_E74' ? 'warning' : 'passed', score: name === 'sub_E74' ? 78 : 91 },
+      { attempt_no: 3, risk: 'passed', score: 96 },
+    ],
+  })),
+  radar: [
+    { attempt_no: 1, completeness: 92, control_flow: 66, return_semantics: 52, input_validation: 44, call_fidelity: 84, type_struct_fidelity: 80 },
+    { attempt_no: 2, completeness: 96, control_flow: 88, return_semantics: 84, input_validation: 90, call_fidelity: 91, type_struct_fidelity: 88 },
+    { attempt_no: 3, completeness: 100, control_flow: 96, return_semantics: 97, input_validation: 97, call_fidelity: 96, type_struct_fidelity: 95 },
+  ],
+};
+
 export interface B2STaskDetail extends B2STask {
   overall_progress?: B2SOverallProgress;
   items: Array<{
@@ -232,6 +316,14 @@ export const binaryToSourceApi = {
 
   getTaskItemAdvanced: async (projectId: string, taskId: string, itemId: string, includeContent = true): Promise<B2STaskItemAdvanced> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/advanced?include_content=${includeContent ? 'true' : 'false'}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskItemReviewAnalytics: async (projectId: string, taskId: string, itemId: string, mock = false): Promise<B2SReviewAnalytics> => {
+    if (mock) return { ...MOCK_B2S_REVIEW_ANALYTICS, task_id: taskId, item_id: itemId };
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/review-analytics?mock=false`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);

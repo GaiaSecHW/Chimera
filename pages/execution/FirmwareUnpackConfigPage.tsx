@@ -23,6 +23,13 @@ const LLM_MODEL_FIELDS: Record<string, string> = {
   llm_config_file_key_skill_author: 'llm_model_skill_author',
   llm_config_file_key_skill_executor: 'llm_model_skill_executor',
 };
+const REUSE_AGENT_FIELDS: Record<string, string> = {
+  llm_config_file_key_executor: 'reuse_agent_between_rounds_executor',
+  llm_config_file_key_reviewer: 'reuse_agent_between_rounds_reviewer',
+  llm_config_file_key_cleaner: 'reuse_agent_between_rounds_cleaner',
+  llm_config_file_key_skill_author: 'reuse_agent_between_rounds_skill_author',
+  llm_config_file_key_skill_executor: 'reuse_agent_between_rounds_skill_executor',
+};
 const MAX_RETRIES_ACTION_OPTIONS = [
   { value: 'success', label: '通过', description: '达到最大重试次数后，任务按成功收敛。' },
   { value: 'failed', label: '失败', description: '达到最大重试次数后，任务按失败收敛。' },
@@ -94,6 +101,8 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
       'max_concurrent',
       'max_retries',
       'max_retries_reached_action',
+      'reuse_agent_between_rounds',
+      ...Object.values(REUSE_AGENT_FIELDS),
       ...LLM_ROLE_FIELDS.map((item) => item.key),
       ...Object.values(LLM_MODEL_FIELDS),
     ]),
@@ -121,6 +130,9 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     modelEntry: configMap.get(LLM_MODEL_FIELDS[field.key]) || null,
     modelValue: draftValues[LLM_MODEL_FIELDS[field.key]] ?? configMap.get(LLM_MODEL_FIELDS[field.key])?.value ?? '',
     configFile: llmConfigFiles.find((item) => item.config_file_key === (draftValues[field.key] ?? configMap.get(field.key)?.value ?? '')) || null,
+    reuseKey: REUSE_AGENT_FIELDS[field.key],
+    reuseEntry: configMap.get(REUSE_AGENT_FIELDS[field.key]) || null,
+    reuseValue: String(draftValues[REUSE_AGENT_FIELDS[field.key]] ?? configMap.get(REUSE_AGENT_FIELDS[field.key])?.value ?? 'true').toLowerCase(),
   }));
   const hasConfigChanges = configItems.some((item) => draftValues[item.key] !== item.value);
   const missingLlmRoles = llmRoleConfigs.filter((item) => !String(item.value || '').trim()).map((item) => item.label);
@@ -459,6 +471,51 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                     </div>
                   )}
                 </div>
+                {item.reuseEntry && (
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-rose-600">Session Reuse</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">轮次间智能体复用策略</p>
+                      </div>
+                      {item.reuseValue === 'true' ? (
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">复用</span>
+                      ) : (
+                        <span className="rounded-full bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200">每轮新建</span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500">
+                      当前策略独立归属于 {item.label}。开启后，该角色在后续轮次中尽量复用已有会话；关闭后按轮次创建新会话。
+                    </p>
+                    <div className="mt-3 grid grid-cols-1 gap-2">
+                      {[
+                        { value: 'true', label: '复用同一个智能体', description: '保留该角色的上下文与历史会话。' },
+                        { value: 'false', label: '每轮新建智能体', description: '隔离不同轮次，避免上下文污染。' },
+                      ].map((option) => {
+                        const active = item.reuseValue === option.value;
+                        return (
+                          <button
+                            key={`${item.reuseKey}-${option.value}`}
+                            type="button"
+                            onClick={() => updateDraftValue(item.reuseKey, option.value)}
+                            className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                              active
+                                ? 'border-slate-900 bg-slate-900 text-white'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                            }`}
+                          >
+                            <div className="text-sm font-bold">{option.label}</div>
+                            <div className={`mt-1 text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{option.description}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {item.reuseValue !== String(item.reuseEntry.value ?? 'true').toLowerCase() && (
+                      <p className="mt-2 text-[10px] font-semibold text-amber-600">未保存</p>
+                    )}
+                    <p className="mt-2 text-[10px] text-slate-400">更新于 {fmtTime(item.reuseEntry.updated_at)}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

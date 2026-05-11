@@ -134,6 +134,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'system-analysis-task',
   'system-analysis-detail',
   'system-analysis-config',
+  'pentest-dataflow',
   'dataflow-analysis-task',
   'dataflow-analysis-config',
   'entry-analysis-root',
@@ -145,6 +146,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'binary-security-detail',
   'source-security',
   'source-security-detail',
+  'mobile-security-ipc-vuln',
   'security-assessment',
   'pentest-system',
   'pentest-threat',
@@ -216,6 +218,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'security-assessment' ||
     view.startsWith('binary-security') ||
     view.startsWith('source-security') ||
+    view.startsWith('mobile-security-') ||
     view.startsWith('pentest-') ||
     view.startsWith('entry-analysis-') ||
     view.startsWith('system-analysis-') ||
@@ -337,21 +340,21 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-system', label: '系统分析', icon: Activity, aliases: ['system-analysis-task', 'system-analysis-detail'], requiresProject: true },
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },
         { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
-        { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, requiresProject: true, subItems: [
-          { id: 'dataflow-analysis-task', label: '任务队列', requiresProject: true },
-          { id: 'dataflow-analysis-config', label: '分析配置', requiresProject: true },
-        ] },
-        { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, requiresProject: true, subItems: [
-          { id: 'pentest-exec-dataflow-vuln-task-list', label: '任务列表', aliases: ['pentest-exec-dataflow-vuln', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
-          { id: 'pentest-exec-dataflow-vuln-system-config', label: '系统配置', requiresProject: true },
-        ] },
-        { id: 'binary-security-config', label: '参数配置', icon: Settings, requiresProject: true },
+        { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, aliases: ['dataflow-analysis-task', 'dataflow-analysis-detail'], requiresProject: true },
+        { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
+        { id: 'binary-security-config', label: '参数配置', icon: Settings, aliases: ['pentest-exec-dataflow-vuln-system-config'], requiresProject: true },
       ],
     },
     {
       title: 'WEB安全',
       items: [
         { id: 'pentest-exec-work', label: '知微工作台', icon: Target, requiresProject: true },
+      ],
+    },
+    {
+      title: '终端安全',
+      items: [
+        { id: 'mobile-security-ipc-vuln', label: 'IPC漏洞扫描', icon: Terminal, requiresProject: true },
       ],
     },
     {

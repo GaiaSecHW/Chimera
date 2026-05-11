@@ -40,6 +40,7 @@ import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackTo
 import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
 import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
+import { blobToText, buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -74,6 +75,16 @@ type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
   const secs = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000);
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}m${s}s`;
+}
+
+function formatLiveDuration(startedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
+  if (!startedAt) return '-';
+  const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
+  const secs = Math.max(0, nowSecs - startSecs);
   if (secs < 60) return `${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -360,6 +371,80 @@ function evaluationStatusTone(status?: string) {
   return 'border-slate-200 bg-slate-100 text-slate-600';
 }
 
+function evaluationRoundKey(round: AppSaEvaluationRound): string {
+  return [
+    round.round ?? '',
+    round.stage_round ?? '',
+    round.stage ?? '',
+    round.module_name ?? '',
+    round.source_path ?? '',
+  ].join('::');
+}
+
+function normalizeSessionDisplayPath(path: string): string {
+  return path.replace(/^.*\/run\/sessions\//, '').replace(/^\/+/, '');
+}
+
+function resolveRoundActorSessionPath(rawPathInput: unknown, detail: AppSaTaskDetail | null, projectId: string): { fsPath: string; displayPath: string; rawPath: string } | null {
+  const rawPath = String(rawPathInput || '').trim();
+  if (!rawPath) return null;
+  const taskRoot = detail?.output_path ? `${detail.output_path.replace(/\/+$/, '')}/${detail.task_id}` : '';
+  let absolutePath = rawPath;
+  if (!rawPath.startsWith('/')) {
+    const relative = rawPath.replace(/^\/+/, '');
+    absolutePath = relative.startsWith('run/') ? `${taskRoot}/${relative}` : `${taskRoot}/run/sessions/${relative}`;
+  }
+  const fsPath = extractFsRelPath(absolutePath, projectId);
+  if (!fsPath) return null;
+  return {
+    fsPath,
+    displayPath: normalizeSessionDisplayPath(rawPath),
+    rawPath,
+  };
+}
+
+function resolveEvaluationRoundSessionPath(round: AppSaEvaluationRound, detail: AppSaTaskDetail | null, projectId: string): { fsPath: string; displayPath: string; rawPath: string } | null {
+  return resolveRoundActorSessionPath(round.worker?.session_file || round.extra?.session_file || round.session_file, detail, projectId);
+}
+
+function buildRoundSessionMeta(sessionPath: { displayPath: string; rawPath: string } | null, round: AppSaEvaluationRound | null): AppSaSessionMeta | null {
+  if (!sessionPath || !round) return null;
+  const sessionName = sessionPath.displayPath.split('/').pop() || sessionPath.displayPath;
+  return {
+    session_id: sessionName,
+    session_name: sessionName,
+    relative_path: sessionPath.displayPath,
+    stage_group: stageLabel(round.stage),
+    role_name: 'worker',
+    size: 0,
+    mtime: 0,
+    event_count: 0,
+    line_count: 0,
+    is_active: round.status === 'running',
+    display_name: `${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · Worker`,
+    warnings: [],
+  };
+}
+
+function buildJudgeRoundSessionMeta(sessionPath: { displayPath: string; rawPath: string } | null, round: AppSaEvaluationRound | null, judge: Record<string, any> | null): AppSaSessionMeta | null {
+  if (!sessionPath || !round || !judge) return null;
+  const sessionName = sessionPath.displayPath.split('/').pop() || sessionPath.displayPath;
+  return {
+    session_id: sessionName,
+    session_name: sessionName,
+    relative_path: sessionPath.displayPath,
+    stage_group: stageLabel(round.stage),
+    role_name: 'judge',
+    size: 0,
+    mtime: 0,
+    event_count: 0,
+    line_count: 0,
+    is_active: round.status === 'running',
+    display_name: `${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · ${judge.judge_id || 'Judge'}`,
+    warnings: [],
+  };
+}
+
 export const SystemAnalysisTaskDetailPage: React.FC<{
   projectId: string;
   taskId: string;
@@ -379,7 +464,24 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [evaluationModuleFilter, setEvaluationModuleFilter] = useState('');
   const [evaluationStageFilter, setEvaluationStageFilter] = useState('');
   const [evaluationStatusFilter, setEvaluationStatusFilter] = useState('');
-  const [expandedEvaluationRound, setExpandedEvaluationRound] = useState<number | null>(null);
+  const [selectedEvaluationRoundKey, setSelectedEvaluationRoundKey] = useState<string | null>(null);
+  const [roundSessionSnapshot, setRoundSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
+  const [roundSessionWatchStartLine, setRoundSessionWatchStartLine] = useState(0);
+  const [roundSessionEvents, setRoundSessionEvents] = useState<AppSaSessionEvent[]>([]);
+  const [roundSessionWarnings, setRoundSessionWarnings] = useState<string[]>([]);
+  const [roundSessionLoading, setRoundSessionLoading] = useState(false);
+  const [roundSessionError, setRoundSessionError] = useState<string | null>(null);
+  const [roundSessionLive, setRoundSessionLive] = useState(false);
+  const roundSessionSocketRef = useRef<WebSocket | null>(null);
+  const [selectedEvaluationJudgeKey, setSelectedEvaluationJudgeKey] = useState<string | null>(null);
+  const [judgeSessionSnapshot, setJudgeSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
+  const [judgeSessionWatchStartLine, setJudgeSessionWatchStartLine] = useState(0);
+  const [judgeSessionEvents, setJudgeSessionEvents] = useState<AppSaSessionEvent[]>([]);
+  const [judgeSessionWarnings, setJudgeSessionWarnings] = useState<string[]>([]);
+  const [judgeSessionLoading, setJudgeSessionLoading] = useState(false);
+  const [judgeSessionError, setJudgeSessionError] = useState<string | null>(null);
+  const [judgeSessionLive, setJudgeSessionLive] = useState(false);
+  const judgeSessionSocketRef = useRef<WebSocket | null>(null);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
@@ -463,6 +565,36 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     setSessionLive(false);
   };
 
+  const closeRoundSessionSocket = () => {
+    if (roundSessionSocketRef.current) {
+      if (roundSessionSocketRef.current.readyState === WebSocket.OPEN) {
+        try {
+          roundSessionSocketRef.current.send(JSON.stringify({ action: 'close' }));
+        } catch {
+          // ignore close handshake failures
+        }
+      }
+      roundSessionSocketRef.current.close();
+      roundSessionSocketRef.current = null;
+    }
+    setRoundSessionLive(false);
+  };
+
+  const closeJudgeSessionSocket = () => {
+    if (judgeSessionSocketRef.current) {
+      if (judgeSessionSocketRef.current.readyState === WebSocket.OPEN) {
+        try {
+          judgeSessionSocketRef.current.send(JSON.stringify({ action: 'close' }));
+        } catch {
+          // ignore close handshake failures
+        }
+      }
+      judgeSessionSocketRef.current.close();
+      judgeSessionSocketRef.current = null;
+    }
+    setJudgeSessionLive(false);
+  };
+
   const loadSessions = async (options?: { silent?: boolean }) => {
     if (!taskId) return;
     if (!options?.silent) {
@@ -510,11 +642,63 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
   };
 
+  const loadRoundSessionFile = async (fsPath: string, displayPath: string) => {
+    setRoundSessionLoading(true);
+    setRoundSessionError(null);
+    setRoundSessionSnapshot(null);
+    setRoundSessionWatchStartLine(0);
+    setRoundSessionEvents([]);
+    setRoundSessionWarnings([]);
+    try {
+      const blob = await fileserverApi.fetchProjectFilesystemPreviewBlob(projectId, fsPath);
+      const content = await blobToText(blob);
+      const snapshot = buildSessionSnapshotFromText(displayPath, content);
+      setRoundSessionSnapshot(snapshot);
+      setRoundSessionWatchStartLine(snapshot.line_count || 0);
+      setRoundSessionEvents(snapshot.events || []);
+      setRoundSessionWarnings(snapshot.warnings || []);
+    } catch (err: any) {
+      setRoundSessionSnapshot(null);
+      setRoundSessionWatchStartLine(0);
+      setRoundSessionEvents([]);
+      setRoundSessionWarnings([]);
+      setRoundSessionError(err?.message || String(err));
+    } finally {
+      setRoundSessionLoading(false);
+    }
+  };
+
+  const loadJudgeSessionFile = async (fsPath: string, displayPath: string) => {
+    setJudgeSessionLoading(true);
+    setJudgeSessionError(null);
+    setJudgeSessionSnapshot(null);
+    setJudgeSessionWatchStartLine(0);
+    setJudgeSessionEvents([]);
+    setJudgeSessionWarnings([]);
+    try {
+      const blob = await fileserverApi.fetchProjectFilesystemPreviewBlob(projectId, fsPath);
+      const content = await blobToText(blob);
+      const snapshot = buildSessionSnapshotFromText(displayPath, content);
+      setJudgeSessionSnapshot(snapshot);
+      setJudgeSessionWatchStartLine(snapshot.line_count || 0);
+      setJudgeSessionEvents(snapshot.events || []);
+      setJudgeSessionWarnings(snapshot.warnings || []);
+    } catch (err: any) {
+      setJudgeSessionError(err?.message || String(err));
+    } finally {
+      setJudgeSessionLoading(false);
+    }
+  };
+
   useEffect(() => {
     void loadDetail();
   }, [taskId]);
 
-  useEffect(() => () => closeSessionSocket(), []);
+  useEffect(() => () => {
+    closeSessionSocket();
+    closeRoundSessionSocket();
+    closeJudgeSessionSocket();
+  }, []);
 
   useEffect(() => {
     if (!detail || !['running', 'pending'].includes(detail.status)) return;
@@ -543,6 +727,23 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     if (activeTab !== 'evaluation') return;
     void loadEvaluation();
   }, [activeTab, taskId]);
+
+  useEffect(() => {
+    setSelectedEvaluationRoundKey(null);
+    setRoundSessionSnapshot(null);
+    setRoundSessionEvents([]);
+    setRoundSessionWarnings([]);
+    setRoundSessionError(null);
+    closeRoundSessionSocket();
+    closeJudgeSessionSocket();
+  }, [taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation') {
+      closeRoundSessionSocket();
+      closeJudgeSessionSocket();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (activeTab !== 'session') {
@@ -799,10 +1000,232 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     if (!scores.length) return null;
     return scores.reduce((sum, item) => sum + item, 0) / scores.length;
   }, [evaluationRounds]);
-  const expandedRound = useMemo<AppSaEvaluationRound | null>(
-    () => filteredEvaluationRounds.find((item) => item.round === expandedEvaluationRound) || null,
-    [expandedEvaluationRound, filteredEvaluationRounds],
+  const selectedEvaluationRound = useMemo<AppSaEvaluationRound | null>(
+    () => evaluationRounds.find((item) => evaluationRoundKey(item) === selectedEvaluationRoundKey) || null,
+    [evaluationRounds, selectedEvaluationRoundKey],
   );
+  const selectedEvaluationSessionPath = useMemo(
+    () => selectedEvaluationRound ? resolveEvaluationRoundSessionPath(selectedEvaluationRound, detail, projectId) : null,
+    [detail, projectId, selectedEvaluationRound],
+  );
+  const selectedEvaluationSessionMeta = useMemo(
+    () => buildRoundSessionMeta(selectedEvaluationSessionPath, selectedEvaluationRound),
+    [selectedEvaluationRound, selectedEvaluationSessionPath],
+  );
+  const selectedEvaluationJudge = useMemo<Record<string, any> | null>(
+    () => (selectedEvaluationRound?.judges || []).find((item, index) => `${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey) || null,
+    [selectedEvaluationJudgeKey, selectedEvaluationRound],
+  );
+  const selectedEvaluationJudgeSessionPath = useMemo(
+    () => selectedEvaluationJudge ? resolveRoundActorSessionPath(selectedEvaluationJudge.session_file, detail, projectId) : null,
+    [detail, projectId, selectedEvaluationJudge],
+  );
+  const selectedEvaluationJudgeSessionMeta = useMemo(
+    () => buildJudgeRoundSessionMeta(selectedEvaluationJudgeSessionPath, selectedEvaluationRound, selectedEvaluationJudge),
+    [selectedEvaluationJudge, selectedEvaluationJudgeSessionPath, selectedEvaluationRound],
+  );
+
+  useEffect(() => {
+    if (!selectedEvaluationRoundKey) return;
+    if (!selectedEvaluationRound) {
+      setSelectedEvaluationRoundKey(null);
+    }
+  }, [selectedEvaluationRound, selectedEvaluationRoundKey]);
+
+  useEffect(() => {
+    const judges = selectedEvaluationRound?.judges || [];
+    const currentValid = judges.some((item, index) => `${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey);
+    if (currentValid) return;
+    const firstWithSession = judges.find((item) => Boolean(String(item?.session_file || '').trim()));
+    setSelectedEvaluationJudgeKey(firstWithSession ? `${firstWithSession.judge_id || 0}::${firstWithSession.model || ''}` : null);
+  }, [selectedEvaluationJudgeKey, selectedEvaluationRound]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation' || !selectedEvaluationRound || !selectedEvaluationSessionPath) {
+      if (activeTab === 'evaluation' && selectedEvaluationRound && !selectedEvaluationSessionPath) {
+        setRoundSessionSnapshot(null);
+        setRoundSessionEvents([]);
+        setRoundSessionWarnings([]);
+        setRoundSessionError('本轮未记录可读取的 Worker 会话文件');
+      }
+      closeRoundSessionSocket();
+      return;
+    }
+    closeRoundSessionSocket();
+    void loadRoundSessionFile(selectedEvaluationSessionPath.fsPath, selectedEvaluationSessionPath.displayPath);
+  }, [activeTab, selectedEvaluationRoundKey, selectedEvaluationSessionPath?.fsPath]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation' || !selectedEvaluationRound || !selectedEvaluationSessionPath || !roundSessionSnapshot) return;
+    if (!['pending', 'running'].includes(detail?.status || '')) {
+      setRoundSessionLive(false);
+      return;
+    }
+    closeRoundSessionSocket();
+    const socket = fileserverApi.openProjectFileWatchWebSocket(projectId, selectedEvaluationSessionPath.fsPath, {
+      path_mode: 'project_filesystem',
+      read_mode: 'line',
+      start_from: 'head',
+      start_line: roundSessionWatchStartLine,
+    });
+    roundSessionSocketRef.current = socket;
+    socket.onopen = () => setRoundSessionLive(true);
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'snapshot') {
+          setRoundSessionLive(true);
+          return;
+        }
+        if (message.type === 'delta') {
+          if (message.read_mode !== 'line') return;
+          const deltaLines = Array.isArray(message.lines) ? message.lines : [];
+          if (deltaLines.length === 0) return;
+          const parsed = parseSessionJsonlDelta(deltaLines, (message.from_line ?? roundSessionWatchStartLine) + 1);
+          if (parsed.events.length > 0) {
+            setRoundSessionEvents((current) => current.concat(parsed.events));
+          }
+          if (parsed.warnings.length > 0) {
+            setRoundSessionWarnings((current) => Array.from(new Set(current.concat(parsed.warnings))));
+          }
+          setRoundSessionSnapshot((current) => current ? {
+            ...current,
+            session_meta: parsed.sessionMeta ? { ...(current.session_meta || {}), ...parsed.sessionMeta } : current.session_meta,
+            line_count: message.to_line ?? current.line_count,
+          } : current);
+          setRoundSessionWatchStartLine(message.to_line ?? roundSessionWatchStartLine);
+          return;
+        }
+        if (message.type === 'file_event') {
+          if (message.event === 'truncated' || message.event === 'renamed') {
+            setRoundSessionLive(false);
+            setRoundSessionError('会话文件已重置，正在重新加载');
+            void loadRoundSessionFile(selectedEvaluationSessionPath.fsPath, selectedEvaluationSessionPath.displayPath);
+            return;
+          }
+          if (message.event === 'deleted') {
+            setRoundSessionLive(false);
+            setRoundSessionError('会话文件已删除');
+            closeRoundSessionSocket();
+          }
+          return;
+        }
+        if (message.type === 'error') {
+          setRoundSessionLive(false);
+          setRoundSessionError(message.message || '会话订阅失败');
+        }
+      } catch (err: any) {
+        setRoundSessionError(err?.message || String(err));
+      }
+    };
+    socket.onerror = () => setRoundSessionLive(false);
+    socket.onclose = () => setRoundSessionLive(false);
+    return () => {
+      if (roundSessionSocketRef.current === socket) {
+        closeRoundSessionSocket();
+      } else {
+        socket.close();
+      }
+    };
+  }, [
+    activeTab,
+    selectedEvaluationRoundKey,
+    selectedEvaluationSessionPath?.fsPath,
+    roundSessionSnapshot?.path,
+    roundSessionWatchStartLine,
+    detail?.status,
+    projectId,
+  ]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation' || !selectedEvaluationJudge || !selectedEvaluationJudgeSessionPath) {
+      if (activeTab === 'evaluation' && selectedEvaluationJudge && !selectedEvaluationJudgeSessionPath) {
+        setJudgeSessionSnapshot(null);
+        setJudgeSessionEvents([]);
+        setJudgeSessionWarnings([]);
+        setJudgeSessionError('该 Judge 未记录可读取的会话文件');
+      }
+      closeJudgeSessionSocket();
+      return;
+    }
+    closeJudgeSessionSocket();
+    void loadJudgeSessionFile(selectedEvaluationJudgeSessionPath.fsPath, selectedEvaluationJudgeSessionPath.displayPath);
+  }, [activeTab, selectedEvaluationJudgeKey, selectedEvaluationJudgeSessionPath?.fsPath]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation' || !selectedEvaluationJudge || !selectedEvaluationJudgeSessionPath || !judgeSessionSnapshot) return;
+    if (!['pending', 'running'].includes(detail?.status || '')) {
+      setJudgeSessionLive(false);
+      return;
+    }
+    closeJudgeSessionSocket();
+    const socket = fileserverApi.openProjectFileWatchWebSocket(projectId, selectedEvaluationJudgeSessionPath.fsPath, {
+      path_mode: 'project_filesystem',
+      read_mode: 'line',
+      start_from: 'head',
+      start_line: judgeSessionWatchStartLine,
+    });
+    judgeSessionSocketRef.current = socket;
+    socket.onopen = () => setJudgeSessionLive(true);
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'snapshot') {
+          setJudgeSessionLive(true);
+          return;
+        }
+        if (message.type === 'delta') {
+          if (message.read_mode !== 'line') return;
+          const deltaLines = Array.isArray(message.lines) ? message.lines : [];
+          if (deltaLines.length === 0) return;
+          const parsed = parseSessionJsonlDelta(deltaLines, (message.from_line ?? judgeSessionWatchStartLine) + 1);
+          if (parsed.events.length > 0) setJudgeSessionEvents((current) => current.concat(parsed.events));
+          if (parsed.warnings.length > 0) setJudgeSessionWarnings((current) => Array.from(new Set(current.concat(parsed.warnings))));
+          setJudgeSessionSnapshot((current) => current ? {
+            ...current,
+            session_meta: parsed.sessionMeta ? { ...(current.session_meta || {}), ...parsed.sessionMeta } : current.session_meta,
+            line_count: message.to_line ?? current.line_count,
+          } : current);
+          setJudgeSessionWatchStartLine(message.to_line ?? judgeSessionWatchStartLine);
+          return;
+        }
+        if (message.type === 'file_event') {
+          if (message.event === 'truncated' || message.event === 'renamed') {
+            setJudgeSessionLive(false);
+            setJudgeSessionError('Judge 会话文件已重置，正在重新加载');
+            void loadJudgeSessionFile(selectedEvaluationJudgeSessionPath.fsPath, selectedEvaluationJudgeSessionPath.displayPath);
+            return;
+          }
+          if (message.event === 'deleted') {
+            setJudgeSessionLive(false);
+            setJudgeSessionError('Judge 会话文件已删除');
+            closeJudgeSessionSocket();
+          }
+          return;
+        }
+        if (message.type === 'error') {
+          setJudgeSessionLive(false);
+          setJudgeSessionError(message.message || 'Judge 会话订阅失败');
+        }
+      } catch (err: any) {
+        setJudgeSessionError(err?.message || String(err));
+      }
+    };
+    socket.onerror = () => setJudgeSessionLive(false);
+    socket.onclose = () => setJudgeSessionLive(false);
+    return () => {
+      if (judgeSessionSocketRef.current === socket) closeJudgeSessionSocket();
+      else socket.close();
+    };
+  }, [
+    activeTab,
+    selectedEvaluationJudgeKey,
+    selectedEvaluationJudgeSessionPath?.fsPath,
+    judgeSessionSnapshot?.path,
+    judgeSessionWatchStartLine,
+    detail?.status,
+    projectId,
+  ]);
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -929,7 +1352,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono break-all">{detail.output_path}</span> : '-'} />
                     <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
                     <InfoRow label="描述" value={detail.task_description || '-'} />
-                    <InfoRow label="耗时" value={detail.started_at ? formatDuration(detail.started_at, detail.finished_at ?? undefined) : '-'} />
+                    <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
                   </div>
                 </div>
 
@@ -1513,11 +1936,211 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     </div>
                   </section>
 
+                  {selectedEvaluationRound ? (
+                    <section className="space-y-4">
+                      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedEvaluationRoundKey(null)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                            >
+                              <ArrowLeft size={14} />
+                              返回轮次列表
+                            </button>
+                            <div className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Round Detail</div>
+                            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">
+                              #{selectedEvaluationRound.round ?? '-'} · {selectedEvaluationRound.module_name || '全局任务'}
+                            </h2>
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                              <span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>
+                                {selectedEvaluationRound.status || '-'}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-600">
+                                {stageLabel(selectedEvaluationRound.stage)}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono font-bold text-slate-600">
+                                Stage Round {selectedEvaluationRound.stage_round ?? '-'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                            <div className="font-black text-slate-700">来源文件</div>
+                            <div className="mt-1 max-w-xl break-all font-mono">{selectedEvaluationRound.source_path || '-'}</div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <MetricCard label="耗时" value={formatMs(selectedEvaluationRound.duration_ms)} icon={<BarChart3 size={18} />} />
+                        <MetricCard label="Token" value={formatNumber(selectedEvaluationRound.metrics?.token_total)} icon={<ScrollText size={18} />} />
+                        <MetricCard label="Cost" value={formatCost(selectedEvaluationRound.metrics?.cost)} icon={<ShieldAlert size={18} />} />
+                        <MetricCard label="Judge 均分" value={formatNumber(selectedEvaluationRound.metrics?.avg_judge_score, 1)} icon={<CheckCircle2 size={18} />} />
+                      </section>
+
+                      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                        <div className="space-y-4">
+                          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">本轮执行摘要</h3>
+                            <div className="mt-4 space-y-3">
+                              <InfoRow label="开始时间" value={selectedEvaluationRound.started_at ? new Date(selectedEvaluationRound.started_at).toLocaleString('zh-CN') : '-'} />
+                              <InfoRow label="结束时间" value={selectedEvaluationRound.ended_at ? new Date(selectedEvaluationRound.ended_at).toLocaleString('zh-CN') : '-'} />
+                              <InfoRow label="完成原因" value={selectedEvaluationRound.completion_reason || '-'} />
+                              <InfoRow label="模块完成" value={selectedEvaluationRound.module_completed ? '是' : '否'} />
+                              <InfoRow label="通过投票" value={selectedEvaluationRound.metrics?.passed_by_vote ? '通过' : '未通过'} />
+                              <InfoRow label="通过率" value={formatRate(selectedEvaluationRound.metrics?.review_pass_rate)} />
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                              {selectedEvaluationRound.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-3 py-1 font-bold text-amber-700">需要反思</span> : null}
+                              {selectedEvaluationRound.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-3 py-1 font-bold text-red-700">触发重分类</span> : null}
+                              {!selectedEvaluationRound.effectiveness?.needed_reflection && !selectedEvaluationRound.effectiveness?.triggered_reclassify ? (
+                                <span className="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-600">无额外调整</span>
+                              ) : null}
+                            </div>
+                          </section>
+
+                          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Worker</h3>
+                            <div className="mt-4 space-y-3">
+                              <InfoRow label="模型" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.model || '-'}</span>} />
+                              <InfoRow label="会话文件" value={<span className="break-all font-mono">{selectedEvaluationSessionPath?.rawPath || selectedEvaluationRound.worker?.session_file || '-'}</span>} />
+                              <InfoRow label="错误" value={selectedEvaluationRound.worker?.error || '-'} />
+                            </div>
+                            {Array.isArray(selectedEvaluationRound.worker?.artifact_paths) && selectedEvaluationRound.worker.artifact_paths.length > 0 ? (
+                              <div className="mt-4">
+                                <div className="text-xs font-bold text-slate-500">产物路径</div>
+                                <div className="mt-2 space-y-2">
+                                  {(selectedEvaluationRound.worker?.artifact_paths || []).slice(0, 8).map((path: string) => (
+                                    <div key={path} className="break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">{path}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                          </section>
+                        </div>
+
+                        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 评审</h3>
+                              <p className="mt-1 text-xs text-slate-400">展示本轮所有 Judge 的评分、通过状态、会话文件和反馈摘要</p>
+                            </div>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                              {selectedEvaluationRound.judges?.length || 0} 个 Judge
+                            </span>
+                          </div>
+                          <div className="mt-4 space-y-3">
+                            {(selectedEvaluationRound.judges || []).map((judge, index) => (
+                              <div key={`${judge.judge_id || index}-${judge.model || ''}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="font-mono text-xs font-bold text-slate-700">{judge.judge_id || `judge-${index + 1}`}</div>
+                                  <div className="flex flex-wrap gap-2 text-[11px]">
+                                    {judge.session_file ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedEvaluationJudgeKey(`${judge.judge_id || index}::${judge.model || ''}`)}
+                                        className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey === `${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
+                                      >
+                                        查看会话
+                                      </button>
+                                    ) : null}
+                                    <span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                      {judge.passed ? '通过' : '未通过'}
+                                    </span>
+                                    <span className="rounded-full bg-white px-2 py-0.5 font-bold text-slate-600">评分 {formatNumber(judge.score)}</span>
+                                  </div>
+                                </div>
+                                <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.model || '-'}</div>
+                                <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.session_file || '未记录会话文件'}</div>
+                                {judge.feedback_excerpt ? (
+                                  <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">
+                                    {judge.feedback_excerpt}
+                                  </div>
+                                ) : null}
+                              </div>
+                            ))}
+                            {(selectedEvaluationRound.judges || []).length === 0 ? (
+                              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+                                本轮没有 Judge 明细
+                              </div>
+                            ) : null}
+                          </div>
+                        </section>
+
+                        {selectedEvaluationJudge ? (
+                          <section className="space-y-4">
+                            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 会话</h3>
+                                  <p className="mt-1 text-xs text-slate-400">通过 fileserver 读取当前选中 Judge 的 session 文件；任务运行中会实时监听追加内容。</p>
+                                </div>
+                                {selectedEvaluationJudgeSessionPath ? (
+                                  <div className="max-w-xl break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-500">
+                                    {selectedEvaluationJudgeSessionPath.fsPath}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </section>
+                            {judgeSessionWarnings.length > 0 ? (
+                              <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
+                                <div className="font-bold">Judge 会话文件存在部分异常行，已跳过不可解析内容</div>
+                                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                                  {judgeSessionWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+                                </ul>
+                              </section>
+                            ) : null}
+                            <AgentSessionViewer
+                              sessionMeta={selectedEvaluationJudgeSessionMeta}
+                              sessionHeader={judgeSessionSnapshot?.session_meta}
+                              events={judgeSessionEvents}
+                              loading={judgeSessionLoading}
+                              live={judgeSessionLive}
+                              error={judgeSessionError}
+                            />
+                          </section>
+                        ) : null}
+                      </section>
+
+                      <section className="space-y-4">
+                        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Worker 会话</h3>
+                              <p className="mt-1 text-xs text-slate-400">通过 fileserver 读取本轮 session 文件；任务运行中会实时监听追加内容。</p>
+                            </div>
+                            {selectedEvaluationSessionPath ? (
+                              <div className="max-w-xl break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-500">
+                                {selectedEvaluationSessionPath.fsPath}
+                              </div>
+                            ) : null}
+                          </div>
+                        </section>
+                        {roundSessionWarnings.length > 0 ? (
+                          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
+                            <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                              {roundSessionWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+                            </ul>
+                          </section>
+                        ) : null}
+                        <AgentSessionViewer
+                          sessionMeta={selectedEvaluationSessionMeta}
+                          sessionHeader={roundSessionSnapshot?.session_meta}
+                          events={roundSessionEvents}
+                          loading={roundSessionLoading}
+                          live={roundSessionLive}
+                          error={roundSessionError}
+                        />
+                      </section>
+                    </section>
+                  ) : (
                   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2>
-                        <p className="mt-1 text-xs text-slate-400">展示每一轮 Worker/Judge 的观测指标，点击行展开完整 JSON</p>
+                        <p className="mt-1 text-xs text-slate-400">展示每一轮 Worker/Judge 的观测指标，点击行进入轮次详情页</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <div className="relative">
@@ -1569,51 +2192,41 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {filteredEvaluationRounds.map((round) => (
-                            <React.Fragment key={`${round.round}-${round.module_name}-${round.stage}`}>
-                              <tr
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => setExpandedEvaluationRound((current) => current === round.round ? null : round.round ?? null)}
-                                onKeyDown={(event) => {
-                                  if (event.key === 'Enter' || event.key === ' ') {
-                                    event.preventDefault();
-                                    setExpandedEvaluationRound((current) => current === round.round ? null : round.round ?? null);
-                                  }
-                                }}
-                                className="cursor-pointer bg-white transition hover:bg-slate-50"
-                              >
-                                <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
-                                <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
-                                <td className="px-3 py-3 font-mono text-slate-700">{round.module_name || '-'}</td>
-                                <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
-                                <td className="px-3 py-3">
-                                  <span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span>
-                                </td>
-                                <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
-                                <td className="px-3 py-3 max-w-[180px] truncate font-mono text-slate-600">{round.worker?.model || '-'}</td>
-                                <td className="px-3 py-3 font-bold text-slate-800">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
-                                <td className="px-3 py-3 text-slate-600">{formatRate(round.metrics?.review_pass_rate)}</td>
-                                <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.metrics?.token_total)}</td>
-                                <td className="px-3 py-3 font-mono text-slate-600">{formatCost(round.metrics?.cost)}</td>
-                                <td className="px-3 py-3 text-slate-600">
-                                  <div className="flex flex-wrap gap-1">
-                                    {round.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">反思</span> : null}
-                                    {round.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">重分类</span> : null}
-                                    {!round.effectiveness?.needed_reflection && !round.effectiveness?.triggered_reclassify ? '-' : null}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-3 text-slate-600">{round.completion_reason || '-'}</td>
-                              </tr>
-                              {expandedEvaluationRound === round.round ? (
-                                <tr>
-                                  <td colSpan={13} className="bg-slate-950 px-4 py-4">
-                                    <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-all text-xs leading-6 text-slate-200">
-                                      {JSON.stringify(round, null, 2)}
-                                    </pre>
-                                  </td>
-                                </tr>
-                              ) : null}
-                            </React.Fragment>
+                            <tr
+                              key={evaluationRoundKey(round)}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  setSelectedEvaluationRoundKey(evaluationRoundKey(round));
+                                }
+                              }}
+                              className="cursor-pointer bg-white transition hover:bg-slate-50"
+                            >
+                              <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
+                              <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
+                              <td className="px-3 py-3 font-mono text-slate-700">{round.module_name || '-'}</td>
+                              <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
+                              <td className="px-3 py-3">
+                                <span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span>
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
+                              <td className="px-3 py-3 max-w-[180px] truncate font-mono text-slate-600">{round.worker?.model || '-'}</td>
+                              <td className="px-3 py-3 font-bold text-slate-800">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
+                              <td className="px-3 py-3 text-slate-600">{formatRate(round.metrics?.review_pass_rate)}</td>
+                              <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.metrics?.token_total)}</td>
+                              <td className="px-3 py-3 font-mono text-slate-600">{formatCost(round.metrics?.cost)}</td>
+                              <td className="px-3 py-3 text-slate-600">
+                                <div className="flex flex-wrap gap-1">
+                                  {round.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">反思</span> : null}
+                                  {round.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">重分类</span> : null}
+                                  {!round.effectiveness?.needed_reflection && !round.effectiveness?.triggered_reclassify ? '-' : null}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 text-slate-600">{round.completion_reason || '-'}</td>
+                            </tr>
                           ))}
                           {filteredEvaluationRounds.length === 0 ? (
                             <tr>
@@ -1625,13 +2238,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </tbody>
                       </table>
                     </div>
-
-                    {expandedRound?.source_path ? (
-                      <div className="mt-3 break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-500">
-                        {expandedRound.source_path}
-                      </div>
-                    ) : null}
                   </section>
+                  )}
                 </>
               )}
             </section>
