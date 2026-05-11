@@ -910,36 +910,143 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
 .session-call-list {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   margin-top: 12px;
 }
 
 .calls-panel {
   overflow: visible;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(34, 211, 238, 0.12), transparent 34%),
+    radial-gradient(circle at 100% 8%, rgba(20, 184, 166, 0.10), transparent 32%),
+    rgba(255, 255, 255, 0.96);
 }
 
-.calls-panel .session-group {
-  margin-bottom: 18px;
-  padding: 0;
+.calls-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.calls-panel .session-group:last-child {
+.calls-heading {
+  color: var(--text-bright);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.calls-subtitle {
+  max-width: 760px;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.calls-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.calls-summary-item {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.calls-summary-label {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.calls-summary-value {
+  margin-top: 5px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.call-session-card {
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+}
+
+.call-session-card:last-child {
   margin-bottom: 0;
+}
+
+.call-session-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.call-session-title {
+  min-width: 0;
+  color: var(--text-bright);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.call-session-meta {
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 11px;
 }
 
 .call-row {
   display: grid;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding: 12px;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.035);
   font-size: 11px;
   min-width: 0;
 }
 
-.call-row:last-child {
-  margin-bottom: 0;
+.call-row.failed,
+.call-row.error {
+  border-color: #fecdd3;
+  background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+}
+
+.call-index {
+  display: grid;
+  place-items: center;
+  align-self: start;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ecfeff 0%, #e0f2fe 100%);
+  color: #0e7490;
+  font-weight: 900;
+  box-shadow: inset 0 0 0 1px rgba(8, 145, 178, 0.12);
+}
+
+.call-main {
+  min-width: 0;
 }
 
 .call-head {
@@ -947,46 +1054,63 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   min-width: 0;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 
 .call-head-main {
-  display: flex;
+  display: grid;
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.call-turn {
-  flex-shrink: 0;
-  font-weight: 800;
-  color: var(--text-bright);
+  gap: 4px;
 }
 
 .call-agent {
   min-width: 0;
-  color: var(--purple);
+  color: var(--text-bright);
+  font-size: 13px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.call-subtitle {
+  min-width: 0;
+  color: #64748b;
+  font-family: var(--mono);
+  font-size: 10px;
   overflow-wrap: anywhere;
 }
 
 .call-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
   min-width: 0;
 }
 
 .call-size,
 .call-duration {
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  gap: 2px;
   min-width: 0;
-  padding: 4px 8px;
+  padding: 9px 10px;
   border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  background: #ffffff;
+  border-radius: 14px;
+  background: #f8fafc;
   color: var(--text-muted);
+}
+
+.call-metric-label {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.call-metric-value {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
   white-space: nowrap;
 }
 
@@ -995,18 +1119,19 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   min-width: 0;
   flex: 0 1 auto;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
   align-items: center;
   justify-content: flex-end;
 }
 
 .call-files-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
   gap: 8px;
-  align-items: start;
-  padding-top: 8px;
-  border-top: 1px dashed #cbd5e1;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
 }
 
 .call-files-label {
@@ -1026,18 +1151,42 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   justify-content: flex-start;
 }
 
+.session-call-list .action-link {
+  padding: 6px 10px;
+  border: 1px solid #bae6fd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.session-call-list .action-link:hover {
+  background: #ecfeff;
+  border-color: #67e8f9;
+  transform: translateY(-1px);
+}
+
 .call-note,
 .call-error {
   min-width: 0;
+  margin-top: 10px;
+  padding: 9px 10px;
+  border-radius: 14px;
   overflow-wrap: anywhere;
   font-size: 11px;
+  line-height: 1.6;
 }
 
 .call-note {
-  color: #64748b;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
 }
 
 .call-error {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
   color: var(--error);
 }
 
@@ -1804,18 +1953,32 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
     text-align: center;
   }
 
-  .call-row {
-    align-items: start;
+  .calls-panel-header,
+  .call-session-header,
+  .call-head {
+    flex-direction: column;
   }
 
-  .call-head,
-  .call-status {
-    justify-content: flex-start;
+  .calls-summary-grid,
+  .call-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .call-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .call-index {
+    width: auto;
+    height: 34px;
+    justify-self: start;
+    padding: 0 12px;
   }
 
   .call-status,
   .session-call-list .file-actions {
     width: 100%;
+    justify-content: flex-start;
   }
 
   .call-files-row {
@@ -2277,6 +2440,76 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (activeTab === 'sessions') this.loadSessions(force);
       if (activeTab === 'files') this.loadFiles(force);
       if (activeTab === 'log') this.loadLog(force);
+    },
+
+    captureSessionScrollSnapshot() {
+      if (this.getActiveTab() !== 'sessions') return null;
+      const pane = this.$('sessionViewerPane') as HTMLElement | null;
+      const messageList = pane?.querySelector('.session-message-list') as HTMLElement | null;
+      const navList = this.root.querySelector('.session-nav-list') as HTMLElement | null;
+      const scrollParents: Array<{ el: HTMLElement; top: number; left: number }> = [];
+      let parent = (this.root.host as HTMLElement | null)?.parentElement || null;
+      while (parent) {
+        if (parent.scrollTop || parent.scrollLeft) {
+          scrollParents.push({ el: parent, top: parent.scrollTop, left: parent.scrollLeft });
+        }
+        parent = parent.parentElement;
+      }
+      const messageBottom = messageList
+        ? Math.max(0, messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight)
+        : null;
+      return {
+        run: this.currentRun || '',
+        path: String(pane?.dataset.sessionPath || this.sessionBrowser.selectedPath || ''),
+        windowX: window.scrollX,
+        windowY: window.scrollY,
+        docTop: document.scrollingElement?.scrollTop ?? null,
+        docLeft: document.scrollingElement?.scrollLeft ?? null,
+        scrollParents,
+        navTop: navList?.scrollTop ?? null,
+        messageTop: messageList?.scrollTop ?? null,
+        messageBottom,
+        messageWasNearBottom: messageBottom !== null && messageBottom <= 24,
+      };
+    },
+
+    restoreSessionScrollSnapshot(snapshot: any) {
+      if (!snapshot || this.getActiveTab() !== 'sessions') return;
+      if (snapshot.run !== (this.currentRun || '')) return;
+      if (snapshot.path && snapshot.path !== String(this.sessionBrowser.selectedPath || '')) return;
+      const restore = () => {
+        if (this._destroyed || this.getActiveTab() !== 'sessions') return;
+        if (snapshot.run !== (this.currentRun || '')) return;
+        if (snapshot.path && snapshot.path !== String(this.sessionBrowser.selectedPath || '')) return;
+        const pane = this.$('sessionViewerPane') as HTMLElement | null;
+        const messageList = pane?.querySelector('.session-message-list') as HTMLElement | null;
+        const navList = this.root.querySelector('.session-nav-list') as HTMLElement | null;
+        if (navList && snapshot.navTop !== null) navList.scrollTop = Number(snapshot.navTop || 0);
+        if (messageList && snapshot.messageTop !== null) {
+          const maxTop = Math.max(0, messageList.scrollHeight - messageList.clientHeight);
+          if (snapshot.messageWasNearBottom) {
+            messageList.scrollTop = Math.max(0, messageList.scrollHeight - messageList.clientHeight - Number(snapshot.messageBottom || 0));
+          } else {
+            messageList.scrollTop = Math.min(Number(snapshot.messageTop || 0), maxTop);
+          }
+        }
+        (snapshot.scrollParents || []).forEach((item: any) => {
+          if (item?.el) {
+            item.el.scrollTop = Number(item.top || 0);
+            item.el.scrollLeft = Number(item.left || 0);
+          }
+        });
+        if (document.scrollingElement && snapshot.docTop !== null) {
+          document.scrollingElement.scrollTop = Number(snapshot.docTop || 0);
+          document.scrollingElement.scrollLeft = Number(snapshot.docLeft || 0);
+        }
+        window.scrollTo(Number(snapshot.windowX || 0), Number(snapshot.windowY || 0));
+      };
+      restore();
+      window.requestAnimationFrame(() => {
+        restore();
+        window.requestAnimationFrame(restore);
+      });
     },
 
     async preloadAllCycleDetails(name: string, data: DataflowFileserverRunOverview, force = false) {
@@ -3110,12 +3343,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const runCache = this.getRunCache(runName);
       const el = this.$('sessionsContainer');
       if (!el) return;
+      const scrollSnapshot = this.captureSessionScrollSnapshot();
       if (!force && runCache.sessionsLoaded) {
         this.runSessions = runCache.sessions;
         this.renderSessions(this.runSessions);
+        this.restoreSessionScrollSnapshot(scrollSnapshot);
         return;
       }
       el.innerHTML = '<div class="empty-state">正在加载会话记录...</div>';
+      this.restoreSessionScrollSnapshot(scrollSnapshot);
       try {
         const sessions = await listDataflowFileserverRunSessions(projectId, this.runsRootPath, runName);
         if (this.currentRun !== runName) return;
@@ -3124,11 +3360,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         this.runSessions = sessions;
         if (this.currentRunData) {
           this.renderSessions(this.runSessions);
+          this.restoreSessionScrollSnapshot(scrollSnapshot);
         }
       } catch (error) {
         if (this.currentRun !== runName) return;
         console.error('loadSessions failed', error);
         el.innerHTML = '<div class="empty-state text-error">加载会话记录失败</div>';
+        this.restoreSessionScrollSnapshot(scrollSnapshot);
       }
     },
 
@@ -3183,9 +3421,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     renderSessions(sessions: DataflowFileserverRunSession[]) {
       const el = this.$('sessionsContainer');
       if (!el) return;
+      const scrollSnapshot = this.captureSessionScrollSnapshot();
       if (!sessions.length) {
         this.resetSessionBrowser('');
         el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+        this.restoreSessionScrollSnapshot(scrollSnapshot);
         return;
       }
 
@@ -3200,8 +3440,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (jsonlSessions.length) {
         const callsHtml = callSessions.length ? `
           <div class="card calls-panel">
-            <div class="card-title">CALLS 调用轨迹</div>
-            <div class="text-muted" style="font-size:12px;margin:4px 0 12px">按 runtime call 聚合展示 prompt、响应、stdout/stderr 与重试/截断状态。</div>
+            <div class="calls-panel-header">
+              <div>
+                <div class="card-title">调用轨迹</div>
+                <div class="calls-heading">Runtime Calls</div>
+                <div class="calls-subtitle">按 runtime call 聚合展示 Prompt、响应、stdout/stderr 与重试/截断状态；这些记录用于排查进程重启、超时、stdout 截断等底层执行问题。</div>
+              </div>
+            </div>
             ${this.renderCallSessions(callSessions)}
           </div>
         ` : '';
@@ -3236,11 +3481,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 </div>
                 <div class="session-nav-list">${navHtml}</div>
               </div>
-              <div id="sessionViewerPane" class="card session-viewer-pane">${this.renderSessionViewerPane()}</div>
+              <div id="sessionViewerPane" class="card session-viewer-pane" data-session-path="${this.attr(selectedPath)}">${this.renderSessionViewerPane()}</div>
             </div>
             ${callsHtml}
           </div>
         `;
+        this.restoreSessionScrollSnapshot(scrollSnapshot);
         if (selectedPath && !this.sessionBrowser.loading && !this.sessionBrowser.data) {
           void this.loadSessionIntoBrowser(selectedPath);
         } else if (selectedPath && this.sessionBrowser.data && this.isRunActive()) {
@@ -3257,20 +3503,46 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         this.resetSessionBrowser('');
         el.innerHTML = `
           <div class="card calls-panel">
-            <div class="card-title">CALLS 调用轨迹</div>
-            <div class="text-muted" style="font-size:12px;margin:4px 0 12px">当前 Run 没有 JSONL 对话文件，仅发现 runtime calls 记录。</div>
+            <div class="calls-panel-header">
+              <div>
+                <div class="card-title">调用轨迹</div>
+                <div class="calls-heading">Runtime Calls</div>
+                <div class="calls-subtitle">当前 Run 没有 JSONL 对话文件，仅发现 runtime calls 记录；这里展示的是底层 Pi 调用、重试与关联文件。</div>
+              </div>
+            </div>
             ${this.renderCallSessions(callSessions)}
           </div>
         `;
+        this.restoreSessionScrollSnapshot(scrollSnapshot);
         return;
       }
 
       this.resetSessionBrowser('');
       el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+      this.restoreSessionScrollSnapshot(scrollSnapshot);
     },
 
     renderCallSessions(callSessions: DataflowFileserverRunSession[]) {
-      return callSessions.map((s: any) => {
+      const allCalls = callSessions.flatMap((s: any) => Array.isArray(s.calls) ? s.calls : []);
+      const failedStatuses = new Set(['failed', 'error', 'timeout', 'runtime_timeout', 'interrupted']);
+      const totalAttempts = allCalls.reduce((sum: number, c: any) => {
+        const attempts = Array.isArray(c.attempts) ? c.attempts : [];
+        return sum + Math.max(attempts.length, 1);
+      }, 0);
+      const failedCalls = allCalls.filter((c: any) => failedStatuses.has(String(c.status || '').toLowerCase()) || c.error).length;
+      const timeoutRestarts = allCalls.reduce((sum: number, c: any) => {
+        const attempts = Array.isArray(c.attempts) ? c.attempts : [];
+        return sum + attempts.filter((a: any) => a && a.retry_kind === 'runtime_timeout_restart' && a.will_retry).length;
+      }, 0);
+      const summaryHtml = `
+        <div class="calls-summary-grid">
+          <div class="calls-summary-item"><div class="calls-summary-label">Sessions</div><div class="calls-summary-value">${callSessions.length}</div></div>
+          <div class="calls-summary-item"><div class="calls-summary-label">Calls</div><div class="calls-summary-value">${allCalls.length}</div></div>
+          <div class="calls-summary-item"><div class="calls-summary-label">Attempts</div><div class="calls-summary-value">${totalAttempts}</div></div>
+          <div class="calls-summary-item"><div class="calls-summary-label">异常/重启</div><div class="calls-summary-value">${failedCalls}/${timeoutRestarts}</div></div>
+        </div>
+      `;
+      const groupsHtml = callSessions.map((s: any) => {
         const calls = Array.isArray(s.calls) ? s.calls : [];
         const callHtml = calls.map((c: any) => {
           const attempts = Array.isArray(c.attempts) ? c.attempts : [];
@@ -3284,6 +3556,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const effectiveSessionId = String(c.effective_session_id || '');
           const switchedSession = effectiveSessionId && effectiveSessionId !== String(s.session_id || '');
           const outputBytes = Number(c.output_total_bytes || c.output_len || 0);
+          const statusText = String(c.status || 'unknown').toLowerCase();
+          const callTone = failedStatuses.has(statusText) || c.error ? 'failed' : statusText;
           const stdoutTraceLimit = Number((c.trace_limits || {}).stdout_bytes || 0);
           const stdoutLimitText = stdoutTraceLimit > 0 ? `stdout trace ${this.fmtSize(stdoutTraceLimit)}` : 'stdout trace limit';
           const attemptTitle = attempts.map((a: any) => {
@@ -3308,35 +3582,46 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             c.files && c.files[key] ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files[key])}">${label}</span>` : ''
           ).join('') + (c.files && c.files.stdout_events ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files.stdout_events)}">Events</span>` : '');
           return `
-            <div class="call-row">
-              <div class="call-head">
-                <div class="call-head-main">
-                  <span class="call-turn">#${this.esc(c.turn || '-')}</span>
-                  <span class="call-agent">${this.esc(c.agent_id || '-')}</span>
+            <div class="call-row ${this.attr(callTone)}">
+              <div class="call-index">#${this.esc(c.turn || '-')}</div>
+              <div class="call-main">
+                <div class="call-head">
+                  <div class="call-head-main">
+                    <div class="call-agent">${this.esc(c.agent_id || '-')}</div>
+                    <div class="call-subtitle">${this.esc(c.call_dir || c.session_id || c.effective_session_id || s.session_id || '-')}</div>
+                  </div>
+                  <div class="call-status">${this.statusBadge(c.status, 'badge-sm')}${retryBadges}</div>
                 </div>
-                <div class="call-status">${this.statusBadge(c.status, 'badge-sm')}${retryBadges}</div>
+                <div class="call-meta">
+                  <span class="call-size"><span class="call-metric-label">Prompt</span><span class="call-metric-value">${this.fmtSize(Number(c.user_prompt_len || 0))}</span></span>
+                  <span class="call-size"><span class="call-metric-label">Output</span><span class="call-metric-value">${this.fmtSize(outputBytes)}</span></span>
+                  <span class="call-duration"><span class="call-metric-label">Duration</span><span class="call-metric-value">${c.duration_ms ? (Number(c.duration_ms) / 1000).toFixed(1) + 's' : '-'}</span></span>
+                </div>
+                <div class="call-files-row">
+                  <span class="call-files-label">关联文件</span>
+                  <div class="file-actions">${fileActions || '<span class="text-muted">无关联文件</span>'}</div>
+                </div>
+                ${attemptCount > 1 ? `<div class="call-note" title="${this.attr(attemptTitle)}">timeout/process attempts 已聚合在当前 call，避免与业务 turn 错位</div>` : ''}
+                ${c.error ? `<div class="call-error">${this.esc(c.error).substring(0, 160)}</div>` : ''}
               </div>
-              <div class="call-meta">
-                <span class="call-size">Prompt ${this.fmtSize(Number(c.user_prompt_len || 0))}</span>
-                <span class="call-size">Output ${this.fmtSize(outputBytes)}</span>
-                <span class="call-duration">${c.duration_ms ? (Number(c.duration_ms) / 1000).toFixed(1) + 's' : '-'}</span>
-              </div>
-              <div class="call-files-row">
-                <span class="call-files-label">Files</span>
-                <div class="file-actions">${fileActions || '<span class="text-muted">无关联文件</span>'}</div>
-              </div>
-              ${attemptCount > 1 ? `<div class="call-note" title="${this.attr(attemptTitle)}">timeout/process attempts 已聚合在当前 call，避免与业务 turn 错位</div>` : ''}
-              ${c.error ? `<div class="call-error">${this.esc(c.error).substring(0, 120)}</div>` : ''}
             </div>
           `;
         }).join('');
+        const sessionAttempts = calls.reduce((sum: number, c: any) => sum + Math.max(Array.isArray(c.attempts) ? c.attempts.length : 0, 1), 0);
         return `
-          <div class="session-group">
-            <div class="session-name">${this.esc(s.session_id || 'calls')}</div>
+          <div class="call-session-card">
+            <div class="call-session-header">
+              <div>
+                <div class="call-session-title">${this.esc(s.session_id || 'calls')}</div>
+                <div class="call-session-meta">${calls.length} 个 call · ${sessionAttempts} 次 process attempt</div>
+              </div>
+              ${this.statusBadge(calls.some((c: any) => failedStatuses.has(String(c.status || '').toLowerCase()) || c.error) ? 'failed' : 'passed', 'badge-sm')}
+            </div>
             <div class="session-call-list">${callHtml || '<div class="empty-state">暂无 call 记录</div>'}</div>
           </div>
         `;
       }).join('');
+      return summaryHtml + groupsHtml;
     },
 
     async selectSessionInBrowser(path: string) {
@@ -3421,8 +3706,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
     renderSessionPaneOnly() {
+      const scrollSnapshot = this.captureSessionScrollSnapshot();
       const pane = this.$('sessionViewerPane');
-      if (pane) pane.innerHTML = this.renderSessionViewerPane();
+      if (pane) {
+        pane.dataset.sessionPath = String(this.sessionBrowser.selectedPath || '');
+        pane.innerHTML = this.renderSessionViewerPane();
+      }
+      this.restoreSessionScrollSnapshot(scrollSnapshot);
     },
 
     renderSessionViewerPane() {
