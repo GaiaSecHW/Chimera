@@ -56,6 +56,41 @@ const buildPhaseSummary = (task: B2STask, detail?: B2STaskDetail | null) => {
   return { phase: task.status, label: formatB2SStatus(task.status) };
 };
 
+const parseBackendTimeMs = (value?: string | null) => {
+  if (!value) return NaN;
+  const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+  return new Date(normalized).getTime();
+};
+
+const formatDurationMs = (durationMs?: number | null) => {
+  if (durationMs === undefined || durationMs === null || Number.isNaN(durationMs) || durationMs < 0) return '-';
+  const seconds = Math.round(durationMs / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (minutes < 60) return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const minuteRest = minutes % 60;
+  return minuteRest ? `${hours}h ${minuteRest}m` : `${hours}h`;
+};
+
+const taskRunDuration = (detail?: B2STaskDetail | null, nowMs: number = Date.now()) => {
+  if (!detail || detail.items.length === 0) return '-';
+  const startTimes = detail.items
+    .map((item) => item.started_at ? parseBackendTimeMs(item.started_at) : NaN)
+    .filter((value) => !Number.isNaN(value));
+  if (startTimes.length === 0) return '-';
+  const endTimes = detail.items
+    .map((item) => {
+      if (item.finished_at) return parseBackendTimeMs(item.finished_at);
+      if (!B2S_TERMINAL_STATUSES.has(item.status)) return nowMs;
+      return NaN;
+    })
+    .filter((value) => !Number.isNaN(value));
+  if (endTimes.length === 0) return '-';
+  return formatDurationMs(Math.max(...endTimes) - Math.min(...startTimes));
+};
+
 export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const assetApi = api.domains.assets;
@@ -77,6 +112,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [createError, setCreateError] = useState<string>('');
   const [createResult, setCreateResult] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState('');
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
   const load = async () => {
     if (!projectId) return;
@@ -137,6 +173,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     }, 5000);
     return () => window.clearInterval(timer);
   }, [projectId, hasActiveTasks]);
+
+  useEffect(() => {
+    if (!hasActiveTasks) return;
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveTasks]);
 
   const stats = useMemo(() => summarizeB2STasks(items), [items]);
 
@@ -391,7 +433,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       <div className="mt-3">
                         <TaskOriginInline origin={task} compact />
                       </div>
-                      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
                         <div className="rounded-2xl bg-slate-50 px-4 py-3">
                           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务结果</div>
                           <div className="mt-1 text-sm font-bold text-slate-800">
@@ -408,6 +450,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">异常项</div>
                           <div className="mt-1 text-sm font-bold text-slate-800">
                             失败 {task.failed_items} · 部分成功 {task.partial_items}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">运行耗时</div>
+                          <div className="mt-1 text-sm font-bold text-slate-800">
+                            {taskRunDuration(detail, clockNow)}
                           </div>
                         </div>
                         <div className="rounded-2xl bg-slate-50 px-4 py-3">

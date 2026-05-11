@@ -26,9 +26,11 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
-function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
-  if (!startedAt || !finishedAt) return '-';
-  const secs = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000);
+function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
+  if (!startedAt) return '-';
+  const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
+  const endSecs = finishedAt ? Math.floor(new Date(finishedAt).getTime() / 1000) : nowSecs;
+  const secs = Math.max(0, endSecs - startSecs);
   if (secs < 60) return `${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -85,6 +87,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
+  const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
 
   // Pre-fill input_path from FileExplorer right-click
   useEffect(() => {
@@ -166,6 +169,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
   // ── Auto-poll when tasks are running or pending ───────────────────────────
   const hasActiveTasks = tasks.some((t) => t.status === 'running' || t.status === 'pending');
+  useEffect(() => {
+    if (!hasActiveTasks) return;
+    const timer = window.setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveTasks]);
+
   useEffect(() => {
     if (!autoRefreshEnabled) return;
     if (!hasActiveTasks) return;
@@ -614,7 +623,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   </div>
                   <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
                     <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
-                    <span>耗时: {formatDuration(t.started_at, t.finished_at)}</span>
+                    <span>耗时: {formatDuration(t.started_at, t.finished_at, clockNow)}</span>
                   </div>
                 </button>
                 <button

@@ -27,9 +27,11 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
-function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
-  if (!startedAt || !finishedAt) return '-';
-  const secs = Math.round((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000);
+function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
+  if (!startedAt) return '-';
+  const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
+  const endSecs = finishedAt ? Math.floor(new Date(finishedAt).getTime() / 1000) : nowSecs;
+  const secs = Math.max(0, endSecs - startSecs);
   if (secs < 60) return `${secs}s`;
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -349,6 +351,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
+  const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -454,6 +457,13 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
   // ── Auto-poll when tasks are running or pending ───────────────────────────
   const hasActiveTasks = tasks.some((t) => t.status === 'running' || t.status === 'pending');
+  const hasActiveDetail = Boolean(detail && (detail.status === 'running' || detail.status === 'pending'));
+  useEffect(() => {
+    if (!hasActiveTasks && !hasActiveDetail) return;
+    const timer = window.setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveTasks, hasActiveDetail]);
+
   useEffect(() => {
     if (!autoRefreshEnabled) return;
     if (!hasActiveTasks) return;
@@ -857,7 +867,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   {detail.output_path ? <InfoRow label="输出路径" value={<span className="font-mono break-all">{detail.output_path}</span>} /> : <div />}
                   {detail.finished_at ? <InfoRow label="完成时间" value={new Date(detail.finished_at).toLocaleString('zh-CN')} /> : <div />}
                   {detail.task_description ? <InfoRow label="描述" value={detail.task_description} /> : null}
-                  {detail.started_at ? <InfoRow label="耗时" value={formatDuration(detail.started_at, detail.finished_at ?? undefined)} /> : null}
+                  {detail.started_at ? <InfoRow label="耗时" value={formatDuration(detail.started_at, detail.finished_at ?? undefined, clockNow)} /> : null}
                 </div>
 
                 {/* Stage Progress */}
@@ -1196,7 +1206,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </div>
                   <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
                     <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
-                    <span>耗时: {formatDuration(t.started_at, t.finished_at)}</span>
+                    <span>耗时: {formatDuration(t.started_at, t.finished_at, clockNow)}</span>
                   </div>
                 </button>
                 <button

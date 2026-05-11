@@ -81,6 +81,16 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   return `${m}m${s}s`;
 }
 
+function formatLiveDuration(startedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
+  if (!startedAt) return '-';
+  const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
+  const secs = Math.max(0, nowSecs - startSecs);
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}m${s}s`;
+}
+
 function formatTsDuration(startTs: number | null, endTs: number | null): string {
   if (!startTs || !endTs || endTs <= startTs) return '';
   const secs = Math.round(endTs - startTs);
@@ -1160,7 +1170,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono break-all">{detail.output_path}</span> : '-'} />
                     <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
                     <InfoRow label="描述" value={detail.task_description || '-'} />
-                    <InfoRow label="耗时" value={detail.started_at ? formatDuration(detail.started_at, detail.finished_at ?? undefined) : '-'} />
+                    <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
                   </div>
                 </div>
 
