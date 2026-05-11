@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { ArrowLeft, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
 import { api } from '../../clients/api';
@@ -375,7 +375,7 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
   const verdictFailed = analytics.summary.final_verdict === 'FAIL';
   const verdictLabel = verdictPassed ? '通过' : verdictFailed ? '未通过' : '未知';
   const verdictTone = verdictPassed ? 'text-emerald-700' : verdictFailed ? 'text-rose-700' : 'text-slate-700';
-  const verdictBg = verdictPassed ? 'from-emerald-50 via-white to-white border-emerald-100' : verdictFailed ? 'from-rose-50 via-white to-white border-rose-100' : 'from-slate-50 via-white to-white border-slate-200';
+  const verdictBg = verdictPassed ? 'border-emerald-200 border-l-emerald-500 bg-emerald-50/35' : verdictFailed ? 'border-rose-200 border-l-rose-500 bg-rose-50/35' : 'border-slate-200 border-l-slate-400 bg-slate-50/60';
   const conclusionText = verdictPassed
     ? `多轮评审已完成，当前未发现阻断问题，遗留问题 ${remainingCount} 项。`
     : verdictFailed
@@ -404,20 +404,19 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"><ShieldCheck size={20} /></div>
         <div className="min-w-0 flex-1">
           <div className="text-lg font-black tracking-[0.12em] text-slate-900">代码还原质量迭代追踪</div>
-          <div className="mt-0.5 text-xs font-bold text-slate-500">按照“结论 → 指标 → 分析依据 → 闭环证据”查看多轮评审结果</div>
         </div>
         {analytics.summary.mock && <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-cyan-700">模拟数据</div>}
       </div>
 
-      <div className={`mb-4 rounded-none border bg-gradient-to-br p-5 shadow-sm ring-1 ring-slate-900/[0.03] ${verdictBg}`}>
+      <div className={`mb-4 rounded-none border border-l-4 p-5 ${verdictBg}`}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <div className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">最终结论</div>
             <div className={`mt-2 text-5xl font-black leading-none tracking-tight ${verdictTone}`}>{verdictLabel}</div>
             <div className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">{conclusionText}</div>
           </div>
-          <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:min-w-[430px]">
-            <div className="rounded-none border border-white/70 bg-white/75 px-4 py-3 text-center shadow-sm">
+          <div className="grid shrink-0 grid-cols-2 divide-x divide-slate-200 border-l border-slate-200 bg-white/45 lg:min-w-[430px]">
+            <div className="px-5 py-3 text-center">
               <div className="text-[11px] font-black tracking-[0.12em] text-slate-400">最终质量</div>
               <div className="mt-1 flex items-baseline justify-center gap-2">
                 <span className="text-3xl font-black text-indigo-700">{finalQualityScore}</span>
@@ -425,7 +424,7 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
               </div>
               <div className="mt-1 text-xs font-black text-indigo-600">{finalQualityLabel} · {firstQualityScore} → {finalQualityScore}</div>
             </div>
-            <div className="rounded-none border border-white/70 bg-white/75 px-4 py-3 text-center shadow-sm">
+            <div className="px-5 py-3 text-center">
               <div className="text-[11px] font-black tracking-[0.12em] text-slate-400">问题闭环</div>
               <div className={`mt-1 text-3xl font-black ${remainingCount > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>{resolvedCount}/{analytics.issues.length || 0}</div>
               <div className="mt-1 text-xs font-black text-slate-500">遗留 {remainingCount}</div>
@@ -437,7 +436,6 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <div className="text-base font-black tracking-[0.08em] text-slate-900">分析依据</div>
-          <div className="mt-0.5 text-xs font-semibold text-slate-500">趋势图与评分拆解用于解释最终结论，不作为新的主结论。</div>
         </div>
       </div>
 
@@ -495,46 +493,46 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
 
         <div id="b2s-review-evidence" className="scroll-mt-24 mt-2 xl:col-span-2">
           <div className="text-base font-black tracking-[0.08em] text-slate-900">评审闭环证据</div>
-          <div className="mt-0.5 text-xs font-semibold text-slate-500">按轮次追溯问题发现、修复和最终闭环过程。</div>
         </div>
 
         <PanelCard title="评审闭环时间线" className="xl:col-span-2" right={<div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">已解决 {resolvedCount} · 未解决 {remainingCount}</div>}>
-          <div className="relative pl-10">
-            <div className="absolute bottom-4 left-[18px] top-3 w-px bg-slate-300" />
-            <div className="space-y-3">
+          <div className="overflow-hidden border border-slate-200">
+            <div className="grid grid-cols-[104px_88px_repeat(6,minmax(72px,1fr))_92px_88px] gap-0 border-b border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+              <div>轮次</div>
+              <div>结论</div>
+              <div>已验证</div>
+              <div>阻断</div>
+              <div>语义分</div>
+              <div>发现</div>
+              <div>解决</div>
+              <div>未闭环</div>
+              <div>状态</div>
+              <div className="text-right">操作</div>
+            </div>
+            <div className="divide-y divide-slate-200">
               {roundSummaries.map((round) => {
                 const attempt = round.attempt;
                 const passed = round.tone === 'emerald';
                 const border = passed ? 'border-emerald-200' : 'border-rose-200';
-                const bg = passed ? 'bg-emerald-50/70' : 'bg-rose-50/70';
+                const bg = passed ? 'bg-emerald-50/50' : 'bg-rose-50/50';
                 const badge = passed ? 'border-emerald-300/30 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700';
+                const accent = passed ? 'border-l-emerald-500' : 'border-l-rose-500';
                 return (
-                  <details key={attempt.attempt_no} className="group relative">
-                    <div className={`absolute -left-[28px] top-6 z-10 h-3.5 w-3.5 rounded-full ring-[6px] ring-white ${passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                    <summary className={`list-none cursor-pointer rounded-none border bg-white/90 p-4 shadow-sm transition hover:border-slate-300 hover:bg-white [&::-webkit-details-marker]:hidden ${round.isFinal ? 'ring-2 ring-emerald-100' : ''}`}>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="min-w-[108px]">
-                          <div className="text-xs font-black text-slate-500">第 {attempt.attempt_no} 轮</div>
-                          <div className={`mt-1 text-xl font-black leading-none ${passed ? 'text-emerald-700' : 'text-rose-700'}`}>{round.verdictLabel}</div>
-                        </div>
-                        <div className="grid flex-1 grid-cols-2 gap-2 md:grid-cols-6">
-                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">已验证</div><div className="mt-0.5 text-sm font-black text-emerald-700">{attempt.verified_functions}/{attempt.total_functions}</div></div>
-                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">阻断</div><div className={`mt-0.5 text-sm font-black ${attempt.blocking_issues ? 'text-rose-700' : 'text-emerald-700'}`}>{attempt.blocking_issues}</div></div>
-                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">语义分</div><div className="mt-0.5 text-sm font-black text-violet-700">{attempt.semantic_score}</div></div>
-                          <div className="rounded-none bg-rose-50 px-3 py-2"><div className="text-[10px] font-black text-rose-400">发现</div><div className="mt-0.5 text-sm font-black text-rose-700">{round.discovered.length}</div></div>
-                          <div className="rounded-none bg-emerald-50 px-3 py-2"><div className="text-[10px] font-black text-emerald-500">解决</div><div className="mt-0.5 text-sm font-black text-emerald-700">{round.resolved.length}</div></div>
-                          <div className="rounded-none bg-slate-50 px-3 py-2"><div className="text-[10px] font-black text-slate-400">未闭环</div><div className="mt-0.5 text-sm font-black text-slate-800">{round.openAtRound.length}</div></div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`rounded-full border px-3 py-1 text-xs font-black ${badge}`}>{round.isFinal ? '最终轮' : passed ? '已通过' : '需修复'}</div>
-                          <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-500 transition group-open:bg-slate-900 group-open:text-white">
-                            <span className="group-open:hidden">展开详情</span><span className="hidden group-open:inline">收起详情</span>
-                          </div>
-                        </div>
-                      </div>
+                  <details key={attempt.attempt_no} className="group">
+                    <summary className={`grid list-none cursor-pointer grid-cols-[104px_88px_repeat(6,minmax(72px,1fr))_92px_88px] items-center border-l-4 ${accent} bg-white px-4 py-3 text-sm transition hover:bg-slate-50 [&::-webkit-details-marker]:hidden`}>
+                      <div className="font-black text-slate-500">第 {attempt.attempt_no} 轮</div>
+                      <div className={`text-lg font-black leading-none ${passed ? 'text-emerald-700' : 'text-rose-700'}`}>{round.verdictLabel}</div>
+                      <div className="font-black text-emerald-700">{attempt.verified_functions}/{attempt.total_functions}</div>
+                      <div className={`font-black ${attempt.blocking_issues ? 'text-rose-700' : 'text-emerald-700'}`}>{attempt.blocking_issues}</div>
+                      <div className="font-black text-violet-700">{attempt.semantic_score}</div>
+                      <div className={`font-black ${round.discovered.length ? 'text-rose-700' : 'text-slate-500'}`}>{round.discovered.length}</div>
+                      <div className="font-black text-emerald-700">{round.resolved.length}</div>
+                      <div className={`font-black ${round.openAtRound.length ? 'text-rose-700' : 'text-slate-700'}`}>{round.openAtRound.length}</div>
+                      <div><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${badge}`}>{round.isFinal ? '最终轮' : passed ? '已通过' : '需修复'}</span></div>
+                      <div className="text-right text-xs font-black text-slate-500 transition group-open:text-slate-900"><span className="group-open:hidden">详情 ▾</span><span className="hidden group-open:inline">收起 ▴</span></div>
                     </summary>
 
-                    <div className={`mt-3 rounded-none border ${border} ${bg} p-5`}>
+                    <div className={`border-l-4 ${accent} border-t ${border} ${bg} p-5`}>
                       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-600">
                         <span>本轮发现 {round.discovered.length} 项</span>
                         <span className="text-slate-300">/</span>
@@ -840,10 +838,10 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
               <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">中间产物</div>
               <div className="max-h-[680px] overflow-auto p-3">
                 {groupedFiles.map((group) => (
-                  <div key={group.stage} className="mb-4">
-                    <div className="sticky top-0 z-10 mb-2 rounded-none border border-slate-200 bg-slate-100/95 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 shadow-sm backdrop-blur">{group.stage}</div>
+                  <div key={group.stage} className="mb-5">
+                    <div className="mb-2 border-b border-slate-200 bg-slate-50 px-1 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{group.stage}</div>
                     {group.sections.map((section) => (
-                      <div key={`${group.stage}-${section.name}`} className="mb-3 ml-1 border-l-2 border-slate-200 pl-3">
+                      <div key={`${group.stage}-${section.name}`} className="mb-3 pl-1">
                         <div className="mb-2 text-[11px] font-black tracking-[0.12em] text-slate-700">{section.name}</div>
                         {section.rounds.map((round) => (
                           <div key={`${group.stage}-${section.name}-${round.name}`} className="mb-2">
@@ -852,16 +850,21 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                               const active = selectedPath === file.path;
                               const metaLine = [agent, role].filter(Boolean).join(' · ');
                               return (
-                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`mb-2 flex w-full items-start gap-3 rounded-none border px-3 py-3 text-left transition ${active ? 'border-violet-300 bg-white shadow-sm ring-2 ring-violet-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}>
-                                  <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-none ${active ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
-                                    {languageFromPath(file.name) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
+                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-50 text-slate-950' : 'border-l-transparent bg-white/35 hover:border-l-violet-300 hover:bg-white'}`}>
+                                  <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border transition-colors duration-150 ease-out ${active ? 'border-violet-200 bg-white text-violet-700' : 'border-slate-200 bg-white/70 text-slate-500 group-hover:border-violet-200 group-hover:text-violet-600'}`}>
+                                    {languageFromPath(file.name) === 'plaintext' ? <FileText size={15} /> : <Code2 size={15} />}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="break-words text-sm font-black leading-5 text-slate-900 [overflow-wrap:anywhere]" title={file.name}>{file.name}</div>
-                                    {metaLine && <div className="mt-1 break-words text-[11px] font-black text-violet-600 [overflow-wrap:anywhere]" title={metaLine}>{metaLine}</div>}
-                                    <div className="mt-1 flex flex-wrap gap-2 text-[11px] font-black text-slate-500"><span>{fileKindLabel(file)}</span><span>{formatSize(file.size)}</span>{file.truncated && <span className="text-amber-600">已截断</span>}</div>
-                                    <div className="mt-1 truncate font-mono text-[10px] font-semibold text-slate-400" title={file.path}>{shortPath(file.path)}</div>
+                                    <div className="truncate text-sm font-black leading-5 text-slate-900" title={file.name}>{file.name}</div>
+                                    {metaLine && <div className="mt-0.5 truncate text-[11px] font-black text-violet-600" title={metaLine}>{metaLine}</div>}
+                                    <div className="mt-0.5 flex min-w-0 items-center gap-2 text-[10px] font-semibold text-slate-400">
+                                      <span className="shrink-0 font-black uppercase tracking-[0.08em] text-slate-500">{fileKindLabel(file)}</span>
+                                      <span className="shrink-0">{formatSize(file.size)}</span>
+                                      {file.truncated && <span className="shrink-0 font-black text-amber-600">已截断</span>}
+                                      <span className="truncate font-mono" title={file.path}>{shortPath(file.path)}</span>
+                                    </div>
                                   </div>
+                                  <ChevronRight size={14} className={`mt-1.5 shrink-0 transition duration-150 ease-out ${active ? 'text-violet-600' : 'text-slate-300 group-hover:translate-x-0.5 group-hover:text-violet-500'}`} />
                                 </button>
                               );
                             })}
