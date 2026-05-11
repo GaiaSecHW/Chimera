@@ -2781,6 +2781,10 @@ export interface AppDfaTaskCreateRequest {
   task_description?: string;
   prompt_template_id?: string;
   prompt_content?: string;
+  source_file?: string;
+  function_name?: string;
+  line_hint?: string;
+  taint_params?: string[];
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
