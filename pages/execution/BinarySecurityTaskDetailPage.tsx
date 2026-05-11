@@ -743,6 +743,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
+  const [selectedStageItemIds, setSelectedStageItemIds] = useState<string[]>([]);
+  const [stageStatusFilter, setStageStatusFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string>('');
   const [expandedEventKey, setExpandedEventKey] = useState<string | null>(null);
   const [timelinePage, setTimelinePage] = useState(1);
@@ -1072,19 +1074,24 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
-  const syncDownstreamStatus = async (options?: { stageName?: string; itemId?: string; force?: boolean }) => {
+  const syncDownstreamStatus = async (
+    options?: { stageName?: string; itemId?: string; force?: boolean },
+    behavior?: { skipConfirm?: boolean; skipRefresh?: boolean },
+  ) => {
     if (!projectId || !taskId) return;
-    const confirmed = await showConfirm({
-      title: '同步下游状态',
-      message: options?.itemId
-        ? '将查询该阶段子任务在对应微服务中的真实状态，并刷新当前编排记录。该操作不会启动、取消、删除或重试任何任务，是否继续？'
-        : options?.stageName
-          ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态。该操作不会触发执行动作，是否继续？`
-          : '将同步当前任务所有已创建下游子任务的真实状态。该操作不会启动、取消、删除或重试任何任务，是否继续？',
-      confirmText: '确认同步',
-      cancelText: '取消',
-    });
-    if (!confirmed) return;
+    if (!behavior?.skipConfirm) {
+      const confirmed = await showConfirm({
+        title: '同步下游状态',
+        message: options?.itemId
+          ? '将查询该阶段子任务在对应微服务中的真实状态，并刷新当前编排记录。该操作不会启动、取消、删除或重试任何任务，是否继续？'
+          : options?.stageName
+            ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态。该操作不会触发执行动作，是否继续？`
+            : '将同步当前任务所有已创建下游子任务的真实状态。该操作不会启动、取消、删除或重试任何任务，是否继续？',
+        confirmText: '确认同步',
+        cancelText: '取消',
+      });
+      if (!confirmed) return;
+    }
     const loadingKey = options?.itemId ? `sync-item:${options.itemId}` : options?.stageName ? `sync-stage:${options.stageName}` : 'sync-downstream';
     setActionLoading(loadingKey);
     setError(null);
@@ -1094,9 +1101,37 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         item_id: options?.itemId,
         force: options?.force,
       });
-      await refreshActiveTab();
+      if (!behavior?.skipRefresh) {
+        await refreshActiveTab();
+      }
     } catch (e: any) {
       setError(e?.message || '同步下游状态失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const batchSyncSelectedStageItems = async () => {
+    if (!projectId || !taskId || selectedSyncableStageItems.length === 0) return;
+    const confirmed = await showConfirm({
+      title: '批量同步下游状态',
+      message: `将同步已选择的 ${selectedSyncableStageItems.length} 个子任务的下游真实状态，并刷新当前阶段表格。该操作不会触发执行动作，是否继续？`,
+      confirmText: '确认同步',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setActionLoading('sync-selected-items');
+    setError(null);
+    try {
+      for (const item of selectedSyncableStageItems) {
+        await executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, {
+          stage_name: item.stage_name,
+          item_id: item.id,
+        });
+      }
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || '批量同步下游状态失败');
     } finally {
       setActionLoading('');
     }
@@ -1150,6 +1185,27 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (!detail) return [];
     return detail.stage_items.filter((item) => item.stage_name === selectedStage);
   }, [detail, selectedStage]);
+  const stageStatusOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of filteredStageItems) {
+      counts.set(item.status, (counts.get(item.status) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+      .map(([status, count]) => ({ status, count }));
+  }, [filteredStageItems]);
+  const visibleStageItems = useMemo(() => {
+    if (stageStatusFilter === 'all') return filteredStageItems;
+    return filteredStageItems.filter((item) => item.status === stageStatusFilter);
+  }, [filteredStageItems, stageStatusFilter]);
+  const selectedVisibleStageItems = useMemo(
+    () => visibleStageItems.filter((item) => selectedStageItemIds.includes(item.id)),
+    [selectedStageItemIds, visibleStageItems],
+  );
+  const selectedSyncableStageItems = useMemo(
+    () => selectedVisibleStageItems.filter((item) => Boolean(item.downstream_task_id)),
+    [selectedVisibleStageItems],
+  );
 
   const timelineItems = useMemo(() => {
     return timeline.map((event, index) => ({
@@ -1179,7 +1235,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   useEffect(() => {
     setExpandedStageItemId(null);
+    setSelectedStageItemIds([]);
+    setStageStatusFilter('all');
   }, [selectedStage, selectedNodeKind, taskId]);
+
+  useEffect(() => {
+    const validIds = new Set(filteredStageItems.map((item) => item.id));
+    setSelectedStageItemIds((current) => current.filter((id) => validIds.has(id)));
+  }, [filteredStageItems]);
 
   useEffect(() => {
     if (timelinePage > timelineTotalPages) {
@@ -1855,8 +1918,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </div>
             </div>
 
-            {selectedNodeKind === 'business' && selectedBusinessStageNode ? (
-              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+	            {selectedNodeKind === 'business' && selectedBusinessStageNode ? (
+	              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xs font-bold text-slate-400">阶段状态</div>
                   <div className="mt-1">
@@ -1883,10 +1946,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     {(selectedBusinessStageNode.detail as any)?.success_items ?? 0} / {(selectedBusinessStageNode.detail as any)?.total_items ?? 0} 成功
                   </div>
                 </div>
-              </div>
-            ) : null}
+	              </div>
+	            ) : null}
 
-            <div className="mt-5 space-y-3">
+	            <div className="mt-5 space-y-3">
               {selectedNodeKind === 'archive' ? (
                 <>
                   {selectedArchiveNode ? (
@@ -1990,26 +2053,97 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </div>
                   ))}
                 </>
-              ) : (
-                <>
-              {staleStages.has(selectedStage) ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                  由于上游阶段 {STAGE_LABELS[detail.summary?.stale_from_stage || ''] || detail.summary?.stale_from_stage || '-'} 已重试，当前阶段结果基于旧上游产物。
-                </div>
-              ) : null}
-              {filteredStageItems.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
-                  当前筛选下暂无子任务
-                </div>
-              ) : (
-                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-[1200px] w-full divide-y divide-slate-100 text-left text-xs">
-                      <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
-                        <tr>
-                          <th className="w-24 px-3 py-3">状态</th>
-                          <th className="min-w-[260px] px-3 py-3">子任务</th>
-                          <th className="w-24 px-3 py-3">重试</th>
+	              ) : (
+	                <>
+	              <div className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+	                <div className="flex flex-wrap items-center gap-2">
+	                  <button
+	                    type="button"
+	                    onClick={() => setStageStatusFilter('all')}
+	                    className={`rounded-full border px-3 py-2 text-xs font-black transition ${
+	                      stageStatusFilter === 'all'
+	                        ? 'border-slate-900 bg-slate-900 text-white'
+	                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+	                    }`}
+	                  >
+	                    全部 {filteredStageItems.length}
+	                  </button>
+	                  {stageStatusOptions.map((option) => (
+	                    <button
+	                      key={option.status}
+	                      type="button"
+	                      onClick={() => setStageStatusFilter(option.status)}
+	                      className={`rounded-full border px-3 py-2 text-xs font-black transition ${
+	                        stageStatusFilter === option.status
+	                          ? 'border-slate-900 bg-slate-900 text-white'
+	                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+	                      }`}
+	                    >
+	                      {option.status} {option.count}
+	                    </button>
+	                  ))}
+	                </div>
+	                <div className="flex flex-wrap items-center gap-2 text-xs">
+	                  <span className="rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-slate-600">
+	                    已选 {selectedVisibleStageItems.length} / 当前筛选 {visibleStageItems.length}
+	                  </span>
+	                  <button
+	                    type="button"
+	                    disabled={visibleStageItems.length === 0}
+	                    onClick={() => setSelectedStageItemIds(visibleStageItems.map((item) => item.id))}
+	                    className="rounded-full border border-slate-200 bg-white px-3 py-2 font-black text-slate-700 disabled:opacity-50"
+	                  >
+	                    全选当前筛选
+	                  </button>
+	                  <button
+	                    type="button"
+	                    disabled={selectedStageItemIds.length === 0}
+	                    onClick={() => setSelectedStageItemIds([])}
+	                    className="rounded-full border border-slate-200 bg-white px-3 py-2 font-black text-slate-700 disabled:opacity-50"
+	                  >
+	                    清空选择
+	                  </button>
+	                  <button
+	                    type="button"
+	                    disabled={actionLoading !== '' || selectedSyncableStageItems.length === 0}
+	                    onClick={() => void batchSyncSelectedStageItems()}
+	                    className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 font-black text-sky-700 disabled:opacity-50"
+	                  >
+	                    {actionLoading === 'sync-selected-items' ? '同步中...' : `批量同步状态 ${selectedSyncableStageItems.length > 0 ? `(${selectedSyncableStageItems.length})` : ''}`}
+	                  </button>
+	                </div>
+	              </div>
+	              {staleStages.has(selectedStage) ? (
+	                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+	                  由于上游阶段 {STAGE_LABELS[detail.summary?.stale_from_stage || ''] || detail.summary?.stale_from_stage || '-'} 已重试，当前阶段结果基于旧上游产物。
+	                </div>
+	              ) : null}
+	              {visibleStageItems.length === 0 ? (
+	                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
+	                  {filteredStageItems.length === 0 ? '当前阶段暂无子任务' : '当前状态筛选下暂无子任务'}
+	                </div>
+	              ) : (
+	                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
+	                  <div className="overflow-x-auto">
+	                    <table className="min-w-[1200px] w-full divide-y divide-slate-100 text-left text-xs">
+	                      <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+	                        <tr>
+	                          <th className="w-14 px-3 py-3">
+	                            <input
+	                              type="checkbox"
+	                              checked={visibleStageItems.length > 0 && selectedVisibleStageItems.length === visibleStageItems.length}
+	                              onChange={(event) => {
+	                                if (event.target.checked) {
+	                                  setSelectedStageItemIds(visibleStageItems.map((item) => item.id));
+	                                  return;
+	                                }
+	                                setSelectedStageItemIds([]);
+	                              }}
+	                            />
+	                          </th>
+	                          <th className="w-24 px-3 py-3">状态</th>
+	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
+	                          <th className="w-24 px-3 py-3">重试</th>
                           <th className="w-44 px-3 py-3">开始时间</th>
                           <th className="w-44 px-3 py-3">结束时间</th>
                           <th className="w-28 px-3 py-3">耗时</th>
@@ -2019,15 +2153,30 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
-                        {filteredStageItems.map((item) => {
-                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
-                          const expanded = expandedStageItemId === item.id;
-                          return (
-                            <React.Fragment key={item.id}>
-                              <tr className="align-top transition hover:bg-slate-50/80">
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-2">
-                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
+	                        {visibleStageItems.map((item) => {
+	                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
+	                          const expanded = expandedStageItemId === item.id;
+	                          const checked = selectedStageItemIds.includes(item.id);
+	                          return (
+	                            <React.Fragment key={item.id}>
+	                              <tr className="align-top transition hover:bg-slate-50/80">
+	                                <td className="px-3 py-3">
+	                                  <input
+	                                    type="checkbox"
+	                                    checked={checked}
+	                                    onChange={(event) => {
+	                                      setSelectedStageItemIds((current) => {
+	                                        if (event.target.checked) {
+	                                          return current.includes(item.id) ? current : current.concat(item.id);
+	                                        }
+	                                        return current.filter((id) => id !== item.id);
+	                                      });
+	                                    }}
+	                                  />
+	                                </td>
+	                                <td className="px-3 py-3">
+	                                  <div className="flex flex-col gap-2">
+	                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
                                       {item.status}
                                     </span>
                                     <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
@@ -2094,11 +2243,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   </div>
                                 </td>
                               </tr>
-                              {expanded ? (
-                                <tr className="bg-slate-50/70">
-                                  <td colSpan={9} className="px-4 py-4">
-                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
-                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+	                              {expanded ? (
+	                                <tr className="bg-slate-50/70">
+	                                  <td colSpan={10} className="px-4 py-4">
+	                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
+	                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
                                         <aside className="rounded-2xl border border-slate-200 bg-white/90 p-4">
                                           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">下游任务</div>
                                           <div className="mt-3 space-y-3 text-xs text-slate-600">
