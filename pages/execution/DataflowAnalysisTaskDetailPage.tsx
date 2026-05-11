@@ -175,7 +175,10 @@ function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNo
       const fn = String(d.function || '').trim();
       const callees = Array.isArray(d.callees) ? d.callees.map(String) : [];
       if (fn) {
-        calleesMap.set(fn, callees);
+        // Merge with any previously seen callees (union) to handle duplicate events on resume
+        const existing = calleesMap.get(fn) ?? [];
+        const merged = existing.length === 0 ? callees : [...new Set([...existing, ...callees])];
+        calleesMap.set(fn, merged);
         nodeStatus.set(fn, 'done');
       }
     }

@@ -183,7 +183,15 @@ function buildDfaTree(events: AppDfaStageEvent[], taskStatus: string): DfaTreeNo
     } else if (evt.type === 'trace_callees') {
       const fn = (d.function as string | undefined)?.trim();
       const callees = (d.callees as string[] | undefined) ?? [];
-      if (fn) { calleesMap.set(fn, callees); nodeSt.set(fn, 'done'); }
+      if (fn) {
+        // Merge with any previously seen callees for this function (e.g. on resume, two
+        // trace_callees events can appear for the same function; take the union so the
+        // larger/earlier correct list is not silently overwritten by a shorter resume list).
+        const existing = calleesMap.get(fn) ?? [];
+        const merged = existing.length === 0 ? callees : [...new Set([...existing, ...callees])];
+        calleesMap.set(fn, merged);
+        nodeSt.set(fn, 'done');
+      }
     }
   }
 
