@@ -328,6 +328,17 @@ export interface DataflowRunMutationResponse {
   process_signal?: string | null;
 }
 
+export interface DataflowVulnReportResponse {
+  status: string;
+  enabled: boolean;
+  total: number;
+  reported: number;
+  failed: number;
+  pending: number;
+  items: Record<string, any>[];
+  error?: string | null;
+}
+
 export interface DataflowRunRetryPayload {
   extra_cycles?: number;
   model?: string | null;
@@ -442,6 +453,15 @@ export const dataflowVulnScannerApi = {
 
   getRun: async (runId: string): Promise<DataflowRunDetail> => {
     const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  reportRunVulnerabilities: async (runId: string, resultFiles: string[]): Promise<DataflowVulnReportResponse> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/report-vulnerabilities`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ result_files: resultFiles }),
+    });
     return handleResponse(response);
   },
 
