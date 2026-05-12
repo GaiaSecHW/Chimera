@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { ArrowLeft, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
-
+import { ArrowLeft, ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { api } from '../../clients/api';
 import { B2SAdvancedFile, B2SAdvancedRun, B2SArtifact, B2SReviewAnalytics, B2STaskDetail, B2STaskItemAdvanced } from '../../clients/binaryToSource';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
@@ -305,14 +304,14 @@ const PiSessionPreview: React.FC<{ file: B2SAdvancedFile }> = ({ file }) => {
   });
   return (
     <div className="h-full overflow-auto bg-code-panel p-5 text-slate-100">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900/80 p-4">
+      <div className="rounded-none border border-slate-700 bg-slate-900/80 p-4">
         <div className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Pi Agent Session</div>
         <div className="mt-2 break-all font-mono text-xs text-slate-400">{file.name}</div>
         <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-300 md:grid-cols-4">
-          <div className="rounded-xl bg-slate-800 px-3 py-2">消息<br /><span className="text-lg font-black text-white">{messages.length}</span></div>
-          <div className="rounded-xl bg-slate-800 px-3 py-2">工具调用<br /><span className="text-lg font-black text-white">{toolCalls.length}</span></div>
-          <div className="rounded-xl bg-slate-800 px-3 py-2">模型<br /><span className="font-black text-white">{modelChanges[0]?.modelId || '-'}</span></div>
-          <div className="rounded-xl bg-slate-800 px-3 py-2">会话 ID<br /><span className="font-mono font-black text-white">{header?.id || '-'}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">消息<br /><span className="text-lg font-black text-white">{messages.length}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">工具调用<br /><span className="text-lg font-black text-white">{toolCalls.length}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">模型<br /><span className="font-black text-white">{modelChanges[0]?.modelId || '-'}</span></div>
+          <div className="rounded-none bg-slate-800 px-3 py-2">会话 ID<br /><span className="font-mono font-black text-white">{header?.id || '-'}</span></div>
         </div>
       </div>
       <div className="mt-4 space-y-3">
@@ -329,7 +328,7 @@ const PiSessionPreview: React.FC<{ file: B2SAdvancedFile }> = ({ file }) => {
                 ? JSON.stringify(entry, null, 2)
                 : '';
           return (
-            <article key={`${entry.id || index}-${index}`} className={`rounded border p-[18px] ${isUser ? 'border-slate-700 bg-chat-user' : isAssistant ? 'border-transparent bg-transparent' : isTool ? 'border-emerald-500/25 bg-emerald-950/25' : 'border-slate-700 bg-slate-900/60'}`}>
+            <article key={`${entry.id || index}-${index}`} className={`rounded-none border p-[18px] ${isUser ? 'border-slate-700 bg-chat-user' : isAssistant ? 'border-transparent bg-transparent' : isTool ? 'border-emerald-500/25 bg-emerald-950/25' : 'border-slate-700 bg-slate-900/60'}`}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest">
                 <span className={`${isUser ? 'text-blue-300' : isAssistant ? 'text-emerald-300' : isTool ? 'text-amber-300' : 'text-slate-300'}`}>{role}</span>
                 <span className="font-mono text-slate-500">{entry.timestamp || entry.id || ''}</span>
@@ -518,18 +517,20 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
         </button>
       </div>
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
+      {error && <div className="rounded-none border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
 
-      <section className="rounded-card border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <section className="rounded-none border border-slate-200 bg-white/85 px-5 py-3 shadow-sm">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-[11px] font-black tracking-[0.18em] text-violet-600">反编译任务</div>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">#{advanced?.sequence_no || item?.sequence_no || '-'}</span>
-              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700">{advanced?.mode_label || detail?.mode_label || '-'}</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-black text-slate-500">
+              <span className="text-violet-600">反编译任务</span>
+              <span className="text-slate-300">·</span>
+              <span>#{advanced?.sequence_no || item?.sequence_no || '-'}</span>
+              <span className="text-slate-300">·</span>
+              <span>{advanced?.mode_label || detail?.mode_label || '-'}</span>
             </div>
-            <div className="mt-2 break-words text-xl font-black tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
-            <div className="mt-1 break-all font-mono text-[11px] font-semibold text-slate-500">任务 {taskId} · item {itemId}</div>
+            <div className="mt-1 break-words text-lg font-black tracking-tight text-slate-950">{fileNameOf(item?.elf_path)}</div>
+            <div className="mt-0.5 break-all font-mono text-[10px] font-semibold text-slate-400">task {taskId} · item {itemId}</div>
           </div>
           <div className="flex flex-wrap gap-2 text-xs font-black">
             <span className="rounded-full bg-violet-50 px-3 py-1.5 text-violet-700 ring-1 ring-violet-100">Batch {totalBatches}</span>
@@ -541,7 +542,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
 
       <ReviewEffectivenessPanel analytics={reviewAnalytics} />
 
-      <section className="overflow-hidden rounded-card border border-slate-200 bg-white shadow-sm">
+      <section id="b2s-artifacts" className="scroll-mt-24 overflow-hidden rounded-none border border-slate-200 bg-white shadow-sm">
         {loading && !advanced ? (
           <div className="flex items-center gap-2 p-8 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : files.length === 0 ? (
@@ -552,10 +553,10 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
               <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">中间产物</div>
               <div className="max-h-[680px] overflow-auto p-3">
                 {groupedFiles.map((group) => (
-                  <div key={group.stage} className="mb-4">
-                    <div className="sticky top-0 z-10 mb-2 rounded-xl border border-slate-200 bg-slate-100/95 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500 shadow-sm backdrop-blur">{group.stage}</div>
+                  <div key={group.stage} className="mb-5">
+                    <div className="mb-2 border-b border-slate-200 bg-slate-50 px-1 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{group.stage}</div>
                     {group.sections.map((section) => (
-                      <div key={`${group.stage}-${section.name}`} className="mb-3 ml-1 border-l-2 border-slate-200 pl-3">
+                      <div key={`${group.stage}-${section.name}`} className="mb-3 pl-1">
                         <div className="mb-2 text-[11px] font-black tracking-[0.12em] text-slate-700">{section.name}</div>
                         {section.rounds.map((round) => (
                           <div key={`${group.stage}-${section.name}-${round.name}`} className="mb-2">
@@ -564,16 +565,21 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                               const active = selectedPath === file.path;
                               const metaLine = [agent, role].filter(Boolean).join(' · ');
                               return (
-                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`mb-2 flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition ${active ? 'border-violet-300 bg-white shadow-sm ring-2 ring-violet-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}>
-                                  <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
-                                    {languageFromPath(file.name) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
+                                <button key={file.path} type="button" onClick={() => setSelectedPath(file.path)} className={`group relative mb-1 flex w-full cursor-pointer items-start gap-2 border-l-4 px-3 py-2.5 text-left transition-colors duration-150 ease-out ${active ? 'border-l-violet-500 bg-violet-50 text-slate-950' : 'border-l-transparent bg-white/35 hover:border-l-violet-300 hover:bg-white'}`}>
+                                  <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center border transition-colors duration-150 ease-out ${active ? 'border-violet-200 bg-white text-violet-700' : 'border-slate-200 bg-white/70 text-slate-500 group-hover:border-violet-200 group-hover:text-violet-600'}`}>
+                                    {languageFromPath(file.name) === 'plaintext' ? <FileText size={15} /> : <Code2 size={15} />}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="break-words text-sm font-black leading-5 text-slate-900 [overflow-wrap:anywhere]" title={file.name}>{file.name}</div>
-                                    {metaLine && <div className="mt-1 break-words text-[11px] font-black text-violet-600 [overflow-wrap:anywhere]" title={metaLine}>{metaLine}</div>}
-                                    <div className="mt-1 flex flex-wrap gap-2 text-[11px] font-black text-slate-500"><span>{fileKindLabel(file)}</span><span>{formatSize(file.size)}</span>{file.truncated && <span className="text-amber-600">已截断</span>}</div>
-                                    <div className="mt-1 truncate font-mono text-[10px] font-semibold text-slate-400" title={file.path}>{shortPath(file.path)}</div>
+                                    <div className="truncate text-sm font-black leading-5 text-slate-900" title={file.name}>{file.name}</div>
+                                    {metaLine && <div className="mt-0.5 truncate text-[11px] font-black text-violet-600" title={metaLine}>{metaLine}</div>}
+                                    <div className="mt-0.5 flex min-w-0 items-center gap-2 text-[10px] font-semibold text-slate-400">
+                                      <span className="shrink-0 font-black uppercase tracking-[0.08em] text-slate-500">{fileKindLabel(file)}</span>
+                                      <span className="shrink-0">{formatSize(file.size)}</span>
+                                      {file.truncated && <span className="shrink-0 font-black text-amber-600">已截断</span>}
+                                      <span className="truncate font-mono" title={file.path}>{shortPath(file.path)}</span>
+                                    </div>
                                   </div>
+                                  <ChevronRight size={14} className={`mt-1.5 shrink-0 transition duration-150 ease-out ${active ? 'text-violet-600' : 'text-slate-300 group-hover:translate-x-0.5 group-hover:text-violet-500'}`} />
                                 </button>
                               );
                             })}
