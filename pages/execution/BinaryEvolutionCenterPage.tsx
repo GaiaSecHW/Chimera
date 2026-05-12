@@ -27,6 +27,45 @@ const fmtTime = (value?: string | null) => {
   return date.toLocaleString();
 };
 
+const asArray = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.items)) return record.items as T[];
+    if (Array.isArray(record.tasks)) return record.tasks as T[];
+    if (Array.isArray(record.data)) return record.data as T[];
+  }
+  return [];
+};
+
+const normalizeTaskList = (value: unknown): BinaryEvolutionTaskSummary[] => asArray<BinaryEvolutionTaskSummary>(value);
+
+const normalizeTaskDetail = (value: BinaryEvolutionTaskDetail): BinaryEvolutionTaskDetail => ({
+  ...value,
+  source_task_ids: asArray<string>(value?.source_task_ids),
+  source_case_ids: asArray<string>(value?.source_case_ids),
+  agent_state_roots: value?.agent_state_roots && typeof value.agent_state_roots === 'object' ? value.agent_state_roots : {},
+  default_agent_source_dirs: value?.default_agent_source_dirs && typeof value.default_agent_source_dirs === 'object' ? value.default_agent_source_dirs : {},
+  preview: {
+    ...(value?.preview || {
+      project_id: value?.project_id || '',
+      requested_case_ids: [],
+      effective_case_ids: [],
+      can_create: false,
+      blocked_reasons: [],
+      sources: [],
+    }),
+    requested_case_ids: asArray<string>(value?.preview?.requested_case_ids),
+    effective_case_ids: asArray<string>(value?.preview?.effective_case_ids),
+    blocked_reasons: asArray<string>(value?.preview?.blocked_reasons),
+    sources: asArray<any>(value?.preview?.sources),
+  },
+  sources: asArray<any>(value?.sources),
+  rounds: asArray<any>(value?.rounds),
+  artifacts: asArray<any>(value?.artifacts),
+  events: asArray<any>(value?.events),
+});
+
 const executionApi = api.domains.execution;
 
 export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
@@ -50,7 +89,7 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   });
 
   const selectedTask = useMemo(
-    () => tasks.find((item) => item.task_id === selectedTaskId) || null,
+    () => (Array.isArray(tasks) ? tasks.find((item) => item.task_id === selectedTaskId) : null) || null,
     [tasks, selectedTaskId],
   );
 
@@ -64,7 +103,7 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     setLoading(true);
     setError(null);
     try {
-      const items = await executionApi.binaryEvolution.listTasks(projectId);
+      const items = normalizeTaskList(await executionApi.binaryEvolution.listTasks(projectId));
       setTasks(items);
       const nextTaskId = preferredTaskId || selectedTaskId || items[0]?.task_id || '';
       setSelectedTaskId(nextTaskId);
@@ -83,7 +122,7 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     setDetailLoading(true);
     setError(null);
     try {
-      const payload = await executionApi.binaryEvolution.getTask(projectId, taskId);
+      const payload = normalizeTaskDetail(await executionApi.binaryEvolution.getTask(projectId, taskId));
       setDetail(payload);
     } catch (err: any) {
       setError(err?.message || '加载任务详情失败');
