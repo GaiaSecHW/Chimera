@@ -222,8 +222,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         output_path: form.output_path.trim() || undefined,
         task_description: form.task_description.trim() || undefined,
         analysis_mode: form.analysis_mode,
-        analyse_targets: form.analyse_targets.length > 0 && !form.analyse_targets.includes('all') ? form.analyse_targets : undefined,
-        binary_arch: form.binary_arch.length > 0 && !form.binary_arch.includes('all') ? form.binary_arch : undefined,
+        analyse_targets: form.analyse_targets.length > 0 ? form.analyse_targets : undefined,
+        binary_arch: form.binary_arch.length > 0 ? form.binary_arch : undefined,
         security_focus_categories: !form.security_focus_categories.includes('all') ? form.security_focus_categories : undefined,
         module_granularity: form.module_granularity !== 'fine' ? form.module_granularity : undefined,
       });
