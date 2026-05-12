@@ -61,6 +61,8 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   project_id: projectId,
   analyse_targets: ['all'],
   binary_arch: ['all'],
+  security_focus_categories: ['all'],
+  module_granularity: 'fine',
   parallel_modules: 1,
   parallel_sub_workers: 1,
   agent_max_retries: 100,
@@ -354,7 +356,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
           <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">配置分析引擎全局运行参数，包括并发度、重试策略、Pipeline 阶段循环控制及 Agent 模型配置。各项配置作为全局默认值对所有任务生效。</p>
-          <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 二进制架构过滤）属于任务级配置，请在「新建任务」弹窗中单独设置。</p>
+          <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）均可在此作为服务级默认值，也可在「新建任务」弹窗中覆盖。</p>
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}
@@ -373,7 +375,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               <p className="mt-2 text-sm text-slate-500">
                 当前 Tab 中的全部配置项都归属于 `secflow-app-system-analyse` 微服务，用于控制系统分析服务的并发、重试、阶段循环和 Agent 模型行为。
               </p>
-              <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 二进制架构过滤）属于任务级配置，请在「新建任务」弹窗中单独设置。</p>
+              <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）可在此设置服务级默认值，也可在「新建任务」弹窗中单独覆盖。</p>
               {config.updated_at && (
                 <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
               )}
@@ -401,6 +403,146 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
         </div>
       ) : (
         <div className="space-y-6">
+          <SectionCard title="分析范围配置" subtitle="控制文件过滤、S1 分类阶段的分析范围与模块粒度。以下配置为服务级默认值，可在任务创建时单独覆盖。">
+            {/* 文件类型多选 */}
+            <FieldRow
+              label="文件类型"
+              hint="analyse_targets"
+              desc="S0 文件过滤阶段只处理勾选类型。选择「all」不过滤。">
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {['all', 'binary', 'script', 'source', 'config', 'firmware', 'crypto', 'database', 'web', 'network_model', 'document', 'archive'].map((t) => {
+                  const selected = config.analyse_targets?.includes(t) ?? false;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        const cur = config.analyse_targets ?? ['all'];
+                        let next: string[];
+                        if (t === 'all') { next = ['all']; }
+                        else if (selected) { next = cur.filter(c => c !== t); if (next.length === 0) next = ['all']; }
+                        else { next = cur.filter(c => c !== 'all').concat(t); }
+                        patch({ analyse_targets: next });
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                        selected
+                          ? 'border-rose-400 bg-rose-50 text-rose-700'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                      }`}
+                    >{t}</button>
+                  );
+                })}
+              </div>
+            </FieldRow>
+
+            {/* 二进制架构多选 */}
+            <FieldRow
+              label="二进制架构"
+              hint="binary_arch"
+              desc="binary 类型文件的架构过滤，只在 analyse_targets 含 binary 时生效。选择「all」不过滤。">
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {['all', 'x86', 'x86_64', 'arm', 'aarch64', 'mips', 'mips64', 'ppc', 'ppc64', 'riscv', 's390'].map((t) => {
+                  const selected = config.binary_arch?.includes(t) ?? false;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        const cur = config.binary_arch ?? ['all'];
+                        let next: string[];
+                        if (t === 'all') { next = ['all']; }
+                        else if (selected) { next = cur.filter(c => c !== t); if (next.length === 0) next = ['all']; }
+                        else { next = cur.filter(c => c !== 'all').concat(t); }
+                        patch({ binary_arch: next });
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                        selected
+                          ? 'border-rose-400 bg-rose-50 text-rose-700'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                      }`}
+                    >{t}</button>
+                  );
+                })}
+              </div>
+            </FieldRow>
+
+            {/* 安全维度多选 */}
+            <FieldRow
+              label="安全维度过滤"
+              hint="security_focus_categories"
+              desc="S1 分类时只将与指定安全维度相关的文件归入模块，无关文件（构建脚本、i18n、文档等）直接丢弃。选择「全部」不做过滤。">
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {[
+                  { key: 'all', label: '全部（不过滤）' },
+                  { key: 'network_protocol', label: '网络协议解析' },
+                  { key: 'file_parsing', label: '文件格式处理' },
+                  { key: 'auth_access', label: '认证与访问控制' },
+                  { key: 'crypto', label: '密码学操作' },
+                  { key: 'ipc', label: '进程间通信' },
+                  { key: 'config_parsing', label: '配置与脚本解析' },
+                  { key: 'input_handling', label: '输入处理与验证' },
+                  { key: 'privilege_process', label: '权限与进程管理' },
+                  { key: 'web_api', label: 'Web 与 API 接口' },
+                  { key: 'memory_manage', label: '内存管理' },
+                ].map(({ key, label }) => {
+                  const selected = config.security_focus_categories?.includes(key) ?? false;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        const cats = config.security_focus_categories ?? ['all'];
+                        let next: string[];
+                        if (key === 'all') {
+                          next = ['all'];
+                        } else if (selected) {
+                          next = cats.filter((c) => c !== key);
+                          if (next.length === 0) next = ['all'];
+                        } else {
+                          next = cats.filter((c) => c !== 'all').concat(key);
+                        }
+                        patch({ security_focus_categories: next });
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                        selected
+                          ? 'border-rose-400 bg-rose-50 text-rose-700'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </FieldRow>
+
+            {/* 模块粒度切换 */}
+            <FieldRow
+              label="模块划分粒度"
+              hint="module_granularity"
+              desc="粗粒度：以完整协议/服务/安全功能为边界（HTTP 全部代码 = 1 模块），适合协议多、文件多的固件。细粒度：当前默认行为，按子组件/功能模块拆分。">
+              <div className="flex gap-2">
+                {[
+                  { value: 'fine', label: '细粒度（子组件级，默认）' },
+                  { value: 'coarse', label: '粗粒度（协议/服务/功能级）' },
+                ].map(({ value: v, label }) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => patch({ module_granularity: v })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.module_granularity === v
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+          </SectionCard>
+
           {/* 1. 并发配置 */}
           <SectionCard title="并发配置" subtitle="控制模块级并行度，影响分析速度与 LLM API 调用量">
             <div className="grid grid-cols-2 gap-4">

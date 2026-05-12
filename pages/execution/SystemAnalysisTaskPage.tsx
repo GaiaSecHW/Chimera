@@ -45,6 +45,8 @@ const emptyForm = {
   analysis_mode: 'binary' as 'binary' | 'source',
   analyse_targets: ['all'] as string[],
   binary_arch: ['all'] as string[],
+  security_focus_categories: ['all'] as string[],
+  module_granularity: 'fine' as string,
 };
 
 const SOURCE_MODE_DEFAULT_TARGETS = ['source', 'script', 'config'];
@@ -107,6 +109,23 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     sessionStorage.removeItem('secflow:systemAnalysisTaskId');
     onOpenTask(storedTaskId);
   }, [onOpenTask]);
+
+  // ── Pre-populate create modal with saved service config defaults ──────────
+  useEffect(() => {
+    if (!createModalOpen || !projectId) return;
+    appApi.getConfig(projectId)
+      .then((cfg) => {
+        setForm((prev) => ({
+          ...prev,
+          analyse_targets: Array.isArray(cfg.analyse_targets) ? cfg.analyse_targets : prev.analyse_targets,
+          binary_arch: Array.isArray(cfg.binary_arch) ? cfg.binary_arch : prev.binary_arch,
+          security_focus_categories: Array.isArray(cfg.security_focus_categories) ? cfg.security_focus_categories : prev.security_focus_categories,
+          module_granularity: typeof cfg.module_granularity === 'string' ? cfg.module_granularity : prev.module_granularity,
+        }));
+      })
+      .catch(() => { /* silently fall back to emptyForm defaults */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createModalOpen, projectId]);
 
   // ── Load task list ────────────────────────────────────────────────────────
 
@@ -203,8 +222,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         output_path: form.output_path.trim() || undefined,
         task_description: form.task_description.trim() || undefined,
         analysis_mode: form.analysis_mode,
-        analyse_targets: form.analyse_targets.length > 0 && !form.analyse_targets.includes('all') ? form.analyse_targets : undefined,
-        binary_arch: form.binary_arch.length > 0 && !form.binary_arch.includes('all') ? form.binary_arch : undefined,
+        analyse_targets: form.analyse_targets.length > 0 ? form.analyse_targets : undefined,
+        binary_arch: form.binary_arch.length > 0 ? form.binary_arch : undefined,
+        security_focus_categories: !form.security_focus_categories.includes('all') ? form.security_focus_categories : undefined,
+        module_granularity: form.module_granularity !== 'fine' ? form.module_granularity : undefined,
       });
       notify(`任务创建成功: ${resp.task_id}`, 'success');
       setForm({ ...emptyForm });
@@ -804,6 +825,54 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                       </label>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* 安全维度过滤 */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1.5">安全维度过滤 <span className="text-slate-400">(覆盖服务默认，all=不过滤)</span></p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { key: 'all', label: '全部' },
+                    { key: 'network_protocol', label: '网络协议' },
+                    { key: 'file_parsing', label: '文件处理' },
+                    { key: 'auth_access', label: '认证访问控制' },
+                    { key: 'crypto', label: '密码学' },
+                    { key: 'ipc', label: '进程间通信' },
+                    { key: 'config_parsing', label: '配置解析' },
+                    { key: 'input_handling', label: '输入处理' },
+                    { key: 'privilege_process', label: '权限进程' },
+                    { key: 'web_api', label: 'Web/API' },
+                    { key: 'memory_manage', label: '内存管理' },
+                  ].map(({ key, label }) => {
+                    const sel = form.security_focus_categories.includes(key);
+                    return (
+                      <button key={key} type="button"
+                        onClick={() => {
+                          const cats = form.security_focus_categories;
+                          let next: string[];
+                          if (key === 'all') { next = ['all']; }
+                          else if (sel) { next = cats.filter(c => c !== key); if (next.length === 0) next = ['all']; }
+                          else { next = cats.filter(c => c !== 'all').concat(key); }
+                          setForm(p => ({ ...p, security_focus_categories: next }));
+                        }}
+                        className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${sel ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                      >{label}</button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 模块划分粒度 */}
+              <div>
+                <p className="text-xs text-slate-500 mb-1.5">模块划分粒度 <span className="text-slate-400">(覆盖服务默认)</span></p>
+                <div className="flex gap-2">
+                  {[{ value: 'fine', label: '细粒度（默认）' }, { value: 'coarse', label: '粗粒度（协议/服务/功能级）' }].map(({ value: v, label }) => (
+                    <button key={v} type="button"
+                      onClick={() => setForm(p => ({ ...p, module_granularity: v }))}
+                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === v ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                    >{label}</button>
+                  ))}
                 </div>
               </div>
 

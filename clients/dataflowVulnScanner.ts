@@ -95,6 +95,8 @@ export interface DataflowScanTask {
   run_path?: string | null;
   run?: Partial<DataflowRunSummary> | null;
   latest_run?: Partial<DataflowRunSummary> | null;
+  auto_report_vulnerabilities?: boolean;
+  vuln_report_status?: Record<string, any>;
 }
 
 export interface DataflowScanTaskDetail extends DataflowScanTask {
@@ -182,6 +184,7 @@ export interface DataflowCreateTaskPayload {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  auto_report_vulnerabilities?: boolean;
 }
 
 export interface DataflowProfilePayload {

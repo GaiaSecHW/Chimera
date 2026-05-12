@@ -2072,6 +2072,8 @@ export interface SystemAnalysisServiceConfig {
   project_id: string;
   analyse_targets: string[];
   binary_arch: string[];
+  security_focus_categories: string[];
+  module_granularity: string;
   parallel_modules: number;
   parallel_sub_workers: number;
   agent_max_retries: number;
@@ -2389,7 +2391,7 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_content: string;
   result_json?: Record<string, any> | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[] } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string } | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -2541,6 +2543,8 @@ export interface AppSaTaskCreateRequest {
   analysis_mode?: 'binary' | 'source';
   analyse_targets?: string[];
   binary_arch?: string[];
+  security_focus_categories?: string[];
+  module_granularity?: string;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -2907,6 +2911,7 @@ export interface AppDfaRoleConfig {
 export interface AppDfaServiceConfig {
   project_id: string;
   max_rounds: number;
+  max_rounds_exceeded_review_strategy: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
   pass_threshold: number;
   agent_max_retries: number;
