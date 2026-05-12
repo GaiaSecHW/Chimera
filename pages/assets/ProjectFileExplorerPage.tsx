@@ -1664,6 +1664,32 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
     alert(`批量删除完成，成功删除 ${selectedItems.length} 项`);
   };
 
+  const handleCreateArchiveTaskFromList = async () => {
+    const selectedItems = filteredItems.filter((item) => selectedListNodeIds.has(item.id));
+    if (selectedItems.length === 0) return;
+    const paths = selectedItems
+      .filter((item) => item.source === 'fileserver' && item.path)
+      .map((item) => item.path as string);
+    if (paths.length === 0) {
+      alert('仅支持对 Fileserver 路径创建打包任务');
+      return;
+    }
+    setBusyAction(`archive:${paths.length}`);
+    try {
+      const resp = await assetApi.fileserver.createProjectFilesystemArchiveTask({
+        project_id: projectId,
+        items: paths,
+      });
+      setSelectedListNodeIds(new Set());
+      sessionStorage.setItem('secflow:archiveTaskFocus', resp.task_id);
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'fileserver-archive-tasks' } }));
+    } catch (error: any) {
+      alert(error?.message || '创建打包任务失败');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   const renderNodeIcon = (node: UnifiedExplorerNode, expanded: boolean) => {
     if (node.nodeType === 'workspace') return <FolderTree size={14} className="text-slate-500" />;
     if (node.nodeType === 'fileserver-root') return <HardDrive size={14} className="text-sky-600" />;
@@ -2105,6 +2131,15 @@ const getPvcDirectoryPath = (target: UnifiedExplorerNode) => {
                       >
                         <Trash2 size={12} />
                         删除所选
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 rounded-lg bg-sky-600 px-2.5 py-1 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => void handleCreateArchiveTaskFromList()}
+                        disabled={selectedListNodeIds.size === 0}
+                      >
+                        <Download size={12} />
+                        打包下载
                       </button>
                     </div>
                   </div>

@@ -398,6 +398,8 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
   const [linkedFiles, setLinkedFiles] = useState<any | null>(null);
   const [linkedFilesLoading, setLinkedFilesLoading] = useState(false);
   const [linkedFileSearch, setLinkedFileSearch] = useState('');
+  const [selectedLinkedPaths, setSelectedLinkedPaths] = useState<string[]>([]);
+  const [linkedArchiveSubmitting, setLinkedArchiveSubmitting] = useState(false);
   const [selectedLinkedFile, setSelectedLinkedFile] = useState<any | null>(null);
   const [linkedFilePreview, setLinkedFilePreview] = useState<string>('');
   const [linkedFilePreviewLoading, setLinkedFilePreviewLoading] = useState(false);
@@ -580,6 +582,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         try {
           const filesPayload = await assetApi.fileserver.getVulnProjectPathChildren(detail.project_id, detail.files_root_path);
           setLinkedFiles(filesPayload);
+          setSelectedLinkedPaths([]);
           setSelectedLinkedFile(null);
           setLinkedFilePreview('');
           setLinkedFilePreviewError(null);
@@ -588,6 +591,7 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
         }
       } else {
         setLinkedFiles(null);
+        setSelectedLinkedPaths([]);
         setSelectedLinkedFile(null);
         setLinkedFilePreview('');
         setLinkedFilePreviewError(null);
@@ -610,10 +614,33 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
       setSelectedLinkedFile(null);
       setLinkedFilePreview('');
       setLinkedFilePreviewError(null);
+      setSelectedLinkedPaths([]);
     } catch (err: any) {
       setError(err?.message || '加载疑点文件失败');
     } finally {
       setLinkedFilesLoading(false);
+    }
+  };
+
+  const toggleLinkedPathSelection = (path: string) => {
+    setSelectedLinkedPaths((prev) => (prev.includes(path) ? prev.filter((item) => item !== path) : [...prev, path]));
+  };
+
+  const handleCreateLinkedArchiveTask = async () => {
+    if (!selectedDetail?.project_id || selectedLinkedPaths.length === 0) return;
+    setLinkedArchiveSubmitting(true);
+    setError(null);
+    try {
+      const resp = await assetApi.fileserver.createVulnProjectPathArchiveTask({
+        project_id: selectedDetail.project_id,
+        items: selectedLinkedPaths,
+      });
+      sessionStorage.setItem('secflow:archiveTaskFocus', resp.task_id);
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'fileserver-archive-tasks' } }));
+    } catch (err: any) {
+      setError(err?.message || '创建打包任务失败');
+    } finally {
+      setLinkedArchiveSubmitting(false);
     }
   };
 
@@ -1417,6 +1444,14 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-3">
                       <div className="truncate text-xs font-bold text-slate-500">当前路径：{linkedFiles.current_path}</div>
                       <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleCreateLinkedArchiveTask()}
+                          disabled={selectedLinkedPaths.length === 0 || linkedArchiveSubmitting}
+                          className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-black text-white disabled:opacity-40"
+                        >
+                          {linkedArchiveSubmitting ? '提交中...' : `打包下载(${selectedLinkedPaths.length})`}
+                        </button>
                         <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
                           <Search size={12} className="text-slate-400" />
                           <input
@@ -1451,32 +1486,51 @@ export const VulnIntakePage: React.FC<VulnPageProps> = ({ projectId }) => {
                     </div>
                     <div className="grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)]">
                       <div className="min-h-0 overflow-auto border-r border-slate-100 p-3">
-                        <div className="grid grid-cols-[minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                        <div className="grid grid-cols-[24px_minmax(0,1fr)_70px] gap-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          <div>选</div>
                           <div>名称</div>
                           <div>大小</div>
                         </div>
                         <div className="mt-2 space-y-1">
                           {linkedDirectoryItems.map((directory: any) => (
-                            <button
+                            <div
                               key={directory.id}
-                              type="button"
-                              onClick={() => openLinkedFilesPath(directory.path)}
-                              className="grid w-full grid-cols-[minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-50"
+                              className="grid w-full grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-slate-50"
                             >
+                              <input
+                                type="checkbox"
+                                checked={selectedLinkedPaths.includes(directory.path)}
+                                onChange={() => toggleLinkedPathSelection(directory.path)}
+                                className="h-4 w-4"
+                                aria-label={`选择目录 ${directory.name}`}
+                              />
                               <span className="inline-flex min-w-0 items-center gap-2 truncate text-sm font-semibold text-slate-800">
                                 <FolderOpen size={14} className="shrink-0 text-amber-500" />
-                                <span className="truncate">{directory.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => openLinkedFilesPath(directory.path)}
+                                  className="truncate text-left"
+                                >
+                                  {directory.name}
+                                </button>
                               </span>
                               <span className="text-xs text-slate-400">--</span>
-                            </button>
+                            </div>
                           ))}
                           {linkedFileItems.map((file: any) => {
                             const active = selectedLinkedFile?.id === file.id;
                             return (
                               <div
                                 key={file.id}
-                                className={`grid grid-cols-[minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
+                                className={`grid grid-cols-[24px_minmax(0,1fr)_70px] items-center gap-3 rounded-xl px-3 py-2 ${active ? 'bg-sky-50' : 'hover:bg-slate-50'}`}
                               >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedLinkedPaths.includes(file.path)}
+                                  onChange={() => toggleLinkedPathSelection(file.path)}
+                                  className="h-4 w-4"
+                                  aria-label={`选择文件 ${file.filename}`}
+                                />
                                 <button
                                   type="button"
                                   onClick={() => openLinkedTextPreview(file)}
