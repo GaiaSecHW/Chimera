@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { ArrowLeft, ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { api } from '../../clients/api';
-import { B2SAdvancedFile, B2SAdvancedRun, B2SReviewAnalytics, B2STaskDetail, B2STaskItemAdvanced } from '../../clients/binaryToSource';
+import { B2SAdvancedFile, B2SAdvancedRun, B2SArtifact, B2SReviewAnalytics, B2STaskDetail, B2STaskItemAdvanced } from '../../clients/binaryToSource';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
 
 interface Props {
@@ -345,6 +345,8 @@ const PiSessionPreview: React.FC<{ file: B2SAdvancedFile }> = ({ file }) => {
 export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId, onBack }) => {
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
   const [advanced, setAdvanced] = useState<B2STaskItemAdvanced | null>(null);
+  const [artifacts, setArtifacts] = useState<B2SArtifact[]>([]);
+  const [artifactContent, setArtifactContent] = useState<Record<string, string>>({});
   const [reviewAnalytics, setReviewAnalytics] = useState<B2SReviewAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [sessionRefreshing, setSessionRefreshing] = useState(false);
@@ -357,13 +359,16 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
     setLoading(true);
     setError(null);
     try {
-      const [taskDetail, advancedDetail, analyticsDetail] = await Promise.all([
+      const [taskDetail, advancedDetail, artifactsDetail, analyticsDetail] = await Promise.all([
         api.domains.execution.binaryToSource.getTask(projectId, taskId),
-        api.domains.execution.binaryToSource.getTaskItemAdvanced(projectId, taskId, itemId, true),
+        api.domains.execution.binaryToSource.getTaskItemAdvanced(projectId, taskId, itemId, false),
+        api.domains.execution.binaryToSource.getTaskItemArtifacts(projectId, taskId, itemId),
         api.domains.execution.binaryToSource.getTaskItemReviewAnalytics(projectId, taskId, itemId, false),
       ]);
       setDetail(taskDetail);
       setAdvanced(advancedDetail);
+      setArtifacts(artifactsDetail.artifacts || []);
+      setArtifactContent({});
       setReviewAnalytics(analyticsDetail);
     } catch (e: any) {
       setError(e?.message || '加载高级信息失败');
@@ -437,12 +442,27 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
     setSelectedPath((current) => current && files.some((entry) => entry.file.path === current) ? current : (files[0]?.file.path || ''));
   }, [files]);
 
-  const selected = files.find((entry) => entry.file.path === selectedPath)?.file || null;
+  const selectedBase = files.find((entry) => entry.file.path === selectedPath)?.file || null;
+  const selectedArtifact = artifacts.find((artifact) => artifact.path === selectedPath);
+  const selected = selectedBase ? { ...selectedBase, content: selectedArtifact ? artifactContent[selectedArtifact.id] ?? selectedBase.content : selectedBase.content } : null;
   const isSelectedJsonlSession = !!selected && selected.kind === 'agent_session' && selected.name.toLowerCase().endsWith('.jsonl');
   const item = detail?.items.find((entry) => entry.id === itemId || String(entry.sequence_no) === itemId);
   const isTaskRunning = isB2SActiveStatus(detail?.status) || isB2SActiveStatus(item?.status) || !!(detail?.running_items || detail?.queued_items || detail?.pending_items);
   const shouldAutoRefreshSession = isSelectedJsonlSession && autoRefreshSession;
   const selectedPreviewKey = selected ? `${selected.path}:${selected.size}:${selected.content?.length || 0}:${selected.content?.slice(-160) || ''}` : 'empty';
+
+  useEffect(() => {
+    if (!projectId || !taskId || !itemId || !selectedArtifact || artifactContent[selectedArtifact.id] !== undefined) return;
+    let cancelled = false;
+    api.domains.execution.binaryToSource.getTaskItemArtifactContent(projectId, taskId, itemId, selectedArtifact.id)
+      .then((payload) => {
+        if (!cancelled) setArtifactContent((current) => ({ ...current, [selectedArtifact.id]: payload.content || '' }));
+      })
+      .catch(() => {
+        if (!cancelled) setArtifactContent((current) => ({ ...current, [selectedArtifact.id]: '' }));
+      });
+    return () => { cancelled = true; };
+  }, [projectId, taskId, itemId, selectedArtifact?.id, artifactContent]);
 
   useEffect(() => {
     if (!projectId || !taskId || !itemId || !selectedPath || !shouldAutoRefreshSession) return;
@@ -453,14 +473,16 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
       inFlight = true;
       setSessionRefreshing(true);
       try {
-        const [taskDetail, advancedDetail, analyticsDetail] = await Promise.all([
+        const [taskDetail, advancedDetail, artifactsDetail, analyticsDetail] = await Promise.all([
           api.domains.execution.binaryToSource.getTask(projectId, taskId),
-          api.domains.execution.binaryToSource.getTaskItemAdvanced(projectId, taskId, itemId, true),
+          api.domains.execution.binaryToSource.getTaskItemAdvanced(projectId, taskId, itemId, false),
+          api.domains.execution.binaryToSource.getTaskItemArtifacts(projectId, taskId, itemId),
           api.domains.execution.binaryToSource.getTaskItemReviewAnalytics(projectId, taskId, itemId, false),
         ]);
         if (!cancelled) {
           setDetail(taskDetail);
           setAdvanced(advancedDetail);
+          setArtifacts(artifactsDetail.artifacts || []);
           setReviewAnalytics(analyticsDetail);
         }
       } catch {

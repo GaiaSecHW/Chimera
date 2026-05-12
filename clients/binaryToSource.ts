@@ -145,6 +145,36 @@ export interface B2STaskItemAdvanced {
   ida_files: B2SAdvancedFile[];
 }
 
+export interface B2SArtifact extends Omit<B2SAdvancedFile, 'content' | 'truncated'> {
+  id: string;
+  relative_path: string;
+  content_url: string;
+}
+
+export interface B2SArtifactsResponse {
+  task_id: string;
+  item_id: string;
+  output_dir: string;
+  work_dir?: string | null;
+  artifacts: B2SArtifact[];
+  counts: Record<string, number>;
+}
+
+export interface B2SArtifactContent {
+  artifact_id: string;
+  name: string;
+  path: string;
+  kind: string;
+  mime_type: string;
+  encoding: string;
+  size: number;
+  offset: number;
+  limit: number;
+  content: string;
+  truncated: boolean;
+  next_offset?: number | null;
+}
+
 export interface B2SReviewAnalyticsAttempt {
   attempt_no: number;
   label?: string | null;
@@ -407,6 +437,20 @@ export const binaryToSourceApi = {
 
   getTaskItemAdvanced: async (projectId: string, taskId: string, itemId: string, includeContent = true): Promise<B2STaskItemAdvanced> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/advanced?include_content=${includeContent ? 'true' : 'false'}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskItemArtifacts: async (projectId: string, taskId: string, itemId: string): Promise<B2SArtifactsResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/artifacts`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskItemArtifactContent: async (projectId: string, taskId: string, itemId: string, artifactId: string, offset = 0, limit = 512 * 1024): Promise<B2SArtifactContent> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/artifacts/${artifactId}/content?offset=${offset}&limit=${limit}`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);
