@@ -16,6 +16,7 @@ import {
   inspectDataflowFileserverRunOverview,
   listDataflowFileserverRunFiles,
   listDataflowFileserverRunSessions,
+  reportDataflowFileserverRunVulnerabilities,
   retryDataflowFileserverRun,
 } from '../../clients/dataflowVulnRunsFileserver';
 import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
@@ -748,8 +749,120 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   box-shadow: 0 16px 28px rgba(14, 165, 233, 0.08);
 }
 
+.result-card.selected {
+  border-color: #0891b2;
+  background: linear-gradient(180deg, #ecfeff 0%, #ffffff 100%);
+  box-shadow: 0 16px 28px rgba(14, 165, 233, 0.10);
+}
+
 .result-card-muted {
   background: #f8fafc;
+}
+
+.result-toolbar {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #f8fdff 0%, #eff6ff 100%);
+}
+
+.result-toolbar-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.result-toolbar-title {
+  color: var(--text-bright);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.result-toolbar-desc {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.result-toolbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result-toolbar-meta span {
+  padding: 6px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1e3a8a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.result-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result-feedback {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.result-feedback.success {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.result-feedback.error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.result-feedback.info {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.result-select-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.result-select-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.result-select-box input {
+  width: 16px;
+  height: 16px;
+  accent-color: #0891b2;
+  cursor: pointer;
+}
+
+.result-main {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .result-name {
@@ -1836,6 +1949,15 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
     align-items: stretch;
   }
 
+  .result-toolbar-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .result-toolbar-actions {
+    width: 100%;
+  }
+
   .task-info-grid {
     grid-template-columns: 1fr;
   }
@@ -1946,6 +2068,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     _sessionSocketKey: '',
     _sessionLoadSeq: 0,
     _toolResultText: {} as Record<string, { preview: string; full: string; expanded: boolean }>,
+    _resultSelectionByRun: {} as Record<string, string[]>,
+    _resultReportFeedbackByRun: {} as Record<string, { tone: 'success' | 'error' | 'info'; message: string }>,
+    _resultReportBusy: false,
     _handleClick: null as ((event: Event) => void) | null,
     _handleInput: null as ((event: Event) => void) | null,
     _handleChange: null as ((event: Event) => void) | null,
@@ -1985,11 +2110,49 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return this.tabCacheByRun[key];
     },
 
+    getResultSelection(runName = this.currentRun || '') {
+      const key = String(runName || '');
+      return Array.isArray(this._resultSelectionByRun[key]) ? this._resultSelectionByRun[key] : [];
+    },
+
+    setResultSelection(runName: string, resultFiles: string[]) {
+      const key = String(runName || '');
+      this._resultSelectionByRun[key] = uniqueValues(
+        resultFiles.map((item) => String(item || '').trim()).filter(Boolean)
+      );
+    },
+
+    setResultReportFeedback(message: string, tone: 'success' | 'error' | 'info' = 'info', runName = this.currentRun || '') {
+      const key = String(runName || '');
+      if (!key) return;
+      this._resultReportFeedbackByRun[key] = { tone, message };
+      if (this.currentRunData?.name === key) this.renderResults(this.currentRunData);
+    },
+
+    activeResultFiles(data: DataflowFileserverRunOverview) {
+      return uniqueValues(
+        (Array.isArray(data.results) ? data.results : []).map((item: any) => String(item?.filename || '').trim()).filter(Boolean)
+      );
+    },
+
+    syncResultSelection(data: DataflowFileserverRunOverview) {
+      const available = new Set(this.activeResultFiles(data));
+      const next = this.getResultSelection(data.name).filter((item: string) => available.has(item));
+      this.setResultSelection(data.name, next);
+      return next;
+    },
+
     bindEvents() {
       if (!this._handleClick) {
         this._handleClick = (event: Event) => {
           const target = event.target as HTMLElement | null;
           if (!target) return;
+
+          const resultSelectionToggle = target.closest('[data-action="toggle-result-selection"], [data-action="select-all-results"]') as HTMLElement | null;
+          if (resultSelectionToggle) {
+            event.stopPropagation();
+            return;
+          }
 
           const deleteModal = this.$('deleteModal');
           if (deleteModal && target === deleteModal) {
@@ -2059,6 +2222,30 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           if (retryButton) {
             event.preventDefault();
             void this.retryCurrentRun();
+            return;
+          }
+
+          const reportSelectedButton = target.closest('[data-action="report-selected-results"]') as HTMLElement | null;
+          if (reportSelectedButton) {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.reportSelectedResults();
+            return;
+          }
+
+          const reportAllButton = target.closest('[data-action="report-all-results"]') as HTMLElement | null;
+          if (reportAllButton) {
+            event.preventDefault();
+            event.stopPropagation();
+            void this.reportAllResults();
+            return;
+          }
+
+          const clearSelectionButton = target.closest('[data-action="clear-result-selection"]') as HTMLElement | null;
+          if (clearSelectionButton) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.clearResultSelection();
             return;
           }
 
@@ -2215,8 +2402,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
       if (!this._handleChange) {
         this._handleChange = (event: Event) => {
-          const target = event.target as HTMLSelectElement | null;
+          const target = event.target as HTMLInputElement | HTMLSelectElement | null;
           if (!target) return;
+          if (target instanceof HTMLInputElement && target.dataset.action === 'select-all-results') {
+            this.toggleSelectAllResults(target.checked);
+            return;
+          }
+          if (target instanceof HTMLInputElement && target.dataset.action === 'toggle-result-selection') {
+            const resultFile = String(target.dataset.resultFile || '').trim();
+            if (resultFile) this.toggleResultSelection(resultFile, target.checked);
+            return;
+          }
           if (target.id === 'fileCategoryFilter') {
             this.fileBrowser.categoryFilter = target.value || 'all';
             this.renderFiles(this.currentFiles);
@@ -2611,6 +2807,77 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     currentRunId() {
       return String(this.currentRunData?.run_id || this.currentSummary?.run_id || '');
+    },
+
+    clearResultSelection() {
+      if (!this.currentRunData?.name) return;
+      this.setResultSelection(this.currentRunData.name, []);
+      this.renderResults(this.currentRunData);
+    },
+
+    toggleSelectAllResults(checked: boolean) {
+      if (!this.currentRunData?.name) return;
+      const next = checked ? this.activeResultFiles(this.currentRunData) : [];
+      this.setResultSelection(this.currentRunData.name, next);
+      this.renderResults(this.currentRunData);
+    },
+
+    toggleResultSelection(resultFile: string, checked: boolean) {
+      if (!this.currentRunData?.name) return;
+      const current = new Set(this.getResultSelection(this.currentRunData.name));
+      if (checked) current.add(resultFile);
+      else current.delete(resultFile);
+      this.setResultSelection(this.currentRunData.name, Array.from(current));
+      this.renderResults(this.currentRunData);
+    },
+
+    async reportResults(resultFiles: string[], mode: 'selected' | 'all') {
+      const data = this.currentRunData;
+      if (!data) return;
+      const files = uniqueValues(resultFiles.map((item) => String(item || '').trim()).filter(Boolean));
+      if (!files.length) {
+        this.setResultReportFeedback('请先选择至少一个问题。', 'error', data.name);
+        return;
+      }
+      if (!data.run_id) {
+        this.setResultReportFeedback('当前 Run 尚未解析出 run_id，暂时无法上报。', 'error', data.name);
+        return;
+      }
+      if (!data.linked_task_id || !data.linked_execution_id) {
+        this.setResultReportFeedback('当前 Run 还没有关联到受管任务，无法上报到漏洞引擎。请先关联任务记录。', 'error', data.name);
+        return;
+      }
+      this._resultReportBusy = true;
+      this.setResultReportFeedback(
+        mode === 'all' ? `正在将全部 ${files.length} 个问题上报到漏洞引擎...` : `正在上报已选中的 ${files.length} 个问题...`,
+        'info',
+        data.name,
+      );
+      this.renderResults(data);
+      try {
+        const payload = await reportDataflowFileserverRunVulnerabilities(projectId, this.runsRootPath, data.name, files);
+        const reported = Number(payload?.reported || 0);
+        const failed = Number(payload?.failed || 0);
+        const total = Number(payload?.total || files.length);
+        const status = String(payload?.status || '');
+        const tone = failed > 0 || status === 'failed' || status === 'partial_failed' ? 'error' : 'success';
+        this.setResultReportFeedback(`已向漏洞引擎提交 ${total} 个问题，成功 ${reported}，失败 ${failed}。`, tone, data.name);
+      } catch (error: any) {
+        this.setResultReportFeedback(error?.message || '批量上报疑点失败。', 'error', data.name);
+      } finally {
+        this._resultReportBusy = false;
+        if (this.currentRunData?.name === data.name) this.renderResults(this.currentRunData);
+      }
+    },
+
+    async reportSelectedResults() {
+      if (!this.currentRunData) return;
+      await this.reportResults(this.getResultSelection(this.currentRunData.name), 'selected');
+    },
+
+    async reportAllResults() {
+      if (!this.currentRunData) return;
+      await this.reportResults(this.activeResultFiles(this.currentRunData), 'all');
     },
 
     isActiveRunStatus(statusText: string) {
@@ -3076,20 +3343,58 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const activeResults = data.results || [];
       const removedResults = data.removed_results || [];
       if (!activeResults.length && !removedResults.length) { el.innerHTML = '<div class="empty-state">暂无漏洞结果</div>'; return; }
+      const selected = this.syncResultSelection(data);
+      const selectedSet = new Set(selected);
+      const selectableFiles = this.activeResultFiles(data);
+      const allSelected = selectableFiles.length > 0 && selected.length === selectableFiles.length;
+      const feedback = this._resultReportFeedbackByRun[String(data.name || '')] || null;
+      const reportDisabled = this._resultReportBusy || !data.linked_task_id || !data.linked_execution_id;
+      const toolbarHtml = `
+      <div class="result-toolbar">
+        <div class="result-toolbar-head">
+          <div>
+            <div class="result-toolbar-title">疑点上报到漏洞引擎</div>
+            <div class="result-toolbar-desc">支持多选结果文件，批量将当前 Run 发现的问题作为疑点上报；“一键上报全部”会直接上报当前所有有效问题。</div>
+          </div>
+          <div class="result-toolbar-meta">
+            <span>可上报 ${selectableFiles.length}</span>
+            <span>已选 ${selected.length}</span>
+            <span>${data.linked_task_id && data.linked_execution_id ? '已关联受管任务' : '未关联任务，暂不可上报'}</span>
+          </div>
+        </div>
+        <div class="result-toolbar-actions">
+          <label class="btn btn-sm" style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" data-action="select-all-results" ${allSelected ? 'checked' : ''} ${!selectableFiles.length ? 'disabled' : ''} />
+            <span>全选</span>
+          </label>
+          <button class="btn btn-sm" type="button" data-action="clear-result-selection" ${!selected.length ? 'disabled' : ''}>清空选择</button>
+          <button class="btn btn-sm" type="button" data-action="report-selected-results" ${reportDisabled || !selected.length ? 'disabled' : ''}>上报已选</button>
+          <button class="btn btn-sm" type="button" data-action="report-all-results" ${reportDisabled || !selectableFiles.length ? 'disabled' : ''}>一键上报全部</button>
+        </div>
+        ${feedback ? `<div class="result-feedback ${this.attr(feedback.tone)}">${this.esc(feedback.message)}</div>` : ''}
+      </div>
+      `;
 
       const activeHtml = activeResults.map((r: any) => `
-      <div class="result-card" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.path || ('results/' + r.filename))}">
-        <div class="result-header">
-          <span class="result-name">${this.esc(r.filename)}</span>
-          ${this.verdictBadge(r.verdict)}
-          ${this.lifecycleBadge(r)}
-          ${r.multi_finding ? '<span class="badge badge-sm badge-warning">multi-finding</span>' : ''}
-          <span class="result-verdict text-muted">conf: ${(r.confidence || 0).toFixed(2)} · cycle ${r.review_cycle}</span>
-          <span class="result-title">${this.esc(r.title || '')}</span>
-          ${r.related_to ? `<span class="text-muted">related: ${this.esc(r.related_to)}</span>` : ''}
-          ${r.review_path ? `<span class="action-link" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.review_path)}">评审 JSON</span>` : ''}
+      <div class="result-card ${selectedSet.has(String(r.filename || '')) ? 'selected' : ''}" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.path || ('results/' + r.filename))}">
+        <div class="result-select-row">
+          <label class="result-select-box" title="选择该问题用于批量上报" onclick="event.stopPropagation()">
+            <input type="checkbox" data-action="toggle-result-selection" data-result-file="${this.attr(r.filename)}" ${selectedSet.has(String(r.filename || '')) ? 'checked' : ''} />
+          </label>
+          <div class="result-main">
+            <div class="result-header">
+              <span class="result-name">${this.esc(r.filename)}</span>
+              ${this.verdictBadge(r.verdict)}
+              ${this.lifecycleBadge(r)}
+              ${r.multi_finding ? '<span class="badge badge-sm badge-warning">multi-finding</span>' : ''}
+              <span class="result-verdict text-muted">conf: ${(r.confidence || 0).toFixed(2)} · cycle ${r.review_cycle}</span>
+              <span class="result-title">${this.esc(r.title || '')}</span>
+              ${r.related_to ? `<span class="text-muted">related: ${this.esc(r.related_to)}</span>` : ''}
+              ${r.review_path ? `<span class="action-link" data-action="open-file" data-run="${this.attr(data.name)}" data-path="${this.attr(r.review_path)}">评审 JSON</span>` : ''}
+            </div>
+            <div class="review-feedback mt-8">${this.esc(r.feedback_detail || r.feedback || '').substring(0, 260)}</div>
+          </div>
         </div>
-        <div class="review-feedback mt-8">${this.esc(r.feedback_detail || r.feedback || '').substring(0, 260)}</div>
       </div>
     `).join('');
 
@@ -3108,7 +3413,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       `).join('')}
     ` : '';
 
-      el.innerHTML = activeHtml + removedHtml;
+      el.innerHTML = toolbarHtml + activeHtml + removedHtml;
     },
 
     async loadSessions(force = false) {

@@ -401,6 +401,7 @@ export const CasesWorkspace: React.FC<any> = ({
                       )}
                     </div>
                     <div className="mt-1 truncate text-[11px] font-mono text-slate-400">{item.id}</div>
+                    {item.finding_id ? <div className="mt-1 truncate text-[11px] font-mono text-blue-600">{item.finding_id}</div> : null}
                     <div className="mt-1 line-clamp-1 text-xs text-slate-500">{item.summary || '暂无摘要'}</div>
                   </div>
                   <div className="text-sm font-black text-slate-700">{labelOf(item.current_stage, STAGE_LABELS)}</div>
@@ -540,6 +541,7 @@ export const CasesWorkspace: React.FC<any> = ({
               </div>
               <h4 className={compactLayout ? 'text-xl font-black text-slate-800' : 'text-2xl font-black text-slate-800'}>{selectedCaseDetail.title}</h4>
               <p className="text-xs font-mono text-slate-500">ID: {selectedCaseDetail.id}</p>
+              {selectedCaseDetail.finding_id ? <p className="text-xs font-mono text-blue-600">漏洞编号: {selectedCaseDetail.finding_id}</p> : null}
               <p className={compactLayout ? 'text-sm text-slate-500 line-clamp-2' : 'text-sm text-slate-500'}>{selectedCaseDetail.summary || '暂无摘要'}</p>
             </div>
 
