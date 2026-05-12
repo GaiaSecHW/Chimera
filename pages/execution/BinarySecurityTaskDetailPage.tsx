@@ -19,6 +19,7 @@ interface Props {
 }
 
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
+const PREPARING_STATUSES = new Set(['continue_preparing', 'retry_preparing']);
 const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'firmware_unpack',
   'system_analysis',
@@ -75,6 +76,10 @@ const statusTone = (status: string) => {
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     case 'running':
       return 'bg-blue-50 text-blue-700 border-blue-200';
+    case 'continue_preparing':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'retry_preparing':
+      return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'applying':
       return 'bg-violet-50 text-violet-700 border-violet-200';
     case 'dispatching':
@@ -99,6 +104,10 @@ const stageNodeTone = (status: string, selected: boolean) => {
       return `border-rose-300 bg-rose-50 text-rose-800 ${selectedDepth}`;
     case 'running':
       return `border-blue-300 bg-blue-50 text-blue-800 ${selectedDepth}`;
+    case 'continue_preparing':
+      return `border-emerald-300 bg-emerald-50 text-emerald-800 ${selectedDepth}`;
+    case 'retry_preparing':
+      return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
     case 'applying':
       return `border-violet-300 bg-violet-50 text-violet-800 ${selectedDepth}`;
     case 'cancelled':
@@ -122,6 +131,10 @@ const stageConnectorTone = (status: string) => {
       return 'text-rose-400';
     case 'running':
       return 'text-blue-400';
+    case 'continue_preparing':
+      return 'text-emerald-400';
+    case 'retry_preparing':
+      return 'text-orange-400';
     case 'applying':
       return 'text-violet-400';
     default:
@@ -186,15 +199,15 @@ const BLOCKING_ACTION_COPY: Record<
     confirmTitle: '清空并从头开始',
     confirmMessage: '该操作会清空并删除当前任务所有阶段的阶段任务、下游任务、编排记录和结果摘要，然后从第一阶段重新开始。该操作不会复用旧下游任务，是否确认继续？',
     confirmText: '确认清空并从头开始',
-    progressTitle: '正在清空并从头开始',
-    progressMessage: '系统正在删除旧阶段任务并重新发起执行，请勿重复点击或执行其他操作。',
+    progressTitle: '后台正在清空并从头开始',
+    progressMessage: '请求会立即受理，后台完成清理后自动切回待调度状态。',
   },
   continue: {
     confirmTitle: '继续任务',
     confirmMessage: '将从当前连续成功阶段的下一个阶段开始继续推进。前序连续成功阶段会保留；当前阶段及后续阶段会清空结果摘要，并尽量复用旧下游任务。是否继续？',
     confirmText: '确认继续',
-    progressTitle: '正在继续任务',
-    progressMessage: '系统正在定位下一个可执行阶段并恢复推进，请勿重复点击或执行其他操作。',
+    progressTitle: '后台正在继续任务准备',
+    progressMessage: '请求会立即受理，后台完成准备后自动切回待调度状态。',
   },
 };
 
@@ -215,6 +228,14 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   task_start_requested: '任务入队',
   firmware_items_initialized: '固件输入初始化',
   source_tree_initialized: '源码输入初始化',
+  task_continue_accepted: '继续已受理',
+  task_retry_accepted: '清空重试已受理',
+  task_continue_prepare_started: '继续准备开始',
+  task_retry_prepare_started: '重试准备开始',
+  task_continue_prepare_finished: '继续准备完成',
+  task_retry_prepare_finished: '重试准备完成',
+  task_continue_prepare_failed: '继续准备失败',
+  task_retry_prepare_failed: '重试准备失败',
   task_continue_requested: '继续执行',
   task_retried: '清空并从头开始',
   stage_retry_requested: '阶段重试',
@@ -706,6 +727,21 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     };
   }
 
+  if (detail.status === 'continue_preparing' || detail.status === 'retry_preparing') {
+    const isRetryPreparing = detail.status === 'retry_preparing';
+    return {
+      tone: 'info',
+      title: isRetryPreparing ? '正在清空并从头开始' : '正在继续任务准备',
+      description: isRetryPreparing
+        ? '后台正在清理全部阶段结果、阶段子任务和下游任务，准备重新进入第一阶段队列。'
+        : '后台正在定位下一个可执行阶段，并清理当前阶段及后续阶段需要重建的结果。',
+      evidence: [
+        { label: '目标阶段', value: currentStageLabel },
+        { label: '待处理动作', value: detail.pending_action || (isRetryPreparing ? 'retry' : 'continue') },
+      ],
+    };
+  }
+
   if (detail.status === 'running' || detail.status === 'dispatching') {
     const runningArchive = runningArchiveJobs[runningArchiveJobs.length - 1];
     return {
@@ -816,6 +852,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [detail, setDetail] = useState<BinarySecurityTaskDetail | null>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [artifacts, setArtifacts] = useState<any | null>(null);
+  const [artifactsLoaded, setArtifactsLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [detailRefreshing, setDetailRefreshing] = useState(false);
   const [timelineLoading, setTimelineLoading] = useState(false);
@@ -833,6 +870,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [expandedStageItemId, setExpandedStageItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pendingBlockingAction, setPendingBlockingAction] = useState<BlockingActionKind>('');
   const [blockingAction, setBlockingAction] = useState<BlockingActionKind>('');
   const [concurrencyModalOpen, setConcurrencyModalOpen] = useState(false);
@@ -854,6 +892,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   );
   const isSourceTask = taskType === 'source';
   const canActOnTask = Boolean(detail);
+  const isPreparing = PREPARING_STATUSES.has(detail?.status || '');
   const taskRetrySupported = Boolean(detail?.task_retry_supported);
   const taskRetryReason = detail?.task_retry_reason || '当前任务不可清空并从头开始';
   const taskContinueSupported = Boolean(detail?.task_continue_supported);
@@ -1009,10 +1048,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setArtifactsLoading(true);
     setError(null);
     try {
-      setArtifacts(await executionApi.binarySecurity.getArtifacts(projectId, taskId));
+      const payload = await executionApi.binarySecurity.getArtifacts(projectId, taskId);
+      setArtifacts(payload || { workspace_root: '', files: [] });
     } catch (e: any) {
       setError(e?.message || '加载产物文件失败');
     } finally {
+      setArtifactsLoaded(true);
       setArtifactsLoading(false);
     }
   };
@@ -1034,6 +1075,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       }
       if (activeTab === 'artifacts') {
         setArtifacts(null);
+        setArtifactsLoaded(false);
       }
       const refreshedTask = await loadTask({ showLoading: false });
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
@@ -1046,6 +1088,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   useEffect(() => {
     void loadTask();
+  }, [projectId, taskId]);
+
+  useEffect(() => {
+    setNotice(null);
+  }, [projectId, taskId]);
+
+  useEffect(() => {
+    setArtifacts(null);
+    setArtifactsLoaded(false);
   }, [projectId, taskId]);
 
   useEffect(() => {
@@ -1078,10 +1129,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [activeTab, timeline.length, timelineLoading, projectId, taskId]);
 
   useEffect(() => {
-    if (activeTab === 'artifacts' && !artifacts && !artifactsLoading) {
+    if (activeTab === 'artifacts' && !artifactsLoaded && !artifactsLoading) {
       void loadArtifacts();
     }
-  }, [activeTab, artifacts, artifactsLoading, projectId, taskId]);
+  }, [activeTab, artifactsLoaded, artifactsLoading, projectId, taskId]);
 
   useEffect(() => {
     if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
@@ -1413,9 +1464,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setActionLoading(action);
     setBlockingAction(action);
     setPendingBlockingAction('');
+    setError(null);
     try {
-      if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
-      if (action === 'continue') await executionApi.binarySecurity.continueTask(projectId, taskId);
+      const result = action === 'retry'
+        ? await executionApi.binarySecurity.retryTask(projectId, taskId)
+        : await executionApi.binarySecurity.continueTask(projectId, taskId);
+      setNotice(result?.message || '任务操作已受理，后台正在处理中');
       await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || `${action} 失败`);
@@ -1694,8 +1748,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </div>
                     <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
                       {modalRunning
-                        ? '任务状态刷新前请不要离开当前页面或重复提交相同操作。'
-                        : '确认后将立即提交后台执行，并进入阻塞式进度提示。'}
+                        ? '请求正在提交，接口返回后页面会立即恢复，由后台继续完成准备。'
+                        : '确认后接口会立即受理，后台准备完成后任务会自动重新排队。'}
                     </div>
                   </div>
                   <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5 sm:p-6">
@@ -1834,18 +1888,18 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button
             type="button"
             onClick={() => void syncDownstreamStatus()}
-            disabled={actionLoading !== ''}
+            disabled={actionLoading !== '' || isPreparing}
             className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-700 disabled:opacity-60"
           >
             <RefreshCw size={16} />
             同步下游状态
           </button>
-          <button type="button" onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !canActOnTask} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
+          <button type="button" onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !canActOnTask || isPreparing} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
           <button
             type="button"
             title={taskRetrySupported ? undefined : taskRetryReason}
             onClick={() => setPendingBlockingAction('retry')}
-            disabled={actionLoading !== '' || !taskRetrySupported}
+            disabled={actionLoading !== '' || !taskRetrySupported || isPreparing}
             className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
             清空并从头开始
@@ -1854,15 +1908,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             type="button"
             title={taskContinueSupported ? undefined : taskContinueReason}
             onClick={() => setPendingBlockingAction('continue')}
-            disabled={actionLoading !== '' || !taskContinueSupported}
+            disabled={actionLoading !== '' || !taskContinueSupported || isPreparing}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-60"
           >
             {actionLoading === 'continue' ? '继续中...' : '继续'}
           </button>
-          <button type="button" onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !canActOnTask} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
+          <button type="button" onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !canActOnTask || isPreparing} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
         </div>
       </div>
 
+      {notice && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{notice}</div>}
       {error && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
 
       {loading && !detail ? (
@@ -1879,6 +1934,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail.status)}`}>{detail.status}</span>
                   <span className="text-sm text-slate-500">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
+                {detail.status === 'continue_preparing' ? (
+                  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    正在继续任务准备。后台正在定位下一个可执行阶段并清理必要结果。
+                  </div>
+                ) : null}
+                {detail.status === 'retry_preparing' ? (
+                  <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+                    正在清空并从头开始。后台正在清理全部阶段与下游任务，完成后会自动重新排队。
+                  </div>
+                ) : null}
                 {taskStatusReason ? (
                   <div className="mt-4">
                     <TaskStatusReasonCard reason={taskStatusReason} />
@@ -1939,7 +2004,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <ConcurrencyPolicyPanel detail={detail} stageSequence={stageSequence} onEdit={openConcurrencyEditor} />
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
-            <div className="grid gap-2 md:grid-cols-3">
+            <div
+              className="grid grid-flow-col auto-cols-[minmax(220px,1fr)] gap-2 overflow-x-auto"
+              style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(220px, 1fr))` }}
+            >
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -2799,7 +2867,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">产物文件</h2>
             <div className="mt-3 text-xs text-slate-500">工作目录：{artifacts?.workspace_root || '-'}</div>
-            <div className="mt-5 max-h-[420px] space-y-2 overflow-auto">
+            <div
+              className="mt-5 h-[420px] space-y-2 overflow-y-auto overflow-x-hidden pr-1"
+              style={{ scrollbarGutter: 'stable' }}
+            >
               {artifactsLoading ? (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
                   正在加载产物文件...

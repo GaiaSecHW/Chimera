@@ -43,20 +43,21 @@ export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean 
   const parentTaskId = String(origin.parent_task_id || '').trim();
   const stageLabel = STAGE_LABELS[String(origin.parent_stage_name || '').trim()] || String(origin.parent_stage_name || '').trim();
   const modeInfo = getAnalysisModeInfo(origin);
+  const pillClassName = 'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold';
   if (!isBinarySecurity) {
     return (
       <span className={`inline-flex flex-wrap items-center gap-1.5 ${compact ? 'text-[10px]' : 'text-xs'}`}>
-        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-bold text-slate-600">手动任务</span>
-        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 font-bold ${modeInfo.className}`}>{modeInfo.label}</span>
+        <span className={`${pillClassName} border-slate-200 bg-slate-50 text-slate-600`}>手动任务</span>
+        <span className={`${pillClassName} ${modeInfo.className}`}>{modeInfo.label}</span>
       </span>
     );
   }
   return (
     <div className={`flex ${compact ? 'flex-wrap items-center gap-1.5' : 'flex-col gap-1.5'}`}>
-      <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-bold text-cyan-700">
+      <span className={`${pillClassName} border-cyan-200 bg-cyan-50 text-cyan-700`}>
         总任务关联
       </span>
-      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${modeInfo.className}`}>
+      <span className={`${pillClassName} ${modeInfo.className}`}>
         {modeInfo.label}
       </span>
       <div className={`flex ${compact ? 'flex-wrap items-center gap-1.5' : 'flex-wrap items-center gap-2'} text-xs text-slate-600`}>

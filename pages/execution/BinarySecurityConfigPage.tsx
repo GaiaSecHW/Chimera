@@ -19,6 +19,64 @@ const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'vuln_scan', label: '数据流漏洞挖掘' },
 ] as const;
 
+const DEFAULT_BINARY_SECURITY_SERVICE_CONFIG = {
+  max_concurrent_tasks: 50,
+  dispatch_timeout_seconds: 60,
+};
+
+const DEFAULT_BINARY_SECURITY_PROJECT_CONFIG = {
+  max_stage_parallelism: 4,
+  max_retries_per_item: 2,
+  continue_on_item_failure: true,
+  stage_parallelism: {} as Record<string, number>,
+  stage_options: {} as Record<string, { enabled: boolean }>,
+};
+
+const DEFAULT_BINARY_EVOLUTION_CONFIG = {
+  max_concurrent_tasks: 2,
+  max_concurrent_source_tasks: 4,
+  default_min_rounds: 1,
+  default_max_rounds: 3,
+  evolution_agent_model: 'pi-agent',
+  evolution_agent_timeout_seconds: 1800,
+  evolution_agent_context_window: 131072,
+};
+
+const asRecord = (value: unknown): Record<string, any> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {};
+
+const pickConfigRecord = (value: unknown): Record<string, any> => {
+  const root = asRecord(value);
+  const nestedConfig = asRecord(root.config);
+  return Object.keys(nestedConfig).length > 0 ? nestedConfig : root;
+};
+
+const normalizeBinarySecurityServiceConfig = (value: unknown) => {
+  const config = pickConfigRecord(value);
+  return {
+    ...DEFAULT_BINARY_SECURITY_SERVICE_CONFIG,
+    ...config,
+  };
+};
+
+const normalizeBinarySecurityProjectConfig = (value: unknown) => {
+  const config = pickConfigRecord(value);
+  return {
+    ...DEFAULT_BINARY_SECURITY_PROJECT_CONFIG,
+    ...config,
+    stage_parallelism: asRecord(config.stage_parallelism),
+    stage_options: asRecord(config.stage_options),
+  };
+};
+
+const normalizeBinaryEvolutionConfig = (value: unknown) => {
+  const config = pickConfigRecord(value);
+  return {
+    ...DEFAULT_BINARY_EVOLUTION_CONFIG,
+    ...config,
+  };
+};
+
 export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?: ConfigTab }> = ({ projectId, initialTab = 'binary-security' }) => {
   const executionApi = api.domains.execution;
   const [activeTab, setActiveTab] = useState<ConfigTab>(initialTab);
@@ -46,26 +104,29 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     setError(null);
     setMessage(null);
     try {
-      const [serviceData, projectData, evolutionConfig] = await Promise.all([
+      const [serviceDataRaw, projectDataRaw, evolutionConfigRaw] = await Promise.all([
         executionApi.binarySecurity.getServiceConfig(),
         executionApi.binarySecurity.getProjectConfig(projectId),
         executionApi.binaryEvolution.getConfig(),
       ]);
-      setMaxConcurrentTasks(serviceData.config.max_concurrent_tasks);
-      setDispatchTimeoutSeconds(serviceData.config.dispatch_timeout_seconds);
-      setMaxRetriesPerItem(projectData.config.max_retries_per_item);
-      setContinueOnItemFailure(projectData.config.continue_on_item_failure);
+      const serviceConfig = normalizeBinarySecurityServiceConfig(serviceDataRaw);
+      const projectConfig = normalizeBinarySecurityProjectConfig(projectDataRaw);
+      const evolutionConfig = normalizeBinaryEvolutionConfig(evolutionConfigRaw);
+      setMaxConcurrentTasks(serviceConfig.max_concurrent_tasks);
+      setDispatchTimeoutSeconds(serviceConfig.dispatch_timeout_seconds);
+      setMaxRetriesPerItem(projectConfig.max_retries_per_item);
+      setContinueOnItemFailure(projectConfig.continue_on_item_failure);
       setStageParallelism({
         ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
-        ...(projectData.config.stage_parallelism || {}),
+        ...(projectConfig.stage_parallelism || {}),
       });
-      setEvolutionMaxConcurrentTasks(evolutionConfig.config.max_concurrent_tasks);
-      setEvolutionMaxConcurrentSourceTasks(evolutionConfig.config.max_concurrent_source_tasks);
-      setEvolutionMinRounds(evolutionConfig.config.default_min_rounds);
-      setEvolutionMaxRounds(evolutionConfig.config.default_max_rounds);
-      setEvolutionAgentModel(evolutionConfig.config.evolution_agent_model);
-      setEvolutionAgentTimeoutSeconds(evolutionConfig.config.evolution_agent_timeout_seconds);
-      setEvolutionContextWindow(evolutionConfig.config.evolution_agent_context_window);
+      setEvolutionMaxConcurrentTasks(evolutionConfig.max_concurrent_tasks);
+      setEvolutionMaxConcurrentSourceTasks(evolutionConfig.max_concurrent_source_tasks);
+      setEvolutionMinRounds(evolutionConfig.default_min_rounds);
+      setEvolutionMaxRounds(evolutionConfig.default_max_rounds);
+      setEvolutionAgentModel(evolutionConfig.evolution_agent_model);
+      setEvolutionAgentTimeoutSeconds(evolutionConfig.evolution_agent_timeout_seconds);
+      setEvolutionContextWindow(evolutionConfig.evolution_agent_context_window);
     } catch (e: any) {
       setError(e?.message || '加载配置失败');
     } finally {
@@ -105,13 +166,15 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
           stage_options: Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, { enabled: true }])),
         }),
       ]);
-      setMaxConcurrentTasks(serviceData.config.max_concurrent_tasks);
-      setDispatchTimeoutSeconds(serviceData.config.dispatch_timeout_seconds);
-      setMaxRetriesPerItem(projectData.config.max_retries_per_item);
-      setContinueOnItemFailure(projectData.config.continue_on_item_failure);
+      const normalizedServiceData = normalizeBinarySecurityServiceConfig(serviceData);
+      const normalizedProjectData = normalizeBinarySecurityProjectConfig(projectData);
+      setMaxConcurrentTasks(normalizedServiceData.max_concurrent_tasks);
+      setDispatchTimeoutSeconds(normalizedServiceData.dispatch_timeout_seconds);
+      setMaxRetriesPerItem(normalizedProjectData.max_retries_per_item);
+      setContinueOnItemFailure(normalizedProjectData.continue_on_item_failure);
       setStageParallelism({
         ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
-        ...(projectData.config.stage_parallelism || {}),
+        ...(normalizedProjectData.stage_parallelism || {}),
       });
       setMessage('配置已保存');
     } catch (e: any) {
@@ -126,7 +189,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     setError(null);
     setMessage(null);
     try {
-      const payload = await executionApi.binaryEvolution.updateConfig({
+      const payloadRaw = await executionApi.binaryEvolution.updateConfig({
         max_concurrent_tasks: Math.max(1, Math.min(64, Number(evolutionMaxConcurrentTasks) || 1)),
         max_concurrent_source_tasks: Math.max(1, Math.min(64, Number(evolutionMaxConcurrentSourceTasks) || 1)),
         default_min_rounds: Math.max(1, Math.min(100, Number(evolutionMinRounds) || 1)),
@@ -135,13 +198,14 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         evolution_agent_timeout_seconds: Math.max(1, Math.min(86400, Number(evolutionAgentTimeoutSeconds) || 1)),
         evolution_agent_context_window: Math.max(1024, Math.min(10485760, Number(evolutionContextWindow) || 1024)),
       });
-      setEvolutionMaxConcurrentTasks(payload.config.max_concurrent_tasks);
-      setEvolutionMaxConcurrentSourceTasks(payload.config.max_concurrent_source_tasks);
-      setEvolutionMinRounds(payload.config.default_min_rounds);
-      setEvolutionMaxRounds(payload.config.default_max_rounds);
-      setEvolutionAgentModel(payload.config.evolution_agent_model);
-      setEvolutionAgentTimeoutSeconds(payload.config.evolution_agent_timeout_seconds);
-      setEvolutionContextWindow(payload.config.evolution_agent_context_window);
+      const payload = normalizeBinaryEvolutionConfig(payloadRaw);
+      setEvolutionMaxConcurrentTasks(payload.max_concurrent_tasks);
+      setEvolutionMaxConcurrentSourceTasks(payload.max_concurrent_source_tasks);
+      setEvolutionMinRounds(payload.default_min_rounds);
+      setEvolutionMaxRounds(payload.default_max_rounds);
+      setEvolutionAgentModel(payload.evolution_agent_model);
+      setEvolutionAgentTimeoutSeconds(payload.evolution_agent_timeout_seconds);
+      setEvolutionContextWindow(payload.evolution_agent_context_window);
       setMessage('进化中心配置已保存');
     } catch (e: any) {
       setError(e?.message || '保存失败');

@@ -482,6 +482,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
     case 'binary-evolution-center':
+    case 'binary-evolution-dataflow-vuln':
       return <BinaryEvolutionCenterPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln-task-detail':
       return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln')} />;

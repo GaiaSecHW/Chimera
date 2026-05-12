@@ -1356,7 +1356,7 @@ function TaskDetailPanel({
   const latestRoundMetric = roundItems.length > 0 ? roundItems[roundItems.length - 1] : null;
   const latestEvolutionJob = evolutionJobs[0] || null;
   const activeEvolutionJob = selectedEvolutionJob || latestEvolutionJob;
-  const canCreateEvolution = task.status === 'success' && !evolutionSubmitting && !evolutionJobs.some((item) => ['pending', 'running'].includes(item.status));
+  const canCreateEvolution = task?.status === 'success' && !evolutionSubmitting && !evolutionJobs.some((item) => ['pending', 'running'].includes(item.status));
   const evolutionSessionItems = evolutionSessions?.items || [];
 
   if (!task) {

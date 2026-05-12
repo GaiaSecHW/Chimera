@@ -17,6 +17,7 @@ export interface BinarySecurityTask {
   name: string;
   status: string;
   current_stage?: string | null;
+  pending_action?: 'continue' | 'retry' | string | null;
   last_error?: string | null;
   firmware_path: string;
   stage_sequence: string[];
@@ -260,6 +261,8 @@ export interface BinarySecurityActionResult {
   status: string;
   task_id: string;
   message: string;
+  accepted?: boolean;
+  action?: 'continue' | 'retry' | string;
   cancelled_downstream_count?: number;
   deleted_downstream_count?: number;
   deleted_event_count?: number;
@@ -413,7 +416,7 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
-  retryTask: async (projectId: string, taskId: string) => {
+  retryTask: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/retry`, {
       method: 'POST',
       headers: getHeaders(),

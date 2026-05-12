@@ -34,6 +34,10 @@ const statusTone = (status: string) => {
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     case 'dispatching':
       return 'bg-sky-50 text-sky-700 border-sky-200';
+    case 'continue_preparing':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'retry_preparing':
+      return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'pending_module_confirmation':
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'waiting_confirmation':

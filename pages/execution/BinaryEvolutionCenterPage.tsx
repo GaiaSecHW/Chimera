@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Play, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Play,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 
 import { api } from '../../clients/api';
 import {
@@ -7,17 +16,32 @@ import {
   BinaryEvolutionTaskDetail,
   BinaryEvolutionTaskSummary,
 } from '../../clients/binaryEvolution';
+import { useUiFeedback } from '../../components/UiFeedback';
 
 interface Props {
   projectId: string;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'border-slate-200 bg-slate-50 text-slate-700',
-  running: 'border-sky-200 bg-sky-50 text-sky-700',
-  succeeded: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  failed: 'border-rose-200 bg-rose-50 text-rose-700',
-  cancelled: 'border-slate-200 bg-slate-50 text-slate-500',
+const STATUS_LABEL: Record<string, string> = {
+  pending: '等待中',
+  running: '运行中',
+  succeeded: '已完成',
+  failed: '失败',
+  cancelled: '已取消',
+};
+
+const STATUS_STYLE: Record<string, string> = {
+  pending: 'bg-slate-100 text-slate-600',
+  running: 'bg-blue-100 text-blue-700',
+  succeeded: 'bg-emerald-100 text-emerald-700',
+  failed: 'bg-red-100 text-red-700',
+  cancelled: 'bg-slate-100 text-slate-500',
+};
+
+const APPLY_STYLE: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-700',
+  applied: 'bg-emerald-100 text-emerald-700',
+  failed: 'bg-rose-100 text-rose-700',
 };
 
 const fmtTime = (value?: string | null) => {
@@ -25,6 +49,12 @@ const fmtTime = (value?: string | null) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
+};
+
+const fmtNumber = (value: unknown, digits = 0) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  return digits > 0 ? num.toFixed(digits) : String(Math.round(num));
 };
 
 const asArray = <T,>(value: unknown): T[] => {
@@ -38,14 +68,19 @@ const asArray = <T,>(value: unknown): T[] => {
   return [];
 };
 
+const asRecord = (value: unknown): Record<string, any> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {};
+
 const normalizeTaskList = (value: unknown): BinaryEvolutionTaskSummary[] => asArray<BinaryEvolutionTaskSummary>(value);
 
 const normalizeTaskDetail = (value: BinaryEvolutionTaskDetail): BinaryEvolutionTaskDetail => ({
   ...value,
+  metrics: asRecord(value?.metrics),
+  config: asRecord(value?.config),
   source_task_ids: asArray<string>(value?.source_task_ids),
   source_case_ids: asArray<string>(value?.source_case_ids),
-  agent_state_roots: value?.agent_state_roots && typeof value.agent_state_roots === 'object' ? value.agent_state_roots : {},
-  default_agent_source_dirs: value?.default_agent_source_dirs && typeof value.default_agent_source_dirs === 'object' ? value.default_agent_source_dirs : {},
+  agent_state_roots: asRecord(value?.agent_state_roots),
+  default_agent_source_dirs: asRecord(value?.default_agent_source_dirs),
   preview: {
     ...(value?.preview || {
       project_id: value?.project_id || '',
@@ -68,17 +103,43 @@ const normalizeTaskDetail = (value: BinaryEvolutionTaskDetail): BinaryEvolutionT
 
 const executionApi = api.domains.execution;
 
+const StatCard: React.FC<{ label: string; value: React.ReactNode; tone?: string }> = ({ label, value, tone = 'bg-slate-50 border-slate-200 text-slate-800' }) => (
+  <div className={`rounded-2xl border p-5 shadow-sm ${tone}`}>
+    <div className="text-3xl font-black">{value}</div>
+    <div className="mt-1 text-xs text-slate-500">{label}</div>
+  </div>
+);
+
+const DetailBlock: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
+  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div>
+      <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">{title}</h3>
+      {subtitle ? <p className="mt-1 text-xs text-slate-400">{subtitle}</p> : null}
+    </div>
+    <div className="mt-4">{children}</div>
+  </section>
+);
+
+const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
+  <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2 last:border-b-0 last:pb-0 first:pt-0">
+    <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{label}</div>
+    <div className="max-w-[70%] break-all text-right text-sm text-slate-700">{value}</div>
+  </div>
+);
+
 export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
+  const { notify, feedbackNodes } = useUiFeedback();
   const [tasks, setTasks] = useState<BinaryEvolutionTaskSummary[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<string>('');
+  const [selectedTaskId, setSelectedTaskId] = useState('');
   const [detail, setDetail] = useState<BinaryEvolutionTaskDetail | null>(null);
   const [preview, setPreview] = useState<BinaryEvolutionPreviewResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [form, setForm] = useState({
     title: '',
     objective: '',
@@ -89,7 +150,7 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   });
 
   const selectedTask = useMemo(
-    () => (Array.isArray(tasks) ? tasks.find((item) => item.task_id === selectedTaskId) : null) || null,
+    () => tasks.find((item) => item.task_id === selectedTaskId) || null,
     [tasks, selectedTaskId],
   );
 
@@ -98,17 +159,35 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     [form.caseIdsText],
   );
 
+  const filteredTasks = useMemo(
+    () => (statusFilter ? tasks.filter((item) => item.status === statusFilter) : tasks),
+    [tasks, statusFilter],
+  );
+
+  const activeCount = useMemo(
+    () => tasks.filter((item) => item.status === 'running' || item.status === 'pending').length,
+    [tasks],
+  );
+
+  const succeededCount = useMemo(
+    () => tasks.filter((item) => item.status === 'succeeded').length,
+    [tasks],
+  );
+
+  const failedCount = useMemo(
+    () => tasks.filter((item) => item.status === 'failed' || item.status === 'cancelled').length,
+    [tasks],
+  );
+
   const loadTasks = async (preferredTaskId?: string) => {
     if (!projectId) return;
     setLoading(true);
-    setError(null);
     try {
       const items = normalizeTaskList(await executionApi.binaryEvolution.listTasks(projectId));
       setTasks(items);
-      const nextTaskId = preferredTaskId || selectedTaskId || items[0]?.task_id || '';
-      setSelectedTaskId(nextTaskId);
+      setSelectedTaskId((current) => preferredTaskId || current || items[0]?.task_id || '');
     } catch (err: any) {
-      setError(err?.message || '加载进化任务失败');
+      notify(`加载进化任务失败: ${err?.message || err}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -120,12 +199,11 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       return;
     }
     setDetailLoading(true);
-    setError(null);
     try {
       const payload = normalizeTaskDetail(await executionApi.binaryEvolution.getTask(projectId, taskId));
       setDetail(payload);
     } catch (err: any) {
-      setError(err?.message || '加载任务详情失败');
+      notify(`加载任务详情失败: ${err?.message || err}`, 'error');
     } finally {
       setDetailLoading(false);
     }
@@ -139,16 +217,29 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     void loadDetail(selectedTaskId);
   }, [projectId, selectedTaskId]);
 
+  useEffect(() => {
+    if (!autoRefreshEnabled) return;
+    if (!tasks.some((item) => item.status === 'running' || item.status === 'pending')) return;
+    const timer = window.setInterval(() => {
+      void loadTasks(selectedTaskId);
+      if (selectedTaskId) void loadDetail(selectedTaskId);
+    }, Math.max(5, refreshIntervalSec) * 1000);
+    return () => window.clearInterval(timer);
+  }, [autoRefreshEnabled, refreshIntervalSec, tasks, selectedTaskId, projectId]);
+
   const handlePreview = async () => {
+    if (caseIds.length === 0) {
+      notify('请先输入至少一个案例 ID', 'warning');
+      return;
+    }
     setSubmitting(true);
     setPreview(null);
-    setError(null);
-    setMessage(null);
     try {
       const payload = await executionApi.binaryEvolution.previewTask(projectId, caseIds);
       setPreview(payload);
+      notify(payload.can_create ? '预览通过，可创建进化任务' : '预览已返回，请检查阻塞原因', payload.can_create ? 'success' : 'warning');
     } catch (err: any) {
-      setError(err?.message || '预览失败');
+      notify(`预览失败: ${err?.message || err}`, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -156,8 +247,6 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
   const handleCreate = async () => {
     setSubmitting(true);
-    setError(null);
-    setMessage(null);
     try {
       const created = await executionApi.binaryEvolution.createTask(projectId, {
         case_ids: preview?.effective_case_ids?.length ? preview.effective_case_ids : caseIds,
@@ -172,12 +261,12 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
           avg_discovery_round: true,
         },
       });
-      setMessage(`已创建进化任务 ${created.task_id}`);
+      notify(`已创建进化任务 ${created.task_id}`, 'success');
       setShowCreate(false);
       setPreview(null);
       await loadTasks(created.task_id);
     } catch (err: any) {
-      setError(err?.message || '创建失败');
+      notify(`创建失败: ${err?.message || err}`, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -186,33 +275,30 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const handleApply = async () => {
     if (!selectedTaskId) return;
     setSubmitting(true);
-    setError(null);
-    setMessage(null);
     try {
       const payload = await executionApi.binaryEvolution.applyTask(projectId, selectedTaskId);
-      setMessage(payload.message);
+      notify(payload.message || '产物应用完成', 'success');
       await loadDetail(selectedTaskId);
       await loadTasks(selectedTaskId);
     } catch (err: any) {
-      setError(err?.message || '应用失败');
+      notify(`应用失败: ${err?.message || err}`, 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!selectedTaskId || !window.confirm(`确认删除进化任务 ${selectedTaskId} 吗？`)) return;
+    if (!selectedTaskId) return;
+    if (!window.confirm(`确认删除进化任务 ${selectedTaskId} 吗？`)) return;
     setSubmitting(true);
-    setError(null);
-    setMessage(null);
     try {
       await executionApi.binaryEvolution.deleteTask(projectId, selectedTaskId);
-      setMessage('任务已删除');
+      notify('任务已删除', 'success');
       setDetail(null);
       setSelectedTaskId('');
       await loadTasks();
     } catch (err: any) {
-      setError(err?.message || '删除失败');
+      notify(`删除失败: ${err?.message || err}`, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -220,77 +306,118 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
   return (
     <div className="space-y-6 px-8 pb-10 pt-8">
-      <section className="rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.16),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(14,165,233,0.12),_transparent_24%),linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)] p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
-              <Sparkles size={14} />
-              二进制安全进化中心
-            </div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">围绕已人工收敛的数据流漏洞结果，做多轮 replay 进化</h1>
-            <p className="mt-2 max-w-4xl text-sm text-slate-600">
-              这里负责冻结一批有效样本、按轮次派生 evolution 任务、记录评分与收敛结论，并在完成后把产物应用回正常 agent 目录。
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white"
-            >
-              <Play size={15} />
-              创建进化任务
-            </button>
-            <button
-              type="button"
-              onClick={() => void loadTasks(selectedTaskId)}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
-            >
-              <RefreshCw size={15} />
-              刷新
-            </button>
-          </div>
-        </div>
+      {feedbackNodes}
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-amber-600">Binary Evolution</p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">进化中心任务</h1>
+        <p className="mt-2 max-w-4xl text-sm text-slate-500">
+          参考入口分析任务页的操作方式，集中管理进化任务的创建、轮次收敛、产物应用与历史回看。
+        </p>
       </section>
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
-      {message && <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div>}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard label="总任务" value={tasks.length} />
+        <StatCard label="运行中" value={activeCount} tone="bg-blue-50 border-blue-200 text-blue-700" />
+        <StatCard label="已完成" value={succeededCount} tone="bg-emerald-50 border-emerald-200 text-emerald-700" />
+        <StatCard label="失败/取消" value={failedCount} tone="bg-red-50 border-red-200 text-red-700" />
+      </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-        <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <div>
-              <h2 className="text-lg font-black text-slate-900">任务列表</h2>
-              <p className="mt-1 text-xs text-slate-500">当前项目下的全部进化任务。</p>
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-lg font-black text-slate-900">
+              任务列表 <span className="text-sm font-normal text-slate-400">({filteredTasks.length})</span>
+            </h2>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={autoRefreshEnabled}
+                  onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                />
+                自动刷新
+              </label>
+              <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                间隔
+                <input
+                  type="number"
+                  min={5}
+                  step={1}
+                  value={refreshIntervalSec}
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
+                  }}
+                  className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                />
+                秒
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600"
+              >
+                <option value="">全部状态</option>
+                {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => void loadTasks(selectedTaskId)}
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+              >
+                <RefreshCw size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+              >
+                <Plus size={13} />
+                新建任务
+              </button>
             </div>
-            <div className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-600">{tasks.length} Tasks</div>
           </div>
-          <div className="max-h-[62rem] overflow-y-auto divide-y divide-slate-100">
-            {loading ? (
-              <div className="px-5 py-8 text-sm text-slate-400">加载中...</div>
-            ) : tasks.length === 0 ? (
-              <div className="px-5 py-8 text-sm text-slate-400">暂无进化任务</div>
-            ) : (
-              tasks.map((task) => (
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span>项目：{projectId}</span>
+            <span>活跃任务：{activeCount}</span>
+            {autoRefreshEnabled ? <span className="text-violet-600">自动刷新已开启（{Math.max(5, refreshIntervalSec)}s）</span> : null}
+          </div>
+
+          {loading ? (
+            <div className="flex items-center gap-2 py-10 text-sm text-slate-500">
+              <Loader2 size={14} className="animate-spin" />
+              加载中...
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="py-10 text-center text-sm text-slate-400">暂无进化任务，点击右上角「新建任务」创建</div>
+          ) : (
+            <div className="mt-4 space-y-2">
+              {filteredTasks.map((task) => (
                 <button
-                  type="button"
                   key={task.task_id}
+                  type="button"
                   onClick={() => setSelectedTaskId(task.task_id)}
-                  className={`w-full px-5 py-4 text-left transition ${selectedTaskId === task.task_id ? 'bg-amber-50/70' : 'hover:bg-slate-50'}`}
+                  className={`w-full rounded-xl border px-4 py-4 text-left transition-colors hover:bg-slate-50 ${
+                    selectedTaskId === task.task_id ? 'border-amber-300 bg-amber-50/60' : 'border-slate-200 bg-white'
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate text-base font-black text-slate-900">{task.title}</div>
-                      <div className="mt-1 text-xs font-mono text-slate-500">{task.task_id}</div>
+                      <div className="mt-1 truncate font-mono text-xs text-slate-500">{task.task_id}</div>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${STATUS_STYLES[task.status] || STATUS_STYLES.pending}`}>
-                          {task.status}
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${STATUS_STYLE[task.status] || STATUS_STYLE.pending}`}>
+                          {STATUS_LABEL[task.status] || task.status}
                         </span>
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">
-                          round {task.current_round}/{task.config.max_rounds || '-'}
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${APPLY_STYLE[task.apply_status] || 'bg-slate-100 text-slate-600'}`}>
+                          {task.apply_status || 'pending'}
                         </span>
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">
-                          source {task.source_task_ids.length}
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600">
+                          round {task.current_round}/{task.config?.max_rounds || '-'}
                         </span>
                       </div>
                     </div>
@@ -300,114 +427,170 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                     </div>
                   </div>
                 </button>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <section className="space-y-4">
           {!selectedTask ? (
-            <div className="px-6 py-10 text-sm text-slate-400">请选择左侧任务查看详情。</div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm text-sm text-slate-400">
+              请选择左侧任务查看详情。
+            </section>
           ) : detailLoading ? (
-            <div className="px-6 py-10 text-sm text-slate-400">详情加载中...</div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm text-sm text-slate-500">
+              <div className="inline-flex items-center gap-2">
+                <Loader2 size={15} className="animate-spin" />
+                详情加载中...
+              </div>
+            </section>
           ) : !detail ? (
-            <div className="px-6 py-10 text-sm text-slate-400">暂无详情。</div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm text-sm text-slate-400">
+              暂无详情。
+            </section>
           ) : (
-            <div className="space-y-6 p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${STATUS_STYLES[detail.status] || STATUS_STYLES.pending}`}>{detail.status}</span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-black text-slate-600">{detail.apply_status}</span>
+            <>
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-xs font-black ${STATUS_STYLE[detail.status] || STATUS_STYLE.pending}`}>
+                        {STATUS_LABEL[detail.status] || detail.status}
+                      </span>
+                      <span className={`rounded-full px-3 py-1 text-xs font-black ${APPLY_STYLE[detail.apply_status] || 'bg-slate-100 text-slate-600'}`}>
+                        {detail.apply_status || 'pending'}
+                      </span>
+                    </div>
+                    <h2 className="mt-3 text-2xl font-black tracking-tight text-slate-900">{detail.title}</h2>
+                    <div className="mt-1 font-mono text-xs text-slate-500">{detail.task_id}</div>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">{detail.objective || '未填写进化目标'}</p>
                   </div>
-                  <h2 className="mt-3 text-2xl font-black text-slate-900">{detail.title}</h2>
-                  <div className="mt-1 text-xs font-mono text-slate-500">{detail.task_id}</div>
-                  <p className="mt-3 text-sm text-slate-600">{detail.objective || '未填写进化目标'}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void loadDetail(detail.task_id)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      <RefreshCw size={14} />
+                      刷新详情
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submitting || detail.status !== 'succeeded'}
+                      onClick={() => void handleApply()}
+                      className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <CheckCircle2 size={14} />
+                      应用产物
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => void handleDelete()}
+                      className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                      删除任务
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => void loadDetail(detail.task_id)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700"
-                  >
-                    <RefreshCw size={15} />
-                    刷新详情
-                  </button>
-                  <button
-                    type="button"
-                    disabled={submitting || detail.status !== 'succeeded'}
-                    onClick={() => void handleApply()}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <CheckCircle2 size={15} />
-                    应用产物
-                  </button>
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={() => void handleDelete()}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700"
-                  >
-                    <Trash2 size={15} />
-                    删除任务
-                  </button>
-                </div>
+              </section>
+
+              <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                <StatCard label="当前轮次" value={detail.current_round} />
+                <StatCard label="最佳轮次" value={detail.best_round ?? '-'} tone="bg-amber-50 border-amber-200 text-amber-700" />
+                <StatCard label="综合评分" value={detail.overall_score ?? '-'} tone="bg-violet-50 border-violet-200 text-violet-700" />
+                <StatCard label="案例总数" value={detail.source_case_ids.length} tone="bg-sky-50 border-sky-200 text-sky-700" />
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-4">
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前轮次</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900">{detail.current_round}</div>
-                </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最佳轮次</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900">{detail.best_round ?? '-'}</div>
-                </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">综合评分</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900">{detail.overall_score ?? '-'}</div>
-                </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">样本数</div>
-                  <div className="mt-2 text-2xl font-black text-slate-900">{detail.source_case_ids.length}</div>
-                </div>
+              <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
+                <DetailBlock title="任务概览" subtitle="基础配置、时间与收敛状态">
+                  <div className="space-y-1">
+                    <InfoRow label="创建时间" value={fmtTime(detail.created_at)} />
+                    <InfoRow label="开始时间" value={fmtTime(detail.started_at)} />
+                    <InfoRow label="结束时间" value={fmtTime(detail.finished_at)} />
+                    <InfoRow label="收敛原因" value={detail.convergence_reason || '-'} />
+                    <InfoRow label="最小轮次" value={detail.config?.min_rounds ?? '-'} />
+                    <InfoRow label="最大轮次" value={detail.config?.max_rounds ?? '-'} />
+                    <InfoRow label="轮内并发" value={detail.config?.max_concurrent_source_tasks ?? '-'} />
+                  </div>
+                </DetailBlock>
+
+                <DetailBlock title="输入批次" subtitle="本次进化任务引用的原始任务与案例集合">
+                  <div className="space-y-3">
+                    {detail.preview.sources.length === 0 ? (
+                      <div className="text-sm text-slate-400">暂无输入批次。</div>
+                    ) : (
+                      detail.preview.sources.map((source) => (
+                        <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="font-black text-slate-800">{source.source_title || source.source_task_id}</div>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                              {source.replay_ready ? 'ready' : 'blocked'}
+                            </span>
+                          </div>
+                          <div className="mt-2 font-mono text-xs text-slate-500">{source.source_task_id}</div>
+                          <div className="mt-2 text-sm text-slate-600">
+                            已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}
+                            {source.auto_expanded_case_ids.length > 0 ? ` · 自动补齐 ${source.auto_expanded_case_ids.length}` : ''}
+                          </div>
+                          {source.blocked_reasons.length > 0 ? (
+                            <div className="mt-2 space-y-1 text-xs text-rose-600">
+                              {source.blocked_reasons.map((reason) => <div key={reason}>{reason}</div>)}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DetailBlock>
               </div>
+
+              <DetailBlock title="轮次记录" subtitle="每轮评分、指标与收敛决策">
+                <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500">
+                      <tr>
+                        <th className="px-3 py-3">轮次</th>
+                        <th className="px-3 py-3">状态</th>
+                        <th className="px-3 py-3">评分</th>
+                        <th className="px-3 py-3">漏报率</th>
+                        <th className="px-3 py-3">误报率</th>
+                        <th className="px-3 py-3">平均发现轮次</th>
+                        <th className="px-3 py-3">收敛</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {detail.rounds.length === 0 ? (
+                        <tr>
+                          <td className="px-3 py-10 text-center text-sm text-slate-400" colSpan={7}>暂无轮次数据</td>
+                        </tr>
+                      ) : (
+                        detail.rounds.map((round) => (
+                          <tr key={round.round_no}>
+                            <td className="px-3 py-3 font-black text-slate-800">{round.round_no}</td>
+                            <td className="px-3 py-3">{round.status || '-'}</td>
+                            <td className="px-3 py-3">{round.score ?? '-'}</td>
+                            <td className="px-3 py-3">{fmtNumber(round.metrics?.false_negative_rate, 4)}</td>
+                            <td className="px-3 py-3">{fmtNumber(round.metrics?.false_positive_rate, 4)}</td>
+                            <td className="px-3 py-3">{fmtNumber(round.metrics?.avg_discovery_round, 2)}</td>
+                            <td className="px-3 py-3">{round.convergence_decision ? '是' : '否'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </DetailBlock>
 
               <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
-                  <div className="text-sm font-black text-slate-900">输入批次</div>
-                  <div className="mt-3 space-y-3">
-                    {detail.preview.sources.map((source) => (
-                      <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="font-black text-slate-800">{source.source_title || source.source_task_id}</div>
-                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
-                            {source.replay_ready ? 'replay ready' : 'blocked'}
-                          </span>
-                        </div>
-                        <div className="mt-2 text-xs font-mono text-slate-500">{source.source_task_id}</div>
-                        <div className="mt-2 text-sm text-slate-600">
-                          已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}
-                          {source.auto_expanded_case_ids.length > 0 && ` · 自动补齐 ${source.auto_expanded_case_ids.length}`}
-                        </div>
-                        {source.blocked_reasons.length > 0 && (
-                          <div className="mt-2 space-y-1 text-xs text-rose-600">
-                            {source.blocked_reasons.map((reason) => <div key={reason}>{reason}</div>)}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
-                  <div className="text-sm font-black text-slate-900">Agent 目录映射</div>
-                  <div className="mt-3 space-y-3">
+                <DetailBlock title="Agent 目录映射" subtitle="进化态目录与正常态目录的对应关系">
+                  <div className="space-y-3">
                     {Object.keys(detail.agent_state_roots).length === 0 ? (
                       <div className="text-sm text-slate-400">暂无 agent 目录。</div>
                     ) : (
                       Object.entries(detail.agent_state_roots).map(([agentId, root]) => (
-                        <div key={agentId} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div key={agentId} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                           <div className="font-black text-slate-800">{agentId}</div>
                           <div className="mt-2 text-xs text-slate-500">evolution root</div>
                           <div className="mt-1 break-all font-mono text-xs text-slate-700">{root}</div>
@@ -417,93 +600,53 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                       ))
                     )}
                   </div>
-                </div>
-              </div>
+                </DetailBlock>
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
-                <div className="text-sm font-black text-slate-900">轮次记录</div>
-                <div className="mt-3 overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-white">
-                      <tr className="text-slate-500">
-                        <th className="px-3 py-2 font-black">轮次</th>
-                        <th className="px-3 py-2 font-black">状态</th>
-                        <th className="px-3 py-2 font-black">评分</th>
-                        <th className="px-3 py-2 font-black">漏报率</th>
-                        <th className="px-3 py-2 font-black">误报率</th>
-                        <th className="px-3 py-2 font-black">平均发现轮次</th>
-                        <th className="px-3 py-2 font-black">收敛</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.rounds.length === 0 ? (
-                        <tr><td className="px-3 py-4 text-slate-400" colSpan={7}>暂无轮次数据</td></tr>
-                      ) : (
-                        detail.rounds.map((round) => (
-                          <tr key={round.round_no} className="border-t border-slate-100 bg-white">
-                            <td className="px-3 py-3 font-black text-slate-800">{round.round_no}</td>
-                            <td className="px-3 py-3">{round.status}</td>
-                            <td className="px-3 py-3">{round.score ?? '-'}</td>
-                            <td className="px-3 py-3">{Number(round.metrics.false_negative_rate || 0).toFixed(4)}</td>
-                            <td className="px-3 py-3">{Number(round.metrics.false_positive_rate || 0).toFixed(4)}</td>
-                            <td className="px-3 py-3">{Number(round.metrics.avg_discovery_round || 0).toFixed(2)}</td>
-                            <td className="px-3 py-3">{round.convergence_decision ? '是' : '否'}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
-                  <div className="text-sm font-black text-slate-900">时间线</div>
-                  <div className="mt-3 space-y-3">
-                    {detail.events.length === 0 ? (
-                      <div className="text-sm text-slate-400">暂无事件</div>
-                    ) : (
-                      detail.events.map((event) => (
-                        <div key={`${event.event_type}-${event.created_at}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="font-black text-slate-800">{event.summary || event.event_type}</div>
-                            <div className="text-xs text-slate-500">{fmtTime(String(event.created_at || ''))}</div>
-                          </div>
-                          {event.payload && Object.keys(event.payload).length > 0 && (
-                            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-                              {JSON.stringify(event.payload, null, 2)}
-                            </pre>
-                          )}
-                        </div>
-                      ))
-                    )}
+                <DetailBlock title="产物与事件" subtitle="最近事件及持久化产物路径">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">最近事件</div>
+                      <div className="space-y-2">
+                        {detail.events.length === 0 ? (
+                          <div className="text-sm text-slate-400">暂无事件</div>
+                        ) : (
+                          detail.events.slice(0, 6).map((event) => (
+                            <div key={`${event.event_type}-${event.created_at}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="font-black text-slate-800">{event.summary || event.event_type}</div>
+                                <div className="text-xs text-slate-500">{fmtTime(String(event.created_at || ''))}</div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">产物路径</div>
+                      <div className="space-y-2">
+                        {detail.artifacts.length === 0 ? (
+                          <div className="text-sm text-slate-400">暂无产物</div>
+                        ) : (
+                          detail.artifacts.map((artifact) => (
+                            <div key={`${artifact.artifact_type}-${artifact.path}`} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="font-black text-slate-800">{artifact.artifact_type}</div>
+                              <div className="mt-2 break-all font-mono text-xs text-slate-600">{artifact.path}</div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
-                  <div className="text-sm font-black text-slate-900">产物</div>
-                  <div className="mt-3 space-y-3">
-                    {detail.artifacts.length === 0 ? (
-                      <div className="text-sm text-slate-400">暂无产物</div>
-                    ) : (
-                      detail.artifacts.map((artifact) => (
-                        <div key={`${artifact.artifact_type}-${artifact.path}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                          <div className="font-black text-slate-800">{artifact.artifact_type}</div>
-                          <div className="mt-2 break-all font-mono text-xs text-slate-600">{artifact.path}</div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                </DetailBlock>
               </div>
-            </div>
+            </>
           )}
         </section>
       </div>
 
-      {showCreate && (
+      {showCreate ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-6">
-          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
@@ -511,14 +654,22 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   创建进化任务
                 </div>
                 <h2 className="mt-3 text-2xl font-black text-slate-900">先预览整批样本，再确认创建</h2>
+                <p className="mt-2 text-sm text-slate-500">沿用入口分析任务页的创建风格，把输入参数和预览结果放在同一个弹窗里完成确认。</p>
               </div>
-              <button type="button" onClick={() => { setShowCreate(false); setPreview(null); }} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-600">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreate(false);
+                  setPreview(null);
+                }}
+                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-600 hover:bg-slate-50"
+              >
                 关闭
               </button>
             </div>
 
-            <div className="mt-6 grid gap-4 xl:grid-cols-[1fr_1fr]">
-              <div className="space-y-4">
+            <div className="mt-6 grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
                 <div>
                   <div className="mb-2 text-sm font-black text-slate-800">任务标题</div>
                   <input
@@ -547,82 +698,116 @@ export const BinaryEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   />
                   <div className="mt-2 text-xs text-slate-500">已解析 {caseIds.length} 个案例 ID。</div>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <div>
                     <div className="mb-2 text-sm font-black text-slate-800">最小轮次</div>
-                    <input type="number" min={1} max={100} value={form.minRounds} onChange={(event) => setForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={form.minRounds}
+                      onChange={(event) => setForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))}
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    />
                   </div>
                   <div>
                     <div className="mb-2 text-sm font-black text-slate-800">最大轮次</div>
-                    <input type="number" min={1} max={100} value={form.maxRounds} onChange={(event) => setForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={form.maxRounds}
+                      onChange={(event) => setForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))}
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    />
                   </div>
                   <div>
                     <div className="mb-2 text-sm font-black text-slate-800">轮内并发</div>
-                    <input type="number" min={1} max={64} value={form.maxConcurrentSourceTasks} onChange={(event) => setForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input
+                      type="number"
+                      min={1}
+                      max={64}
+                      value={form.maxConcurrentSourceTasks}
+                      onChange={(event) => setForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))}
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    />
                   </div>
                 </div>
-
-                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap gap-3">
-                    <button type="button" disabled={submitting || caseIds.length === 0} onClick={() => void handlePreview()} className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50">
+                    <button
+                      type="button"
+                      disabled={submitting || caseIds.length === 0}
+                      onClick={() => void handlePreview()}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
                       <RefreshCw size={15} />
                       预览整批
                     </button>
-                    <button type="button" disabled={submitting || !preview?.can_create} onClick={() => void handleCreate()} className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    <button
+                      type="button"
+                      disabled={submitting || !preview?.can_create}
+                      onClick={() => void handleCreate()}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
                       <Play size={15} />
                       确认创建
                     </button>
                   </div>
-                  <div className="mt-3 text-xs text-slate-500">如果同一原始 normal 任务的 case 不完整，预览会自动补齐并显示阻塞原因。</div>
+                  <div className="mt-3 text-xs text-slate-500">如果同一原始 normal 任务的 case 不完整，预览会自动补齐并展示阻塞原因。</div>
                 </div>
+              </section>
 
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 {!preview ? (
-                  <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-12 text-center text-sm text-slate-400">
                     预览结果会在这里展示。
                   </div>
                 ) : (
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       {preview.can_create ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-rose-600" />}
                       <div className="font-black text-slate-900">{preview.can_create ? '预览通过，可创建' : '预览未通过'}</div>
                     </div>
-                    <div className="mt-3 text-sm text-slate-600">请求 {preview.requested_case_ids.length} 个案例，整批后生效 {preview.effective_case_ids.length} 个案例，涉及 {preview.sources.length} 个原始任务。</div>
-                    {preview.blocked_reasons.length > 0 && (
-                      <div className="mt-3 space-y-2 text-sm text-rose-600">
+                    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+                      <StatCard label="请求案例" value={preview.requested_case_ids.length} />
+                      <StatCard label="生效案例" value={preview.effective_case_ids.length} tone="bg-emerald-50 border-emerald-200 text-emerald-700" />
+                      <StatCard label="涉及任务" value={preview.sources.length} tone="bg-sky-50 border-sky-200 text-sky-700" />
+                      <StatCard label="可创建" value={preview.can_create ? '是' : '否'} tone={preview.can_create ? 'bg-violet-50 border-violet-200 text-violet-700' : 'bg-red-50 border-red-200 text-red-700'} />
+                    </div>
+                    {preview.blocked_reasons.length > 0 ? (
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                         {preview.blocked_reasons.map((reason) => <div key={reason}>{reason}</div>)}
                       </div>
-                    )}
-                    <div className="mt-4 space-y-3">
+                    ) : null}
+                    <div className="space-y-3">
                       {preview.sources.map((source) => (
-                        <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="font-black text-slate-800">{source.source_title || source.source_task_id}</div>
-                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                               {source.replay_ready ? 'ready' : 'blocked'}
                             </span>
                           </div>
                           <div className="mt-2 text-xs text-slate-500">已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}</div>
-                          {source.auto_expanded_case_ids.length > 0 && (
+                          {source.auto_expanded_case_ids.length > 0 ? (
                             <div className="mt-1 text-xs text-amber-700">自动补齐 {source.auto_expanded_case_ids.length} 个遗漏 case。</div>
-                          )}
-                          {source.blocked_reasons.length > 0 && (
+                          ) : null}
+                          {source.blocked_reasons.length > 0 ? (
                             <div className="mt-2 space-y-1 text-xs text-rose-600">
                               {source.blocked_reasons.map((reason) => <div key={reason}>{reason}</div>)}
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
