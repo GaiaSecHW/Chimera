@@ -70,7 +70,7 @@ const STAGE_STEPS = [
 ];
 
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
-type DetailTab = 'overview' | 'session' | 'result' | 'evaluation';
+type DetailTab = 'overview' | 'run-config' | 'session' | 'result' | 'evaluation';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
@@ -445,6 +445,240 @@ function buildJudgeRoundSessionMeta(sessionPath: { displayPath: string; rawPath:
     warnings: [],
   };
 }
+
+// ─── 运行配置页签组件 ─────────────────────────────────────────────────────────
+
+const ANALYSE_TARGET_LABELS: Record<string, string> = {
+  binary: '二进制 ELF',
+  source: 'C/C++ 源码',
+  script: '脚本文件',
+  config: '配置文件',
+  firmware: '固件/Boot',
+  crypto: '证书/密钥',
+  database: '数据库',
+  web: 'Web 前后端',
+  network_model: '网络模型',
+  document: '文档/日志',
+  archive: '压缩包',
+  all: '全部文件',
+};
+
+const BINARY_ARCH_LABELS: Record<string, string> = {
+  arm: 'ARM 32位',
+  aarch64: 'AArch64 64位',
+  x86: 'x86 32位',
+  x86_64: 'x86-64',
+  mips: 'MIPS',
+  mips64: 'MIPS64',
+  ppc: 'PowerPC',
+  ppc64: 'PowerPC64',
+  riscv: 'RISC-V',
+  s390: 'IBM S/390',
+  all: '全部架构',
+};
+
+const SECURITY_CATEGORY_LABELS: Record<string, { name: string; desc: string }> = {
+  network_protocol: { name: '网络协议解析', desc: 'TCP/IP、TLS/SSL、MQTT/CoAP 等协议实现' },
+  file_parsing: { name: '文件格式处理', desc: '文件读写、格式解析、上传下载处理' },
+  auth_access: { name: '认证与访问控制', desc: '登录认证、token/session 管理、ACL' },
+  crypto: { name: '密码学操作', desc: '加解密、签名、密钥管理、哈希运算' },
+  ipc: { name: '进程间通信', desc: 'Unix socket、管道、消息队列、D-Bus' },
+  config_parsing: { name: '配置与脚本解析', desc: 'XML/JSON/YAML/INI 解析、命令行参数' },
+  input_handling: { name: '输入处理与验证', desc: '用户输入边界、命令注入、缓冲区操作' },
+  privilege_process: { name: '权限与进程管理', desc: 'setuid/setgid、特权提升、进程控制' },
+  web_api: { name: 'Web 与 API 接口', desc: 'HTTP 处理、REST/SOAP 接口、CGI' },
+  memory_manage: { name: '内存管理', desc: 'malloc/free、内存映射、与溢出相关操作' },
+  all: { name: '全部维度', desc: '不过滤，对所有安全维度进行分析' },
+};
+
+const ConfigSection: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
+  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-slate-500">
+      {icon}
+      {title}
+    </h2>
+    {children}
+  </section>
+);
+
+const ConfigRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:gap-4">
+    <span className="w-36 shrink-0 text-xs font-semibold text-slate-500">{label}</span>
+    <div className="min-w-0 flex-1 text-sm text-slate-800">{children}</div>
+  </div>
+);
+
+const TagList: React.FC<{ items: string[]; labelMap?: Record<string, string>; emptyText?: string }> = ({
+  items, labelMap, emptyText = '未配置',
+}) => {
+  if (!items || items.length === 0) return <span className="text-slate-400 text-xs">{emptyText}</span>;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((item) => (
+        <span key={item} className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+          {labelMap?.[item] ? `${labelMap[item]}（${item}）` : item}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+const Divider: React.FC = () => <hr className="border-slate-100" />;
+
+const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
+  const tcfg = detail.task_config_json || {};
+  const hasOverrides = Object.keys(tcfg).some((k) => !['start_stage', 'resume_workspace'].includes(k));
+
+  const analyseTargets = tcfg.analyse_targets ?? null;
+  const binaryArch = tcfg.binary_arch ?? null;
+  const secFocusCats = tcfg.security_focus_categories ?? null;
+  const moduleGranularity = tcfg.module_granularity ?? null;
+
+  const isSourceMode = detail.analysis_mode === 'source';
+  const isBinaryMode = !isSourceMode;
+
+  return (
+    <div className="space-y-4">
+      {/* 任务标识 */}
+      <ConfigSection title="任务标识">
+        <div className="divide-y divide-slate-100">
+          <ConfigRow label="任务 ID">
+            <span className="font-mono text-xs text-slate-700 break-all">{detail.task_id}</span>
+          </ConfigRow>
+          <Divider />
+          <ConfigRow label="分析模式">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              isSourceMode ? 'bg-violet-100 text-violet-700' : 'bg-sky-100 text-sky-700'
+            }`}>
+              {detail.analysis_mode_label ?? (isSourceMode ? '源码模式' : '二进制模式')}
+            </span>
+          </ConfigRow>
+          <Divider />
+          <ConfigRow label="输入路径">
+            <span className="font-mono text-xs break-all">{detail.input_path}</span>
+          </ConfigRow>
+          <Divider />
+          <ConfigRow label="分析 Prompt">
+            <details>
+              <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">点击展开查看</summary>
+              <pre className="mt-2 max-h-40 overflow-auto rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-700 whitespace-pre-wrap">{detail.prompt_content}</pre>
+            </details>
+          </ConfigRow>
+        </div>
+      </ConfigSection>
+
+      {/* 分析范围 */}
+      <ConfigSection title="分析范围">
+        <div className="divide-y divide-slate-100">
+          <ConfigRow label="文件类型过滤">
+            {analyseTargets ? (
+              <TagList items={analyseTargets} labelMap={ANALYSE_TARGET_LABELS} />
+            ) : (
+              <span className="text-xs text-slate-400">使用项目默认配置</span>
+            )}
+          </ConfigRow>
+          {isBinaryMode && (
+            <>
+              <Divider />
+              <ConfigRow label="ELF 架构过滤">
+                {binaryArch ? (
+                  <TagList items={binaryArch} labelMap={BINARY_ARCH_LABELS} />
+                ) : (
+                  <span className="text-xs text-slate-400">使用项目默认配置</span>
+                )}
+              </ConfigRow>
+            </>
+          )}
+        </div>
+      </ConfigSection>
+
+      {/* 安全维度 */}
+      <ConfigSection title="安全分析维度">
+        {secFocusCats ? (
+          secFocusCats.includes('all') ? (
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              <CheckCircle2 size={15} />
+              <span>不过滤，对全部安全维度进行分析</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {secFocusCats.map((cat) => {
+                const info = SECURITY_CATEGORY_LABELS[cat];
+                return (
+                  <div key={cat} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                    <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[10px] font-bold text-sky-600">
+                      {(secFocusCats.indexOf(cat) + 1).toString()}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{info?.name ?? cat}</p>
+                      {info?.desc && <p className="mt-0.5 text-xs text-slate-500">{info.desc}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          <span className="text-xs text-slate-400">使用项目默认配置（不过滤）</span>
+        )}
+      </ConfigSection>
+
+      {/* 模块配置 */}
+      <ConfigSection title="模块划分">
+        <div className="divide-y divide-slate-100">
+          <ConfigRow label="划分粒度">
+            {moduleGranularity ? (
+              <div>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  moduleGranularity === 'coarse' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
+                }`}>
+                  {moduleGranularity === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}
+                </span>
+                <p className="mt-1.5 text-xs text-slate-500">
+                  {moduleGranularity === 'coarse'
+                    ? '同一协议/功能的所有代码归为一个模块，适合快速全局概览'
+                    : '每个子组件独立成模块，分析更精细，适合深度威胁挖掘'}
+                </p>
+              </div>
+            ) : (
+              <span className="text-xs text-slate-400">使用项目默认配置（细粒度）</span>
+            )}
+          </ConfigRow>
+        </div>
+      </ConfigSection>
+
+      {/* 续跑信息（仅续跑任务展示） */}
+      {(tcfg.start_stage && tcfg.start_stage > 0) ? (
+        <ConfigSection title="续跑配置">
+          <div className="divide-y divide-slate-100">
+            <ConfigRow label="起始阶段">
+              <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-700">
+                Stage {tcfg.start_stage}（跳过前序阶段）
+              </span>
+            </ConfigRow>
+            {tcfg.resume_workspace && (
+              <>
+                <Divider />
+                <ConfigRow label="复用工作区">
+                  <span className="font-mono text-xs break-all text-slate-600">{tcfg.resume_workspace}</span>
+                </ConfigRow>
+              </>
+            )}
+          </div>
+        </ConfigSection>
+      ) : null}
+
+      {/* 无覆盖配置时的提示 */}
+      {!hasOverrides && (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center">
+          <ShieldAlert size={20} className="mx-auto mb-2 text-slate-300" />
+          <p className="text-sm font-semibold text-slate-500">本任务未设置覆盖配置</p>
+          <p className="mt-1 text-xs text-slate-400">分析将使用当前项目的默认配置运行</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const SystemAnalysisTaskDetailPage: React.FC<{
   projectId: string;
@@ -1321,6 +1555,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             <div className="flex flex-wrap items-center gap-2">
               {[
                 { id: 'overview' as DetailTab, label: '总览' },
+                { id: 'run-config' as DetailTab, label: '运行配置' },
                 { id: 'session' as DetailTab, label: '智能体会话' },
                 { id: 'result' as DetailTab, label: '结果' },
                 { id: 'evaluation' as DetailTab, label: '观测指标' },
@@ -1470,6 +1705,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 ) : null}
               </section>
             </>
+          ) : activeTab === 'run-config' ? (
+            <RunConfigTab detail={detail} />
           ) : activeTab === 'session' ? (
             <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
               <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
