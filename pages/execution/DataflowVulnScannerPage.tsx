@@ -29,6 +29,7 @@ import {
 
 import { api } from '../../clients/api';
 import {
+  DataflowAgentStateDir,
   DataflowInputRef,
   DataflowProfileConfigPayload,
   DataflowScanProfile,
@@ -85,6 +86,10 @@ const TEMPLATE_OPTIONS = [
   { value: 'full_pipeline', label: '完整分析流水线' },
 ];
 const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-cyan-600';
+const TASK_PURPOSE_META: Record<string, { label: string; className: string }> = {
+  normal: { label: '正常任务', className: 'border-slate-200 bg-slate-50 text-slate-700' },
+  evolution: { label: '进化任务', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+};
 
 const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
   model: 'icsl/zai-org/GLM-5',
@@ -258,6 +263,11 @@ const taskRunDirectoryPath = (task: DataflowScanTask) => {
 };
 
 const taskDisplayStatus = (task: DataflowScanTask) => String(task.status || '');
+const taskPurposeMeta = (purpose?: string | null) => TASK_PURPOSE_META[String(purpose || 'normal').trim()] || TASK_PURPOSE_META.normal;
+const renderProjectScopedTemplate = (template: string, projectId: string) =>
+  String(template || '').replaceAll('{project_id}', projectId || '{project_id}');
+const agentStateDirList = (dirs?: Record<string, DataflowAgentStateDir> | null) =>
+  Object.values(dirs || {}).sort((left, right) => left.agent_id.localeCompare(right.agent_id));
 
 const vulnReportStatusLabel = (task: DataflowScanTask) => {
   if (task.auto_report_vulnerabilities === false) return { label: '未开启', className: 'border-slate-200 bg-slate-50 text-slate-500' };
@@ -803,6 +813,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     const displayName = task.title || run.name || taskId || run.path || 'Run';
                     const runPath = taskRunDirectoryPath(task);
                     const reportStatus = vulnReportStatusLabel(task);
+                    const purposeMeta = taskPurposeMeta(task.task_purpose);
                     const secondaryLine = hasRun
                       ? `任务 ${shortId(taskId, 18)} · Run ${shortId(run.name || '', 18)}`
                       : `任务 ${shortId(taskId, 18)} · 执行 ${shortId(executionId || '-', 18)}`;
@@ -819,7 +830,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               {hasRun ? <FolderOpen size={17} /> : <FileSearch size={17} />}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-black text-slate-900">{shortId(displayName, 32)}</div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="font-black text-slate-900">{shortId(displayName, 32)}</div>
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black ${purposeMeta.className}`}>
+                                  {purposeMeta.label}
+                                </span>
+                              </div>
                               <div className="mt-1 truncate text-xs text-slate-500">{secondaryLine}</div>
                             </div>
                           </div>
@@ -1799,6 +1815,37 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><ServerCog size={16} />Agent 默认存储目录</div>
+            {serviceConfig?.agent_storage?.agents?.length ? (
+              <div className="overflow-auto">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Agent</th>
+                      <th className="px-3 py-2">Root</th>
+                      <th className="px-3 py-2">Skills</th>
+                      <th className="px-3 py-2">Memory</th>
+                      <th className="px-3 py-2">来源</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serviceConfig.agent_storage.agents.map((item: any) => (
+                      <tr key={item.agent_id} className="border-t border-slate-100">
+                        <td className="px-3 py-2 font-mono text-xs font-bold text-slate-700">{item.agent_id}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{renderProjectScopedTemplate(item.root_dir_template, projectId)}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{renderProjectScopedTemplate(item.skills_dir_template, projectId)}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{renderProjectScopedTemplate(item.memory_dir_template, projectId)}</td>
+                        <td className="px-3 py-2 text-xs font-bold text-slate-500">{item.source || 'shared_default'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyPanel title="暂无 Agent 存储配置" description="当前服务有效配置未返回可展示的 Agent 默认目录。" icon={<ServerCog size={22} />} />
+            )}
+          </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><Settings size={16} />项目有效配置</div>
             <JsonBlock value={effectiveConfig || {}} />

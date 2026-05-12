@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Cpu, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Cpu, RefreshCw, Sparkles } from 'lucide-react';
 import { api } from '../../clients/api';
 import {
   ACTION_TYPE_LABELS,
@@ -24,6 +24,7 @@ import {
 } from './vuln-engine/shared';
 
 const vulnApi = api.domains.vuln;
+const executionApi = api.domains.execution;
 import {
   OverviewWorkspace,
   QueueWorkspace,
@@ -161,7 +162,19 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
     finished_reason: FINISHED_REASON_OPTIONS[FINISHED_REASON_OPTIONS.length - 1] || 'manual_terminated',
     summary: '',
   });
+  const [selectedEvolutionCaseIds, setSelectedEvolutionCaseIds] = useState<string[]>([]);
+  const [showEvolutionDialog, setShowEvolutionDialog] = useState(false);
+  const [evolutionPreview, setEvolutionPreview] = useState<any | null>(null);
+  const [evolutionSubmitting, setEvolutionSubmitting] = useState(false);
+  const [evolutionForm, setEvolutionForm] = useState({
+    title: '',
+    objective: '',
+    minRounds: 1,
+    maxRounds: 3,
+    maxConcurrentSourceTasks: 4,
+  });
   const selectedCase = cases.find((item) => item.id === selectedCaseId) || null;
+  const selectedEvolutionCases = cases.filter((item) => selectedEvolutionCaseIds.includes(item.id));
   const selectedTimeline = selectedCaseTimeline || [];
   const resultItems = selectedCaseDetail?.results || [];
   const taskItems = selectedCaseDetail?.manual_tasks || [];
@@ -214,6 +227,7 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       ]);
       setOverview(overviewResp);
       setCases(caseResp.items || []);
+      setSelectedEvolutionCaseIds((current) => current.filter((caseId) => (caseResp.items || []).some((item: any) => item.id === caseId)));
       setServices(serviceResp.items || []);
       setManualTasks(taskResp.items || []);
       const actionResp = await vulnApi.vuln.listActionQueue({
@@ -249,6 +263,72 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       setRecommendedActions(recommendations.items || []);
     } catch (err: any) {
       setError(err?.message || '加载案例详情失败');
+    }
+  };
+
+  const toggleEvolutionCaseId = (caseId: string, checked: boolean) => {
+    setSelectedEvolutionCaseIds((current) => {
+      if (checked) return Array.from(new Set([...current, caseId]));
+      return current.filter((item) => item !== caseId);
+    });
+  };
+
+  const toggleAllVisibleEvolutionCaseIds = (checked: boolean, caseIds: string[]) => {
+    setSelectedEvolutionCaseIds((current) => {
+      const visibleIds = Array.from(new Set(caseIds.filter(Boolean)));
+      if (checked) return Array.from(new Set([...current, ...visibleIds]));
+      return current.filter((item) => !visibleIds.includes(item));
+    });
+  };
+
+  const clearEvolutionSelection = () => {
+    setSelectedEvolutionCaseIds([]);
+  };
+
+  const handlePreviewEvolution = async () => {
+    if (!selectedEvolutionCaseIds.length) return;
+    setEvolutionSubmitting(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const payload = await executionApi.binaryEvolution.previewTask(projectId, selectedEvolutionCaseIds);
+      setEvolutionPreview(payload);
+    } catch (err: any) {
+      setError(err?.message || '进化任务预览失败');
+    } finally {
+      setEvolutionSubmitting(false);
+    }
+  };
+
+  const handleCreateEvolution = async () => {
+    const effectiveCaseIds = evolutionPreview?.effective_case_ids?.length ? evolutionPreview.effective_case_ids : selectedEvolutionCaseIds;
+    if (!effectiveCaseIds.length) return;
+    setEvolutionSubmitting(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const created = await executionApi.binaryEvolution.createTask(projectId, {
+        case_ids: effectiveCaseIds,
+        title: evolutionForm.title.trim() || `Evolution of ${selectedEvolutionCaseIds.length} cases`,
+        objective: evolutionForm.objective.trim(),
+        min_rounds: Math.max(1, Number(evolutionForm.minRounds) || 1),
+        max_rounds: Math.max(1, Number(evolutionForm.maxRounds) || 1),
+        max_concurrent_source_tasks: Math.max(1, Number(evolutionForm.maxConcurrentSourceTasks) || 1),
+        metrics: {
+          false_negative_rate: true,
+          false_positive_rate: true,
+          avg_discovery_round: true,
+        },
+      });
+      setSuccessMessage(`已创建进化任务 ${created.task_id}`);
+      setShowEvolutionDialog(false);
+      setEvolutionPreview(null);
+      setSelectedEvolutionCaseIds([]);
+      onNavigateToView?.('binary-evolution-center');
+    } catch (err: any) {
+      setError(err?.message || '创建进化任务失败');
+    } finally {
+      setEvolutionSubmitting(false);
     }
   };
 
@@ -953,6 +1033,30 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           hideCasePool={hideCasePool}
           detailEntryLabel={detailEntryLabel}
           onOpenDedicatedDetail={detailTargetView && detailStorageKey ? handleOpenCaseDetail : undefined}
+          enableBulkSelection={!hideCasePool}
+          selectedBulkCaseIds={selectedEvolutionCaseIds}
+          onToggleBulkCaseId={toggleEvolutionCaseId}
+          onToggleAllVisibleCaseIds={toggleAllVisibleEvolutionCaseIds}
+          onClearBulkSelection={clearEvolutionSelection}
+          bulkActionBar={(
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs text-slate-600">
+                支持从已人工收敛的数据流漏洞案例中，整批预览并创建进化任务。
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEvolutionDialog(true);
+                  setEvolutionPreview(null);
+                }}
+                disabled={selectedEvolutionCaseIds.length === 0}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Sparkles size={14} />
+                创建进化任务
+              </button>
+            </div>
+          )}
         />
       )}
 
@@ -1005,6 +1109,136 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           services={reproServices}
           projectActions={projectActions}
         />
+      )}
+
+      {showEvolutionDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-6">
+          <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">
+                  <Sparkles size={14} />
+                  漏洞台账 {'->'} 进化中心
+                </div>
+                <h2 className="mt-3 text-2xl font-black text-slate-900">从已选案例创建进化任务</h2>
+                <p className="mt-2 text-sm text-slate-500">先预览整批，再确认创建。若同一 normal 任务存在遗漏案例，预览会自动补齐。</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEvolutionDialog(false);
+                  setEvolutionPreview(null);
+                }}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-600"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+              <div className="space-y-4">
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="text-sm font-black text-slate-900">已选案例</div>
+                  <div className="mt-2 text-xs text-slate-500">共 {selectedEvolutionCaseIds.length} 个。</div>
+                  <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+                    {selectedEvolutionCases.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                        <div className="font-black text-slate-800">{item.title}</div>
+                        <div className="mt-1 text-[11px] font-mono text-slate-500">{item.id}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.summary || '暂无摘要'}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 text-sm font-black text-slate-800">任务标题</div>
+                  <input
+                    value={evolutionForm.title}
+                    onChange={(event) => setEvolutionForm((current) => ({ ...current, title: event.target.value }))}
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    placeholder="例如：DFVS 误报率压降 - 研判批次 A"
+                  />
+                </div>
+                <div>
+                  <div className="mb-2 text-sm font-black text-slate-800">进化目标</div>
+                  <textarea
+                    value={evolutionForm.objective}
+                    onChange={(event) => setEvolutionForm((current) => ({ ...current, objective: event.target.value }))}
+                    className="min-h-[8rem] w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
+                    placeholder="说明本次重点优化漏报、误报还是发现轮次。"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <input type="number" min={1} max={100} value={evolutionForm.minRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, minRounds: Number(event.target.value || 1) }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+                  <input type="number" min={1} max={100} value={evolutionForm.maxRounds} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxRounds: Number(event.target.value || 1) }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+                  <input type="number" min={1} max={64} value={evolutionForm.maxConcurrentSourceTasks} onChange={(event) => setEvolutionForm((current) => ({ ...current, maxConcurrentSourceTasks: Number(event.target.value || 1) }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    disabled={evolutionSubmitting || selectedEvolutionCaseIds.length === 0}
+                    onClick={() => void handlePreviewEvolution()}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <RefreshCw size={15} />
+                    预览整批
+                  </button>
+                  <button
+                    type="button"
+                    disabled={evolutionSubmitting || !evolutionPreview?.can_create}
+                    onClick={() => void handleCreateEvolution()}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={15} />
+                    确认创建
+                  </button>
+                </div>
+
+                {!evolutionPreview ? (
+                  <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm text-slate-400">
+                    预览结果会在这里展示。
+                  </div>
+                ) : (
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex items-center gap-2">
+                      {evolutionPreview.can_create ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-rose-600" />}
+                      <div className="font-black text-slate-900">{evolutionPreview.can_create ? '预览通过，可创建' : '预览未通过'}</div>
+                    </div>
+                    <div className="mt-3 text-sm text-slate-600">请求 {evolutionPreview.requested_case_ids.length} 个案例，整批后 {evolutionPreview.effective_case_ids.length} 个，涉及 {evolutionPreview.sources.length} 个原始任务。</div>
+                    {evolutionPreview.blocked_reasons.length > 0 && (
+                      <div className="mt-3 space-y-2 text-sm text-rose-600">
+                        {evolutionPreview.blocked_reasons.map((reason: string) => <div key={reason}>{reason}</div>)}
+                      </div>
+                    )}
+                    <div className="mt-4 space-y-3">
+                      {evolutionPreview.sources.map((source: any) => (
+                        <div key={source.source_task_id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="font-black text-slate-800">{source.source_title || source.source_task_id}</div>
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${source.replay_ready ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                              {source.replay_ready ? 'ready' : 'blocked'}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-xs text-slate-500">已选 {source.selected_case_ids.length} / 整批 {source.all_case_ids.length}</div>
+                          {source.auto_expanded_case_ids.length > 0 && <div className="mt-1 text-xs text-amber-700">自动补齐 {source.auto_expanded_case_ids.length} 个遗漏案例。</div>}
+                          {source.blocked_reasons.length > 0 && (
+                            <div className="mt-2 space-y-1 text-xs text-rose-600">
+                              {source.blocked_reasons.map((reason: string) => <div key={reason}>{reason}</div>)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

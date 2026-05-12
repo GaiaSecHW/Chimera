@@ -116,6 +116,12 @@ export const CasesWorkspace: React.FC<any> = ({
   detailEntryLabel = '查看详情',
   onOpenCaseDetail,
   onOpenDedicatedDetail,
+  enableBulkSelection = false,
+  selectedBulkCaseIds = [],
+  onToggleBulkCaseId,
+  onToggleAllVisibleCaseIds,
+  onClearBulkSelection,
+  bulkActionBar,
 }) => {
   const panelStorageKey = `secflow-vuln-analysis-panels-${selectedCaseDetail?.project_id || selectedCase?.project_id || 'global'}`;
   const [customPanels, setCustomPanels] = React.useState<Array<{ id: string; title: string; content: string }>>([]);
@@ -268,6 +274,7 @@ export const CasesWorkspace: React.FC<any> = ({
   const handleDeletePanel = (panelId: string) => {
     setCustomPanels((prev) => prev.filter((item) => item.id !== panelId));
   };
+  const allVisibleSelected = prioritizedCases.length > 0 && prioritizedCases.every((item: any) => selectedBulkCaseIds.includes(item.id));
 
   return (
   <div className={
@@ -298,6 +305,30 @@ export const CasesWorkspace: React.FC<any> = ({
             placeholder="搜索标题、摘要、资产定位"
             className={compactLayout ? 'w-full px-3 py-2.5 rounded-xl border border-slate-200 outline-none text-sm' : 'w-full px-4 py-3 rounded-2xl border border-slate-200 outline-none'}
           />
+          {enableBulkSelection && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm font-black text-slate-800">已选 {selectedBulkCaseIds.length} 个案例</div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onToggleAllVisibleCaseIds?.(!allVisibleSelected, prioritizedCases.map((item: any) => item.id))}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                  >
+                    {allVisibleSelected ? '取消全选当前列表' : '全选当前列表'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onClearBulkSelection?.()}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                  >
+                    清空选择
+                  </button>
+                </div>
+              </div>
+              {bulkActionBar && <div className="mt-3">{bulkActionBar}</div>}
+            </div>
+          )}
           {!hideStageFilter && (
             <div className="flex flex-wrap gap-2">
               {(stageOptions || []).map((option: string) => (
@@ -320,7 +351,12 @@ export const CasesWorkspace: React.FC<any> = ({
             <div className={compactLayout ? 'px-4 py-6 text-sm text-slate-400' : 'px-6 py-8 text-sm text-slate-400'}>{emptyStateText}</div>
           ) : compactLayout ? (
             <div className="overflow-hidden rounded-[1.25rem] border border-slate-200">
-              <div className="grid grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+              <div className={`grid gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2.5 ${enableBulkSelection ? 'grid-cols-[0.4fr_2.1fr_0.85fr_0.9fr_0.8fr_1fr]' : 'grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr]'}`}>
+                {enableBulkSelection && (
+                  <label className="flex items-center justify-center">
+                    <input type="checkbox" checked={allVisibleSelected} onChange={(event) => onToggleAllVisibleCaseIds?.(event.target.checked, prioritizedCases.map((item: any) => item.id))} />
+                  </label>
+                )}
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">标题 / 摘要</div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">阶段</div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">状态</div>
@@ -337,10 +373,24 @@ export const CasesWorkspace: React.FC<any> = ({
                   }
                   setSelectedCaseId(item.id);
                 }}
-                className={`grid w-full grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr] gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 last:border-b-0 ${
+                className={`grid w-full gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 last:border-b-0 ${
+                  enableBulkSelection ? 'grid-cols-[0.4fr_2.1fr_0.85fr_0.9fr_0.8fr_1fr]' : 'grid-cols-[2.1fr_0.85fr_0.9fr_0.8fr_1fr]'
+                } ${
                   selectedCaseId === item.id ? 'bg-blue-50' : 'bg-white'
                 }`}
                 >
+                  {enableBulkSelection && (
+                    <label
+                      className="flex items-center justify-center"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedBulkCaseIds.includes(item.id)}
+                        onChange={(event) => onToggleBulkCaseId?.(item.id, event.target.checked)}
+                      />
+                    </label>
+                  )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="truncate text-sm font-black text-slate-900">{item.title}</div>
@@ -378,6 +428,18 @@ export const CasesWorkspace: React.FC<any> = ({
                 className={`w-full text-left transition-colors px-6 py-5 ${selectedCaseId === item.id ? 'bg-blue-50' : 'hover:bg-slate-50'}`}
               >
                 <div className="flex items-start justify-between gap-4">
+                  {enableBulkSelection && (
+                    <label
+                      className="mt-1 flex shrink-0 items-center"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedBulkCaseIds.includes(item.id)}
+                        onChange={(event) => onToggleBulkCaseId?.(item.id, event.target.checked)}
+                      />
+                    </label>
+                  )}
                   <div className="space-y-2 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${toneOf(item.severity, severityTone)}`}>

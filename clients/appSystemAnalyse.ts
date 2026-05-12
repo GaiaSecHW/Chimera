@@ -87,6 +87,13 @@ export const appSystemAnalyseApi = {
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
 
+  repairTaskOrigin: async (taskId: string, analysisMode: 'binary' | 'source'): Promise<AppSaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/origin`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ analysis_mode: analysisMode }),
+    })),
+
   getTaskResult: async (taskId: string): Promise<AppSaTaskResult> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
 

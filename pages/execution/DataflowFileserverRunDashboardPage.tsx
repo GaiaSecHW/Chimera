@@ -2700,11 +2700,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const commandDisplay = this.runCommandDisplay(data);
       const retryCommandDisplay = this.retryCommandDisplay(data);
+      const taskPurpose = String(data.linked_task_purpose || 'normal').trim() === 'evolution' ? 'evolution' : 'normal';
+      const taskPurposeLabel = taskPurpose === 'evolution' ? '进化任务' : '正常任务';
+      const taskPurposeBadgeClass = taskPurpose === 'evolution' ? 'badge-warning' : 'badge-succeeded';
+      const agentStateDirs = data.linked_task_agent_state_dirs && typeof data.linked_task_agent_state_dirs === 'object'
+        ? Object.values(data.linked_task_agent_state_dirs)
+        : [];
       const rows = [
         ['Run ID', data.run_id || '-'],
         ['Task ID', data.linked_task_id || '-'],
         ['Execution ID', data.linked_execution_id || '-'],
         ['Profile ID', data.profile_id || '-'],
+        ['任务用途', taskPurposeLabel],
         ['Source', data.source_type || '-'],
         ['Run Root', data.path || '-'],
         ['Atomic Work', data.atomic_work_path || '-'],
@@ -2724,6 +2731,55 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             </div>
           `).join('')}
         </div>
+        ${linked ? `
+          <div class="run-command-block">
+            <div class="run-command-title">
+              <span>任务用途</span>
+              <span class="badge ${taskPurposeBadgeClass}">${taskPurposeLabel}</span>
+            </div>
+            <div class="text-muted" style="margin-top:8px;font-size:12px">
+              ${taskPurpose === 'evolution'
+                ? '该任务使用独立的进化目录，可按 agent 固定映射到 skills/ 与 memory/ 子目录。'
+                : '该任务使用项目共享默认目录，每个 agent 使用单独的 skills/ 与 memory/ 子目录。'}
+            </div>
+          </div>
+        ` : ''}
+        ${linked ? `
+          <div class="run-command-block">
+            <div class="run-command-title">
+              <span>Agent 状态目录</span>
+              <span>${this.esc(String(agentStateDirs.length || 0))} 个 agent</span>
+            </div>
+            ${agentStateDirs.length ? `
+              <div style="overflow:auto;margin-top:10px">
+                <table style="width:100%;min-width:760px;border-collapse:collapse;font-size:12px">
+                  <thead>
+                    <tr style="background:rgba(148,163,184,0.08);text-align:left">
+                      <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Agent</th>
+                      <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Root</th>
+                      <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Skills</th>
+                      <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Memory</th>
+                      <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">来源</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${agentStateDirs.map((item: any) => `
+                      <tr>
+                        <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono);font-weight:700">${this.esc(String(item?.agent_id || '-'))}</td>
+                        <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.root_dir || '-'))}</td>
+                        <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.skills_dir || '-'))}</td>
+                        <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.memory_dir || '-'))}</td>
+                        <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.source || 'shared_default'))}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : `
+              <div class="text-muted" style="margin-top:8px;font-size:12px">当前关联任务未返回 agent 状态目录信息。</div>
+            `}
+          </div>
+        ` : ''}
         ${commandDisplay ? `
           <div class="run-command-block">
             <div class="run-command-title">

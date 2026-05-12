@@ -5,6 +5,9 @@ import { api } from '../../clients/api';
 import {
   LlmProviderSummary,
   SystemAnalysisAgentInstance,
+  SystemAnalysisPromptOverrideGroup,
+  SystemAnalysisPromptOverrideItem,
+  SystemAnalysisPromptTemplate,
   SystemAnalysisRoleConfig,
   SystemAnalysisServiceConfig,
   SystemAnalysisStageLoopConfig,
@@ -16,6 +19,58 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const WORKER_STAGES = ['explore', 'classify', 'refine', 'sub_read', 'analyse', 'report'];
 const JUDGE_STAGES = ['classify', 'refine', 'analyse', 'completeness', 'report'];
+const WORKER_PROMPT_KEYS = [
+  'default',
+  'step1_explore',
+  'step1_classify',
+  'reflect_classify',
+  'step2_sub_read',
+  'step2_refine',
+  'reflect_refine',
+  'step2_reclassify',
+  'step3_analyse',
+  'reflect_analyse',
+  'step4_final_report',
+  'reflect_report',
+] as const;
+const JUDGE_PROMPT_KEYS = [
+  'default',
+  'step1_check_classify',
+  'step2_check_refine',
+  'step3_check_analyse',
+  'step4_check_completeness',
+  'step4_check_report',
+] as const;
+
+const WORKER_PROMPT_DESCS: Record<string, string> = {
+  default: 'Worker 默认 system prompt，供未命中特定阶段或个别兜底逻辑使用。',
+  step1_explore: 'Stage 0 目录探索提示词，用于快速理解目标目录、结构和关键线索。',
+  step1_classify: 'Stage 1 全局分类提示词，用于按功能对文件进行模块划分。',
+  reflect_classify: 'Stage 1 分类反思提示词，用于根据 Judge 反馈修正分类。',
+  step2_sub_read: 'Stage 2 大文件预读提示词，用于对子文件批次做摘要压缩。',
+  step2_refine: 'Stage 2 模块细分提示词，用于精细化模块边界与文件归属。',
+  reflect_refine: 'Stage 2 细分反思提示词，用于根据评审结果修正模块粒度。',
+  step2_reclassify: 'Stage 2 重新分类提示词，用于对需要重分组的模块重新划分。',
+  step3_analyse: 'Stage 3 安全分析提示词，是系统分析的核心执行 prompt。',
+  reflect_analyse: 'Stage 3 分析反思提示词，用于根据评审反馈补充威胁发现。',
+  step4_final_report: 'Stage 4 最终报告提示词，用于汇总模块分析并生成总报告。',
+  reflect_report: 'Stage 4 报告反思提示词，用于根据报告评审意见修正最终报告。',
+};
+
+const JUDGE_PROMPT_DESCS: Record<string, string> = {
+  default: 'Judge 默认 system prompt，供未命中特定阶段或个别兜底逻辑使用。',
+  step1_check_classify: 'Stage 1 分类评审提示词，用于判断模块划分是否完整合理。',
+  step2_check_refine: 'Stage 2 细分评审提示词，用于判断模块粒度是否合理。',
+  step3_check_analyse: 'Stage 3 安全分析评审提示词，用于复核威胁发现质量。',
+  step4_check_completeness: 'Stage 4 完整性检查提示词，用于确认模块分析覆盖完整。',
+  step4_check_report: 'Stage 4 报告评审提示词，用于判断最终报告结构与一致性。',
+};
+
+const emptyPromptItem = (): SystemAnalysisPromptOverrideItem => ({ content: '', source: 'default', default_content: '' });
+const defaultPromptOverrides = (): SystemAnalysisPromptOverrideGroup => ({
+  workers: Object.fromEntries(WORKER_PROMPT_KEYS.map((key) => [key, emptyPromptItem()])) as Record<string, SystemAnalysisPromptOverrideItem>,
+  judges: Object.fromEntries(JUDGE_PROMPT_KEYS.map((key) => [key, emptyPromptItem()])) as Record<string, SystemAnalysisPromptOverrideItem>,
+});
 
 /** 各 Worker 阶段的功能说明与模型选型建议 */
 const WORKER_STAGE_DESCS: Record<string, string> = {
@@ -78,12 +133,64 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   },
   workers: defaultRole(),
   judges: defaultRole(),
+  prompt_overrides: defaultPromptOverrides(),
   output_dir: '/data/output',
   archive_dir: '/data/output',
   result_dir: '/data/output',
   start_stage: 1,
   resume_workspace: '',
 });
+
+const normalizePromptOverrides = (value: unknown): SystemAnalysisPromptOverrideGroup => {
+  const base = defaultPromptOverrides();
+  const raw = value && typeof value === 'object' ? value as Partial<SystemAnalysisPromptOverrideGroup> : {};
+  const normalizeGroup = (
+    keys: readonly string[],
+    incoming: unknown,
+  ): Record<string, SystemAnalysisPromptOverrideItem> => {
+    const next = incoming && typeof incoming === 'object' ? incoming as Record<string, any> : {};
+    return Object.fromEntries(keys.map((key) => {
+      const item = next[key];
+      if (item && typeof item === 'object') {
+        return [key, {
+          content: String(item.content ?? ''),
+          source: item.source === 'project' ? 'project' : 'default',
+          default_content: String(item.default_content ?? ''),
+        } satisfies SystemAnalysisPromptOverrideItem];
+      }
+      if (typeof item === 'string') {
+        return [key, { content: item, source: 'project' } satisfies SystemAnalysisPromptOverrideItem];
+      }
+      return [key, base.workers[key] ?? base.judges[key] ?? emptyPromptItem()];
+    }));
+  };
+  return {
+    workers: normalizeGroup(WORKER_PROMPT_KEYS, raw.workers),
+    judges: normalizeGroup(JUDGE_PROMPT_KEYS, raw.judges),
+  };
+};
+
+const buildSafeConfig = (projectId: string, cfg?: Partial<SystemAnalysisServiceConfig> | null): SystemAnalysisServiceConfig => {
+  const base = defaultConfig(projectId);
+  return {
+    ...base,
+    ...(cfg || {}),
+    project_id: projectId,
+    stages: {
+      ...base.stages,
+      ...(cfg?.stages && typeof cfg.stages === 'object' ? cfg.stages : {}),
+    },
+    workers: {
+      ...base.workers,
+      ...(cfg?.workers && typeof cfg.workers === 'object' ? cfg.workers : {}),
+    },
+    judges: {
+      ...base.judges,
+      ...(cfg?.judges && typeof cfg.judges === 'object' ? cfg.judges : {}),
+    },
+    prompt_overrides: normalizePromptOverrides(cfg?.prompt_overrides),
+  };
+};
 
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
@@ -229,6 +336,85 @@ const RoleConfigBlock: React.FC<{
   </SectionCard>
 );
 
+const PromptEditorCard: React.FC<{
+  role: 'workers' | 'judges';
+  promptKey: string;
+  desc: string;
+  item: SystemAnalysisPromptOverrideItem;
+  templates: SystemAnalysisPromptTemplate[];
+  selectedTemplateId: string;
+  onChangeTemplateId: (value: string) => void;
+  onChange: (value: SystemAnalysisPromptOverrideItem) => void;
+  onImportTemplate: () => void;
+  onRestoreDefault: () => void;
+}> = ({
+  role,
+  promptKey,
+  desc,
+  item,
+  templates,
+  selectedTemplateId,
+  onChangeTemplateId,
+  onChange,
+  onImportTemplate,
+  onRestoreDefault,
+}) => (
+  <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-bold text-slate-900">{promptKey}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{desc}</p>
+      </div>
+      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black tracking-[0.12em] ${
+        item.source === 'project'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          : 'border-slate-200 bg-white text-slate-500'
+      }`}>
+        {item.source === 'project' ? 'PROJECT' : 'DEFAULT'}
+      </span>
+    </div>
+
+    <textarea
+      value={item.content}
+      onChange={(event) => onChange({ ...item, content: event.target.value, source: 'project' })}
+      className="min-h-[180px] w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs leading-6 text-slate-800"
+      spellCheck={false}
+    />
+
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div className="flex items-center gap-2">
+        <select
+          value={selectedTemplateId}
+          onChange={(event) => onChangeTemplateId(event.target.value)}
+          className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+        >
+          <option value="">从模板库选择</option>
+          {templates.map((template) => (
+            <option key={`${role}-${template.prompt_id}`} value={template.prompt_id}>
+              {template.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={onImportTemplate}
+          disabled={!selectedTemplateId}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+        >
+          导入模板
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onRestoreDefault}
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+      >
+        恢复默认
+      </button>
+    </div>
+  </div>
+);
+
 // ─── 主页面 ────────────────────────────────────────────────────────────────────
 
 export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: boolean }> = ({ projectId, embedded = false }) => {
@@ -239,35 +425,58 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
   const [modelOptions, setModelOptions] = useState<string[]>([]);
+  const [promptTemplates, setPromptTemplates] = useState<SystemAnalysisPromptTemplate[]>([]);
+  const [selectedPromptTemplates, setSelectedPromptTemplates] = useState<Record<string, string>>({});
 
   const patch = (p: Partial<SystemAnalysisServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
 
   const patchStage = (key: keyof SystemAnalysisStagesConfig, p: Partial<SystemAnalysisStageLoopConfig>) =>
     setConfig((prev) => ({ ...prev, stages: { ...prev.stages, [key]: { ...prev.stages[key], ...p } } }));
 
+  const patchPrompt = (role: 'workers' | 'judges', promptKey: string, item: SystemAnalysisPromptOverrideItem) =>
+    setConfig((prev) => ({
+      ...prev,
+      prompt_overrides: {
+        ...prev.prompt_overrides,
+        [role]: {
+          ...prev.prompt_overrides[role],
+          [promptKey]: item,
+        },
+      },
+    }));
+
+  const setTemplateSelection = (role: 'workers' | 'judges', promptKey: string, value: string) =>
+    setSelectedPromptTemplates((prev) => ({ ...prev, [`${role}:${promptKey}`]: value }));
+
+  const importPromptTemplate = (role: 'workers' | 'judges', promptKey: string) => {
+    const selectedId = selectedPromptTemplates[`${role}:${promptKey}`];
+    const template = promptTemplates.find((item) => item.prompt_id === selectedId);
+    if (!template) {
+      notify('请先从模板库选择一个 Prompt 模板', 'info');
+      return;
+    }
+    const current = config.prompt_overrides[role][promptKey];
+    patchPrompt(role, promptKey, {
+      ...current,
+      content: template.content || '',
+      source: 'project',
+    });
+  };
+
+  const restorePromptDefault = (role: 'workers' | 'judges', promptKey: string) => {
+    const current = config.prompt_overrides[role][promptKey];
+    patchPrompt(role, promptKey, {
+      content: current?.default_content || '',
+      source: 'default',
+      default_content: current?.default_content || '',
+    });
+  };
+
   const reload = () => {
     setLoading(true);
     systemAnalysis.getConfig(projectId)
       .then((cfg) => {
-        const base = defaultConfig(projectId);
-        const safe: SystemAnalysisServiceConfig = {
-          ...base,
-          ...cfg,
-          project_id: projectId,
-          stages: {
-            ...base.stages,
-            ...(cfg.stages && typeof cfg.stages === 'object' ? cfg.stages : {}),
-          },
-          workers: {
-            ...base.workers,
-            ...(cfg.workers && typeof cfg.workers === 'object' ? cfg.workers : {}),
-          },
-          judges: {
-            ...base.judges,
-            ...(cfg.judges && typeof cfg.judges === 'object' ? cfg.judges : {}),
-          },
-        };
-        setConfig(safe);
+        setConfig(buildSafeConfig(projectId, cfg));
       })
       .catch((err) => {
         notify(`加载配置失败: ${err?.message ?? err}`, 'error');
@@ -289,32 +498,18 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   }, []);
 
   useEffect(() => {
+    systemAnalysis.listPrompts({ page: 1, per_page: 200, is_enabled: true })
+      .then((resp) => setPromptTemplates(Array.isArray(resp?.items) ? resp.items : []))
+      .catch(() => setPromptTemplates([]));
+  }, [projectId]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     systemAnalysis.getConfig(projectId)
       .then((cfg) => {
         if (!cancelled) {
-          // Always deep-merge with local defaults so missing/null nested fields
-          // (stages, workers, judges) never cause a runtime crash.
-          const base = defaultConfig(projectId);
-          const safe: SystemAnalysisServiceConfig = {
-            ...base,
-            ...cfg,
-            project_id: projectId,
-            stages: {
-              ...base.stages,
-              ...(cfg.stages && typeof cfg.stages === 'object' ? cfg.stages : {}),
-            },
-            workers: {
-              ...base.workers,
-              ...(cfg.workers && typeof cfg.workers === 'object' ? cfg.workers : {}),
-            },
-            judges: {
-              ...base.judges,
-              ...(cfg.judges && typeof cfg.judges === 'object' ? cfg.judges : {}),
-            },
-          };
-          setConfig(safe);
+          setConfig(buildSafeConfig(projectId, cfg));
         }
       })
       .catch((err) => { if (!cancelled) { notify(`加载配置失败: ${err?.message ?? err}`, 'error'); setConfig(defaultConfig(projectId)); } })
@@ -326,15 +521,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
     setSaving(true);
     try {
       const saved = await systemAnalysis.saveConfig({ ...config, project_id: projectId });
-      const base = defaultConfig(projectId);
-      setConfig({
-        ...base,
-        ...saved,
-        project_id: projectId,
-        stages: { ...base.stages, ...(saved.stages && typeof saved.stages === 'object' ? saved.stages : {}) },
-        workers: { ...base.workers, ...(saved.workers && typeof saved.workers === 'object' ? saved.workers : {}) },
-        judges: { ...base.judges, ...(saved.judges && typeof saved.judges === 'object' ? saved.judges : {}) },
-      });
+      setConfig(buildSafeConfig(projectId, saved));
       notify('配置已保存', 'success');
     } catch (err: any) {
       notify(`保存失败: ${err?.message ?? err}`, 'error');
@@ -635,6 +822,63 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             agentDesc="配置参与评审的 Judge 实例。多个实例会并行独立评审同一内容并投票；建议配置 2–3 个实例以获得稳定的多数投票效果。单实例时 majority / all 效果相同。"
             onChange={(v) => patch({ judges: v })}
           />
+
+          <SectionCard
+            title="执行 Prompt 配置"
+            subtitle="这里管理系统分析执行链路实际使用的 Worker / Judge system prompt。只要任务还没进入 running，后续启动时都会使用这里的最新配置。"
+          >
+            <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+              Prompt 管理页面继续作为模板库使用。这里编辑的是当前项目实际生效的执行 Prompt；从模板库导入只会复制文本，不建立动态绑定。
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-900">Workers Prompt</h3>
+                <p className="mt-1 text-xs text-slate-500">覆盖目录探索、分类、细分、分析、报告生成以及反思相关的 Worker system prompt。</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                {WORKER_PROMPT_KEYS.map((promptKey) => (
+                  <PromptEditorCard
+                    key={`worker-${promptKey}`}
+                    role="workers"
+                    promptKey={promptKey}
+                    desc={WORKER_PROMPT_DESCS[promptKey] || ''}
+                    item={config.prompt_overrides.workers[promptKey] ?? emptyPromptItem()}
+                    templates={promptTemplates}
+                    selectedTemplateId={selectedPromptTemplates[`workers:${promptKey}`] || ''}
+                    onChangeTemplateId={(value) => setTemplateSelection('workers', promptKey, value)}
+                    onChange={(value) => patchPrompt('workers', promptKey, value)}
+                    onImportTemplate={() => importPromptTemplate('workers', promptKey)}
+                    onRestoreDefault={() => restorePromptDefault('workers', promptKey)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-900">Judges Prompt</h3>
+                <p className="mt-1 text-xs text-slate-500">覆盖分类评审、细分评审、安全分析评审、完整性检查和最终报告评审的 Judge system prompt。</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                {JUDGE_PROMPT_KEYS.map((promptKey) => (
+                  <PromptEditorCard
+                    key={`judge-${promptKey}`}
+                    role="judges"
+                    promptKey={promptKey}
+                    desc={JUDGE_PROMPT_DESCS[promptKey] || ''}
+                    item={config.prompt_overrides.judges[promptKey] ?? emptyPromptItem()}
+                    templates={promptTemplates}
+                    selectedTemplateId={selectedPromptTemplates[`judges:${promptKey}`] || ''}
+                    onChangeTemplateId={(value) => setTemplateSelection('judges', promptKey, value)}
+                    onChange={(value) => patchPrompt('judges', promptKey, value)}
+                    onImportTemplate={() => importPromptTemplate('judges', promptKey)}
+                    onRestoreDefault={() => restorePromptDefault('judges', promptKey)}
+                  />
+                ))}
+              </div>
+            </div>
+          </SectionCard>
 
           {/* 操作按钮 */}
           <div className="flex items-center gap-3">

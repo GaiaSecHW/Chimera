@@ -49,6 +49,7 @@ import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatf
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
+import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
@@ -480,6 +481,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
+    case 'binary-evolution-center':
+      return <BinaryEvolutionCenterPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln-task-detail':
       return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln')} />;
     case 'pentest-exec-dataflow-vuln-system-config':

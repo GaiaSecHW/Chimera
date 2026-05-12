@@ -164,6 +164,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-b2s-detail',
   'pentest-exec-b2s-advanced',
   'pentest-exec-dataflow-vuln',
+  'binary-evolution-center',
   'pentest-exec-dataflow-vuln-task-list',
   'pentest-exec-dataflow-vuln-task-detail',
   'pentest-exec-dataflow-vuln-system-config',
@@ -219,6 +220,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (
     view === 'security-assessment' ||
     view.startsWith('binary-security') ||
+    view.startsWith('binary-evolution') ||
     view.startsWith('source-security') ||
     view.startsWith('mobile-security-') ||
     view.startsWith('pentest-') ||
@@ -345,6 +347,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
         { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, aliases: ['dataflow-analysis-task', 'dataflow-analysis-detail'], requiresProject: true },
         { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
+        { id: 'binary-evolution-center', label: '进化中心', icon: Sparkles, requiresProject: true },
         { id: 'binary-security-config', label: '参数配置', icon: Settings, aliases: ['pentest-exec-dataflow-vuln-system-config'], requiresProject: true },
       ],
     },

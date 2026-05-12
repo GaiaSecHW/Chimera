@@ -1,6 +1,7 @@
 import { appDataflowAnalyseApi } from '../appDataflowAnalyse';
 import { appEntryAnalyseApi } from '../appEntryAnalyse';
 import { appSystemAnalyseApi } from '../appSystemAnalyse';
+import { binaryEvolutionApi } from '../binaryEvolution';
 import { binarySecurityApi } from '../binarySecurity';
 import { binaryToSourceApi } from '../binaryToSource';
 import { codeServerApi } from '../codeServer';
@@ -12,6 +13,7 @@ import { systemAnalysisApi } from '../systemAnalysis';
 export { appDataflowAnalyseApi } from '../appDataflowAnalyse';
 export { appEntryAnalyseApi } from '../appEntryAnalyse';
 export { appSystemAnalyseApi } from '../appSystemAnalyse';
+export { binaryEvolutionApi } from '../binaryEvolution';
 export { binarySecurityApi } from '../binarySecurity';
 export { systemAnalysisApi } from '../systemAnalysis';
 export { codeServerApi } from '../codeServer';
@@ -29,6 +31,7 @@ export const executionClients = {
   dataflowVulnScanner: dataflowVulnScannerApi,
   firmwareUnpacker: firmwareUnpackerApi,
   ipcAudit: ipcAuditApi,
+  binaryEvolution: binaryEvolutionApi,
   binarySecurity: binarySecurityApi,
   binaryToSource: binaryToSourceApi,
 };

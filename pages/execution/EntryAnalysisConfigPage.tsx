@@ -27,11 +27,13 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   max_rounds_exceeded_action: 'treat_as_passed',
   min_rounds: 2,
   pass_threshold: 0,
+  max_concurrent_tasks: 64,
   agent_max_retries: 100,
   agent_retry_delay: 30,
   pi_max_retries: -1,
   pi_retry_delay: 5,
   worker_parallel: false,
+  worker_parallelism: 128,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -254,6 +256,12 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                   <option value={-1}>全部裁判均通过</option>
                 </select>
               </FieldRow>
+              <FieldRow label="任务间并发上限" hint="单个项目内同时运行的任务数">
+                <NumberInput value={config.max_concurrent_tasks} min={1} max={128} onChange={(v) => patch({ max_concurrent_tasks: Math.max(1, Math.min(128, Math.trunc(v || 1))) })} />
+              </FieldRow>
+              <FieldRow label="任务内并发上限" hint="单个任务内部 Worker 最大并发">
+                <NumberInput value={config.worker_parallelism} min={1} max={256} onChange={(v) => patch({ worker_parallelism: Math.max(1, Math.min(256, Math.trunc(v || 1))) })} />
+              </FieldRow>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4">
               <FieldRow label="max_rounds_exceeded_action" hint="单个入口分析任务达到最大轮次且评审仍未通过时的处理策略">
@@ -286,27 +294,26 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                 </label>
                 {config.worker_parallel && (
                   <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                    并行数量
+                    当前任务内并发
                     <input
                       type="number"
                       min={1}
-                      max={32}
-                      value={config.workers.agents?.length ?? 1}
+                      max={256}
+                      value={config.worker_parallelism}
                       onChange={(e) => {
-                        const n = Math.max(1, Math.min(32, Number(e.target.value) || 1));
-                        const cur = config.workers.agents ?? [];
-                        const defaultModel = cur[0]?.model ?? '';
-                        const next = Array.from({ length: n }, (_, i) =>
-                          cur[i] ?? { model: defaultModel, tools: null, thinking_level: null }
-                        );
-                        patch({ workers: { ...config.workers, agents: next } });
+                        const n = Math.max(1, Math.min(256, Number(e.target.value) || 1));
+                        patch({ worker_parallelism: n });
                       }}
                       className="w-20 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
                     />
-                    <span className="text-xs text-slate-400">个 Worker</span>
+                    <span className="text-xs text-slate-400">个并发槽位</span>
                   </label>
                 )}
               </div>
+              <p className="text-xs leading-5 text-slate-500">
+                `Workers` 中的 Agent 实例表示可复用的执行配置，不再等同于并发数量。并行执行时会在这些 Agent 配置间循环复用，
+                实际任务内并发以上面的 `worker_parallelism` 为准，最大支持 256。
+              </p>
             </FieldRow>
           </SectionCard>
 
@@ -324,8 +331,8 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
           <RoleConfigBlock
             title="Workers 配置"
             subtitle={config.worker_parallel
-              ? `并行模式 — ${config.workers.agents?.length || 1} 个 Worker 并行运行，各自分析 1/${config.workers.agents?.length || 1} 的文件，共用同一模型`
-              : '串行模式 — 仅使用 agents[0]，多余实例无效'}
+              ? `并行模式 — 当前任务内最多 ${config.worker_parallelism} 个并发槽位，按顺序复用下方 Agent 配置`
+              : '串行模式 — 仅使用 agents[0]，多余实例仅作为备用配置'}
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}

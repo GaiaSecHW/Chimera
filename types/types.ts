@@ -2061,6 +2061,17 @@ export interface SystemAnalysisRoleConfig {
   stage_models?: Record<string, string>;
 }
 
+export interface SystemAnalysisPromptOverrideItem {
+  content: string;
+  source: 'default' | 'project';
+  default_content?: string;
+}
+
+export interface SystemAnalysisPromptOverrideGroup {
+  workers: Record<string, SystemAnalysisPromptOverrideItem>;
+  judges: Record<string, SystemAnalysisPromptOverrideItem>;
+}
+
 export interface SystemAnalysisStagesConfig {
   classify: SystemAnalysisStageLoopConfig;
   refine: SystemAnalysisStageLoopConfig;
@@ -2084,6 +2095,7 @@ export interface SystemAnalysisServiceConfig {
   stages: SystemAnalysisStagesConfig;
   workers: SystemAnalysisRoleConfig;
   judges: SystemAnalysisRoleConfig;
+  prompt_overrides: SystemAnalysisPromptOverrideGroup;
   output_dir: string;
   archive_dir: string;
   result_dir: string;
@@ -2706,11 +2718,13 @@ export interface EntryAnalysisServiceConfig {
   max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
   pass_threshold: number;
+  max_concurrent_tasks: number;
   agent_max_retries: number;
   agent_retry_delay: number;
   pi_max_retries: number;
   pi_retry_delay: number;
   worker_parallel: boolean;
+  worker_parallelism: number;
   workers: EntryAnalysisRoleConfig;
   judges: EntryAnalysisRoleConfig;
   output_dir: string;

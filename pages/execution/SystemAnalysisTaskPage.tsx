@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginInline } from './taskOrigin';
+import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -37,20 +37,6 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   return `${m}m${s}s`;
 }
 
-const emptyForm = {
-  task_name: '',
-  input_path: '',
-  output_path: '',
-  task_description: '',
-  analysis_mode: 'binary' as 'binary' | 'source',
-  analyse_targets: ['all'] as string[],
-  binary_arch: ['all'] as string[],
-  security_focus_categories: ['all'] as string[],
-  module_granularity: 'fine' as string,
-};
-
-const SOURCE_MODE_DEFAULT_TARGETS = ['source', 'script', 'config'];
-
 const SORT_OPTIONS = [
   { value: 'created_at', label: '创建时间' },
   { value: 'updated_at', label: '更新时间' },
@@ -67,7 +53,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const refreshIntervalStorageKey = `secflow:systemAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRestarting, setBatchRestarting] = useState(false);
@@ -82,11 +67,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
-
-  const [form, setForm] = useState(emptyForm);
-  const [analysisScopeTouched, setAnalysisScopeTouched] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
+  const [createModalInitialForm, setCreateModalInitialForm] = useState<SystemAnalysisTaskFormState>(() => buildDefaultSystemAnalysisTaskForm(projectId));
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
@@ -97,8 +78,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     if (stored) {
       sessionStorage.removeItem('secflow:systemAnalysisInputPath');
       setCreateModalOpen(true);
-      setForm({ ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` });
-      setAnalysisScopeTouched(false);
+      setCreateModalInitialForm({
+        ...buildDefaultSystemAnalysisTaskForm(projectId),
+        input_path: stored,
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -109,23 +92,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     sessionStorage.removeItem('secflow:systemAnalysisTaskId');
     onOpenTask(storedTaskId);
   }, [onOpenTask]);
-
-  // ── Pre-populate create modal with saved service config defaults ──────────
-  useEffect(() => {
-    if (!createModalOpen || !projectId) return;
-    appApi.getConfig(projectId)
-      .then((cfg) => {
-        setForm((prev) => ({
-          ...prev,
-          analyse_targets: Array.isArray(cfg.analyse_targets) ? cfg.analyse_targets : prev.analyse_targets,
-          binary_arch: Array.isArray(cfg.binary_arch) ? cfg.binary_arch : prev.binary_arch,
-          security_focus_categories: Array.isArray(cfg.security_focus_categories) ? cfg.security_focus_categories : prev.security_focus_categories,
-          module_granularity: typeof cfg.module_granularity === 'string' ? cfg.module_granularity : prev.module_granularity,
-        }));
-      })
-      .catch(() => { /* silently fall back to emptyForm defaults */ });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createModalOpen, projectId]);
 
   // ── Load task list ────────────────────────────────────────────────────────
 
@@ -203,42 +169,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, projectId, page]);
-
-  const handleInputPathChange = (value: string) => {
-    setForm((prev) => ({ ...prev, input_path: value }));
-  };
-
-  // ── Create task ───────────────────────────────────────────────────────────
-
-  const handleCreate = async () => {
-    if (!form.task_name.trim()) { notify('任务名称不能为空', 'error'); return; }
-    if (!form.input_path.trim()) { notify('输入路径不能为空', 'error'); return; }
-    setCreating(true);
-    try {
-      const resp = await appApi.createTask({
-        project_id: projectId,
-        task_name: form.task_name.trim(),
-        input_path: form.input_path.trim(),
-        output_path: form.output_path.trim() || undefined,
-        task_description: form.task_description.trim() || undefined,
-        analysis_mode: form.analysis_mode,
-        analyse_targets: form.analyse_targets.length > 0 ? form.analyse_targets : undefined,
-        binary_arch: form.binary_arch.length > 0 ? form.binary_arch : undefined,
-        security_focus_categories: form.security_focus_categories.length > 0 ? form.security_focus_categories : undefined,
-        module_granularity: form.module_granularity ? form.module_granularity : undefined,
-      });
-      notify(`任务创建成功: ${resp.task_id}`, 'success');
-      setForm({ ...emptyForm });
-      setAnalysisScopeTouched(false);
-      setCreateModalOpen(false);
-      setPage(1);
-      await loadTasks(1);
-    } catch (err: any) {
-      notify(`任务创建失败: ${err?.message || err}`, 'error');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleDelete = async (taskId: string, taskName: string) => {
     const confirmed = await showConfirm({
@@ -414,19 +344,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
-      <FileServerPickerModal
-        projectId={projectId}
-        isOpen={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(containerPath) => {
-          setPickerOpen(false);
-          if (pickerTarget === 'output') {
-            setForm((p) => ({ ...p, output_path: containerPath }));
-          } else {
-            handleInputPathChange(containerPath);
-          }
-        }}
-      />
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
@@ -528,7 +445,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` }); setAnalysisScopeTouched(false); }}
+            <button onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
               <Plus size={13} />新建任务
             </button>
@@ -668,226 +585,23 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         ) : null}
       </section>
 
-      {/* Create Task Modal */}
-      {createModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-slate-900">新建任务</h2>
-                <button onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
-              </div>
-
-              <label className="block text-sm text-slate-600">
-                任务名称 <span className="text-red-500">*</span>
-                <input
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={form.task_name}
-                  onChange={(e) => setForm((p) => ({ ...p, task_name: e.target.value }))}
-                  placeholder="例：固件安全分析-2025"
-                />
-              </label>
-
-              <label className="block text-sm text-slate-600">
-                输入路径 <span className="text-red-500">*</span>
-                <div className="mt-1 flex gap-1">
-                  <input
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
-                    value={form.input_path}
-                    onChange={(e) => handleInputPathChange(e.target.value)}
-                    placeholder="/data/files/<project>/<subproject>"
-                  />
-                  <button
-                    type="button"
-                    title="从文件资源中选择目录"
-                    onClick={() => { setPickerTarget('input'); setPickerOpen(true); }}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 shrink-0"
-                  >
-                    <FolderOpen size={13} />浏览
-                  </button>
-                </div>
-              </label>
-
-              <label className="block text-sm text-slate-600">
-                输出路径 <span className="text-red-500">*</span>
-                <div className="mt-1 flex gap-1">
-                  <input
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
-                    value={form.output_path}
-                    onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
-                    placeholder="/data/files/<project>/<subproject>"
-                  />
-                  <button
-                    type="button"
-                    title="从文件资源中选择目录"
-                    onClick={() => { setPickerTarget('output'); setPickerOpen(true); }}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 shrink-0"
-                  >
-                    <FolderOpen size={13} />浏览
-                  </button>
-                </div>
-              </label>
-
-              <label className="block text-sm text-slate-600">
-                任务描述 <span className="text-slate-400 text-xs">(可选)</span>
-                <input
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={form.task_description}
-                  onChange={(e) => setForm((p) => ({ ...p, task_description: e.target.value }))}
-                  placeholder="简要说明分析目标或背景"
-                />
-              </label>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold text-slate-600">分析模式</p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  {[
-                    { value: 'binary' as const, label: '二进制模式', desc: '面向固件、解包目录、二进制与系统组件分析' },
-                    { value: 'source' as const, label: '源码模式', desc: '面向源码项目、代码模块、脚本与配置分析' },
-                  ].map((option) => (
-                    <label
-                      key={option.value}
-                      className={`cursor-pointer rounded-xl border px-3 py-2 text-sm ${
-                        form.analysis_mode === option.value ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-slate-50 text-slate-600'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="analysis_mode"
-                        className="mr-2"
-                        checked={form.analysis_mode === option.value}
-                        onChange={() => {
-                          setForm((prev) => ({
-                            ...prev,
-                            analysis_mode: option.value,
-                            analyse_targets: !analysisScopeTouched
-                              ? (option.value === 'source' ? SOURCE_MODE_DEFAULT_TARGETS : ['all'])
-                              : prev.analyse_targets,
-                          }));
-                        }}
-                      />
-                      <span className="font-semibold">{option.label}</span>
-                      <span className="mt-1 block text-xs opacity-75">{option.desc}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Per-task analysis scope */}
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold text-slate-600">分析范围 <span className="font-normal text-slate-400">(覆盖服务默认配置，默认 all)</span></p>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1.5">文件类型</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['all','binary','script','source','config','firmware','crypto','database','web','network_model','document','archive'].map((t) => (
-                      <label key={t} className="flex items-center gap-1 text-xs cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={form.analyse_targets.includes(t)}
-                          onChange={(e) => {
-                            setAnalysisScopeTouched(true);
-                            setForm((p) => {
-                              let next = e.target.checked
-                                ? (t === 'all' ? ['all'] : p.analyse_targets.filter(x => x !== 'all').concat(t))
-                                : p.analyse_targets.filter(x => x !== t);
-                              if (next.length === 0) next = ['all'];
-                              return { ...p, analyse_targets: next };
-                            });
-                          }}
-                        />
-                        {t}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1.5">二进制架构</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['all','x86','x86_64','arm','aarch64','mips','mips64','ppc','ppc64','riscv','s390'].map((a) => (
-                      <label key={a} className="flex items-center gap-1 text-xs cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={form.binary_arch.includes(a)}
-                          onChange={(e) => {
-                            setForm((p) => {
-                              let next = e.target.checked
-                                ? (a === 'all' ? ['all'] : p.binary_arch.filter(x => x !== 'all').concat(a))
-                                : p.binary_arch.filter(x => x !== a);
-                              if (next.length === 0) next = ['all'];
-                              return { ...p, binary_arch: next };
-                            });
-                          }}
-                        />
-                        {a}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* 安全维度过滤 */}
-              <div>
-                <p className="text-xs text-slate-500 mb-1.5">安全维度过滤 <span className="text-slate-400">(覆盖服务默认，all=不过滤)</span></p>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { key: 'all', label: '全部' },
-                    { key: 'network_protocol', label: '网络协议' },
-                    { key: 'file_parsing', label: '文件处理' },
-                    { key: 'auth_access', label: '认证访问控制' },
-                    { key: 'crypto', label: '密码学' },
-                    { key: 'ipc', label: '进程间通信' },
-                    { key: 'config_parsing', label: '配置解析' },
-                    { key: 'input_handling', label: '输入处理' },
-                    { key: 'privilege_process', label: '权限进程' },
-                    { key: 'web_api', label: 'Web/API' },
-                    { key: 'memory_manage', label: '内存管理' },
-                  ].map(({ key, label }) => {
-                    const sel = form.security_focus_categories.includes(key);
-                    return (
-                      <button key={key} type="button"
-                        onClick={() => {
-                          const cats = form.security_focus_categories;
-                          let next: string[];
-                          if (key === 'all') { next = ['all']; }
-                          else if (sel) { next = cats.filter(c => c !== key); if (next.length === 0) next = ['all']; }
-                          else { next = cats.filter(c => c !== 'all').concat(key); }
-                          setForm(p => ({ ...p, security_focus_categories: next }));
-                        }}
-                        className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors ${sel ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                      >{label}</button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 模块划分粒度 */}
-              <div>
-                <p className="text-xs text-slate-500 mb-1.5">模块划分粒度 <span className="text-slate-400">(覆盖服务默认)</span></p>
-                <div className="flex gap-2">
-                  {[{ value: 'fine', label: '细粒度（默认）' }, { value: 'coarse', label: '粗粒度（协议/服务/功能级）' }].map(({ value: v, label }) => (
-                    <button key={v} type="button"
-                      onClick={() => setForm(p => ({ ...p, module_granularity: v }))}
-                      className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === v ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
-                    >{label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => void handleCreate()}
-                disabled={creating || !form.task_name.trim() || !form.input_path.trim() || !form.output_path.trim()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
-              >
-                {creating ? <Loader2 size={15} className="animate-spin" /> : null}
-                创建分析任务
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <SystemAnalysisTaskFormModal
+        projectId={projectId}
+        isOpen={createModalOpen}
+        title="新建任务"
+        submitLabel="创建分析任务"
+        initialForm={createModalInitialForm}
+        loadProjectDefaultsOnOpen
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={async (task) => {
+          notify(`任务创建成功: ${task.task_id}`, 'success');
+          setCreateModalOpen(false);
+          setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId));
+          setPage(1);
+          await loadTasks(1);
+        }}
+        onError={(message) => notify(message, 'error')}
+      />
     </div>
   );
 };

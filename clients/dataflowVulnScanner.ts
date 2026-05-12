@@ -64,9 +64,23 @@ export interface DataflowInputRef {
   metadata?: Record<string, any>;
 }
 
+export interface DataflowAgentStateRootPayload {
+  root_dir: DataflowInputRef;
+}
+
+export interface DataflowAgentStateDir {
+  agent_id: string;
+  root_dir: string;
+  skills_dir: string;
+  memory_dir: string;
+  source: 'shared_default' | 'task_override';
+}
+
 export interface DataflowScanTask {
   task_id: string;
   project_id: string;
+  task_purpose?: 'normal' | 'evolution';
+  agent_state_dirs?: Record<string, DataflowAgentStateDir>;
   task_origin_type?: string | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
@@ -142,6 +156,18 @@ export interface DataflowEffectiveConfig {
 export interface DataflowServiceEffectiveConfig {
   service_name: string;
   api_prefix: string;
+  agent_storage?: {
+    mode?: string;
+    project_id_placeholder?: string;
+    shared_root_template?: string;
+    agents?: Array<{
+      agent_id: string;
+      root_dir_template: string;
+      skills_dir_template: string;
+      memory_dir_template: string;
+      source: 'shared_default';
+    }>;
+  };
   config: Record<string, any>;
 }
 
@@ -177,6 +203,8 @@ export interface DataflowCreateTaskPayload {
   artifact_refs?: DataflowArtifactRef[];
   priority?: number;
   runtime_overrides?: Record<string, any>;
+  task_purpose?: 'normal' | 'evolution';
+  agent_state_roots?: Record<string, DataflowAgentStateRootPayload>;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -257,6 +285,8 @@ export interface DataflowRunSummary {
   updated_at?: string | null;
   process_state?: DataflowRunProcessState;
   retry_command_display?: string | null;
+  linked_task_purpose?: 'normal' | 'evolution' | null;
+  linked_task_agent_state_dirs?: Record<string, DataflowAgentStateDir>;
 }
 
 export interface DataflowRunSession {

@@ -9,7 +9,7 @@ import { DataflowAnalysisConfigPage } from './DataflowAnalysisConfigPage';
 import { DataflowVulnConfigPage } from './DataflowVulnScannerPage';
 import { B2SConfigPage } from './B2SConfigPage';
 
-type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-analysis' | 'dataflow-vuln';
+type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-analysis' | 'dataflow-vuln';
 const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'firmware_unpack', label: '固件解包' },
   { key: 'system_analysis', label: '系统分析' },
@@ -33,15 +33,23 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(
     Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
   );
+  const [evolutionMaxConcurrentTasks, setEvolutionMaxConcurrentTasks] = useState(2);
+  const [evolutionMaxConcurrentSourceTasks, setEvolutionMaxConcurrentSourceTasks] = useState(4);
+  const [evolutionMinRounds, setEvolutionMinRounds] = useState(1);
+  const [evolutionMaxRounds, setEvolutionMaxRounds] = useState(3);
+  const [evolutionAgentModel, setEvolutionAgentModel] = useState('pi-agent');
+  const [evolutionAgentTimeoutSeconds, setEvolutionAgentTimeoutSeconds] = useState(1800);
+  const [evolutionContextWindow, setEvolutionContextWindow] = useState(131072);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     setMessage(null);
     try {
-      const [serviceData, projectData] = await Promise.all([
+      const [serviceData, projectData, evolutionConfig] = await Promise.all([
         executionApi.binarySecurity.getServiceConfig(),
         executionApi.binarySecurity.getProjectConfig(projectId),
+        executionApi.binaryEvolution.getConfig(),
       ]);
       setMaxConcurrentTasks(serviceData.config.max_concurrent_tasks);
       setDispatchTimeoutSeconds(serviceData.config.dispatch_timeout_seconds);
@@ -51,6 +59,13 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
         ...(projectData.config.stage_parallelism || {}),
       });
+      setEvolutionMaxConcurrentTasks(evolutionConfig.config.max_concurrent_tasks);
+      setEvolutionMaxConcurrentSourceTasks(evolutionConfig.config.max_concurrent_source_tasks);
+      setEvolutionMinRounds(evolutionConfig.config.default_min_rounds);
+      setEvolutionMaxRounds(evolutionConfig.config.default_max_rounds);
+      setEvolutionAgentModel(evolutionConfig.config.evolution_agent_model);
+      setEvolutionAgentTimeoutSeconds(evolutionConfig.config.evolution_agent_timeout_seconds);
+      setEvolutionContextWindow(evolutionConfig.config.evolution_agent_context_window);
     } catch (e: any) {
       setError(e?.message || '加载配置失败');
     } finally {
@@ -106,6 +121,35 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
     }
   };
 
+  const saveEvolution = async () => {
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const payload = await executionApi.binaryEvolution.updateConfig({
+        max_concurrent_tasks: Math.max(1, Math.min(64, Number(evolutionMaxConcurrentTasks) || 1)),
+        max_concurrent_source_tasks: Math.max(1, Math.min(64, Number(evolutionMaxConcurrentSourceTasks) || 1)),
+        default_min_rounds: Math.max(1, Math.min(100, Number(evolutionMinRounds) || 1)),
+        default_max_rounds: Math.max(1, Math.min(100, Number(evolutionMaxRounds) || 1)),
+        evolution_agent_model: evolutionAgentModel.trim() || 'pi-agent',
+        evolution_agent_timeout_seconds: Math.max(1, Math.min(86400, Number(evolutionAgentTimeoutSeconds) || 1)),
+        evolution_agent_context_window: Math.max(1024, Math.min(10485760, Number(evolutionContextWindow) || 1024)),
+      });
+      setEvolutionMaxConcurrentTasks(payload.config.max_concurrent_tasks);
+      setEvolutionMaxConcurrentSourceTasks(payload.config.max_concurrent_source_tasks);
+      setEvolutionMinRounds(payload.config.default_min_rounds);
+      setEvolutionMaxRounds(payload.config.default_max_rounds);
+      setEvolutionAgentModel(payload.config.evolution_agent_model);
+      setEvolutionAgentTimeoutSeconds(payload.config.evolution_agent_timeout_seconds);
+      setEvolutionContextWindow(payload.config.evolution_agent_context_window);
+      setMessage('进化中心配置已保存');
+    } catch (e: any) {
+      setError(e?.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -135,6 +179,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               id: 'binary-security' as ConfigTab,
               label: '二进制安全编排器',
               service: 'secflow-app-binary-security',
+            },
+            {
+              id: 'binary-evolution' as ConfigTab,
+              label: '进化中心',
+              service: 'secflow-app-binary-evolution-center',
             },
             {
               id: 'firmware-unpacker' as ConfigTab,
@@ -286,6 +335,75 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               {saving && <Loader2 size={16} className="animate-spin" />}
               <Save size={16} />
               保存二进制安全配置
+            </button>
+          </div>
+        </section>
+      ) : activeTab === 'binary-evolution' ? (
+        <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Settings size={18} className="text-amber-600" />
+            <h2 className="text-xl font-black text-slate-900">进化中心调度配置</h2>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-amber-700">
+              secflow-app-binary-evolution-center
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-slate-500">
+            这里控制进化中心的服务级任务并发、单个进化任务的轮内并发，以及进化智能体的默认模型和轮次策略。
+          </p>
+
+          {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
+          {message && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div>}
+
+          <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="rounded-2xl bg-white p-5">
+              <div className="text-sm font-bold text-slate-700">服务级最大并发任务数</div>
+              <div className="mt-2 text-xs text-slate-500">同时最多运行多少个进化任务。</div>
+              <input type="number" min={1} max={64} disabled={loading || saving} value={evolutionMaxConcurrentTasks} onChange={(e) => setEvolutionMaxConcurrentTasks(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+            <div className="rounded-2xl bg-white p-5">
+              <div className="text-sm font-bold text-slate-700">任务内最大并发源任务数</div>
+              <div className="mt-2 text-xs text-slate-500">单轮 replay 内，同时并发多少个原始 normal 任务。</div>
+              <input type="number" min={1} max={64} disabled={loading || saving} value={evolutionMaxConcurrentSourceTasks} onChange={(e) => setEvolutionMaxConcurrentSourceTasks(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+            <div className="rounded-2xl bg-white p-5">
+              <div className="text-sm font-bold text-slate-700">进化智能体超时秒数</div>
+              <div className="mt-2 text-xs text-slate-500">控制单轮进化智能体处理的默认超时。</div>
+              <input type="number" min={1} max={86400} disabled={loading || saving} value={evolutionAgentTimeoutSeconds} onChange={(e) => setEvolutionAgentTimeoutSeconds(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="rounded-2xl bg-white p-5">
+              <div className="text-sm font-bold text-slate-700">默认最小轮次</div>
+              <input type="number" min={1} max={100} disabled={loading || saving} value={evolutionMinRounds} onChange={(e) => setEvolutionMinRounds(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+            <div className="rounded-2xl bg-white p-5">
+              <div className="text-sm font-bold text-slate-700">默认最大轮次</div>
+              <input type="number" min={1} max={100} disabled={loading || saving} value={evolutionMaxRounds} onChange={(e) => setEvolutionMaxRounds(Number(e.target.value || 1))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+            <div className="rounded-2xl bg-white p-5">
+              <div className="text-sm font-bold text-slate-700">默认上下文窗口</div>
+              <input type="number" min={1024} max={10485760} disabled={loading || saving} value={evolutionContextWindow} onChange={(e) => setEvolutionContextWindow(Number(e.target.value || 1024))} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl bg-white p-5">
+            <div className="text-sm font-bold text-slate-700">默认进化智能体模型</div>
+            <div className="mt-2 text-xs text-slate-500">创建进化任务时默认带入，可在任务创建时覆盖。</div>
+            <input type="text" disabled={loading || saving} value={evolutionAgentModel} onChange={(e) => setEvolutionAgentModel(e.target.value)} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+          </div>
+
+          <div className="mt-6 flex items-center justify-end gap-3">
+            {loading && <div className="text-sm text-slate-500">加载中...</div>}
+            <button
+              type="button"
+              onClick={() => void saveEvolution()}
+              disabled={loading || saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+            >
+              {saving && <Loader2 size={16} className="animate-spin" />}
+              <Save size={16} />
+              保存进化中心配置
             </button>
           </div>
         </section>

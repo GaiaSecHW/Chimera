@@ -167,7 +167,7 @@ type DownstreamTaskState = {
   error?: string;
 };
 
-type DetailTab = 'overview' | 'timeline' | 'artifacts';
+type DetailTab = 'overview' | 'modules' | 'timeline' | 'artifacts';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 type BlockingActionKind = '' | 'retry' | 'continue';
@@ -183,15 +183,15 @@ const BLOCKING_ACTION_COPY: Record<
   }
 > = {
   retry: {
-    confirmTitle: '从头重试总任务',
-    confirmMessage: '总任务重试会清空当前任务所有阶段的编排记录和结果摘要，并从第一阶段重新开始。该操作不同于“继续任务”，是否确认从头重试？',
-    confirmText: '确认从头重试',
-    progressTitle: '正在从头重试总任务',
-    progressMessage: '系统正在重置任务状态并重新发起执行，请勿重复点击或执行其他操作。',
+    confirmTitle: '清空并从头开始',
+    confirmMessage: '该操作会清空并删除当前任务所有阶段的阶段任务、下游任务、编排记录和结果摘要，然后从第一阶段重新开始。该操作不会复用旧下游任务，是否确认继续？',
+    confirmText: '确认清空并从头开始',
+    progressTitle: '正在清空并从头开始',
+    progressMessage: '系统正在删除旧阶段任务并重新发起执行，请勿重复点击或执行其他操作。',
   },
   continue: {
     confirmTitle: '继续任务',
-    confirmMessage: '将从当前连续成功阶段的下一个阶段开始继续推进。该阶段及后续阶段的旧编排记录和结果摘要会被清空并重新创建，前序连续成功阶段会保留。是否继续？',
+    confirmMessage: '将从当前连续成功阶段的下一个阶段开始继续推进。前序连续成功阶段会保留；当前阶段及后续阶段会清空结果摘要，并尽量复用旧下游任务。是否继续？',
     confirmText: '确认继续',
     progressTitle: '正在继续任务',
     progressMessage: '系统正在定位下一个可执行阶段并恢复推进，请勿重复点击或执行其他操作。',
@@ -216,7 +216,7 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   firmware_items_initialized: '固件输入初始化',
   source_tree_initialized: '源码输入初始化',
   task_continue_requested: '继续执行',
-  task_retried: '任务重试',
+  task_retried: '清空并从头开始',
   stage_retry_requested: '阶段重试',
   stage_retry_started: '阶段重跑',
   stage_started: '阶段开始',
@@ -855,7 +855,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const isSourceTask = taskType === 'source';
   const canActOnTask = Boolean(detail);
   const taskRetrySupported = Boolean(detail?.task_retry_supported);
-  const taskRetryReason = detail?.task_retry_reason || '当前任务不可从头重试';
+  const taskRetryReason = detail?.task_retry_reason || '当前任务不可清空并从头开始';
   const taskContinueSupported = Boolean(detail?.task_continue_supported);
   const taskContinueReason = detail?.task_continue_reason || '当前任务不可继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
@@ -1024,6 +1024,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     try {
       if (activeTab === 'overview') {
         setDownstreamByItemId({});
+      }
+      if (activeTab === 'modules') {
         setModuleSelection(null);
       }
       if (activeTab === 'timeline') {
@@ -1034,7 +1036,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         setArtifacts(null);
       }
       const refreshedTask = await loadTask({ showLoading: false });
-      if (activeTab === 'overview' && refreshedTask?.status === 'pending_module_confirmation') await loadModuleSelection();
+      if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
       if (activeTab === 'timeline') await loadTimeline();
       if (activeTab === 'artifacts') await loadArtifacts();
     } finally {
@@ -1054,10 +1056,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [detail?.status, projectId, taskId]);
 
   useEffect(() => {
-    if (activeTab === 'overview' && detail?.status === 'pending_module_confirmation' && !moduleSelection && !moduleSelectionLoading) {
+    if (activeTab !== 'modules' || moduleSelection || moduleSelectionLoading) return;
+    if (!detail) return;
+    const hasModuleData = detail.selected_module_count > 0 || detail.candidate_module_count > 0 || detail.high_risk_module_count > 0 || detail.current_stage === 'system_analysis' || detail.status === 'pending_module_confirmation';
+    if (hasModuleData) {
       void loadModuleSelection();
     }
-  }, [activeTab, detail?.status, moduleSelection, moduleSelectionLoading, projectId, taskId]);
+  }, [
+    activeTab,
+    detail,
+    moduleSelection,
+    moduleSelectionLoading,
+    projectId,
+    taskId,
+  ]);
 
   useEffect(() => {
     if (activeTab === 'timeline' && timeline.length === 0 && !timelineLoading) {
@@ -1199,7 +1211,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
     const confirmed = await showConfirm({
       title: '重试阶段',
-      message: `将重试阶段“${STAGE_LABELS[stageName] || stageName}”的全部子任务。阶段重试只影响当前阶段，不会清空、重跑或标记后续阶段。是否继续？`,
+      message: `将重试阶段“${STAGE_LABELS[stageName] || stageName}”的全部子任务。系统会尽量复用当前阶段已有的下游任务，但会清空当前阶段及后续阶段的结果摘要；后续阶段会等待当前阶段完成后重新推进。是否继续？`,
       confirmText: '确认重试',
       cancelText: '取消',
     });
@@ -1321,6 +1333,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return detailPayload.jobs || [];
   }, [selectedArchiveNode]);
   const requiresModuleConfirmation = detail?.status === 'pending_module_confirmation' && Boolean(moduleSelection?.requires_confirmation);
+  const systemAnalysisModules = moduleSelection?.system_analysis_modules || [];
+  const candidateModules = moduleSelection?.candidate_modules || [];
+  const selectedModules = moduleSelection?.selected_modules || [];
+  const moduleRiskLevels = (moduleSelection?.risk_levels?.length ? moduleSelection.risk_levels : detail?.selected_risk_levels) || [];
+  const systemAnalysisModuleCount = systemAnalysisModules.length || Number(detail?.summary?.system_analysis_module_count || 0);
 
   const filteredStageItems = useMemo(() => {
     if (!detail) return [];
@@ -1546,12 +1563,85 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     );
   };
 
+  const renderModuleTable = (
+    title: string,
+    rows: Array<Record<string, any>>,
+    emptyText: string,
+    options?: { selectable?: boolean },
+  ) => (
+    <section className="rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <div>
+          <div className="text-sm font-black text-slate-900">{title}</div>
+          <div className="mt-1 text-xs text-slate-500">{rows.length} 个模块</div>
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <div className="px-5 py-10 text-center text-sm text-slate-400">{emptyText}</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
+            <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+              <tr>
+                {options?.selectable ? <th className="w-14 px-4 py-3">选择</th> : null}
+                <th className="min-w-[220px] px-4 py-3">模块</th>
+                <th className="w-24 px-4 py-3">风险</th>
+                <th className="w-24 px-4 py-3">分数</th>
+                <th className="min-w-[240px] px-4 py-3">目录 / 报告</th>
+                <th className="min-w-[220px] px-4 py-3">模块键</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {rows.map((module, index) => {
+                const moduleKey = String(module.module_key || module.module_dir || `module-${index}`);
+                const checked = selectedModuleKeys.includes(moduleKey);
+                return (
+                  <tr key={moduleKey} className={checked ? 'bg-amber-50/50' : 'bg-white'}>
+                    {options?.selectable ? (
+                      <td className="px-4 py-3 align-top">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            setSelectedModuleKeys((current) => {
+                              if (event.target.checked) return current.includes(moduleKey) ? current : current.concat(moduleKey);
+                              return current.filter((item) => item !== moduleKey);
+                            });
+                          }}
+                        />
+                      </td>
+                    ) : null}
+                    <td className="px-4 py-3 align-top">
+                      <div className="font-bold text-slate-900">{module.module_name || moduleKey}</div>
+                      <div className="mt-1 text-[11px] text-slate-500">{module.module_type || module.language || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <span className={`inline-flex rounded-full border px-2 py-1 font-bold ${statusTone(String(module.risk_level || 'pending'))}`}>
+                        {module.risk_level || '-'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 align-top font-bold text-slate-700">{module.risk_score ?? '-'}</td>
+                    <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-500">
+                      {module.module_report || module.module_dir || '-'}
+                    </td>
+                    <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-500">{moduleKey}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+
   if (!taskId) {
     return <div className="px-8 pb-10 pt-8 text-sm text-slate-500">未指定任务。</div>;
   }
 
   const tabs: Array<{ key: DetailTab; label: string; hint: string }> = [
-    { key: 'overview', label: '总览', hint: '任务基础信息、模块确认与阶段任务' },
+    { key: 'overview', label: '总览', hint: '任务基础信息与阶段任务' },
+    { key: 'modules', label: '高危模块', hint: '系统分析候选、已选与确认操作' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
     { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
   ];
@@ -1626,7 +1716,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                         <div className="text-xs font-bold text-slate-400">操作类型</div>
                         <div className="mt-1 text-sm font-black text-slate-900">
-                          {modalAction === 'retry' ? '从头重试' : '继续任务'}
+                          {modalAction === 'retry' ? '清空并从头开始' : '继续任务'}
                         </div>
                       </div>
                     </div>
@@ -1680,7 +1770,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	              </div>
 	              <div className="flex-1 overflow-auto px-6 py-6">
 	                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
-	                  运行中阶段已启动的子任务池不会实时改变；新的阶段、继续任务、阶段重试和从头重试会使用保存后的并发配置。
+	                  运行中阶段已启动的子任务池不会实时改变；新的阶段、继续任务、阶段重试和清空并从头开始会使用保存后的并发配置。
 	                </div>
 	                <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 	                  {stageSequence.map((stageName) => (
@@ -1758,7 +1848,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             disabled={actionLoading !== '' || !taskRetrySupported}
             className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
-            从头重试
+            清空并从头开始
           </button>
           <button
             type="button"
@@ -1869,64 +1959,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           </section>
 
           {activeTab === 'overview' ? (
-            <>
-          {requiresModuleConfirmation ? (
-            <section className="rounded-[2rem] border border-amber-200 bg-amber-50/70 p-6 shadow-sm">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div>
-                  <h2 className="text-xl font-black text-slate-900">模块确认</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    系统分析已完成，当前任务处于人工确认模式。请从候选模块中勾选需要继续分析的模块，然后继续推进后续阶段。
-                  </p>
-                  <div className="mt-2 text-xs text-slate-500">
-                    候选模块 {moduleSelection?.candidate_modules?.length || 0} 个 · 风险等级 {(moduleSelection?.risk_levels || []).join(' / ') || '-'}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void confirmModuleSelection()}
-                  disabled={actionLoading !== '' || selectedModuleKeys.length === 0}
-                  className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
-                >
-                  {actionLoading === 'confirm-modules' ? '确认中...' : '确认并继续'}
-                </button>
-              </div>
-              <div className="mt-5 grid gap-3">
-                {(moduleSelection?.candidate_modules || []).map((module) => {
-                  const moduleKey = String(module.module_key || '');
-                  const checked = selectedModuleKeys.includes(moduleKey);
-                  return (
-                    <label key={moduleKey} className="flex items-start gap-4 rounded-2xl border border-amber-200 bg-white px-4 py-4">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(event) => {
-                          setSelectedModuleKeys((current) => {
-                            if (event.target.checked) return current.includes(moduleKey) ? current : current.concat(moduleKey);
-                            return current.filter((item) => item !== moduleKey);
-                          });
-                        }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <div className="truncate text-sm font-black text-slate-900">{module.module_name || moduleKey}</div>
-                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-                            风险：{module.risk_level || '未知'}
-                          </span>
-                          <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-                            分数：{module.risk_score ?? 0}
-                          </span>
-                        </div>
-                        <div className="mt-2 break-all font-mono text-xs text-slate-500">{module.module_report || module.module_dir || '-'}</div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </section>
-          ) : moduleSelectionLoading ? (
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">正在加载模块确认信息...</section>
-          ) : (
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-black text-slate-900">任务总览</h2>
               <p className="mt-2 text-sm text-slate-500">总览包含任务主详情、阶段流转和下游子任务；事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
@@ -1949,8 +1981,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
             </section>
-          )}
-            </>
           ) : null}
 
           {activeTab === 'overview' ? (
@@ -1959,12 +1989,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <h2 className="text-xl font-black text-slate-900">阶段概览</h2>
-                <p className="mt-1 text-sm text-slate-500">点击阶段筛选下方子任务；阶段重试会重跑当前阶段全部子任务，不影响其他阶段。</p>
+                <p className="mt-1 text-sm text-slate-500">点击阶段筛选下方子任务；阶段重试会重跑当前阶段全部子任务，并尽量复用当前阶段旧下游任务，后续阶段会等待当前阶段完成后重新推进。</p>
               </div>
             </div>
             {!detail.task_retry_supported && detail.task_retry_reason ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                总任务从头重试不可用：{detail.task_retry_reason}
+                总任务“清空并从头开始”不可用：{detail.task_retry_reason}
               </div>
             ) : null}
 
@@ -2508,6 +2538,84 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
             </>
+          ) : null}
+
+          {activeTab === 'modules' ? (
+            <div className="space-y-6">
+              <section className={`rounded-[2rem] border p-6 shadow-sm ${requiresModuleConfirmation ? 'border-amber-200 bg-amber-50/70' : 'border-slate-200 bg-white'}`}>
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">高危模块确认</h2>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {requiresModuleConfirmation
+                        ? '系统分析已经产出候选高危模块。请确认需要继续推进的数据范围，确认后任务会继续进入后续阶段。'
+                        : '展示系统分析产出的全部模块、候选高危模块和当前已确认模块。'}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                      <div className="text-slate-400">全部模块</div>
+                      <div className="mt-1 text-lg font-black text-slate-900">{systemAnalysisModuleCount}</div>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                      <div className="text-slate-400">候选模块</div>
+                      <div className="mt-1 text-lg font-black text-slate-900">{candidateModules.length || detail.candidate_module_count || 0}</div>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                      <div className="text-slate-400">已选模块</div>
+                      <div className="mt-1 text-lg font-black text-slate-900">{selectedModules.length || detail.selected_module_count || 0}</div>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                      <div className="text-slate-400">风险等级</div>
+                      <div className="mt-1 text-sm font-black text-slate-900">{moduleRiskLevels.join(' / ') || '-'}</div>
+                    </div>
+                  </div>
+                </div>
+                {requiresModuleConfirmation ? (
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <span className="rounded-full border border-amber-200 bg-white px-3 py-2 text-xs font-bold text-amber-800">
+                      当前已勾选 {selectedModuleKeys.length} 个模块
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedModuleKeys(candidateModules.map((module, index) => String(module.module_key || module.module_dir || `module-${index}`)).filter(Boolean))}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                    >
+                      全选候选模块
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedModuleKeys([])}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
+                    >
+                      清空勾选
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void confirmModuleSelection()}
+                      disabled={actionLoading !== '' || selectedModuleKeys.length === 0}
+                      className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+                    >
+                      {actionLoading === 'confirm-modules' ? '确认中...' : '确认并继续'}
+                    </button>
+                  </div>
+                ) : null}
+              </section>
+
+              {moduleSelectionLoading ? (
+                <section className="rounded-[2rem] border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">正在加载模块确认信息...</section>
+              ) : !moduleSelection ? (
+                <section className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-400 shadow-sm">
+                  当前任务尚未生成可展示的模块确认数据。
+                </section>
+              ) : (
+                <div className="grid gap-6 xl:grid-cols-3">
+                  {renderModuleTable('全部系统分析模块', systemAnalysisModules, '当前任务尚未记录系统分析模块。')}
+                  {renderModuleTable('候选高危模块', candidateModules, '当前没有候选高危模块。', { selectable: requiresModuleConfirmation })}
+                  {renderModuleTable('已选高危模块', selectedModules, '当前还没有已确认的模块。')}
+                </div>
+              )}
+            </div>
           ) : null}
 
           {activeTab === 'timeline' ? (

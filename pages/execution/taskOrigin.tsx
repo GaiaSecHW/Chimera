@@ -85,13 +85,20 @@ export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean 
   );
 };
 
-export const TaskOriginCard: React.FC<{ origin: OriginInfo; title?: string }> = ({ origin, title = '来源信息' }) => {
+export const TaskOriginCard: React.FC<{ origin: OriginInfo; title?: string; actions?: React.ReactNode }> = ({
+  origin,
+  title = '来源信息',
+  actions,
+}) => {
   const isBinarySecurity = String(origin.task_origin_type || '').trim() === 'binary_security';
   const stageLabel = STAGE_LABELS[String(origin.parent_stage_name || '').trim()] || String(origin.parent_stage_name || '').trim();
   const modeInfo = getAnalysisModeInfo(origin);
   return (
     <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{title}</div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{title}</div>
+        {actions ? <div className="shrink-0">{actions}</div> : null}
+      </div>
       <div className="mt-3">
         <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${modeInfo.className}`}>{modeInfo.label}</span>
       </div>
