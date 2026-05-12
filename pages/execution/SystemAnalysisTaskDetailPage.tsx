@@ -491,7 +491,7 @@ const SECURITY_CATEGORY_LABELS: Record<string, { name: string; desc: string }> =
   all: { name: '全部维度', desc: '不过滤，对所有安全维度进行分析' },
 };
 
-const ConfigSection: React.FC<{ title: string; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
+const ConfigSection: React.FC<{ title: React.ReactNode; icon?: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h2 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-slate-500">
       {icon}
@@ -501,7 +501,7 @@ const ConfigSection: React.FC<{ title: string; icon?: React.ReactNode; children:
   </section>
 );
 
-const ConfigRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+const ConfigRow: React.FC<{ label: React.ReactNode; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex flex-col gap-1 py-2 sm:flex-row sm:items-start sm:gap-4">
     <span className="w-36 shrink-0 text-xs font-semibold text-slate-500">{label}</span>
     <div className="min-w-0 flex-1 text-sm text-slate-800">{children}</div>
@@ -527,15 +527,32 @@ const Divider: React.FC = () => <hr className="border-slate-100" />;
 
 const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
   const tcfg = detail.task_config_json || {};
-  const hasOverrides = Object.keys(tcfg).some((k) => !['start_stage', 'resume_workspace'].includes(k));
+  const eff = detail.effective_config_json || {};
+  const src = detail.effective_config_source || {};
 
-  const analyseTargets = tcfg.analyse_targets ?? null;
-  const binaryArch = tcfg.binary_arch ?? null;
-  const secFocusCats = tcfg.security_focus_categories ?? null;
-  const moduleGranularity = tcfg.module_granularity ?? null;
+  // 有效值：优先 effective_config_json，回退 task_config_json（兼容旧后端）
+  const analyseTargets = eff.analyse_targets ?? tcfg.analyse_targets ?? null;
+  const binaryArch    = eff.binary_arch    ?? tcfg.binary_arch    ?? null;
+  const secFocusCats  = eff.security_focus_categories ?? tcfg.security_focus_categories ?? null;
+  const moduleGran    = eff.module_granularity ?? tcfg.module_granularity ?? null;
 
   const isSourceMode = detail.analysis_mode === 'source';
   const isBinaryMode = !isSourceMode;
+
+  // 来源徽章
+  const SourceBadge: React.FC<{ field: string }> = ({ field }) => {
+    const s = (src as Record<string, string>)[field];
+    if (!s) return null;
+    return s === 'task' ? (
+      <span className="ml-1.5 inline-flex items-center rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-700">
+        任务设置
+      </span>
+    ) : (
+      <span className="ml-1.5 inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+        项目默认
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -570,21 +587,21 @@ const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
       {/* 分析范围 */}
       <ConfigSection title="分析范围">
         <div className="divide-y divide-slate-100">
-          <ConfigRow label="文件类型过滤">
+          <ConfigRow label={<span className="flex items-center">文件类型过滤<SourceBadge field="analyse_targets" /></span>}>
             {analyseTargets ? (
               <TagList items={analyseTargets} labelMap={ANALYSE_TARGET_LABELS} />
             ) : (
-              <span className="text-xs text-slate-400">使用项目默认配置</span>
+              <span className="text-xs text-slate-400">未配置</span>
             )}
           </ConfigRow>
           {isBinaryMode && (
             <>
               <Divider />
-              <ConfigRow label="ELF 架构过滤">
+              <ConfigRow label={<span className="flex items-center">ELF 架构过滤<SourceBadge field="binary_arch" /></span>}>
                 {binaryArch ? (
                   <TagList items={binaryArch} labelMap={BINARY_ARCH_LABELS} />
                 ) : (
-                  <span className="text-xs text-slate-400">使用项目默认配置</span>
+                  <span className="text-xs text-slate-400">未配置</span>
                 )}
               </ConfigRow>
             </>
@@ -593,7 +610,7 @@ const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
       </ConfigSection>
 
       {/* 安全维度 */}
-      <ConfigSection title="安全分析维度">
+      <ConfigSection title={<span className="flex items-center">安全分析维度<SourceBadge field="security_focus_categories" /></span>}>
         {secFocusCats ? (
           secFocusCats.includes('all') ? (
             <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -619,29 +636,29 @@ const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
             </div>
           )
         ) : (
-          <span className="text-xs text-slate-400">使用项目当前默认配置</span>
+          <span className="text-xs text-slate-400">未配置</span>
         )}
       </ConfigSection>
 
       {/* 模块配置 */}
       <ConfigSection title="模块划分">
         <div className="divide-y divide-slate-100">
-          <ConfigRow label="划分粒度">
-            {moduleGranularity ? (
+          <ConfigRow label={<span className="flex items-center">划分粒度<SourceBadge field="module_granularity" /></span>}>
+            {moduleGran ? (
               <div>
                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  moduleGranularity === 'coarse' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
+                  moduleGran === 'coarse' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
                 }`}>
-                  {moduleGranularity === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}
+                  {moduleGran === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}
                 </span>
                 <p className="mt-1.5 text-xs text-slate-500">
-                  {moduleGranularity === 'coarse'
+                  {moduleGran === 'coarse'
                     ? '同一协议/功能的所有代码归为一个模块，适合快速全局概览'
                     : '每个子组件独立成模块，分析更精细，适合深度威胁挖掘'}
                 </p>
               </div>
             ) : (
-              <span className="text-xs text-slate-400">使用项目当前默认配置</span>
+              <span className="text-xs text-slate-400">未配置</span>
             )}
           </ConfigRow>
         </div>
@@ -667,15 +684,6 @@ const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
           </div>
         </ConfigSection>
       ) : null}
-
-      {/* 无覆盖配置时的提示 */}
-      {!hasOverrides && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center">
-          <ShieldAlert size={20} className="mx-auto mb-2 text-slate-300" />
-          <p className="text-sm font-semibold text-slate-500">本任务未设置覆盖配置</p>
-          <p className="mt-1 text-xs text-slate-400">分析将使用当前项目的默认配置运行</p>
-        </div>
-      )}
     </div>
   );
 };
