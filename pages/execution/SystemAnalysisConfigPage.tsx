@@ -59,6 +59,7 @@ const defaultRole = (): SystemAnalysisRoleConfig => ({
 
 const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   project_id: projectId,
+  max_rounds_exceeded_action: 'treat_as_passed',
   analyse_targets: ['all'],
   binary_arch: ['all'],
   security_focus_categories: ['all'],
@@ -576,6 +577,20 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 desc="pi 进程崩溃后重启前的等待时间（秒），给系统留出资源回收时间，避免崩溃-重启循环过于密集导致资源耗尽。">
                 <NumberInput value={config.pi_retry_delay} min={0} step={0.5} onChange={(v) => patch({ pi_retry_delay: v })} />
               </FieldRow>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <FieldRow
+                label="max_rounds_exceeded_action"
+                desc="当任一系统分析阶段达到 `max_rounds` 后仍未满足评审通过条件时，决定该阶段按通过继续后续流程，还是直接按失败终止任务。">
+                <SelectInput
+                  value={config.max_rounds_exceeded_action}
+                  options={['treat_as_passed', 'treat_as_failed']}
+                  onChange={(v) => patch({ max_rounds_exceeded_action: v as SystemAnalysisServiceConfig['max_rounds_exceeded_action'] })}
+                />
+              </FieldRow>
+              <p className="text-xs leading-5 text-slate-500">
+                默认值为 `treat_as_passed`。该策略对 classify / refine / analyse / final_check 四个阶段统一生效。
+              </p>
             </div>
           </SectionCard>
 

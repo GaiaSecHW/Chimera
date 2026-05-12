@@ -24,6 +24,7 @@ const defaultRole = (): EntryAnalysisRoleConfig => ({
 const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   project_id: projectId,
   max_rounds: -1,
+  max_rounds_exceeded_action: 'treat_as_passed',
   min_rounds: 2,
   pass_threshold: 0,
   agent_max_retries: 100,
@@ -253,6 +254,21 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                   <option value={-1}>全部裁判均通过</option>
                 </select>
               </FieldRow>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <FieldRow label="max_rounds_exceeded_action" hint="单个入口分析任务达到最大轮次且评审仍未通过时的处理策略">
+                <select
+                  value={config.max_rounds_exceeded_action}
+                  onChange={(e) => patch({ max_rounds_exceeded_action: e.target.value as EntryAnalysisServiceConfig['max_rounds_exceeded_action'] })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
+                  <option value="treat_as_passed">默认通过，任务按通过收敛</option>
+                  <option value="treat_as_failed">判定失败，任务按失败收敛</option>
+                </select>
+              </FieldRow>
+              <p className="text-xs leading-5 text-slate-500">
+                默认值为 `treat_as_passed`。当单个入口分析任务达到 `max_rounds` 后仍未满足评审通过条件时，
+                将按这里的策略决定最终收敛为通过还是失败。
+              </p>
             </div>
             <FieldRow label="并行 Worker 模式" hint="开启后 Workers 中的多个实例同时运行，各自分析一个文件分片">
               <div className="flex flex-wrap items-center gap-4">

@@ -2070,6 +2070,7 @@ export interface SystemAnalysisStagesConfig {
 
 export interface SystemAnalysisServiceConfig {
   project_id: string;
+  max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   analyse_targets: string[];
   binary_arch: string[];
   security_focus_categories: string[];
@@ -2698,6 +2699,7 @@ export interface EntryAnalysisRoleConfig {
 export interface EntryAnalysisServiceConfig {
   project_id: string;
   max_rounds: number;
+  max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
   pass_threshold: number;
   agent_max_retries: number;

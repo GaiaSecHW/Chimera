@@ -8,6 +8,13 @@ export interface B2SElfTaskInput {
 }
 
 export type B2SRunMode = 'fast' | 'deep';
+export type B2SBudgetExhaustedAction = 'treat_as_passed' | 'treat_as_failed';
+
+export interface B2SServiceConfig {
+  project_id: string;
+  budget_exhausted_action: B2SBudgetExhaustedAction;
+  updated_at?: string | null;
+}
 
 export interface B2STaskCreatePayload {
   task_id?: string;
@@ -371,6 +378,22 @@ export interface B2STaskDetail extends B2STask {
 }
 
 export const binaryToSourceApi = {
+  getConfig: async (projectId: string): Promise<B2SServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  saveConfig: async (projectId: string, config: B2SServiceConfig): Promise<B2SServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ config }),
+    });
+    return handleResponse(resp);
+  },
+
   listTasks: async (projectId: string, status?: string): Promise<{ total: number; items: B2STask[] }> => {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`, {
