@@ -619,7 +619,7 @@ const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
             </div>
           )
         ) : (
-          <span className="text-xs text-slate-400">使用项目默认配置（不过滤）</span>
+          <span className="text-xs text-slate-400">使用项目当前默认配置</span>
         )}
       </ConfigSection>
 
@@ -641,7 +641,7 @@ const RunConfigTab: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
                 </p>
               </div>
             ) : (
-              <span className="text-xs text-slate-400">使用项目默认配置（细粒度）</span>
+              <span className="text-xs text-slate-400">使用项目当前默认配置</span>
             )}
           </ConfigRow>
         </div>
