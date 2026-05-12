@@ -197,6 +197,15 @@ export interface B2SReviewAnalytics {
   issues: B2SReviewAnalyticsIssue[];
   function_matrix: B2SReviewAnalyticsFunction[];
   radar: B2SReviewAnalyticsRadar[];
+  trend_insight?: {
+    title: string;
+    conclusion: string;
+    tone: 'positive' | 'neutral' | 'warning' | string;
+    primary_metric: string;
+    first_score: number;
+    final_score: number;
+    delta: number;
+  } | null;
 }
 
 export const MOCK_B2S_REVIEW_ANALYTICS: B2SReviewAnalytics = {
@@ -227,6 +236,15 @@ export const MOCK_B2S_REVIEW_ANALYTICS: B2SReviewAnalytics = {
     { attempt_no: 2, completeness: 96, control_flow: 88, return_semantics: 84, input_validation: 90, call_fidelity: 91, type_struct_fidelity: 88 },
     { attempt_no: 3, completeness: 100, control_flow: 96, return_semantics: 97, input_validation: 97, call_fidelity: 96, type_struct_fidelity: 95 },
   ],
+  trend_insight: {
+    title: '质量显著提升',
+    conclusion: '经过 3 轮评审修复，语义质量从 61 提升至 96，累计提升 35 分。',
+    tone: 'positive',
+    primary_metric: '语义质量',
+    first_score: 61,
+    final_score: 96,
+    delta: 35,
+  },
 };
 
 export interface B2STaskDetail extends B2STask {

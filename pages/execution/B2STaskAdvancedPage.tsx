@@ -313,15 +313,54 @@ const QUALITY_DIMENSION_GROUPS = [
     formula: 'Qread = 0.45·Ccmp + 0.35·TYPEstruct + 0.20·CALL',
   },
 ];
-const PanelCard: React.FC<{ title: string; right?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, right, children, className = '' }) => (
+const averageTrendFallbackTitle = (analytics: B2SReviewAnalytics) => {
+  const first = analytics.attempts[0]?.semantic_score || 0;
+  const last = analytics.attempts[analytics.attempts.length - 1]?.semantic_score || analytics.summary.final_confidence || 0;
+  const delta = last - first;
+  if (delta >= 20) return '质量显著提升';
+  if (delta >= 8) return '质量稳步提升';
+  if (delta >= 0) return '质量基本稳定';
+  return '质量出现回落';
+};
+
+const PanelCard: React.FC<{ title: React.ReactNode; right?: React.ReactNode; children: React.ReactNode; className?: string }> = ({ title, right, children, className = '' }) => (
   <div className={`rounded-none border border-slate-200 bg-white/90 p-5 shadow-panel ring-1 ring-slate-900/[0.03] ${className}`}>
-    <div className="mb-4 flex min-h-6 items-center justify-between gap-3">
-      <div className="text-[14px] font-black tracking-[0.04em] text-slate-900">{title}</div>
+    <div className="mb-4 flex min-h-6 items-start justify-between gap-3">
+      <div className="min-w-0">{typeof title === 'string' ? <div className="text-[14px] font-black tracking-[0.04em] text-slate-900">{title}</div> : title}</div>
       {right}
     </div>
     {children}
   </div>
 );
+
+const DimensionSparkline: React.FC<{ values: Array<{ attemptNo: number; value: number }>; color: string }> = ({ values, color }) => {
+  const width = 118;
+  const height = 58;
+  const padding = 8;
+  if (!values.length) return null;
+
+  const nums = values.map((item) => item.value);
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const range = Math.max(1, max - min);
+  const points = values.map((item, index) => {
+    const x = values.length === 1 ? width / 2 : padding + (index / (values.length - 1)) * (width - padding * 2);
+    const y = height - padding - ((item.value - min) / range) * (height - padding * 2);
+    return { x, y, value: item.value };
+  });
+  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const last = points[points.length - 1];
+
+  return (
+    <svg className="overflow-visible" width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
+      <path d={path} fill="none" stroke="#d9d9de" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {points.slice(0, -1).map((point, index) => (
+        <circle key={index} cx={point.x} cy={point.y} r="3.5" fill="white" stroke="#e5e5ea" strokeWidth="2" />
+      ))}
+      {last && <circle cx={last.x} cy={last.y} r="4" fill="white" stroke={color} strokeWidth="2.6" />}
+    </svg>
+  );
+};
 
 const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null }> = ({ analytics }) => {
   if (!analytics) return null;
@@ -337,6 +376,16 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
     const weighted = terms.reduce((sum, term) => sum + Number((round as any)?.[term.key] || 0) * term.weight, 0);
     return totalWeight > 0 ? Math.round(weighted / totalWeight) : 0;
   };
+  const trendInsight = analytics.trend_insight || {
+    title: averageTrendFallbackTitle(analytics),
+    conclusion: `共 ${analytics.attempts.length} 轮评审，最终语义质量 ${last.semantic_score || analytics.summary.final_confidence}。`,
+    tone: 'neutral',
+    primary_metric: '语义质量',
+    first_score: first.semantic_score,
+    final_score: last.semantic_score,
+    delta: Math.max(0, (last.semantic_score || 0) - (first.semantic_score || 0)),
+  };
+  const trendToneClass = trendInsight.tone === 'warning' ? 'text-amber-700' : trendInsight.tone === 'positive' ? 'text-emerald-700' : 'text-slate-700';
   const dimensionRows = dimensionGroups.map((item, groupIndex) => {
     const values = dimensionRounds.map((round) => ({
       attemptNo: round.attempt_no,
@@ -347,15 +396,14 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
     return {
       name: item.name,
       labelClass: ['text-chart-logic', 'text-chart-structure', 'text-chart-readability'][groupIndex] || 'text-slate-700',
-      bgClass: ['bg-blue-50', 'bg-violet-50', 'bg-emerald-50'][groupIndex] || 'bg-slate-50',
-      borderClass: ['border-blue-100', 'border-violet-100', 'border-emerald-100'][groupIndex] || 'border-slate-100',
-      badgeClass: ['bg-blue-100 text-blue-700', 'bg-violet-100 text-violet-700', 'bg-emerald-100 text-emerald-700'][groupIndex] || 'bg-slate-100 text-slate-700',
+      dotClass: ['bg-chart-logic', 'bg-chart-structure', 'bg-chart-readability'][groupIndex] || 'bg-slate-500',
+      sparkColor: qualityDimensionColors[groupIndex] || CHART_COLORS.axis,
+      values,
       description: [
-        '控制流、返回值和关键条件是否符合原始程序',
-        '类型、结构体和参数含义是否还原合理',
-        '命名、代码结构和表达是否便于人工审查',
+        '控制流、返回值和关键条件高度匹配原始程序',
+        '类型、结构体和参数含义还原合理',
+        '命名、代码结构和表达便于人工审查',
       ][groupIndex] || '评估该维度的最终质量表现',
-      formula: item.formula,
       firstValue,
       finalValue,
       improvement: Math.max(0, finalValue - firstValue),
@@ -381,6 +429,9 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
     : verdictFailed
       ? `评审仍未通过，当前遗留问题 ${remainingCount} 项，建议优先查看闭环证据。`
       : `评审结论暂不可判定，建议查看各轮评审详情与中间产物。`;
+  const closureTitle = remainingCount > 0 ? `仍有 ${remainingCount} 项未闭环` : '问题全部闭环';
+  const closureTone = remainingCount > 0 ? 'text-rose-700' : 'text-emerald-700';
+  const closureDescription = `共发现 ${analytics.issues.length || 0} 项问题，已解决 ${resolvedCount} 项，未解决 ${remainingCount} 项。`;
   const roundSummaries = analytics.attempts.map((attempt, index) => {
     const discovered = analytics.issues.filter((issue) => issue.introduced_attempt === attempt.attempt_no);
     const resolved = analytics.issues.filter((issue) => issue.resolved_attempt === attempt.attempt_no);
@@ -400,19 +451,16 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
 
   return (
     <section className="overflow-hidden rounded-none border border-slate-200 bg-white p-6 shadow-section">
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"><ShieldCheck size={20} /></div>
-        <div className="min-w-0 flex-1">
-          <div className="text-lg font-black tracking-[0.12em] text-slate-900">代码还原质量迭代追踪</div>
-        </div>
+      <div className="relative mb-6 flex items-center justify-between gap-3">
+        <div className="text-xl font-black tracking-[0.05em] text-slate-900">代码还原质量迭代追踪</div>
         {analytics.summary.mock && <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-cyan-700">模拟数据</div>}
       </div>
 
       <div className={`mb-4 rounded-none border border-l-4 p-5 ${verdictBg}`}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
-            <div className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">最终结论</div>
-            <div className={`mt-2 text-5xl font-black leading-none tracking-tight ${verdictTone}`}>{verdictLabel}</div>
+            <div className="text-[13px] font-black tracking-[0.08em] text-slate-400">最终结论</div>
+            <div className={`mt-1 text-5xl font-black leading-none tracking-tight ${verdictTone}`}>{verdictLabel}</div>
             <div className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-600">{conclusionText}</div>
           </div>
           <div className="grid shrink-0 grid-cols-2 divide-x divide-slate-200 border-l border-slate-200 bg-white/45 lg:min-w-[430px]">
@@ -433,15 +481,18 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
         </div>
       </div>
 
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div>
-          <div className="text-base font-black tracking-[0.08em] text-slate-900">分析依据</div>
-        </div>
-      </div>
-
       <div className="grid gap-5 xl:grid-cols-2">
-        <PanelCard title="逐轮质量趋势" className="flex h-full flex-col" right={<div className="flex flex-wrap gap-3 text-[11px] font-black">{dimensionGroups.map((item, index) => <span key={item.name} className={['text-chart-logic', 'text-chart-structure', 'text-chart-readability'][index] || 'text-slate-500'}>● {item.name}</span>)}</div>}>
-          <div className="min-h-[320px] flex-1">
+        <PanelCard
+          title={(
+            <div>
+              <div className="text-[13px] font-black tracking-[0.08em] text-slate-400">质量趋势</div>
+              <div className={`mt-1 text-3xl font-black leading-tight tracking-tight ${trendToneClass}`}>{trendInsight.title}</div>
+              <div className="mt-1 max-w-xl text-xs font-semibold leading-5 text-slate-500">{trendInsight.conclusion}</div>
+            </div>
+          )}
+          className="flex h-full flex-col"
+        >
+          <div className="min-h-[300px] flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={qualityTrend} margin={{ top: 20, right: 26, left: 0, bottom: 12 }}>
                 <CartesianGrid stroke={CHART_COLORS.grid} strokeDasharray="4 5" strokeOpacity={0.8} vertical={false} />
@@ -455,47 +506,80 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
                       type="monotone"
                       dataKey={item.name}
                       stroke={color}
-                      strokeWidth={2.25}
-                      dot={{ r: 4, strokeWidth: 0, fill: color }}
-                      activeDot={{ r: 6, strokeWidth: 2, fill: color, stroke: 'var(--color-white)' }}
+                      strokeWidth={2.6}
+                      dot={(props: any) => {
+                        const cx = Number(props.cx || 0);
+                        const cy = Number(props.cy || 0);
+                        if (index === 1) return <rect x={cx - 3.2} y={cy - 3.2} width={6.4} height={6.4} rx={1.6} fill="white" stroke={color} strokeWidth={2} />;
+                        if (index === 2) return <path d={`M ${cx} ${cy - 4} L ${cx + 4} ${cy} L ${cx} ${cy + 4} L ${cx - 4} ${cy} Z`} fill="white" stroke={color} strokeWidth={2} />;
+                        return <circle cx={cx} cy={cy} r={3.4} fill="white" stroke={color} strokeWidth={2} />;
+                      }}
+                      activeDot={{ r: 6, strokeWidth: 2.5, fill: 'var(--color-white)', stroke: color }}
                     />
                   );
                 })}
               </LineChart>
             </ResponsiveContainer>
           </div>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t border-slate-100 pt-3 text-[11px] font-black">
+            {dimensionGroups.map((item, index) => {
+              const color = qualityDimensionColors[index] || CHART_COLORS.axis;
+              return (
+                <span key={item.name} className="inline-flex items-center gap-1.5 text-slate-600">
+                  <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                    {index === 1 ? <rect x="3.4" y="3.4" width="5.2" height="5.2" rx="1.3" fill="white" stroke={color} strokeWidth="2" /> : index === 2 ? <path d="M6 2.2 9.8 6 6 9.8 2.2 6Z" fill="white" stroke={color} strokeWidth="2" /> : <circle cx="6" cy="6" r="3.6" fill="white" stroke={color} strokeWidth="2" />}
+                  </svg>
+                  {item.name}
+                </span>
+              );
+            })}
+          </div>
         </PanelCard>
 
-        <PanelCard title="质量评分拆解" right={<div className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-600">初始 → 最终</div>}>
+        <PanelCard
+          title={(
+            <div>
+              <div className="text-[13px] font-black tracking-[0.08em] text-slate-400">质量评分拆解</div>
+              <div className="mt-1 text-3xl font-black leading-tight tracking-tight text-slate-900">{finalQualityLabel} · {finalQualityScore}</div>
+              <div className="mt-1 max-w-xl text-xs font-semibold leading-5 text-slate-500">初始质量 {firstQualityScore}，最终质量 {finalQualityScore}，综合提升 {averageImprovement} 分。</div>
+            </div>
+          )}
+        >
           <div className="space-y-3">
             {dimensionRows.map((row) => (
-              <div key={row.name} className={`rounded-none border ${row.borderClass} ${row.bgClass} p-4`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className={`text-sm font-black ${row.labelClass}`}>{row.name}</div>
-                    <div className="mt-1.5 text-xs font-medium leading-5 text-slate-500">{row.description}</div>
-                    <div className="mt-2 rounded-none bg-white/70 px-3 py-2 font-mono text-[11px] font-semibold leading-5 tracking-tight text-slate-500 ring-1 ring-slate-200/70">
-                      {row.formula}
-                    </div>
+              <div key={row.name} className="grid grid-cols-[minmax(0,1fr)_118px] items-center gap-5 rounded-[18px] bg-white px-5 py-4 shadow-[0_1px_2px_rgba(0,0,0,0.025),0_0_0_1px_rgba(60,60,67,0.045)]">
+                <div className="min-w-0">
+                  <div className="mb-4 flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${row.dotClass}`} />
+                    <div className={`text-sm font-black tracking-[-0.01em] ${row.labelClass}`}>{row.name}</div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
-                      <div className={`text-4xl font-black leading-none ${row.labelClass}`}>{row.finalValue}</div>
-                      <div className="mt-1 text-[10px] font-black text-slate-400">最终分</div>
-                    </div>
-                    <div className={`rounded-2xl px-3 py-2 text-sm font-black ${row.badgeClass}`}>+{row.improvementPercent}%</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[42px] font-black leading-none tracking-[-0.045em] text-black">{row.finalValue}</span>
+                    <span className="text-[17px] font-semibold text-slate-400">分</span>
                   </div>
+                  <div className="mt-1 text-sm font-bold text-slate-900">
+                    {finalQualityLabel} · 较初始提升 <span className={row.labelClass}>{row.improvementPercent}%</span>
+                  </div>
+                  <div className="mt-2 text-sm font-medium leading-5 text-slate-400">{row.description}</div>
+                </div>
+                <div className="justify-self-end">
+                  <DimensionSparkline values={row.values} color={row.sparkColor} />
                 </div>
               </div>
             ))}
           </div>
         </PanelCard>
 
-        <div id="b2s-review-evidence" className="scroll-mt-24 mt-2 xl:col-span-2">
-          <div className="text-base font-black tracking-[0.08em] text-slate-900">评审闭环证据</div>
-        </div>
-
-        <PanelCard title="评审闭环时间线" className="xl:col-span-2" right={<div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">已解决 {resolvedCount} · 未解决 {remainingCount}</div>}>
+        <div id="b2s-review-evidence" className="scroll-mt-24 xl:col-span-2">
+          <PanelCard
+          title={(
+            <div>
+              <div className="text-[13px] font-black tracking-[0.08em] text-slate-400">评审闭环时间线</div>
+              <div className={`mt-1 text-3xl font-black leading-tight tracking-tight ${closureTone}`}>{closureTitle}</div>
+              <div className="mt-1 max-w-xl text-xs font-semibold leading-5 text-slate-500">{closureDescription}</div>
+            </div>
+          )}
+        >
           <div className="overflow-hidden border border-slate-200">
             <div className="grid grid-cols-[104px_88px_repeat(6,minmax(72px,1fr))_92px_88px] gap-0 border-b border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
               <div>轮次</div>
@@ -561,7 +645,8 @@ const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics | null 
               })}
             </div>
           </div>
-        </PanelCard>
+          </PanelCard>
+        </div>
 
       </div>
     </section>
