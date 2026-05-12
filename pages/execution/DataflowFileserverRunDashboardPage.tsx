@@ -2456,6 +2456,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     currentRunsFilter: '',
     collapsedRunDates: {} as Record<string, boolean>,
     runDetailRequestSeq: 0,
+    runDetailInFlight: null as Promise<void> | null,
+    runDetailInFlightName: '',
     _mutationBusy: '' as '' | 'adopt' | 'cancel' | 'retry' | 'delete',
     _durationTimer: null as ReturnType<typeof setInterval> | null,
     _durationSeconds: 0,
@@ -3092,19 +3094,33 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     },
 
     async loadRunDetail(name: string, silent = false, forceActiveTabReload = false) {
+      if (this.runDetailInFlight && this.runDetailInFlightName === name) {
+        await this.runDetailInFlight;
+        return;
+      }
       const requestSeq = ++this.runDetailRequestSeq;
       if (!silent) {
         this.showLoadingState(name);
       }
-      try {
+      const request = (async () => {
         const data = await inspectDataflowFileserverRunOverview(projectId, this.runsRootPath, name);
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const runCache = this.getRunCache(name);
+        const overviewSessions = Array.isArray(data.sessions) ? data.sessions : [];
+        const overviewFiles = Array.isArray(data.files) ? data.files : [];
         runCache.overview = data;
-        runCache.sessionsLoaded = true;
-        runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
-        runCache.filesLoaded = true;
-        runCache.files = Array.isArray(data.files) ? data.files : [];
+        if (overviewSessions.length > 0) {
+          runCache.sessionsLoaded = true;
+          runCache.sessions = overviewSessions;
+        } else if (!runCache.sessionsLoaded) {
+          runCache.sessions = [];
+        }
+        if (overviewFiles.length > 0) {
+          runCache.filesLoaded = true;
+          runCache.files = overviewFiles;
+        } else if (!runCache.filesLoaded) {
+          runCache.files = [];
+        }
         if (!runCache.logLoaded) {
           runCache.log = data.run_log || '';
         }
@@ -3149,11 +3165,21 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         if (detail) detail.style.display = 'block';
         void this.preloadAllCycleDetails(name, data, forceActiveTabReload);
         this.refreshActiveTabContent(forceActiveTabReload);
+      })();
+      this.runDetailInFlight = request;
+      this.runDetailInFlightName = name;
+      try {
+        await request;
       } catch (e: any) {
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const message = e?.message || '加载 Run 失败';
         console.error('loadRunDetail failed', e);
         this.showLoadError(name, message);
+      } finally {
+        if (this.runDetailInFlight === request) {
+          this.runDetailInFlight = null;
+          this.runDetailInFlightName = '';
+        }
       }
     },
 
