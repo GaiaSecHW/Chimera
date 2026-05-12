@@ -299,6 +299,19 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
+  updateTaskConcurrency: async (
+    projectId: string,
+    taskId: string,
+    payload: { stage_parallelism: Record<string, number> },
+  ): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/concurrency`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(resp);
+  },
+
   getTimeline: async (projectId: string, taskId: string): Promise<BinarySecurityTimeline> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline`, {
       headers: getHeaders(),

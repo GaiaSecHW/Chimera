@@ -289,9 +289,11 @@ const VULN_METADATA_KEYS = [
 function ConcurrencyPolicyPanel({
   detail,
   stageSequence,
+  onEdit,
 }: {
   detail: BinarySecurityTaskDetail;
   stageSequence: string[];
+  onEdit: () => void;
 }) {
   const policy = detail.policy || {};
   const stageParallelism = policy.stage_parallelism && typeof policy.stage_parallelism === 'object'
@@ -326,6 +328,13 @@ function ConcurrencyPolicyPanel({
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
             失败后继续 {boolLabel(policy.continue_on_item_failure)}
           </span>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-xs font-bold text-white transition hover:bg-slate-800"
+          >
+            编辑并发
+          </button>
         </div>
       </div>
 
@@ -781,17 +790,17 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
 function TaskStatusReasonCard({ reason }: { reason: TaskStatusReason }) {
   return (
     <div className={`rounded-2xl border px-3 py-3 ${reasonToneClass(reason.tone)}`}>
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,0.95fr)] xl:items-start">
         <div className="min-w-0">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">状态原因</div>
           <div className="mt-1 text-sm font-black">{reason.title}</div>
           <div className="mt-1 text-xs leading-5 opacity-85">{reason.description}</div>
         </div>
-        <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[360px]">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {reason.evidence.slice(0, 3).map((item) => (
-            <div key={item.label} className="rounded-xl border border-current/10 bg-white/55 px-2.5 py-2 text-xs">
+            <div key={item.label} className="min-w-0 rounded-xl border border-current/10 bg-white/55 px-2.5 py-2 text-xs">
               <div className="font-bold opacity-55">{item.label}</div>
-              <div className="mt-1 break-all font-black">{item.value || '-'}</div>
+              <div className="mt-1 break-words font-black">{item.value || '-'}</div>
             </div>
           ))}
         </div>
@@ -826,6 +835,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [error, setError] = useState<string | null>(null);
   const [pendingBlockingAction, setPendingBlockingAction] = useState<BlockingActionKind>('');
   const [blockingAction, setBlockingAction] = useState<BlockingActionKind>('');
+  const [concurrencyModalOpen, setConcurrencyModalOpen] = useState(false);
+  const [concurrencyDraft, setConcurrencyDraft] = useState<Record<string, number>>({});
+  const [concurrencySaving, setConcurrencySaving] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
@@ -848,6 +860,46 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const taskContinueReason = detail?.task_continue_reason || '当前任务不可继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
   const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
+
+  const buildConcurrencyDraft = (task: BinarySecurityTaskDetail, stages: string[]) => {
+    const policy = task.policy || {};
+    const stageParallelism = policy.stage_parallelism && typeof policy.stage_parallelism === 'object'
+      ? policy.stage_parallelism as Record<string, unknown>
+      : {};
+    const maxStageParallelism = safeInt(policy.max_stage_parallelism, 1);
+    return Object.fromEntries(stages.map((stageName) => [
+      stageName,
+      safeInt(stageParallelism[stageName], maxStageParallelism),
+    ]));
+  };
+
+  const openConcurrencyEditor = () => {
+    if (!detail) return;
+    setConcurrencyDraft(buildConcurrencyDraft(detail, stageSequence));
+    setConcurrencyModalOpen(true);
+  };
+
+  const saveTaskConcurrency = async () => {
+    if (!projectId || !taskId || !detail || concurrencySaving) return;
+    const normalized = Object.fromEntries(stageSequence.map((stageName) => [
+      stageName,
+      Math.max(1, Math.min(32, Number(concurrencyDraft[stageName]) || 1)),
+    ]));
+    setConcurrencySaving(true);
+    setError(null);
+    try {
+      const updated = await executionApi.binarySecurity.updateTaskConcurrency(projectId, taskId, {
+        stage_parallelism: normalized,
+      });
+      setDetail(updated);
+      setConcurrencyDraft(buildConcurrencyDraft(updated, updated.stage_sequence?.length ? updated.stage_sequence : stageSequence));
+      setConcurrencyModalOpen(false);
+    } catch (e: any) {
+      setError(e?.message || '更新任务并发配置失败');
+    } finally {
+      setConcurrencySaving(false);
+    }
+  };
 
   const loadTask = async (options?: { showLoading?: boolean }) => {
     if (!projectId || !taskId) return null;
@@ -1605,10 +1657,76 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+	          </div>
+	        </div>
+	      ) : null}
+	      {concurrencyModalOpen && detail ? (
+	        <div className="fixed inset-0 z-[110] bg-slate-950/45 backdrop-blur-sm">
+	          <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
+	            <div className="flex w-full max-w-3xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.55)]">
+	              <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-5">
+	                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Concurrency Policy</div>
+	                <div className="mt-2 flex items-center gap-3">
+	                  <div className="rounded-2xl bg-slate-900 p-3 text-white">
+	                    <SlidersHorizontal size={22} />
+	                  </div>
+	                  <div>
+	                    <h3 className="text-2xl font-black tracking-tight text-slate-900">编辑任务阶段并发</h3>
+	                    <p className="mt-1 text-sm text-slate-500">
+	                      仅修改当前任务的编排并发，不影响项目默认配置和下游微服务全局配置。
+	                    </p>
+	                  </div>
+	                </div>
+	              </div>
+	              <div className="flex-1 overflow-auto px-6 py-6">
+	                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+	                  运行中阶段已启动的子任务池不会实时改变；新的阶段、继续任务、阶段重试和从头重试会使用保存后的并发配置。
+	                </div>
+	                <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+	                  {stageSequence.map((stageName) => (
+	                    <label key={stageName} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+	                      <span className="block text-sm font-black text-slate-800">{STAGE_LABELS[stageName] || stageName}</span>
+	                      <span className="mt-1 block text-xs text-slate-500">范围 1-32</span>
+	                      <input
+	                        type="number"
+	                        min={1}
+	                        max={32}
+	                        value={concurrencyDraft[stageName] ?? 1}
+	                        disabled={concurrencySaving}
+	                        onChange={(event) => {
+	                          const value = Math.max(1, Math.min(32, Number(event.target.value) || 1));
+	                          setConcurrencyDraft((current) => ({ ...current, [stageName]: value }));
+	                        }}
+	                        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-slate-400"
+	                      />
+	                    </label>
+	                  ))}
+	                </div>
+	              </div>
+	              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+	                <button
+	                  type="button"
+	                  disabled={concurrencySaving}
+	                  onClick={() => setConcurrencyModalOpen(false)}
+	                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+	                >
+	                  取消
+	                </button>
+	                <button
+	                  type="button"
+	                  disabled={concurrencySaving}
+	                  onClick={() => void saveTaskConcurrency()}
+	                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+	                >
+	                  {concurrencySaving ? <Loader2 size={16} className="animate-spin" /> : null}
+	                  {concurrencySaving ? '保存中...' : '保存并发配置'}
+	                </button>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      ) : null}
+	      <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
           <ArrowLeft size={16} />
           返回任务列表
@@ -1728,7 +1846,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
 
-          <ConcurrencyPolicyPanel detail={detail} stageSequence={stageSequence} />
+          <ConcurrencyPolicyPanel detail={detail} stageSequence={stageSequence} onEdit={openConcurrencyEditor} />
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
             <div className="grid gap-2 md:grid-cols-3">
