@@ -110,6 +110,23 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     onOpenTask(storedTaskId);
   }, [onOpenTask]);
 
+  // ── Pre-populate create modal with saved service config defaults ──────────
+  useEffect(() => {
+    if (!createModalOpen || !projectId) return;
+    appApi.getConfig(projectId)
+      .then((cfg) => {
+        setForm((prev) => ({
+          ...prev,
+          analyse_targets: Array.isArray(cfg.analyse_targets) ? cfg.analyse_targets : prev.analyse_targets,
+          binary_arch: Array.isArray(cfg.binary_arch) ? cfg.binary_arch : prev.binary_arch,
+          security_focus_categories: Array.isArray(cfg.security_focus_categories) ? cfg.security_focus_categories : prev.security_focus_categories,
+          module_granularity: typeof cfg.module_granularity === 'string' ? cfg.module_granularity : prev.module_granularity,
+        }));
+      })
+      .catch(() => { /* silently fall back to emptyForm defaults */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createModalOpen, projectId]);
+
   // ── Load task list ────────────────────────────────────────────────────────
 
   const loadTasks = useCallback(async (p = page) => {
