@@ -291,6 +291,8 @@ export interface DataflowRunDetail extends DataflowRunSummary {
   run_log: string;
   command?: string[];
   command_display?: string;
+  current_step?: Record<string, any>;
+  step_history?: Record<string, any>[];
   raw: Record<string, any>;
 }
 

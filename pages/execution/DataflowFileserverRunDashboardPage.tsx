@@ -619,7 +619,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   color: var(--success);
 }
 
-.badge-failed, .badge-interrupted, .badge-cancelled, .badge-stopped, .badge-delete_requested,
+.badge-failed, .badge-soft_failed, .badge-interrupted, .badge-cancelled, .badge-stopped, .badge-delete_requested,
 .badge-review_error, .badge-review_plateau, .badge-summary_incomplete,
 .badge-runtime_output_limit, .badge-runtime_timeout, .badge-blocked_context_window,
 .badge-blocked_quota, .badge-provider_rate_limited, .badge-model_contract_violation,
@@ -629,19 +629,19 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   color: var(--error);
 }
 
-.badge-running {
+.badge-running, .badge-started {
   background: #ecfeff;
   border-color: #a5f3fc;
   color: var(--primary);
 }
 
-.badge-cancel_requested {
+.badge-cancel_requested, .badge-retrying {
   background: #fffbeb;
   border-color: #fde68a;
   color: #b45309;
 }
 
-.badge-unknown, .badge-pending, .badge-queued {
+.badge-unknown, .badge-pending, .badge-queued, .badge-recorded {
   background: #f8fafc;
   border-color: #e2e8f0;
   color: #64748b;
@@ -1188,6 +1188,319 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   border: 1px solid #fecdd3;
   background: #fff1f2;
   color: var(--error);
+}
+
+.execution-trace-card {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(8, 145, 178, 0.14), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.10), transparent 28%),
+    #ffffff;
+}
+
+.execution-trace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.execution-trace-title {
+  color: var(--text-bright);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.execution-trace-subtitle {
+  max-width: 820px;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.execution-trace-badges,
+.session-trace-tags,
+.call-stage-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.execution-current-card {
+  position: relative;
+  padding: 18px;
+  border: 1px solid #bae6fd;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(236, 254, 255, 0.96) 0%, rgba(255, 255, 255, 0.96) 58%),
+    #ffffff;
+  box-shadow: 0 18px 38px rgba(14, 165, 233, 0.10);
+}
+
+.execution-current-card::before {
+  content: '';
+  position: absolute;
+  inset: 18px auto auto 18px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #0891b2;
+  box-shadow: 0 0 0 7px rgba(8, 145, 178, 0.12);
+}
+
+.execution-current-card.status-started::before,
+.execution-current-card.status-running::before {
+  animation: executionPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes executionPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 6px rgba(8, 145, 178, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 13px rgba(8, 145, 178, 0.04);
+  }
+}
+
+.execution-current-beacon {
+  margin-left: 22px;
+  color: #0e7490;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.execution-current-main {
+  margin-top: 10px;
+  color: var(--text-bright);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.execution-current-step {
+  margin-top: 6px;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.execution-current-detail {
+  margin-top: 8px;
+  color: #64748b;
+  font-family: var(--mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.execution-current-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.execution-current-cell {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.execution-current-cell span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.execution-current-cell strong {
+  display: block;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.execution-cycle-map {
+  margin-top: 16px;
+}
+
+.execution-map-title {
+  margin-bottom: 10px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.execution-cycle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.execution-cycle-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.82);
+}
+
+.execution-cycle-head,
+.execution-phase-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.execution-cycle-head {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.execution-cycle-head span:last-child,
+.execution-phase-head span:last-child {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.execution-phase-stack {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.execution-phase-lane {
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-left-width: 4px;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.execution-phase-lane.phase-worker { border-left-color: #0891b2; }
+.execution-phase-lane.phase-reflect { border-left-color: #6366f1; }
+.execution-phase-lane.phase-summary { border-left-color: #10b981; }
+.execution-phase-lane.phase-global-review { border-left-color: #f59e0b; }
+.execution-phase-lane.phase-result-review { border-left-color: #ef4444; }
+.execution-phase-lane.phase-review { border-left-color: #8b5cf6; }
+.execution-phase-lane.phase-other { border-left-color: #94a3b8; }
+
+.execution-phase-head {
+  color: #334155;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.execution-step-list {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.execution-step-pill,
+.execution-step-more,
+.trace-mini-badge {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.execution-step-pill {
+  padding: 6px 9px;
+}
+
+.execution-step-pill span:last-child,
+.trace-step-mini {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.execution-step-pill.current {
+  border-color: #0891b2;
+  background: #ecfeff;
+  color: #0e7490;
+  box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.10);
+}
+
+.execution-step-pill.status-completed,
+.execution-step-pill.status-passed {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #047857;
+}
+
+.execution-step-pill.status-failed,
+.execution-step-pill.status-error,
+.execution-step-pill.status-soft-failed {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.execution-step-pill.status-retrying {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.execution-step-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.execution-step-more {
+  padding: 6px 9px;
+  background: #ffffff;
+  color: #64748b;
+}
+
+.trace-mini-badge {
+  padding: 5px 8px;
+  border-color: #dbeafe;
+  background: #ffffff;
+}
+
+.trace-mini-badge.phase-worker { color: #0e7490; background: #ecfeff; border-color: #a5f3fc; }
+.trace-mini-badge.phase-reflect { color: #4f46e5; background: #eef2ff; border-color: #c7d2fe; }
+.trace-mini-badge.phase-summary { color: #047857; background: #ecfdf5; border-color: #bbf7d0; }
+.trace-mini-badge.phase-global-review { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+.trace-mini-badge.phase-result-review { color: #be123c; background: #fff1f2; border-color: #fecdd3; }
+.trace-mini-badge.phase-review { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
+.trace-mini-badge.phase-other { color: #64748b; background: #f8fafc; border-color: #e2e8f0; }
+
+.session-trace-tags {
+  margin-top: 8px;
+}
+
+.call-stage-row {
+  margin-top: 10px;
 }
 
 .log-viewer {
@@ -1955,13 +2268,19 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
   .calls-panel-header,
   .call-session-header,
-  .call-head {
+  .call-head,
+  .execution-trace-header {
     flex-direction: column;
   }
 
   .calls-summary-grid,
-  .call-meta {
+  .call-meta,
+  .execution-current-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .execution-cycle-grid {
+    grid-template-columns: 1fr;
   }
 
   .call-row {
@@ -3386,6 +3705,447 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return String(session.display_name || session.worker_id || basename || session.session_id || 'Session');
     },
 
+    tracePhaseMeta(phase: string) {
+      const key = String(phase || 'other').toLowerCase().replace(/-/g, '_');
+      const map: Record<string, { label: string; shortLabel: string; order: number; cls: string }> = {
+        worker: { label: 'Worker 漏洞挖掘', shortLabel: 'Worker', order: 10, cls: 'worker' },
+        reflect: { label: 'Worker 自审', shortLabel: '自审', order: 20, cls: 'reflect' },
+        summary: { label: '汇总/收敛', shortLabel: '汇总', order: 30, cls: 'summary' },
+        global_review: { label: '全局评审', shortLabel: '全局评审', order: 40, cls: 'global-review' },
+        result_review: { label: '结果评审', shortLabel: '结果评审', order: 50, cls: 'result-review' },
+        review: { label: '评审', shortLabel: '评审', order: 45, cls: 'review' },
+        other: { label: '其他调用', shortLabel: '其他', order: 90, cls: 'other' },
+      };
+      return map[key] || map.other;
+    },
+
+    normalizeTracePhase(...values: any[]) {
+      const text = values.map((value) => String(value || '')).join(' ').toLowerCase().replace(/-/g, '_');
+      if (text.includes('result_review') || (text.includes('result') && text.includes('review'))) return 'result_review';
+      if (text.includes('global_review') || (text.includes('global') && text.includes('review'))) return 'global_review';
+      if (text.includes('reflect') || text.includes('reflection')) return 'reflect';
+      if (text.includes('summary') || text.includes('summar')) return 'summary';
+      if (text.includes('worker') || text.includes('vuln_scan') || text.includes('vulnerability')) return 'worker';
+      if (text.includes('review')) return 'review';
+      return 'other';
+    },
+
+    extractTraceCycle(...values: any[]) {
+      const text = values.map((value) => String(value || '')).join(' ');
+      const patterns = [
+        /cycle[_\-\s]?(\d+)/i,
+        /cycle(\d+)/i,
+        /第\s*(\d+)\s*轮/,
+      ];
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) {
+          const value = Number(match[1]);
+          if (Number.isFinite(value) && value > 0) return value;
+        }
+      }
+      return 0;
+    },
+
+    traceCycleLabel(cycle: number) {
+      const value = Number(cycle || 0);
+      return value > 0 ? `第 ${String(value).padStart(3, '0')} 轮` : '轮次未知';
+    },
+
+    traceEpoch(value: any) {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value > 1_000_000_000_000 ? value / 1000 : value;
+      }
+      const parsed = Date.parse(String(value || ''));
+      return Number.isFinite(parsed) ? parsed / 1000 : 0;
+    },
+
+    getRunCurrentStep() {
+      const data = (this.currentRunData || {}) as Record<string, any>;
+      const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
+      const step = data.current_step && typeof data.current_step === 'object'
+        ? data.current_step
+        : raw.current_step;
+      return step && typeof step === 'object' && Object.keys(step).length ? step : null;
+    },
+
+    getRunStepHistory() {
+      const data = (this.currentRunData || {}) as Record<string, any>;
+      const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
+      const history = Array.isArray(data.step_history) ? data.step_history : raw.step_history;
+      return Array.isArray(history) ? history.filter((item: any) => item && typeof item === 'object') : [];
+    },
+
+    humanizeTraceStepKey(phase: string, stepKey: string, extra: Record<string, any> = {}) {
+      const raw = String(stepKey || '').trim();
+      const normalizedPhase = this.normalizeTracePhase(phase, raw);
+      if (!raw) {
+        return this.tracePhaseMeta(normalizedPhase).label;
+      }
+      const parts = raw.split('::').map((part) => part.trim()).filter(Boolean);
+      if (normalizedPhase === 'worker') {
+        return raw === 'worker'
+          ? (extra.worker_prompt_kind === 'rework' ? 'Worker 返工分析' : 'Worker 主分析')
+          : raw;
+      }
+      if (normalizedPhase === 'reflect') {
+        const promptId = parts[1] || parts[0] || raw;
+        const passMatch = raw.match(/pass[_-]?(\d+)/i);
+        const passText = passMatch ? `Pass ${Number(passMatch[1])}` : '自审';
+        return `${passText} · ${promptId}`;
+      }
+      if (normalizedPhase === 'summary') {
+        return 'Summary 汇总与结果写入';
+      }
+      if (normalizedPhase === 'global_review') {
+        const advisor = parts[1] || raw.replace(/^global::?/i, '') || String(extra.advisor_instance_id || '');
+        const attempt = Number(extra.attempt || 0);
+        return `全局评审 · ${advisor || 'advisor'}${attempt > 1 ? ` · attempt ${attempt}` : ''}`;
+      }
+      if (normalizedPhase === 'result_review') {
+        const resultFile = parts[1] || String(extra.result_file || '');
+        const advisor = parts[2] || String(extra.advisor_instance_id || '');
+        const attempt = Number(extra.attempt || 0);
+        return `结果评审 · ${resultFile || 'result'}${advisor ? ` · ${advisor}` : ''}${attempt > 1 ? ` · attempt ${attempt}` : ''}`;
+      }
+      return raw.replace(/_/g, ' ');
+    },
+
+    inferTraceStepLabel(phase: string, text: string, call?: Record<string, any>) {
+      const normalizedPhase = this.normalizeTracePhase(phase, text);
+      const raw = String(text || '');
+      if (normalizedPhase === 'worker') {
+        const match = raw.match(/vuln[_-]?scan[_-]?(.+?)(?:[_-]?cycle|\bcycle|$)/i);
+        if (match && match[1]) {
+          return `漏洞挖掘 · ${match[1].replace(/[_-]+$/g, '').replace(/_/g, ' ')}`;
+        }
+        const turn = Number(call?.turn || 0);
+        if (turn === 1) return 'Worker 主分析';
+        if (turn > 1) return `Worker 续写 #${turn}`;
+        return '漏洞挖掘主阶段';
+      }
+      if (normalizedPhase === 'global_review') {
+        const match = raw.match(/global[_-]review[_-]cycle[_-]?\d+[_-]?(.+)?$/i);
+        return match && match[1] ? `全局评审 · ${match[1]}` : '全局评审';
+      }
+      if (normalizedPhase === 'result_review') {
+        const match = raw.match(/result[_-]review[_-]cycle[_-]?\d+[_-]?(.+)?$/i);
+        return match && match[1] ? `结果评审 · ${match[1]}` : '结果评审';
+      }
+      if (normalizedPhase === 'summary') return 'Summary 汇总与结果写入';
+      if (normalizedPhase === 'reflect') return 'Worker 自审';
+      return this.tracePhaseMeta(normalizedPhase).label;
+    },
+
+    getCheckpointExecutionMeta(step: Record<string, any>, index = 0) {
+      const extra = step.extra && typeof step.extra === 'object' ? step.extra : {};
+      const phase = this.normalizeTracePhase(step.phase, step.step_key);
+      const phaseMeta = this.tracePhaseMeta(phase);
+      const cycle = Number(step.cycle || this.extractTraceCycle(step.path, step.step_key) || 0);
+      const timestamp = this.traceEpoch(step.timestamp) || Number(step.mtime || 0);
+      const stepLabel = this.humanizeTraceStepKey(phase, String(step.step_key || ''), extra);
+      const status = String(step.status || 'unknown').toLowerCase();
+      const detailParts = [
+        step.agent_id ? `agent=${step.agent_id}` : '',
+        step.session_id ? `session=${step.session_id}` : '',
+        extra.result_file ? `result=${extra.result_file}` : '',
+        step.detail ? String(step.detail).slice(0, 120) : '',
+      ].filter(Boolean);
+      return {
+        id: `checkpoint:${step.path || step.step_key || index}:${status}`,
+        kind: 'checkpoint',
+        cycle,
+        cycleLabel: this.traceCycleLabel(cycle),
+        phase,
+        phaseLabel: phaseMeta.label,
+        phaseShortLabel: phaseMeta.shortLabel,
+        phaseOrder: phaseMeta.order,
+        phaseClass: phaseMeta.cls,
+        stepLabel,
+        status,
+        timestamp,
+        timestampLabel: timestamp ? this.fmtDate(timestamp) : String(step.timestamp || '-'),
+        sessionId: String(step.session_id || ''),
+        agentId: String(step.agent_id || ''),
+        callId: '',
+        turn: 0,
+        model: '',
+        thinking: '',
+        detail: detailParts.join(' · '),
+        raw: step,
+      };
+    },
+
+    getSessionExecutionMeta(session: Record<string, any>) {
+      const name = this.getSessionDisplayName(session);
+      const text = [
+        name,
+        session.session_id,
+        session.worker_id,
+        session.stage_group,
+        session.role_name,
+        session.jsonl_path,
+      ].join(' ');
+      const phase = this.normalizeTracePhase(text);
+      const phaseMeta = this.tracePhaseMeta(phase);
+      const cycle = this.extractTraceCycle(text);
+      const stepLabel = this.inferTraceStepLabel(phase, text);
+      return {
+        id: `session:${session.session_id || session.jsonl_path || name}`,
+        kind: 'session',
+        cycle,
+        cycleLabel: this.traceCycleLabel(cycle),
+        phase,
+        phaseLabel: phaseMeta.label,
+        phaseShortLabel: phaseMeta.shortLabel,
+        phaseOrder: phaseMeta.order,
+        phaseClass: phaseMeta.cls,
+        stepLabel,
+        status: 'recorded',
+        timestamp: Number(session.mtime || 0),
+        timestampLabel: this.fmtDate(Number(session.mtime || 0)),
+        sessionId: String(session.session_id || ''),
+        agentId: String(session.worker_id || session.role_name || ''),
+        callId: '',
+        turn: 0,
+        model: String(session.model || session.raw_model || ''),
+        thinking: String(session.thinking || ''),
+        detail: String(session.jsonl_path || session.session_id || ''),
+        raw: session,
+      };
+    },
+
+    getCallExecutionMeta(session: Record<string, any>, call: Record<string, any>, options: Record<string, any> = {}) {
+      const sessionMeta = this.getSessionExecutionMeta(session);
+      const currentStep = this.getRunCurrentStep();
+      const sessionId = String(session.session_id || call.session_id || call.effective_session_id || '');
+      let phase = sessionMeta.phase;
+      let stepLabel = sessionMeta.stepLabel;
+      if (
+        options.isLatestInSession
+        && this.isRunActive()
+        && currentStep
+        && String(currentStep.session_id || '') === sessionId
+      ) {
+        const checkpointMeta = this.getCheckpointExecutionMeta(currentStep);
+        phase = checkpointMeta.phase;
+        stepLabel = checkpointMeta.stepLabel;
+      } else if (phase === 'worker') {
+        stepLabel = this.inferTraceStepLabel(phase, `${sessionMeta.detail} ${sessionMeta.sessionId}`, call);
+      } else if (Number(call.turn || 0) > 1 && (phase === 'global_review' || phase === 'result_review')) {
+        stepLabel = `${stepLabel} · schema 修复/续问 #${Number(call.turn || 0)}`;
+      }
+      const phaseMeta = this.tracePhaseMeta(phase);
+      const cycle = sessionMeta.cycle || this.extractTraceCycle(sessionId, call.call_id, call.call_dir);
+      const status = String(call.status || 'unknown').toLowerCase();
+      const timestamp = Number(call.mtime || session.mtime || 0) + (Number(call.turn || 0) / 100000);
+      return {
+        ...sessionMeta,
+        id: `call:${sessionId}:${call.call_id || call.turn || ''}`,
+        kind: 'call',
+        cycle,
+        cycleLabel: this.traceCycleLabel(cycle),
+        phase,
+        phaseLabel: phaseMeta.label,
+        phaseShortLabel: phaseMeta.shortLabel,
+        phaseOrder: phaseMeta.order,
+        phaseClass: phaseMeta.cls,
+        stepLabel,
+        status,
+        timestamp,
+        timestampLabel: this.fmtDate(Number(session.mtime || 0)),
+        sessionId,
+        agentId: String(call.agent_id || sessionMeta.agentId || ''),
+        callId: String(call.call_id || ''),
+        turn: Number(call.turn || 0),
+        detail: String(call.call_dir || call.effective_session_id || sessionId || ''),
+        raw: call,
+      };
+    },
+
+    buildExecutionTraceModel(
+      sessions: DataflowFileserverRunSession[],
+      jsonlSessions: DataflowFileserverRunSession[],
+      callSessions: DataflowFileserverRunSession[],
+    ) {
+      const stepHistory = this.getRunStepHistory();
+      const currentStep = this.getRunCurrentStep();
+      const checkpointItems = stepHistory.map((step: any, index: number) => this.getCheckpointExecutionMeta(step, index));
+      if (currentStep) {
+        const currentMeta = this.getCheckpointExecutionMeta(currentStep, checkpointItems.length);
+        const exists = checkpointItems.some((item: any) =>
+          item.raw?.path === currentMeta.raw?.path
+          && item.raw?.step_key === currentMeta.raw?.step_key
+          && item.status === currentMeta.status
+        );
+        if (!exists) checkpointItems.push(currentMeta);
+      }
+      const sessionItems = jsonlSessions.map((session: any) => this.getSessionExecutionMeta(session));
+      const callItems = callSessions.flatMap((session: any) => {
+        const calls = Array.isArray(session.calls) ? session.calls : [];
+        const latestTurn = calls.reduce((max: number, call: any) => Math.max(max, Number(call.turn || 0)), 0);
+        return calls.map((call: any) =>
+          this.getCallExecutionMeta(session, call, { isLatestInSession: Number(call.turn || 0) === latestTurn })
+        );
+      });
+      const timelineItems = (checkpointItems.length ? checkpointItems : (callItems.length ? callItems : sessionItems))
+        .filter((item: any) => item && (item.cycle || item.phase || item.stepLabel));
+      const sortedItems = timelineItems.slice().sort((a: any, b: any) => {
+        if (a.cycle !== b.cycle) return a.cycle - b.cycle;
+        if (a.phaseOrder !== b.phaseOrder) return a.phaseOrder - b.phaseOrder;
+        return (a.timestamp || 0) - (b.timestamp || 0);
+      });
+      const latestByTime = [...checkpointItems, ...callItems, ...sessionItems]
+        .filter(Boolean)
+        .sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0))[0] || null;
+      const current = currentStep ? this.getCheckpointExecutionMeta(currentStep, checkpointItems.length + 1) : latestByTime;
+      const groups = new Map<string, any>();
+      for (const item of sortedItems) {
+        const key = item.cycle > 0 ? String(item.cycle) : 'unknown';
+        if (!groups.has(key)) {
+          groups.set(key, {
+            key,
+            cycle: item.cycle || 0,
+            cycleLabel: item.cycleLabel,
+            phases: new Map<string, any[]>(),
+            items: [],
+          });
+        }
+        const group = groups.get(key);
+        group.items.push(item);
+        const phaseKey = item.phase || 'other';
+        if (!group.phases.has(phaseKey)) group.phases.set(phaseKey, []);
+        group.phases.get(phaseKey).push(item);
+      }
+      const cycles = Array.from(groups.values()).sort((a: any, b: any) => {
+        if (!a.cycle && b.cycle) return 1;
+        if (a.cycle && !b.cycle) return -1;
+        return a.cycle - b.cycle;
+      });
+      return {
+        current,
+        cycles,
+        items: sortedItems,
+        checkpointItems,
+        callItems,
+        sessionItems,
+        hasCheckpoint: checkpointItems.length > 0,
+        sessionCount: sessions.length,
+      };
+    },
+
+    renderExecutionTraceMiniBadges(meta: Record<string, any>, options: Record<string, any> = {}) {
+      const compact = !!options.compact;
+      const step = compact && meta.stepLabel && meta.stepLabel.length > 28
+        ? meta.stepLabel.slice(0, 28) + '...'
+        : meta.stepLabel;
+      return `
+        <span class="trace-mini-badge phase-${this.attr(meta.phaseClass || 'other')}">${this.esc(meta.cycleLabel || '轮次未知')}</span>
+        <span class="trace-mini-badge phase-${this.attr(meta.phaseClass || 'other')}">${this.esc(meta.phaseShortLabel || meta.phaseLabel || '阶段未知')}</span>
+        ${step ? `<span class="trace-mini-badge trace-step-mini" title="${this.attr(meta.stepLabel)}">${this.esc(step)}</span>` : ''}
+      `;
+    },
+
+    renderExecutionTraceOverview(
+      sessions: DataflowFileserverRunSession[],
+      jsonlSessions: DataflowFileserverRunSession[],
+      callSessions: DataflowFileserverRunSession[],
+    ) {
+      const model = this.buildExecutionTraceModel(sessions, jsonlSessions, callSessions);
+      if (!model.current && !model.items.length) return '';
+      const current = model.current;
+      const sourceLabel = model.hasCheckpoint ? 'Checkpoint 精确定位' : 'Session / Call 推断';
+      const currentStatus = current?.status || (this.isRunActive() ? 'running' : 'recorded');
+      const currentTone = String(currentStatus || '').replace(/_/g, '-');
+      const cycleCards = model.cycles.slice(-4).map((cycle: any) => {
+        const phaseEntries = Array.from(cycle.phases.entries()).sort((a: any, b: any) => {
+          return this.tracePhaseMeta(a[0]).order - this.tracePhaseMeta(b[0]).order;
+        });
+        const phasesHtml = phaseEntries.map(([phaseKey, items]: any) => {
+          const phaseMeta = this.tracePhaseMeta(phaseKey);
+          const visibleItems = items.slice(-5);
+          const hiddenCount = Math.max(0, items.length - visibleItems.length);
+          const pills = visibleItems.map((item: any) => {
+            const isCurrent = current && item.id === current.id;
+            const statusClass = String(item.status || 'recorded').replace(/_/g, '-');
+            const title = [item.stepLabel, item.detail, item.timestampLabel].filter(Boolean).join(' · ');
+            return `
+              <span class="execution-step-pill status-${this.attr(statusClass)} ${isCurrent ? 'current' : ''}" title="${this.attr(title)}">
+                <span class="execution-step-dot"></span>
+                <span>${this.esc(item.stepLabel || phaseMeta.shortLabel)}</span>
+              </span>
+            `;
+          }).join('');
+          return `
+            <div class="execution-phase-lane phase-${this.attr(phaseMeta.cls)}">
+              <div class="execution-phase-head">
+                <span>${this.esc(phaseMeta.label)}</span>
+                <span>${items.length}</span>
+              </div>
+              <div class="execution-step-list">
+                ${pills}
+                ${hiddenCount > 0 ? `<span class="execution-step-more">+${hiddenCount}</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        return `
+          <div class="execution-cycle-card">
+            <div class="execution-cycle-head">
+              <span>${this.esc(cycle.cycleLabel)}</span>
+              <span>${cycle.items.length} 个节点</span>
+            </div>
+            <div class="execution-phase-stack">${phasesHtml}</div>
+          </div>
+        `;
+      }).join('');
+      const currentDetailRows = current ? [
+        ['当前轮次', current.cycleLabel || '轮次未知'],
+        ['当前阶段', current.phaseLabel || '阶段未知'],
+        ['当前步骤', current.stepLabel || '-'],
+        ['最近调用', current.callId ? `turn ${current.turn || '-'} · ${current.callId}` : (current.sessionId || '-')],
+        ['Agent / 模型', [current.agentId, current.model].filter(Boolean).join(' / ') || '-'],
+        ['最后活动', current.timestampLabel || '-'],
+      ] : [];
+      return `
+        <div class="card execution-trace-card">
+          <div class="execution-trace-header">
+            <div>
+              <div class="card-title">调用轨迹</div>
+              <div class="execution-trace-title">执行定位</div>
+              <div class="execution-trace-subtitle">按 checkpoint、session 与 runtime call 聚合，优先显示当前轮次、Worker/评审阶段、具体 step 和最近调用。</div>
+            </div>
+            <div class="execution-trace-badges">
+              <span class="badge badge-mode">${this.esc(sourceLabel)}</span>
+              <span class="badge badge-${this.attr(String(currentStatus || 'unknown'))}">${this.esc(this.statusLabel(String(currentStatus || 'unknown')))}</span>
+            </div>
+          </div>
+          ${current ? `
+            <div class="execution-current-card phase-${this.attr(current.phaseClass || 'other')} status-${this.attr(currentTone)}">
+              <div class="execution-current-beacon">${this.isRunActive() ? '当前执行点' : '最近执行点'}</div>
+              <div class="execution-current-main">${this.esc(current.cycleLabel || '轮次未知')} · ${this.esc(current.phaseLabel || '阶段未知')}</div>
+              <div class="execution-current-step">${this.esc(current.stepLabel || '-')}</div>
+              ${current.detail ? `<div class="execution-current-detail">${this.esc(current.detail)}</div>` : ''}
+              <div class="execution-current-grid">
+                ${currentDetailRows.map(([label, value]) => `
+                  <div class="execution-current-cell">
+                    <span>${this.esc(label)}</span>
+                    <strong>${this.esc(value)}</strong>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          ${cycleCards ? `
+            <div class="execution-cycle-map">
+              <div class="execution-map-title">最近轮次阶段图</div>
+              <div class="execution-cycle-grid">${cycleCards}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    },
+
     getSelectedSession() {
       const selectedPath = this.sessionBrowser.selectedPath;
       if (!selectedPath) return null;
@@ -3422,15 +4182,19 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const el = this.$('sessionsContainer');
       if (!el) return;
       const scrollSnapshot = this.captureSessionScrollSnapshot();
-      if (!sessions.length) {
+      const safeSessions = Array.isArray(sessions) ? sessions : [];
+      const jsonlSessions = this.getJsonlSessions(safeSessions);
+      const callSessions = safeSessions.filter((s: any) => Array.isArray(s.calls) && s.calls.length > 0);
+      const traceHtml = this.renderExecutionTraceOverview(safeSessions, jsonlSessions, callSessions);
+      if (!safeSessions.length) {
         this.resetSessionBrowser('');
-        el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+        el.innerHTML = traceHtml
+          ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录，执行定位会在 checkpoint 或 runtime call 产生后继续更新</div></div>`
+          : '<div class="empty-state">暂无会话记录</div>';
         this.restoreSessionScrollSnapshot(scrollSnapshot);
         return;
       }
 
-      const jsonlSessions = this.getJsonlSessions(sessions);
-      const callSessions = sessions.filter((s: any) => Array.isArray(s.calls) && s.calls.length > 0);
       const selectedPath = this.selectSessionPathForRender(jsonlSessions);
       const selectedChanged = selectedPath !== this.sessionBrowser.selectedPath || this.sessionBrowser.selectedRun !== this.currentRun;
       if (selectedChanged) {
@@ -3454,10 +4218,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const path = this.getSessionPath(s);
           const selected = path === selectedPath;
           const warnings = Array.isArray(s.warnings) ? s.warnings : [];
+          const executionMeta = this.getSessionExecutionMeta(s);
           return `
             <button class="session-nav-item ${selected ? 'active' : ''}" type="button" data-action="select-session" data-path="${this.attr(path)}">
               <div class="session-nav-title">${this.esc(this.getSessionDisplayName(s))}</div>
               <div class="session-nav-path">${this.esc(path)}</div>
+              <div class="session-trace-tags">${this.renderExecutionTraceMiniBadges(executionMeta, { compact: true })}</div>
               <div class="session-nav-meta">
                 <span>${this.fmtSize(Number(s.size || 0))}</span>
                 <span>事件 ${Number(s.event_count || 0)}</span>
@@ -3470,6 +4236,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         }).join('');
         el.innerHTML = `
           <div class="session-content-stack">
+            ${traceHtml}
             <div class="session-browser-shell">
               <div class="card session-browser-nav">
                 <div class="session-nav-header">
@@ -3502,15 +4269,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (callSessions.length) {
         this.resetSessionBrowser('');
         el.innerHTML = `
-          <div class="card calls-panel">
-            <div class="calls-panel-header">
-              <div>
-                <div class="card-title">调用轨迹</div>
-                <div class="calls-heading">Runtime Calls</div>
-                <div class="calls-subtitle">当前 Run 没有 JSONL 对话文件，仅发现 runtime calls 记录；这里展示的是底层 Pi 调用、重试与关联文件。</div>
+          <div class="session-content-stack">
+            ${traceHtml}
+            <div class="card calls-panel">
+              <div class="calls-panel-header">
+                <div>
+                  <div class="card-title">调用轨迹</div>
+                  <div class="calls-heading">Runtime Calls</div>
+                  <div class="calls-subtitle">当前 Run 没有 JSONL 对话文件，仅发现 runtime calls 记录；这里展示的是底层 Pi 调用、重试与关联文件。</div>
+                </div>
               </div>
+              ${this.renderCallSessions(callSessions)}
             </div>
-            ${this.renderCallSessions(callSessions)}
           </div>
         `;
         this.restoreSessionScrollSnapshot(scrollSnapshot);
@@ -3518,7 +4288,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
 
       this.resetSessionBrowser('');
-      el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+      el.innerHTML = traceHtml
+        ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录</div></div>`
+        : '<div class="empty-state">暂无会话记录</div>';
       this.restoreSessionScrollSnapshot(scrollSnapshot);
     },
 
@@ -3544,7 +4316,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       `;
       const groupsHtml = callSessions.map((s: any) => {
         const calls = Array.isArray(s.calls) ? s.calls : [];
+        const latestTurn = calls.reduce((max: number, c: any) => Math.max(max, Number(c.turn || 0)), 0);
         const callHtml = calls.map((c: any) => {
+          const executionMeta = this.getCallExecutionMeta(s, c, { isLatestInSession: Number(c.turn || 0) === latestTurn });
           const attempts = Array.isArray(c.attempts) ? c.attempts : [];
           const attemptCount = attempts.length;
           const timeoutFailures = Number(c.timeout_failures || 0);
@@ -3597,6 +4371,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                   <span class="call-size"><span class="call-metric-label">Output</span><span class="call-metric-value">${this.fmtSize(outputBytes)}</span></span>
                   <span class="call-duration"><span class="call-metric-label">Duration</span><span class="call-metric-value">${c.duration_ms ? (Number(c.duration_ms) / 1000).toFixed(1) + 's' : '-'}</span></span>
                 </div>
+                <div class="call-stage-row">${this.renderExecutionTraceMiniBadges(executionMeta)}</div>
                 <div class="call-files-row">
                   <span class="call-files-label">关联文件</span>
                   <div class="file-actions">${fileActions || '<span class="text-muted">无关联文件</span>'}</div>
@@ -4957,6 +5732,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         succeeded: '成功',
         failed: '失败',
         running: '运行中',
+        started: '进行中',
+        recorded: '已记录',
+        retrying: '重试中',
+        soft_failed: '软失败',
         runtime_lost: '运行失联',
         passed: '通过',
         pending: '等待',
