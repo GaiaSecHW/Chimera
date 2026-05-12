@@ -2393,6 +2393,10 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   result_json?: Record<string, any> | null;
   stages_json?: AppSaStagesJson | null;
   task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; start_stage?: number; resume_workspace?: string } | null;
+  /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string } | null;
+  /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project' } | null;
 }
 
 export interface AppSaTaskResultSummary {
