@@ -18,6 +18,7 @@ interface Props {
 }
 
 type B2SItem = B2STaskDetail['items'][number];
+type DetailTab = 'overview' | 'result' | 'execution';
 
 const PHASE_LABELS: Record<string, string> = {
   queued: '排队中',
@@ -321,6 +322,7 @@ const fileKindLabel = (path: string) => {
 export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, onOpenAdvanced }) => {
   const executionApi = api.domains.execution;
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [loading, setLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -531,6 +533,18 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const primaryActiveItem = detail?.items.find((item) => !B2S_TERMINAL_STATUSES.has(item.status)) || detail?.items.find((item) => item.status === 'failed') || detail?.items[0];
   const primaryActivePresentation = primaryActiveItem ? (itemPresentations[primaryActiveItem.id] || itemProgressPresentation(primaryActiveItem)) : null;
   const actionableFailures = detail?.items.filter((item) => item.status === 'failed' || item.error_reason).slice(0, 3) || [];
+  const taskStartedAt = detail?.items
+    .map((item) => item.started_at ? parseBackendTimeMs(item.started_at) : NaN)
+    .filter((value) => !Number.isNaN(value))
+    .sort((a, b) => a - b)[0];
+  const taskFinishedAt = detail && terminal
+    ? detail.items
+      .map((item) => item.finished_at ? parseBackendTimeMs(item.finished_at) : NaN)
+      .filter((value) => !Number.isNaN(value))
+      .sort((a, b) => b - a)[0]
+    : undefined;
+  const firstInputPath = detail?.items[0]?.elf_path || '-';
+  const primaryOutputDir = primaryActiveItem?.output_dir || detail?.items.find((item) => item.output_dir)?.output_dir || '-';
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
@@ -642,24 +656,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               </div>
             </div>
 
-            {actionableFailures.length > 0 && (
-              <div className="border-t border-rose-100 bg-rose-50/80 px-7 py-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rose-600" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-black text-rose-900">失败诊断</div>
-                    <div className="mt-2 space-y-2">
-                      {actionableFailures.map((item) => (
-                        <div key={item.id} className="rounded-xl border border-rose-100 bg-white px-3 py-2 text-xs font-semibold text-rose-800">
-                          <span className="font-black">#{item.sequence_no} {fileNameOf(item.elf_path)}：</span>{item.error_reason || item.failure_type || '未知错误'}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-7 py-5 lg:flex-row lg:items-center lg:justify-end">
               <div className="flex flex-wrap items-center gap-3">
                 {detail && !B2S_TERMINAL_STATUSES.has(detail.status) && (
@@ -705,303 +701,428 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         )}
       </section>
 
-      {detail && generatedFiles.length > 0 && (
-        <section id="b2s-results" className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-2 border-b border-emerald-100 bg-emerald-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">还原结果</h2>
+      {detail ? (
+        <>
+          <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: 'overview' as DetailTab, label: '总览' },
+                { id: 'result' as DetailTab, label: '还原结果' },
+                { id: 'execution' as DetailTab, label: '执行明细' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
+                    activeTab === tab.id
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-            <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{generatedFiles.length} 个文件</div>
-          </div>
-          <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[440px_minmax(0,1fr)]">
-            <aside className="border-b border-slate-200 bg-slate-50/70 lg:border-b-0 lg:border-r">
-              <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">文件列表</div>
-              <div className="max-h-[520px] overflow-auto p-3">
-                {generatedFiles.map(({ item, path }) => {
-                  const active = selectedResultPath === path;
-                  return (
-                    <button
-                      key={`${item.id}-${path}`}
-                      type="button"
-                      onClick={() => setSelectedResultPath(path)}
-                      className={`mb-2 flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all ${active ? 'border-emerald-300 bg-white shadow-sm ring-2 ring-emerald-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}
-                    >
-                      <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                        {languageFromPath(path) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-start gap-2">
-                          <div className="break-words text-sm font-black leading-5 text-slate-900 [overflow-wrap:anywhere]" title={fileNameOf(path)}>{fileNameOf(path)}</div>
-                          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">{fileKindLabel(path)}</span>
-                        </div>
-                        <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={path}>#{item.sequence_no} · {projectPathFromStoragePath(projectId, path)}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </aside>
-            <div className="min-w-0 bg-slate-950">
-              <div className="flex min-h-[48px] items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-4 py-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-black text-slate-100" title={fileNameOf(selectedResultPath)}>{fileNameOf(selectedResultPath)}</div>
-                  <div className="mt-0.5 truncate font-mono text-[11px] text-slate-400" title={selectedResultPath}>{projectPathFromStoragePath(projectId, selectedResultPath)}</div>
-                </div>
-                <div className="shrink-0 rounded-full bg-slate-800 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
-                  {languageFromPath(selectedResultPath)}
-                </div>
-              </div>
-              <div className="h-[520px]">
-                {previewLoading ? (
-                  <div className="flex h-full items-center justify-center gap-2 text-sm font-bold text-slate-400">
-                    <Loader2 size={18} className="animate-spin" />
-                    加载预览中...
+          </section>
+
+          {activeTab === 'overview' ? (
+            <>
+              <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
+                  <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">任务 ID</div>
+                      <div className="mt-1 font-mono text-sm text-slate-800">{detail.id}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行模式</div>
+                      <div className="mt-1 text-sm font-semibold text-slate-800">{modeLabel}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
+                      <div className="mt-1 text-sm font-semibold text-slate-800">{formatDateTime(detail.created_at)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">开始时间</div>
+                      <div className="mt-1 text-sm font-semibold text-slate-800">{taskStartedAt ? formatDateTime(new Date(taskStartedAt).toISOString()) : '-'}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">更新时间</div>
+                      <div className="mt-1 text-sm font-semibold text-slate-800">{formatDateTime(detail.updated_at)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完成时间</div>
+                      <div className="mt-1 text-sm font-semibold text-slate-800">{taskFinishedAt ? formatDateTime(new Date(taskFinishedAt).toISOString()) : '-'}</div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">任务名称</div>
+                      <div className="mt-1 text-sm font-semibold text-slate-700">{detail.name || '-'}</div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输入 ELF</div>
+                      <div className="mt-1 break-all font-mono text-xs text-slate-700">{firstInputPath}</div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出目录</div>
+                      <div className="mt-1 break-all font-mono text-xs text-slate-700">{primaryOutputDir}</div>
+                    </div>
                   </div>
-                ) : previewError ? (
-                  <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-rose-300">{previewError}</div>
-                ) : (
-                  <Editor
-                    height="100%"
-                    language={languageFromPath(selectedResultPath)}
-                    value={previewContent}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      lineNumbers: 'on',
-                      scrollBeyondLastLine: false,
-                      wordWrap: 'off',
-                      automaticLayout: true,
-                      renderWhitespace: 'selection',
-                    }}
-                  />
-                )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前焦点</h2>
+                    {primaryActiveItem ? (
+                      <div className="mt-4">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">#{primaryActiveItem.sequence_no}</span>
+                          <div className="min-w-0 truncate text-sm font-black text-slate-900" title={primaryActiveItem.elf_path}>{fileNameOf(primaryActiveItem.elf_path)}</div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+                          <div className="rounded-xl bg-slate-50 px-3 py-2">阶段：<span className="font-black text-slate-800">{formatPhaseLabel(primaryActiveItem.phase, primaryActiveItem.phase_label)}</span></div>
+                          <div className="rounded-xl bg-slate-50 px-3 py-2">进度：<span className="font-black text-slate-800">{primaryActivePresentation?.label || '-'}</span></div>
+                          <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2">当前函数：<span className="font-black text-slate-800">{primaryActiveItem.progress?.current_function || '-'}</span></div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 text-sm font-semibold text-slate-500">暂无 item</div>
+                    )}
+                  </div>
+                  <TaskOriginCard origin={detail} />
+                </div>
+              </section>
+
+              {actionableFailures.length > 0 && (
+                <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rose-600" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-black text-rose-900">失败诊断</div>
+                      <div className="mt-2 space-y-2">
+                        {actionableFailures.map((item) => (
+                          <div key={item.id} className="rounded-xl border border-rose-100 bg-white px-3 py-2 text-xs font-semibold text-rose-800">
+                            <span className="font-black">#{item.sequence_no} {fileNameOf(item.elf_path)}：</span>{item.error_reason || item.failure_type || '未知错误'}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+            </>
+          ) : null}
+
+          {activeTab === 'result' ? (
+            generatedFiles.length > 0 ? (
+              <section id="b2s-results" className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-sm">
+                <div className="flex flex-col gap-2 border-b border-emerald-100 bg-emerald-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">还原结果</h2>
+                    <p className="mt-1 text-xs text-slate-500">浏览当前任务已生成的头文件、还原源码和辅助产物。</p>
+                  </div>
+                  <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{generatedFiles.length} 个文件</div>
+                </div>
+                <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[440px_minmax(0,1fr)]">
+                  <aside className="border-b border-slate-200 bg-slate-50/70 lg:border-b-0 lg:border-r">
+                    <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">文件列表</div>
+                    <div className="max-h-[520px] overflow-auto p-3">
+                      {generatedFiles.map(({ item, path }) => {
+                        const active = selectedResultPath === path;
+                        return (
+                          <button
+                            key={`${item.id}-${path}`}
+                            type="button"
+                            onClick={() => setSelectedResultPath(path)}
+                            className={`mb-2 flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all ${active ? 'border-emerald-300 bg-white shadow-sm ring-2 ring-emerald-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}
+                          >
+                            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                              {languageFromPath(path) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-start gap-2">
+                                <div className="break-words text-sm font-black leading-5 text-slate-900 [overflow-wrap:anywhere]" title={fileNameOf(path)}>{fileNameOf(path)}</div>
+                                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">{fileKindLabel(path)}</span>
+                              </div>
+                              <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={path}>#{item.sequence_no} · {projectPathFromStoragePath(projectId, path)}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </aside>
+                  <div className="min-w-0 bg-slate-950">
+                    <div className="flex min-h-[48px] items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-4 py-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-black text-slate-100" title={fileNameOf(selectedResultPath)}>{fileNameOf(selectedResultPath)}</div>
+                        <div className="mt-0.5 truncate font-mono text-[11px] text-slate-400" title={selectedResultPath}>{projectPathFromStoragePath(projectId, selectedResultPath)}</div>
+                      </div>
+                      <div className="shrink-0 rounded-full bg-slate-800 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
+                        {languageFromPath(selectedResultPath)}
+                      </div>
+                    </div>
+                    <div className="h-[520px]">
+                      {previewLoading ? (
+                        <div className="flex h-full items-center justify-center gap-2 text-sm font-bold text-slate-400">
+                          <Loader2 size={18} className="animate-spin" />
+                          加载预览中...
+                        </div>
+                      ) : previewError ? (
+                        <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-rose-300">{previewError}</div>
+                      ) : (
+                        <Editor
+                          height="100%"
+                          language={languageFromPath(selectedResultPath)}
+                          value={previewContent}
+                          theme="vs-dark"
+                          options={{
+                            readOnly: true,
+                            minimap: { enabled: false },
+                            fontSize: 13,
+                            lineNumbers: 'on',
+                            scrollBeyondLastLine: false,
+                            wordWrap: 'off',
+                            automaticLayout: true,
+                            renderWhitespace: 'selection',
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            ) : (
+              <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
+                <div className="text-center">
+                  <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">还原结果</div>
+                  <div className="mt-4 text-base font-bold text-slate-800">{terminal ? '当前任务尚未生成可展示的结果文件' : '任务完成后可在此查看还原结果'}</div>
+                  <div className="mt-2 text-sm text-slate-500">现有接口未返回文件时，页面保持空状态，不额外请求新数据源。</div>
+                </div>
+              </section>
+            )
+          ) : null}
+
+          {activeTab === 'execution' ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">执行明细</h2>
+                  <p className="mt-1 text-xs text-slate-500">按 item 展示逆向过程、实时进度、统计信息和错误诊断。</p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs font-black">
+                  <span className="rounded-full bg-blue-50 px-3 py-1.5 text-blue-700">运行 {runningItems}</span>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">成功 {detail.success_items}</span>
+                  <span className="rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">失败 {detail.failed_items}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">取消 {detail.cancelled_items}</span>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
-      )}
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">执行明细</h2>
-          </div>
-          {detail && (
-            <div className="flex flex-wrap gap-2 text-xs font-black">
-              <span className="rounded-full bg-blue-50 px-3 py-1.5 text-blue-700">运行 {runningItems}</span>
-              <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">成功 {detail.success_items}</span>
-              <span className="rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">失败 {detail.failed_items}</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">取消 {detail.cancelled_items}</span>
-            </div>
-          )}
-        </div>
-
-        {!detail ? (
-          <div className="py-10 text-center text-sm text-slate-400">暂无详情数据</div>
-        ) : detail.items.length === 0 ? (
-          <div className="py-10 text-center text-sm text-slate-400">当前任务没有可展示的 item。</div>
-        ) : (
-          <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50/90">
-                  <tr className="text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                    <th className="px-4 py-3">序号</th>
-                    <th className="px-4 py-3">ELF</th>
-                    <th className="px-4 py-3">状态</th>
-                    <th className="px-4 py-3">阶段</th>
-                    <th className="px-4 py-3">进度</th>
-                    <th className="px-4 py-3">函数</th>
-                    <th className="px-4 py-3">批次</th>
-                    <th className="px-4 py-3">耗时</th>
-                    <th className="px-4 py-3">结果文件</th>
-                    <th className="px-4 py-3 text-right">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
-                  {detail.items.map((item) => {
-                    const progress = item.progress;
-                    const progressPresentation = itemPresentations[item.id] || itemProgressPresentation(item);
-                    const progressValueItem = progressPresentation.value;
-                    const expanded = expandedItems[item.id] ?? !(item.status === 'success' || item.status === 'completed');
-                    const itemGeneratedCount = item.generated_files?.length || 0;
-                    const itemPhaseLabel = formatPhaseLabel(item.phase, item.phase_label);
-                    const itemStageIndex = stageIndex(item.phase || item.status);
-                    const itemTerminal = B2S_TERMINAL_STATUSES.has(item.status);
-                    const rowDuration = item.finished_at
-                      ? formatDuration(item.started_at, item.finished_at)
-                      : formatDurationMs(item.started_at ? clockNow - parseBackendTimeMs(item.started_at) : null);
-                    return (
-                      <React.Fragment key={item.id}>
-                        <tr className={`align-top ${item.status === 'failed' ? 'bg-rose-50/40' : ''}`}>
-                          <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-slate-900">#{item.sequence_no}</td>
-                          <td className="px-4 py-4">
-                            <div className="max-w-[280px]">
-                              <div className="truncate text-sm font-black text-slate-900" title={item.elf_path}>{fileNameOf(item.elf_path)}</div>
-                              <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={item.elf_path}>{item.elf_path}</div>
-                              {item.status === 'failed' && (item.error_reason || item.failure_type) ? (
-                                <div className="mt-2 truncate text-xs font-semibold text-rose-700" title={item.error_reason || item.failure_type}>
-                                  {item.error_reason || item.failure_type}
-                                </div>
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-4"><B2SStatusBadge status={item.status} /></td>
-                          <td className="whitespace-nowrap px-4 py-4"><B2SPhaseBadge phase={item.phase} label={itemPhaseLabel} /></td>
-                          <td className="px-4 py-4">
-                            <div className="min-w-[180px]">
-                              <div className="flex items-center justify-between gap-3 text-xs font-black text-slate-600">
-                                <span>{progressPresentation.mode || '实时进度'}</span>
-                                <span>{progressPresentation.label}</span>
-                              </div>
-                              <div className="mt-2">
-                                <B2SProgressBar value={progressValueItem} tone={item.status === 'success' || item.status === 'completed' ? 'emerald' : 'blue'} />
-                              </div>
-                              <div className="mt-2 truncate text-[11px] font-semibold text-slate-500" title={progressPresentation.description || ''}>
-                                {progressPresentation.description || '等待 worker 上报执行信息。'}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">
-                            <span className="font-black text-slate-900">{progress?.completed_functions ?? 0}</span>
-                            <span className="text-slate-400"> / </span>
-                            <span>{progress?.total_functions ?? '-'}</span>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">
-                            <span className="font-black text-slate-900">{progress?.completed_batches ?? 0}</span>
-                            <span className="text-slate-400"> / </span>
-                            <span>{progress?.total_batches ?? 0}</span>
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">{rowDuration}</td>
-                          <td className="px-4 py-4">
-                            <div className="text-sm font-black text-slate-900">{itemGeneratedCount}</div>
-                            <div className="mt-1 text-[11px] font-semibold text-slate-500">{itemGeneratedCount ? '可预览' : '未生成'}</div>
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex min-w-[180px] flex-col items-stretch gap-2">
-                              {detail.mode === 'deep' && onOpenAdvanced && (
-                                <button
-                                  type="button"
-                                  onClick={() => onOpenAdvanced(item.id)}
-                                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
-                                >
-                                  <Code2 size={14} />
-                                  查看高级信息
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setExpandedItems((current) => ({ ...current, [item.id]: !expanded }))}
-                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
-                              >
-                                {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                {expanded ? '收起明细' : '展开明细'}
-                              </button>
-                            </div>
-                          </td>
+              {detail.items.length === 0 ? (
+                <div className="py-10 text-center text-sm text-slate-400">当前任务没有可展示的 item。</div>
+              ) : (
+                <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200">
+                      <thead className="bg-slate-50/90">
+                        <tr className="text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                          <th className="px-4 py-3">序号</th>
+                          <th className="px-4 py-3">ELF</th>
+                          <th className="px-4 py-3">状态</th>
+                          <th className="px-4 py-3">阶段</th>
+                          <th className="px-4 py-3">进度</th>
+                          <th className="px-4 py-3">函数</th>
+                          <th className="px-4 py-3">批次</th>
+                          <th className="px-4 py-3">耗时</th>
+                          <th className="px-4 py-3">结果文件</th>
+                          <th className="px-4 py-3 text-right">操作</th>
                         </tr>
-                        {expanded && (
-                          <tr className="bg-slate-50/70">
-                            <td colSpan={10} className="px-4 py-4">
-                              <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                <div className="flex flex-col gap-3 border-b border-slate-200 pb-3 md:flex-row md:items-center md:justify-between">
-                                  <div>
-                                    <div className="text-sm font-black text-slate-900">执行明细</div>
-                                    <div className="mt-1 text-xs font-semibold text-slate-500">执行路径、阶段消息、运行统计与错误原文。</div>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 bg-white">
+                        {detail.items.map((item) => {
+                          const progress = item.progress;
+                          const progressPresentation = itemPresentations[item.id] || itemProgressPresentation(item);
+                          const progressValueItem = progressPresentation.value;
+                          const expanded = expandedItems[item.id] ?? !(item.status === 'success' || item.status === 'completed');
+                          const itemGeneratedCount = item.generated_files?.length || 0;
+                          const itemPhaseLabel = formatPhaseLabel(item.phase, item.phase_label);
+                          const itemStageIndex = stageIndex(item.phase || item.status);
+                          const itemTerminal = B2S_TERMINAL_STATUSES.has(item.status);
+                          const rowDuration = item.finished_at
+                            ? formatDuration(item.started_at, item.finished_at)
+                            : formatDurationMs(item.started_at ? clockNow - parseBackendTimeMs(item.started_at) : null);
+                          return (
+                            <React.Fragment key={item.id}>
+                              <tr className={`align-top ${item.status === 'failed' ? 'bg-rose-50/40' : ''}`}>
+                                <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-slate-900">#{item.sequence_no}</td>
+                                <td className="px-4 py-4">
+                                  <div className="max-w-[280px]">
+                                    <div className="truncate text-sm font-black text-slate-900" title={item.elf_path}>{fileNameOf(item.elf_path)}</div>
+                                    <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={item.elf_path}>{item.elf_path}</div>
+                                    {item.status === 'failed' && (item.error_reason || item.failure_type) ? (
+                                      <div className="mt-2 truncate text-xs font-semibold text-rose-700" title={item.error_reason || item.failure_type}>
+                                        {item.error_reason || item.failure_type}
+                                      </div>
+                                    ) : null}
                                   </div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">尝试 {progress?.current_attempt ?? '-'}</span>
-                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">当前函数 {progress?.current_function || '-'}</span>
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                                  <div className="space-y-4">
-                                    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
-                                      <div className="mb-3 flex items-center justify-between text-xs font-black text-slate-500">
-                                        <span>ELF 阶段</span>
-                                        <span>{itemPhaseLabel}</span>
-                                      </div>
-                                      <div className="grid grid-cols-7 gap-2">
-                                        {STAGE_ORDER.map((stage, index) => {
-                                          const active = itemTerminal ? stage === 'completed' && (item.status === 'success' || item.status === 'completed') : index === itemStageIndex;
-                                          const done = itemTerminal ? (item.status === 'success' || item.status === 'completed') : index < itemStageIndex;
-                                          const failedHere = (item.status === 'failed' || item.status === 'cancelled') && index === Math.max(0, itemStageIndex);
-                                          return (
-                                            <div key={stage} className="min-w-0">
-                                              <div className={`h-1.5 rounded-full ${failedHere ? 'bg-rose-500' : active ? 'bg-blue-500' : done ? 'bg-emerald-400' : 'bg-slate-200'}`} />
-                                              <div className={`mt-1.5 truncate text-center text-[10px] font-black ${failedHere ? 'text-rose-700' : active ? 'text-blue-700' : done ? 'text-emerald-700' : 'text-slate-400'}`}>{STAGE_LABELS[stage]}</div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-4"><B2SStatusBadge status={item.status} /></td>
+                                <td className="whitespace-nowrap px-4 py-4"><B2SPhaseBadge phase={item.phase} label={itemPhaseLabel} /></td>
+                                <td className="px-4 py-4">
+                                  <div className="min-w-[180px]">
+                                    <div className="flex items-center justify-between gap-3 text-xs font-black text-slate-600">
+                                      <span>{progressPresentation.mode || '实时进度'}</span>
+                                      <span>{progressPresentation.label}</span>
                                     </div>
-
-                                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                      <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">文件路径</div>
-                                      <div className="mt-3 space-y-3">
-                                        <div>
-                                          <div className="text-[11px] font-black text-slate-400">输入 ELF</div>
-                                          <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.elf_path}</div>
-                                        </div>
-                                        <div>
-                                          <div className="text-[11px] font-black text-slate-400">输出目录</div>
-                                          <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.output_dir || '-'}</div>
-                                        </div>
-                                      </div>
+                                    <div className="mt-2">
+                                      <B2SProgressBar value={progressValueItem} tone={item.status === 'success' || item.status === 'completed' ? 'emerald' : 'blue'} />
                                     </div>
-
-                                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                      <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">消息</div>
-                                      <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                                        <div>
-                                          <div className="text-[11px] font-black text-slate-400">阶段消息</div>
-                                          <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{item.phase_message || '-'}</div>
-                                        </div>
-                                        <div>
-                                          <div className="text-[11px] font-black text-slate-400">进度消息</div>
-                                          <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{progress?.message || '-'}</div>
-                                        </div>
-                                      </div>
+                                    <div className="mt-2 truncate text-[11px] font-semibold text-slate-500" title={progressPresentation.description || ''}>
+                                      {progressPresentation.description || '等待 worker 上报执行信息。'}
                                     </div>
                                   </div>
-
-                                  <div className="space-y-4">
-                                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                      <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">运行统计</div>
-                                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
-                                        <div className="rounded-xl bg-slate-50 px-3 py-2">字节<br /><span className="font-black text-slate-900">{formatBytes(progress?.completed_bytes)} / {formatBytes(progress?.total_bytes)}</span></div>
-                                        <div className="rounded-xl bg-slate-50 px-3 py-2">批次<br /><span className="font-black text-slate-900">{progress?.completed_batches ?? 0} / {progress?.total_batches ?? 0}</span></div>
-                                        <div className="rounded-xl bg-slate-50 px-3 py-2">当前批次<br /><span className="font-black text-slate-900">{progress?.current_batch ?? '-'}</span></div>
-                                        <div className="rounded-xl bg-slate-50 px-3 py-2">函数进度<br /><span className="font-black text-slate-900">{progress?.completed_functions ?? 0} / {progress?.total_functions ?? '-'}</span></div>
-                                        <div className="rounded-xl bg-slate-50 px-3 py-2">开始时间<br /><span className="font-black text-slate-900">{formatDateTime(item.started_at)}</span></div>
-                                        <div className="rounded-xl bg-slate-50 px-3 py-2">结束时间<br /><span className="font-black text-slate-900">{formatDateTime(item.finished_at)}</span></div>
-                                      </div>
-                                    </div>
-
-                                    {(item.error_reason || item.failure_type) && (
-                                      <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 p-4">
-                                        <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-400">错误原文</div>
-                                        <div className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700">{item.error_reason || item.failure_type}</div>
-                                      </div>
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">
+                                  <span className="font-black text-slate-900">{progress?.completed_functions ?? 0}</span>
+                                  <span className="text-slate-400"> / </span>
+                                  <span>{progress?.total_functions ?? '-'}</span>
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">
+                                  <span className="font-black text-slate-900">{progress?.completed_batches ?? 0}</span>
+                                  <span className="text-slate-400"> / </span>
+                                  <span>{progress?.total_batches ?? 0}</span>
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">{rowDuration}</td>
+                                <td className="px-4 py-4">
+                                  <div className="text-sm font-black text-slate-900">{itemGeneratedCount}</div>
+                                  <div className="mt-1 text-[11px] font-semibold text-slate-500">{itemGeneratedCount ? '可预览' : '未生成'}</div>
+                                </td>
+                                <td className="px-4 py-4">
+                                  <div className="flex min-w-[180px] flex-col items-stretch gap-2">
+                                    {detail.mode === 'deep' && onOpenAdvanced && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenAdvanced(item.id)}
+                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
+                                      >
+                                        <Code2 size={14} />
+                                        查看高级信息
+                                      </button>
                                     )}
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedItems((current) => ({ ...current, [item.id]: !expanded }))}
+                                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+                                    >
+                                      {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                      {expanded ? '收起明细' : '展开明细'}
+                                    </button>
                                   </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </section>
+                                </td>
+                              </tr>
+                              {expanded && (
+                                <tr className="bg-slate-50/70">
+                                  <td colSpan={10} className="px-4 py-4">
+                                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                                      <div className="flex flex-col gap-3 border-b border-slate-200 pb-3 md:flex-row md:items-center md:justify-between">
+                                        <div>
+                                          <div className="text-sm font-black text-slate-900">执行明细</div>
+                                          <div className="mt-1 text-xs font-semibold text-slate-500">执行路径、阶段消息、运行统计与错误原文。</div>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">尝试 {progress?.current_attempt ?? '-'}</span>
+                                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">当前函数 {progress?.current_function || '-'}</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                                        <div className="space-y-4">
+                                          <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                                            <div className="mb-3 flex items-center justify-between text-xs font-black text-slate-500">
+                                              <span>ELF 阶段</span>
+                                              <span>{itemPhaseLabel}</span>
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-2">
+                                              {STAGE_ORDER.map((stage, index) => {
+                                                const active = itemTerminal ? stage === 'completed' && (item.status === 'success' || item.status === 'completed') : index === itemStageIndex;
+                                                const done = itemTerminal ? (item.status === 'success' || item.status === 'completed') : index < itemStageIndex;
+                                                const failedHere = (item.status === 'failed' || item.status === 'cancelled') && index === Math.max(0, itemStageIndex);
+                                                return (
+                                                  <div key={stage} className="min-w-0">
+                                                    <div className={`h-1.5 rounded-full ${failedHere ? 'bg-rose-500' : active ? 'bg-blue-500' : done ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                                                    <div className={`mt-1.5 truncate text-center text-[10px] font-black ${failedHere ? 'text-rose-700' : active ? 'text-blue-700' : done ? 'text-emerald-700' : 'text-slate-400'}`}>{STAGE_LABELS[stage]}</div>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+
+                                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">文件路径</div>
+                                            <div className="mt-3 space-y-3">
+                                              <div>
+                                                <div className="text-[11px] font-black text-slate-400">输入 ELF</div>
+                                                <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.elf_path}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-[11px] font-black text-slate-400">输出目录</div>
+                                                <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.output_dir || '-'}</div>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">消息</div>
+                                            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                                              <div>
+                                                <div className="text-[11px] font-black text-slate-400">阶段消息</div>
+                                                <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{item.phase_message || '-'}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-[11px] font-black text-slate-400">进度消息</div>
+                                                <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{progress?.message || '-'}</div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">运行统计</div>
+                                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+                                              <div className="rounded-xl bg-slate-50 px-3 py-2">字节<br /><span className="font-black text-slate-900">{formatBytes(progress?.completed_bytes)} / {formatBytes(progress?.total_bytes)}</span></div>
+                                              <div className="rounded-xl bg-slate-50 px-3 py-2">批次<br /><span className="font-black text-slate-900">{progress?.completed_batches ?? 0} / {progress?.total_batches ?? 0}</span></div>
+                                              <div className="rounded-xl bg-slate-50 px-3 py-2">当前批次<br /><span className="font-black text-slate-900">{progress?.current_batch ?? '-'}</span></div>
+                                              <div className="rounded-xl bg-slate-50 px-3 py-2">函数进度<br /><span className="font-black text-slate-900">{progress?.completed_functions ?? 0} / {progress?.total_functions ?? '-'}</span></div>
+                                              <div className="rounded-xl bg-slate-50 px-3 py-2">开始时间<br /><span className="font-black text-slate-900">{formatDateTime(item.started_at)}</span></div>
+                                              <div className="rounded-xl bg-slate-50 px-3 py-2">结束时间<br /><span className="font-black text-slate-900">{formatDateTime(item.finished_at)}</span></div>
+                                            </div>
+                                          </div>
+
+                                          {(item.error_reason || item.failure_type) && (
+                                            <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 p-4">
+                                              <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-400">错误原文</div>
+                                              <div className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700">{item.error_reason || item.failure_type}</div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </section>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 };

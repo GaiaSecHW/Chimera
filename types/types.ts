@@ -2911,8 +2911,9 @@ export interface AppDfaRoleConfig {
 export interface AppDfaServiceConfig {
   project_id: string;
   max_rounds: number;
+  max_rounds_exceeded_review_strategy: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
-  pass_threshold: string;
+  pass_threshold: number;
   agent_max_retries: number;
   agent_retry_delay: number;
   pi_max_retries: number;

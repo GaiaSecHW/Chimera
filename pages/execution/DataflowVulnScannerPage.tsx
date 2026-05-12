@@ -259,6 +259,16 @@ const taskRunDirectoryPath = (task: DataflowScanTask) => {
 
 const taskDisplayStatus = (task: DataflowScanTask) => String(task.status || '');
 
+const vulnReportStatusLabel = (task: DataflowScanTask) => {
+  if (task.auto_report_vulnerabilities === false) return { label: '未开启', className: 'border-slate-200 bg-slate-50 text-slate-500' };
+  const status = String(task.vuln_report_status?.status || 'not_started');
+  if (status === 'reported') return { label: `已上报 ${task.vuln_report_status?.reported || 0}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+  if (status === 'partial_failed') return { label: '部分失败', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+  if (status === 'failed') return { label: '上报失败', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+  if (status === 'empty') return { label: '无疑点', className: 'border-slate-200 bg-slate-50 text-slate-500' };
+  return { label: '待上报', className: 'border-cyan-200 bg-cyan-50 text-cyan-700' };
+};
+
 const normalizeRunStatus = (status?: string | null) => {
   const value = String(status || '').trim().toLowerCase();
   if (['succeeded', 'success', 'passed'].includes(value)) return 'completed';
@@ -367,6 +377,7 @@ interface CreateTaskState {
   timeoutRetryIntervalSeconds: number;
   resultReviewConcurrency: number;
   runtimeOverridesText: string;
+  autoReportVulnerabilities: boolean;
 }
 
 const initialCreateTaskState = (): CreateTaskState => ({
@@ -383,6 +394,7 @@ const initialCreateTaskState = (): CreateTaskState => ({
   timeoutRetryIntervalSeconds: defaultConfigPayload().timeout_retry_interval_seconds ?? 30,
   resultReviewConcurrency: defaultConfigPayload().result_review_concurrency,
   runtimeOverridesText: '',
+  autoReportVulnerabilities: true,
 });
 
 const applyConfigPayloadToCreateTaskState = (
@@ -665,6 +677,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         data_flow: buildProjectFilesystemRef(createState.dataFlowPath),
         source_dir: buildProjectFilesystemRef(createState.sourcePath),
         ...(createState.workspacePath.trim() ? { workspace_dir: buildProjectFilesystemRef(createState.workspacePath) } : {}),
+        auto_report_vulnerabilities: createState.autoReportVulnerabilities,
         ...configOverrides,
         ...(Object.keys(runtimeOverrides).length ? { runtime_overrides: runtimeOverrides } : {}),
       };
@@ -764,7 +777,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             </div>
 
             <div className="overflow-auto">
-              <table className="w-full min-w-[1180px] text-left text-sm">
+              <table className="w-full min-w-[1280px] text-left text-sm">
                 <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
                   <tr>
                     <th className="px-4 py-3">任务 / Run</th>
@@ -773,6 +786,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     <th className="px-4 py-3">模型</th>
                     <th className="px-4 py-3">轮次</th>
                     <th className="px-4 py-3">结果</th>
+                    <th className="px-4 py-3">疑点上报</th>
                     <th className="px-4 py-3">开始时间</th>
                     <th className="px-4 py-3">耗时</th>
                     <th className="px-4 py-3 text-right">详情</th>
@@ -788,6 +802,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     const executionId = task.latest_execution_id || run.linked_execution_id || '';
                     const displayName = task.title || run.name || taskId || run.path || 'Run';
                     const runPath = taskRunDirectoryPath(task);
+                    const reportStatus = vulnReportStatusLabel(task);
                     const secondaryLine = hasRun
                       ? `任务 ${shortId(taskId, 18)} · Run ${shortId(run.name || '', 18)}`
                       : `任务 ${shortId(taskId, 18)} · 执行 ${shortId(executionId || '-', 18)}`;
@@ -841,6 +856,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <div className="mt-1 text-xs text-slate-500">Execution: {shortId(executionId || '-', 18)}</div>
                             </>
                           )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${reportStatus.className}`}>
+                            {reportStatus.label}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500">
                           {runSummary.start_epoch ? formatEpochTime(runSummary.start_epoch) : formatDateTime(task.started_at || task.created_at)}
@@ -1325,6 +1345,26 @@ const CreateTaskDialog: React.FC<{
               <label>
                 <span className="text-xs font-black text-slate-600">结果评审并发</span>
                 <input type="number" min={1} value={state.resultReviewConcurrency} onChange={(event) => onChange({ ...state, resultReviewConcurrency: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
+              </label>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={state.autoReportVulnerabilities}
+                  onChange={(event) => onChange({ ...state, autoReportVulnerabilities: event.target.checked })}
+                  className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-700 focus:ring-emerald-600"
+                />
+                <span>
+                  <span className="flex items-center gap-2 text-sm font-black text-emerald-950">
+                    <ShieldCheck size={16} />
+                    自动上报漏洞疑点
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-emerald-800">
+                    默认开启。任务成功后会将最终有效的 result_NNN.md 上报到当前项目的漏洞引擎，并记录原始任务 ID、执行 ID 和结果文件路径。
+                  </span>
+                </span>
               </label>
             </div>
 

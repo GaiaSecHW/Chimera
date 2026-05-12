@@ -15,6 +15,7 @@ const defaultRole = (): AppDfaRoleConfig => ({
 const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   project_id: projectId,
   max_rounds: 3,
+  max_rounds_exceeded_review_strategy: 'treat_as_passed',
   min_rounds: 2,
   pass_threshold: 1,
   agent_max_retries: 100,
@@ -154,9 +155,15 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
 
   const mergeConfig = (raw: Partial<AppDfaServiceConfig>): AppDfaServiceConfig => {
     const base = defaultConfig(projectId);
+    const normalizedPassThreshold = typeof raw.pass_threshold === 'number'
+      ? raw.pass_threshold
+      : Number(raw.pass_threshold);
     return {
       ...base,
       ...raw,
+      pass_threshold: Number.isFinite(normalizedPassThreshold) && normalizedPassThreshold > 0
+        ? normalizedPassThreshold
+        : base.pass_threshold,
       project_id: projectId,
       workers: { ...base.workers, ...(raw.workers && typeof raw.workers === 'object' ? raw.workers : {}) },
       judges: { ...base.judges, ...(raw.judges && typeof raw.judges === 'object' ? raw.judges : {}) },
@@ -269,6 +276,23 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
               </FieldRow>
               <FieldRow label="pass_threshold" hint="通过所需裁判数">
                 <NumberInput value={config.pass_threshold} min={1} max={10} onChange={(v) => patch({ pass_threshold: v })} />
+              </FieldRow>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <FieldRow
+                label="max_rounds_exceeded_review_strategy"
+                hint="达到最大轮次且评审仍未通过时的处理策略"
+              >
+                <select
+                  value={config.max_rounds_exceeded_review_strategy}
+                  onChange={(e) => patch({
+                    max_rounds_exceeded_review_strategy: e.target.value as AppDfaServiceConfig['max_rounds_exceeded_review_strategy'],
+                  })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                >
+                  <option value="treat_as_passed">默认通过并继续后续流程</option>
+                  <option value="treat_as_failed">判定失败并终止</option>
+                </select>
               </FieldRow>
             </div>
           </SectionCard>
