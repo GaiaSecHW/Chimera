@@ -56,6 +56,11 @@ export interface FirmwareUnpackTask {
   skill_generation_job_id: string | null;
   skill_generation_started_at: string | null;
   skill_generation_completed_at: string | null;
+  latest_evolution_job_id: string | null;
+  latest_evolution_status: string | null;
+  latest_evolution_started_at: string | null;
+  latest_evolution_completed_at: string | null;
+  latest_evolution_final_skill_path: string | null;
   created_at: string | null;
   started_at: string | null;
   completed_at: string | null;
@@ -181,6 +186,11 @@ export interface FirmwareTaskResultSummary {
   skill_generation_job_id: string | null;
   skill_generation_started_at: string | null;
   skill_generation_completed_at: string | null;
+  latest_evolution_job: string | null;
+  latest_evolution_status: string | null;
+  latest_evolution_started_at: string | null;
+  latest_evolution_completed_at: string | null;
+  latest_evolution_final_skill_path: string | null;
   executor_rounds: number;
   session_count: number;
   event_count: number;
@@ -202,6 +212,73 @@ export interface FirmwareTaskResult {
   reason_text: string | null;
   warnings: string[];
   summary: FirmwareTaskResultSummary;
+}
+
+export interface FirmwareEvolutionSubmitResult {
+  job_id: string;
+  status: string;
+  max_rounds: number;
+}
+
+export interface FirmwareEvolutionRound {
+  id: string;
+  job_id: string;
+  round: number;
+  status: string;
+  tool_skill_path_before: string | null;
+  tool_skill_path_after: string | null;
+  tool_changed: boolean;
+  review_result: string | null;
+  summary_path: string | null;
+  reason_path: string | null;
+  source_skill_path: string | null;
+  started_without_matched_skill: boolean;
+  generated_new_skill: boolean;
+  executed_tool: boolean;
+  tool_response_preview: string | null;
+  created_at: string | null;
+  completed_at: string | null;
+}
+
+export interface FirmwareEvolutionJob {
+  id: string;
+  task_id: string;
+  project_id: string | null;
+  status: string;
+  current_round: number | null;
+  max_rounds: number;
+  current_stage: string | null;
+  owner_id: string | null;
+  lease_expires_at: string | null;
+  attempts: number;
+  error_message: string | null;
+  created_by: string | null;
+  created_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  final_skill_path: string | null;
+  replaced_skill_path: string | null;
+  review_passed: boolean;
+  source_skill_path: string | null;
+  working_skill_path: string | null;
+  generated_new_skill: boolean;
+  started_without_matched_skill: boolean;
+  run_root: string | null;
+  session_root: string | null;
+  task_output_path: string | null;
+  round_count: number;
+  rounds: FirmwareEvolutionRound[];
+}
+
+export interface FirmwareEvolutionJobList {
+  total: number;
+  items: FirmwareEvolutionJob[];
+}
+
+export interface FirmwareEvolutionSessionIndex {
+  version: number;
+  session_root: string | null;
+  items: FirmwareSessionIndexItem[];
 }
 
 export interface FirmwareTaskMetricsTask {
@@ -567,6 +644,11 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
     skill_generation_job_id: asNullableString(record.skill_generation_job_id),
     skill_generation_started_at: asNullableString(record.skill_generation_started_at),
     skill_generation_completed_at: asNullableString(record.skill_generation_completed_at),
+    latest_evolution_job_id: asNullableString(record.latest_evolution_job_id),
+    latest_evolution_status: asNullableString(record.latest_evolution_status),
+    latest_evolution_started_at: asNullableString(record.latest_evolution_started_at),
+    latest_evolution_completed_at: asNullableString(record.latest_evolution_completed_at),
+    latest_evolution_final_skill_path: asNullableString(record.latest_evolution_final_skill_path),
     created_at: asNullableString(record.created_at),
     started_at: asNullableString(record.started_at),
     completed_at: asNullableString(record.completed_at),
@@ -751,6 +833,11 @@ const normalizeTaskResult = (value: unknown): FirmwareTaskResult => {
       skill_generation_job_id: asNullableString(summary.skill_generation_job_id),
       skill_generation_started_at: asNullableString(summary.skill_generation_started_at),
       skill_generation_completed_at: asNullableString(summary.skill_generation_completed_at),
+      latest_evolution_job: asNullableString(summary.latest_evolution_job),
+      latest_evolution_status: asNullableString(summary.latest_evolution_status),
+      latest_evolution_started_at: asNullableString(summary.latest_evolution_started_at),
+      latest_evolution_completed_at: asNullableString(summary.latest_evolution_completed_at),
+      latest_evolution_final_skill_path: asNullableString(summary.latest_evolution_final_skill_path),
       executor_rounds: asNumber(summary.executor_rounds, 0),
       session_count: asNumber(summary.session_count, 0),
       event_count: asNumber(summary.event_count, 0),
@@ -1107,6 +1194,90 @@ const normalizeSubmitResult = (value: unknown): FirmwareUnpackSubmitResult => {
   };
 };
 
+const normalizeEvolutionSubmitResult = (value: unknown): FirmwareEvolutionSubmitResult => {
+  const record = asRecord(value);
+  return {
+    job_id: asString(record.job_id),
+    status: asString(record.status, 'pending'),
+    max_rounds: asNumber(record.max_rounds, 3),
+  };
+};
+
+const normalizeEvolutionRound = (value: unknown): FirmwareEvolutionRound => {
+  const record = asRecord(value);
+  return {
+    id: asString(record.id),
+    job_id: asString(record.job_id),
+    round: asNumber(record.round, 0),
+    status: asString(record.status, 'unknown'),
+    tool_skill_path_before: asNullableString(record.tool_skill_path_before),
+    tool_skill_path_after: asNullableString(record.tool_skill_path_after),
+    tool_changed: asBoolean(record.tool_changed),
+    review_result: asNullableString(record.review_result),
+    summary_path: asNullableString(record.summary_path),
+    reason_path: asNullableString(record.reason_path),
+    source_skill_path: asNullableString(record.source_skill_path),
+    started_without_matched_skill: asBoolean(record.started_without_matched_skill),
+    generated_new_skill: asBoolean(record.generated_new_skill),
+    executed_tool: asBoolean(record.executed_tool),
+    tool_response_preview: asNullableString(record.tool_response_preview),
+    created_at: asNullableString(record.created_at),
+    completed_at: asNullableString(record.completed_at),
+  };
+};
+
+const normalizeEvolutionJob = (value: unknown): FirmwareEvolutionJob => {
+  const record = asRecord(value);
+  return {
+    id: asString(record.id),
+    task_id: asString(record.task_id),
+    project_id: asNullableString(record.project_id),
+    status: asString(record.status, 'unknown'),
+    current_round: asNullableNumber(record.current_round),
+    max_rounds: asNumber(record.max_rounds, 3),
+    current_stage: asNullableString(record.current_stage),
+    owner_id: asNullableString(record.owner_id),
+    lease_expires_at: asNullableString(record.lease_expires_at),
+    attempts: asNumber(record.attempts, 0),
+    error_message: asNullableString(record.error_message),
+    created_by: asNullableString(record.created_by),
+    created_at: asNullableString(record.created_at),
+    started_at: asNullableString(record.started_at),
+    completed_at: asNullableString(record.completed_at),
+    final_skill_path: asNullableString(record.final_skill_path),
+    replaced_skill_path: asNullableString(record.replaced_skill_path),
+    review_passed: asBoolean(record.review_passed),
+    source_skill_path: asNullableString(record.source_skill_path),
+    working_skill_path: asNullableString(record.working_skill_path),
+    generated_new_skill: asBoolean(record.generated_new_skill),
+    started_without_matched_skill: asBoolean(record.started_without_matched_skill),
+    run_root: asNullableString(record.run_root),
+    session_root: asNullableString(record.session_root),
+    task_output_path: asNullableString(record.task_output_path),
+    round_count: asNumber(record.round_count, 0),
+    rounds: asArray(record.rounds).map(normalizeEvolutionRound),
+  };
+};
+
+const normalizeEvolutionJobList = (value: unknown): FirmwareEvolutionJobList => {
+  const record = asRecord(value);
+  const items = asArray(record.items).map(normalizeEvolutionJob);
+  return {
+    total: asNumber(record.total, items.length),
+    items,
+  };
+};
+
+const normalizeEvolutionSessionIndex = (value: unknown): FirmwareEvolutionSessionIndex => {
+  const record = asRecord(value);
+  const normalized = normalizeFirmwareSessionIndex(value);
+  return {
+    version: normalized.version,
+    session_root: asNullableString(record.session_root),
+    items: normalized.items,
+  };
+};
+
 const normalizeToolEntry = (value: unknown): FirmwareToolEntry => {
   const record = asRecord(value);
   return {
@@ -1213,6 +1384,52 @@ export const firmwareUnpackerApi = {
   getTaskMetrics: async (taskId: string): Promise<FirmwareTaskMetrics> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/metrics`, { headers: getHeaders() });
     return normalizeTaskMetrics(await handleResponse(r));
+  },
+
+  /** POST /api/app/firmware-unpacker/projects/{project_id}/tasks/{id}/evolution */
+  createEvolutionJob: async (taskId: string, projectId?: string | null): Promise<FirmwareEvolutionSubmitResult> => {
+    const path = projectId
+      ? `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(projectId)}/tasks/${taskId}/evolution`
+      : `${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/evolution`;
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return normalizeEvolutionSubmitResult(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/projects/{project_id}/tasks/{id}/evolution-jobs */
+  listEvolutionJobs: async (taskId: string, projectId?: string | null): Promise<FirmwareEvolutionJobList> => {
+    const path = projectId
+      ? `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(projectId)}/tasks/${taskId}/evolution-jobs`
+      : `${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/evolution-jobs`;
+    const r = await fetch(path, { headers: getHeaders() });
+    return normalizeEvolutionJobList(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/evolution-jobs/{id} */
+  getEvolutionJob: async (jobId: string): Promise<FirmwareEvolutionJob> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}`, { headers: getHeaders() });
+    return normalizeEvolutionJob(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/evolution-jobs/{id}/rounds */
+  getEvolutionRounds: async (jobId: string): Promise<FirmwareEvolutionRound[]> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/rounds`, { headers: getHeaders() });
+    return asArray(await handleResponse(r)).map(normalizeEvolutionRound);
+  },
+
+  /** GET /api/app/firmware-unpacker/evolution-jobs/{id}/sessions */
+  getEvolutionSessions: async (jobId: string): Promise<FirmwareEvolutionSessionIndex> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/sessions`, { headers: getHeaders() });
+    return normalizeEvolutionSessionIndex(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/evolution-jobs/{id}/logs */
+  getEvolutionLogs: async (jobId: string, round: number, role: string): Promise<FirmwareTaskLog> => {
+    const query = new URLSearchParams({ round: String(round), role });
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/logs?${query.toString()}`, { headers: getHeaders() });
+    return normalizeTaskLog(await handleResponse(r));
   },
 
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */

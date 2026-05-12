@@ -15,6 +15,7 @@ const LLM_ROLE_FIELDS = [
   { key: 'llm_config_file_key_cleaner', label: '清理器', description: '绑定清理器使用的 models.json 配置文件。' },
   { key: 'llm_config_file_key_skill_author', label: '技能生成器', description: '绑定技能生成器使用的 models.json 配置文件。' },
   { key: 'llm_config_file_key_skill_executor', label: '命中技能执行器', description: '绑定命中技能执行器使用的 models.json 配置文件。' },
+  { key: 'llm_config_file_key_evolution_improver', label: '工具进化器', description: '绑定工具进化器使用的 models.json 配置文件。' },
 ] as const;
 const LLM_MODEL_FIELDS: Record<string, string> = {
   llm_config_file_key_executor: 'llm_model_executor',
@@ -22,6 +23,7 @@ const LLM_MODEL_FIELDS: Record<string, string> = {
   llm_config_file_key_cleaner: 'llm_model_cleaner',
   llm_config_file_key_skill_author: 'llm_model_skill_author',
   llm_config_file_key_skill_executor: 'llm_model_skill_executor',
+  llm_config_file_key_evolution_improver: 'llm_model_evolution_improver',
 };
 const REUSE_AGENT_FIELDS: Record<string, string> = {
   llm_config_file_key_executor: 'reuse_agent_between_rounds_executor',
@@ -29,6 +31,7 @@ const REUSE_AGENT_FIELDS: Record<string, string> = {
   llm_config_file_key_cleaner: 'reuse_agent_between_rounds_cleaner',
   llm_config_file_key_skill_author: 'reuse_agent_between_rounds_skill_author',
   llm_config_file_key_skill_executor: 'reuse_agent_between_rounds_skill_executor',
+  llm_config_file_key_evolution_improver: 'reuse_agent_between_rounds_evolution_improver',
 };
 const MAX_RETRIES_ACTION_OPTIONS = [
   { value: 'success', label: '通过', description: '达到最大重试次数后，任务按成功收敛。' },
