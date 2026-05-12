@@ -95,6 +95,8 @@ export interface DataflowScanTask {
   run_path?: string | null;
   run?: Partial<DataflowRunSummary> | null;
   latest_run?: Partial<DataflowRunSummary> | null;
+  auto_report_vulnerabilities?: boolean;
+  vuln_report_status?: Record<string, any>;
 }
 
 export interface DataflowScanTaskDetail extends DataflowScanTask {
@@ -182,6 +184,7 @@ export interface DataflowCreateTaskPayload {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  auto_report_vulnerabilities?: boolean;
 }
 
 export interface DataflowProfilePayload {
@@ -325,6 +328,17 @@ export interface DataflowRunMutationResponse {
   process_signal?: string | null;
 }
 
+export interface DataflowVulnReportResponse {
+  status: string;
+  enabled: boolean;
+  total: number;
+  reported: number;
+  failed: number;
+  pending: number;
+  items: Record<string, any>[];
+  error?: string | null;
+}
+
 export interface DataflowRunRetryPayload {
   extra_cycles?: number;
   model?: string | null;
@@ -442,6 +456,15 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
+  reportRunVulnerabilities: async (runId: string, resultFiles: string[]): Promise<DataflowVulnReportResponse> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/report-vulnerabilities`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ result_files: resultFiles }),
+    });
+    return handleResponse(response);
+  },
+
   getRunCycle: async (runId: string, cycle: number): Promise<DataflowRunCycle> => {
     const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/cycles/${cycle}`, { headers: getHeaders() });
     return handleResponse(response);
@@ -507,14 +530,6 @@ export const dataflowVulnScannerApi = {
 
   cancelTask: async (taskId: string): Promise<DataflowScanTask> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/cancel`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    return handleResponse(response);
-  },
-
-  retryTask: async (taskId: string): Promise<DataflowScanTask> => {
-    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/retry`, {
       method: 'POST',
       headers: getHeaders(),
     });

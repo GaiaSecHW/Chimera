@@ -667,6 +667,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 .cycle-metrics,
 .issue-item,
 .review-card,
+.call-row,
 .file-row,
 .accordion-header,
 .accordion-body,
@@ -773,6 +774,11 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   font-size: 13px;
 }
 
+.session-content-stack {
+  display: grid;
+  gap: 18px;
+}
+
 .session-browser-shell {
   display: grid;
   grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
@@ -786,7 +792,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 }
 
 .session-browser-nav {
-  overflow: hidden;
+  overflow: visible;
   border-radius: 24px;
 }
 
@@ -900,6 +906,139 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   max-height: calc(100vh - 330px);
   overflow: auto;
   padding-right: 2px;
+}
+
+.session-call-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.calls-panel {
+  overflow: visible;
+}
+
+.calls-panel .session-group {
+  margin-bottom: 18px;
+  padding: 0;
+}
+
+.calls-panel .session-group:last-child {
+  margin-bottom: 0;
+}
+
+.call-row {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  font-size: 11px;
+  min-width: 0;
+}
+
+.call-row:last-child {
+  margin-bottom: 0;
+}
+
+.call-head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.call-head-main {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.call-turn {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: var(--text-bright);
+}
+
+.call-agent {
+  min-width: 0;
+  color: var(--purple);
+  overflow-wrap: anywhere;
+}
+
+.call-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.call-size,
+.call-duration {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.call-status {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.call-files-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.call-files-label {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.session-call-list .file-actions {
+  display: flex;
+  min-width: 0;
+  margin-left: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.call-note,
+.call-error {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.call-note {
+  color: #64748b;
+}
+
+.call-error {
+  color: var(--error);
 }
 
 .log-viewer {
@@ -1659,6 +1798,24 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   .file-jsonl-hint {
     grid-template-columns: 1fr;
     text-align: center;
+  }
+
+  .call-row {
+    align-items: start;
+  }
+
+  .call-head,
+  .call-status {
+    justify-content: flex-start;
+  }
+
+  .call-status,
+  .session-call-list .file-actions {
+    width: 100%;
+  }
+
+  .call-files-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .file-row {
@@ -2984,6 +3141,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
 
       const jsonlSessions = this.getJsonlSessions(sessions);
+      const callSessions = sessions.filter((s: any) => Array.isArray(s.calls) && s.calls.length > 0);
       const selectedPath = this.selectSessionPathForRender(jsonlSessions);
       const selectedChanged = selectedPath !== this.sessionBrowser.selectedPath || this.sessionBrowser.selectedRun !== this.currentRun;
       if (selectedChanged) {
@@ -2991,6 +3149,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
 
       if (jsonlSessions.length) {
+        const callsHtml = callSessions.length ? `
+          <div class="card calls-panel">
+            <div class="card-title">CALLS 调用轨迹</div>
+            <div class="text-muted" style="font-size:12px;margin:4px 0 12px">按 runtime call 聚合展示 prompt、响应、stdout/stderr 与重试/截断状态。</div>
+            ${this.renderCallSessions(callSessions)}
+          </div>
+        ` : '';
         const navHtml = jsonlSessions.map((s: any) => {
           const path = this.getSessionPath(s);
           const selected = path === selectedPath;
@@ -3010,18 +3175,21 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           `;
         }).join('');
         el.innerHTML = `
-          <div class="session-browser-shell">
-            <div class="card session-browser-nav">
-              <div class="session-nav-header">
-                <div>
-                  <div class="card-title">智能体会话</div>
-                  <div class="text-muted" style="font-size:12px;margin-top:4px">${jsonlSessions.length} 个 JSONL 对话文件</div>
+          <div class="session-content-stack">
+            <div class="session-browser-shell">
+              <div class="card session-browser-nav">
+                <div class="session-nav-header">
+                  <div>
+                    <div class="card-title">智能体会话</div>
+                    <div class="text-muted" style="font-size:12px;margin-top:4px">${jsonlSessions.length} 个 JSONL 对话文件</div>
+                  </div>
+                  <button class="btn btn-sm" type="button" data-action="refresh-sessions">刷新</button>
                 </div>
-                <button class="btn btn-sm" type="button" data-action="refresh-sessions">刷新</button>
+                <div class="session-nav-list">${navHtml}</div>
               </div>
-              <div class="session-nav-list">${navHtml}</div>
+              <div id="sessionViewerPane" class="card session-viewer-pane">${this.renderSessionViewerPane()}</div>
             </div>
-            <div id="sessionViewerPane" class="card session-viewer-pane">${this.renderSessionViewerPane()}</div>
+            ${callsHtml}
           </div>
         `;
         if (selectedPath && !this.sessionBrowser.loading && !this.sessionBrowser.data) {
@@ -3036,8 +3204,90 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         return;
       }
 
+      if (callSessions.length) {
+        this.resetSessionBrowser('');
+        el.innerHTML = `
+          <div class="card calls-panel">
+            <div class="card-title">CALLS 调用轨迹</div>
+            <div class="text-muted" style="font-size:12px;margin:4px 0 12px">当前 Run 没有 JSONL 对话文件，仅发现 runtime calls 记录。</div>
+            ${this.renderCallSessions(callSessions)}
+          </div>
+        `;
+        return;
+      }
+
       this.resetSessionBrowser('');
       el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+    },
+
+    renderCallSessions(callSessions: DataflowFileserverRunSession[]) {
+      return callSessions.map((s: any) => {
+        const calls = Array.isArray(s.calls) ? s.calls : [];
+        const callHtml = calls.map((c: any) => {
+          const attempts = Array.isArray(c.attempts) ? c.attempts : [];
+          const attemptCount = attempts.length;
+          const timeoutFailures = Number(c.timeout_failures || 0);
+          const timeoutLimitRaw = Number(c.timeout_max_retries);
+          const timeoutLimit = Number.isFinite(timeoutLimitRaw) ? timeoutLimitRaw : 0;
+          const restartedAttempts = attempts.filter((a: any) =>
+            a && a.retry_kind === 'runtime_timeout_restart' && a.will_retry
+          ).length;
+          const effectiveSessionId = String(c.effective_session_id || '');
+          const switchedSession = effectiveSessionId && effectiveSessionId !== String(s.session_id || '');
+          const outputBytes = Number(c.output_total_bytes || c.output_len || 0);
+          const stdoutTraceLimit = Number((c.trace_limits || {}).stdout_bytes || 0);
+          const stdoutLimitText = stdoutTraceLimit > 0 ? `stdout trace ${this.fmtSize(stdoutTraceLimit)}` : 'stdout trace limit';
+          const attemptTitle = attempts.map((a: any) => {
+            const parts = [
+              '#' + (a.attempt || '?'),
+              a.status || 'unknown',
+              a.error_code || '',
+              a.session_id ? 'session=' + a.session_id : '',
+              a.will_retry ? 'will_retry' : '',
+            ].filter(Boolean);
+            return parts.join(' · ');
+          }).join('\n');
+          const retryBadges = [
+            attemptCount > 1 ? `<span class="badge badge-sm badge-mode" title="${this.attr(attemptTitle)}">attempts ×${attemptCount}</span>` : '',
+            restartedAttempts > 0 ? `<span class="badge badge-sm badge-warning">重启 ${restartedAttempts}/${timeoutLimit}</span>` : '',
+            timeoutFailures > 0 && restartedAttempts === 0 ? `<span class="badge badge-sm badge-failed">超时 ${timeoutFailures}</span>` : '',
+            switchedSession ? `<span class="badge badge-sm badge-mode" title="${this.attr(effectiveSessionId)}">新 session</span>` : '',
+            c.stdout_soft_limit_exceeded ? `<span class="badge badge-sm badge-warning" title="${this.attr(stdoutLimitText)}">stdout 截断</span>` : '',
+            c.events_truncated_count > 0 ? `<span class="badge badge-sm badge-warning">events 截断</span>` : '',
+          ].join('');
+          const fileActions = Object.entries({user_prompt:'Prompt', system_prompt:'System', response:'Response', stdout:'Stdout', stderr:'Stderr', request:'Req'}).map(([key,label]) =>
+            c.files && c.files[key] ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files[key])}">${label}</span>` : ''
+          ).join('') + (c.files && c.files.stdout_events ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(c.files.stdout_events)}">Events</span>` : '');
+          return `
+            <div class="call-row">
+              <div class="call-head">
+                <div class="call-head-main">
+                  <span class="call-turn">#${this.esc(c.turn || '-')}</span>
+                  <span class="call-agent">${this.esc(c.agent_id || '-')}</span>
+                </div>
+                <div class="call-status">${this.statusBadge(c.status, 'badge-sm')}${retryBadges}</div>
+              </div>
+              <div class="call-meta">
+                <span class="call-size">Prompt ${this.fmtSize(Number(c.user_prompt_len || 0))}</span>
+                <span class="call-size">Output ${this.fmtSize(outputBytes)}</span>
+                <span class="call-duration">${c.duration_ms ? (Number(c.duration_ms) / 1000).toFixed(1) + 's' : '-'}</span>
+              </div>
+              <div class="call-files-row">
+                <span class="call-files-label">Files</span>
+                <div class="file-actions">${fileActions || '<span class="text-muted">无关联文件</span>'}</div>
+              </div>
+              ${attemptCount > 1 ? `<div class="call-note" title="${this.attr(attemptTitle)}">timeout/process attempts 已聚合在当前 call，避免与业务 turn 错位</div>` : ''}
+              ${c.error ? `<div class="call-error">${this.esc(c.error).substring(0, 120)}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+        return `
+          <div class="session-group">
+            <div class="session-name">${this.esc(s.session_id || 'calls')}</div>
+            <div class="session-call-list">${callHtml || '<div class="empty-state">暂无 call 记录</div>'}</div>
+          </div>
+        `;
+      }).join('');
     },
 
     async selectSessionInBrowser(path: string) {

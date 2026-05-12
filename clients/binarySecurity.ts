@@ -58,6 +58,8 @@ export interface BinarySecurityTask {
   }>;
   task_retry_supported: boolean;
   task_retry_reason?: string | null;
+  task_continue_supported: boolean;
+  task_continue_reason?: string | null;
 }
 
 export interface BinarySecurityProjectStats {
@@ -284,6 +286,7 @@ export const binarySecurityApi = {
     const q = params.size > 0 ? `?${params.toString()}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),
+      cache: 'no-store',
     });
     return handleResponse(resp);
   },
@@ -291,6 +294,20 @@ export const binarySecurityApi = {
   getTask: async (projectId: string, taskId: string): Promise<BinarySecurityTaskDetail> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}`, {
       headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  updateTaskConcurrency: async (
+    projectId: string,
+    taskId: string,
+    payload: { stage_parallelism: Record<string, number> },
+  ): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/concurrency`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(resp);
   },
@@ -298,6 +315,7 @@ export const binarySecurityApi = {
   getTimeline: async (projectId: string, taskId: string): Promise<BinarySecurityTimeline> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/timeline`, {
       headers: getHeaders(),
+      cache: 'no-store',
     });
     return handleResponse(resp);
   },
@@ -321,6 +339,7 @@ export const binarySecurityApi = {
   getArtifacts: async (projectId: string, taskId: string): Promise<BinarySecurityArtifacts> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/artifacts`, {
       headers: getHeaders(),
+      cache: 'no-store',
     });
     return handleResponse(resp);
   },
@@ -434,6 +453,7 @@ export const binarySecurityApi = {
   getModuleSelection: async (projectId: string, taskId: string): Promise<BinarySecurityModuleSelection> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/module-selection`, {
       headers: getHeaders(),
+      cache: 'no-store',
     });
     return handleResponse(resp);
   },

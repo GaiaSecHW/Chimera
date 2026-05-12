@@ -13,6 +13,7 @@ import { ConfigCenterLlmPage } from '../pages/platform/ConfigCenterLlmPage';
 import { ConfigCenterLlmChatPage } from '../pages/platform/ConfigCenterLlmChatPage';
 import { PublicResourceManagementPage } from '../pages/assets/PublicResourceManagementPage';
 import { ProjectFileExplorerPage } from '../pages/assets/ProjectFileExplorerPage';
+import { FileserverArchiveTasksPage } from '../pages/assets/FileserverArchiveTasksPage';
 import { EnvAgentPage } from '../pages/environment/EnvAgentPage';
 import { EnvTemplatePage } from '../pages/environment/EnvTemplatePage';
 import { EnvTasksPage } from '../pages/environment/EnvTasksPage';
@@ -197,6 +198,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="tasks" />;
     case 'project-file-explorer':
       return <ProjectFileExplorerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+    case 'fileserver-archive-tasks':
+      return <FileserverArchiveTasksPage projectId={ctx.selectedProjectId} />;
     case 'env-agent':
       return <EnvAgentPage projectId={ctx.selectedProjectId} />;
     case 'env-service':
@@ -418,6 +421,18 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         />
       );
     case 'binary-security-detail':
+      if (!ctx.activeBinarySecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="binary"
+            onOpenTask={(taskId) => {
+              ctx.setActiveBinarySecurityTaskId(taskId);
+              ctx.setCurrentView('binary-security-detail');
+            }}
+          />
+        );
+      }
       return (
         <BinarySecurityTaskDetailPage
           projectId={ctx.selectedProjectId}
@@ -438,6 +453,18 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         />
       );
     case 'source-security-detail':
+      if (!ctx.activeSourceSecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="source"
+            onOpenTask={(taskId) => {
+              ctx.setActiveSourceSecurityTaskId(taskId);
+              ctx.setCurrentView('source-security-detail');
+            }}
+          />
+        );
+      }
       return (
         <BinarySecurityTaskDetailPage
           projectId={ctx.selectedProjectId}

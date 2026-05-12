@@ -121,6 +121,25 @@ export interface IpcAuditCatalogRefreshJob {
   message?: string | null;
 }
 
+export interface IpcAuditProviderSummary {
+  provider_key: string;
+  display_name: string;
+  provider_type: string;
+  enabled: boolean;
+  is_default: boolean;
+  api_base: string;
+  model: string;
+  updated_at?: string | null;
+  mapped_env_keys: string[];
+  mapped_file_paths: string[];
+}
+
+export interface IpcAuditProviderList {
+  total: number;
+  default_provider_key?: string | null;
+  items: IpcAuditProviderSummary[];
+}
+
 export interface IpcAuditTaskSummary {
   task_id: string;
   project_id?: string | null;
@@ -353,6 +372,16 @@ export const ipcAuditApi = {
     return handleResponse(response);
   },
 
+  listProviders: async (): Promise<IpcAuditProviderList> => {
+    const response = await fetch(`${PREFIX}/providers`, noStoreGetInit());
+    return handleResponse(response);
+  },
+
+  getProvider: async (providerKey: string): Promise<IpcAuditProviderSummary> => {
+    const response = await fetch(`${PREFIX}/providers/${encodeURIComponent(providerKey)}`, noStoreGetInit());
+    return handleResponse(response);
+  },
+
   listTasks: async (params: {
     projectId?: string;
     workspaceId?: string;
@@ -384,6 +413,7 @@ export const ipcAuditApi = {
     input_ref: IpcAuditInputRef;
     executor_mode?: 'mock' | 'codex_cli' | 'opencode_cli';
     model?: string;
+    provider_keys?: string[];
     notes?: string;
     idempotency_key?: string;
   }): Promise<IpcAuditTaskSummary> => {

@@ -1860,7 +1860,7 @@ export interface DeployScriptListResponse {
 
 export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
-  | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer'
+  | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
@@ -2070,8 +2070,11 @@ export interface SystemAnalysisStagesConfig {
 
 export interface SystemAnalysisServiceConfig {
   project_id: string;
+  max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   analyse_targets: string[];
   binary_arch: string[];
+  security_focus_categories: string[];
+  module_granularity: string;
   parallel_modules: number;
   parallel_sub_workers: number;
   agent_max_retries: number;
@@ -2389,7 +2392,7 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_content: string;
   result_json?: Record<string, any> | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[] } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; start_stage?: number; resume_workspace?: string } | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -2541,6 +2544,8 @@ export interface AppSaTaskCreateRequest {
   analysis_mode?: 'binary' | 'source';
   analyse_targets?: string[];
   binary_arch?: string[];
+  security_focus_categories?: string[];
+  module_granularity?: string;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -2694,6 +2699,7 @@ export interface EntryAnalysisRoleConfig {
 export interface EntryAnalysisServiceConfig {
   project_id: string;
   max_rounds: number;
+  max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
   pass_threshold: number;
   agent_max_retries: number;
@@ -2781,6 +2787,10 @@ export interface AppDfaTaskCreateRequest {
   task_description?: string;
   prompt_template_id?: string;
   prompt_content?: string;
+  source_file?: string;
+  function_name?: string;
+  line_hint?: string;
+  taint_params?: string[];
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -2903,6 +2913,7 @@ export interface AppDfaRoleConfig {
 export interface AppDfaServiceConfig {
   project_id: string;
   max_rounds: number;
+  max_rounds_exceeded_review_strategy: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
   pass_threshold: number;
   agent_max_retries: number;

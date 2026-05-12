@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Info, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { BinarySecurityModuleSelection, BinarySecurityOverviewNode, BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
@@ -139,6 +139,19 @@ const detailPanelTone = 'rounded-xl border border-slate-200 bg-white px-3 py-2 t
 
 const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
 const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
+const safeInt = (value: unknown, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
+};
+const boolLabel = (value: unknown) => {
+  if (value === undefined || value === null) return '-';
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes'].includes(normalized)) return '是';
+    if (['false', '0', 'no'].includes(normalized)) return '否';
+  }
+  return value ? '是' : '否';
+};
 
 type DownstreamTaskDetail =
   | { kind: 'firmware_unpack'; data: FirmwareUnpackTask }
@@ -157,6 +170,33 @@ type DownstreamTaskState = {
 type DetailTab = 'overview' | 'timeline' | 'artifacts';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
+type BlockingActionKind = '' | 'retry' | 'continue';
+
+const BLOCKING_ACTION_COPY: Record<
+  Exclude<BlockingActionKind, ''>,
+  {
+    confirmTitle: string;
+    confirmMessage: string;
+    confirmText: string;
+    progressTitle: string;
+    progressMessage: string;
+  }
+> = {
+  retry: {
+    confirmTitle: '从头重试总任务',
+    confirmMessage: '总任务重试会清空当前任务所有阶段的编排记录和结果摘要，并从第一阶段重新开始。该操作不同于“继续任务”，是否确认从头重试？',
+    confirmText: '确认从头重试',
+    progressTitle: '正在从头重试总任务',
+    progressMessage: '系统正在重置任务状态并重新发起执行，请勿重复点击或执行其他操作。',
+  },
+  continue: {
+    confirmTitle: '继续任务',
+    confirmMessage: '将从当前连续成功阶段的下一个阶段开始继续推进。该阶段及后续阶段的旧编排记录和结果摘要会被清空并重新创建，前序连续成功阶段会保留。是否继续？',
+    confirmText: '确认继续',
+    progressTitle: '正在继续任务',
+    progressMessage: '系统正在定位下一个可执行阶段并恢复推进，请勿重复点击或执行其他操作。',
+  },
+};
 
 const ARCHIVE_EVENT_LABELS: Record<string, string> = {
   downstream_archive_job_queued: '归档已排队',
@@ -245,6 +285,73 @@ const VULN_METADATA_KEYS = [
   'run_path',
   'runs_root',
 ];
+
+function ConcurrencyPolicyPanel({
+  detail,
+  stageSequence,
+  onEdit,
+}: {
+  detail: BinarySecurityTaskDetail;
+  stageSequence: string[];
+  onEdit: () => void;
+}) {
+  const policy = detail.policy || {};
+  const stageParallelism = policy.stage_parallelism && typeof policy.stage_parallelism === 'object'
+    ? policy.stage_parallelism as Record<string, unknown>
+    : {};
+  const maxStageParallelism = safeInt(policy.max_stage_parallelism, 1);
+  const maxRetries = safeInt(policy.max_retries_per_item, 0);
+  const stageItems = stageSequence.map((stageName) => ({
+    stageName,
+    value: safeInt(stageParallelism[stageName], maxStageParallelism),
+  }));
+
+  return (
+    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="rounded-xl bg-slate-100 p-2 text-slate-600">
+            <SlidersHorizontal size={16} />
+          </div>
+          <div>
+            <h2 className="text-base font-black text-slate-900">并发配置</h2>
+            <p className="mt-1 text-xs text-slate-500">展示当前任务创建时固化的阶段并发与失败处理策略。</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+            全局最大阶段并发 {maxStageParallelism}
+          </span>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+            最大重试 {maxRetries}
+          </span>
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+            失败后继续 {boolLabel(policy.continue_on_item_failure)}
+          </span>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-xs font-bold text-white transition hover:bg-slate-800"
+          >
+            编辑并发
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        {stageItems.map((item) => (
+          <div key={item.stageName} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <div className="truncate text-[11px] font-bold text-slate-400">{STAGE_LABELS[item.stageName] || item.stageName}</div>
+            <div className="mt-1 flex items-baseline gap-1">
+              <span className="text-xl font-black text-slate-900">{item.value}</span>
+              <span className="text-xs font-semibold text-slate-500">并发</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 const timelineLevelTone = (level?: string | null) => {
   switch (String(level || '').toLowerCase()) {
@@ -683,17 +790,17 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
 function TaskStatusReasonCard({ reason }: { reason: TaskStatusReason }) {
   return (
     <div className={`rounded-2xl border px-3 py-3 ${reasonToneClass(reason.tone)}`}>
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,0.95fr)] xl:items-start">
         <div className="min-w-0">
           <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">状态原因</div>
           <div className="mt-1 text-sm font-black">{reason.title}</div>
           <div className="mt-1 text-xs leading-5 opacity-85">{reason.description}</div>
         </div>
-        <div className="grid shrink-0 grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[360px]">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {reason.evidence.slice(0, 3).map((item) => (
-            <div key={item.label} className="rounded-xl border border-current/10 bg-white/55 px-2.5 py-2 text-xs">
+            <div key={item.label} className="min-w-0 rounded-xl border border-current/10 bg-white/55 px-2.5 py-2 text-xs">
               <div className="font-bold opacity-55">{item.label}</div>
-              <div className="mt-1 break-all font-black">{item.value || '-'}</div>
+              <div className="mt-1 break-words font-black">{item.value || '-'}</div>
             </div>
           ))}
         </div>
@@ -710,18 +817,27 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timeline, setTimeline] = useState<any[]>([]);
   const [artifacts, setArtifacts] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [detailRefreshing, setDetailRefreshing] = useState(false);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineClearing, setTimelineClearing] = useState(false);
   const [artifactsLoading, setArtifactsLoading] = useState(false);
   const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
+  const [selectedStageItemIds, setSelectedStageItemIds] = useState<string[]>([]);
+  const [stageStatusFilter, setStageStatusFilter] = useState<string>('all');
   const [actionLoading, setActionLoading] = useState<string>('');
   const [expandedEventKey, setExpandedEventKey] = useState<string | null>(null);
   const [timelinePage, setTimelinePage] = useState(1);
   const [timelinePageSize, setTimelinePageSize] = useState(200);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [expandedStageItemId, setExpandedStageItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingBlockingAction, setPendingBlockingAction] = useState<BlockingActionKind>('');
+  const [blockingAction, setBlockingAction] = useState<BlockingActionKind>('');
+  const [concurrencyModalOpen, setConcurrencyModalOpen] = useState(false);
+  const [concurrencyDraft, setConcurrencyDraft] = useState<Record<string, number>>({});
+  const [concurrencySaving, setConcurrencySaving] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
@@ -740,18 +856,55 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const canActOnTask = Boolean(detail);
   const taskRetrySupported = Boolean(detail?.task_retry_supported);
   const taskRetryReason = detail?.task_retry_reason || '当前任务不可从头重试';
-  const taskContinueSupported = Boolean(detail && ['failed', 'partial_success', 'cancelled'].includes(detail.status));
-  const taskContinueReason = detail?.status === 'success'
-    ? '当前任务已全部成功，没有需要继续的阶段'
-    : detail && ['pending', 'dispatching', 'running', 'pending_upload', 'uploading', 'ready_to_start'].includes(detail.status)
-      ? '当前任务正在执行、排队或上传中，不能手动继续'
-      : '当前任务状态不支持手动继续';
+  const taskContinueSupported = Boolean(detail?.task_continue_supported);
+  const taskContinueReason = detail?.task_continue_reason || '当前任务不可继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
   const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
 
-  const loadTask = async () => {
-    if (!projectId || !taskId) return;
-    setLoading(true);
+  const buildConcurrencyDraft = (task: BinarySecurityTaskDetail, stages: string[]) => {
+    const policy = task.policy || {};
+    const stageParallelism = policy.stage_parallelism && typeof policy.stage_parallelism === 'object'
+      ? policy.stage_parallelism as Record<string, unknown>
+      : {};
+    const maxStageParallelism = safeInt(policy.max_stage_parallelism, 1);
+    return Object.fromEntries(stages.map((stageName) => [
+      stageName,
+      safeInt(stageParallelism[stageName], maxStageParallelism),
+    ]));
+  };
+
+  const openConcurrencyEditor = () => {
+    if (!detail) return;
+    setConcurrencyDraft(buildConcurrencyDraft(detail, stageSequence));
+    setConcurrencyModalOpen(true);
+  };
+
+  const saveTaskConcurrency = async () => {
+    if (!projectId || !taskId || !detail || concurrencySaving) return;
+    const normalized = Object.fromEntries(stageSequence.map((stageName) => [
+      stageName,
+      Math.max(1, Math.min(32, Number(concurrencyDraft[stageName]) || 1)),
+    ]));
+    setConcurrencySaving(true);
+    setError(null);
+    try {
+      const updated = await executionApi.binarySecurity.updateTaskConcurrency(projectId, taskId, {
+        stage_parallelism: normalized,
+      });
+      setDetail(updated);
+      setConcurrencyDraft(buildConcurrencyDraft(updated, updated.stage_sequence?.length ? updated.stage_sequence : stageSequence));
+      setConcurrencyModalOpen(false);
+    } catch (e: any) {
+      setError(e?.message || '更新任务并发配置失败');
+    } finally {
+      setConcurrencySaving(false);
+    }
+  };
+
+  const loadTask = async (options?: { showLoading?: boolean }) => {
+    if (!projectId || !taskId) return null;
+    const showLoading = options?.showLoading ?? true;
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const task = await executionApi.binarySecurity.getTask(projectId, taskId);
@@ -764,10 +917,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         setSelectedNodeKind('business');
         return task.current_stage && nextStageSequence.includes(task.current_stage) ? task.current_stage : nextStageSequence[0];
       });
+      return task;
     } catch (e: any) {
       setError(e?.message || '加载失败');
+      return null;
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -863,10 +1018,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   };
 
   const refreshActiveTab = async () => {
-    await loadTask();
-    if (activeTab === 'overview' && detail?.status === 'pending_module_confirmation') await loadModuleSelection();
-    if (activeTab === 'timeline') await loadTimeline();
-    if (activeTab === 'artifacts') await loadArtifacts();
+    if (detailRefreshing) return;
+    setDetailRefreshing(true);
+    setError(null);
+    try {
+      if (activeTab === 'overview') {
+        setDownstreamByItemId({});
+        setModuleSelection(null);
+      }
+      if (activeTab === 'timeline') {
+        setTimeline([]);
+        setExpandedEventKey(null);
+      }
+      if (activeTab === 'artifacts') {
+        setArtifacts(null);
+      }
+      const refreshedTask = await loadTask({ showLoading: false });
+      if (activeTab === 'overview' && refreshedTask?.status === 'pending_module_confirmation') await loadModuleSelection();
+      if (activeTab === 'timeline') await loadTimeline();
+      if (activeTab === 'artifacts') await loadArtifacts();
+    } finally {
+      setDetailRefreshing(false);
+    }
   };
 
   useEffect(() => {
@@ -1002,25 +1175,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       });
       if (!confirmed) return;
     }
-    if (action === 'continue') {
-      const confirmed = await showConfirm({
-        title: '继续任务',
-        message: '将从当前连续成功阶段的下一个阶段开始继续推进。该阶段及后续阶段的旧编排记录和结果摘要会被清空并重新创建，前序连续成功阶段会保留。是否继续？',
-        confirmText: '确认继续',
-        cancelText: '取消',
-      });
-      if (!confirmed) return;
-    }
-    if (action === 'retry') {
-      const confirmed = await showConfirm({
-        title: '从头重试总任务',
-        message: '总任务重试会清空当前任务所有阶段的编排记录和结果摘要，并从第一阶段重新开始。该操作不同于“继续任务”，是否确认从头重试？',
-        confirmText: '确认从头重试',
-        cancelText: '取消',
-        danger: true,
-      });
-      if (!confirmed) return;
-    }
     setActionLoading(action);
     try {
       if (action === 'cancel') await executionApi.binarySecurity.cancelTask(projectId, taskId);
@@ -1029,8 +1183,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         onBack();
         return;
       }
-      if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
-      if (action === 'continue') await executionApi.binarySecurity.continueTask(projectId, taskId);
       await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || `${action} 失败`);
@@ -1063,19 +1215,24 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
-  const syncDownstreamStatus = async (options?: { stageName?: string; itemId?: string; force?: boolean }) => {
+  const syncDownstreamStatus = async (
+    options?: { stageName?: string; itemId?: string; force?: boolean },
+    behavior?: { skipConfirm?: boolean; skipRefresh?: boolean },
+  ) => {
     if (!projectId || !taskId) return;
-    const confirmed = await showConfirm({
-      title: '同步下游状态',
-      message: options?.itemId
-        ? '将查询该阶段子任务在对应微服务中的真实状态，并刷新当前编排记录。该操作不会启动、取消、删除或重试任何任务，是否继续？'
-        : options?.stageName
-          ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态。该操作不会触发执行动作，是否继续？`
-          : '将同步当前任务所有已创建下游子任务的真实状态。该操作不会启动、取消、删除或重试任何任务，是否继续？',
-      confirmText: '确认同步',
-      cancelText: '取消',
-    });
-    if (!confirmed) return;
+    if (!behavior?.skipConfirm) {
+      const confirmed = await showConfirm({
+        title: '同步下游状态',
+        message: options?.itemId
+          ? '将查询该阶段子任务在对应微服务中的真实状态，并刷新当前编排记录。该操作不会启动、取消、删除或重试任何任务，是否继续？'
+          : options?.stageName
+            ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态。该操作不会触发执行动作，是否继续？`
+            : '将同步当前任务所有已创建下游子任务的真实状态。该操作不会启动、取消、删除或重试任何任务，是否继续？',
+        confirmText: '确认同步',
+        cancelText: '取消',
+      });
+      if (!confirmed) return;
+    }
     const loadingKey = options?.itemId ? `sync-item:${options.itemId}` : options?.stageName ? `sync-stage:${options.stageName}` : 'sync-downstream';
     setActionLoading(loadingKey);
     setError(null);
@@ -1085,9 +1242,37 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         item_id: options?.itemId,
         force: options?.force,
       });
-      await refreshActiveTab();
+      if (!behavior?.skipRefresh) {
+        await refreshActiveTab();
+      }
     } catch (e: any) {
       setError(e?.message || '同步下游状态失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const batchSyncSelectedStageItems = async () => {
+    if (!projectId || !taskId || selectedSyncableStageItems.length === 0) return;
+    const confirmed = await showConfirm({
+      title: '批量同步下游状态',
+      message: `将同步已选择的 ${selectedSyncableStageItems.length} 个子任务的下游真实状态，并刷新当前阶段表格。该操作不会触发执行动作，是否继续？`,
+      confirmText: '确认同步',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setActionLoading('sync-selected-items');
+    setError(null);
+    try {
+      for (const item of selectedSyncableStageItems) {
+        await executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, {
+          stage_name: item.stage_name,
+          item_id: item.id,
+        });
+      }
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || '批量同步下游状态失败');
     } finally {
       setActionLoading('');
     }
@@ -1141,6 +1326,27 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (!detail) return [];
     return detail.stage_items.filter((item) => item.stage_name === selectedStage);
   }, [detail, selectedStage]);
+  const stageStatusOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of filteredStageItems) {
+      counts.set(item.status, (counts.get(item.status) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+      .map(([status, count]) => ({ status, count }));
+  }, [filteredStageItems]);
+  const visibleStageItems = useMemo(() => {
+    if (stageStatusFilter === 'all') return filteredStageItems;
+    return filteredStageItems.filter((item) => item.status === stageStatusFilter);
+  }, [filteredStageItems, stageStatusFilter]);
+  const selectedVisibleStageItems = useMemo(
+    () => visibleStageItems.filter((item) => selectedStageItemIds.includes(item.id)),
+    [selectedStageItemIds, visibleStageItems],
+  );
+  const selectedSyncableStageItems = useMemo(
+    () => selectedVisibleStageItems.filter((item) => Boolean(item.downstream_task_id)),
+    [selectedVisibleStageItems],
+  );
 
   const timelineItems = useMemo(() => {
     return timeline.map((event, index) => ({
@@ -1169,10 +1375,38 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [timelinePageSize, taskId]);
 
   useEffect(() => {
+    setExpandedStageItemId(null);
+    setSelectedStageItemIds([]);
+    setStageStatusFilter('all');
+  }, [selectedStage, selectedNodeKind, taskId]);
+
+  useEffect(() => {
+    const validIds = new Set(filteredStageItems.map((item) => item.id));
+    setSelectedStageItemIds((current) => current.filter((id) => validIds.has(id)));
+  }, [filteredStageItems]);
+
+  useEffect(() => {
     if (timelinePage > timelineTotalPages) {
       setTimelinePage(timelineTotalPages);
     }
   }, [timelinePage, timelineTotalPages]);
+
+  const executeBlockingTaskAction = async (action: Exclude<BlockingActionKind, ''>) => {
+    if (!projectId || !taskId) return;
+    setActionLoading(action);
+    setBlockingAction(action);
+    setPendingBlockingAction('');
+    try {
+      if (action === 'retry') await executionApi.binarySecurity.retryTask(projectId, taskId);
+      if (action === 'continue') await executionApi.binarySecurity.continueTask(projectId, taskId);
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || `${action} 失败`);
+    } finally {
+      setBlockingAction('');
+      setActionLoading('');
+    }
+  };
 
   const openDownstreamTaskDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     const downstreamTaskId = item.downstream_task_id?.trim();
@@ -1321,18 +1555,191 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
     { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
   ];
+  const modalAction = blockingAction || pendingBlockingAction;
+  const modalCopy = modalAction ? BLOCKING_ACTION_COPY[modalAction] : null;
+  const modalRunning = Boolean(blockingAction);
 
   return (
     <div className="px-8 pb-10 pt-8 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {modalAction && modalCopy ? (
+        <div className="fixed inset-0 z-[120] bg-slate-950/50 backdrop-blur-sm">
+          <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
+            <div className="flex w-full max-w-5xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.6)] sm:max-h-[calc(100vh-4rem)]">
+              <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-5 sm:px-8">
+                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Task Action</div>
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="rounded-2xl bg-sky-50 p-3 text-sky-600">
+                    <Loader2 size={24} className={modalRunning ? 'animate-spin' : ''} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black tracking-tight text-slate-900">
+                      {modalRunning ? modalCopy.progressTitle : modalCopy.confirmTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {isSourceTask ? '源码任务总览详情' : '二进制任务总览详情'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto px-6 py-6 sm:px-8 sm:py-8">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px]">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 sm:p-6">
+                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">
+                      {modalRunning ? '执行中' : '确认操作'}
+                    </div>
+                    <p className="mt-4 text-base leading-7 text-slate-700">
+                      {modalRunning ? modalCopy.progressMessage : modalCopy.confirmMessage}
+                    </p>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">任务</div>
+                        <div className="mt-2 break-all font-mono text-xs text-slate-700">{taskId}</div>
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                        <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">当前阶段</div>
+                        <div className="mt-2 font-bold text-slate-900">
+                          {STAGE_LABELS[detail?.current_stage || ''] || detail?.current_stage || '-'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                      {modalRunning
+                        ? '任务状态刷新前请不要离开当前页面或重复提交相同操作。'
+                        : '确认后将立即提交后台执行，并进入阻塞式进度提示。'}
+                    </div>
+                  </div>
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5 sm:p-6">
+                    <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-400">状态</div>
+                    <div className="mt-4 space-y-3">
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-xs font-bold text-slate-400">任务名称</div>
+                        <div className="mt-1 text-sm font-black text-slate-900">{detail?.name || '-'}</div>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-xs font-bold text-slate-400">当前状态</div>
+                        <div className="mt-2">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail?.status || '')}`}>
+                            {detail?.status || '-'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-xs font-bold text-slate-400">操作类型</div>
+                        <div className="mt-1 text-sm font-black text-slate-900">
+                          {modalAction === 'retry' ? '从头重试' : '继续任务'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-8 flex flex-wrap justify-end gap-3">
+                  {!modalRunning ? (
+                    <button
+                      type="button"
+                      onClick={() => setPendingBlockingAction('')}
+                      className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      取消
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={modalRunning}
+                    onClick={() => {
+                      if (!pendingBlockingAction) return;
+                      void executeBlockingTaskAction(pendingBlockingAction);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {modalRunning ? <Loader2 size={16} className="animate-spin" /> : null}
+                    {modalRunning ? '处理中...' : modalCopy.confirmText}
+                  </button>
+                </div>
+              </div>
+            </div>
+	          </div>
+	        </div>
+	      ) : null}
+	      {concurrencyModalOpen && detail ? (
+	        <div className="fixed inset-0 z-[110] bg-slate-950/45 backdrop-blur-sm">
+	          <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
+	            <div className="flex w-full max-w-3xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.55)]">
+	              <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-5">
+	                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Concurrency Policy</div>
+	                <div className="mt-2 flex items-center gap-3">
+	                  <div className="rounded-2xl bg-slate-900 p-3 text-white">
+	                    <SlidersHorizontal size={22} />
+	                  </div>
+	                  <div>
+	                    <h3 className="text-2xl font-black tracking-tight text-slate-900">编辑任务阶段并发</h3>
+	                    <p className="mt-1 text-sm text-slate-500">
+	                      仅修改当前任务的编排并发，不影响项目默认配置和下游微服务全局配置。
+	                    </p>
+	                  </div>
+	                </div>
+	              </div>
+	              <div className="flex-1 overflow-auto px-6 py-6">
+	                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+	                  运行中阶段已启动的子任务池不会实时改变；新的阶段、继续任务、阶段重试和从头重试会使用保存后的并发配置。
+	                </div>
+	                <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+	                  {stageSequence.map((stageName) => (
+	                    <label key={stageName} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+	                      <span className="block text-sm font-black text-slate-800">{STAGE_LABELS[stageName] || stageName}</span>
+	                      <span className="mt-1 block text-xs text-slate-500">范围 1-32</span>
+	                      <input
+	                        type="number"
+	                        min={1}
+	                        max={32}
+	                        value={concurrencyDraft[stageName] ?? 1}
+	                        disabled={concurrencySaving}
+	                        onChange={(event) => {
+	                          const value = Math.max(1, Math.min(32, Number(event.target.value) || 1));
+	                          setConcurrencyDraft((current) => ({ ...current, [stageName]: value }));
+	                        }}
+	                        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-slate-400"
+	                      />
+	                    </label>
+	                  ))}
+	                </div>
+	              </div>
+	              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+	                <button
+	                  type="button"
+	                  disabled={concurrencySaving}
+	                  onClick={() => setConcurrencyModalOpen(false)}
+	                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+	                >
+	                  取消
+	                </button>
+	                <button
+	                  type="button"
+	                  disabled={concurrencySaving}
+	                  onClick={() => void saveTaskConcurrency()}
+	                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+	                >
+	                  {concurrencySaving ? <Loader2 size={16} className="animate-spin" /> : null}
+	                  {concurrencySaving ? '保存中...' : '保存并发配置'}
+	                </button>
+	              </div>
+	            </div>
+	          </div>
+	        </div>
+	      ) : null}
+	      <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
           <ArrowLeft size={16} />
           返回任务列表
         </button>
         <div className="flex gap-3">
-          <button type="button" onClick={() => void refreshActiveTab()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
-            <RefreshCw size={16} />
-            刷新
+          <button
+            type="button"
+            onClick={() => void refreshActiveTab()}
+            disabled={detailRefreshing}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {detailRefreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            {detailRefreshing ? '刷新中...' : '刷新'}
           </button>
           <button
             type="button"
@@ -1347,7 +1754,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button
             type="button"
             title={taskRetrySupported ? undefined : taskRetryReason}
-            onClick={() => void runAction('retry')}
+            onClick={() => setPendingBlockingAction('retry')}
             disabled={actionLoading !== '' || !taskRetrySupported}
             className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
@@ -1356,7 +1763,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button
             type="button"
             title={taskContinueSupported ? undefined : taskContinueReason}
-            onClick={() => void runAction('continue')}
+            onClick={() => setPendingBlockingAction('continue')}
             disabled={actionLoading !== '' || !taskContinueSupported}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-60"
           >
@@ -1438,6 +1845,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </div>
             </div>
           </section>
+
+          <ConcurrencyPolicyPanel detail={detail} stageSequence={stageSequence} onEdit={openConcurrencyEditor} />
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
             <div className="grid gap-2 md:grid-cols-3">
@@ -1603,17 +2012,17 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <div className="text-[11px] font-semibold leading-tight opacity-75">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
                           </div>
                           <div className="mt-3 space-y-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
-                            <div className="flex justify-between gap-2">
-                              <span className="opacity-60">开始</span>
-                              <span className="text-right font-mono">{fmt(stage.started_at)}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="shrink-0 whitespace-nowrap opacity-60">开始</span>
+                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.started_at)}</span>
                             </div>
-                            <div className="flex justify-between gap-2">
-                              <span className="opacity-60">结束</span>
-                              <span className="text-right font-mono">{fmt(stage.finished_at)}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="shrink-0 whitespace-nowrap opacity-60">结束</span>
+                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.finished_at)}</span>
                             </div>
-                            <div className="flex justify-between gap-2">
-                              <span className="opacity-60">耗时</span>
-                              <span className="text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
+                              <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
                             </div>
                           </div>
                           <div className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-center text-[10px] font-black leading-none">
@@ -1638,17 +2047,17 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <div>运行 {(stage.detail as any)?.running_items ?? 0}</div>
                           </div>
                           <div className="mt-3 grid gap-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
-                            <div className="flex justify-between gap-2">
-                              <span className="opacity-60">开始</span>
-                              <span className="text-right font-mono">{fmt(stage.started_at)}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="shrink-0 whitespace-nowrap opacity-60">开始</span>
+                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.started_at)}</span>
                             </div>
-                            <div className="flex justify-between gap-2">
-                              <span className="opacity-60">结束</span>
-                              <span className="text-right font-mono">{fmt(stage.finished_at)}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="shrink-0 whitespace-nowrap opacity-60">结束</span>
+                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.finished_at)}</span>
                             </div>
-                            <div className="flex justify-between gap-2">
-                              <span className="opacity-60">耗时</span>
-                              <span className="text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
+                              <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
                             </div>
                           </div>
                           <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
@@ -1723,8 +2132,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </div>
             </div>
 
-            {selectedNodeKind === 'business' && selectedBusinessStageNode ? (
-              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+	            {selectedNodeKind === 'business' && selectedBusinessStageNode ? (
+	              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xs font-bold text-slate-400">阶段状态</div>
                   <div className="mt-1">
@@ -1751,10 +2160,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     {(selectedBusinessStageNode.detail as any)?.success_items ?? 0} / {(selectedBusinessStageNode.detail as any)?.total_items ?? 0} 成功
                   </div>
                 </div>
-              </div>
-            ) : null}
+	              </div>
+	            ) : null}
 
-            <div className="mt-5 space-y-3">
+	            <div className="mt-5 space-y-3">
               {selectedNodeKind === 'archive' ? (
                 <>
                   {selectedArchiveNode ? (
@@ -1795,7 +2204,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           </div>
                           <div className="mt-3 break-all text-base font-black text-slate-900">{job.item_key || job.item_id}</div>
                         </div>
-                        <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 text-xs text-slate-600">
+                        <div className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white/80 px-3 py-2 font-mono text-xs text-slate-600">
                           {fmt(job.created_at)} {'->'} {fmt(job.completed_at || job.updated_at)}
                         </div>
                       </div>
@@ -1858,132 +2267,242 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </div>
                   ))}
                 </>
-              ) : (
-                <>
-              {staleStages.has(selectedStage) ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                  由于上游阶段 {STAGE_LABELS[detail.summary?.stale_from_stage || ''] || detail.summary?.stale_from_stage || '-'} 已重试，当前阶段结果基于旧上游产物。
-                </div>
-              ) : null}
-              {filteredStageItems.length === 0 ? (
-                <div className="text-sm text-slate-400">当前筛选下暂无子任务</div>
-              ) : filteredStageItems.map((item) => {
-                const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
-                return (
-                <div
-                  key={item.id}
-                  role={detailSupport.supported ? 'button' : undefined}
-                  tabIndex={detailSupport.supported ? 0 : undefined}
-                  title={detailSupport.supported ? '打开子任务详情' : detailSupport.reason}
-                  onClick={detailSupport.supported ? () => openDownstreamTaskDetail(item) : undefined}
-                  onKeyDown={detailSupport.supported ? (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      openDownstreamTaskDetail(item);
-                    }
-                  } : undefined}
-                  className={`rounded-[1.5rem] border p-5 transition ${detailSupport.supported ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md focus:outline-none' : ''} ${stageItemTone(item.stage_name === selectedStage)}`}
-                >
-                  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
-                          {STAGE_LABELS[item.stage_name] || item.stage_name}
-                        </span>
-                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
-                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
-                          重试 {item.retry_count || 0}
-                        </span>
-                      </div>
-                      <div className="mt-3 break-all text-lg font-black text-slate-900">
-                        {item.item_name || item.item_key}
-                      </div>
-                      <div className="mt-2 break-all font-mono text-xs text-slate-500">{item.item_key}</div>
-
-                      <div className="mt-4 grid gap-3 text-xs text-slate-600 md:grid-cols-3">
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">开始时间</span>
-                          <div className="mt-1 font-bold text-slate-800">{fmt(item.started_at)}</div>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">结束时间</span>
-                          <div className="mt-1 font-bold text-slate-800">{fmt(item.finished_at)}</div>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                          <span className="text-slate-400">耗时</span>
-                          <div className="mt-1 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <aside className="rounded-2xl border border-slate-200 bg-white/85 p-4">
-                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">下游任务</div>
-                      <div className="mt-3 space-y-3 text-xs text-slate-600">
-                        <div>
-                          <div className="text-slate-400">服务</div>
-                          <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_service || '-'}</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-400">任务 ID</div>
-                          <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {item.downstream_task_id ? (
-                          <button
-                            type="button"
-                            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700 disabled:opacity-60"
-                            disabled={actionLoading !== ''}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id });
-                            }}
-                          >
-                            同步状态
-                          </button>
-                        ) : null}
-                        {detailSupport.supported ? (
-                          <button
-                            type="button"
-                            className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openDownstreamTaskDetail(item);
-                            }}
-                          >
-                            查看任务详情
-                          </button>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-500"
-                            title={detailSupport.reason}
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                            不支持查看任务详情
-                          </span>
-                        )}
-                      </div>
-                      {!detailSupport.supported ? (
-                        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-                          {detailSupport.reason}
-                        </div>
-                      ) : null}
-                    </aside>
-
-                    <div className="xl:col-span-2">
-                      {item.error_message ? (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
-                          {item.error_message}
-                        </div>
-                      ) : null}
-                      <div className={item.error_message ? 'mt-4' : ''}>
-                        {renderDownstreamDetail(item)}
-                      </div>
-                    </div>
+	              ) : (
+	                <>
+	              <div className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+	                <div className="flex flex-wrap items-center gap-2">
+	                  <button
+	                    type="button"
+	                    onClick={() => setStageStatusFilter('all')}
+	                    className={`rounded-full border px-3 py-2 text-xs font-black transition ${
+	                      stageStatusFilter === 'all'
+	                        ? 'border-slate-900 bg-slate-900 text-white'
+	                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+	                    }`}
+	                  >
+	                    全部 {filteredStageItems.length}
+	                  </button>
+	                  {stageStatusOptions.map((option) => (
+	                    <button
+	                      key={option.status}
+	                      type="button"
+	                      onClick={() => setStageStatusFilter(option.status)}
+	                      className={`rounded-full border px-3 py-2 text-xs font-black transition ${
+	                        stageStatusFilter === option.status
+	                          ? 'border-slate-900 bg-slate-900 text-white'
+	                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+	                      }`}
+	                    >
+	                      {option.status} {option.count}
+	                    </button>
+	                  ))}
+	                </div>
+	                <div className="flex flex-wrap items-center gap-2 text-xs">
+	                  <span className="rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-slate-600">
+	                    已选 {selectedVisibleStageItems.length} / 当前筛选 {visibleStageItems.length}
+	                  </span>
+	                  <button
+	                    type="button"
+	                    disabled={visibleStageItems.length === 0}
+	                    onClick={() => setSelectedStageItemIds(visibleStageItems.map((item) => item.id))}
+	                    className="rounded-full border border-slate-200 bg-white px-3 py-2 font-black text-slate-700 disabled:opacity-50"
+	                  >
+	                    全选当前筛选
+	                  </button>
+	                  <button
+	                    type="button"
+	                    disabled={selectedStageItemIds.length === 0}
+	                    onClick={() => setSelectedStageItemIds([])}
+	                    className="rounded-full border border-slate-200 bg-white px-3 py-2 font-black text-slate-700 disabled:opacity-50"
+	                  >
+	                    清空选择
+	                  </button>
+	                  <button
+	                    type="button"
+	                    disabled={actionLoading !== '' || selectedSyncableStageItems.length === 0}
+	                    onClick={() => void batchSyncSelectedStageItems()}
+	                    className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 font-black text-sky-700 disabled:opacity-50"
+	                  >
+	                    {actionLoading === 'sync-selected-items' ? '同步中...' : `批量同步状态 ${selectedSyncableStageItems.length > 0 ? `(${selectedSyncableStageItems.length})` : ''}`}
+	                  </button>
+	                </div>
+	              </div>
+	              {staleStages.has(selectedStage) ? (
+	                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+	                  由于上游阶段 {STAGE_LABELS[detail.summary?.stale_from_stage || ''] || detail.summary?.stale_from_stage || '-'} 已重试，当前阶段结果基于旧上游产物。
+	                </div>
+	              ) : null}
+	              {visibleStageItems.length === 0 ? (
+	                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">
+	                  {filteredStageItems.length === 0 ? '当前阶段暂无子任务' : '当前状态筛选下暂无子任务'}
+	                </div>
+	              ) : (
+	                <div className="overflow-hidden rounded-[1.5rem] border border-slate-200">
+	                  <div className="overflow-x-auto">
+	                    <table className="min-w-[1200px] w-full divide-y divide-slate-100 text-left text-xs">
+	                      <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+	                        <tr>
+	                          <th className="w-14 px-3 py-3">
+	                            <input
+	                              type="checkbox"
+	                              checked={visibleStageItems.length > 0 && selectedVisibleStageItems.length === visibleStageItems.length}
+	                              onChange={(event) => {
+	                                if (event.target.checked) {
+	                                  setSelectedStageItemIds(visibleStageItems.map((item) => item.id));
+	                                  return;
+	                                }
+	                                setSelectedStageItemIds([]);
+	                              }}
+	                            />
+	                          </th>
+	                          <th className="w-24 px-3 py-3">状态</th>
+	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
+	                          <th className="w-24 px-3 py-3">重试</th>
+                          <th className="w-44 px-3 py-3">开始时间</th>
+                          <th className="w-44 px-3 py-3">结束时间</th>
+                          <th className="w-28 px-3 py-3">耗时</th>
+                          <th className="min-w-[180px] px-3 py-3">下游服务</th>
+                          <th className="min-w-[220px] px-3 py-3">下游任务 ID</th>
+                          <th className="w-52 px-3 py-3 text-right">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+	                        {visibleStageItems.map((item) => {
+	                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
+	                          const expanded = expandedStageItemId === item.id;
+	                          const checked = selectedStageItemIds.includes(item.id);
+	                          return (
+	                            <React.Fragment key={item.id}>
+	                              <tr className="align-top transition hover:bg-slate-50/80">
+	                                <td className="px-3 py-3">
+	                                  <input
+	                                    type="checkbox"
+	                                    checked={checked}
+	                                    onChange={(event) => {
+	                                      setSelectedStageItemIds((current) => {
+	                                        if (event.target.checked) {
+	                                          return current.includes(item.id) ? current : current.concat(item.id);
+	                                        }
+	                                        return current.filter((id) => id !== item.id);
+	                                      });
+	                                    }}
+	                                  />
+	                                </td>
+	                                <td className="px-3 py-3">
+	                                  <div className="flex flex-col gap-2">
+	                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
+                                      {item.status}
+                                    </span>
+                                    <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                      {STAGE_LABELS[item.stage_name] || item.stage_name}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <div className="min-w-0">
+                                    <div className="break-all text-sm font-black text-slate-900">
+                                      {item.item_name || item.item_key}
+                                    </div>
+                                    <div className="mt-1 break-all font-mono text-[11px] text-slate-500">
+                                      {item.item_key}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3 font-bold text-slate-700">{item.retry_count || 0}</td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.started_at)}</td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.finished_at)}</td>
+                                <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</td>
+                                <td className="px-3 py-3">
+                                  <div className="break-all font-mono text-[11px] text-slate-600">{item.downstream_service || '-'}</div>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <div className="break-all font-mono text-[11px] text-slate-600">{item.downstream_task_id || '-'}</div>
+                                </td>
+                                <td className="px-3 py-3">
+                                  <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedStageItemId(expanded ? null : item.id)}
+                                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black text-slate-700 transition hover:bg-slate-50"
+                                    >
+                                      {expanded ? '收起详情' : '查看详情'}
+                                    </button>
+                                    {item.downstream_task_id ? (
+                                      <button
+                                        type="button"
+                                        className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-black text-sky-700 disabled:opacity-60"
+                                        disabled={actionLoading !== ''}
+                                        onClick={() => void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id })}
+                                      >
+                                        同步状态
+                                      </button>
+                                    ) : null}
+                                    {detailSupport.supported ? (
+                                      <button
+                                        type="button"
+                                        className="rounded-full border border-slate-200 bg-slate-900 px-3 py-2 text-[11px] font-black text-white"
+                                        onClick={() => openDownstreamTaskDetail(item)}
+                                      >
+                                        查看任务详情
+                                      </button>
+                                    ) : (
+                                      <span
+                                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-500"
+                                        title={detailSupport.reason}
+                                      >
+                                        <Info className="h-3.5 w-3.5" />
+                                        不支持跳转
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+	                              {expanded ? (
+	                                <tr className="bg-slate-50/70">
+	                                  <td colSpan={10} className="px-4 py-4">
+	                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
+	                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+                                        <aside className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">下游任务</div>
+                                          <div className="mt-3 space-y-3 text-xs text-slate-600">
+                                            <div>
+                                              <div className="text-slate-400">服务</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_service || '-'}</div>
+                                            </div>
+                                            <div>
+                                              <div className="text-slate-400">任务 ID</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
+                                            </div>
+                                          </div>
+                                          {!detailSupport.supported ? (
+                                            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+                                              {detailSupport.reason}
+                                            </div>
+                                          ) : null}
+                                        </aside>
+                                        <div>
+                                          {item.error_message ? (
+                                            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                                              {item.error_message}
+                                            </div>
+                                          ) : null}
+                                          <div className={item.error_message ? 'mt-4' : ''}>
+                                            {renderDownstreamDetail(item)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-                );
-              })}
+              )}
                 </>
               )}
             </div>

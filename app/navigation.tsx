@@ -106,6 +106,7 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
 
 export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'project-file-explorer',
+  'fileserver-archive-tasks',
   'public-resource-pvc-management',
   'public-resource-task-management',
   'pvc-management',
@@ -190,6 +191,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
 
   if (
     view === 'project-file-explorer' ||
+    view === 'fileserver-archive-tasks' ||
     view === 'public-resource-pvc-management' ||
     view === 'public-resource-task-management' ||
     view === 'pvc-management' ||
@@ -282,6 +284,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '资产供应',
       items: [
         { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
+        { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
         { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
         { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
       ],

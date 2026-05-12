@@ -12,6 +12,7 @@ import {
   IpcAuditCatalogRefreshJob,
   IpcAuditEvent,
   IpcAuditPresetProject,
+  IpcAuditProviderSummary,
   IpcAuditRuntimeConfig,
   IpcAuditStageLog,
   IpcAuditStageSessionFile,
@@ -42,6 +43,21 @@ interface IpcAuditReadyState {
   checks: Record<string, boolean>;
 }
 
+interface AuditedResultSummary {
+  artifact: IpcAuditArtifact;
+  vulnerabilitiesFound: string;
+  pocsDeveloped: string;
+  infoFindings: string;
+}
+
+interface TaskRuntimeSummary {
+  executorMode: string;
+  model: string;
+  taskModel: string;
+  providerKeys: string[];
+  providerSnapshots: Record<string, any>[];
+}
+
 type SessionDeltaParseResult = {
   sessionMeta: Record<string, any> | null;
   events: AppSaSessionEvent[];
@@ -50,6 +66,7 @@ type SessionDeltaParseResult = {
 };
 
 const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'cancel_requested']);
+const CANCELLABLE_TASK_STATUSES = new Set(['queued', 'running']);
 const STAGE_NAMES: StageName[] = ['audit', 'poc'];
 const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
   off: 'off',
@@ -110,6 +127,9 @@ const statusTone = (status?: string | null) => {
 
 const formatTaskStatus = (status?: string | null) => TASK_STATUS_LABELS[String(status || '').toLowerCase()] || (status || '-');
 const formatStageStatus = (status?: string | null) => STAGE_STATUS_LABELS[String(status || '').toLowerCase()] || (status || '-');
+const isActiveTaskStatus = (status?: string | null) => ACTIVE_TASK_STATUSES.has(String(status || '').toLowerCase());
+const isCancellableTaskStatus = (status?: string | null) => CANCELLABLE_TASK_STATUSES.has(String(status || '').toLowerCase());
+const isCompletedTaskStatus = (status?: string | null) => ['succeeded', 'partial_success'].includes(String(status || '').toLowerCase());
 const formatStageLabel = (stage?: string | null) => {
   if (!stage) return '-';
   return stage === 'poc' ? 'PoC' : 'Audit';
@@ -171,6 +191,70 @@ const formatPreviewContent = (artifact: IpcAuditArtifact | null, content: IpcAud
   }
 };
 
+const isAuditedResultArtifact = (artifact: IpcAuditArtifact) => {
+  const name = `${artifact.display_name || ''} ${artifact.relative_path || ''}`.toLowerCase();
+  return name.includes('audited-result.json') || artifact.artifact_kind === 'audited_result_json';
+};
+
+const findAuditedResultArtifact = (items: IpcAuditArtifact[]) =>
+  items.find(isAuditedResultArtifact) || null;
+
+const readNestedValue = (payload: unknown, path: string): unknown => {
+  const parts = path.split('.');
+  let current: unknown = payload;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object' || Array.isArray(current)) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+};
+
+const formatAuditedResultValue = (value: unknown): string => {
+  if (Array.isArray(value)) return String(value.length);
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value === 'boolean') return value ? '1' : '0';
+  if (typeof value === 'string') return value.trim() || '-';
+  return '-';
+};
+
+const readAuditedResultField = (payload: unknown, paths: string[]): string => {
+  for (const path of paths) {
+    const value = readNestedValue(payload, path);
+    if (value !== undefined && value !== null) return formatAuditedResultValue(value);
+  }
+  return '-';
+};
+
+const parseAuditedResultSummary = (artifact: IpcAuditArtifact, content: string): AuditedResultSummary => {
+  const payload = JSON.parse(content);
+  return {
+    artifact,
+    vulnerabilitiesFound: readAuditedResultField(payload, [
+      'vulnerabilities_found',
+      'summary.vulnerabilities_found',
+      'counts.vulnerabilities_found',
+      'counts.poc_confirmed_problem_count',
+      'statistics.vulnerabilities_found',
+      'statistics.vulnerabilities_confirmed',
+    ]),
+    pocsDeveloped: readAuditedResultField(payload, [
+      'pocs_developed',
+      'summary.pocs_developed',
+      'counts.pocs_developed',
+      'counts.poc_generated_count',
+      'statistics.pocs_developed',
+      'poc_built_success_count',
+    ]),
+    infoFindings: readAuditedResultField(payload, [
+      'info_findings',
+      'summary.info_findings',
+      'counts.info_findings',
+      'statistics.info_findings',
+      'notes',
+    ]),
+  };
+};
+
 const shortPath = (value?: string | null) => {
   if (!value) return '-';
   const parts = value.replace(/\\/g, '/').split('/').filter(Boolean);
@@ -190,6 +274,43 @@ const asRecord = (value: unknown): Record<string, any> =>
 
 const asString = (value: unknown, fallback = ''): string =>
   typeof value === 'string' ? value : value == null ? fallback : String(value);
+
+const asRecordArray = (value: unknown): Record<string, any>[] => (
+  Array.isArray(value)
+    ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item)) as Record<string, any>[]
+    : []
+);
+
+const buildProviderSnapshotMap = (value: unknown): Map<string, Record<string, any>> => {
+  const map = new Map<string, Record<string, any>>();
+  asRecordArray(value).forEach((item) => {
+    const key = String(item.provider_key || '').trim();
+    if (key) map.set(key, item);
+  });
+  return map;
+};
+
+const displayProviderName = (providerKey: string, snapshotMap: Map<string, Record<string, any>>) => {
+  const snapshot = snapshotMap.get(providerKey);
+  return String(snapshot?.display_name || providerKey).trim() || providerKey;
+};
+
+const buildTaskRuntimeSummary = (effectiveConfig: unknown): TaskRuntimeSummary | null => {
+  const config = asRecord(effectiveConfig);
+  const providerKeys = normalizeProviderKeys(config.provider_keys);
+  const providerSnapshots = asRecordArray(config.provider_snapshots);
+  const executorMode = asString(config.executor_mode || config.execution_mode).trim();
+  const model = asString(config.model).trim();
+  const taskModel = asString(config.task_model).trim();
+  if (!executorMode && !model && !taskModel && providerKeys.length === 0 && providerSnapshots.length === 0) return null;
+  return {
+    executorMode,
+    model,
+    taskModel,
+    providerKeys,
+    providerSnapshots,
+  };
+};
 
 const normalizeReadyState = (value: { status?: string | null; ready?: boolean | null; checks?: Record<string, boolean> | null }): IpcAuditReadyState => ({
   status: value.status || 'unknown',
@@ -501,6 +622,13 @@ const preferredSession = (items: IpcAuditStageSessionSummary[]) => {
 };
 
 const normalizeProjectPathInput = (value: string) => value.trim().replace(/^\/+|\/+$/g, '');
+const normalizeProviderKeys = (value: unknown): string[] => (
+  Array.isArray(value)
+    ? value
+      .map((item) => String(item || '').trim())
+      .filter((item, index, items) => Boolean(item) && items.indexOf(item) === index)
+    : []
+);
 
 const buildDefaultTitle = (inputPath?: string | null, displayName?: string | null) => {
   const rawPath = String(inputPath || '').trim();
@@ -534,12 +662,16 @@ const resolveExecutorMode = (capabilities: IpcAuditCapability | null) => {
   return supported.includes(preferred) ? preferred : (supported[0] || 'codex_cli');
 };
 
-const modelHintForExecutor = (mode?: string | null) => {
+const modelHintForExecutor = (mode?: string | null, providerModel?: string | null) => {
   if (mode === 'opencode_cli') {
-    return '可留空，沿用 OpenCode 当前默认模型；手填时建议使用 provider/model 形式。';
+    return providerModel
+      ? `可留空，自动使用最后一个已选 Provider 的模型 ${providerModel}；手填时建议使用 provider/model 形式。`
+      : '可留空，自动使用最后一个已选 Provider 的模型；手填时建议使用 provider/model 形式。';
   }
   if (mode === 'codex_cli') {
-    return '可留空，沿用 Codex 当前默认模型。';
+    return providerModel
+      ? `可留空，自动使用最后一个已选 Provider 的模型 ${providerModel}。`
+      : '可留空，自动使用最后一个已选 Provider 的模型。';
   }
   return 'Mock 执行器不会真正调用模型，填写后仅记录到任务配置。';
 };
@@ -606,6 +738,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [presetKeyword, setPresetKeyword] = useState('');
   const [refreshJob, setRefreshJob] = useState<IpcAuditCatalogRefreshJob | null>(null);
   const [refreshingCatalog, setRefreshingCatalog] = useState(false);
+  const [providerOptions, setProviderOptions] = useState<IpcAuditProviderSummary[]>([]);
+  const [defaultProviderKey, setDefaultProviderKey] = useState('');
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providerLoadError, setProviderLoadError] = useState<string | null>(null);
+  const [providerToAdd, setProviderToAdd] = useState('');
+  const [selectedProviderKeys, setSelectedProviderKeys] = useState<string[]>([]);
 
   const [selectedProjectPaths, setSelectedProjectPaths] = useState<string[]>([]);
   const [customProjectPaths, setCustomProjectPaths] = useState<string[]>([]);
@@ -618,6 +756,9 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasks, setTasks] = useState<IpcAuditTaskSummary[]>([]);
   const [taskKeyword, setTaskKeyword] = useState('');
+  const [taskStatusFilter, setTaskStatusFilter] = useState('all');
+  const [taskStageFilter, setTaskStageFilter] = useState('all');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [showTaskDetail, setShowTaskDetail] = useState(false);
 
@@ -635,6 +776,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [previewArtifactContent, setPreviewArtifactContent] = useState<IpcAuditArtifactContent | null>(null);
   const [previewArtifactLoading, setPreviewArtifactLoading] = useState(false);
   const [previewArtifactError, setPreviewArtifactError] = useState<string | null>(null);
+  const [auditedResultSummary, setAuditedResultSummary] = useState<AuditedResultSummary | null>(null);
+  const [auditedResultLoading, setAuditedResultLoading] = useState(false);
+  const [auditedResultError, setAuditedResultError] = useState<string | null>(null);
+  const [taskAuditedResultSummaries, setTaskAuditedResultSummaries] = useState<Record<string, AuditedResultSummary | null>>({});
+  const [taskAuditedResultLoadingIds, setTaskAuditedResultLoadingIds] = useState<Record<string, boolean>>({});
+  const [taskRuntimeSummaries, setTaskRuntimeSummaries] = useState<Record<string, TaskRuntimeSummary | null>>({});
+  const [taskRuntimeLoadingIds, setTaskRuntimeLoadingIds] = useState<Record<string, boolean>>({});
 
   const [selectedStage, setSelectedStage] = useState<StageName>('audit');
   const [selectedSessionPath, setSelectedSessionPath] = useState('');
@@ -652,8 +800,17 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
   const [creating, setCreating] = useState(false);
   const [actingTask, setActingTask] = useState(false);
+  const [batchActingTasks, setBatchActingTasks] = useState(false);
 
   const selectedWorkspace = workspaces.find((item) => item.workspace_id === workspaceId) || null;
+  const providerOptionMap = new Map<string, IpcAuditProviderSummary>();
+  providerOptions.forEach((item) => {
+    providerOptionMap.set(item.provider_key, item);
+  });
+  const selectedProviders = selectedProviderKeys
+    .map((providerKey) => providerOptionMap.get(providerKey) || null)
+    .filter((item): item is IpcAuditProviderSummary => !!item);
+  const providerFallbackModel = selectedProviders[selectedProviders.length - 1]?.model || '';
   const projectInputItemMap = new Map<string, ProjectInputItem>();
   presetProjects.forEach((item) => {
     const path = normalizeProjectPathInput(item.project_path);
@@ -683,7 +840,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const currentAttempt = attempts.find((item) => item.attempt_id === selectedAttemptId) || selectedTask?.latest_attempt || null;
   const currentExecutorMode = String(currentAttempt?.effective_config?.executor_mode || currentAttempt?.effective_config?.execution_mode || '');
   const currentModelName = String(currentAttempt?.effective_config?.model || '').trim();
+  const currentProviderKeys = normalizeProviderKeys(currentAttempt?.effective_config?.provider_keys);
+  const currentProviderSnapshotMap = buildProviderSnapshotMap(currentAttempt?.effective_config?.provider_snapshots);
   const visibleArtifacts = artifacts.filter((item) => item.artifact_kind !== 'session_file');
+  const auditedResultArtifact = findAuditedResultArtifact(visibleArtifacts);
   const currentStageRun = currentAttempt?.stage_runs.find((item) => item.stage_name === selectedStage) || null;
   const selectedStageSessions = stageSessions[selectedStage] || [];
   const selectedStageLog = stageLogs[selectedStage];
@@ -706,18 +866,37 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     warnings: sessionWarnings,
   } : null;
   const effectiveTaskCount = tasks.length;
-  const activeTaskCount = tasks.filter((item) => ACTIVE_TASK_STATUSES.has(String(item.status || '').toLowerCase())).length;
+  const activeTaskCount = tasks.filter((item) => isActiveTaskStatus(item.status)).length;
   const filteredProjectInputItems = projectInputItems.filter((item) => {
     const keyword = toSearchText(presetKeyword);
     if (!keyword) return true;
     return `${toSearchText(item.displayName)} ${toSearchText(item.path)} ${toSearchText(item.preset?.project_key)} ${toSearchText(item.source)}`.includes(keyword);
   });
   const filteredTasks = tasks.filter((item) => {
+    const status = String(item.status || '').toLowerCase();
+    const stage = String(item.current_stage || '').toLowerCase();
+    if (taskStatusFilter !== 'all' && status !== taskStatusFilter) return false;
+    if (taskStageFilter === 'none' && stage) return false;
+    if (taskStageFilter !== 'all' && taskStageFilter !== 'none' && stage !== taskStageFilter) return false;
     const keyword = toSearchText(taskKeyword);
     if (!keyword) return true;
     const path = item.input_ref.project_path || item.input_ref.report_path || '';
-    return `${toSearchText(item.title)} ${toSearchText(path)} ${toSearchText(item.task_id)}`.includes(keyword);
+    const runtimeSummary = taskRuntimeSummaries[item.task_id];
+    const providerSearchText = runtimeSummary
+      ? runtimeSummary.providerKeys.concat(runtimeSummary.providerSnapshots.map((snapshot) => String(snapshot.display_name || snapshot.provider_key || ''))).join(' ')
+      : '';
+    return `${toSearchText(item.title)} ${toSearchText(path)} ${toSearchText(item.task_id)} ${toSearchText(formatTaskStatus(item.status))} ${toSearchText(runtimeSummary?.executorMode)} ${toSearchText(runtimeSummary?.model)} ${toSearchText(runtimeSummary?.taskModel)} ${toSearchText(providerSearchText)}`.includes(keyword);
   });
+  const selectedTaskIdSet = new Set(selectedTaskIds);
+  const selectedTaskSummaries = selectedTaskIds
+    .map((taskId) => tasks.find((item) => item.task_id === taskId))
+    .filter((item): item is IpcAuditTaskSummary => !!item);
+  const selectedFilteredTaskCount = filteredTasks.filter((item) => selectedTaskIdSet.has(item.task_id)).length;
+  const allFilteredTasksSelected = filteredTasks.length > 0 && selectedFilteredTaskCount === filteredTasks.length;
+  const actionableSelectedTasks = selectedTaskSummaries.filter((item) => !isActiveTaskStatus(item.status));
+  const skippedActiveSelectedTaskCount = selectedTaskSummaries.length - actionableSelectedTasks.length;
+  const cancellableSelectedTasks = selectedTaskSummaries.filter((item) => isCancellableTaskStatus(item.status));
+  const skippedNonCancellableSelectedTaskCount = selectedTaskSummaries.length - cancellableSelectedTasks.length;
 
   const closeSessionStream = () => {
     if (sessionStreamRef.current) {
@@ -744,6 +923,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setWorkspaces([]);
           setWorkspaceId('');
           setPresetProjects([]);
+          setProviderOptions([]);
+          setDefaultProviderKey('');
+          setProviderLoadError(null);
+          setSelectedProviderKeys([]);
           setTasks([]);
           setPresetLoading(false);
           setTasksLoading(false);
@@ -758,6 +941,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setWorkspaces([]);
           setWorkspaceId('');
           setPresetProjects([]);
+          setProviderOptions([]);
+          setDefaultProviderKey('');
+          setProviderLoadError(null);
+          setSelectedProviderKeys([]);
           setTasks([]);
           setPresetLoading(false);
           setTasksLoading(false);
@@ -781,6 +968,34 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             || workspaceItems[0]?.workspace_id
             || '';
         });
+        setProvidersLoading(true);
+        setProviderLoadError(null);
+        try {
+          const providerResponse = await executionApi.listProviders();
+          if (cancelled) return;
+          const items = Array.isArray(providerResponse.items) ? providerResponse.items : [];
+          const normalizedDefaultProviderKey = String(providerResponse.default_provider_key || '').trim()
+            || items.find((item) => item.is_default)?.provider_key
+            || items[0]?.provider_key
+            || '';
+          setProviderOptions(items);
+          setDefaultProviderKey(normalizedDefaultProviderKey);
+          setProviderToAdd((current) => current || normalizedDefaultProviderKey);
+          setSelectedProviderKeys((current) => {
+            const normalizedCurrent = normalizeProviderKeys(current).filter((providerKey) => items.some((item) => item.provider_key === providerKey));
+            if (normalizedCurrent.length > 0) return normalizedCurrent;
+            return normalizedDefaultProviderKey ? [normalizedDefaultProviderKey] : [];
+          });
+        } catch (error) {
+          if (cancelled) return;
+          setProviderOptions([]);
+          setDefaultProviderKey('');
+          setProviderToAdd('');
+          setSelectedProviderKeys([]);
+          setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
+        } finally {
+          if (!cancelled) setProvidersLoading(false);
+        }
       } catch (error: any) {
         if (cancelled) return;
         setOverviewError(`IPC 审计服务初始化失败：${getErrorMessage(error, '未知错误')}`);
@@ -805,10 +1020,32 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   }, [capabilities]);
 
   useEffect(() => {
+    if (providerOptions.length === 0) {
+      setProviderToAdd('');
+      setSelectedProviderKeys([]);
+      return;
+    }
+    const availableKeys = new Set(providerOptions.map((item) => item.provider_key));
+    const fallbackKey = defaultProviderKey || providerOptions.find((item) => item.is_default)?.provider_key || providerOptions[0]?.provider_key || '';
+    setProviderToAdd((current) => (current && availableKeys.has(current) ? current : fallbackKey));
+    setSelectedProviderKeys((current) => {
+      const normalizedCurrent = normalizeProviderKeys(current).filter((providerKey) => availableKeys.has(providerKey));
+      if (normalizedCurrent.length > 0) return normalizedCurrent;
+      return fallbackKey ? [fallbackKey] : [];
+    });
+  }, [providerOptions, defaultProviderKey]);
+
+  useEffect(() => {
     setSelectedProjectPaths([]);
     setCustomProjectPaths([]);
     setCustomPath('');
     setPresetKeyword('');
+    setTaskKeyword('');
+    setTaskStatusFilter('all');
+    setTaskStageFilter('all');
+    setSelectedTaskIds([]);
+    setTaskAuditedResultSummaries({});
+    setTaskAuditedResultLoadingIds({});
     setRefreshJob(null);
   }, [workspaceId]);
 
@@ -862,6 +1099,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         ]);
         if (cancelled) return;
         setSelectedTask(taskDetail);
+        setTaskRuntimeSummaries((current) => ({
+          ...current,
+          [selectedTaskId]: buildTaskRuntimeSummary(taskDetail.latest_attempt?.effective_config),
+        }));
         setAttempts(attemptItems);
         setSelectedAttemptId((current) => {
           if (current && attemptItems.some((item) => item.attempt_id === current)) return current;
@@ -889,6 +1130,9 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       setStageLogs({ audit: null, poc: null });
       setEvents([]);
       setArtifacts([]);
+      setAuditedResultSummary(null);
+      setAuditedResultError(null);
+      setAuditedResultLoading(false);
       setSessionFile(null);
       setSessionEvents([]);
       setSessionHeader(null);
@@ -952,6 +1196,45 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       cancelled = true;
     };
   }, [showTaskDetail, selectedTaskId, selectedAttemptId, attempts]);
+
+  useEffect(() => {
+    if (!showTaskDetail || !selectedTaskId || !selectedAttemptId || !selectedTask || !isCompletedTaskStatus(selectedTask.status)) {
+      setAuditedResultSummary(null);
+      setAuditedResultError(null);
+      setAuditedResultLoading(false);
+      return;
+    }
+    const artifact = auditedResultArtifact;
+    if (!artifact) {
+      setAuditedResultSummary(null);
+      setAuditedResultError('未找到 audited-result.json');
+      setAuditedResultLoading(false);
+      setTaskAuditedResultSummaries((current) => ({ ...current, [selectedTaskId]: null }));
+      return;
+    }
+    let cancelled = false;
+    const loadAuditedResultSummary = async () => {
+      setAuditedResultLoading(true);
+      setAuditedResultError(null);
+      try {
+        const content = await executionApi.getArtifactContent(artifact.artifact_id, { maxBytes: 512 * 1024 });
+        if (cancelled) return;
+        const summary = parseAuditedResultSummary(artifact, content.content || '');
+        setAuditedResultSummary(summary);
+        setTaskAuditedResultSummaries((current) => ({ ...current, [selectedTaskId]: summary }));
+      } catch (error: any) {
+        if (cancelled) return;
+        setAuditedResultSummary(null);
+        setAuditedResultError(error?.message || '解析 audited-result.json 失败');
+      } finally {
+        if (!cancelled) setAuditedResultLoading(false);
+      }
+    };
+    void loadAuditedResultSummary();
+    return () => {
+      cancelled = true;
+    };
+  }, [showTaskDetail, selectedTaskId, selectedAttemptId, selectedTask?.status, auditedResultArtifact?.artifact_id, executionApi]);
 
   useEffect(() => {
     if (!refreshJob?.refresh_job_id) return;
@@ -1178,6 +1461,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             executionApi.listAttempts(selectedTaskId),
           ]);
           setSelectedTask(taskDetail);
+          setTaskRuntimeSummaries((current) => ({
+            ...current,
+            [selectedTaskId]: buildTaskRuntimeSummary(taskDetail.latest_attempt?.effective_config),
+          }));
           setAttempts(attemptItems);
           setSelectedAttemptId((current) => {
             if (current && attemptItems.some((item) => item.attempt_id === current)) return current;
@@ -1238,6 +1525,114 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   }, [tasks, selectedTaskId]);
 
   useEffect(() => {
+    const taskIds = new Set(tasks.map((item) => item.task_id));
+    setSelectedTaskIds((current) => current.filter((taskId) => taskIds.has(taskId)));
+    setTaskAuditedResultSummaries((current) => {
+      const next: Record<string, AuditedResultSummary | null> = {};
+      Object.entries(current).forEach(([taskId, summary]) => {
+        if (taskIds.has(taskId)) next[taskId] = summary;
+      });
+      return next;
+    });
+    setTaskRuntimeSummaries((current) => {
+      const next: Record<string, TaskRuntimeSummary | null> = {};
+      Object.entries(current).forEach(([taskId, summary]) => {
+        if (taskIds.has(taskId)) next[taskId] = summary;
+      });
+      return next;
+    });
+    setTaskRuntimeLoadingIds((current) => {
+      const next: Record<string, boolean> = {};
+      Object.entries(current).forEach(([taskId, loading]) => {
+        if (taskIds.has(taskId)) next[taskId] = loading;
+      });
+      return next;
+    });
+  }, [tasks]);
+
+  useEffect(() => {
+    const targets = filteredTasks
+      .filter((task) => taskRuntimeSummaries[task.task_id] === undefined && !taskRuntimeLoadingIds[task.task_id])
+      .slice(0, 16);
+    if (targets.length === 0) return;
+    const targetIds = targets.map((task) => task.task_id);
+    setTaskRuntimeLoadingIds((current) => {
+      const next = { ...current };
+      targetIds.forEach((taskId) => {
+        next[taskId] = true;
+      });
+      return next;
+    });
+    const loadTaskRuntimeSummaries = async () => {
+      const results = await Promise.allSettled(targets.map(async (task) => {
+        const taskDetail = await executionApi.getTask(task.task_id);
+        return { taskId: task.task_id, summary: buildTaskRuntimeSummary(taskDetail.latest_attempt?.effective_config) };
+      }));
+      setTaskRuntimeSummaries((current) => {
+        const next = { ...current };
+        results.forEach((result, index) => {
+          const taskId = targets[index].task_id;
+          next[taskId] = result.status === 'fulfilled' ? result.value.summary : null;
+        });
+        return next;
+      });
+      setTaskRuntimeLoadingIds((current) => {
+        const next = { ...current };
+        targetIds.forEach((taskId) => {
+          delete next[taskId];
+        });
+        return next;
+      });
+    };
+    void loadTaskRuntimeSummaries();
+  }, [filteredTasks, taskRuntimeSummaries, taskRuntimeLoadingIds, executionApi]);
+
+  useEffect(() => {
+    const targets = filteredTasks
+      .filter((task) => (
+        isCompletedTaskStatus(task.status)
+        && !!task.latest_attempt_id
+        && taskAuditedResultSummaries[task.task_id] === undefined
+        && !taskAuditedResultLoadingIds[task.task_id]
+      ))
+      .slice(0, 12);
+    if (targets.length === 0) return;
+    const targetIds = targets.map((task) => task.task_id);
+    setTaskAuditedResultLoadingIds((current) => {
+      const next = { ...current };
+      targetIds.forEach((taskId) => {
+        next[taskId] = true;
+      });
+      return next;
+    });
+    const loadTaskAuditedResults = async () => {
+      const results = await Promise.allSettled(targets.map(async (task) => {
+        const artifactList = await executionApi.listArtifacts(task.task_id, task.latest_attempt_id || '');
+        const artifact = findAuditedResultArtifact(artifactList.items || []);
+        if (!artifact) return { taskId: task.task_id, summary: null };
+        const content = await executionApi.getArtifactContent(artifact.artifact_id, { maxBytes: 512 * 1024 });
+        return { taskId: task.task_id, summary: parseAuditedResultSummary(artifact, content.content || '') };
+      }));
+      setTaskAuditedResultSummaries((current) => {
+        const next = { ...current };
+        results.forEach((result, index) => {
+          const taskId = targets[index].task_id;
+          next[taskId] = result.status === 'fulfilled' ? result.value.summary : null;
+        });
+        return next;
+      });
+      setTaskAuditedResultLoadingIds((current) => {
+        const next = { ...current };
+        targetIds.forEach((taskId) => {
+          delete next[taskId];
+        });
+        return next;
+      });
+    };
+    void loadTaskAuditedResults();
+  }, [tasks, taskKeyword, taskStatusFilter, taskStageFilter, taskAuditedResultSummaries, executionApi]);
+
+  useEffect(() => {
     if (!createModalOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !creating) {
@@ -1259,6 +1654,32 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       setOverviewError(error?.message || '刷新任务列表失败');
     } finally {
       setTasksLoading(false);
+    }
+  };
+
+  const handleRefreshProviders = async () => {
+    setProvidersLoading(true);
+    setProviderLoadError(null);
+    try {
+      const providerResponse = await executionApi.listProviders();
+      const items = Array.isArray(providerResponse.items) ? providerResponse.items : [];
+      const normalizedDefaultProviderKey = String(providerResponse.default_provider_key || '').trim()
+        || items.find((item) => item.is_default)?.provider_key
+        || items[0]?.provider_key
+        || '';
+      setProviderOptions(items);
+      setDefaultProviderKey(normalizedDefaultProviderKey);
+      setProviderToAdd((current) => current || normalizedDefaultProviderKey);
+      notify(`已同步 ${items.length} 个 Provider`, 'success');
+    } catch (error) {
+      setProviderOptions([]);
+      setDefaultProviderKey('');
+      setProviderToAdd('');
+      setSelectedProviderKeys([]);
+      setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
+      notify(`Provider 列表加载失败：${getErrorMessage(error, '未知错误')}`, 'error');
+    } finally {
+      setProvidersLoading(false);
     }
   };
 
@@ -1320,6 +1741,71 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     setSelectedProjectPaths([]);
   };
 
+  const handleAddProvider = () => {
+    const providerKey = String(providerToAdd || '').trim();
+    if (!providerKey) {
+      notify('请先选择 Provider', 'error');
+      return;
+    }
+    if (!providerOptionMap.has(providerKey)) {
+      notify('当前 Provider 不可用，请刷新后重试', 'error');
+      return;
+    }
+    if (selectedProviderKeys.includes(providerKey)) {
+      notify('该 Provider 已在当前任务列表中', 'warning');
+      return;
+    }
+    setSelectedProviderKeys((current) => (
+      [...current, providerKey]
+    ));
+  };
+
+  const handleMoveProvider = (providerKey: string, direction: -1 | 1) => {
+    setSelectedProviderKeys((current) => {
+      const index = current.indexOf(providerKey);
+      if (index < 0) return current;
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= current.length) return current;
+      const next = [...current];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+      return next;
+    });
+  };
+
+  const handleRemoveProvider = (providerKey: string) => {
+    setSelectedProviderKeys((current) => current.filter((item) => item !== providerKey));
+  };
+
+  const handleClearProviders = () => {
+    setSelectedProviderKeys([]);
+  };
+
+  const handleToggleTaskSelection = (taskId: string) => {
+    setSelectedTaskIds((current) => (
+      current.includes(taskId)
+        ? current.filter((item) => item !== taskId)
+        : [...current, taskId]
+    ));
+  };
+
+  const handleToggleVisibleTaskSelection = () => {
+    const visibleTaskIds = filteredTasks.map((item) => item.task_id);
+    if (visibleTaskIds.length === 0) return;
+    setSelectedTaskIds((current) => {
+      const visibleIdSet = new Set(visibleTaskIds);
+      const currentVisibleCount = current.filter((taskId) => visibleIdSet.has(taskId)).length;
+      if (currentVisibleCount === visibleTaskIds.length) {
+        return current.filter((taskId) => !visibleIdSet.has(taskId));
+      }
+      return Array.from(new Set([...current, ...visibleTaskIds]));
+    });
+  };
+
+  const handleClearSelectedTasks = () => {
+    setSelectedTaskIds([]);
+  };
+
   const handleAddCustomProjectPath = () => {
     if (!canCreateCustomProject) {
       notify('当前工作区不允许添加自定义路径', 'error');
@@ -1354,6 +1840,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       notify('请至少选择一个项目路径', 'error');
       return;
     }
+    const normalizedProviderKeys = normalizeProviderKeys(selectedProviderKeys);
+    if (normalizedProviderKeys.length === 0) {
+      notify('请至少选择一个 Provider', 'error');
+      return;
+    }
 
     setCreating(true);
     try {
@@ -1375,6 +1866,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             input_ref: validation.normalized_input_ref,
             executor_mode: resolvedExecutorMode,
             model: modelName.trim() || undefined,
+            provider_keys: normalizedProviderKeys,
           });
           createdTasks.push(createdTask);
         } catch (error: any) {
@@ -1393,6 +1885,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       );
       setTitle('');
       setSelectedTaskId(createdTasks[0].task_id);
+      setSelectedTaskIds(createdTasks.map((item) => item.task_id));
       setShowTaskDetail(false);
       await handleRefreshTasks();
       if (failedItems.length === 0) {
@@ -1480,6 +1973,135 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     }
   };
 
+  const handleBatchRetryTasks = async () => {
+    if (selectedTaskSummaries.length === 0) {
+      notify('请先选择任务', 'error');
+      return;
+    }
+    if (actionableSelectedTasks.length === 0) {
+      notify('选中的任务都处于运行中或取消中，不能批量重试', 'error');
+      return;
+    }
+    const confirmed = await confirm({
+      title: '批量重试任务',
+      message: `确认重新执行 ${actionableSelectedTasks.length} 个任务吗？${skippedActiveSelectedTaskCount > 0 ? ` ${skippedActiveSelectedTaskCount} 个运行中/取消中的任务会被跳过。` : ''}`,
+      confirmText: '确认重试',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setBatchActingTasks(true);
+    try {
+      const results = await Promise.allSettled(
+        actionableSelectedTasks.map((task) => executionApi.retryTask(task.task_id, { retry_scope: 'task' })),
+      );
+      const failedTaskIds = actionableSelectedTasks
+        .filter((_, index) => results[index].status === 'rejected')
+        .map((task) => task.task_id);
+      const succeededCount = results.length - failedTaskIds.length;
+      notify(
+        failedTaskIds.length > 0
+          ? `已重试 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
+          : `已重试 ${succeededCount} 个任务`,
+        failedTaskIds.length > 0 ? 'warning' : 'success',
+      );
+      if (failedTaskIds.length > 0) setSelectedTaskIds(failedTaskIds);
+      await handleRefreshTasks();
+    } catch (error: any) {
+      notify(error?.message || '批量重试任务失败', 'error');
+    } finally {
+      setBatchActingTasks(false);
+    }
+  };
+
+  const handleBatchCancelTasks = async () => {
+    if (selectedTaskSummaries.length === 0) {
+      notify('请先选择任务', 'error');
+      return;
+    }
+    if (cancellableSelectedTasks.length === 0) {
+      notify('选中的任务没有处于排队中或执行中，不能批量停止', 'error');
+      return;
+    }
+    const confirmed = await confirm({
+      title: '批量停止任务',
+      message: `确认停止 ${cancellableSelectedTasks.length} 个排队中/执行中的任务吗？${skippedNonCancellableSelectedTaskCount > 0 ? ` ${skippedNonCancellableSelectedTaskCount} 个非运行任务会被跳过。` : ''}`,
+      confirmText: '确认停止',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setBatchActingTasks(true);
+    try {
+      const results = await Promise.allSettled(
+        cancellableSelectedTasks.map((task) => executionApi.cancelTask(task.task_id)),
+      );
+      const failedTaskIds = cancellableSelectedTasks
+        .filter((_, index) => results[index].status === 'rejected')
+        .map((task) => task.task_id);
+      const succeededCount = results.length - failedTaskIds.length;
+      notify(
+        failedTaskIds.length > 0
+          ? `已停止 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
+          : `已提交 ${succeededCount} 个任务的停止请求`,
+        failedTaskIds.length > 0 ? 'warning' : 'success',
+      );
+      if (failedTaskIds.length > 0) setSelectedTaskIds(failedTaskIds);
+      await handleRefreshTasks();
+    } catch (error: any) {
+      notify(error?.message || '批量停止任务失败', 'error');
+    } finally {
+      setBatchActingTasks(false);
+    }
+  };
+
+  const handleBatchDeleteTasks = async () => {
+    if (selectedTaskSummaries.length === 0) {
+      notify('请先选择任务', 'error');
+      return;
+    }
+    if (actionableSelectedTasks.length === 0) {
+      notify('选中的任务都处于运行中或取消中，不能批量删除', 'error');
+      return;
+    }
+    const confirmed = await confirm({
+      title: '批量删除任务',
+      message: `确认删除 ${actionableSelectedTasks.length} 个任务以及对应产物目录吗？此操作不可撤销。${skippedActiveSelectedTaskCount > 0 ? ` ${skippedActiveSelectedTaskCount} 个运行中/取消中的任务会被跳过。` : ''}`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setBatchActingTasks(true);
+    try {
+      const results = await Promise.allSettled(
+        actionableSelectedTasks.map((task) => executionApi.deleteTask(task.task_id, true)),
+      );
+      const failedTaskIds = actionableSelectedTasks
+        .filter((_, index) => results[index].status === 'rejected')
+        .map((task) => task.task_id);
+      const deletedTaskIds = actionableSelectedTasks
+        .filter((_, index) => results[index].status === 'fulfilled')
+        .map((task) => task.task_id);
+      const succeededCount = deletedTaskIds.length;
+      notify(
+        failedTaskIds.length > 0
+          ? `已删除 ${succeededCount} 个任务，${failedTaskIds.length} 个失败`
+          : `已删除 ${succeededCount} 个任务`,
+        failedTaskIds.length > 0 ? 'warning' : 'success',
+      );
+      if (deletedTaskIds.includes(selectedTaskId)) {
+        setSelectedTaskId('');
+        setShowTaskDetail(false);
+      }
+      setSelectedTaskIds(failedTaskIds);
+      await handleRefreshTasks();
+    } catch (error: any) {
+      notify(error?.message || '批量删除任务失败', 'error');
+    } finally {
+      setBatchActingTasks(false);
+    }
+  };
+
   const handleSaveMaxParallelTasks = async () => {
     const value = Number(maxParallelDraft);
     if (!Number.isInteger(value) || value < 1 || value > 32) {
@@ -1534,7 +2156,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
   if (bootstrapping) {
     return (
-      <div className="flex min-h-[480px] items-center justify-center">
+      <div className="flex min-h-[480px] items-center justify-center px-8 pt-8 pb-10">
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 text-sm font-semibold text-slate-600 shadow-sm">
           <Loader2 size={18} className="animate-spin text-slate-500" />
           正在初始化 IPC 漏洞扫描页面...
@@ -1544,8 +2166,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="space-y-6 px-8 pt-8 pb-10">
+      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">
@@ -1554,13 +2176,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </div>
             <h1 className="mt-3 text-2xl font-black tracking-tight text-slate-950">IPC漏洞扫描</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              任务创建使用统一项目路径列表：预设项目可刷新，自定义路径可追加到列表，多选后会按路径批量创建任务，并允许选择 Codex / OpenCode 执行器与 model。任务执行后，可以直接查看 Audit / PoC 阶段的
-              <span className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">prompt.txt</span>
-              、
-              <span className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">events.jsonl</span>
-              和
-              <span className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">last-message.md</span>
-              ，其中 JSONL 会复用前端现有的 Pi 会话解析。
+              面向 OpenHarmony IPC 服务入口的自动化漏洞扫描，覆盖代码审计、PoC 验证、执行日志和产物追踪。
             </p>
           </div>
           <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-4xl xl:grid-cols-4">
@@ -1647,14 +2263,107 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <MetricCard label="活跃任务" value={activeTaskCount} />
             </div>
 
-            <div className="mt-4 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <Search size={16} className="text-slate-400" />
-              <input
-                value={taskKeyword}
-                onChange={(event) => setTaskKeyword(event.target.value)}
-                placeholder="筛选标题、路径或任务 ID"
-                className="w-full bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400"
-              />
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <label className="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredTasksSelected}
+                    disabled={filteredTasks.length === 0}
+                    onChange={handleToggleVisibleTaskSelection}
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  />
+                  选择当前筛选结果
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-500">
+                    已选择 {selectedTaskSummaries.length} 个，当前筛选 {filteredTasks.length} 个
+                    {cancellableSelectedTasks.length > 0 ? `，可停止 ${cancellableSelectedTasks.length} 个` : ''}
+                    {actionableSelectedTasks.length > 0 ? `，可重试/删除 ${actionableSelectedTasks.length} 个` : ''}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleBatchCancelTasks}
+                    disabled={batchActingTasks || cancellableSelectedTasks.length === 0}
+                    className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-bold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <XCircle size={15} />}
+                    批量停止 {cancellableSelectedTasks.length > 0 ? `(${cancellableSelectedTasks.length})` : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBatchRetryTasks}
+                    disabled={batchActingTasks || actionableSelectedTasks.length === 0}
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} />}
+                    批量重试 {actionableSelectedTasks.length > 0 ? `(${actionableSelectedTasks.length})` : ''}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBatchDeleteTasks}
+                    disabled={batchActingTasks || actionableSelectedTasks.length === 0}
+                    className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {batchActingTasks ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                    批量删除 {actionableSelectedTasks.length > 0 ? `(${actionableSelectedTasks.length})` : ''}
+                  </button>
+                  {selectedTaskSummaries.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleClearSelectedTasks}
+                      disabled={batchActingTasks}
+                      className="rounded-lg px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      清空选择
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_180px_auto]">
+              <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <Search size={16} className="text-slate-400" />
+                <input
+                  value={taskKeyword}
+                  onChange={(event) => setTaskKeyword(event.target.value)}
+                  placeholder="筛选标题、路径、任务 ID 或状态"
+                  className="w-full bg-transparent text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400"
+                />
+              </div>
+              <select
+                value={taskStatusFilter}
+                onChange={(event) => setTaskStatusFilter(event.target.value)}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              >
+                <option value="all">全部状态</option>
+                {Object.entries(TASK_STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <select
+                value={taskStageFilter}
+                onChange={(event) => setTaskStageFilter(event.target.value)}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+              >
+                <option value="all">全部阶段</option>
+                <option value="audit">Audit</option>
+                <option value="poc">PoC</option>
+                <option value="none">等待调度</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  setTaskKeyword('');
+                  setTaskStatusFilter('all');
+                  setTaskStageFilter('all');
+                }}
+                disabled={!taskKeyword && taskStatusFilter === 'all' && taskStageFilter === 'all'}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                清空筛选
+              </button>
             </div>
 
             <div className="mt-4 max-h-[840px] space-y-3 overflow-auto pr-1">
@@ -1663,37 +2372,120 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <Loader2 size={16} className="animate-spin" />
                   正在加载任务列表...
                 </div>
-              ) : filteredTasks.length === 0 ? (
+              ) : tasks.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm font-semibold text-slate-500">
                   当前项目还没有 IPC 漏洞扫描任务。
+                </div>
+              ) : filteredTasks.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm font-semibold text-slate-500">
+                  没有符合当前筛选条件的任务。
                 </div>
               ) : (
                 filteredTasks.map((item) => {
                   const active = item.task_id === selectedTaskId;
+                  const checked = selectedTaskIdSet.has(item.task_id);
                   const path = item.input_ref.project_path || item.input_ref.report_path || '-';
+                  const rowRuntimeSummary = taskRuntimeSummaries[item.task_id];
+                  const rowRuntimeLoading = Boolean(taskRuntimeLoadingIds[item.task_id]);
+                  const rowProviderSnapshotMap = buildProviderSnapshotMap(rowRuntimeSummary?.providerSnapshots);
+                  const rowProviderKeys = rowRuntimeSummary?.providerKeys || [];
+                  const rowModel = rowRuntimeSummary?.taskModel || rowRuntimeSummary?.model || '';
+                  const rowAuditedResult = taskAuditedResultSummaries[item.task_id];
+                  const rowAuditedResultLoading = Boolean(taskAuditedResultLoadingIds[item.task_id]);
                   return (
-                    <button
+                    <div
                       key={item.task_id}
-                      type="button"
-                      onClick={() => handleOpenTaskDetail(item.task_id)}
-                      className={`block w-full rounded-lg border px-4 py-4 text-left transition ${active ? 'border-sky-300 bg-sky-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
+                      className={`rounded-lg border transition ${checked ? 'border-sky-300 bg-sky-50 shadow-sm' : active ? 'border-sky-300 bg-sky-50/70 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-black text-slate-900">{item.title}</div>
-                          <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{path}</div>
+                      <div className="flex items-start gap-3 px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleTaskSelection(item.task_id)}
+                          className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-slate-900 focus:ring-slate-300"
+                          aria-label={`选择任务 ${item.title}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleOpenTaskDetail(item.task_id)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-black text-slate-900">{item.title}</div>
+                              <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{path}</div>
+                            </div>
+                            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusTone(item.status)}`}>
+                              {formatTaskStatus(item.status)}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
+                            <span>{formatInputKind(item.input_ref.kind)}</span>
+                            <span>{item.current_stage ? `当前阶段 ${formatStageLabel(item.current_stage)}` : '等待调度'}</span>
+                            <span>{formatDateTime(item.created_at)}</span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {rowRuntimeLoading ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                <Loader2 size={12} className="animate-spin" />
+                                加载执行配置
+                              </span>
+                            ) : rowRuntimeSummary ? (
+                              <>
+                                {rowRuntimeSummary.executorMode ? (
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    执行器 {formatExecutorMode(rowRuntimeSummary.executorMode)}
+                                  </span>
+                                ) : null}
+                                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  Model {rowModel || '(default)'}
+                                </span>
+                                {rowProviderKeys.slice(0, 2).map((providerKey, index) => (
+                                  <span key={`${item.task_id}-${providerKey}-${index}`} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    Provider {index + 1} · {displayProviderName(providerKey, rowProviderSnapshotMap)}
+                                  </span>
+                                ))}
+                                {rowProviderKeys.length > 2 ? (
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                    +{rowProviderKeys.length - 2} Provider
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : null}
+                          </div>
+                          {isCompletedTaskStatus(item.status) ? (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {rowAuditedResultLoading ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                  <Loader2 size={12} className="animate-spin" />
+                                  解析 audited-result
+                                </span>
+                              ) : rowAuditedResult ? (
+                                <>
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    vulnerabilities_found {rowAuditedResult.vulnerabilitiesFound}
+                                  </span>
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    pocs_developed {rowAuditedResult.pocsDeveloped}
+                                  </span>
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    info_findings {rowAuditedResult.infoFindings}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="rounded-full border border-dashed border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-400">
+                                  未解析到 audited-result.json
+                                </span>
+                              )}
+                            </div>
+                          ) : null}
+                          <div className="mt-2 font-mono text-[11px] text-slate-400">{item.task_id}</div>
+                        </button>
+                        <div className="hidden shrink-0 pt-1 text-[11px] font-bold text-slate-400 md:block">
+                          点击内容查看详情
                         </div>
-                        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusTone(item.status)}`}>
-                          {formatTaskStatus(item.status)}
-                        </span>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
-                        <span>{formatInputKind(item.input_ref.kind)}</span>
-                        <span>{item.current_stage ? `当前阶段 ${formatStageLabel(item.current_stage)}` : '等待调度'}</span>
-                        <span>{formatDateTime(item.created_at)}</span>
-                      </div>
-                      <div className="mt-2 font-mono text-[11px] text-slate-400">{item.task_id}</div>
-                    </button>
+                    </div>
                   );
                 })
               )}
@@ -1703,8 +2495,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         ) : (
         <section className="space-y-6">
           <div className={panelClassName}>
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="min-w-0">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
                 <button
                   type="button"
                   onClick={handleBackToList}
@@ -1713,35 +2505,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <ArrowLeft size={16} />
                   返回任务列表
                 </button>
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Task Detail</div>
-                <h2 className="mt-2 truncate text-2xl font-black text-slate-950">{selectedTask?.title || '任务详情'}</h2>
-                {selectedTask ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(selectedTask.status)}`}>
-                      {formatTaskStatus(selectedTask.status)}
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                      {formatInputKind(selectedTask.input_ref.kind)}
-                    </span>
-                    {selectedTask.current_stage ? (
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                        当前阶段 {formatStageLabel(selectedTask.current_stage)}
-                      </span>
-                    ) : null}
-                    {currentExecutorMode ? (
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                        执行器 {formatExecutorMode(currentExecutorMode)}
-                      </span>
-                    ) : null}
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                      Model {currentModelName || '(default)'}
-                    </span>
-                  </div>
-                ) : null}
               </div>
 
               {selectedTask ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {ACTIVE_TASK_STATUSES.has(String(selectedTask.status || '').toLowerCase()) ? (
                     <button
                       type="button"
@@ -1789,6 +2556,43 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               ) : null}
             </div>
 
+            <div className="mt-6 min-w-0 border-t border-slate-100 pt-5">
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Task Detail</div>
+              <h2 className="mt-2 truncate text-2xl font-black text-slate-950">{selectedTask?.title || '任务详情'}</h2>
+              {selectedTask ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(selectedTask.status)}`}>
+                    {formatTaskStatus(selectedTask.status)}
+                  </span>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                    {formatInputKind(selectedTask.input_ref.kind)}
+                  </span>
+                  {selectedTask.current_stage ? (
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                      当前阶段 {formatStageLabel(selectedTask.current_stage)}
+                    </span>
+                  ) : null}
+                  {currentExecutorMode ? (
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                      执行器 {formatExecutorMode(currentExecutorMode)}
+                    </span>
+                  ) : null}
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                    Model {currentModelName || '(default)'}
+                  </span>
+                  {currentProviderKeys.map((providerKey, index) => {
+                    const snapshot = currentProviderSnapshotMap.get(providerKey);
+                    const displayName = String(snapshot?.display_name || providerKey).trim() || providerKey;
+                    return (
+                      <span key={`${providerKey}-${index}`} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                        Provider {index + 1} · {displayName}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+
             {detailError ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">{detailError}</div>
             ) : null}
@@ -1805,6 +2609,42 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <MetricCard label="尝试次数" value={selectedTask.attempt_count} sub={`创建于 ${formatDateTime(selectedTask.created_at)}`} />
                   <MetricCard label="最近更新时间" value={formatDateTime(selectedTask.finished_at || selectedTask.started_at || selectedTask.created_at)} sub={selectedTask.created_by} />
                 </div>
+
+                {isCompletedTaskStatus(selectedTask.status) ? (
+                  <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Audited Result</div>
+                        <h3 className="mt-1 text-sm font-black text-slate-950">audited-result.json 摘要</h3>
+                      </div>
+                      {auditedResultSummary ? (
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewArtifact(auditedResultSummary.artifact)}
+                          className="self-start rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100 sm:self-auto"
+                        >
+                          预览 JSON
+                        </button>
+                      ) : null}
+                    </div>
+                    {auditedResultLoading ? (
+                      <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                        <Loader2 size={16} className="animate-spin" />
+                        正在解析 audited-result.json...
+                      </div>
+                    ) : auditedResultSummary ? (
+                      <div className="mt-4 grid gap-3 md:grid-cols-3">
+                        <MetricCard label="vulnerabilities_found" value={auditedResultSummary.vulnerabilitiesFound} sub={auditedResultSummary.artifact.relative_path} />
+                        <MetricCard label="pocs_developed" value={auditedResultSummary.pocsDeveloped} sub={auditedResultSummary.artifact.relative_path} />
+                        <MetricCard label="info_findings" value={auditedResultSummary.infoFindings} sub={auditedResultSummary.artifact.relative_path} />
+                      </div>
+                    ) : (
+                      <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                        {auditedResultError || '当前任务没有可解析的 audited-result.json。'}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
 
                 <div className="mt-6 grid gap-3 md:grid-cols-2">
                   {STAGE_NAMES.map((stageName) => {
@@ -2300,7 +3140,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <div className="grid gap-4 md:grid-cols-2">
                     <label className="block">
                       <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">执行器</div>
-                    <select
+                      <select
                         value={executorMode}
                         onChange={(event) => setExecutorMode(event.target.value as ExecutorMode)}
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
@@ -2323,7 +3163,156 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       />
                     </label>
                   </div>
-                  <div className="text-xs font-medium text-slate-500">{modelHintForExecutor(executorMode)}</div>
+                  <div className="text-xs font-medium text-slate-500">{modelHintForExecutor(executorMode, providerFallbackModel || null)}</div>
+
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">LLM Provider</div>
+                        <div className="mt-1 text-xs font-medium text-slate-500">
+                          任务会按当前顺序依次合并 Provider，后面的同名环境变量或同路径文件会覆盖前面的。
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={handleRefreshProviders}
+                          disabled={providersLoading}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {providersLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                          刷新 Provider
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleClearProviders}
+                          disabled={selectedProviderKeys.length === 0}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          清空 Provider
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+                      <select
+                        value={providerToAdd}
+                        onChange={(event) => setProviderToAdd(event.target.value)}
+                        disabled={providersLoading || providerOptions.length === 0}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        <option value="">{providersLoading ? '正在加载 Provider...' : '选择 Provider...'}</option>
+                        {providerOptions.map((provider) => (
+                          <option key={provider.provider_key} value={provider.provider_key} disabled={!provider.enabled}>
+                            {provider.display_name || provider.provider_key} · {provider.provider_type} · {provider.model || 'no-model'}{provider.is_default ? ' · 默认' : ''}{!provider.enabled ? ' · 已禁用' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleAddProvider}
+                        disabled={providersLoading || !providerToAdd}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Plus size={15} />
+                        添加 Provider
+                      </button>
+                    </div>
+
+                    <div className="mt-2 text-xs font-medium text-slate-500">
+                      默认会带上当前默认 Provider；你也可以继续添加多个 Provider 并调整顺序。留空 Model 时，后端会回退到最后一个已选 Provider 的模型。
+                    </div>
+                    {providerLoadError ? (
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                        Provider 列表加载失败：{providerLoadError}
+                      </div>
+                    ) : null}
+                    {providersLoading ? (
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                        <Loader2 size={14} className="animate-spin" />
+                        正在同步 Provider 列表...
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 max-h-[260px] space-y-2 overflow-auto pr-1">
+                      {selectedProviderKeys.length === 0 ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                          当前还没有选中 Provider。执行器为 Codex / OpenCode 时，建议至少选择一个 Provider。
+                        </div>
+                      ) : (
+                        selectedProviderKeys.map((providerKey, index) => {
+                          const provider = providerOptionMap.get(providerKey) || null;
+                          return (
+                            <div key={`${providerKey}-${index}`} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="truncate text-sm font-black text-slate-900">{provider?.display_name || providerKey}</span>
+                                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
+                                      顺序 {index + 1}
+                                    </span>
+                                    {provider?.is_default ? (
+                                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+                                        默认
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{providerKey}</div>
+                                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                    <span>{provider?.provider_type || '-'}</span>
+                                    <span>{provider?.model || 'no-model'}</span>
+                                    <span>{provider?.mapped_env_keys?.length || 0} env</span>
+                                    <span>{provider?.mapped_file_paths?.length || 0} file</span>
+                                  </div>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={index === 0}
+                                    onClick={() => handleMoveProvider(providerKey, -1)}
+                                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    上移
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={index === selectedProviderKeys.length - 1}
+                                    onClick={() => handleMoveProvider(providerKey, 1)}
+                                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    下移
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveProvider(providerKey)}
+                                    className="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-black text-rose-700"
+                                  >
+                                    删除
+                                  </button>
+                                </div>
+                              </div>
+                              {(provider?.mapped_env_keys?.length || 0) > 0 || (provider?.mapped_file_paths?.length || 0) > 0 ? (
+                                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                                  <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped Env Keys</div>
+                                    <div className="mt-1 break-all text-xs font-semibold text-slate-600">
+                                      {provider?.mapped_env_keys?.join(', ') || '-'}
+                                    </div>
+                                  </div>
+                                  <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped File Paths</div>
+                                    <div className="mt-1 break-all text-xs font-semibold text-slate-600">
+                                      {provider?.mapped_file_paths?.join(', ') || '-'}
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -2365,12 +3354,30 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Model</div>
-                        <div className="mt-2 break-all font-mono text-xs text-slate-700">{modelName.trim() || '(default)'}</div>
+                        <div className="mt-2 break-all font-mono text-xs text-slate-700">{modelName.trim() || providerFallbackModel || '(default)'}</div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Provider 顺序</div>
+                        <div className="mt-2 max-h-48 space-y-2 overflow-auto">
+                          {selectedProviders.length === 0 ? (
+                            <div className="text-xs font-semibold text-slate-400">尚未选择 Provider</div>
+                          ) : (
+                            selectedProviders.map((provider, index) => (
+                              <div key={`${provider.provider_key}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2">
+                                <div className="text-xs font-black text-slate-800">{index + 1}. {provider.display_name || provider.provider_key}</div>
+                                <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{provider.provider_key}</div>
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                  {provider.provider_type} · {provider.model || 'no-model'} · {provider.mapped_env_keys.length} env · {provider.mapped_file_paths.length} file
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">说明</div>
                         <div className="mt-2 text-sm font-medium leading-6 text-slate-600">
-                          不展示扫描范围、目标类型和扫描策略。后端按工作区默认模式决定是否在 Audit 结束后继续执行 PoC；批量创建时每个路径对应一个独立任务。
+                          不展示扫描范围、目标类型和扫描策略。后端按工作区默认模式决定是否在 Audit 结束后继续执行 PoC；批量创建时每个路径对应一个独立任务。Provider 按当前顺序合并，Model 留空时回退到最后一个已选 Provider 的模型。
                         </div>
                       </div>
                     </div>
@@ -2392,7 +3399,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <button
                 type="button"
                 onClick={handleCreateTask}
-                disabled={creating || !workspaceId || selectedProjectItems.length === 0}
+                disabled={creating || !workspaceId || selectedProjectItems.length === 0 || selectedProviderKeys.length === 0}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}

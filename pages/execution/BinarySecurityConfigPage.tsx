@@ -7,8 +7,9 @@ import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
 import { DataflowAnalysisConfigPage } from './DataflowAnalysisConfigPage';
 import { DataflowVulnConfigPage } from './DataflowVulnScannerPage';
+import { B2SConfigPage } from './B2SConfigPage';
 
-type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis' | 'entry-analysis' | 'dataflow-analysis' | 'dataflow-vuln';
+type ConfigTab = 'binary-security' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-analysis' | 'dataflow-vuln';
 const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'firmware_unpack', label: '固件解包' },
   { key: 'system_analysis', label: '系统分析' },
@@ -144,6 +145,11 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               id: 'system-analysis' as ConfigTab,
               label: '系统分析',
               service: 'secflow-app-system-analyse',
+            },
+            {
+              id: 'binary-to-source' as ConfigTab,
+              label: '二进制逆向',
+              service: 'secflow-app-binary-to-source',
             },
             {
               id: 'entry-analysis' as ConfigTab,
@@ -287,6 +293,8 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         <FirmwareUnpackConfigPage projectId="" embedded />
       ) : activeTab === 'system-analysis' ? (
         <SystemAnalysisConfigPage projectId={projectId} embedded />
+      ) : activeTab === 'binary-to-source' ? (
+        <B2SConfigPage projectId={projectId} embedded />
       ) : activeTab === 'entry-analysis' ? (
         <EntryAnalysisConfigPage projectId={projectId} embedded />
       ) : activeTab === 'dataflow-analysis' ? (
