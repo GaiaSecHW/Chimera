@@ -7,6 +7,7 @@ import { codeServerApi } from '../codeServer';
 import { dataflowVulnScannerApi } from '../dataflowVulnScanner';
 import { firmwareUnpackerApi } from '../firmwareUnpacker';
 import { ipcAuditApi } from '../ipcAudit';
+import { kernelScanApi } from '../kernelScan';
 import { systemAnalysisApi } from '../systemAnalysis';
 
 export { appDataflowAnalyseApi } from '../appDataflowAnalyse';
@@ -18,6 +19,7 @@ export { codeServerApi } from '../codeServer';
 export { dataflowVulnScannerApi } from '../dataflowVulnScanner';
 export { firmwareUnpackerApi } from '../firmwareUnpacker';
 export { ipcAuditApi } from '../ipcAudit';
+export { kernelScanApi } from '../kernelScan';
 export { binaryToSourceApi } from '../binaryToSource';
 
 export const executionClients = {
@@ -29,6 +31,7 @@ export const executionClients = {
   dataflowVulnScanner: dataflowVulnScannerApi,
   firmwareUnpacker: firmwareUnpackerApi,
   ipcAudit: ipcAuditApi,
+  kernelScan: kernelScanApi,
   binarySecurity: binarySecurityApi,
   binaryToSource: binaryToSourceApi,
 };

@@ -52,6 +52,7 @@ import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOve
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
 import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcVulnPage';
+import { KernelScanPage } from '../pages/execution/KernelScanPage';
 import { VulnOverviewPage } from '../pages/vuln/VulnOverviewPage';
 import { VulnIntakePage } from '../pages/vuln/VulnIntakePage';
 import { VulnAnalysisPage } from '../pages/vuln/VulnAnalysisPage';
@@ -450,6 +451,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
     case 'mobile-security-ipc-vuln':
       return <MobileSecurityIpcVulnPage projectId={ctx.selectedProjectId} />;
+    case 'kernel-scan':
+      return <KernelScanPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
