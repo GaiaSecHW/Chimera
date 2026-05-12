@@ -293,6 +293,7 @@ export interface DataflowRunDetail extends DataflowRunSummary {
   command_display?: string;
   current_step?: Record<string, any>;
   step_history?: Record<string, any>[];
+  cycle_timing?: Record<string, any>;
   raw: Record<string, any>;
 }
 
@@ -300,8 +301,12 @@ export interface DataflowRunCycle {
   cycle: number;
   global_reviews: Record<string, any>[];
   result_reviews: Record<string, any>[];
+  new_result_count?: number;
+  new_results?: Record<string, any>[];
   summary_snapshot: string;
   metrics: Record<string, any>;
+  global_review_summary?: Record<string, any>;
+  profile_gate?: Record<string, any>;
 }
 
 export interface DataflowRunResolve {

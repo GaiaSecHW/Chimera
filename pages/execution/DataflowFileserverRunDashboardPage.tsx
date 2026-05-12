@@ -80,6 +80,7 @@ const DASHBOARD_HTML = `
             <div class="card" id="issuesCard"></div>
           </div>
           <div class="card" id="manifestCard"></div>
+          <div class="card" id="newResultsCard"></div>
           <div class="card" id="cycleTimeline"></div>
         </div>
 
@@ -1369,11 +1370,34 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   font-weight: 900;
 }
 
+.execution-cycle-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.execution-cycle-duration,
+.execution-current-duration {
+  color: #64748b;
+  font-weight: 900;
+}
+
+.execution-cycle-duration-separator {
+  color: #cbd5e1;
+}
+
 .execution-cycle-head span:last-child,
 .execution-phase-head span:last-child {
   color: #94a3b8;
   font-size: 10px;
   font-weight: 800;
+}
+
+.execution-cycle-title .execution-cycle-duration {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .execution-phase-stack {
@@ -1432,11 +1456,19 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   padding: 6px 9px;
 }
 
-.execution-step-pill span:last-child,
+.execution-step-label,
 .trace-step-mini {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.execution-step-duration {
+  flex: 0 0 auto;
+  color: currentColor;
+  font-size: 9px;
+  font-weight: 800;
+  opacity: 0.72;
 }
 
 .execution-step-pill.current {
@@ -3009,6 +3041,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const scoreChart = this.$('scoreChart');
       const issuesCard = this.$('issuesCard');
       const manifestCard = this.$('manifestCard');
+      const newResultsCard = this.$('newResultsCard');
       const cycleTimeline = this.$('cycleTimeline');
       const cyclesContainer = this.$('cyclesContainer');
       const resultsContainer = this.$('resultsContainer');
@@ -3020,6 +3053,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (scoreChart) scoreChart.innerHTML = loadingCard;
       if (issuesCard) issuesCard.innerHTML = loadingCard;
       if (manifestCard) manifestCard.innerHTML = loadingCard;
+      if (newResultsCard) newResultsCard.innerHTML = loadingCard;
       if (cycleTimeline) cycleTimeline.innerHTML = loadingCard;
       if (cyclesContainer) cyclesContainer.innerHTML = emptyCard;
       if (resultsContainer) resultsContainer.innerHTML = emptyCard;
@@ -3048,10 +3082,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const scoreChart = this.$('scoreChart');
       const issuesCard = this.$('issuesCard');
       const manifestCard = this.$('manifestCard');
+      const newResultsCard = this.$('newResultsCard');
       const cycleTimeline = this.$('cycleTimeline');
       if (scoreChart) scoreChart.innerHTML = errorCard;
       if (issuesCard) issuesCard.innerHTML = errorCard;
       if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及 Run 后端对 /data 的挂载和索引配置。</div>';
+      if (newResultsCard) newResultsCard.innerHTML = errorCard;
       if (cycleTimeline) cycleTimeline.innerHTML = '<div class="card-title">运行状态</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示轮次和结果信息。</div>';
     },
 
@@ -3356,6 +3392,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.renderScoreChart(data.cycles || []);
       this.renderIssuesCard(data.latest_issues || []);
       this.renderManifestCard(data.manifests || {}, data.config || {});
+      this.renderNewResultsCard(data);
       this.renderCycleTimeline(data.cycles || []);
     },
 
@@ -3465,6 +3502,174 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       `).join('');
     },
 
+    profileGateInfo(source: Record<string, any> = {}) {
+      const gate = (source.profile_gate && typeof source.profile_gate === 'object') ? source.profile_gate : {};
+      const summary = (source.global_review_summary && typeof source.global_review_summary === 'object') ? source.global_review_summary : {};
+      const metrics = (source.metrics && typeof source.metrics === 'object') ? source.metrics : {};
+      const advisorResults = Array.isArray(source.global_advisors)
+        ? source.global_advisors
+        : Array.isArray(summary.advisor_results) ? summary.advisor_results : [];
+      const advisorTotal = Number(
+        gate.total_advisor_count ?? source.global_advisor_total ?? summary.total_advisor_count ?? advisorResults.length ?? 0
+      ) || 0;
+      const advisorPassed = Number(
+        gate.passed_advisor_count
+        ?? source.global_advisor_passed
+        ?? summary.passed_advisor_count
+        ?? advisorResults.filter((item: any) => item?.passed).length
+        ?? 0
+      ) || 0;
+      const feedback = String(
+        gate.feedback_preview
+        || source.global_feedback_preview
+        || summary.feedback_preview
+        || metrics.global_feedback_preview
+        || ''
+      );
+      const aggregateStatus = String(source.global_aggregate_status || summary.aggregate_status || '').toLowerCase();
+      const feedbackMentionsGate = feedback.includes('框架范围验收硬门槛未通过')
+        || feedback.includes('[profile_min_discovery_cycles]')
+        || feedback.includes('PROFILE-')
+        || feedback.toLowerCase().includes('coverage gate');
+      const failed = Boolean(gate.failed)
+        || aggregateStatus === 'profile_gate_failed'
+        || (String(source.outcome || '').toLowerCase() === 'global_failed' && !source.failed_advisor_id && feedbackMentionsGate);
+      const passed = Boolean(gate.passed) && !failed;
+      return {
+        failed,
+        passed,
+        status: failed ? 'failed' : passed ? 'passed' : String(gate.status || 'unknown'),
+        advisorAllPassed: advisorTotal > 0 && advisorPassed === advisorTotal,
+        advisorPassed,
+        advisorTotal,
+        feedback,
+        issues: Array.isArray(gate.issues) ? gate.issues : [],
+        issueCount: Number(gate.issue_count ?? (Array.isArray(gate.issues) ? gate.issues.length : 0)) || 0,
+      };
+    },
+
+    cycleOutcomeBadge(c: Record<string, any>) {
+      const gate = this.profileGateInfo(c);
+      if (String(c.outcome || '').toLowerCase() === 'global_failed' && gate.failed) {
+        return '<span class="badge badge-failed badge-sm">框架验收未通过</span>';
+      }
+      return this.outcomeBadge(c.outcome);
+    },
+
+    cycleGlobalSummary(c: Record<string, any>) {
+      const gate = this.profileGateInfo(c);
+      if (gate.failed) {
+        const advisorText = gate.advisorTotal ? `Advisor: ${gate.advisorPassed}/${gate.advisorTotal} 通过` : 'Advisor: 已通过';
+        return `${advisorText} · Gate: 框架验收未通过`;
+      }
+      return `Global: ${c.global_passed ? '✅' : '❌'}${c.global_failure_scope ? `/${this.esc(c.global_failure_scope)}` : ''}`;
+    },
+
+    renderProfileGateCard(gate: Record<string, any>) {
+      if (!gate.failed && gate.status === 'unknown') return '';
+      const title = gate.failed ? '框架验收未通过' : '框架验收通过';
+      const status = this.statusBadge(gate.failed ? 'failed' : 'passed', 'badge-sm');
+      const advisorText = gate.advisorTotal
+        ? `<span class="text-muted">Advisor ${gate.advisorPassed}/${gate.advisorTotal} 通过</span>`
+        : '';
+      const feedback = gate.feedback
+        ? `<div class="review-feedback">${this.esc(gate.feedback).substring(0, 800)}</div>`
+        : '';
+      const issues = (gate.issues || []).length
+        ? `<div class="mt-8">${gate.issues.map((b: any) => `
+            <div class="issue-item framework-issue">
+              <span class="issue-id">${this.esc(b.id || '')}</span>
+              ${this.esc(b.required_action || b.detail || '')}
+            </div>
+          `).join('')}</div>`
+        : '';
+      return `
+        <div class="card-title mt-8">框架验收</div>
+        <div class="review-card ${gate.failed ? 'failed' : 'passed'}">
+          <div class="review-header">
+            <span class="review-advisor">${title}</span>
+            ${status}
+            ${advisorText}
+          </div>
+          ${feedback}
+          ${issues}
+        </div>
+      `;
+    },
+
+    newResultStatusBadge(result: Record<string, any>) {
+      if (result.removed) {
+        const cycle = result.removed_cycle ? ` C${result.removed_cycle}` : '';
+        return `<span class="badge badge-sm badge-warning">已撤回${this.esc(cycle)}</span>`;
+      }
+      if (result.current_passed === true) return '<span class="badge badge-sm badge-completed">已确认</span>';
+      if (result.current_passed === false) return '<span class="badge badge-sm badge-failed">未通过</span>';
+      return '<span class="badge badge-sm badge-pending">待评审</span>';
+    },
+
+    resultConfidence(result: Record<string, any>) {
+      const value = Number(result.current_confidence ?? result.first_review_confidence ?? 0);
+      return Number.isFinite(value) ? value : 0;
+    },
+
+    renderNewResultItem(result: Record<string, any>, runName: string, compact = false) {
+      const path = String(result.path || '').trim();
+      const reviewPath = String(result.first_review_path || '').trim();
+      const title = String(result.title || '').trim();
+      const headings = Array.isArray(result.vulnerability_headings) ? result.vulnerability_headings : [];
+      const headingHtml = !compact && headings.length
+        ? `<div class="review-scores">${headings.slice(0, 6).map((item: any) =>
+            `<span class="score-pill mid">${this.esc(String(item).substring(0, 48))}</span>`
+          ).join('')}</div>`
+        : '';
+      const cardAttrs = path ? ` data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(path)}"` : '';
+      const verdict = String(result.current_verdict || result.first_review_verdict || '');
+      const confidence = this.resultConfidence(result);
+      return `
+        <div class="result-card ${result.removed ? 'result-card-muted' : ''}"${cardAttrs}>
+          <div class="result-header">
+            <span class="result-name">${this.esc(result.filename || '')}</span>
+            ${this.verdictBadge(verdict)}
+            ${this.newResultStatusBadge(result)}
+            ${this.lifecycleBadge(result)}
+            <span class="result-verdict text-muted">conf: ${confidence.toFixed(2)} · first C${result.first_seen_cycle || '-'}</span>
+            ${title ? `<span class="result-title">${this.esc(title)}</span>` : ''}
+            ${result.related_to ? `<span class="text-muted">related: ${this.esc(result.related_to)}</span>` : ''}
+            ${reviewPath ? `<span class="action-link" data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(reviewPath)}">评审 JSON</span>` : ''}
+          </div>
+          ${headingHtml}
+        </div>
+      `;
+    },
+
+    renderNewResultsCard(data: DataflowFileserverRunOverview) {
+      const el = this.$('newResultsCard');
+      if (!el) return;
+      const cycles = data.cycles || [];
+      if (!cycles.length) {
+        el.innerHTML = '<div class="card-title">每轮新增漏洞</div><div class="empty-state">暂无新增漏洞数据</div>';
+        return;
+      }
+      const rows = cycles.map((cycle: any) => {
+        const newResults = Array.isArray(cycle.new_results) ? cycle.new_results : [];
+        const count = Number(cycle.new_result_count ?? newResults.length) || 0;
+        const preview = newResults.map((result: any) => {
+          const status = result.removed ? '撤回' : result.current_passed === true ? '确认' : result.current_passed === false ? '未过' : '待评审';
+          return `<span class="score-pill ${result.removed || result.current_passed === false ? 'low' : 'mid'}" title="${this.attr(result.title || result.filename || '')}">${this.esc(result.filename || '')} ${this.esc(status)}</span>`;
+        }).join('');
+        const unreviewed = Number(cycle.unreviewed_new_result_count || 0);
+        return `
+          <div class="cycle-row">
+            <div class="cycle-num">Cycle ${cycle.cycle}</div>
+            <div class="cycle-outcome"><span class="badge badge-mode badge-sm">新增 ${count}</span></div>
+            <div class="cycle-scores">${preview || '<span class="text-muted">本轮无新增漏洞</span>'}</div>
+            <div class="cycle-issues">${unreviewed ? `${unreviewed} 待评审` : ''}</div>
+          </div>
+        `;
+      }).join('');
+      el.innerHTML = `<div class="card-title">每轮新增漏洞</div>${rows}`;
+    },
+
     renderCycleTimeline(cycles: Record<string, any>[]) {
       const el = this.$('cycleTimeline');
       if (!el) return;
@@ -3476,11 +3681,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const cls = num >= 0.9 ? 'high' : num >= 0.7 ? 'mid' : 'low';
           return `<span class="score-pill ${cls}" title="${this.esc(k)}">${this.esc(k.substring(0, 18))}: ${num.toFixed(2)}</span>`;
         }).join('');
-        const scope = c.global_failure_scope ? `<span class="score-pill low" title="global_failure_scope">${this.esc(c.global_failure_scope)}</span>` : '';
+        const gate = this.profileGateInfo(c);
+        const scope = gate.failed
+          ? '<span class="score-pill low" title="profile gate">profile gate</span>'
+          : c.global_failure_scope ? `<span class="score-pill low" title="global_failure_scope">${this.esc(c.global_failure_scope)}</span>` : '';
         return `
         <div class="cycle-row">
           <div class="cycle-num">Cycle ${c.cycle}</div>
-          <div class="cycle-outcome">${this.outcomeBadge(c.outcome)}</div>
+          <div class="cycle-outcome">${this.cycleOutcomeBadge(c)}</div>
           <div class="cycle-scores">${scorePills}${scope}</div>
           <div class="cycle-issues">${c.issue_count ?? 0} issues</div>
         </div>`;
@@ -3499,9 +3707,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       <div class="accordion-header" data-action="toggle-cycle" data-run="${this.attr(data.name)}" data-cycle="${this.attr(c.cycle)}">
         <span class="arrow">▶</span>
         <span style="font-weight:600">Cycle ${c.cycle}</span>
-        ${this.outcomeBadge(c.outcome)}
+        ${this.cycleOutcomeBadge(c)}
         <span class="text-muted" style="margin-left:auto;font-size:12px">
-          Global: ${c.global_passed ? '✅' : '❌'}${c.global_failure_scope ? `/${this.esc(c.global_failure_scope)}` : ''} · Results: ${c.result_passed}/${c.result_total} · Removed: ${c.historical_removed_result_count || 0} · Issues: ${c.issue_count ?? 0}
+          ${this.cycleGlobalSummary(c)} · New: ${c.new_result_count ?? 0} · Results: ${c.result_passed}/${c.result_total} · Removed: ${c.historical_removed_result_count || 0} · Issues: ${c.issue_count ?? 0}
         </span>
       </div>
       <div class="accordion-body" id="cycle-body-${c.cycle}">
@@ -3557,11 +3765,19 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const m = data.metrics;
         html += `<div class="cycle-metrics">
         <span>scope: <strong>${this.esc(m.global_failure_scope || 'n/a')}</strong></span>
+        <span>new: ${data.new_result_count ?? (Array.isArray(data.new_results) ? data.new_results.length : 0)}</span>
         <span>failed: ${m.current_failed_result_count ?? m.failed_result_count ?? 0}</span>
         <span>unreviewed: ${m.unreviewed_new_result_count ?? 0}</span>
         <span>removed: ${m.historical_removed_result_count ?? 0}</span>
       </div>`;
       }
+      html += this.renderProfileGateCard(this.profileGateInfo(data));
+
+      const newResults = Array.isArray(data.new_results) ? data.new_results : [];
+      html += '<div class="card-title mt-8">本轮新增漏洞</div>';
+      html += newResults.length
+        ? newResults.map((r: any) => this.renderNewResultItem(r, runName)).join('')
+        : '<div class="empty-state">本轮无新增漏洞</div>';
 
       if ((data.global_reviews || []).length) {
         html += '<div class="card-title">全局评审</div>';
@@ -3760,6 +3976,103 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return Number.isFinite(parsed) ? parsed / 1000 : 0;
     },
 
+    fmtTraceDuration(seconds: number) {
+      const value = Math.max(0, Math.floor(Number(seconds) || 0));
+      if (value <= 0) return '0s';
+      return this.fmtDuration(value);
+    },
+
+    traceTiming(record: Record<string, any> | null | undefined) {
+      const payload = record && typeof record === 'object' ? record : {};
+      const startedEpoch = this.traceEpoch(payload.started_epoch ?? payload.started_at);
+      const finishedEpoch = this.traceEpoch(payload.finished_epoch ?? payload.finished_at);
+      const durationSecondsRaw = Number(payload.duration_seconds);
+      const durationMsRaw = Number(payload.duration_ms);
+      const elapsedSecondsRaw = Number(payload.elapsed_seconds);
+      const status = String(payload.status || '').toLowerCase();
+      const running = !!payload.running || (
+        ['started', 'running'].includes(status)
+        && startedEpoch > 0
+        && finishedEpoch <= 0
+      );
+      let seconds = 0;
+      if (Number.isFinite(durationSecondsRaw) && durationSecondsRaw >= 0 && payload.duration_seconds !== undefined) {
+        seconds = Math.floor(durationSecondsRaw);
+      } else if (Number.isFinite(durationMsRaw) && durationMsRaw >= 0 && payload.duration_ms !== undefined) {
+        seconds = Math.floor(durationMsRaw / 1000);
+      } else if (finishedEpoch > 0 && startedEpoch > 0 && finishedEpoch >= startedEpoch) {
+        seconds = Math.floor(finishedEpoch - startedEpoch);
+      } else if (running && startedEpoch > 0) {
+        seconds = Math.floor(Date.now() / 1000 - startedEpoch);
+      } else if (running && Number.isFinite(elapsedSecondsRaw) && elapsedSecondsRaw >= 0 && payload.elapsed_seconds !== undefined) {
+        seconds = Math.floor(elapsedSecondsRaw);
+      }
+      const hasTiming = (
+        startedEpoch > 0
+        || finishedEpoch > 0
+        || payload.duration_seconds !== undefined
+        || payload.duration_ms !== undefined
+        || payload.elapsed_seconds !== undefined
+      );
+      return {
+        hasTiming,
+        running,
+        startedEpoch,
+        finishedEpoch,
+        seconds: Math.max(0, seconds),
+      };
+    },
+
+    traceDurationLabel(timing: Record<string, any> | null | undefined) {
+      if (!timing || !timing.hasTiming) return '-';
+      return `${timing.running ? '已运行' : '耗时'} ${this.fmtTraceDuration(Number(timing.seconds || 0))}`;
+    },
+
+    traceDurationLiveAttrs(timing: Record<string, any> | null | undefined) {
+      if (!timing || !timing.running || !timing.startedEpoch) return '';
+      return ` data-live-duration-start="${this.attr(String(timing.startedEpoch))}" data-live-duration-prefix="已运行 "`;
+    },
+
+    renderTraceDuration(timing: Record<string, any> | null | undefined, className = 'execution-step-duration') {
+      return `<span class="${this.attr(className)}"${this.traceDurationLiveAttrs(timing)}>${this.esc(this.traceDurationLabel(timing))}</span>`;
+    },
+
+    getRunCycleTimingMap() {
+      const data = (this.currentRunData || {}) as Record<string, any>;
+      const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
+      const timing = data.cycle_timing && typeof data.cycle_timing === 'object'
+        ? data.cycle_timing
+        : raw.cycle_timing;
+      return timing && typeof timing === 'object' ? timing : {};
+    },
+
+    getTraceCycleTiming(cycle: number, items: Record<string, any>[] = []) {
+      const key = String(Number(cycle || 0));
+      const timingMap = this.getRunCycleTimingMap();
+      const backendTiming = timingMap[key] || timingMap[String(cycle).padStart(3, '0')];
+      if (backendTiming && typeof backendTiming === 'object') {
+        return this.traceTiming(backendTiming);
+      }
+      const timings = items
+        .map((item: any) => item?.timing)
+        .filter((timing: any) => timing && timing.hasTiming && timing.startedEpoch > 0);
+      if (!timings.length) return this.traceTiming(null);
+      const startedEpoch = Math.min(...timings.map((timing: any) => Number(timing.startedEpoch || 0)).filter((value: number) => value > 0));
+      const running = timings.some((timing: any) => timing.running);
+      const finishedEpochs = timings.map((timing: any) => Number(timing.finishedEpoch || 0)).filter((value: number) => value > 0);
+      const finishedEpoch = finishedEpochs.length ? Math.max(...finishedEpochs) : 0;
+      const seconds = running
+        ? Math.floor(Date.now() / 1000 - startedEpoch)
+        : (finishedEpoch > 0 ? Math.floor(finishedEpoch - startedEpoch) : 0);
+      return {
+        hasTiming: true,
+        running,
+        startedEpoch,
+        finishedEpoch,
+        seconds: Math.max(0, seconds),
+      };
+    },
+
     getRunCurrentStep() {
       const data = (this.currentRunData || {}) as Record<string, any>;
       const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
@@ -3845,6 +4158,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const timestamp = this.traceEpoch(step.timestamp) || Number(step.mtime || 0);
       const stepLabel = this.humanizeTraceStepKey(phase, String(step.step_key || ''), extra);
       const status = String(step.status || 'unknown').toLowerCase();
+      const timing = this.traceTiming(step);
       const detailParts = [
         step.agent_id ? `agent=${step.agent_id}` : '',
         step.session_id ? `session=${step.session_id}` : '',
@@ -3872,6 +4186,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         model: '',
         thinking: '',
         detail: detailParts.join(' · '),
+        timing,
         raw: step,
       };
     },
@@ -3911,6 +4226,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         model: String(session.model || session.raw_model || ''),
         thinking: String(session.thinking || ''),
         detail: String(session.jsonl_path || session.session_id || ''),
+        timing: this.traceTiming(null),
         raw: session,
       };
     },
@@ -4022,6 +4338,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         if (a.cycle && !b.cycle) return -1;
         return a.cycle - b.cycle;
       });
+      cycles.forEach((cycle: any) => {
+        cycle.timing = this.getTraceCycleTiming(cycle.cycle, cycle.items);
+      });
+      if (current) {
+        const currentCycle = cycles.find((cycle: any) => Number(cycle.cycle || 0) === Number(current.cycle || 0));
+        current.cycleTiming = currentCycle?.timing || this.getTraceCycleTiming(current.cycle, [current]);
+      }
       return {
         current,
         cycles,
@@ -4068,11 +4391,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const pills = visibleItems.map((item: any) => {
             const isCurrent = current && item.id === current.id;
             const statusClass = String(item.status || 'recorded').replace(/_/g, '-');
-            const title = [item.stepLabel, item.detail, item.timestampLabel].filter(Boolean).join(' · ');
+            const durationLabel = this.traceDurationLabel(item.timing);
+            const title = [item.stepLabel, durationLabel, item.detail, item.timestampLabel].filter(Boolean).join(' · ');
             return `
               <span class="execution-step-pill status-${this.attr(statusClass)} ${isCurrent ? 'current' : ''}" title="${this.attr(title)}">
                 <span class="execution-step-dot"></span>
-                <span>${this.esc(item.stepLabel || phaseMeta.shortLabel)}</span>
+                <span class="execution-step-label">${this.esc(item.stepLabel || phaseMeta.shortLabel)}</span>
+                ${this.renderTraceDuration(item.timing)}
               </span>
             `;
           }).join('');
@@ -4092,7 +4417,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         return `
           <div class="execution-cycle-card">
             <div class="execution-cycle-head">
-              <span>${this.esc(cycle.cycleLabel)}</span>
+              <span class="execution-cycle-title">${this.esc(cycle.cycleLabel)} <span class="execution-cycle-duration-separator">·</span> ${this.renderTraceDuration(cycle.timing, 'execution-cycle-duration')}</span>
               <span>${cycle.items.length} 个节点</span>
             </div>
             <div class="execution-phase-stack">${phasesHtml}</div>
@@ -4100,12 +4425,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         `;
       }).join('');
       const currentDetailRows = current ? [
-        ['当前轮次', current.cycleLabel || '轮次未知'],
-        ['当前阶段', current.phaseLabel || '阶段未知'],
-        ['当前步骤', current.stepLabel || '-'],
-        ['最近调用', current.callId ? `turn ${current.turn || '-'} · ${current.callId}` : (current.sessionId || '-')],
-        ['Agent / 模型', [current.agentId, current.model].filter(Boolean).join(' / ') || '-'],
-        ['最后活动', current.timestampLabel || '-'],
+        { label: '当前轮次', value: current.cycleLabel || '轮次未知' },
+        { label: '当前阶段', value: current.phaseLabel || '阶段未知' },
+        { label: '当前步骤', value: current.stepLabel || '-' },
+        { label: '节点耗时', html: this.renderTraceDuration(current.timing, 'execution-current-duration') },
+        { label: '本轮耗时', html: this.renderTraceDuration(current.cycleTiming, 'execution-current-duration') },
+        { label: '最近调用', value: current.callId ? `turn ${current.turn || '-'} · ${current.callId}` : (current.sessionId || '-') },
+        { label: 'Agent / 模型', value: [current.agentId, current.model].filter(Boolean).join(' / ') || '-' },
+        { label: '最后活动', value: current.timestampLabel || '-' },
       ] : [];
       return `
         <div class="card execution-trace-card">
@@ -4127,10 +4454,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               <div class="execution-current-step">${this.esc(current.stepLabel || '-')}</div>
               ${current.detail ? `<div class="execution-current-detail">${this.esc(current.detail)}</div>` : ''}
               <div class="execution-current-grid">
-                ${currentDetailRows.map(([label, value]) => `
+                ${currentDetailRows.map((row: any) => `
                   <div class="execution-current-cell">
-                    <span>${this.esc(label)}</span>
-                    <strong>${this.esc(value)}</strong>
+                    <span>${this.esc(row.label)}</span>
+                    <strong>${row.html || this.esc(row.value)}</strong>
                   </div>
                 `).join('')}
               </div>
@@ -5547,7 +5874,19 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         this._durationSeconds += 1;
         const el = this.$('runDuration');
         if (el) el.textContent = '⏳ ' + this.fmtDuration(this._durationSeconds);
+        this._updateLiveDurationNodes();
       }, 1000);
+    },
+
+    _updateLiveDurationNodes() {
+      const nowEpoch = Date.now() / 1000;
+      this.$all('[data-live-duration-start]').forEach((el) => {
+        const startedEpoch = Number(el.dataset.liveDurationStart || 0);
+        if (!Number.isFinite(startedEpoch) || startedEpoch <= 0) return;
+        const prefix = el.dataset.liveDurationPrefix || '';
+        const seconds = Math.max(0, Math.floor(nowEpoch - startedEpoch));
+        el.textContent = prefix + this.fmtTraceDuration(seconds);
+      });
     },
 
     fmtDuration(seconds: number) {
@@ -5783,6 +6122,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const map: Record<string, { cls: string; label: string }> = {
         all_passed: { cls: 'completed', label: '全部通过' },
         global_failed: { cls: 'failed', label: '全局未通过' },
+        profile_gate_failed: { cls: 'failed', label: '框架验收未通过' },
         results_failed: { cls: 'failed', label: '结果未通过' },
         review_error: { cls: 'failed', label: '评审错误' },
         review_plateau: { cls: 'failed', label: '评审停滞' },
