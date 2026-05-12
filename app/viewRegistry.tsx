@@ -13,6 +13,7 @@ import { ConfigCenterLlmPage } from '../pages/platform/ConfigCenterLlmPage';
 import { ConfigCenterLlmChatPage } from '../pages/platform/ConfigCenterLlmChatPage';
 import { PublicResourceManagementPage } from '../pages/assets/PublicResourceManagementPage';
 import { ProjectFileExplorerPage } from '../pages/assets/ProjectFileExplorerPage';
+import { FileserverArchiveTasksPage } from '../pages/assets/FileserverArchiveTasksPage';
 import { EnvAgentPage } from '../pages/environment/EnvAgentPage';
 import { EnvTemplatePage } from '../pages/environment/EnvTemplatePage';
 import { EnvTasksPage } from '../pages/environment/EnvTasksPage';
@@ -197,6 +198,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="tasks" />;
     case 'project-file-explorer':
       return <ProjectFileExplorerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+    case 'fileserver-archive-tasks':
+      return <FileserverArchiveTasksPage projectId={ctx.selectedProjectId} />;
     case 'env-agent':
       return <EnvAgentPage projectId={ctx.selectedProjectId} />;
     case 'env-service':

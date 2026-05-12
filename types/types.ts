@@ -1860,7 +1860,7 @@ export interface DeployScriptListResponse {
 
 export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
-  | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer'
+  | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
