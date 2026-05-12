@@ -17,6 +17,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
+import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { blobToText, buildFirmwareSessionMeta, buildSessionSnapshotFromText, FirmwareSessionIndexItem, normalizeFirmwareSessionIndex, parseSessionJsonlDelta } from './sessionParsing';
 
 interface Props {
@@ -707,6 +708,7 @@ function TaskRow({
 }
 
 function TaskDetailPanel({
+  projectId,
   task,
   loading,
   resourceUsage,
@@ -732,6 +734,7 @@ function TaskDetailPanel({
   onActiveTabChange,
   refreshRequest,
 }: {
+  projectId: string;
   task: FirmwareUnpackTask | null;
   loading: boolean;
   resourceUsage: FirmwareTaskResourceUsage | null;
@@ -1278,6 +1281,12 @@ function TaskDetailPanel({
               <RotateCcw size={13} /> 重试
             </button>
           )}
+          <DownstreamTaskCreator
+            projectId={task.project_id || projectId}
+            sourceKind="firmware_unpack"
+            task={task}
+            buttonClassName="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+          />
           {canDelete && (
             <button
               disabled={deletingTaskId === task.id}
@@ -3070,6 +3079,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
 
       {showingDetail ? (
         <TaskDetailPanel
+          projectId={projectId}
           task={projectId ? activeTask : null}
           loading={detailLoading}
           resourceUsage={resourceUsage}

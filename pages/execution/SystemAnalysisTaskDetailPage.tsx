@@ -39,6 +39,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
+import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { blobToText, buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
 
@@ -1273,6 +1274,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 重新运行
               </button>
             ) : null}
+            {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="system_analysis" task={detail} /> : null}
             {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? (
               <button
                 onClick={() => void handleResume()}

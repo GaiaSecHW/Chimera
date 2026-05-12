@@ -418,6 +418,18 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         />
       );
     case 'binary-security-detail':
+      if (!ctx.activeBinarySecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="binary"
+            onOpenTask={(taskId) => {
+              ctx.setActiveBinarySecurityTaskId(taskId);
+              ctx.setCurrentView('binary-security-detail');
+            }}
+          />
+        );
+      }
       return (
         <BinarySecurityTaskDetailPage
           projectId={ctx.selectedProjectId}
@@ -438,6 +450,18 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         />
       );
     case 'source-security-detail':
+      if (!ctx.activeSourceSecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="source"
+            onOpenTask={(taskId) => {
+              ctx.setActiveSourceSecurityTaskId(taskId);
+              ctx.setCurrentView('source-security-detail');
+            }}
+          />
+        );
+      }
       return (
         <BinarySecurityTaskDetailPage
           projectId={ctx.selectedProjectId}

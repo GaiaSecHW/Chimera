@@ -271,6 +271,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [queuedCount, setQueuedCount] = useState(0);
   const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -336,6 +337,27 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setError(e?.message || '加载失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refresh = async () => {
+    if (!projectId || refreshing) return;
+    setRefreshing(true);
+    setError(null);
+    try {
+      const activeTaskIds = items
+        .filter((item) => !TERMINAL.has(item.status))
+        .map((item) => item.id);
+      if (activeTaskIds.length > 0) {
+        await Promise.allSettled(
+          activeTaskIds.map((taskId) => executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, { force: true })),
+        );
+      }
+      await load();
+    } catch (e: any) {
+      setError(e?.message || '刷新失败');
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -638,11 +660,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             </button>
             <button
               type="button"
-              onClick={() => void load()}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+              onClick={() => void refresh()}
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <RefreshCw size={16} />
-              刷新
+              {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
         </div>
