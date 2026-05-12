@@ -8,6 +8,7 @@ import { showConfirm } from '../../components/DialogService';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard } from './taskOrigin';
+import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 
 interface Props {
   projectId: string;
@@ -681,6 +682,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   {rerunning ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
                   完整重跑
                 </button>
+                <DownstreamTaskCreator
+                  projectId={projectId}
+                  sourceKind="binary_to_source"
+                  task={detail}
+                  buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                />
                 <button
                   type="button"
                   onClick={() => void deleteTask()}

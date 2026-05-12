@@ -513,14 +513,6 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  retryTask: async (taskId: string): Promise<DataflowScanTask> => {
-    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/retry`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    return handleResponse(response);
-  },
-
   updatePriority: async (taskId: string, priority: number): Promise<DataflowScanTask> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/priority`, {
       method: 'POST',

@@ -39,6 +39,7 @@ import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
+import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { blobToText, buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
 
@@ -385,8 +386,8 @@ function normalizeSessionDisplayPath(path: string): string {
   return path.replace(/^.*\/run\/sessions\//, '').replace(/^\/+/, '');
 }
 
-function resolveEvaluationRoundSessionPath(round: AppSaEvaluationRound, detail: AppSaTaskDetail | null, projectId: string): { fsPath: string; displayPath: string; rawPath: string } | null {
-  const rawPath = String(round.worker?.session_file || round.extra?.session_file || round.session_file || '').trim();
+function resolveRoundActorSessionPath(rawPathInput: unknown, detail: AppSaTaskDetail | null, projectId: string): { fsPath: string; displayPath: string; rawPath: string } | null {
+  const rawPath = String(rawPathInput || '').trim();
   if (!rawPath) return null;
   const taskRoot = detail?.output_path ? `${detail.output_path.replace(/\/+$/, '')}/${detail.task_id}` : '';
   let absolutePath = rawPath;
@@ -401,6 +402,10 @@ function resolveEvaluationRoundSessionPath(round: AppSaEvaluationRound, detail: 
     displayPath: normalizeSessionDisplayPath(rawPath),
     rawPath,
   };
+}
+
+function resolveEvaluationRoundSessionPath(round: AppSaEvaluationRound, detail: AppSaTaskDetail | null, projectId: string): { fsPath: string; displayPath: string; rawPath: string } | null {
+  return resolveRoundActorSessionPath(round.worker?.session_file || round.extra?.session_file || round.session_file, detail, projectId);
 }
 
 function buildRoundSessionMeta(sessionPath: { displayPath: string; rawPath: string } | null, round: AppSaEvaluationRound | null): AppSaSessionMeta | null {
@@ -418,6 +423,25 @@ function buildRoundSessionMeta(sessionPath: { displayPath: string; rawPath: stri
     line_count: 0,
     is_active: round.status === 'running',
     display_name: `${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · Worker`,
+    warnings: [],
+  };
+}
+
+function buildJudgeRoundSessionMeta(sessionPath: { displayPath: string; rawPath: string } | null, round: AppSaEvaluationRound | null, judge: Record<string, any> | null): AppSaSessionMeta | null {
+  if (!sessionPath || !round || !judge) return null;
+  const sessionName = sessionPath.displayPath.split('/').pop() || sessionPath.displayPath;
+  return {
+    session_id: sessionName,
+    session_name: sessionName,
+    relative_path: sessionPath.displayPath,
+    stage_group: stageLabel(round.stage),
+    role_name: 'judge',
+    size: 0,
+    mtime: 0,
+    event_count: 0,
+    line_count: 0,
+    is_active: round.status === 'running',
+    display_name: `${stageLabel(round.stage)} · ${round.module_name || '全局任务'} · ${judge.judge_id || 'Judge'}`,
     warnings: [],
   };
 }
@@ -450,6 +474,15 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [roundSessionError, setRoundSessionError] = useState<string | null>(null);
   const [roundSessionLive, setRoundSessionLive] = useState(false);
   const roundSessionSocketRef = useRef<WebSocket | null>(null);
+  const [selectedEvaluationJudgeKey, setSelectedEvaluationJudgeKey] = useState<string | null>(null);
+  const [judgeSessionSnapshot, setJudgeSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
+  const [judgeSessionWatchStartLine, setJudgeSessionWatchStartLine] = useState(0);
+  const [judgeSessionEvents, setJudgeSessionEvents] = useState<AppSaSessionEvent[]>([]);
+  const [judgeSessionWarnings, setJudgeSessionWarnings] = useState<string[]>([]);
+  const [judgeSessionLoading, setJudgeSessionLoading] = useState(false);
+  const [judgeSessionError, setJudgeSessionError] = useState<string | null>(null);
+  const [judgeSessionLive, setJudgeSessionLive] = useState(false);
+  const judgeSessionSocketRef = useRef<WebSocket | null>(null);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
@@ -548,6 +581,21 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     setRoundSessionLive(false);
   };
 
+  const closeJudgeSessionSocket = () => {
+    if (judgeSessionSocketRef.current) {
+      if (judgeSessionSocketRef.current.readyState === WebSocket.OPEN) {
+        try {
+          judgeSessionSocketRef.current.send(JSON.stringify({ action: 'close' }));
+        } catch {
+          // ignore close handshake failures
+        }
+      }
+      judgeSessionSocketRef.current.close();
+      judgeSessionSocketRef.current = null;
+    }
+    setJudgeSessionLive(false);
+  };
+
   const loadSessions = async (options?: { silent?: boolean }) => {
     if (!taskId) return;
     if (!options?.silent) {
@@ -621,6 +669,28 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
   };
 
+  const loadJudgeSessionFile = async (fsPath: string, displayPath: string) => {
+    setJudgeSessionLoading(true);
+    setJudgeSessionError(null);
+    setJudgeSessionSnapshot(null);
+    setJudgeSessionWatchStartLine(0);
+    setJudgeSessionEvents([]);
+    setJudgeSessionWarnings([]);
+    try {
+      const blob = await fileserverApi.fetchProjectFilesystemPreviewBlob(projectId, fsPath);
+      const content = await blobToText(blob);
+      const snapshot = buildSessionSnapshotFromText(displayPath, content);
+      setJudgeSessionSnapshot(snapshot);
+      setJudgeSessionWatchStartLine(snapshot.line_count || 0);
+      setJudgeSessionEvents(snapshot.events || []);
+      setJudgeSessionWarnings(snapshot.warnings || []);
+    } catch (err: any) {
+      setJudgeSessionError(err?.message || String(err));
+    } finally {
+      setJudgeSessionLoading(false);
+    }
+  };
+
   useEffect(() => {
     void loadDetail();
   }, [taskId]);
@@ -628,6 +698,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   useEffect(() => () => {
     closeSessionSocket();
     closeRoundSessionSocket();
+    closeJudgeSessionSocket();
   }, []);
 
   useEffect(() => {
@@ -665,11 +736,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     setRoundSessionWarnings([]);
     setRoundSessionError(null);
     closeRoundSessionSocket();
+    closeJudgeSessionSocket();
   }, [taskId]);
 
   useEffect(() => {
     if (activeTab !== 'evaluation') {
       closeRoundSessionSocket();
+      closeJudgeSessionSocket();
     }
   }, [activeTab]);
 
@@ -940,6 +1013,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     () => buildRoundSessionMeta(selectedEvaluationSessionPath, selectedEvaluationRound),
     [selectedEvaluationRound, selectedEvaluationSessionPath],
   );
+  const selectedEvaluationJudge = useMemo<Record<string, any> | null>(
+    () => (selectedEvaluationRound?.judges || []).find((item, index) => `${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey) || null,
+    [selectedEvaluationJudgeKey, selectedEvaluationRound],
+  );
+  const selectedEvaluationJudgeSessionPath = useMemo(
+    () => selectedEvaluationJudge ? resolveRoundActorSessionPath(selectedEvaluationJudge.session_file, detail, projectId) : null,
+    [detail, projectId, selectedEvaluationJudge],
+  );
+  const selectedEvaluationJudgeSessionMeta = useMemo(
+    () => buildJudgeRoundSessionMeta(selectedEvaluationJudgeSessionPath, selectedEvaluationRound, selectedEvaluationJudge),
+    [selectedEvaluationJudge, selectedEvaluationJudgeSessionPath, selectedEvaluationRound],
+  );
 
   useEffect(() => {
     if (!selectedEvaluationRoundKey) return;
@@ -947,6 +1032,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       setSelectedEvaluationRoundKey(null);
     }
   }, [selectedEvaluationRound, selectedEvaluationRoundKey]);
+
+  useEffect(() => {
+    const judges = selectedEvaluationRound?.judges || [];
+    const currentValid = judges.some((item, index) => `${item.judge_id || index}::${item.model || ''}` === selectedEvaluationJudgeKey);
+    if (currentValid) return;
+    const firstWithSession = judges.find((item) => Boolean(String(item?.session_file || '').trim()));
+    setSelectedEvaluationJudgeKey(firstWithSession ? `${firstWithSession.judge_id || 0}::${firstWithSession.model || ''}` : null);
+  }, [selectedEvaluationJudgeKey, selectedEvaluationRound]);
 
   useEffect(() => {
     if (activeTab !== 'evaluation' || !selectedEvaluationRound || !selectedEvaluationSessionPath) {
@@ -1045,6 +1138,96 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     projectId,
   ]);
 
+  useEffect(() => {
+    if (activeTab !== 'evaluation' || !selectedEvaluationJudge || !selectedEvaluationJudgeSessionPath) {
+      if (activeTab === 'evaluation' && selectedEvaluationJudge && !selectedEvaluationJudgeSessionPath) {
+        setJudgeSessionSnapshot(null);
+        setJudgeSessionEvents([]);
+        setJudgeSessionWarnings([]);
+        setJudgeSessionError('该 Judge 未记录可读取的会话文件');
+      }
+      closeJudgeSessionSocket();
+      return;
+    }
+    closeJudgeSessionSocket();
+    void loadJudgeSessionFile(selectedEvaluationJudgeSessionPath.fsPath, selectedEvaluationJudgeSessionPath.displayPath);
+  }, [activeTab, selectedEvaluationJudgeKey, selectedEvaluationJudgeSessionPath?.fsPath]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation' || !selectedEvaluationJudge || !selectedEvaluationJudgeSessionPath || !judgeSessionSnapshot) return;
+    if (!['pending', 'running'].includes(detail?.status || '')) {
+      setJudgeSessionLive(false);
+      return;
+    }
+    closeJudgeSessionSocket();
+    const socket = fileserverApi.openProjectFileWatchWebSocket(projectId, selectedEvaluationJudgeSessionPath.fsPath, {
+      path_mode: 'project_filesystem',
+      read_mode: 'line',
+      start_from: 'head',
+      start_line: judgeSessionWatchStartLine,
+    });
+    judgeSessionSocketRef.current = socket;
+    socket.onopen = () => setJudgeSessionLive(true);
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'snapshot') {
+          setJudgeSessionLive(true);
+          return;
+        }
+        if (message.type === 'delta') {
+          if (message.read_mode !== 'line') return;
+          const deltaLines = Array.isArray(message.lines) ? message.lines : [];
+          if (deltaLines.length === 0) return;
+          const parsed = parseSessionJsonlDelta(deltaLines, (message.from_line ?? judgeSessionWatchStartLine) + 1);
+          if (parsed.events.length > 0) setJudgeSessionEvents((current) => current.concat(parsed.events));
+          if (parsed.warnings.length > 0) setJudgeSessionWarnings((current) => Array.from(new Set(current.concat(parsed.warnings))));
+          setJudgeSessionSnapshot((current) => current ? {
+            ...current,
+            session_meta: parsed.sessionMeta ? { ...(current.session_meta || {}), ...parsed.sessionMeta } : current.session_meta,
+            line_count: message.to_line ?? current.line_count,
+          } : current);
+          setJudgeSessionWatchStartLine(message.to_line ?? judgeSessionWatchStartLine);
+          return;
+        }
+        if (message.type === 'file_event') {
+          if (message.event === 'truncated' || message.event === 'renamed') {
+            setJudgeSessionLive(false);
+            setJudgeSessionError('Judge 会话文件已重置，正在重新加载');
+            void loadJudgeSessionFile(selectedEvaluationJudgeSessionPath.fsPath, selectedEvaluationJudgeSessionPath.displayPath);
+            return;
+          }
+          if (message.event === 'deleted') {
+            setJudgeSessionLive(false);
+            setJudgeSessionError('Judge 会话文件已删除');
+            closeJudgeSessionSocket();
+          }
+          return;
+        }
+        if (message.type === 'error') {
+          setJudgeSessionLive(false);
+          setJudgeSessionError(message.message || 'Judge 会话订阅失败');
+        }
+      } catch (err: any) {
+        setJudgeSessionError(err?.message || String(err));
+      }
+    };
+    socket.onerror = () => setJudgeSessionLive(false);
+    socket.onclose = () => setJudgeSessionLive(false);
+    return () => {
+      if (judgeSessionSocketRef.current === socket) closeJudgeSessionSocket();
+      else socket.close();
+    };
+  }, [
+    activeTab,
+    selectedEvaluationJudgeKey,
+    selectedEvaluationJudgeSessionPath?.fsPath,
+    judgeSessionSnapshot?.path,
+    judgeSessionWatchStartLine,
+    detail?.status,
+    projectId,
+  ]);
+
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
@@ -1091,6 +1274,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 重新运行
               </button>
             ) : null}
+            {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="system_analysis" task={detail} /> : null}
             {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? (
               <button
                 onClick={() => void handleResume()}
@@ -1842,7 +2026,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           <div className="flex items-center justify-between gap-3">
                             <div>
                               <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 评审</h3>
-                              <p className="mt-1 text-xs text-slate-400">展示本轮所有 Judge 的评分、通过状态和反馈摘要</p>
+                              <p className="mt-1 text-xs text-slate-400">展示本轮所有 Judge 的评分、通过状态、会话文件和反馈摘要</p>
                             </div>
                             <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
                               {selectedEvaluationRound.judges?.length || 0} 个 Judge
@@ -1854,6 +2038,15 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <div className="font-mono text-xs font-bold text-slate-700">{judge.judge_id || `judge-${index + 1}`}</div>
                                   <div className="flex flex-wrap gap-2 text-[11px]">
+                                    {judge.session_file ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedEvaluationJudgeKey(`${judge.judge_id || index}::${judge.model || ''}`)}
+                                        className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey === `${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
+                                      >
+                                        查看会话
+                                      </button>
+                                    ) : null}
                                     <span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                       {judge.passed ? '通过' : '未通过'}
                                     </span>
@@ -1861,6 +2054,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                   </div>
                                 </div>
                                 <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.model || '-'}</div>
+                                <div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.session_file || '未记录会话文件'}</div>
                                 {judge.feedback_excerpt ? (
                                   <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">
                                     {judge.feedback_excerpt}
@@ -1875,6 +2069,40 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             ) : null}
                           </div>
                         </section>
+
+                        {selectedEvaluationJudge ? (
+                          <section className="space-y-4">
+                            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 会话</h3>
+                                  <p className="mt-1 text-xs text-slate-400">通过 fileserver 读取当前选中 Judge 的 session 文件；任务运行中会实时监听追加内容。</p>
+                                </div>
+                                {selectedEvaluationJudgeSessionPath ? (
+                                  <div className="max-w-xl break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-500">
+                                    {selectedEvaluationJudgeSessionPath.fsPath}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </section>
+                            {judgeSessionWarnings.length > 0 ? (
+                              <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
+                                <div className="font-bold">Judge 会话文件存在部分异常行，已跳过不可解析内容</div>
+                                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                                  {judgeSessionWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+                                </ul>
+                              </section>
+                            ) : null}
+                            <AgentSessionViewer
+                              sessionMeta={selectedEvaluationJudgeSessionMeta}
+                              sessionHeader={judgeSessionSnapshot?.session_meta}
+                              events={judgeSessionEvents}
+                              loading={judgeSessionLoading}
+                              live={judgeSessionLive}
+                              error={judgeSessionError}
+                            />
+                          </section>
+                        ) : null}
                       </section>
 
                       <section className="space-y-4">
