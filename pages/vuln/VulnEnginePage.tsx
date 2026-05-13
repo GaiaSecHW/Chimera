@@ -324,7 +324,12 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       setShowEvolutionDialog(false);
       setEvolutionPreview(null);
       setSelectedEvolutionCaseIds([]);
-      onNavigateToView?.('binary-evolution-dataflow-vuln');
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+        detail: {
+          view: 'binary-evolution-dataflow-vuln',
+          binaryEvolutionTaskId: created.task_id,
+        },
+      }));
     } catch (err: any) {
       setError(err?.message || '创建进化任务失败');
     } finally {
