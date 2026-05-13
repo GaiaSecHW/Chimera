@@ -12,6 +12,7 @@ import {
   SystemAnalysisServiceConfig,
   SystemAnalysisStageLoopConfig,
   SystemAnalysisStagesConfig,
+  SystemAnalysisSelfReflectionConfig,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
 
@@ -139,6 +140,12 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   result_dir: '/data/output',
   start_stage: 1,
   resume_workspace: '',
+  self_reflection: {
+    enabled: false,
+    model: '',
+    output_dir: '/data/self-reflection',
+    max_session_lines: 1000,
+  },
 });
 
 const normalizePromptOverrides = (value: unknown): SystemAnalysisPromptOverrideGroup => {
@@ -797,6 +804,99 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 desc="最终验证分析报告的覆盖完整性与结论一致性。通常固定为 min_rounds=1、max_rounds=1，并设 pass_mode=all 要求所有 judge 一致确认。"
                 value={config.stages.final_check} onChange={(v) => patchStage('final_check', v)} />
             </div>
+          </SectionCard>
+
+          {/* 自省分析配置 */}
+          <SectionCard
+            title="自省分析（Self-Reflection）"
+            subtitle="任务结束后自动在后台分析执行过程，识别 Token 消耗热点、卡顿阶段和质量问题，存储改进建议报告。不影响任务本身的执行结果。"
+          >
+            {/* 启用开关 */}
+            <FieldRow
+              label="启用自省分析"
+              hint="self_reflection.enabled"
+              desc="任务完成后（passed/failed/error）在后台异步运行，不阻塞任务本身的执行和结果。分析报告存储在配置的输出目录中。">
+              <div className="flex gap-2">
+                {([true, false] as const).map((val) => (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => patch({
+                      self_reflection: {
+                        ...(config.self_reflection ?? {}),
+                        enabled: val,
+                      } as SystemAnalysisSelfReflectionConfig,
+                    })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      (config.self_reflection?.enabled ?? false) === val
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {val ? '启用' : '关闭'}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            {/* 模型选择 */}
+            <FieldRow
+              label="自省分析模型"
+              hint="self_reflection.model"
+              desc="用于执行自省分析的 LLM 模型。留空时自动使用 workers.agents[0] 的模型。建议使用具备推理能力的中等模型，无需最强模型（分析任务相对直接）。">
+              <select
+                value={config.self_reflection?.model ?? ''}
+                onChange={(e) => patch({
+                  self_reflection: {
+                    ...(config.self_reflection ?? {}),
+                    model: e.target.value,
+                  } as SystemAnalysisSelfReflectionConfig,
+                })}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">(与 workers.agents[0] 相同)</option>
+                {modelOptions.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </FieldRow>
+
+            {/* 输出目录 */}
+            <FieldRow
+              label="报告存储目录"
+              hint="self_reflection.output_dir"
+              desc="自省分析报告的存储路径（容器内绝对路径）。所有任务的报告统一存储在此目录，以 {task_id}_{timestamp}.md 命名。">
+              <input
+                type="text"
+                value={config.self_reflection?.output_dir ?? '/data/self-reflection'}
+                onChange={(e) => patch({
+                  self_reflection: {
+                    ...(config.self_reflection ?? {}),
+                    output_dir: e.target.value,
+                  } as SystemAnalysisSelfReflectionConfig,
+                })}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
+              />
+            </FieldRow>
+
+            {/* session 读取限制 */}
+            <FieldRow
+              label="Session 最大读取行数"
+              hint="self_reflection.max_session_lines"
+              desc="每个 .jsonl 会话文件最多读取的行数，防止 context 窗口溢出。推荐 500–2000 行。">
+              <NumberInput
+                value={config.self_reflection?.max_session_lines ?? 1000}
+                min={100}
+                max={10000}
+                step={100}
+                onChange={(v) => patch({
+                  self_reflection: {
+                    ...(config.self_reflection ?? {}),
+                    max_session_lines: v,
+                  } as SystemAnalysisSelfReflectionConfig,
+                })}
+              />
+            </FieldRow>
           </SectionCard>
 
           {/* 4. Workers */}

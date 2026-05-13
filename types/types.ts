@@ -2079,6 +2079,13 @@ export interface SystemAnalysisStagesConfig {
   final_check: SystemAnalysisStageLoopConfig;
 }
 
+export interface SystemAnalysisSelfReflectionConfig {
+  enabled: boolean;
+  model: string;
+  output_dir: string;
+  max_session_lines: number;
+}
+
 export interface SystemAnalysisServiceConfig {
   project_id: string;
   max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
@@ -2101,6 +2108,7 @@ export interface SystemAnalysisServiceConfig {
   result_dir: string;
   start_stage: number;
   resume_workspace: string;
+  self_reflection?: SystemAnalysisSelfReflectionConfig;
   updated_at?: string | null;
 }
 
