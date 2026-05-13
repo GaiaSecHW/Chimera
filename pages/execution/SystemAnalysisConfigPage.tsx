@@ -143,7 +143,7 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   self_reflection: {
     enabled: false,
     model: '',
-    output_dir: '',
+    output_dir: `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`,
     max_session_lines: 1000,
   },
 });
@@ -865,39 +865,30 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             <FieldRow
               label="报告存储目录"
               hint="self_reflection.output_dir"
-              desc={`自省报告存储路径（容器内绝对路径）。留空自动使用 /data/files/${projectId}/app/secflow-app-system-analyse/self-reflection。每个任务的报告标名为 {task_id}_{timestamp}.md。`}>
-              <div className="relative flex items-center">
+              desc="自省报告存储路径（容器内绝对路径）。默认为项目级目录，所有任务的报告统一存入此目录，每份报告标名为 {task_id}_{timestamp}.md。">
+              <div className="relative flex items-center gap-2">
                 <input
                   type="text"
-                  value={config.self_reflection?.output_dir ?? ''}
+                  value={config.self_reflection?.output_dir ?? `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`}
                   onChange={(e) => patch({
                     self_reflection: {
                       ...(config.self_reflection ?? {}),
                       output_dir: e.target.value,
                     } as SystemAnalysisSelfReflectionConfig,
                   })}
-                  placeholder={`/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
                 />
-                {(config.self_reflection?.output_dir ?? '') !== '' && (
-                  <button
-                    type="button"
-                    onClick={() => patch({
-                      self_reflection: {
-                        ...(config.self_reflection ?? {}),
-                        output_dir: '',
-                      } as SystemAnalysisSelfReflectionConfig,
-                    })}
-                    className="absolute right-2 rounded px-1.5 py-0.5 text-xs text-slate-400 hover:text-slate-700"
-                    title="恢复默认路径"
-                  >重置</button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => patch({
+                    self_reflection: {
+                      ...(config.self_reflection ?? {}),
+                      output_dir: `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`,
+                    } as SystemAnalysisSelfReflectionConfig,
+                  })}
+                  className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                >重置</button>
               </div>
-              {(config.self_reflection?.output_dir ?? '') === '' && (
-                <p className="mt-1 text-xs text-slate-400 font-mono">
-                  默认：/data/files/{projectId}/app/secflow-app-system-analyse/self-reflection
-                </p>
-              )}
             </FieldRow>
 
             {/* session 读取限制 */}
