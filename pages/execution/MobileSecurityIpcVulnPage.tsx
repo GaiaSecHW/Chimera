@@ -68,6 +68,7 @@ type SessionDeltaParseResult = {
 const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'cancel_requested']);
 const CANCELLABLE_TASK_STATUSES = new Set(['queued', 'running']);
 const STAGE_NAMES: StageName[] = ['audit', 'poc'];
+const HIDDEN_READY_CHECK_KEYS = new Set(['executor_config:opencode_cli']);
 const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
   off: 'off',
   minimal: 'minimal',
@@ -598,7 +599,7 @@ function buildSessionSnapshotFromText(path: string, content: string): AppSaSessi
 
 const formatReadyFailure = (checks?: Record<string, boolean>) => {
   const failedChecks = Object.entries(checks || {})
-    .filter(([, ok]) => !ok)
+    .filter(([key, ok]) => !ok && !HIDDEN_READY_CHECK_KEYS.has(key))
     .map(([key]) => key);
   return failedChecks.length > 0 ? `失败检查项：${failedChecks.join(', ')}` : '服务未就绪';
 };
@@ -665,13 +666,13 @@ const resolveExecutorMode = (capabilities: IpcAuditCapability | null) => {
 const modelHintForExecutor = (mode?: string | null, providerModel?: string | null) => {
   if (mode === 'opencode_cli') {
     return providerModel
-      ? `可留空，自动使用最后一个已选 Provider 的模型 ${providerModel}；手填时建议使用 provider/model 形式。`
-      : '可留空，自动使用最后一个已选 Provider 的模型；手填时建议使用 provider/model 形式。';
+      ? `可留空，自动使用当前 Provider 的模型 ${providerModel}；手填时建议使用 provider/model 形式。`
+      : '可留空，自动使用当前 Provider 的模型；手填时建议使用 provider/model 形式。';
   }
   if (mode === 'codex_cli') {
     return providerModel
-      ? `可留空，自动使用最后一个已选 Provider 的模型 ${providerModel}。`
-      : '可留空，自动使用最后一个已选 Provider 的模型。';
+      ? `可留空，自动使用当前 Provider 的模型 ${providerModel}。`
+      : '可留空，自动使用当前 Provider 的模型。';
   }
   return 'Mock 执行器不会真正调用模型，填写后仅记录到任务配置。';
 };
@@ -742,8 +743,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [defaultProviderKey, setDefaultProviderKey] = useState('');
   const [providersLoading, setProvidersLoading] = useState(false);
   const [providerLoadError, setProviderLoadError] = useState<string | null>(null);
-  const [providerToAdd, setProviderToAdd] = useState('');
-  const [selectedProviderKeys, setSelectedProviderKeys] = useState<string[]>([]);
+  const [selectedProviderKey, setSelectedProviderKey] = useState('');
 
   const [selectedProjectPaths, setSelectedProjectPaths] = useState<string[]>([]);
   const [customProjectPaths, setCustomProjectPaths] = useState<string[]>([]);
@@ -807,10 +807,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   providerOptions.forEach((item) => {
     providerOptionMap.set(item.provider_key, item);
   });
-  const selectedProviders = selectedProviderKeys
-    .map((providerKey) => providerOptionMap.get(providerKey) || null)
-    .filter((item): item is IpcAuditProviderSummary => !!item);
-  const providerFallbackModel = selectedProviders[selectedProviders.length - 1]?.model || '';
+  const selectedProvider = providerOptionMap.get(selectedProviderKey) || null;
+  const providerFallbackModel = selectedProvider?.model || '';
   const projectInputItemMap = new Map<string, ProjectInputItem>();
   presetProjects.forEach((item) => {
     const path = normalizeProjectPathInput(item.project_path);
@@ -926,7 +924,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setProviderOptions([]);
           setDefaultProviderKey('');
           setProviderLoadError(null);
-          setSelectedProviderKeys([]);
+          setSelectedProviderKey('');
           setTasks([]);
           setPresetLoading(false);
           setTasksLoading(false);
@@ -944,7 +942,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setProviderOptions([]);
           setDefaultProviderKey('');
           setProviderLoadError(null);
-          setSelectedProviderKeys([]);
+          setSelectedProviderKey('');
           setTasks([]);
           setPresetLoading(false);
           setTasksLoading(false);
@@ -980,18 +978,16 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             || '';
           setProviderOptions(items);
           setDefaultProviderKey(normalizedDefaultProviderKey);
-          setProviderToAdd((current) => current || normalizedDefaultProviderKey);
-          setSelectedProviderKeys((current) => {
-            const normalizedCurrent = normalizeProviderKeys(current).filter((providerKey) => items.some((item) => item.provider_key === providerKey));
-            if (normalizedCurrent.length > 0) return normalizedCurrent;
-            return normalizedDefaultProviderKey ? [normalizedDefaultProviderKey] : [];
-          });
+          setSelectedProviderKey((current) => (
+            current && items.some((item) => item.provider_key === current && item.enabled !== false)
+              ? current
+              : normalizedDefaultProviderKey
+          ));
         } catch (error) {
           if (cancelled) return;
           setProviderOptions([]);
           setDefaultProviderKey('');
-          setProviderToAdd('');
-          setSelectedProviderKeys([]);
+          setSelectedProviderKey('');
           setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
         } finally {
           if (!cancelled) setProvidersLoading(false);
@@ -1021,18 +1017,19 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
   useEffect(() => {
     if (providerOptions.length === 0) {
-      setProviderToAdd('');
-      setSelectedProviderKeys([]);
+      setSelectedProviderKey('');
       return;
     }
-    const availableKeys = new Set(providerOptions.map((item) => item.provider_key));
-    const fallbackKey = defaultProviderKey || providerOptions.find((item) => item.is_default)?.provider_key || providerOptions[0]?.provider_key || '';
-    setProviderToAdd((current) => (current && availableKeys.has(current) ? current : fallbackKey));
-    setSelectedProviderKeys((current) => {
-      const normalizedCurrent = normalizeProviderKeys(current).filter((providerKey) => availableKeys.has(providerKey));
-      if (normalizedCurrent.length > 0) return normalizedCurrent;
-      return fallbackKey ? [fallbackKey] : [];
-    });
+    const availableKeys = new Set(providerOptions.filter((item) => item.enabled !== false).map((item) => item.provider_key));
+    const fallbackKey = (
+      (defaultProviderKey && availableKeys.has(defaultProviderKey) ? defaultProviderKey : '')
+      || providerOptions.find((item) => item.is_default && item.enabled !== false)?.provider_key
+      || providerOptions.find((item) => item.enabled !== false)?.provider_key
+      || providerOptions.find((item) => item.is_default)?.provider_key
+      || providerOptions[0]?.provider_key
+      || ''
+    );
+    setSelectedProviderKey((current) => (current && availableKeys.has(current) ? current : fallbackKey));
   }, [providerOptions, defaultProviderKey]);
 
   useEffect(() => {
@@ -1669,13 +1666,16 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         || '';
       setProviderOptions(items);
       setDefaultProviderKey(normalizedDefaultProviderKey);
-      setProviderToAdd((current) => current || normalizedDefaultProviderKey);
+      setSelectedProviderKey((current) => (
+        current && items.some((item) => item.provider_key === current && item.enabled !== false)
+          ? current
+          : normalizedDefaultProviderKey
+      ));
       notify(`已同步 ${items.length} 个 Provider`, 'success');
     } catch (error) {
       setProviderOptions([]);
       setDefaultProviderKey('');
-      setProviderToAdd('');
-      setSelectedProviderKeys([]);
+      setSelectedProviderKey('');
       setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
       notify(`Provider 列表加载失败：${getErrorMessage(error, '未知错误')}`, 'error');
     } finally {
@@ -1741,46 +1741,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     setSelectedProjectPaths([]);
   };
 
-  const handleAddProvider = () => {
-    const providerKey = String(providerToAdd || '').trim();
-    if (!providerKey) {
-      notify('请先选择 Provider', 'error');
-      return;
-    }
-    if (!providerOptionMap.has(providerKey)) {
-      notify('当前 Provider 不可用，请刷新后重试', 'error');
-      return;
-    }
-    if (selectedProviderKeys.includes(providerKey)) {
-      notify('该 Provider 已在当前任务列表中', 'warning');
-      return;
-    }
-    setSelectedProviderKeys((current) => (
-      [...current, providerKey]
-    ));
-  };
-
-  const handleMoveProvider = (providerKey: string, direction: -1 | 1) => {
-    setSelectedProviderKeys((current) => {
-      const index = current.indexOf(providerKey);
-      if (index < 0) return current;
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= current.length) return current;
-      const next = [...current];
-      const [item] = next.splice(index, 1);
-      next.splice(targetIndex, 0, item);
-      return next;
-    });
-  };
-
-  const handleRemoveProvider = (providerKey: string) => {
-    setSelectedProviderKeys((current) => current.filter((item) => item !== providerKey));
-  };
-
-  const handleClearProviders = () => {
-    setSelectedProviderKeys([]);
-  };
-
   const handleToggleTaskSelection = (taskId: string) => {
     setSelectedTaskIds((current) => (
       current.includes(taskId)
@@ -1840,9 +1800,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       notify('请至少选择一个项目路径', 'error');
       return;
     }
-    const normalizedProviderKeys = normalizeProviderKeys(selectedProviderKeys);
-    if (normalizedProviderKeys.length === 0) {
-      notify('请至少选择一个 Provider', 'error');
+    const normalizedProviderKey = String(selectedProviderKey || '').trim();
+    if (!normalizedProviderKey) {
+      notify('请选择一个 Provider', 'error');
+      return;
+    }
+    const selectedProviderOption = providerOptionMap.get(normalizedProviderKey) || null;
+    if (!selectedProviderOption || selectedProviderOption.enabled === false) {
+      notify('当前 Provider 不可用，请刷新后重试', 'error');
       return;
     }
 
@@ -1866,7 +1831,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             input_ref: validation.normalized_input_ref,
             executor_mode: resolvedExecutorMode,
             model: modelName.trim() || undefined,
-            provider_keys: normalizedProviderKeys,
+            provider_keys: [normalizedProviderKey],
           });
           createdTasks.push(createdTask);
         } catch (error: any) {
@@ -2212,7 +2177,9 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         </div>
         {readyState ? (
           <div className="mt-5 flex flex-wrap gap-2">
-            {Object.entries(readyState.checks || {}).map(([key, passed]) => (
+            {Object.entries(readyState.checks || {})
+              .filter(([key]) => !HIDDEN_READY_CHECK_KEYS.has(key))
+              .map(([key, passed]) => (
               <span
                 key={key}
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${passed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}
@@ -3170,34 +3137,24 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <div>
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">LLM Provider</div>
                         <div className="mt-1 text-xs font-medium text-slate-500">
-                          任务会按当前顺序依次合并 Provider，后面的同名环境变量或同路径文件会覆盖前面的。
+                          每个任务只使用一个 Provider；运行时会按所选 Provider 注入对应的环境变量和配置文件。
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={handleRefreshProviders}
-                          disabled={providersLoading}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {providersLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                          刷新 Provider
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleClearProviders}
-                          disabled={selectedProviderKeys.length === 0}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          清空 Provider
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRefreshProviders}
+                        disabled={providersLoading}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {providersLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        刷新 Provider
+                      </button>
                     </div>
 
-                    <div className="mt-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="mt-3">
                       <select
-                        value={providerToAdd}
-                        onChange={(event) => setProviderToAdd(event.target.value)}
+                        value={selectedProviderKey}
+                        onChange={(event) => setSelectedProviderKey(event.target.value)}
                         disabled={providersLoading || providerOptions.length === 0}
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                       >
@@ -3208,19 +3165,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           </option>
                         ))}
                       </select>
-                      <button
-                        type="button"
-                        onClick={handleAddProvider}
-                        disabled={providersLoading || !providerToAdd}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Plus size={15} />
-                        添加 Provider
-                      </button>
                     </div>
 
                     <div className="mt-2 text-xs font-medium text-slate-500">
-                      默认会带上当前默认 Provider；你也可以继续添加多个 Provider 并调整顺序。留空 Model 时，后端会回退到最后一个已选 Provider 的模型。
+                      默认会回填服务默认 Provider。Model 留空时，后端会回退到当前所选 Provider 的模型。
                     </div>
                     {providerLoadError ? (
                       <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
@@ -3235,81 +3183,48 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : null}
 
                     <div className="mt-3 max-h-[260px] space-y-2 overflow-auto pr-1">
-                      {selectedProviderKeys.length === 0 ? (
+                      {!selectedProvider ? (
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
                           当前还没有选中 Provider。执行器为 Codex / OpenCode 时，建议至少选择一个 Provider。
                         </div>
                       ) : (
-                        selectedProviderKeys.map((providerKey, index) => {
-                          const provider = providerOptionMap.get(providerKey) || null;
-                          return (
-                            <div key={`${providerKey}-${index}`} className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="truncate text-sm font-black text-slate-900">{provider?.display_name || providerKey}</span>
-                                    <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
-                                      顺序 {index + 1}
-                                    </span>
-                                    {provider?.is_default ? (
-                                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
-                                        默认
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{providerKey}</div>
-                                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                                    <span>{provider?.provider_type || '-'}</span>
-                                    <span>{provider?.model || 'no-model'}</span>
-                                    <span>{provider?.mapped_env_keys?.length || 0} env</span>
-                                    <span>{provider?.mapped_file_paths?.length || 0} file</span>
-                                  </div>
-                                </div>
-                                <div className="flex shrink-0 items-center gap-1">
-                                  <button
-                                    type="button"
-                                    disabled={index === 0}
-                                    onClick={() => handleMoveProvider(providerKey, -1)}
-                                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    上移
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={index === selectedProviderKeys.length - 1}
-                                    onClick={() => handleMoveProvider(providerKey, 1)}
-                                    className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    下移
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveProvider(providerKey)}
-                                    className="rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-black text-rose-700"
-                                  >
-                                    删除
-                                  </button>
+                        <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="truncate text-sm font-black text-slate-900">{selectedProvider.display_name || selectedProvider.provider_key}</span>
+                                {selectedProvider.is_default ? (
+                                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+                                    默认
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{selectedProvider.provider_key}</div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                <span>{selectedProvider.provider_type || '-'}</span>
+                                <span>{selectedProvider.model || 'no-model'}</span>
+                                <span>{selectedProvider.mapped_env_keys?.length || 0} env</span>
+                                <span>{selectedProvider.mapped_file_paths?.length || 0} file</span>
+                              </div>
+                            </div>
+                          </div>
+                          {(selectedProvider.mapped_env_keys?.length || 0) > 0 || (selectedProvider.mapped_file_paths?.length || 0) > 0 ? (
+                            <div className="mt-3 grid gap-2 md:grid-cols-2">
+                              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped Env Keys</div>
+                                <div className="mt-1 break-all text-xs font-semibold text-slate-600">
+                                  {selectedProvider.mapped_env_keys?.join(', ') || '-'}
                                 </div>
                               </div>
-                              {(provider?.mapped_env_keys?.length || 0) > 0 || (provider?.mapped_file_paths?.length || 0) > 0 ? (
-                                <div className="mt-3 grid gap-2 md:grid-cols-2">
-                                  <div className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped Env Keys</div>
-                                    <div className="mt-1 break-all text-xs font-semibold text-slate-600">
-                                      {provider?.mapped_env_keys?.join(', ') || '-'}
-                                    </div>
-                                  </div>
-                                  <div className="rounded-lg bg-slate-50 px-3 py-2">
-                                    <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped File Paths</div>
-                                    <div className="mt-1 break-all text-xs font-semibold text-slate-600">
-                                      {provider?.mapped_file_paths?.join(', ') || '-'}
-                                    </div>
-                                  </div>
+                              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped File Paths</div>
+                                <div className="mt-1 break-all text-xs font-semibold text-slate-600">
+                                  {selectedProvider.mapped_file_paths?.join(', ') || '-'}
                                 </div>
-                              ) : null}
+                              </div>
                             </div>
-                          );
-                        })
+                          ) : null}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -3357,27 +3272,25 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         <div className="mt-2 break-all font-mono text-xs text-slate-700">{modelName.trim() || providerFallbackModel || '(default)'}</div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Provider 顺序</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Provider</div>
                         <div className="mt-2 max-h-48 space-y-2 overflow-auto">
-                          {selectedProviders.length === 0 ? (
+                          {!selectedProvider ? (
                             <div className="text-xs font-semibold text-slate-400">尚未选择 Provider</div>
                           ) : (
-                            selectedProviders.map((provider, index) => (
-                              <div key={`${provider.provider_key}-${index}`} className="rounded-lg bg-slate-50 px-3 py-2">
-                                <div className="text-xs font-black text-slate-800">{index + 1}. {provider.display_name || provider.provider_key}</div>
-                                <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{provider.provider_key}</div>
-                                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                                  {provider.provider_type} · {provider.model || 'no-model'} · {provider.mapped_env_keys.length} env · {provider.mapped_file_paths.length} file
-                                </div>
+                            <div className="rounded-lg bg-slate-50 px-3 py-2">
+                              <div className="text-xs font-black text-slate-800">{selectedProvider.display_name || selectedProvider.provider_key}</div>
+                              <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{selectedProvider.provider_key}</div>
+                              <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                {selectedProvider.provider_type} · {selectedProvider.model || 'no-model'} · {selectedProvider.mapped_env_keys.length} env · {selectedProvider.mapped_file_paths.length} file
                               </div>
-                            ))
+                            </div>
                           )}
                         </div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">说明</div>
                         <div className="mt-2 text-sm font-medium leading-6 text-slate-600">
-                          不展示扫描范围、目标类型和扫描策略。后端按工作区默认模式决定是否在 Audit 结束后继续执行 PoC；批量创建时每个路径对应一个独立任务。Provider 按当前顺序合并，Model 留空时回退到最后一个已选 Provider 的模型。
+                          不展示扫描范围、目标类型和扫描策略。后端按工作区默认模式决定是否在 Audit 结束后继续执行 PoC；批量创建时每个路径对应一个独立任务。Model 留空时回退到当前所选 Provider 的模型。
                         </div>
                       </div>
                     </div>
@@ -3399,7 +3312,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <button
                 type="button"
                 onClick={handleCreateTask}
-                disabled={creating || !workspaceId || selectedProjectItems.length === 0 || selectedProviderKeys.length === 0}
+                disabled={creating || !workspaceId || selectedProjectItems.length === 0 || !selectedProviderKey}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
