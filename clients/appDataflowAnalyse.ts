@@ -1,5 +1,6 @@
 import { API_BASE, getHeaders, handleResponse, fetchWithRetry } from './base';
 import {
+  AppDfaSessionIndex,
   AppDfaServiceConfig,
   AppDfaSessionMeta,
   AppDfaSessionSnapshot,
@@ -67,6 +68,9 @@ export const appDataflowAnalyseApi = {
 
   listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionIndex: async (taskId: string): Promise<AppDfaSessionIndex> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/index`, { headers: getHeaders() })),
 
   getTaskSessionFile: async (taskId: string, path: string): Promise<AppDfaSessionSnapshot> =>
     handleResponse(await fetch(

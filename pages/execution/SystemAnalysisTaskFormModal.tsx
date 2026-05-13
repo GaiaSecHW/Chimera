@@ -16,6 +16,7 @@ export interface SystemAnalysisTaskFormState {
   binary_arch: string[];
   security_focus_categories: string[];
   module_granularity: string;
+  enable_final_check_mode: 'inherit' | 'enabled' | 'disabled';
 }
 
 const SOURCE_MODE_DEFAULT_TARGETS = ['source', 'script', 'config'];
@@ -58,6 +59,7 @@ export function buildDefaultSystemAnalysisTaskForm(projectId: string): SystemAna
     binary_arch: ['all'],
     security_focus_categories: ['all'],
     module_granularity: 'fine',
+    enable_final_check_mode: 'inherit',
   };
 }
 
@@ -75,6 +77,9 @@ export function buildCloneFormFromTask(detail: AppSaTaskDetail, projectId: strin
     binary_arch: normalizeNonEmptyArray(config.binary_arch, ['all']),
     security_focus_categories: normalizeNonEmptyArray(config.security_focus_categories, ['all']),
     module_granularity: normalizeGranularity(config.module_granularity),
+    enable_final_check_mode: typeof config.enable_final_check === 'boolean'
+      ? (config.enable_final_check ? 'enabled' : 'disabled')
+      : 'inherit',
   };
 }
 
@@ -107,6 +112,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
   const [analysisScopeTouched, setAnalysisScopeTouched] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
+  const [projectFinalCheckDefault, setProjectFinalCheckDefault] = useState(false);
   const wasOpenRef = useRef(false);
 
   useEffect(() => {
@@ -123,6 +129,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
     void appApi.getConfig(projectId)
       .then((cfg) => {
         if (cancelled) return;
+        setProjectFinalCheckDefault(Boolean(cfg.enable_final_check));
         setForm((prev) => ({
           ...prev,
           analyse_targets: Array.isArray(cfg.analyse_targets) ? cfg.analyse_targets : prev.analyse_targets,
@@ -169,6 +176,9 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
         binary_arch: form.binary_arch.length > 0 ? form.binary_arch : undefined,
         security_focus_categories: form.security_focus_categories.length > 0 ? form.security_focus_categories : undefined,
         module_granularity: form.module_granularity || undefined,
+        enable_final_check: form.enable_final_check_mode === 'inherit'
+          ? undefined
+          : form.enable_final_check_mode === 'enabled',
       });
       await onCreated(resp);
     } catch (err: any) {
@@ -405,6 +415,43 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.module_granularity === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
                   >
                     {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-xs text-slate-500">final_check — 完整性检查 <span className="text-slate-400">(任务级可选；未指定时继承全局配置)</span></p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[
+                  {
+                    value: 'inherit' as const,
+                    label: '使用全局配置',
+                    desc: `当前全局默认：${projectFinalCheckDefault ? '开启' : '关闭'}`,
+                  },
+                  {
+                    value: 'enabled' as const,
+                    label: '任务级开启',
+                    desc: '本任务强制执行 Stage 4a',
+                  },
+                  {
+                    value: 'disabled' as const,
+                    label: '任务级关闭',
+                    desc: '本任务跳过 Stage 4a',
+                  },
+                ].map(({ value, label, desc }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, enable_final_check_mode: value }))}
+                    className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                      form.enable_final_check_mode === value
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">{label}</span>
+                    <span className="mt-1 block text-xs opacity-80">{desc}</span>
                   </button>
                 ))}
               </div>

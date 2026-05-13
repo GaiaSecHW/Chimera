@@ -1,5 +1,6 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppSaSessionIndex,
   AppSaSessionMeta,
   AppSaSessionSnapshot,
   AppSaStagesJson,
@@ -102,6 +103,9 @@ export const appSystemAnalyseApi = {
 
   listTaskSessions: async (taskId: string): Promise<AppSaSessionMeta[]> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionIndex: async (taskId: string): Promise<AppSaSessionIndex> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/index`, { headers: getHeaders() })),
 
   getTaskSessionFile: async (taskId: string, path: string): Promise<AppSaSessionSnapshot> => {
     const query = new URLSearchParams({ path }).toString();

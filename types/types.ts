@@ -2093,10 +2093,13 @@ export interface SystemAnalysisServiceConfig {
   binary_arch: string[];
   security_focus_categories: string[];
   module_granularity: string;
+  enable_final_check: boolean;
+  worker_task_concurrency: number;
   parallel_modules: number;
   parallel_sub_workers: number;
   agent_max_retries: number;
   agent_retry_delay: number;
+  agent_timeout_seconds: number;
   pi_max_retries: number;
   pi_retry_delay: number;
   stages: SystemAnalysisStagesConfig;
@@ -2412,11 +2415,11 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_content: string;
   result_json?: Record<string, any> | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; start_stage?: number; resume_workspace?: string } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; enable_final_check?: boolean; start_stage?: number; resume_workspace?: string } | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
-  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string } | null;
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; enable_final_check?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
-  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project' } | null;
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; enable_final_check?: 'task' | 'project' } | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -2491,6 +2494,7 @@ export interface AppSaEvaluationRound {
   round?: number;
   stage_round?: number;
   status?: string;
+  raw_status?: string;
   started_at?: string;
   ended_at?: string;
   duration_ms?: number;
@@ -2526,6 +2530,75 @@ export interface AppSaSessionMeta {
   line_count: number;
   is_active: boolean;
   display_name: string;
+  warnings: string[];
+}
+
+export interface AppSaSessionIndexNode {
+  node_id: string;
+  relative_path: string;
+  session_name: string;
+  display_name: string;
+  role: string;
+  role_label: string;
+  status: string;
+  is_active: boolean;
+  stage_key: string;
+  stage_label: string;
+  stage_order: number;
+  stage_group: string;
+  module_name?: string | null;
+  attempt?: number | null;
+  judge_index?: number | null;
+  batch_index?: number | null;
+  parent_relative_path?: string | null;
+  parallel_group?: string | null;
+  family_key?: string | null;
+  flow_kind?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  started_ts?: number | null;
+  last_event_at?: string | null;
+  last_event_ts?: number | null;
+  mtime: number;
+  size: number;
+  event_count: number;
+  line_count: number;
+  warnings: string[];
+  session_header?: Record<string, any> | null;
+  cwd?: string | null;
+  model?: string | null;
+  latest_round_ref?: Record<string, any> | null;
+  round_refs: Array<Record<string, any>>;
+  attempts_seen: number[];
+}
+
+export interface AppSaSessionIndexEdge {
+  edge_id: string;
+  source_node_id: string;
+  target_node_id: string;
+  kind: string;
+  label: string;
+}
+
+export interface AppSaSessionIndexGroup {
+  group_id: string;
+  kind: string;
+  label: string;
+  stage_key?: string | null;
+  module_name?: string | null;
+  node_ids: string[];
+}
+
+export interface AppSaSessionIndex {
+  task_id: string;
+  status: string;
+  sessions_root?: string | null;
+  index_path?: string | null;
+  generated_at?: string | null;
+  summary?: Record<string, any> | null;
+  nodes: AppSaSessionIndexNode[];
+  edges: AppSaSessionIndexEdge[];
+  groups: AppSaSessionIndexGroup[];
   warnings: string[];
 }
 
@@ -2570,6 +2643,7 @@ export interface AppSaTaskCreateRequest {
   binary_arch?: string[];
   security_focus_categories?: string[];
   module_granularity?: string;
+  enable_final_check?: boolean;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -2668,6 +2742,10 @@ export interface AppEaTaskEvaluation {
 export type AppEaSessionMeta = AppSaSessionMeta;
 export type AppEaSessionEvent = AppSaSessionEvent;
 export type AppEaSessionSnapshot = AppSaSessionSnapshot;
+export type AppEaSessionIndexNode = AppSaSessionIndexNode;
+export type AppEaSessionIndexEdge = AppSaSessionIndexEdge;
+export type AppEaSessionIndexGroup = AppSaSessionIndexGroup;
+export type AppEaSessionIndex = AppSaSessionIndex;
 export type AppEaEvaluationRound = AppSaEvaluationRound;
 
 export interface AppEaTaskCreateRequest {
@@ -2729,6 +2807,9 @@ export interface EntryAnalysisServiceConfig {
   max_concurrent_tasks: number;
   agent_max_retries: number;
   agent_retry_delay: number;
+  agent_run_timeout_seconds: number;
+  agent_timeout_retry_enabled: boolean;
+  agent_timeout_max_retries: number;
   pi_max_retries: number;
   pi_retry_delay: number;
   worker_parallel: boolean;
@@ -2840,6 +2921,24 @@ export interface AppDfaSessionMeta {
   display_name: string;
 }
 
+export type AppDfaSessionIndexNode = AppSaSessionIndexNode;
+export type AppDfaSessionIndexEdge = AppSaSessionIndexEdge;
+export type AppDfaSessionIndexGroup = AppSaSessionIndexGroup;
+
+export interface AppDfaSessionIndex {
+  task_id: string;
+  status: string;
+  sessions_root?: string | null;
+  index_path?: string | null;
+  generated_at?: string | null;
+  current_epoch?: string | null;
+  summary?: Record<string, any> | null;
+  nodes: AppDfaSessionIndexNode[];
+  edges: AppDfaSessionIndexEdge[];
+  groups: AppDfaSessionIndexGroup[];
+  warnings: string[];
+}
+
 export interface AppDfaSessionEvent {
   type: string;
   event_index?: number;
@@ -2944,6 +3043,9 @@ export interface AppDfaServiceConfig {
   pass_threshold: number;
   agent_max_retries: number;
   agent_retry_delay: number;
+  agent_run_timeout_seconds: number;
+  agent_timeout_retry_enabled: boolean;
+  agent_timeout_max_retries: number;
   pi_max_retries: number;
   pi_retry_delay: number;
   max_trace_depth: number;

@@ -20,6 +20,9 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   pass_threshold: 1,
   agent_max_retries: 100,
   agent_retry_delay: 30,
+  agent_run_timeout_seconds: 3600,
+  agent_timeout_retry_enabled: true,
+  agent_timeout_max_retries: 3,
   pi_max_retries: -1,
   pi_retry_delay: 10,
   max_trace_depth: 5,
@@ -322,6 +325,12 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
               <FieldRow label="agent_retry_delay（秒）">
                 <NumberInput value={config.agent_retry_delay} min={0} step={0.5} onChange={(v) => patch({ agent_retry_delay: v })} />
               </FieldRow>
+              <FieldRow label="agent_run_timeout_seconds（秒）" hint="单次会话硬超时">
+                <NumberInput value={config.agent_run_timeout_seconds} min={60} step={1} onChange={(v) => patch({ agent_run_timeout_seconds: Math.max(60, Math.trunc(v || 60)) })} />
+              </FieldRow>
+              <FieldRow label="agent_timeout_max_retries" hint="-1=无限">
+                <NumberInput value={config.agent_timeout_max_retries} min={-1} onChange={(v) => patch({ agent_timeout_max_retries: v })} />
+              </FieldRow>
               <FieldRow label="pi_max_retries" hint="-1=无限">
                 <NumberInput value={config.pi_max_retries} min={-1} onChange={(v) => patch({ pi_max_retries: v })} />
               </FieldRow>
@@ -329,6 +338,16 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
                 <NumberInput value={config.pi_retry_delay} min={0} step={0.5} onChange={(v) => patch({ pi_retry_delay: v })} />
               </FieldRow>
             </div>
+            <FieldRow label="agent_timeout_retry_enabled" hint="超时后是否自动重试">
+              <label className="inline-flex cursor-pointer items-center gap-3">
+                <div className="relative">
+                  <input type="checkbox" className="peer sr-only" checked={config.agent_timeout_retry_enabled} onChange={(e) => patch({ agent_timeout_retry_enabled: e.target.checked })} />
+                  <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
+                  <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                </div>
+                <span className="text-sm text-slate-600">{config.agent_timeout_retry_enabled ? '开启超时自动重试' : '关闭超时自动重试'}</span>
+              </label>
+            </FieldRow>
           </SectionCard>
 
           {/* Workers */}

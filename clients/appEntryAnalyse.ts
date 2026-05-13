@@ -1,5 +1,6 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppEaSessionIndex,
   AppEaSessionMeta,
   AppEaSessionSnapshot,
   AppEaTaskCreateRequest,
@@ -74,6 +75,9 @@ export const appEntryAnalyseApi = {
 
   listTaskSessions: async (taskId: string): Promise<AppEaSessionMeta[]> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionIndex: async (taskId: string): Promise<AppEaSessionIndex> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/index`, { headers: getHeaders() })),
 
   getTaskSessionFile: async (taskId: string, path: string): Promise<AppEaSessionSnapshot> => {
     const query = new URLSearchParams({ path }).toString();

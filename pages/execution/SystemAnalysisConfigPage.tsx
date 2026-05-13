@@ -122,10 +122,13 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   binary_arch: ['all'],
   security_focus_categories: ['all'],
   module_granularity: 'fine',
+  enable_final_check: false,
+  worker_task_concurrency: 4,
   parallel_modules: 1,
   parallel_sub_workers: 1,
   agent_max_retries: 100,
   agent_retry_delay: 30,
+  agent_timeout_seconds: 1800,
   pi_max_retries: -1,
   pi_retry_delay: 10,
   stages: {
@@ -738,11 +741,40 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 ))}
               </div>
             </FieldRow>
+
+            <FieldRow
+              label="完整性检查阶段开关"
+              hint="enable_final_check"
+              desc="控制是否执行 `final_check — 完整性检查` 阶段。默认关闭；关闭时仅跳过 Stage 4a，不影响最终报告生成与评审。任务创建时如果未单独指定，将继承这里的服务级默认值。">
+              <div className="flex gap-2">
+                {([
+                  { value: true, label: '开启 Stage 4a' },
+                  { value: false, label: '关闭 Stage 4a（默认）' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    onClick={() => patch({ enable_final_check: value })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.enable_final_check === value
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
           </SectionCard>
 
           {/* 1. 并发配置 */}
           <SectionCard title="并发配置" subtitle="控制模块级并行度，影响分析速度与 LLM API 调用量">
             <div className="grid grid-cols-2 gap-4">
+              <FieldRow label="worker_task_concurrency" hint="≥1，默认 4"
+                desc="系统分析 runner 单实例最多同时执行的任务数。该项为服务级在线配置，保存后会对整个系统分析 runner 池生效，无需重启。建议结合 runner 副本数、节点 CPU/内存和下游 LLM 配额一起评估。">
+                <NumberInput value={config.worker_task_concurrency} min={1} max={32} onChange={(v) => patch({ worker_task_concurrency: v })} />
+              </FieldRow>
               <FieldRow label="parallel_modules" hint="≥1，默认 1"
                 desc="同时分析的模块（子目录 / 功能模块）数量。增大此值可显著加速分析，但会成倍增加并发 API 调用量，需确保 LLM API 配额充足。建议先以 1 运行单任务评估效果后再逐步提高。">
                 <NumberInput value={config.parallel_modules} min={1} max={32} onChange={(v) => patch({ parallel_modules: v })} />
@@ -764,6 +796,10 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               <FieldRow label="agent_retry_delay（秒）" hint="首次等待，之后指数递增"
                 desc="API 重试的首次等待时间（秒），后续以指数退避递增（delay × 2ⁿ），最大上限 300 秒。对于频繁限流的服务，适当加大此值可减少无效重试。">
                 <NumberInput value={config.agent_retry_delay} min={0} step={0.5} onChange={(v) => patch({ agent_retry_delay: v })} />
+              </FieldRow>
+              <FieldRow label="agent_timeout_seconds（秒）" hint="单次会话硬超时"
+                desc="单个 Worker / Judge 智能体会话的最大等待时间。超过该阈值后，系统会主动中断当前会话并将当前阶段按超时失败处理，防止某个会话卡住拖死整个系统分析流程。该项为服务级在线配置，保存后对后续任务统一生效。">
+                <NumberInput value={config.agent_timeout_seconds} min={60} step={1} onChange={(v) => patch({ agent_timeout_seconds: v })} />
               </FieldRow>
               <FieldRow label="pi_max_retries" hint="-1=无限重启"
                 desc="pi Agent 进程因非 API 原因崩溃（如内存不足、信号中断）后的最大重启次数。通常设为 -1，系统会自动恢复并从上次 checkpoint 继续执行。">
