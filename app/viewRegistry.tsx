@@ -65,6 +65,7 @@ import { VulnDecisionDetailPage } from '../pages/vuln/VulnDecisionDetailPage';
 import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
+import { VulnParameterConfigPage } from '../pages/vuln/VulnParameterConfigPage';
 import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
 import { B2STaskAdvancedPage } from '../pages/execution/B2STaskAdvancedPage';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
@@ -515,6 +516,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <VulnServicesPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-repro-config':
       return <VulnReproConfigPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+    case 'vuln-parameter-config':
+      return <VulnParameterConfigPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'sys-settings':
       return <WorkflowPlaceholder title="系统设置" icon={<Settings />} />;
     case 'change-password':

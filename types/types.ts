@@ -1875,7 +1875,7 @@ export type ViewType =
   | 'mobile-security-ipc-vuln'
   | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'
   | 'pentest-report'
-  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config'
+  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config' | 'vuln-parameter-config'
   | 'sys-settings' | 'change-password'
   | 'user-mgmt-users' | 'user-mgmt-roles' | 'user-mgmt-perms' | 'user-mgmt-access' | 'user-mgmt-online' | 'user-mgmt-machine'
   | 'org-mgmt-departments' | 'org-mgmt-members' | 'org-mgmt-projects';

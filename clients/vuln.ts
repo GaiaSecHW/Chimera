@@ -18,6 +18,16 @@ export const vulnApi = {
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases/ops/dashboard/overview?${query}`, { headers: getHeaders() }));
   },
 
+  getProjectConfig: async (projectId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
+  updateProjectConfig: async (projectId: string, config: Record<string, any>): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, config }),
+    })),
+
   listServices: async (): Promise<{ items: any[]; total: number }> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/services`, { headers: getHeaders() })),
 
