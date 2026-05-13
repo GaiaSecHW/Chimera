@@ -113,6 +113,11 @@ export const LIFECYCLE_NAV_ITEMS = [
     label: '复现模块配置',
     description: '配置漏洞上报复现模块的注册元数据、阶段绑定和能力关联。',
   },
+  {
+    view: 'vuln-parameter-config',
+    label: '参数配置',
+    description: '按阶段维护漏洞引擎动态参数，统一控制接收、研判、验证和终态策略。',
+  },
 ] as const;
 
 export const LIFECYCLE_VIEW_STAGE_MAP: Record<string, string[]> = {
@@ -124,6 +129,7 @@ export const LIFECYCLE_VIEW_STAGE_MAP: Record<string, string[]> = {
   'vuln-queue': [],
   'vuln-services': [],
   'vuln-repro-config': ['validation'],
+  'vuln-parameter-config': ['receive', 'triage', 'validation', 'finished'],
 };
 
 export const LIFECYCLE_STAGE_FLOW = [

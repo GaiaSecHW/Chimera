@@ -182,6 +182,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-queue',
   'vuln-services',
   'vuln-repro-config',
+  'vuln-parameter-config',
 ]);
 
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
@@ -398,6 +399,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'vuln-queue', label: '运行队列', icon: Workflow, requiresProject: true },
         { id: 'vuln-services', label: '能力注册', icon: ServerCog, requiresProject: true },
         { id: 'vuln-repro-config', label: '复现配置', icon: Settings, requiresProject: true },
+        { id: 'vuln-parameter-config', label: '参数配置', icon: Settings, requiresProject: true },
       ],
     },
   ],
