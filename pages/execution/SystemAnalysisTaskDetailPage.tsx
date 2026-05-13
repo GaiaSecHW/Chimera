@@ -365,6 +365,20 @@ function stageLabel(stage: string | undefined): string {
   return labels[stage || ''] || stage || '-';
 }
 
+function sessionRoleLabel(role: string | undefined): string {
+  const normalized = String(role || '').toLowerCase();
+  if (normalized === 'worker') return 'Worker';
+  if (normalized === 'judge') return 'Judge';
+  return role || '-';
+}
+
+function sessionRoleTone(role: string | undefined) {
+  const normalized = String(role || '').toLowerCase();
+  if (normalized === 'worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  if (normalized === 'judge') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-slate-200 bg-slate-100 text-slate-600';
+}
+
 function evaluationStatusTone(status?: string) {
   if (status === 'passed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (status === 'failed') return 'border-red-200 bg-red-50 text-red-700';
@@ -992,7 +1006,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== 'session') {
+    if (activeTab !== 'session' && activeTab !== 'overview') {
       closeSessionSocket();
       return;
     }
@@ -1000,7 +1014,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, [activeTab, taskId]);
 
   useEffect(() => {
-    if (activeTab !== 'session') return;
+    if (activeTab !== 'session' && activeTab !== 'overview') return;
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadSessions({ silent: true }), 12000);
     return () => window.clearInterval(timer);
@@ -1239,6 +1253,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
     return Array.from(map.entries());
   }, [sessions]);
+  const activeSessions = useMemo(
+    () => sessions.filter((item) => item.is_active),
+    [sessions],
+  );
   const evaluationRounds = evaluation?.rounds || [];
   const evaluationStages = useMemo(
     () => Array.from(new Set(evaluationRounds.map((item) => item.stage).filter(Boolean) as string[])).sort(),
@@ -1756,6 +1774,60 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 </div>
               </section>
 
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
+                    <p className="mt-1 text-xs text-slate-400">展示当前任务仍处于活跃状态的智能体会话与角色。</p>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+                    {activeSessions.length} 个活跃会话
+                  </span>
+                </div>
+                {sessionsLoading && sessions.length === 0 ? (
+                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    <Loader2 size={15} className="animate-spin" />
+                    加载智能体状态中...
+                  </div>
+                ) : activeSessions.length > 0 ? (
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                    <div className="divide-y divide-slate-200 bg-white">
+                      {activeSessions.map((session) => (
+                        <div key={session.relative_path} className="px-4 py-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
+                              <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
+                              <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                                <span>分组 {session.stage_group || '-'}</span>
+                                <span>事件 {session.event_count}</span>
+                                <span>更新时间 {formatSessionMtime(session.mtime)}</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>
+                                {sessionRoleLabel(session.role_name)}
+                              </span>
+                              <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                活跃
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                    {detail.status === 'pending'
+                      ? '任务尚未启动，当前没有活跃智能体。'
+                      : ['running', 'pending'].includes(detail.status)
+                        ? '当前没有检测到活跃智能体会话。'
+                        : '任务已结束，当前没有活跃智能体。'}
+                  </div>
+                )}
+              </section>
+
               {detail.error ? (
                 <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2>
@@ -1870,7 +1942,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                       {session.relative_path}
                                     </div>
                                   </div>
-                                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                  <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${
                                     session.is_active
                                       ? selected
                                         ? 'border-emerald-300 bg-emerald-100 text-emerald-800'

@@ -103,6 +103,8 @@ const JUDGE_STAGE_DESCS: Record<string, string> = {
     '报告评审 — 评估最终报告的结构、一致性与可读性，决定报告是否达到交付标准。',
 };
 
+const SHOW_SYSTEM_ANALYSIS_PROMPT_CONFIG = false;
+
 // ─── 默认值 ────────────────────────────────────────────────────────────────────
 
 const defaultRole = (): SystemAnalysisRoleConfig => ({
@@ -935,62 +937,64 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             onChange={(v) => patch({ judges: v })}
           />
 
-          <SectionCard
-            title="执行 Prompt 配置"
-            subtitle="这里管理系统分析执行链路实际使用的 Worker / Judge system prompt。只要任务还没进入 running，后续启动时都会使用这里的最新配置。"
-          >
-            <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">
-              Prompt 管理页面继续作为模板库使用。这里编辑的是当前项目实际生效的执行 Prompt；从模板库导入只会复制文本，不建立动态绑定。
-            </div>
+          {SHOW_SYSTEM_ANALYSIS_PROMPT_CONFIG ? (
+            <SectionCard
+              title="执行 Prompt 配置"
+              subtitle="这里管理系统分析执行链路实际使用的 Worker / Judge system prompt。只要任务还没进入 running，后续启动时都会使用这里的最新配置。"
+            >
+              <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+                Prompt 管理页面继续作为模板库使用。这里编辑的是当前项目实际生效的执行 Prompt；从模板库导入只会复制文本，不建立动态绑定。
+              </div>
 
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-black text-slate-900">Workers Prompt</h3>
-                <p className="mt-1 text-xs text-slate-500">覆盖目录探索、分类、细分、分析、报告生成以及反思相关的 Worker system prompt。</p>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Workers Prompt</h3>
+                  <p className="mt-1 text-xs text-slate-500">覆盖目录探索、分类、细分、分析、报告生成以及反思相关的 Worker system prompt。</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                  {WORKER_PROMPT_KEYS.map((promptKey) => (
+                    <PromptEditorCard
+                      key={`worker-${promptKey}`}
+                      role="workers"
+                      promptKey={promptKey}
+                      desc={WORKER_PROMPT_DESCS[promptKey] || ''}
+                      item={config.prompt_overrides.workers[promptKey] ?? emptyPromptItem()}
+                      templates={promptTemplates}
+                      selectedTemplateId={selectedPromptTemplates[`workers:${promptKey}`] || ''}
+                      onChangeTemplateId={(value) => setTemplateSelection('workers', promptKey, value)}
+                      onChange={(value) => patchPrompt('workers', promptKey, value)}
+                      onImportTemplate={() => importPromptTemplate('workers', promptKey)}
+                      onRestoreDefault={() => restorePromptDefault('workers', promptKey)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-                {WORKER_PROMPT_KEYS.map((promptKey) => (
-                  <PromptEditorCard
-                    key={`worker-${promptKey}`}
-                    role="workers"
-                    promptKey={promptKey}
-                    desc={WORKER_PROMPT_DESCS[promptKey] || ''}
-                    item={config.prompt_overrides.workers[promptKey] ?? emptyPromptItem()}
-                    templates={promptTemplates}
-                    selectedTemplateId={selectedPromptTemplates[`workers:${promptKey}`] || ''}
-                    onChangeTemplateId={(value) => setTemplateSelection('workers', promptKey, value)}
-                    onChange={(value) => patchPrompt('workers', promptKey, value)}
-                    onImportTemplate={() => importPromptTemplate('workers', promptKey)}
-                    onRestoreDefault={() => restorePromptDefault('workers', promptKey)}
-                  />
-                ))}
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-black text-slate-900">Judges Prompt</h3>
-                <p className="mt-1 text-xs text-slate-500">覆盖分类评审、细分评审、安全分析评审、完整性检查和最终报告评审的 Judge system prompt。</p>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Judges Prompt</h3>
+                  <p className="mt-1 text-xs text-slate-500">覆盖分类评审、细分评审、安全分析评审、完整性检查和最终报告评审的 Judge system prompt。</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                  {JUDGE_PROMPT_KEYS.map((promptKey) => (
+                    <PromptEditorCard
+                      key={`judge-${promptKey}`}
+                      role="judges"
+                      promptKey={promptKey}
+                      desc={JUDGE_PROMPT_DESCS[promptKey] || ''}
+                      item={config.prompt_overrides.judges[promptKey] ?? emptyPromptItem()}
+                      templates={promptTemplates}
+                      selectedTemplateId={selectedPromptTemplates[`judges:${promptKey}`] || ''}
+                      onChangeTemplateId={(value) => setTemplateSelection('judges', promptKey, value)}
+                      onChange={(value) => patchPrompt('judges', promptKey, value)}
+                      onImportTemplate={() => importPromptTemplate('judges', promptKey)}
+                      onRestoreDefault={() => restorePromptDefault('judges', promptKey)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-                {JUDGE_PROMPT_KEYS.map((promptKey) => (
-                  <PromptEditorCard
-                    key={`judge-${promptKey}`}
-                    role="judges"
-                    promptKey={promptKey}
-                    desc={JUDGE_PROMPT_DESCS[promptKey] || ''}
-                    item={config.prompt_overrides.judges[promptKey] ?? emptyPromptItem()}
-                    templates={promptTemplates}
-                    selectedTemplateId={selectedPromptTemplates[`judges:${promptKey}`] || ''}
-                    onChangeTemplateId={(value) => setTemplateSelection('judges', promptKey, value)}
-                    onChange={(value) => patchPrompt('judges', promptKey, value)}
-                    onImportTemplate={() => importPromptTemplate('judges', promptKey)}
-                    onRestoreDefault={() => restorePromptDefault('judges', promptKey)}
-                  />
-                ))}
-              </div>
-            </div>
-          </SectionCard>
+            </SectionCard>
+          ) : null}
 
           {/* 操作按钮 */}
           <div className="flex items-center gap-3">

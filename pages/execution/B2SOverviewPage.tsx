@@ -5,6 +5,7 @@ import { B2SElfTaskInput, B2SRunMode, B2SLlmProviderSummary, B2STask, B2STaskDet
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 import { TaskOriginInline } from './taskOrigin';
 
@@ -404,90 +405,77 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         ) : items.length === 0 ? (
           <div className="py-12 text-center text-sm text-slate-400">当前项目暂无二进制逆向任务。</div>
         ) : (
-          <div className="mt-5 space-y-4">
-            {items.map((task) => {
-              const detail = activeTaskDetails[task.id];
-              const phaseSummary = buildPhaseSummary(task, detail);
-              const modeLabel = taskModeLabel(task, detail);
-              const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
-              return (
-                <button
-                  key={task.id}
-                  type="button"
-                  onClick={() => onOpenTask(task.id)}
-                  className="w-full rounded-[1.5rem] border border-slate-200 bg-white p-5 text-left transition hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-lg font-black text-slate-900">{task.name || task.id}</div>
-                        <B2SStatusBadge status={task.status} />
-                        {modeLabel && (
+          <div className="mt-5">
+            <ExecutionTable minWidth={1360}>
+              <ExecutionTableHead>
+                <tr>
+                  <ExecutionTableTh>任务</ExecutionTableTh>
+                  <ExecutionTableTh>状态</ExecutionTableTh>
+                  <ExecutionTableTh>模式</ExecutionTableTh>
+                  <ExecutionTableTh>阶段</ExecutionTableTh>
+                  <ExecutionTableTh>总体进度</ExecutionTableTh>
+                  <ExecutionTableTh>结果分布</ExecutionTableTh>
+                  <ExecutionTableTh>异常项</ExecutionTableTh>
+                  <ExecutionTableTh>运行耗时</ExecutionTableTh>
+                  <ExecutionTableTh>最近更新</ExecutionTableTh>
+                </tr>
+              </ExecutionTableHead>
+              <tbody>
+                {items.map((task) => {
+                  const detail = activeTaskDetails[task.id];
+                  const phaseSummary = buildPhaseSummary(task, detail);
+                  const modeLabel = taskModeLabel(task, detail);
+                  const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
+                  return (
+                    <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => onOpenTask(task.id)}>
+                      <ExecutionTableTd className="min-w-[300px]">
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-black text-slate-900">{task.name || task.id}</div>
+                          <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{task.id}</div>
+                          <div className="mt-2">
+                            <TaskOriginInline origin={task} compact />
+                          </div>
+                        </div>
+                      </ExecutionTableTd>
+                      <ExecutionTableTd><B2SStatusBadge status={task.status} /></ExecutionTableTd>
+                      <ExecutionTableTd>
+                        {modeLabel ? (
                           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${taskModeTone(task, detail)}`}>
                             {modeLabel}
                           </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
                         )}
-                        <B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} />
-                      </div>
-                      <div className="mt-2 break-all font-mono text-xs text-slate-400">{task.id}</div>
-                      <div className="mt-3">
-                        <TaskOriginInline origin={task} compact />
-                      </div>
-                      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务结果</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            成功 {task.success_items} / 总数 {task.total_items}
-                          </div>
+                      </ExecutionTableTd>
+                      <ExecutionTableTd><B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} /></ExecutionTableTd>
+                      <ExecutionTableTd className="min-w-[220px]">
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <span className="font-semibold text-slate-700">{buildProgressLabel(task, detail)}</span>
+                          <span className="text-slate-400">{pct(progressValue).toFixed(1)}%</span>
                         </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">执行分布</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            排队 {task.queued_items} · 运行 {task.running_items}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">异常项</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            失败 {task.failed_items} · 部分成功 {task.partial_items}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">运行耗时</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            {taskRunDuration(detail, clockNow)}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">最近更新</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">{formatDateTime(task.updated_at)}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-full xl:max-w-[260px]">
-                      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm font-bold text-slate-700">总体进度</div>
-                          <div className="text-sm font-black text-slate-900">{buildProgressLabel(task, detail)}</div>
-                        </div>
-                        <div className="mt-3">
+                        <div className="mt-2">
                           <B2SProgressBar value={progressValue} />
                         </div>
-                        <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
                           <span>待处理 {task.pending_items}</span>
                           <span>已取消 {task.cancelled_items}</span>
                         </div>
-                        <div className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-slate-700">
-                          查看详情
-                          <ChevronRight size={16} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+                      </ExecutionTableTd>
+                      <ExecutionTableTd>
+                        <div className="text-sm font-semibold text-slate-800">成功 {task.success_items} / 总数 {task.total_items}</div>
+                        <div className="mt-1 text-xs text-slate-400">排队 {task.queued_items} · 运行 {task.running_items}</div>
+                      </ExecutionTableTd>
+                      <ExecutionTableTd>
+                        <div className="text-sm font-semibold text-slate-800">失败 {task.failed_items}</div>
+                        <div className="mt-1 text-xs text-slate-400">部分成功 {task.partial_items}</div>
+                      </ExecutionTableTd>
+                      <ExecutionTableTd className="whitespace-nowrap font-semibold text-slate-700">{taskRunDuration(detail, clockNow)}</ExecutionTableTd>
+                      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.updated_at)}</ExecutionTableTd>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </ExecutionTable>
           </div>
         )}
       </section>

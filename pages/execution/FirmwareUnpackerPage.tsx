@@ -25,6 +25,7 @@ import {
 import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -54,6 +55,12 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: '已取消' },
   { value: 'success', label: '成功' },
   { value: 'failed', label: '失败' },
+];
+
+const ORIGIN_MODE_OPTIONS = [
+  { value: '', label: '全部来源' },
+  { value: 'manual', label: '手动任务' },
+  { value: 'linked', label: '总任务关联' },
 ];
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -97,6 +104,13 @@ function fmtDuration(s: string | null, e: string | null) {
   const ms = (e ? new Date(e).getTime() : Date.now()) - new Date(s).getTime();
   const sec = Math.round(ms / 1000);
   return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}m${sec % 60}s`;
+}
+
+function basename(path: string | null | undefined) {
+  const normalized = String(path || '').replace(/\/+$/, '');
+  if (!normalized) return '-';
+  const parts = normalized.split('/');
+  return parts[parts.length - 1] || normalized;
 }
 
 function formatSeconds(seconds: number | null | undefined) {
@@ -361,20 +375,20 @@ function MetricBar({ label, value, tone = 'blue' }: { label: string; value: numb
 }
 
 function TaskStatusBadge({ status }: { status: string }) {
-  const cfg: Record<string, { icon: React.ReactNode; cls: string; label: string }> = {
-    pending: { icon: <Clock size={12} />, cls: 'bg-amber-50 text-amber-700 border-amber-200', label: '排队中' },
-    retry_preparing: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: '重试准备中' },
-    running: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-blue-50 text-blue-700 border-blue-200', label: '运行中' },
-    cancelling: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-orange-50 text-orange-700 border-orange-200', label: '取消中' },
-    cancelled: { icon: <XCircle size={12} />, cls: 'bg-slate-50 text-slate-500 border-slate-200', label: '已取消' },
-    success: { icon: <CheckCircle2 size={12} />, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: '成功' },
-    failed: { icon: <XCircle size={12} />, cls: 'bg-red-50 text-red-700 border-red-200', label: '失败' },
-    max_retries_reached: { icon: <XCircle size={12} />, cls: 'bg-red-50 text-red-700 border-red-200', label: '超限' },
+  const cfg: Record<string, { cls: string; label: string }> = {
+    pending: { cls: 'bg-amber-50 text-amber-700 border-amber-200', label: '排队中' },
+    retry_preparing: { cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: '重试准备中' },
+    running: { cls: 'bg-blue-50 text-blue-700 border-blue-200', label: '运行中' },
+    cancelling: { cls: 'bg-orange-50 text-orange-700 border-orange-200', label: '取消中' },
+    cancelled: { cls: 'bg-slate-50 text-slate-500 border-slate-200', label: '已取消' },
+    success: { cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: '成功' },
+    failed: { cls: 'bg-red-50 text-red-700 border-red-200', label: '失败' },
+    max_retries_reached: { cls: 'bg-red-50 text-red-700 border-red-200', label: '超限' },
   };
-  const { icon, cls, label } = cfg[status] ?? { icon: null, cls: 'bg-slate-50 text-slate-500', label: status };
+  const { cls, label } = cfg[status] ?? { cls: 'bg-slate-50 text-slate-500', label: status };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${cls}`}>
-      {icon} {label}
+    <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-bold ${cls}`}>
+      {label}
     </span>
   );
 }
@@ -695,22 +709,14 @@ function TaskRow({
   onSelect: (id: string, checked: boolean) => void;
   onOpenDetail: (id: string) => void;
 }) {
-  const running = !isTerminal(task.status);
-
   return (
-    <div
-      className={`cursor-pointer rounded-xl border transition-colors ${
-        active
-          ? 'border-blue-300 bg-blue-50/50 shadow-sm'
-          : selected
-            ? 'border-slate-300 bg-slate-50/70'
-            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'
-      }`}
+    <tr
+      className={`${executionTableInteractiveRowClassName} ${
+        active ? 'bg-blue-50/60' : selected ? 'bg-slate-50/90' : ''
+      }`.trim()}
       onClick={() => onOpenDetail(task.id)}
     >
-      <div
-        className="flex items-center gap-2 px-3 py-3"
-      >
+      <ExecutionTableTd>
         <input
           type="checkbox"
           checked={selected}
@@ -721,20 +727,33 @@ function TaskRow({
           onClick={(e) => e.stopPropagation()}
           className="rounded border-slate-300 text-blue-600"
         />
-        <TaskStatusBadge status={task.status} />
-        <span className="flex-1 min-w-0 truncate font-mono text-xs text-slate-600">{task.firmware_path}</span>
-        <div onClick={(e) => e.stopPropagation()} className="hidden 2xl:block max-w-[240px] overflow-hidden">
-          <TaskOriginInline origin={task} compact />
-        </div>
-        {task.worker_id && (
-          <span className="hidden xl:inline max-w-[120px] truncate text-[10px] text-slate-400">{task.worker_id}</span>
+      </ExecutionTableTd>
+      <ExecutionTableTd className="min-w-[96px] whitespace-nowrap"><TaskStatusBadge status={task.status} /></ExecutionTableTd>
+      <ExecutionTableTd className="min-w-[340px]">
+        <div className="truncate font-mono text-xs text-slate-600" title={task.firmware_path}>{basename(task.firmware_path)}</div>
+        <div className="mt-1 font-mono text-[11px] text-slate-400">{task.id}</div>
+      </ExecutionTableTd>
+      <ExecutionTableTd className="min-w-[170px]">
+        <TaskOriginInline origin={task} compact />
+      </ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+        {task.worker_id ? (
+          <span className="inline-flex items-center gap-1">
+            <span className="max-w-[120px] truncate">{task.worker_id}</span>
+          </span>
+        ) : (
+          '-'
         )}
-        {running && <Loader2 size={11} className="shrink-0 animate-spin text-blue-400" />}
-        <span className="hidden lg:inline shrink-0 text-[10px] text-slate-500">{fmtDuration(task.started_at, task.completed_at)}</span>
-        <span className="shrink-0 text-[10px] text-slate-400">{fmtTime(task.created_at)}</span>
-        <ChevronRight size={14} className={`shrink-0 text-slate-400 transition-transform ${active ? 'translate-x-0.5 text-blue-500' : ''}`} />
-      </div>
-    </div>
+      </ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{fmtDuration(task.started_at, task.completed_at)}</ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{fmtTime(task.created_at)}</ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+        {task.result_status || '-'}
+      </ExecutionTableTd>
+      <ExecutionTableTd className="text-right">
+        <ChevronRight size={14} className={`ml-auto text-slate-400 transition-transform ${active ? 'translate-x-0.5 text-blue-500' : ''}`} />
+      </ExecutionTableTd>
+    </tr>
   );
 }
 
@@ -2191,7 +2210,7 @@ function TaskDetailPanel({
                                     {session.relative_path}
                                   </div>
                                 </div>
-                                <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${
+                                <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold ${
                                   indexItem?.status === 'running'
                                     ? selected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-50 text-emerald-700'
                                     : selected ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600'
@@ -2450,7 +2469,7 @@ function TaskDetailPanel({
                         <div key={`${item.session_file}-${item.role}-${item.name}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="text-xs font-black text-slate-900">{item.role}/{item.name}</div>
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status === 'running' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                            <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status === 'running' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
                               {item.status === 'running' ? '运行中' : '历史'}
                             </span>
                           </div>
@@ -2886,6 +2905,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const normalizedInitialTaskId = initialTaskId.trim();
 
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterOriginMode, setFilterOriginMode] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
   const [filterWorker, setFilterWorker] = useState('');
   const [page, setPage] = useState(0);
@@ -2920,6 +2940,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     pageOverride?: number;
     pageSizeOverride?: number;
     statusOverride?: string;
+    originModeOverride?: string;
     searchOverride?: string;
     workerOverride?: string;
   }) => {
@@ -2940,6 +2961,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     const currentPage = resetPage ? 0 : options?.pageOverride ?? page;
     const currentPageSize = options?.pageSizeOverride ?? pageSize;
     const currentStatus = options?.statusOverride ?? filterStatus;
+    const currentOriginMode = options?.originModeOverride ?? filterOriginMode;
     const currentSearch = options?.searchOverride ?? filterSearch;
     const currentWorker = options?.workerOverride ?? filterWorker;
     if (resetPage) setPage(0);
@@ -2951,6 +2973,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       };
       if (currentStatus) query.status = currentStatus;
       if (currentWorker) query.worker_id = currentWorker;
+      if (currentOriginMode) query.origin_mode = currentOriginMode;
       if (currentSearch) query.search = currentSearch;
       const res = await fwApi.listTasks(query);
       setTasks((prev) => {
@@ -2967,7 +2990,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [activeTaskId, page, pageSize, projectId, filterStatus, filterSearch, filterWorker]);
+  }, [activeTaskId, page, pageSize, projectId, filterStatus, filterOriginMode, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string, options?: {
     showDetailLoading?: boolean;
@@ -3030,16 +3053,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const hasRunning = useMemo(() => taskItems.some((task) => !isTerminal(task.status)), [taskItems]);
 
   useEffect(() => {
-    if (hasRunning) {
+    if (hasRunning && !activeTaskId) {
       pollingRef.current = setInterval(() => {
         void fetchTasks(false, { silent: true });
-        if (activeTaskId && activeTask && !isTerminal(activeTask.status)) {
-          void refreshOne(activeTaskId, {
-            showDetailLoading: false,
-            refreshProgress: detailActiveTab === 'overview',
-            refreshResource: detailActiveTab === 'overview',
-          });
-        }
       }, 5000);
     } else if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -3049,7 +3065,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [activeTask, activeTaskId, detailActiveTab, fetchTasks, hasRunning, refreshOne]);
+  }, [activeTaskId, fetchTasks, hasRunning]);
 
   useEffect(() => {
     fetchTasks(true);
@@ -3468,7 +3484,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             <h2 className="text-sm font-bold text-slate-800">
               {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
             </h2>
-            {hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
+            {!showingDetail && hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
           </div>
         </div>
         <div className="flex gap-2">
@@ -3580,6 +3596,20 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               ))}
             </select>
 
+            <select
+              value={filterOriginMode}
+              onChange={(e) => {
+                const nextOriginMode = e.target.value;
+                setFilterOriginMode(nextOriginMode);
+                fetchTasks(true, { originModeOverride: nextOriginMode });
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+            >
+              {ORIGIN_MODE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+
             <div className="relative">
               <Search size={11} className="pointer-events-none absolute left-2.5 top-2 text-slate-400" />
               <input
@@ -3658,18 +3688,40 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               暂无任务记录
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {taskItems.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  selected={selected.has(task.id)}
-                  active={activeTaskId === task.id}
-                  onSelect={toggleSelect}
-                  onOpenDetail={setActiveTaskId}
-                />
-              ))}
-            </div>
+            <ExecutionTable minWidth={1320}>
+              <ExecutionTableHead>
+                <tr>
+                  <ExecutionTableTh className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={selected.size === taskItems.length && taskItems.length > 0}
+                      onChange={(e) => toggleAll(e.target.checked)}
+                      aria-label="全选当前页任务"
+                    />
+                  </ExecutionTableTh>
+                  <ExecutionTableTh className="w-[104px]">状态</ExecutionTableTh>
+                  <ExecutionTableTh>固件路径</ExecutionTableTh>
+                  <ExecutionTableTh>来源</ExecutionTableTh>
+                  <ExecutionTableTh>Worker</ExecutionTableTh>
+                  <ExecutionTableTh>耗时</ExecutionTableTh>
+                  <ExecutionTableTh>创建时间</ExecutionTableTh>
+                  <ExecutionTableTh>结果</ExecutionTableTh>
+                  <ExecutionTableTh className="text-right">详情</ExecutionTableTh>
+                </tr>
+              </ExecutionTableHead>
+              <tbody>
+                {taskItems.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    selected={selected.has(task.id)}
+                    active={activeTaskId === task.id}
+                    onSelect={toggleSelect}
+                    onOpenDetail={setActiveTaskId}
+                  />
+                ))}
+              </tbody>
+            </ExecutionTable>
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">

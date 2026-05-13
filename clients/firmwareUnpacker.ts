@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { FirmwareSessionIndexItem, normalizeFirmwareSessionIndex } from '../pages/execution/sessionParsing';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -575,6 +576,7 @@ export interface TaskListQuery {
   project_id?: string;
   status?: string;
   worker_id?: string;
+  origin_mode?: string;
   search?: string;
   limit?: number;
   offset?: number;
@@ -1334,6 +1336,7 @@ export const firmwareUnpackerApi = {
     if (query.project_id) p.set('project_id', query.project_id);
     if (query.status)     p.set('status',     query.status);
     if (query.worker_id)  p.set('worker_id',  query.worker_id);
+    if (query.origin_mode) p.set('origin_mode', query.origin_mode);
     if (query.search)     p.set('search',     query.search);
     if (query.limit  != null) p.set('limit',  String(query.limit));
     if (query.offset != null) p.set('offset', String(query.offset));

@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronDown, ChevronUp, FolderOpen, List, Loader2, PlayCi
 import { api } from '../../clients/api';
 import { AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -1025,27 +1026,27 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
         <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">数据流分析任务</h1>
         <p className="mt-2 text-sm text-slate-500">追踪污点传播路径，识别敏感数据流向危险函数的安全风险。</p>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
+            { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+            { label: '失败/取消', value: tasks.filter((t) => ['failed', 'error', 'cancelled'].includes(t.status)).length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+          ].map((s) => (
+            <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
+              <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{s.label}</p>
+            </div>
+          ))}
+        </div>
       </section>
-
-      {/* ── Stats Cards ─────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
-          { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-          { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
-          { label: '失败/取消', value: tasks.filter((t) => ['failed', 'error', 'cancelled'].includes(t.status)).length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-        ].map((s) => (
-          <div key={s.label} className={`rounded-2xl border ${s.border} ${s.bg} p-5 flex flex-col gap-1 shadow-sm`}>
-            <p className={`text-3xl font-black ${s.text}`}>{s.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
 
       {/* ── Task list ───────────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
               <input
@@ -1171,62 +1172,80 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
         ) : tasks.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
         ) : (
-          <div className="space-y-2 pr-1">
-            <label className="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
-              <input
-                type="checkbox"
-                checked={allPageSelected}
-                onChange={(e) => toggleAllPageSelection(e.target.checked)}
-              />
-              全选当前页（{tasks.length} 条）
-            </label>
-            {tasks.map((t) => (
-              <div
-                key={t.task_id}
-                className={`group relative rounded-xl border bg-white transition-colors hover:bg-slate-50 hover:border-slate-300 ${
-                  selectedTaskIds.has(t.task_id) ? 'border-violet-300 bg-violet-50/40' : 'border-slate-200'
-                }`}
-              >
-                <div className="absolute left-3 top-3 z-10">
+          <ExecutionTable minWidth={1360}>
+            <ExecutionTableHead>
+              <tr>
+                <ExecutionTableTh className="w-12">
                   <input
                     type="checkbox"
-                    checked={selectedTaskIds.has(t.task_id)}
-                    onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label={`选择任务 ${t.task_name}`}
+                    checked={allPageSelected}
+                    onChange={(e) => toggleAllPageSelection(e.target.checked)}
+                    aria-label="全选当前页任务"
                   />
-                </div>
-                <button
+                </ExecutionTableTh>
+                <ExecutionTableTh>任务</ExecutionTableTh>
+                <ExecutionTableTh>状态</ExecutionTableTh>
+                <ExecutionTableTh>源码路径</ExecutionTableTh>
+                <ExecutionTableTh>Prompt</ExecutionTableTh>
+                <ExecutionTableTh>来源</ExecutionTableTh>
+                <ExecutionTableTh>创建时间</ExecutionTableTh>
+                <ExecutionTableTh>耗时</ExecutionTableTh>
+                <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
+              </tr>
+            </ExecutionTableHead>
+            <tbody>
+              {tasks.map((t) => (
+                <tr
+                  key={t.task_id}
+                  className={`${executionTableInteractiveRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-violet-50/60' : ''}`.trim()}
                   onClick={() => handleSelectTask(t.task_id)}
-                  className="w-full p-4 pl-10 text-left"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-slate-900 truncate">{t.task_name}</div>
-                      <div className="mt-0.5 text-xs text-slate-500 truncate font-mono">{t.input_path}</div>
-                      <div className="mt-2">
-                        <TaskOriginInline origin={t} compact />
-                      </div>
-                    </div>
-                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                  <ExecutionTableTd>
+                    <input
+                      type="checkbox"
+                      checked={selectedTaskIds.has(t.task_id)}
+                      onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`选择任务 ${t.task_name}`}
+                    />
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[180px]">
+                    <div className="text-sm font-bold text-slate-900">{t.task_name}</div>
+                    <div className="mt-1 font-mono text-[11px] text-slate-400">{t.task_id}</div>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd>
+                    <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
                       {STATUS_LABEL[t.status] ?? t.status}
                     </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
-                    <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
-                    <span>耗时: {formatDuration(t.started_at, t.finished_at, clockNow)}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
-                  title="删除任务及输出文件"
-                  className="absolute right-3 top-3 hidden group-hover:flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="max-w-[320px]">
+                    <div className="truncate font-mono text-xs text-slate-500" title={t.input_path}>{t.input_path}</div>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {t.prompt_template_id || '-'}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[170px]">
+                    <TaskOriginInline origin={t} compact />
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {formatDuration(t.started_at, t.finished_at, clockNow)}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="text-right">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
+                      title="删除任务及输出文件"
+                      className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </ExecutionTableTd>
+                </tr>
+              ))}
+            </tbody>
+          </ExecutionTable>
         )}
 
         {totalPages > 1 ? (

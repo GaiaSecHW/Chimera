@@ -4,8 +4,8 @@ import { Loader2, Plus, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-rea
 import { api } from '../../clients/api';
 import { AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { TaskOriginInline } from './taskOrigin';
 import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -35,6 +35,19 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m}m${s}s`;
+}
+
+function formatParentTaskDisplay(task: AppSaTaskItem): string {
+  if (!task.parent_task_id) return '';
+  return (task.parent_task_display || task.parent_task_id || '').trim();
+}
+
+function renderOriginBadge(task: AppSaTaskItem) {
+  const isLinked = String(task.task_origin_type || '').trim() === 'binary_security';
+  if (isLinked) {
+    return <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">总任务关联</span>;
+  }
+  return <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">手动任务</span>;
 }
 
 const SORT_OPTIONS = [
@@ -337,7 +350,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
   };
 
-  const totalPages = Math.ceil(total / perPage);
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const pageStart = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * perPage + tasks.length);
   const allPageSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
   const hasSelection = selectedTaskIds.size > 0;
 
@@ -349,27 +364,27 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
+            { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+            { label: '失败/取消', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error' || t.status === 'cancelled').length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+          ].map((s) => (
+            <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
+              <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{s.label}</p>
+            </div>
+          ))}
+        </div>
       </section>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
-          { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-          { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-          { label: '失败/取消', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error' || t.status === 'cancelled').length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-        ].map((s) => (
-          <div key={s.label} className={`rounded-2xl border ${s.border} ${s.bg} p-5 flex flex-col gap-1 shadow-sm`}>
-            <p className={`text-3xl font-black ${s.text}`}>{s.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
 
       {/* Task list */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
               <input
@@ -433,14 +448,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             >
               <option value="desc">降序</option>
               <option value="asc">升序</option>
-            </select>
-            <select
-              value={perPage}
-              onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
-              title="每页显示条数"
-            >
-              {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
@@ -513,76 +520,150 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           </div>
         ) : null}
 
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500 py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
+        {loading && tasks.length === 0 ? (
+          <div className="flex items-center justify-center py-12 text-slate-400">
+            <Loader2 size={20} className="mr-2 animate-spin" /> 加载中...
+          </div>
         ) : tasks.length === 0 ? (
-          <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
+            暂无任务，点击右上角「新建任务」创建
+          </div>
         ) : (
-          <div className="space-y-2 pr-1">
-            <label className="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
-              <input
-                type="checkbox"
-                checked={allPageSelected}
-                onChange={(e) => toggleAllPageSelection(e.target.checked)}
-              />
-              全选当前页（{tasks.length} 条）
-            </label>
-            {tasks.map((t) => (
-              <div
-                key={t.task_id}
-                className={`group relative rounded-xl border bg-white transition-colors hover:bg-slate-50 hover:border-slate-300 ${
-                  selectedTaskIds.has(t.task_id) ? 'border-cyan-300 bg-cyan-50/40' : 'border-slate-200'
-                }`}
-              >
-                <div className="absolute left-3 top-3 z-10">
+          <ExecutionTable minWidth={1280}>
+            <ExecutionTableHead>
+              <tr>
+                <ExecutionTableTh className="w-12">
                   <input
                     type="checkbox"
-                    checked={selectedTaskIds.has(t.task_id)}
-                    onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label={`选择任务 ${t.task_name}`}
+                    checked={allPageSelected}
+                    onChange={(e) => toggleAllPageSelection(e.target.checked)}
+                    aria-label="全选当前页任务"
                   />
-                </div>
-                <button
+                </ExecutionTableTh>
+                <ExecutionTableTh>任务</ExecutionTableTh>
+                <ExecutionTableTh>分析模式</ExecutionTableTh>
+                <ExecutionTableTh>状态</ExecutionTableTh>
+                <ExecutionTableTh>总任务</ExecutionTableTh>
+                <ExecutionTableTh>来源</ExecutionTableTh>
+                <ExecutionTableTh>创建时间</ExecutionTableTh>
+                <ExecutionTableTh>耗时</ExecutionTableTh>
+                <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
+              </tr>
+            </ExecutionTableHead>
+            <tbody>
+              {tasks.map((t) => (
+                <tr
+                  key={t.task_id}
+                  className={`${executionTableInteractiveRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
                   onClick={() => onOpenTask(t.task_id)}
-                  className="w-full p-4 pl-10 text-left"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-slate-900 truncate">{t.task_name}</div>
-                      <div className="mt-0.5 text-xs text-slate-500 truncate font-mono">{t.input_path}</div>
-                      <div className="mt-2">
-                        <TaskOriginInline origin={t} compact />
-                      </div>
-                    </div>
-                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                  <ExecutionTableTd>
+                    <input
+                      type="checkbox"
+                      checked={selectedTaskIds.has(t.task_id)}
+                      onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`选择任务 ${t.task_name}`}
+                    />
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[180px]">
+                    <div className="text-sm font-bold text-slate-900">{t.task_name}</div>
+                    <div className="mt-1 font-mono text-[11px] text-slate-400">{t.task_id}</div>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap">
+                    <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                      {t.analysis_mode_label || (t.analysis_mode === 'binary' ? '二进制' : t.analysis_mode === 'source' ? '源码' : '-')}
+                    </span>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd>
+                    <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
                       {STATUS_LABEL[t.status] ?? t.status}
                     </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
-                    <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
-                    <span>耗时: {formatDuration(t.started_at, t.finished_at, clockNow)}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
-                  title="删除任务及输出文件"
-                  className="absolute right-3 top-3 hidden group-hover:flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="max-w-[220px]">
+                    {formatParentTaskDisplay(t) ? (
+                      <div className="truncate font-mono text-xs text-slate-500" title={formatParentTaskDisplay(t)}>
+                        {formatParentTaskDisplay(t)}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-300"> </span>
+                    )}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[170px]">
+                    {renderOriginBadge(t)}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {formatDuration(t.started_at, t.finished_at, clockNow)}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="text-right">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
+                      title="删除任务及输出文件"
+                      className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </ExecutionTableTd>
+                </tr>
+              ))}
+            </tbody>
+          </ExecutionTable>
         )}
 
-        {totalPages > 1 ? (
-          <div className="mt-4 flex items-center justify-center gap-2 text-sm">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">上一页</button>
-            <span className="text-slate-500">{page} / {totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">下一页</button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+          <div className="text-xs text-slate-500">
+            共 {total} 条，当前显示 {pageStart}-{pageEnd}
           </div>
-        ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+              每页
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  const nextSize = Number(e.target.value) || 50;
+                  setPerPage(nextSize);
+                  setPage(1);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+              >
+                {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              条
+            </label>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage(1)}
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              首页
+            </button>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              上一页
+            </button>
+            <span className="min-w-16 text-center text-xs text-slate-500">{page} / {totalPages}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              下一页
+            </button>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage(totalPages)}
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              末页
+            </button>
+          </div>
+        </div>
       </section>
 
       <SystemAnalysisTaskFormModal
