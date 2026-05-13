@@ -84,9 +84,10 @@ const AppShell: React.FC = () => {
   const locationRef = useRef(location);
   useEffect(() => { locationRef.current = location; }, [location]);
 
-  const navigateToView = useCallback((nextView: ViewType | string, options?: { path?: string; keepFirmwareDetail?: boolean }) => {
+  const navigateToView = useCallback((nextView: ViewType | string, options?: { path?: string; taskId?: string; keepFirmwareDetail?: boolean }) => {
     const normalizedView = String(nextView || DEFAULT_VIEW);
     const requestedPath = String(options?.path || '').trim();
+    const requestedTaskId = String(options?.taskId || '').trim();
     if (
       (normalizedView === 'pentest-exec-firmware-unpacker' || normalizedView === 'pentest-exec-firmware-task-list')
       && !options?.keepFirmwareDetail
@@ -96,6 +97,8 @@ const AppShell: React.FC = () => {
     const targetUrl =
       normalizedView === 'project-file-explorer' && requestedPath
         ? `/${normalizedView}?path=${encodeURIComponent(requestedPath)}`
+        : normalizedView === 'binary-evolution-dataflow-vuln' && requestedTaskId
+          ? `/${normalizedView}/${encodeURIComponent(requestedTaskId)}`
         : `/${normalizedView}`;
     setCurrentView(normalizedView);
     if (!isServiceTerminalWindow) {
@@ -162,6 +165,7 @@ const AppShell: React.FC = () => {
         firmwareUnpackerTaskId?: string;
         binarySecurityTaskId?: string;
         sourceSecurityTaskId?: string;
+        binaryEvolutionTaskId?: string;
         path?: string;
       }>).detail;
       const nextView = String(detail?.view || '').trim();
@@ -198,9 +202,11 @@ const AppShell: React.FC = () => {
       if (sourceSecurityTaskId) {
         setActiveSourceSecurityTaskId(sourceSecurityTaskId);
       }
+      const binaryEvolutionTaskId = String(detail?.binaryEvolutionTaskId || '').trim();
       if (nextView) {
         navigateToView(nextView, {
           ...(requestedPath ? { path: requestedPath } : {}),
+          ...(binaryEvolutionTaskId ? { taskId: binaryEvolutionTaskId } : {}),
           keepFirmwareDetail: Boolean(firmwareUnpackerTaskId),
         });
       }
