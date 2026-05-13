@@ -11,6 +11,7 @@ import {
   IpcAuditCapability,
   IpcAuditCatalogRefreshJob,
   IpcAuditEvent,
+  IpcAuditProviderList,
   IpcAuditPresetProject,
   IpcAuditProviderSummary,
   IpcAuditRuntimeConfig,
@@ -809,6 +810,20 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   });
   const selectedProvider = providerOptionMap.get(selectedProviderKey) || null;
   const providerFallbackModel = selectedProvider?.model || '';
+  const applyProviderList = (providerResponse: IpcAuditProviderList) => {
+    const items = Array.isArray(providerResponse.items) ? providerResponse.items : [];
+    const normalizedDefaultProviderKey = String(providerResponse.default_provider_key || '').trim()
+      || items.find((item) => item.is_default)?.provider_key
+      || items[0]?.provider_key
+      || '';
+    setProviderOptions(items);
+    setDefaultProviderKey(normalizedDefaultProviderKey);
+    setSelectedProviderKey((current) => (
+      current && items.some((item) => item.provider_key === current && item.enabled !== false)
+        ? current
+        : normalizedDefaultProviderKey
+    ));
+  };
   const projectInputItemMap = new Map<string, ProjectInputItem>();
   presetProjects.forEach((item) => {
     const path = normalizeProjectPathInput(item.project_path);
@@ -895,6 +910,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const skippedActiveSelectedTaskCount = selectedTaskSummaries.length - actionableSelectedTasks.length;
   const cancellableSelectedTasks = selectedTaskSummaries.filter((item) => isCancellableTaskStatus(item.status));
   const skippedNonCancellableSelectedTaskCount = selectedTaskSummaries.length - cancellableSelectedTasks.length;
+  const serviceReady = Boolean(readyState?.ready);
+  const baseDataLoading = bootstrapping || readyState === null;
+  const workspaceScopedLoading = Boolean(readyState?.ready) && !workspaceId;
+  const taskQueueLoading = tasksLoading || baseDataLoading || workspaceScopedLoading;
+  const projectListLoading = presetLoading || baseDataLoading || workspaceScopedLoading;
+  const providerPanelLoading = providersLoading || baseDataLoading || (serviceReady && !providerLoadError && providerOptions.length === 0);
 
   const closeSessionStream = () => {
     if (sessionStreamRef.current) {
@@ -966,32 +987,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             || workspaceItems[0]?.workspace_id
             || '';
         });
-        setProvidersLoading(true);
-        setProviderLoadError(null);
-        try {
-          const providerResponse = await executionApi.listProviders();
-          if (cancelled) return;
-          const items = Array.isArray(providerResponse.items) ? providerResponse.items : [];
-          const normalizedDefaultProviderKey = String(providerResponse.default_provider_key || '').trim()
-            || items.find((item) => item.is_default)?.provider_key
-            || items[0]?.provider_key
-            || '';
-          setProviderOptions(items);
-          setDefaultProviderKey(normalizedDefaultProviderKey);
-          setSelectedProviderKey((current) => (
-            current && items.some((item) => item.provider_key === current && item.enabled !== false)
-              ? current
-              : normalizedDefaultProviderKey
-          ));
-        } catch (error) {
-          if (cancelled) return;
-          setProviderOptions([]);
-          setDefaultProviderKey('');
-          setSelectedProviderKey('');
-          setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
-        } finally {
-          if (!cancelled) setProvidersLoading(false);
-        }
       } catch (error: any) {
         if (cancelled) return;
         setOverviewError(`IPC 审计服务初始化失败：${getErrorMessage(error, '未知错误')}`);
@@ -1004,6 +999,32 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!readyState?.ready) return;
+    let cancelled = false;
+    const loadProviders = async () => {
+      setProvidersLoading(true);
+      setProviderLoadError(null);
+      try {
+        const providerResponse = await executionApi.listProviders();
+        if (cancelled) return;
+        applyProviderList(providerResponse);
+      } catch (error) {
+        if (cancelled) return;
+        setProviderOptions([]);
+        setDefaultProviderKey('');
+        setSelectedProviderKey('');
+        setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
+      } finally {
+        if (!cancelled) setProvidersLoading(false);
+      }
+    };
+    void loadProviders();
+    return () => {
+      cancelled = true;
+    };
+  }, [readyState?.ready]);
 
   useEffect(() => {
     const supported = capabilities?.executor_modes || [];
@@ -1659,19 +1680,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     setProviderLoadError(null);
     try {
       const providerResponse = await executionApi.listProviders();
-      const items = Array.isArray(providerResponse.items) ? providerResponse.items : [];
-      const normalizedDefaultProviderKey = String(providerResponse.default_provider_key || '').trim()
-        || items.find((item) => item.is_default)?.provider_key
-        || items[0]?.provider_key
-        || '';
-      setProviderOptions(items);
-      setDefaultProviderKey(normalizedDefaultProviderKey);
-      setSelectedProviderKey((current) => (
-        current && items.some((item) => item.provider_key === current && item.enabled !== false)
-          ? current
-          : normalizedDefaultProviderKey
-      ));
-      notify(`已同步 ${items.length} 个 Provider`, 'success');
+      applyProviderList(providerResponse);
+      notify(`已同步 ${Array.isArray(providerResponse.items) ? providerResponse.items.length : 0} 个 Provider`, 'success');
     } catch (error) {
       setProviderOptions([]);
       setDefaultProviderKey('');
@@ -2119,17 +2129,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   };
   const handleBackToList = () => setShowTaskDetail(false);
 
-  if (bootstrapping) {
-    return (
-      <div className="flex min-h-[480px] items-center justify-center px-8 pt-8 pb-10">
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 text-sm font-semibold text-slate-600 shadow-sm">
-          <Loader2 size={18} className="animate-spin text-slate-500" />
-          正在初始化 IPC 漏洞扫描页面...
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 px-8 pt-8 pb-10">
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
@@ -2145,8 +2144,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </p>
           </div>
           <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-4xl xl:grid-cols-4">
-            <MetricCard label="服务状态" value={readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'secflow-app-ipc-audit'} />
-            <MetricCard label="工作区" value={selectedWorkspace?.display_name || '-'} sub={selectedWorkspace?.workspace_id || '未选择'} />
+            <MetricCard label="服务状态" value={baseDataLoading ? 'Loading' : readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'secflow-app-ipc-audit'} />
+            <MetricCard label="工作区" value={baseDataLoading ? '加载中' : selectedWorkspace?.display_name || '-'} sub={baseDataLoading ? '等待工作区' : selectedWorkspace?.workspace_id || '未选择'} />
             <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">并发上限</div>
               <div className="mt-2 flex items-center gap-2">
@@ -2169,10 +2168,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 </button>
               </div>
               <div className="mt-1 text-xs font-medium text-slate-500">
-                当前运行 {runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 {runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}
+                {baseDataLoading
+                  ? '正在同步运行时配置...'
+                  : `当前运行 ${runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 ${runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}`}
               </div>
             </div>
-            <MetricCard label="PoC 能力" value={selectedWorkspace?.supports_poc ? '开启' : '关闭'} sub={capabilities?.poc_runtime_available ? '运行环境可用' : '运行环境未就绪'} />
+            <MetricCard label="PoC 能力" value={baseDataLoading ? '加载中' : selectedWorkspace?.supports_poc ? '开启' : '关闭'} sub={baseDataLoading ? '等待能力信息' : capabilities?.poc_runtime_available ? '运行环境可用' : '运行环境未就绪'} />
           </div>
         </div>
         {readyState ? (
@@ -2216,10 +2217,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 <button
                   type="button"
                   onClick={handleRefreshTasks}
-                  disabled={tasksLoading || !workspaceId}
+                  disabled={taskQueueLoading || !workspaceId}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {tasksLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                  {taskQueueLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                   刷新
                 </button>
               </div>
@@ -2334,10 +2335,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </div>
 
             <div className="mt-4 max-h-[840px] space-y-3 overflow-auto pr-1">
-              {tasksLoading ? (
+              {taskQueueLoading ? (
                 <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
                   <Loader2 size={16} className="animate-spin" />
-                  正在加载任务列表...
+                  正在加载任务列表和工作区上下文...
+                </div>
+              ) : !serviceReady ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm font-semibold text-slate-500">
+                  等待服务就绪后加载任务列表。
                 </div>
               ) : tasks.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm font-semibold text-slate-500">
@@ -3015,10 +3020,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : null}
 
                     <div className="mt-3 max-h-[410px] space-y-2 overflow-auto pr-1">
-                      {presetLoading ? (
+                      {projectListLoading ? (
                         <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">
                           <Loader2 size={16} className="animate-spin" />
                           正在加载项目列表...
+                        </div>
+                      ) : !serviceReady ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
+                          等待服务就绪后加载项目路径列表。
                         </div>
                       ) : projectInputItems.length > 0 && filteredProjectInputItems.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
@@ -3143,10 +3152,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <button
                         type="button"
                         onClick={handleRefreshProviders}
-                        disabled={providersLoading}
+                        disabled={providerPanelLoading || !serviceReady}
                         className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {providersLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        {providerPanelLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                         刷新 Provider
                       </button>
                     </div>
@@ -3155,10 +3164,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <select
                         value={selectedProviderKey}
                         onChange={(event) => setSelectedProviderKey(event.target.value)}
-                        disabled={providersLoading || providerOptions.length === 0}
+                        disabled={providerPanelLoading || providerOptions.length === 0}
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                       >
-                        <option value="">{providersLoading ? '正在加载 Provider...' : '选择 Provider...'}</option>
+                        <option value="">{providerPanelLoading ? '正在加载 Provider...' : '选择 Provider...'}</option>
                         {providerOptions.map((provider) => (
                           <option key={provider.provider_key} value={provider.provider_key} disabled={!provider.enabled}>
                             {provider.display_name || provider.provider_key} · {provider.provider_type} · {provider.model || 'no-model'}{provider.is_default ? ' · 默认' : ''}{!provider.enabled ? ' · 已禁用' : ''}
@@ -3175,7 +3184,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         Provider 列表加载失败：{providerLoadError}
                       </div>
                     ) : null}
-                    {providersLoading ? (
+                    {providerPanelLoading ? (
                       <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
                         <Loader2 size={14} className="animate-spin" />
                         正在同步 Provider 列表...
@@ -3183,7 +3192,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : null}
 
                     <div className="mt-3 max-h-[260px] space-y-2 overflow-auto pr-1">
-                      {!selectedProvider ? (
+                      {!serviceReady ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                          等待服务就绪后加载 Provider。
+                        </div>
+                      ) : !selectedProvider ? (
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
                           当前还没有选中 Provider。执行器为 Codex / OpenCode 时，建议至少选择一个 Provider。
                         </div>
