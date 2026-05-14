@@ -18,6 +18,7 @@ export interface SystemAnalysisTaskFormState {
   module_granularity: string;
   filter_engine: 'script' | 'agent';
   enable_final_check_mode: 'inherit' | 'enabled' | 'disabled';
+  continue_on_module_failure_mode: 'inherit' | 'enabled' | 'disabled';
 }
 
 const SOURCE_MODE_DEFAULT_TARGETS = ['source', 'script', 'config'];
@@ -62,6 +63,7 @@ export function buildDefaultSystemAnalysisTaskForm(projectId: string): SystemAna
     module_granularity: 'fine',
     filter_engine: 'script',
     enable_final_check_mode: 'inherit',
+    continue_on_module_failure_mode: 'inherit',
   };
 }
 
@@ -82,6 +84,9 @@ export function buildCloneFormFromTask(detail: AppSaTaskDetail, projectId: strin
     filter_engine: config.filter_engine === 'agent' ? 'agent' : 'script',
     enable_final_check_mode: typeof config.enable_final_check === 'boolean'
       ? (config.enable_final_check ? 'enabled' : 'disabled')
+      : 'inherit',
+    continue_on_module_failure_mode: typeof config.continue_on_module_failure === 'boolean'
+      ? (config.continue_on_module_failure ? 'enabled' : 'disabled')
       : 'inherit',
   };
 }
@@ -116,6 +121,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
   const [projectFinalCheckDefault, setProjectFinalCheckDefault] = useState(false);
+  const [projectContinueOnModuleFailureDefault, setProjectContinueOnModuleFailureDefault] = useState(true);
   const wasOpenRef = useRef(false);
 
   useEffect(() => {
@@ -133,6 +139,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
       .then((cfg) => {
         if (cancelled) return;
         setProjectFinalCheckDefault(Boolean(cfg.enable_final_check));
+        setProjectContinueOnModuleFailureDefault(cfg.continue_on_module_failure !== false);
         setForm((prev) => ({
           ...prev,
           analyse_targets: Array.isArray(cfg.analyse_targets) ? cfg.analyse_targets : prev.analyse_targets,
@@ -184,6 +191,9 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
         enable_final_check: form.enable_final_check_mode === 'inherit'
           ? undefined
           : form.enable_final_check_mode === 'enabled',
+        continue_on_module_failure: form.continue_on_module_failure_mode === 'inherit'
+          ? undefined
+          : form.continue_on_module_failure_mode === 'enabled',
       });
       await onCreated(resp);
     } catch (err: any) {
@@ -470,6 +480,43 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                     onClick={() => setForm((prev) => ({ ...prev, enable_final_check_mode: value }))}
                     className={`rounded-xl border px-3 py-2 text-left transition-colors ${
                       form.enable_final_check_mode === value
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">{label}</span>
+                    <span className="mt-1 block text-xs opacity-80">{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-xs text-slate-500">单模块失败后继续 <span className="text-slate-400">(任务级可选；未指定时继承全局配置)</span></p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[
+                  {
+                    value: 'inherit' as const,
+                    label: '使用全局配置',
+                    desc: `当前全局默认：${projectContinueOnModuleFailureDefault ? '允许继续' : '失败即终止'}`,
+                  },
+                  {
+                    value: 'enabled' as const,
+                    label: '任务级允许',
+                    desc: '单模块失败只记入结果，不阻断其他模块',
+                  },
+                  {
+                    value: 'disabled' as const,
+                    label: '任务级禁止',
+                    desc: '任一模块失败会终止当前任务',
+                  },
+                ].map(({ value, label, desc }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, continue_on_module_failure_mode: value }))}
+                    className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                      form.continue_on_module_failure_mode === value
                         ? 'border-rose-400 bg-rose-50 text-rose-700'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}

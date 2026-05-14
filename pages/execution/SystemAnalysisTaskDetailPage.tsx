@@ -405,7 +405,12 @@ function buildOverviewStageMetrics(
 
   const filterResult = findLatestStageEventData(events, ['filter-engine', 'filter']);
   const prescanResult = findLatestStageEventData(events, ['prescan']);
-  appendMetric(preprocessMetrics, '过滤文件', filterResult?.file_count);
+  appendMetric(
+    preprocessMetrics,
+    '全部的问题',
+    result?.summary.total_file_count ?? detail.result_json?.summary?.total_file_count,
+  );
+  appendMetric(preprocessMetrics, '过滤后接受的问题', filterResult?.file_count);
   appendMetric(preprocessMetrics, '预扫描摘要', prescanResult?.summary_lines);
   if (filterResult?.effective_engine) {
     preprocessMetrics.push({
@@ -439,9 +444,15 @@ function buildOverviewStageMetrics(
       value: detail.effective_config_json.enable_final_check ? '开启' : '关闭',
     });
   }
+  if (detail.effective_config_json?.continue_on_module_failure !== undefined) {
+    reportMetrics.push({
+      label: '单模块失败后继续',
+      value: detail.effective_config_json.continue_on_module_failure ? '允许继续' : '失败即终止',
+    });
+  }
 
   return {
-    preprocess: preprocessMetrics.slice(0, 3),
+    preprocess: preprocessMetrics.slice(0, 4),
     classify: classifyMetrics.slice(0, 3),
     refine: refineMetrics.slice(0, 3),
     analyse: analyseMetrics.slice(0, 3),

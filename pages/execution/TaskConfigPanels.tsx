@@ -119,7 +119,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
   const taskConfig = asRecord(detail.task_config_json);
   const resolved = asRecord(taskConfig.resolved_config_snapshot);
   const hasResolved = Object.keys(resolved).length > 0;
-  const overrideKeys = ['analyse_targets', 'binary_arch', 'security_focus_categories', 'module_granularity', 'filter_engine', 'enable_final_check']
+  const overrideKeys = ['analyse_targets', 'binary_arch', 'security_focus_categories', 'module_granularity', 'filter_engine', 'enable_final_check', 'continue_on_module_failure']
     .filter((key) => taskConfig[key] !== undefined);
 
   return (
@@ -178,7 +178,15 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
               </>
             ) : null}
             {taskConfig.enable_final_check !== undefined ? (
-              <ConfigRow label="完整性检查">{formatBool(taskConfig.enable_final_check, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
+              <>
+                <ConfigRow label="完整性检查">{formatBool(taskConfig.enable_final_check, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
+                {taskConfig.continue_on_module_failure !== undefined ? <Divider /> : null}
+              </>
+            ) : null}
+            {taskConfig.continue_on_module_failure !== undefined ? (
+              <ConfigRow label="单模块失败后继续">
+                {formatBool(taskConfig.continue_on_module_failure, '允许继续', '失败即终止任务')}
+              </ConfigRow>
             ) : null}
           </div>
         )}
@@ -218,6 +226,10 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
             <ConfigRow label="过滤引擎">{FILTER_ENGINE_LABELS[String(resolved.filter_engine || 'script')] || String(resolved.filter_engine || 'script')}</ConfigRow>
             <Divider />
             <ConfigRow label="完整性检查">{formatBool(resolved.enable_final_check, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
+            <Divider />
+            <ConfigRow label="单模块失败后继续">
+              {formatBool(resolved.continue_on_module_failure !== false, '允许继续', '失败即终止任务')}
+            </ConfigRow>
           </div>
         </SectionCard>
       ) : null}

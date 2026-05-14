@@ -150,6 +150,7 @@ const defaultRole = (): SystemAnalysisRoleConfig => ({
 const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   project_id: projectId,
   max_rounds_exceeded_action: 'treat_as_passed',
+  continue_on_module_failure: true,
   analyse_targets: ['all'],
   binary_arch: ['all'],
   security_focus_categories: ['all'],
@@ -822,6 +823,31 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                     onClick={() => patch({ enable_final_check: value })}
                     className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
                       config.enable_final_check === value
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            <FieldRow
+              label="单模块失败后继续"
+              hint="continue_on_module_failure"
+              desc="控制当单个模块在 refine/analyse/补做阶段失败时，是否继续推进其他模块和后续阶段。默认开启。开启后失败模块会保留在评估结果中，但不阻断整任务；关闭后任一模块失败都会使任务失败。">
+              <div className="flex gap-2">
+                {([
+                  { value: true, label: '允许继续（默认）' },
+                  { value: false, label: '失败即终止任务' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    onClick={() => patch({ continue_on_module_failure: value })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.continue_on_module_failure === value
                         ? 'border-rose-400 bg-rose-50 text-rose-700'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}

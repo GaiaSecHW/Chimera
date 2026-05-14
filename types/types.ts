@@ -2089,6 +2089,7 @@ export interface SystemAnalysisSelfReflectionConfig {
 export interface SystemAnalysisServiceConfig {
   project_id: string;
   max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
+  continue_on_module_failure: boolean;
   analyse_targets: string[];
   binary_arch: string[];
   security_focus_categories: string[];
@@ -2416,11 +2417,11 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_content: string;
   result_json?: Record<string, any> | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
-  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean } | null;
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
-  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project' } | null;
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project' } | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -2651,6 +2652,7 @@ export interface AppSaTaskCreateRequest {
   module_granularity?: string;
   filter_engine?: 'script' | 'agent';
   enable_final_check?: boolean;
+  continue_on_module_failure?: boolean;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
