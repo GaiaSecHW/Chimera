@@ -145,6 +145,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'binary-security-root',
   'binary-security-task-list',
   'binary-security-detail',
+  'binary-security-metrics',
   'source-security',
   'source-security-detail',
   'mobile-security-ipc-vuln',
@@ -364,6 +365,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
           ],
         },
         { id: 'binary-security-config', label: '参数配置', icon: Settings, aliases: ['pentest-exec-dataflow-vuln-system-config'], requiresProject: true },
+        { id: 'binary-security-metrics', label: '性能看板', icon: Monitor, requiresProject: true },
       ],
     },
     {

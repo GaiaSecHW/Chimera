@@ -2,7 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import { BinarySecurityModuleSelection, BinarySecurityOverviewNode, BinarySecurityTaskDetail, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import {
+  BinarySecurityModuleSelection,
+  BinarySecurityOverviewNode,
+  BinarySecurityTaskDetail,
+  BinarySecurityTaskPolicy,
+  BinarySecurityTaskType,
+} from '../../clients/binarySecurity';
 import { api } from '../../clients/api';
 import { B2STaskDetail } from '../../clients/binaryToSource';
 import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
@@ -27,6 +33,17 @@ const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'entry_analysis',
   'dataflow_analysis',
   'vuln_scan',
+];
+const DEFAULT_SOURCE_STAGE_SEQUENCE = [
+  'system_analysis',
+  'entry_analysis',
+  'dataflow_analysis',
+  'vuln_scan',
+];
+const MODULE_RISK_OPTIONS = ['高', '中', '低'];
+const MODULE_SELECTION_OPTIONS = [
+  { value: 'auto', label: '按风险自动推进' },
+  { value: 'manual_confirm', label: '系统分析后人工确认' },
 ];
 
 const STAGE_LABELS: Record<string, string> = {
@@ -180,10 +197,19 @@ type DownstreamTaskState = {
   error?: string;
 };
 
-type DetailTab = 'overview' | 'modules' | 'timeline' | 'artifacts';
+type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 type BlockingActionKind = '' | 'retry' | 'continue';
+type TaskStrategyDraft = {
+  stage_options: Record<string, { enabled: boolean }>;
+  stage_parallelism: Record<string, number>;
+  max_retries_per_item: number;
+  continue_on_item_failure: boolean;
+  module_selection_mode: 'auto' | 'manual_confirm';
+  module_risk_levels: string[];
+};
+type StrategySectionKey = 'stage_options' | 'module_strategy' | 'execution_policy';
 
 const BLOCKING_ACTION_COPY: Record<
   Exclude<BlockingActionKind, ''>,
@@ -236,6 +262,7 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   task_retry_prepare_finished: '重试准备完成',
   task_continue_prepare_failed: '继续准备失败',
   task_retry_prepare_failed: '重试准备失败',
+  task_policy_updated: '任务策略已更新',
   task_continue_requested: '继续执行',
   task_retried: '清空并从头开始',
   stage_retry_requested: '阶段重试',
@@ -308,23 +335,24 @@ const VULN_METADATA_KEYS = [
 ];
 
 function ConcurrencyPolicyPanel({
-  detail,
+  policy,
   stageSequence,
-  onEdit,
 }: {
-  detail: BinarySecurityTaskDetail;
+  policy: BinarySecurityTaskPolicy;
   stageSequence: string[];
-  onEdit: () => void;
 }) {
-  const policy = detail.policy || {};
   const stageParallelism = policy.stage_parallelism && typeof policy.stage_parallelism === 'object'
     ? policy.stage_parallelism as Record<string, unknown>
     : {};
   const maxStageParallelism = safeInt(policy.max_stage_parallelism, 1);
   const maxRetries = safeInt(policy.max_retries_per_item, 0);
+  const enabledStages = policy.stage_options && typeof policy.stage_options === 'object'
+    ? policy.stage_options as Record<string, { enabled?: boolean }>
+    : {};
   const stageItems = stageSequence.map((stageName) => ({
     stageName,
     value: safeInt(stageParallelism[stageName], maxStageParallelism),
+    enabled: enabledStages[stageName]?.enabled !== false,
   }));
 
   return (
@@ -349,13 +377,6 @@ function ConcurrencyPolicyPanel({
           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
             失败后继续 {boolLabel(policy.continue_on_item_failure)}
           </span>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="rounded-full border border-slate-900 bg-slate-900 px-3 py-1 text-xs font-bold text-white transition hover:bg-slate-800"
-          >
-            编辑并发
-          </button>
         </div>
       </div>
 
@@ -367,12 +388,77 @@ function ConcurrencyPolicyPanel({
               <span className="text-xl font-black text-slate-900">{item.value}</span>
               <span className="text-xs font-semibold text-slate-500">并发</span>
             </div>
+            <div className="mt-2 text-[11px] font-semibold text-slate-500">
+              {item.enabled ? '启用' : '停用'}
+            </div>
           </div>
         ))}
       </div>
     </section>
   );
 }
+
+const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages: string[]): TaskStrategyDraft => {
+  const nextPolicy = policy || {};
+  const maxStageParallelism = safeInt(nextPolicy.max_stage_parallelism, 1);
+  const stageParallelism = nextPolicy.stage_parallelism && typeof nextPolicy.stage_parallelism === 'object'
+    ? nextPolicy.stage_parallelism as Record<string, unknown>
+    : {};
+  const stageOptions = nextPolicy.stage_options && typeof nextPolicy.stage_options === 'object'
+    ? nextPolicy.stage_options as Record<string, { enabled?: boolean }>
+    : {};
+  const normalizedMode = String(nextPolicy.module_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto';
+  const normalizedRiskLevels = Array.isArray(nextPolicy.module_risk_levels) && nextPolicy.module_risk_levels.length > 0
+    ? nextPolicy.module_risk_levels.filter((item) => MODULE_RISK_OPTIONS.includes(String(item)))
+    : ['高'];
+  return {
+    stage_options: Object.fromEntries(stages.map((stageName) => [
+      stageName,
+      { enabled: stageOptions[stageName]?.enabled !== false },
+    ])),
+    stage_parallelism: Object.fromEntries(stages.map((stageName) => [
+      stageName,
+      Math.max(1, Math.min(32, safeInt(stageParallelism[stageName], maxStageParallelism))),
+    ])),
+    max_retries_per_item: Math.max(0, Math.min(20, safeInt(nextPolicy.max_retries_per_item, 0))),
+    continue_on_item_failure: Boolean(nextPolicy.continue_on_item_failure),
+    module_selection_mode: normalizedMode,
+    module_risk_levels: normalizedRiskLevels.length > 0 ? normalizedRiskLevels : ['高'],
+  };
+};
+
+const strategyDraftEquals = (left: TaskStrategyDraft | null, right: TaskStrategyDraft | null) => (
+  JSON.stringify(left || null) === JSON.stringify(right || null)
+);
+
+const strategySectionEquals = (
+  section: StrategySectionKey,
+  left: TaskStrategyDraft | null,
+  right: TaskStrategyDraft | null,
+) => {
+  if (!left || !right) return false;
+  if (section === 'stage_options') {
+    return JSON.stringify(left.stage_options) === JSON.stringify(right.stage_options);
+  }
+  if (section === 'module_strategy') {
+    return JSON.stringify({
+      module_selection_mode: left.module_selection_mode,
+      module_risk_levels: left.module_risk_levels,
+    }) === JSON.stringify({
+      module_selection_mode: right.module_selection_mode,
+      module_risk_levels: right.module_risk_levels,
+    });
+  }
+  return JSON.stringify({
+    stage_parallelism: left.stage_parallelism,
+    max_retries_per_item: left.max_retries_per_item,
+    continue_on_item_failure: left.continue_on_item_failure,
+  }) === JSON.stringify({
+    stage_parallelism: right.stage_parallelism,
+    max_retries_per_item: right.max_retries_per_item,
+    continue_on_item_failure: right.continue_on_item_failure,
+  });
+};
 
 const timelineLevelTone = (level?: string | null) => {
   switch (String(level || '').toLowerCase()) {
@@ -873,9 +959,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingBlockingAction, setPendingBlockingAction] = useState<BlockingActionKind>('');
   const [blockingAction, setBlockingAction] = useState<BlockingActionKind>('');
-  const [concurrencyModalOpen, setConcurrencyModalOpen] = useState(false);
-  const [concurrencyDraft, setConcurrencyDraft] = useState<Record<string, number>>({});
-  const [concurrencySaving, setConcurrencySaving] = useState(false);
+  const [strategyDraft, setStrategyDraft] = useState<TaskStrategyDraft | null>(null);
+  const [strategySavedSnapshot, setStrategySavedSnapshot] = useState<TaskStrategyDraft | null>(null);
+  const [strategySavingSection, setStrategySavingSection] = useState<StrategySectionKey | ''>('');
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
@@ -886,11 +972,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     connectorWidth: 40,
   });
 
-  const stageSequence = useMemo(
-    () => (detail?.stage_sequence?.length ? detail.stage_sequence : DEFAULT_BINARY_STAGE_SEQUENCE),
-    [detail?.stage_sequence],
-  );
   const isSourceTask = taskType === 'source';
+  const stageSequence = useMemo(
+    () => (detail?.stage_sequence?.length
+      ? detail.stage_sequence
+      : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE)),
+    [detail?.stage_sequence, isSourceTask],
+  );
   const canActOnTask = Boolean(detail);
   const isPreparing = PREPARING_STATUSES.has(detail?.status || '');
   const taskRetrySupported = Boolean(detail?.task_retry_supported);
@@ -899,48 +987,30 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const taskContinueReason = detail?.task_continue_reason || '当前任务不可继续';
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
   const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
+  const strategyEditable = Boolean(detail) && !['dispatching', 'running', 'continue_preparing', 'retry_preparing'].includes(detail?.status || '');
+  const strategyBlockedReason = !detail
+    ? '任务详情尚未加载'
+    : strategyEditable
+      ? null
+      : `任务运行中，任务策略暂不可修改。当前状态：${detail.status}`;
+  const strategyDirty = useMemo(
+    () => !strategyDraftEquals(strategyDraft, strategySavedSnapshot),
+    [strategyDraft, strategySavedSnapshot],
+  );
+  const stageOptionsDirty = useMemo(
+    () => !strategySectionEquals('stage_options', strategyDraft, strategySavedSnapshot),
+    [strategyDraft, strategySavedSnapshot],
+  );
+  const moduleStrategyDirty = useMemo(
+    () => !strategySectionEquals('module_strategy', strategyDraft, strategySavedSnapshot),
+    [strategyDraft, strategySavedSnapshot],
+  );
+  const executionPolicyDirty = useMemo(
+    () => !strategySectionEquals('execution_policy', strategyDraft, strategySavedSnapshot),
+    [strategyDraft, strategySavedSnapshot],
+  );
 
-  const buildConcurrencyDraft = (task: BinarySecurityTaskDetail, stages: string[]) => {
-    const policy = task.policy || {};
-    const stageParallelism = policy.stage_parallelism && typeof policy.stage_parallelism === 'object'
-      ? policy.stage_parallelism as Record<string, unknown>
-      : {};
-    const maxStageParallelism = safeInt(policy.max_stage_parallelism, 1);
-    return Object.fromEntries(stages.map((stageName) => [
-      stageName,
-      safeInt(stageParallelism[stageName], maxStageParallelism),
-    ]));
-  };
-
-  const openConcurrencyEditor = () => {
-    if (!detail) return;
-    setConcurrencyDraft(buildConcurrencyDraft(detail, stageSequence));
-    setConcurrencyModalOpen(true);
-  };
-
-  const saveTaskConcurrency = async () => {
-    if (!projectId || !taskId || !detail || concurrencySaving) return;
-    const normalized = Object.fromEntries(stageSequence.map((stageName) => [
-      stageName,
-      Math.max(1, Math.min(32, Number(concurrencyDraft[stageName]) || 1)),
-    ]));
-    setConcurrencySaving(true);
-    setError(null);
-    try {
-      const updated = await executionApi.binarySecurity.updateTaskConcurrency(projectId, taskId, {
-        stage_parallelism: normalized,
-      });
-      setDetail(updated);
-      setConcurrencyDraft(buildConcurrencyDraft(updated, updated.stage_sequence?.length ? updated.stage_sequence : stageSequence));
-      setConcurrencyModalOpen(false);
-    } catch (e: any) {
-      setError(e?.message || '更新任务并发配置失败');
-    } finally {
-      setConcurrencySaving(false);
-    }
-  };
-
-  const loadTask = async (options?: { showLoading?: boolean }) => {
+  const loadTask = async (options?: { showLoading?: boolean; preserveStrategyDraft?: boolean }) => {
     if (!projectId || !taskId) return null;
     const showLoading = options?.showLoading ?? true;
     if (showLoading) setLoading(true);
@@ -948,8 +1018,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     try {
       const task = await executionApi.binarySecurity.getTask(projectId, taskId);
       setDetail(task);
+      const nextStages = task.stage_sequence?.length
+        ? task.stage_sequence
+        : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE);
+      const nextDraft = buildStrategyDraft(task.policy, nextStages);
+      if (!options?.preserveStrategyDraft) {
+        setStrategyDraft(nextDraft);
+        setStrategySavedSnapshot(nextDraft);
+      }
       setSelectedStage((current) => {
-        const nextStageSequence = task.stage_sequence?.length ? task.stage_sequence : DEFAULT_BINARY_STAGE_SEQUENCE;
+        const nextStageSequence = nextStages;
         if (current && nextStageSequence.includes(current)) {
           return current;
         }
@@ -1058,6 +1136,108 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
+  const updateStrategyStageEnabled = (stageName: string, enabled: boolean) => {
+    setStrategyDraft((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        stage_options: {
+          ...current.stage_options,
+          [stageName]: { enabled },
+        },
+      };
+    });
+  };
+
+  const updateStrategyStageParallelism = (stageName: string, value: number) => {
+    setStrategyDraft((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        stage_parallelism: {
+          ...current.stage_parallelism,
+          [stageName]: Math.max(1, Math.min(32, Number(value) || 1)),
+        },
+      };
+    });
+  };
+
+  const resetStrategySection = (section: StrategySectionKey) => {
+    setStrategyDraft((current) => {
+      if (!current || !strategySavedSnapshot) return current;
+      if (section === 'stage_options') {
+        return { ...current, stage_options: strategySavedSnapshot.stage_options };
+      }
+      if (section === 'module_strategy') {
+        return {
+          ...current,
+          module_selection_mode: strategySavedSnapshot.module_selection_mode,
+          module_risk_levels: strategySavedSnapshot.module_risk_levels,
+        };
+      }
+      return {
+        ...current,
+        stage_parallelism: strategySavedSnapshot.stage_parallelism,
+        max_retries_per_item: strategySavedSnapshot.max_retries_per_item,
+        continue_on_item_failure: strategySavedSnapshot.continue_on_item_failure,
+      };
+    });
+    setError(null);
+  };
+
+  const saveTaskPolicySection = async (section: StrategySectionKey) => {
+    if (!projectId || !taskId || !detail || !strategyDraft || strategySavingSection) return;
+    if (section === 'module_strategy' && strategyDraft.module_risk_levels.length === 0) {
+      setError('至少选择一个模块风险等级');
+      return;
+    }
+    setStrategySavingSection(section);
+    setError(null);
+    try {
+      const payload = section === 'stage_options'
+        ? {
+            stage_options: Object.fromEntries(stageSequence.map((stageName) => [
+              stageName,
+              { enabled: strategyDraft.stage_options[stageName]?.enabled !== false },
+            ])),
+          }
+        : section === 'module_strategy'
+          ? {
+              module_selection_mode: strategyDraft.module_selection_mode,
+              module_risk_levels: strategyDraft.module_risk_levels,
+            }
+          : {
+              stage_parallelism: Object.fromEntries(stageSequence.map((stageName) => [
+                stageName,
+                Math.max(1, Math.min(32, Number(strategyDraft.stage_parallelism[stageName]) || 1)),
+              ])),
+              max_retries_per_item: Math.max(0, Math.min(20, Number(strategyDraft.max_retries_per_item) || 0)),
+              continue_on_item_failure: Boolean(strategyDraft.continue_on_item_failure),
+            };
+      const updated = await executionApi.binarySecurity.updateTaskPolicy(projectId, taskId, payload);
+      setDetail(updated);
+      const nextStages = updated.stage_sequence?.length
+        ? updated.stage_sequence
+        : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE);
+      const nextDraft = buildStrategyDraft(updated.policy, nextStages);
+      setStrategyDraft(nextDraft);
+      setStrategySavedSnapshot(nextDraft);
+      const sectionLabel = section === 'stage_options'
+        ? '阶段启停'
+        : section === 'module_strategy'
+          ? '模块推进策略'
+          : '并发与失败处理';
+      setNotice(`${sectionLabel}已保存，将在后续阶段生效`);
+      if (activeTab === 'timeline') {
+        await loadTimeline();
+      }
+    } catch (e: any) {
+      setError(e?.message || '更新任务策略失败');
+    } finally {
+      setStrategySavingSection('');
+    }
+  };
+
   const refreshActiveTab = async () => {
     if (detailRefreshing) return;
     setDetailRefreshing(true);
@@ -1077,7 +1257,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         setArtifacts(null);
         setArtifactsLoaded(false);
       }
-      const refreshedTask = await loadTask({ showLoading: false });
+      const refreshedTask = await loadTask({
+        showLoading: false,
+        preserveStrategyDraft: activeTab === 'strategy' && strategyDirty,
+      });
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
       if (activeTab === 'timeline') await loadTimeline();
       if (activeTab === 'artifacts') await loadArtifacts();
@@ -1102,9 +1285,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     if (!detail || TERMINAL.has(detail.status)) return;
     if (detail.status === 'pending_module_confirmation') return;
-    const timer = window.setInterval(() => void loadTask(), 5000);
+    const timer = window.setInterval(
+      () => void loadTask({ preserveStrategyDraft: activeTab === 'strategy' && strategyDirty }),
+      5000,
+    );
     return () => window.clearInterval(timer);
-  }, [detail?.status, projectId, taskId]);
+  }, [activeTab, detail?.status, projectId, strategyDirty, taskId]);
 
   useEffect(() => {
     if (activeTab !== 'modules' || moduleSelection || moduleSelectionLoading) return;
@@ -1373,6 +1559,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const selectedArchiveNode = useMemo(
     () => stageDisplayNodes.find((node) => node.node_type === 'archive' && node.stage_name === selectedStage) || null,
     [selectedStage, stageDisplayNodes],
+  );
+  const stageSummaryByName = useMemo(
+    () => new Map((detail?.stage_summaries || []).map((summary) => [summary.stage_name, summary])),
+    [detail?.stage_summaries],
   );
   const selectedBusinessStageNode = useMemo(
     () => stageDisplayNodes.find((node) => node.kind === 'business' && node.stage_name === selectedStage) || null,
@@ -1695,6 +1885,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const tabs: Array<{ key: DetailTab; label: string; hint: string }> = [
     { key: 'overview', label: '总览', hint: '任务基础信息与阶段任务' },
+    { key: 'strategy', label: '任务策略', hint: '仅影响后续阶段与下次运行' },
     { key: 'modules', label: '高危模块', hint: '系统分析候选、已选与确认操作' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
     { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
@@ -1801,72 +1992,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
             </div>
-	          </div>
-	        </div>
-	      ) : null}
-	      {concurrencyModalOpen && detail ? (
-	        <div className="fixed inset-0 z-[110] bg-slate-950/45 backdrop-blur-sm">
-	          <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
-	            <div className="flex w-full max-w-3xl max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_32px_120px_-32px_rgba(15,23,42,0.55)]">
-	              <div className="border-b border-slate-200 bg-slate-50/80 px-6 py-5">
-	                <div className="text-[11px] font-black uppercase tracking-[0.28em] text-slate-400">Concurrency Policy</div>
-	                <div className="mt-2 flex items-center gap-3">
-	                  <div className="rounded-2xl bg-slate-900 p-3 text-white">
-	                    <SlidersHorizontal size={22} />
-	                  </div>
-	                  <div>
-	                    <h3 className="text-2xl font-black tracking-tight text-slate-900">编辑任务阶段并发</h3>
-	                    <p className="mt-1 text-sm text-slate-500">
-	                      仅修改当前任务的编排并发，不影响项目默认配置和下游微服务全局配置。
-	                    </p>
-	                  </div>
-	                </div>
-	              </div>
-	              <div className="flex-1 overflow-auto px-6 py-6">
-	                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
-	                  运行中阶段已启动的子任务池不会实时改变；新的阶段、继续任务、阶段重试和清空并从头开始会使用保存后的并发配置。
-	                </div>
-	                <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-	                  {stageSequence.map((stageName) => (
-	                    <label key={stageName} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-	                      <span className="block text-sm font-black text-slate-800">{STAGE_LABELS[stageName] || stageName}</span>
-	                      <span className="mt-1 block text-xs text-slate-500">范围 1-32</span>
-	                      <input
-	                        type="number"
-	                        min={1}
-	                        max={32}
-	                        value={concurrencyDraft[stageName] ?? 1}
-	                        disabled={concurrencySaving}
-	                        onChange={(event) => {
-	                          const value = Math.max(1, Math.min(32, Number(event.target.value) || 1));
-	                          setConcurrencyDraft((current) => ({ ...current, [stageName]: value }));
-	                        }}
-	                        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-slate-400"
-	                      />
-	                    </label>
-	                  ))}
-	                </div>
-	              </div>
-	              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
-	                <button
-	                  type="button"
-	                  disabled={concurrencySaving}
-	                  onClick={() => setConcurrencyModalOpen(false)}
-	                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-	                >
-	                  取消
-	                </button>
-	                <button
-	                  type="button"
-	                  disabled={concurrencySaving}
-	                  onClick={() => void saveTaskConcurrency()}
-	                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
-	                >
-	                  {concurrencySaving ? <Loader2 size={16} className="animate-spin" /> : null}
-	                  {concurrencySaving ? '保存中...' : '保存并发配置'}
-	                </button>
-	              </div>
-	            </div>
 	          </div>
 	        </div>
 	      ) : null}
@@ -2001,7 +2126,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
 
-          <ConcurrencyPolicyPanel detail={detail} stageSequence={stageSequence} onEdit={openConcurrencyEditor} />
+          <ConcurrencyPolicyPanel policy={detail.policy} stageSequence={stageSequence} />
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
             <div
@@ -2025,6 +2150,255 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               ))}
             </div>
           </section>
+
+          {activeTab === 'strategy' && strategyDraft ? (
+            <section className="space-y-6">
+              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">任务策略</h2>
+                    <p className="mt-2 text-sm text-slate-500">
+                      修改仅对尚未运行的阶段、阶段重试、继续任务、清空并重跑后的后续执行生效。
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+                      汇总最大阶段并发 {Math.max(...Object.values(strategyDraft.stage_parallelism), 1)}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+                      最大重试 {strategyDraft.max_retries_per_item}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
+                      失败后继续 {boolLabel(strategyDraft.continue_on_item_failure)}
+                    </span>
+                  </div>
+                </div>
+                <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
+                  strategyEditable
+                    ? 'border-sky-200 bg-sky-50 text-sky-800'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}>
+                  {strategyEditable
+                    ? '保存后不会修改已完成阶段，也不会实时改写正在运行中的子任务池。'
+                    : strategyBlockedReason}
+                </div>
+                {strategyDirty ? (
+                  <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    当前存在未保存的策略修改。请在对应模块内分别保存。
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl bg-slate-100 p-3 text-slate-600">
+                      <SlidersHorizontal size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">阶段启停</h3>
+                      <p className="mt-1 text-sm text-slate-500">控制当前任务后续阶段是否继续参与流程。</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => resetStrategySection('stage_options')}
+                      disabled={!stageOptionsDirty || Boolean(strategySavingSection)}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      重置本块
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveTaskPolicySection('stage_options')}
+                      disabled={!strategyEditable || !stageOptionsDirty || Boolean(strategySavingSection)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {strategySavingSection === 'stage_options' ? <Loader2 size={16} className="animate-spin" /> : null}
+                      {strategySavingSection === 'stage_options' ? '保存中...' : '保存本块'}
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                  {stageSequence.map((stageName) => {
+                    const summary = stageSummaryByName.get(stageName);
+                    const summaryStatus = String(summary?.status || '');
+                    const stageFinished = ['success', 'partial_success', 'failed', 'cancelled', 'skipped'].includes(summaryStatus);
+                    const stageRunning = stageName === detail.current_stage && ['running', 'dispatching', 'pending_module_confirmation'].includes(detail.status);
+                    const stageMessage = stageRunning
+                      ? '运行中，本次修改仅影响后续/下次'
+                      : stageFinished
+                        ? '已完成，不受本次修改影响'
+                        : '尚未开始，修改会在后续执行时生效';
+                    return (
+                      <label key={stageName} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-black text-slate-900">{STAGE_LABELS[stageName] || stageName}</div>
+                            <div className="mt-1 text-xs text-slate-500">当前状态：{summaryStatus || 'pending'}</div>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={strategyDraft.stage_options[stageName]?.enabled !== false}
+                            disabled={!strategyEditable || Boolean(strategySavingSection)}
+                            onChange={(event) => updateStrategyStageEnabled(stageName, event.target.checked)}
+                          />
+                        </div>
+                        <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                          {stageMessage}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">模块推进策略</h3>
+                    <p className="mt-1 text-sm text-slate-500">与创建任务页保持一致，只影响后续模块筛选和推进行为。</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => resetStrategySection('module_strategy')}
+                      disabled={!moduleStrategyDirty || Boolean(strategySavingSection)}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      重置本块
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveTaskPolicySection('module_strategy')}
+                      disabled={!strategyEditable || !moduleStrategyDirty || Boolean(strategySavingSection)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {strategySavingSection === 'module_strategy' ? <Loader2 size={16} className="animate-spin" /> : null}
+                      {strategySavingSection === 'module_strategy' ? '保存中...' : '保存本块'}
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-5 xl:grid-cols-2">
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">推进方式</div>
+                    <div className="mt-3 grid gap-2">
+                      {MODULE_SELECTION_OPTIONS.map((option) => (
+                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                          <input
+                            type="radio"
+                            name="taskStrategyModuleSelection"
+                            checked={strategyDraft.module_selection_mode === option.value}
+                            disabled={!strategyEditable || Boolean(strategySavingSection)}
+                            onChange={() => setStrategyDraft((current) => (current ? { ...current, module_selection_mode: option.value as 'auto' | 'manual_confirm' } : current))}
+                          />
+                          {option.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-800">风险等级</div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {MODULE_RISK_OPTIONS.map((risk) => (
+                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={strategyDraft.module_risk_levels.includes(risk)}
+                            disabled={!strategyEditable || Boolean(strategySavingSection)}
+                            onChange={(event) => {
+                              setStrategyDraft((current) => {
+                                if (!current) return current;
+                                const nextLevels = event.target.checked
+                                  ? (current.module_risk_levels.includes(risk) ? current.module_risk_levels : current.module_risk_levels.concat(risk))
+                                  : current.module_risk_levels.filter((item) => item !== risk);
+                                return { ...current, module_risk_levels: nextLevels };
+                              });
+                            }}
+                          />
+                          {risk}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-xs text-slate-500">
+                      至少选择一个风险等级；若选择人工确认，系统分析完成后再确认最终推进模块。
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">并发与失败处理</h3>
+                    <p className="mt-1 text-sm text-slate-500">调整后只影响尚未开始的阶段、继续、阶段重试与清空重跑。</p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => resetStrategySection('execution_policy')}
+                      disabled={!executionPolicyDirty || Boolean(strategySavingSection)}
+                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      重置本块
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveTaskPolicySection('execution_policy')}
+                      disabled={!strategyEditable || !executionPolicyDirty || Boolean(strategySavingSection)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {strategySavingSection === 'execution_policy' ? <Loader2 size={16} className="animate-spin" /> : null}
+                      {strategySavingSection === 'execution_policy' ? '保存中...' : '保存本块'}
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {stageSequence.map((stageName) => (
+                    <label key={stageName} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <span className="block text-sm font-black text-slate-800">{STAGE_LABELS[stageName] || stageName}</span>
+                      <span className="mt-1 block text-xs text-slate-500">范围 1-32</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={32}
+                        value={strategyDraft.stage_parallelism[stageName] ?? 1}
+                        disabled={!strategyEditable || Boolean(strategySavingSection)}
+                        onChange={(event) => updateStrategyStageParallelism(stageName, Number(event.target.value || 1))}
+                        className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-slate-400"
+                      />
+                    </label>
+                  ))}
+                  <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <span className="block text-sm font-black text-slate-800">子任务重试次数</span>
+                    <span className="mt-1 block text-xs text-slate-500">范围 0-20</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={20}
+                      value={strategyDraft.max_retries_per_item}
+                      disabled={!strategyEditable || Boolean(strategySavingSection)}
+                      onChange={(event) => {
+                        const value = Math.max(0, Math.min(20, Number(event.target.value) || 0));
+                        setStrategyDraft((current) => (current ? { ...current, max_retries_per_item: value } : current));
+                      }}
+                      className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-slate-400"
+                    />
+                  </label>
+                </div>
+                <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={strategyDraft.continue_on_item_failure}
+                    disabled={!strategyEditable || Boolean(strategySavingSection)}
+                    onChange={(event) => setStrategyDraft((current) => (current ? { ...current, continue_on_item_failure: event.target.checked } : current))}
+                  />
+                  子任务失败时继续推进其他子任务
+                </label>
+              </section>
+            </section>
+          ) : null}
 
           {activeTab === 'overview' ? (
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">

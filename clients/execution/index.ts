@@ -2,6 +2,7 @@ import { appDataflowAnalyseApi } from '../appDataflowAnalyse';
 import { appEntryAnalyseApi } from '../appEntryAnalyse';
 import { appSystemAnalyseApi } from '../appSystemAnalyse';
 import { binaryEvolutionApi } from '../binaryEvolution';
+import { binarySecurityMetricsApi } from '../binarySecurityMetrics';
 import { binarySecurityApi } from '../binarySecurity';
 import { binaryToSourceApi } from '../binaryToSource';
 import { codeServerApi } from '../codeServer';
@@ -14,6 +15,7 @@ export { appDataflowAnalyseApi } from '../appDataflowAnalyse';
 export { appEntryAnalyseApi } from '../appEntryAnalyse';
 export { appSystemAnalyseApi } from '../appSystemAnalyse';
 export { binaryEvolutionApi } from '../binaryEvolution';
+export { binarySecurityMetricsApi } from '../binarySecurityMetrics';
 export { binarySecurityApi } from '../binarySecurity';
 export { systemAnalysisApi } from '../systemAnalysis';
 export { codeServerApi } from '../codeServer';
@@ -32,6 +34,7 @@ export const executionClients = {
   firmwareUnpacker: firmwareUnpackerApi,
   ipcAudit: ipcAuditApi,
   binaryEvolution: binaryEvolutionApi,
+  metrics: binarySecurityMetricsApi,
   binarySecurity: binarySecurityApi,
   binaryToSource: binaryToSourceApi,
 };

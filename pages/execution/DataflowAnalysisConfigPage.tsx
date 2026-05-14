@@ -5,6 +5,35 @@ import { Loader2, Plus, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { AppDfaAgentInstance, AppDfaRoleConfig, AppDfaServiceConfig, LlmProviderSummary } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
+
+const DATAFLOW_ANALYSIS_FLOW = {
+  title: '数据流分析阶段推进关系',
+  subtitle: '展示数据流分析服务的静态推进路径，用于辅助理解追踪深度、并发、轮次和评审相关配置。',
+  lanes: [
+    {
+      label: '任务推进链路',
+      steps: [
+        { id: 'dfa-prepare', title: '任务准备', desc: '解析配置、初始化工作区并装载上游结果。', badge: '1', tone: 'analysis' as const },
+        { id: 'dfa-worker', title: 'Worker 分析', desc: '并行跟踪函数数据流、调用边与污点传播。', badge: '2', tone: 'analysis' as const },
+        { id: 'dfa-judge', title: 'Judge 评估', desc: '评估可信度、覆盖率，并决定是否继续迭代。', badge: '3', tone: 'review' as const },
+        { id: 'dfa-report', title: '报告输出', desc: '生成 Markdown 与结构化结果，沉淀最终分析产物。', badge: '4', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '递归追踪',
+      detail: 'max_trace_depth 与 callee_concurrency 共同决定函数调用追踪的深度与展开宽度。',
+      tone: 'analysis' as const,
+    },
+    {
+      title: '评审收敛',
+      detail: '达到最大轮次后，会按 max_rounds_exceeded_review_strategy 决定任务最终按通过还是失败收敛。',
+      tone: 'review' as const,
+    },
+  ],
+};
 
 const defaultRole = (): AppDfaRoleConfig => ({
   system_prompt_dir: '',
@@ -268,6 +297,12 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
         </div>
       ) : (
         <div className="space-y-6">
+          <StaticPipelineFlow
+            title={DATAFLOW_ANALYSIS_FLOW.title}
+            subtitle={DATAFLOW_ANALYSIS_FLOW.subtitle}
+            lanes={DATAFLOW_ANALYSIS_FLOW.lanes}
+            notes={DATAFLOW_ANALYSIS_FLOW.notes}
+          />
           {/* 基本配置 */}
           <SectionCard title="基本配置" subtitle="分析轮次控制">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">

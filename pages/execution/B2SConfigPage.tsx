@@ -4,11 +4,36 @@ import { Loader2, RefreshCw, Settings } from 'lucide-react';
 import { api } from '../../clients/api';
 import { B2SServiceConfig } from '../../clients/binaryToSource';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
 
 const defaultConfig = (projectId: string): B2SServiceConfig => ({
   project_id: projectId,
   budget_exhausted_action: 'treat_as_passed',
 });
+
+const B2S_FLOW = {
+  title: '二进制逆向阶段推进关系',
+  subtitle: '展示二进制逆向微服务从静态分析到源码合并的固定推进链路，便于理解预算耗尽类策略最终会影响哪个收敛位置。',
+  lanes: [
+    {
+      label: '反编译主链路',
+      steps: [
+        { id: 'b2s-ida', title: '静态分析', desc: '执行基础反汇编与符号识别，建立函数和上下文信息。', badge: '1', tone: 'analysis' as const },
+        { id: 'b2s-batching', title: '函数分批', desc: '按函数规模拆分处理批次，为后续并行还原做准备。', badge: '2', tone: 'analysis' as const },
+        { id: 'b2s-header', title: '生成头文件', desc: '先生成类型声明、函数原型和公共头部内容。', badge: '3', tone: 'artifact' as const },
+        { id: 'b2s-body', title: '还原函数体', desc: '按批次逐步还原函数体源码，是主要耗时阶段。', badge: '4', tone: 'review' as const },
+        { id: 'b2s-merge', title: '合并结果', desc: '合并头文件、函数体和补充信息，产出最终源码结果。', badge: '5', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '预算耗尽收敛',
+      detail: '当下游返回 max_rounds_exceeded、max_retries_reached 或 timeout_max_retries_exceeded 等预算耗尽类终态时，会由当前页面的默认策略决定按通过还是失败收敛。',
+      tone: 'review' as const,
+    },
+  ],
+};
 
 const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
@@ -106,6 +131,12 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
         </div>
       ) : (
         <div className="space-y-6">
+          <StaticPipelineFlow
+            title={B2S_FLOW.title}
+            subtitle={B2S_FLOW.subtitle}
+            lanes={B2S_FLOW.lanes}
+            notes={B2S_FLOW.notes}
+          />
           <SectionCard title="终态策略" subtitle="预算耗尽类失败的默认收敛动作">
             <FieldRow label="budget_exhausted_action" hint="当下游返回 max_rounds_exceeded / max_retries_reached / timeout_max_retries_exceeded 等预算耗尽类失败时生效">
               <select

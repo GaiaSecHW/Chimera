@@ -45,6 +45,7 @@ import {
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
 import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
@@ -85,6 +86,34 @@ const TEMPLATE_OPTIONS = [
   { value: 'vuln_scan_default', label: '单阶段漏洞挖掘' },
   { value: 'full_pipeline', label: '完整分析流水线' },
 ];
+const DATAFLOW_VULN_FLOW = {
+  title: '数据流漏洞挖掘阶段推进关系',
+  subtitle: '展示漏洞挖掘微服务从 Profile 模板到结果评审与疑点上报的静态推进链路，帮助理解不同配置对扫描收敛的影响位置。',
+  lanes: [
+    {
+      label: '扫描执行链路',
+      steps: [
+        { id: 'dfv-profile', title: 'Profile / 模板装载', desc: '装载项目默认或显式指定 Profile，并解析模板、模型与运行参数。', badge: '1', tone: 'guard' as const },
+        { id: 'dfv-worker', title: 'Worker 挖掘', desc: '围绕数据流结果开展漏洞候选挖掘，输出 issue 与证据草稿。', badge: '2', tone: 'analysis' as const },
+        { id: 'dfv-global-review', title: '全局评审', desc: 'Advisor / Global Review 判断候选质量、收敛方向和是否继续下一轮。', badge: '3', tone: 'review' as const },
+        { id: 'dfv-result-review', title: '结果评审', desc: '对 issue 做并发结果复核，压缩误报并形成最终结论。', badge: '4', tone: 'review' as const },
+        { id: 'dfv-report', title: '报告输出与上报', desc: '生成 Run 结果、漏洞报告，并在开启时向漏洞引擎上报疑点。', badge: '5', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '模板差异',
+      detail: '单阶段漏洞挖掘更聚焦直接 issue 产出；完整分析流水线会结合更多上下游结果与补充评审。',
+      tone: 'analysis' as const,
+    },
+    {
+      title: '评审与超时',
+      detail: 'review_profile、max_review_cycles、timeout_max_retries 和 result_review_concurrency 共同影响候选收敛速度、稳定性与误报控制。',
+      tone: 'review' as const,
+    },
+  ],
+};
 const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-cyan-600';
 const TASK_PURPOSE_META: Record<string, { label: string; className: string }> = {
   normal: { label: '正常任务', className: 'border-slate-200 bg-slate-50 text-slate-700' },
@@ -1680,6 +1709,13 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             {configActions}
           </PageHeader>
         )}
+
+        <StaticPipelineFlow
+          title={DATAFLOW_VULN_FLOW.title}
+          subtitle={DATAFLOW_VULN_FLOW.subtitle}
+          lanes={DATAFLOW_VULN_FLOW.lanes}
+          notes={DATAFLOW_VULN_FLOW.notes}
+        />
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <MetricCard label="Profile 数" value={profiles.length} icon={<SlidersHorizontal size={17} />} />

@@ -2093,6 +2093,7 @@ export interface SystemAnalysisServiceConfig {
   binary_arch: string[];
   security_focus_categories: string[];
   module_granularity: string;
+  filter_engine: 'script' | 'agent';
   enable_final_check: boolean;
   worker_task_concurrency: number;
   parallel_modules: number;
@@ -2415,11 +2416,11 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_content: string;
   result_json?: Record<string, any> | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; enable_final_check?: boolean; start_stage?: number; resume_workspace?: string } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
-  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; enable_final_check?: boolean } | null;
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
-  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; enable_final_check?: 'task' | 'project' } | null;
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project' } | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -2484,6 +2485,11 @@ export interface AppSaEvaluationSummary {
   total_cost?: number;
   stage_summary?: Record<string, Record<string, any>>;
   effectiveness?: Record<string, any>;
+  final_check_disabled?: boolean;
+  missing_file_count?: number;
+  missing_files?: string[];
+  missing_files_preview?: string[];
+  missing_files_computed_at?: string;
   [key: string]: any;
 }
 
@@ -2643,6 +2649,7 @@ export interface AppSaTaskCreateRequest {
   binary_arch?: string[];
   security_focus_categories?: string[];
   module_granularity?: string;
+  filter_engine?: 'script' | 'agent';
   enable_final_check?: boolean;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;

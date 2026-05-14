@@ -15,6 +15,7 @@ import {
   SystemAnalysisSelfReflectionConfig,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
 
 // ─── 常量 ──────────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,37 @@ const JUDGE_STAGE_DESCS: Record<string, string> = {
 
 const SHOW_SYSTEM_ANALYSIS_PROMPT_CONFIG = false;
 
+const SYSTEM_ANALYSIS_FLOW = {
+  title: '系统分析阶段推进关系',
+  subtitle: '展示系统分析微服务的默认推进链路与关键收敛点，便于在调整参数前快速理解不同阶段的职责边界。',
+  lanes: [
+    {
+      label: '主执行链路',
+      steps: [
+        { id: 'sa-stage-0', title: 'Stage 0 预处理', desc: '过滤目标文件、探索目录结构并预扫描关键线索。', badge: 'S0', tone: 'analysis' as const },
+        { id: 'sa-stage-1', title: 'Stage 1 全局分类', desc: '按功能与职责划分模块边界，产出初始模块清单。', badge: 'S1', tone: 'analysis' as const },
+        { id: 'sa-stage-2', title: 'Stage 2 细分类', desc: '细化模块粒度，并执行全局补分类以减少遗漏。', badge: 'S2', tone: 'analysis' as const },
+        { id: 'sa-stage-3', title: 'Stage 3 安全分析', desc: '逐模块开展 STRIDE 与威胁分析，沉淀核心发现。', badge: 'S3', tone: 'review' as const },
+        { id: 'sa-stage-4a', title: 'Stage 4a 完整性检查', desc: '对模块覆盖完整性做最终复核，可按配置关闭。', badge: 'S4a', tone: 'guard' as const },
+        { id: 'sa-stage-4b', title: 'Stage 4b 报告生成', desc: '汇总模块分析与评审结果，输出最终总报告。', badge: 'S4b', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '反思与回退',
+      detail: 'Stage 1/2/3 若未通过评审会进入反思重试；Stage 4a 若发现覆盖缺口，可回退补做缺失模块。',
+      tone: 'review' as const,
+    },
+    {
+      title: '遗漏文件收敛',
+      detail: 'Stage 2 末尾会做全局补分类检查，尽量在最终报告前收敛未归类文件。',
+      tone: 'guard' as const,
+    },
+  ],
+  footer: 'Stage 4a 为可选阶段；关闭完整性检查后，任务会直接从 Stage 3 推进到 Stage 4b。',
+};
+
 // ─── 默认值 ────────────────────────────────────────────────────────────────────
 
 const defaultRole = (): SystemAnalysisRoleConfig => ({
@@ -122,6 +154,7 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   binary_arch: ['all'],
   security_focus_categories: ['all'],
   module_granularity: 'fine',
+  filter_engine: 'script',
   enable_final_check: false,
   worker_task_concurrency: 4,
   parallel_modules: 1,
@@ -603,6 +636,13 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
         </div>
       ) : (
         <div className="space-y-6">
+          <StaticPipelineFlow
+            title={SYSTEM_ANALYSIS_FLOW.title}
+            subtitle={SYSTEM_ANALYSIS_FLOW.subtitle}
+            lanes={SYSTEM_ANALYSIS_FLOW.lanes}
+            notes={SYSTEM_ANALYSIS_FLOW.notes}
+            footer={SYSTEM_ANALYSIS_FLOW.footer}
+          />
           <SectionCard title="分析范围配置" subtitle="控制文件过滤、S1 分类阶段的分析范围与模块粒度。以下配置为服务级默认值，可在任务创建时单独覆盖。">
             {/* 文件类型多选 */}
             <FieldRow
@@ -732,6 +772,31 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                     onClick={() => patch({ module_granularity: v })}
                     className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
                       config.module_granularity === v
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            <FieldRow
+              label="过滤引擎"
+              hint="filter_engine"
+              desc="智能体驱动会直接替代脚本过滤与 S1 粗分类，默认复用 classify 模型；若执行失败会自动回退到脚本驱动。">
+              <div className="flex gap-2">
+                {[
+                  { value: 'script', label: '脚本驱动（兼容现有）' },
+                  { value: 'agent', label: '智能体驱动' },
+                ].map(({ value: v, label }) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => patch({ filter_engine: v as SystemAnalysisServiceConfig['filter_engine'] })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.filter_engine === v
                         ? 'border-rose-400 bg-rose-50 text-rose-700'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}

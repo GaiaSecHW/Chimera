@@ -9,6 +9,22 @@ export interface BinarySecurityInputFile {
 }
 
 export type BinarySecurityTaskType = 'binary' | 'source';
+export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
+
+export interface BinarySecurityStageOption {
+  enabled: boolean;
+}
+
+export interface BinarySecurityTaskPolicy {
+  max_stage_parallelism?: number;
+  max_retries_per_item?: number;
+  continue_on_item_failure?: boolean;
+  stage_parallelism?: Record<string, number>;
+  stage_options?: Record<string, BinarySecurityStageOption>;
+  module_selection_mode?: BinarySecurityModuleSelectionMode;
+  module_risk_levels?: string[];
+  [key: string]: any;
+}
 
 export interface BinarySecurityTask {
   id: string;
@@ -35,7 +51,7 @@ export interface BinarySecurityTask {
   candidate_module_count: number;
   selected_module_count: number;
   selected_risk_levels: string[];
-  module_selection_mode: 'auto' | 'manual_confirm' | string;
+  module_selection_mode: BinarySecurityModuleSelectionMode;
   entry_count: number;
   vuln_result_count: number;
   firmware_item_count: number;
@@ -109,7 +125,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   output_root: string;
   workspace_root: string;
   fileserver_subproject_name?: string | null;
-  policy: Record<string, any>;
+  policy: BinarySecurityTaskPolicy;
   summary: Record<string, any>;
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;
@@ -208,7 +224,7 @@ export interface BinarySecurityOverviewNode {
 export interface BinarySecurityModuleSelection {
   task_id: string;
   status: string;
-  selection_mode: 'auto' | 'manual_confirm' | string;
+  selection_mode: BinarySecurityModuleSelectionMode;
   risk_levels: string[];
   requires_confirmation: boolean;
   system_analysis_modules: Array<Record<string, any>>;
@@ -308,6 +324,26 @@ export const binarySecurityApi = {
     payload: { stage_parallelism: Record<string, number> },
   ): Promise<BinarySecurityTaskDetail> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/concurrency`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(resp);
+  },
+
+  updateTaskPolicy: async (
+    projectId: string,
+    taskId: string,
+    payload: {
+      stage_options?: Record<string, BinarySecurityStageOption>;
+      max_retries_per_item?: number;
+      continue_on_item_failure?: boolean;
+      stage_parallelism?: Record<string, number>;
+      module_selection_mode?: BinarySecurityModuleSelectionMode;
+      module_risk_levels?: string[];
+    },
+  ): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/policy`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify(payload),

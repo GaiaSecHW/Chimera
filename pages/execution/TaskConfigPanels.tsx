@@ -49,6 +49,11 @@ const SECURITY_CATEGORY_LABELS: Record<string, { name: string; desc: string }> =
   all: { name: '全部维度', desc: '不过滤，对所有安全维度进行分析' },
 };
 
+const FILTER_ENGINE_LABELS: Record<string, string> = {
+  script: '脚本驱动（兼容现有）',
+  agent: '智能体驱动',
+};
+
 const SectionCard: React.FC<{ title: React.ReactNode; children: React.ReactNode }> = ({ title, children }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
     <h2 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-slate-500">{title}</h2>
@@ -114,7 +119,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
   const taskConfig = asRecord(detail.task_config_json);
   const resolved = asRecord(taskConfig.resolved_config_snapshot);
   const hasResolved = Object.keys(resolved).length > 0;
-  const overrideKeys = ['analyse_targets', 'binary_arch', 'security_focus_categories', 'module_granularity', 'enable_final_check']
+  const overrideKeys = ['analyse_targets', 'binary_arch', 'security_focus_categories', 'module_granularity', 'filter_engine', 'enable_final_check']
     .filter((key) => taskConfig[key] !== undefined);
 
   return (
@@ -166,6 +171,12 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
                 <Divider />
               </>
             ) : null}
+            {taskConfig.filter_engine !== undefined ? (
+              <>
+                <ConfigRow label="过滤引擎">{FILTER_ENGINE_LABELS[String(taskConfig.filter_engine)] || String(taskConfig.filter_engine)}</ConfigRow>
+                <Divider />
+              </>
+            ) : null}
             {taskConfig.enable_final_check !== undefined ? (
               <ConfigRow label="完整性检查">{formatBool(taskConfig.enable_final_check, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
             ) : null}
@@ -203,6 +214,8 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
             </ConfigRow>
             <Divider />
             <ConfigRow label="模块划分粒度">{resolved.module_granularity === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}</ConfigRow>
+            <Divider />
+            <ConfigRow label="过滤引擎">{FILTER_ENGINE_LABELS[String(resolved.filter_engine || 'script')] || String(resolved.filter_engine || 'script')}</ConfigRow>
             <Divider />
             <ConfigRow label="完整性检查">{formatBool(resolved.enable_final_check, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
           </div>

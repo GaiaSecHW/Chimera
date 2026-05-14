@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { ArrowDown, Expand, GitBranch, Radar, TimerReset, X } from 'lucide-react';
 
 import { AppSaSessionIndex, AppSaSessionIndexEdge, AppSaSessionIndexNode } from '../../types/types';
+import { AgentSessionDialogHeader } from './AgentSessionDialogHeader';
+import { AgentSessionViewer } from './AgentSessionViewer';
 
 function nodeStatusTone(status?: string) {
   if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
@@ -217,10 +219,29 @@ export const SessionRelationshipGraph: React.FC<{
   index: AppSaSessionIndex | null;
   selectedPath: string | null;
   onSelect: (path: string) => void;
-}> = ({ index, selectedPath, onSelect }) => {
+  sessionPreview?: {
+    path: string | null;
+    sessionMeta?: any;
+    sessionHeader?: Record<string, any> | null;
+    events: any[];
+    loading?: boolean;
+    live?: boolean;
+    error?: string | null;
+  };
+}> = ({ index, selectedPath, onSelect, sessionPreview }) => {
   const graph = useMemo(() => buildGraph(index), [index]);
   const [expandedStageKey, setExpandedStageKey] = useState<string | null>(null);
+  const [inspectedPath, setInspectedPath] = useState<string | null>(null);
   const expandedStage = graph.orderedStages.find((stage) => stage.stageKey === expandedStageKey) || null;
+  const inspectedNode = inspectedPath
+    ? index?.nodes?.find((node) => node.relative_path === inspectedPath) || null
+    : null;
+  const inspectedPreview = inspectedPath && sessionPreview?.path === inspectedPath ? sessionPreview : null;
+
+  const handleInspectNode = (path: string) => {
+    onSelect(path);
+    setInspectedPath(path);
+  };
 
   if (!index || graph.orderedStages.length === 0) {
     return (
@@ -358,9 +379,35 @@ export const SessionRelationshipGraph: React.FC<{
                 nodeMap={graph.nodeMap}
                 childMap={graph.childMap}
                 selectedPath={selectedPath}
-                onSelect={(path) => {
-                  onSelect(path);
-                }}
+                onSelect={handleInspectNode}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {inspectedPath ? (
+        <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
+            <AgentSessionDialogHeader
+              title={inspectedNode?.display_name || inspectedPath}
+              subtitle={inspectedNode ? formatNodeSubtitle(inspectedNode) || inspectedNode.relative_path : inspectedPath}
+              stage={inspectedNode?.stage_label || inspectedNode?.stage_key}
+              roleLabel={inspectedNode?.role_label || inspectedNode?.role || 'Agent'}
+              roleToneClass={roleTone(inspectedNode?.role)}
+              eventCount={inspectedNode?.event_count}
+              live={inspectedPreview?.live}
+              onClose={() => setInspectedPath(null)}
+            />
+
+            <div className="flex-1 overflow-auto px-6 py-6">
+              <AgentSessionViewer
+                sessionMeta={inspectedPreview?.sessionMeta}
+                sessionHeader={inspectedPreview?.sessionHeader}
+                events={inspectedPreview?.events || []}
+                loading={Boolean(inspectedPath && (!inspectedPreview || inspectedPreview.loading))}
+                live={inspectedPreview?.live}
+                error={inspectedPreview?.error}
               />
             </div>
           </div>

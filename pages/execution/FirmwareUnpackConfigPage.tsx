@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FirmwareClusterInfo, FirmwareConfigEntry, FirmwareLlmConfigFileSummary } from '../../clients/firmwareUnpacker';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
 
 interface Props { projectId: string; embedded?: boolean; }
 
@@ -37,6 +38,35 @@ const MAX_RETRIES_ACTION_OPTIONS = [
   { value: 'success', label: '通过', description: '达到最大重试次数后，任务按成功收敛。' },
   { value: 'failed', label: '失败', description: '达到最大重试次数后，任务按失败收敛。' },
 ] as const;
+
+const FIRMWARE_UNPACK_FLOW = {
+  title: '固件解包阶段推进关系',
+  subtitle: '展示固件解包微服务从预处理到清理收敛的静态推进链路，帮助理解并发、角色绑定和重试策略分别作用在哪些阶段。',
+  lanes: [
+    {
+      label: '主解包链路',
+      steps: [
+        { id: 'fw-preprocess', title: '预处理', desc: '识别输入固件、准备工作目录，并做基础格式判断。', badge: '1', tone: 'analysis' as const },
+        { id: 'fw-tool-match', title: '工具匹配执行', desc: '优先命中已有解包工具或技能，执行首轮自动解包。', badge: '2', tone: 'analysis' as const },
+        { id: 'fw-llm-unpack', title: 'LLM 解包', desc: '当工具链不足时，由执行器生成或补充解包动作。', badge: '3', tone: 'analysis' as const },
+        { id: 'fw-llm-review', title: 'LLM 评审', desc: '评审器复核产物完整性、可用性与下一轮是否继续。', badge: '4', tone: 'review' as const },
+        { id: 'fw-llm-cleanup', title: 'LLM 清理', desc: '整理输出目录、产物命名和最终结果清单。', badge: '5', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '轮次收敛',
+      detail: '工具执行器与评审器会按轮次反复推进；达到最大重试次数后，按 max_retries_reached_action 决定最终按通过还是失败收敛。',
+      tone: 'review' as const,
+    },
+    {
+      title: '角色绑定',
+      detail: '通用执行器、评审器、清理器、技能生成器和进化器都可独立绑定配置文件与模型，影响的是后续新建任务的冻结快照。',
+      tone: 'guard' as const,
+    },
+  ],
+};
 
 function fmtTime(iso: string | null) {
   if (!iso) return '-';
@@ -306,6 +336,15 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
 
         <div className="mb-5 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           配置立即生效于后端服务，所有集群实例共享。修改后无需重启。
+        </div>
+
+        <div className="mb-5">
+          <StaticPipelineFlow
+            title={FIRMWARE_UNPACK_FLOW.title}
+            subtitle={FIRMWARE_UNPACK_FLOW.subtitle}
+            lanes={FIRMWARE_UNPACK_FLOW.lanes}
+            notes={FIRMWARE_UNPACK_FLOW.notes}
+          />
         </div>
 
         <div className="mb-5 rounded-2xl bg-white p-5">

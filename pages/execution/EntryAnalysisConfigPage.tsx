@@ -9,6 +9,35 @@ import {
   LlmProviderSummary,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
+
+const ENTRY_ANALYSIS_FLOW = {
+  title: '入口分析阶段推进关系',
+  subtitle: '展示入口分析服务从模块装载到结果收敛的固定推进链路，帮助理解轮次、并发与评审配置的作用位置。',
+  lanes: [
+    {
+      label: '任务推进链路',
+      steps: [
+        { id: 'ea-load', title: '模块加载', desc: '扫描目标路径，装载模块上下文与待分析文件。', badge: '1', tone: 'analysis' as const },
+        { id: 'ea-worker', title: '入口分析', desc: 'Worker 分析入口点、初始化路径与候选函数。', badge: '2', tone: 'analysis' as const },
+        { id: 'ea-judge', title: '裁判综合', desc: 'Judge 汇总 Worker 输出并评审是否继续下一轮。', badge: '3', tone: 'review' as const },
+        { id: 'ea-report', title: '生成结果', desc: '输出 Markdown、functions.list 与运行报告。', badge: '4', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '轮次收敛',
+      detail: '入口分析按 Worker -> Judge 的方式循环推进，直到达到最少轮次且满足通过条件，或命中最大轮次策略。',
+      tone: 'review' as const,
+    },
+    {
+      title: '并行 Worker 模式',
+      detail: '开启并行后，多个 Worker 会并发消费文件分片，但最终仍会汇总到同一条 Judge 收敛链路。',
+      tone: 'guard' as const,
+    },
+  ],
+};
 
 
 
@@ -245,6 +274,12 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
         </div>
       ) : (
         <div className="space-y-6">
+          <StaticPipelineFlow
+            title={ENTRY_ANALYSIS_FLOW.title}
+            subtitle={ENTRY_ANALYSIS_FLOW.subtitle}
+            lanes={ENTRY_ANALYSIS_FLOW.lanes}
+            notes={ENTRY_ANALYSIS_FLOW.notes}
+          />
           {/* 基本配置 */}
           <SectionCard title="基本配置" subtitle="分析轮次控制与重试策略">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">

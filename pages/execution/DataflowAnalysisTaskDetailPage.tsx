@@ -23,10 +23,13 @@ import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { AgentSessionViewer } from './AgentSessionViewer';
+import { AgentSessionDialogHeader } from './AgentSessionDialogHeader';
+import { AgentSessionWarningPanel } from './AgentSessionWarningPanel';
 import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { SessionRelationshipGraph } from './SessionRelationshipGraph';
 import { DataflowAnalysisTaskConfigPanel } from './TaskConfigPanels';
 import { TaskOriginCard } from './taskOrigin';
+import { WarningListPanel } from './WarningListPanel';
 import { buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -61,7 +64,7 @@ const EVT_STAGE: Record<string, number> = {
   task_end: 3,
 };
 
-type DetailTab = 'overview' | 'task-config' | 'session' | 'result' | 'evaluation';
+type DetailTab = 'overview' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 function extractFsRelPath(path: string, projectId: string): string | null {
@@ -100,11 +103,6 @@ function formatNumber(value: unknown, digits = 0): string {
   return num.toLocaleString('zh-CN', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
-function formatCost(value: unknown): string {
-  const num = Number(value);
-  return Number.isFinite(num) ? `$${num.toFixed(4)}` : '-';
-}
-
 function formatRate(value: unknown): string {
   const num = Number(value);
   return Number.isFinite(num) ? `${Math.round(num * 100)}%` : '-';
@@ -117,6 +115,26 @@ function formatMs(value: unknown): string {
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   return `${minutes}m${seconds % 60}s`;
+}
+
+function formatSessionMtime(value?: number) {
+  if (!value) return '-';
+  return new Date(value * 1000).toLocaleString('zh-CN');
+}
+
+function sessionRoleLabel(role?: string) {
+  if (role === 'judge') return 'Judge';
+  if (role === 'sub_worker') return 'Sub Worker';
+  if (role === 'worker') return 'Worker';
+  if (role === 'master' || role === 'master_worker') return 'Master';
+  return role || 'Agent';
+}
+
+function sessionRoleTone(role?: string) {
+  if (role === 'judge') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (role === 'sub_worker') return 'border-violet-200 bg-violet-50 text-violet-700';
+  if (role === 'master' || role === 'master_worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  return 'border-slate-200 bg-slate-50 text-slate-600';
 }
 
 function stageLabel(stage?: string): string {
@@ -288,6 +306,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
+  const [activeAgentSessionPath, setActiveAgentSessionPath] = useState<string | null>(null);
   const [sessionSnapshot, setSessionSnapshot] = useState<AppDfaSessionSnapshot | null>(null);
   const [sessionEvents, setSessionEvents] = useState<AppDfaSessionEvent[]>([]);
   const [sessionWarnings, setSessionWarnings] = useState<string[]>([]);
@@ -388,6 +407,11 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
     setSessionLive(false);
   };
 
+  const openActiveAgentSession = (path: string) => {
+    setSelectedSessionPath(path);
+    setActiveAgentSessionPath(path);
+  };
+
   useEffect(() => { void loadDetail(); }, [taskId]);
   useEffect(() => {
     const timer = setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
@@ -396,8 +420,8 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
   useEffect(() => {
     if (activeTab === 'result' && !result && !resultLoading) void loadResult();
     if (activeTab === 'evaluation' && !evaluation && !evaluationLoading) void loadEvaluation();
-    if (activeTab === 'session' && sessions.length === 0 && !sessionsLoading) void loadSessions();
-  }, [activeTab]);
+    if ((activeTab === 'overview' || activeTab === 'session' || activeTab === 'relationship' || Boolean(activeAgentSessionPath)) && sessions.length === 0 && !sessionsLoading) void loadSessions();
+  }, [activeTab, activeAgentSessionPath]);
   useEffect(() => {
     if (!logsExpanded || !logRef.current) return;
     logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -408,18 +432,21 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
     return () => clearInterval(timer);
   }, [detail?.status, taskId]);
   useEffect(() => {
-    if (activeTab !== 'session' || detail?.status !== 'running') return;
+    if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) return;
+    if (detail?.status !== 'running') return;
     const timer = setInterval(() => void loadSessions(), 12000);
     return () => clearInterval(timer);
-  }, [activeTab, detail?.status, taskId]);
+  }, [activeTab, detail?.status, taskId, activeAgentSessionPath]);
   useEffect(() => {
     closeSessionSocket();
-    if (activeTab !== 'session' || !selectedSessionPath) return;
+    const sessionViewerActive = activeTab === 'session' || activeTab === 'relationship' || activeAgentSessionPath === selectedSessionPath;
+    if (!sessionViewerActive || !selectedSessionPath) return;
     void loadSessionFile(selectedSessionPath);
     return closeSessionSocket;
-  }, [activeTab, selectedSessionPath, taskId]);
+  }, [activeTab, selectedSessionPath, taskId, activeAgentSessionPath]);
   useEffect(() => {
-    if (activeTab !== 'session' || !selectedSessionPath || !detail?.output_path || detail.status !== 'running') return;
+    const sessionViewerActive = activeTab === 'session' || activeTab === 'relationship' || activeAgentSessionPath === selectedSessionPath;
+    if (!sessionViewerActive || !selectedSessionPath || !detail?.output_path || detail.status !== 'running') return;
     const runFilePath = normalizeJoinPath(`${detail.output_path}/${detail.task_id}/run`, selectedSessionPath);
     const watchPath = extractFsRelPath(runFilePath, projectId);
     if (!watchPath) return;
@@ -462,7 +489,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
       }
     };
     return closeSessionSocket;
-  }, [activeTab, selectedSessionPath, detail?.output_path, detail?.status, sessionSnapshot?.line_count, projectId]);
+  }, [activeTab, selectedSessionPath, detail?.output_path, detail?.status, sessionSnapshot?.line_count, projectId, activeAgentSessionPath]);
 
   const events = detail?.stages_json?.events || [];
   const statusSteps = detail ? deriveStepStatuses(detail.status, events) : STAGE_STEPS.map((): StepStatus => 'pending');
@@ -477,6 +504,11 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
     return Array.from(groups.entries());
   }, [sessions]);
   const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
+  const activeSessions = useMemo(() => sessions.filter((item) => item.is_active), [sessions]);
+  const activeAgentSessionMeta = useMemo(
+    () => sessions.find((item) => item.relative_path === activeAgentSessionPath) || null,
+    [sessions, activeAgentSessionPath],
+  );
   const resultRootFsPath = result?.output_root ? extractFsRelPath(result.output_root, projectId) : null;
   const selectedDataflow = result?.dataflow_files?.find((file) => file.relative_path === selectedDataflowFile) || result?.dataflow_files?.[0] || null;
   const resultContent = resultView === 'final'
@@ -573,6 +605,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
           ['overview', '总览'],
           ['task-config', '任务配置'],
           ['session', '智能体会话'],
+          ['relationship', '智能体关系'],
           ['result', '结果'],
           ['evaluation', '观测指标'],
         ].map(([id, label]) => <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>{label}</button>)}
@@ -615,6 +648,48 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                 {logsExpanded ? <div ref={logRef} className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-xs leading-relaxed text-slate-300">{logLines.length ? logLines.map((line, index) => <div key={index} className={line.includes('✗') ? 'text-red-400' : line.includes('▶') ? 'text-violet-300' : line.includes('✓') ? 'text-emerald-400' : 'text-slate-300'}>{line}</div>) : <div className="text-slate-500">暂无阶段事件</div>}</div> : null}
               </div>
             </section>
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
+                  <p className="mt-1 text-xs text-slate-400">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
+                </div>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
+              </div>
+              {sessionsLoading && sessions.length === 0 ? (
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载智能体状态中...</div>
+              ) : activeSessions.length > 0 ? (
+                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                  <div className="divide-y divide-slate-200 bg-white">
+                    {activeSessions.map((session) => (
+                      <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-slate-50">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
+                            <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
+                            <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                              <span>分组 {session.stage_group || '-'}</span>
+                              <span>事件 {session.event_count}</span>
+                              <span>更新时间 {formatSessionMtime(session.mtime)}</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>
+                              {sessionRoleLabel(session.role_name)}
+                            </span>
+                            <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                  {detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前没有检测到活跃智能体会话。' : '任务已结束，当前没有活跃智能体。'}
+                </div>
+              )}
+            </section>
             {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"><h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
             {detail.prompt_content ? <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-slate-700 hover:bg-slate-50">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre></details></section> : null}
           </section>
@@ -623,8 +698,10 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
         ) : activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
             <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div><div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => <div key={group}><div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{group === 'root' ? '根会话' : group}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-black">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{session.relative_path}</div></div><span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}>{session.is_active ? '活跃' : '历史'}</span></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>)}</div>}</aside>
-            <div className="space-y-4">{sessionIndex?.warnings && sessionIndex.warnings.length > 0 ? <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm"><div className="font-bold">索引生成提示</div><ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">{sessionIndex.warnings.slice(0, 5).map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></section> : null}<SessionRelationshipGraph index={sessionIndex as any} selectedPath={selectedSessionPath} onSelect={setSelectedSessionPath} />{sessionWarnings.length > 0 ? <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm"><div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div><ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">{sessionWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}</ul></section> : null}<AgentSessionViewer sessionMeta={selectedSession as any} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents as any} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
+            <div className="space-y-4"><AgentSessionWarningPanel warnings={sessionWarnings} /><AgentSessionViewer sessionMeta={selectedSession as any} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents as any} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
           </section>
+        ) : activeTab === 'relationship' ? (
+          <section className="space-y-4"><WarningListPanel title="索引生成提示" items={sessionIndex?.warnings?.slice(0, 5) || []} /><AgentSessionWarningPanel warnings={sessionWarnings} /><SessionRelationshipGraph index={sessionIndex as any} selectedPath={selectedSessionPath} onSelect={setSelectedSessionPath} sessionPreview={{ path: selectedSessionPath, sessionMeta: selectedSession as any, sessionHeader: sessionSnapshot?.session_meta, events: sessionEvents as any, loading: sessionLoading, live: sessionLive, error: sessionError }} /></section>
         ) : activeTab === 'result' ? (
           <section className="space-y-4">
             <div className="grid gap-4 xl:grid-cols-5"><MetricCard label="追踪函数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div><div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>
@@ -642,14 +719,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
               </section>
             ) : (
               <>
-                {evaluation.warnings.length > 0 ? (
-                  <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-                    <div className="flex items-center gap-2 text-sm font-bold text-amber-800"><ScrollText size={16} />部分观测文件读取异常</div>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
-                      {evaluation.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
-                    </ul>
-                  </section>
-                ) : null}
+                <WarningListPanel title="部分观测文件读取异常" items={evaluation.warnings} />
                 <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   <MetricCard label="总轮数" value={formatNumber(evaluation.summary?.round_count ?? evaluationRounds.length)} icon={<BarChart3 size={18} />} />
                   <MetricCard label="通过轮次" value={formatNumber(evaluation.summary?.passed_round_count)} icon={<CheckCircle2 size={18} />} />
@@ -687,7 +757,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                     <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       <MetricCard label="耗时" value={formatMs(selectedEvaluationRound.duration_ms)} icon={<BarChart3 size={18} />} />
                       <MetricCard label="Token" value={formatNumber(selectedEvaluationRound.metrics?.token_total)} icon={<ScrollText size={18} />} />
-                      <MetricCard label="Cost" value={formatCost(selectedEvaluationRound.metrics?.cost)} icon={<ScrollText size={18} />} />
+                      <MetricCard label="任务实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ScrollText size={18} />} />
                       <MetricCard label="Judge 均分" value={formatNumber(selectedEvaluationRound.metrics?.avg_judge_score, 1)} icon={<CheckCircle2 size={18} />} />
                     </section>
                     <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
@@ -791,7 +861,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                             <th className="px-3 py-3">Judge 分</th>
                             <th className="px-3 py-3">通过率</th>
                             <th className="px-3 py-3">Token</th>
-                            <th className="px-3 py-3">Cost</th>
+                            <th className="px-3 py-3">任务实际开始时间</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -805,7 +875,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                               <td className="px-3 py-3">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
                               <td className="px-3 py-3">{formatRate(round.metrics?.review_pass_rate)}</td>
                               <td className="px-3 py-3">{formatNumber(round.metrics?.token_total)}</td>
-                              <td className="px-3 py-3">{formatCost(round.metrics?.cost)}</td>
+                              <td className="px-3 py-3">{detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -819,6 +889,27 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
           </section>
         )
       ) : !loading ? <div className="py-16 text-center text-sm text-slate-400">未指定任务或任务不存在。</div> : null}
+
+      {activeAgentSessionPath ? (
+        <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
+            <AgentSessionDialogHeader
+              title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
+              subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}
+              stage={activeAgentSessionMeta?.stage_group}
+              roleLabel={sessionRoleLabel(activeAgentSessionMeta?.role_name)}
+              roleToneClass={sessionRoleTone(activeAgentSessionMeta?.role_name)}
+              eventCount={activeAgentSessionMeta?.event_count}
+              live={sessionLive}
+              onClose={() => setActiveAgentSessionPath(null)}
+            />
+            <div className="flex-1 overflow-auto px-6 py-6">
+              <AgentSessionWarningPanel warnings={sessionWarnings} className="mb-4" />
+              <AgentSessionViewer sessionMeta={(activeAgentSessionMeta || selectedSession) as any} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents as any} loading={sessionLoading} live={sessionLive} error={sessionError} />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

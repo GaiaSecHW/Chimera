@@ -16,6 +16,7 @@ export interface SystemAnalysisTaskFormState {
   binary_arch: string[];
   security_focus_categories: string[];
   module_granularity: string;
+  filter_engine: 'script' | 'agent';
   enable_final_check_mode: 'inherit' | 'enabled' | 'disabled';
 }
 
@@ -59,6 +60,7 @@ export function buildDefaultSystemAnalysisTaskForm(projectId: string): SystemAna
     binary_arch: ['all'],
     security_focus_categories: ['all'],
     module_granularity: 'fine',
+    filter_engine: 'script',
     enable_final_check_mode: 'inherit',
   };
 }
@@ -77,6 +79,7 @@ export function buildCloneFormFromTask(detail: AppSaTaskDetail, projectId: strin
     binary_arch: normalizeNonEmptyArray(config.binary_arch, ['all']),
     security_focus_categories: normalizeNonEmptyArray(config.security_focus_categories, ['all']),
     module_granularity: normalizeGranularity(config.module_granularity),
+    filter_engine: config.filter_engine === 'agent' ? 'agent' : 'script',
     enable_final_check_mode: typeof config.enable_final_check === 'boolean'
       ? (config.enable_final_check ? 'enabled' : 'disabled')
       : 'inherit',
@@ -136,6 +139,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
           binary_arch: Array.isArray(cfg.binary_arch) ? cfg.binary_arch : prev.binary_arch,
           security_focus_categories: Array.isArray(cfg.security_focus_categories) ? cfg.security_focus_categories : prev.security_focus_categories,
           module_granularity: typeof cfg.module_granularity === 'string' ? cfg.module_granularity : prev.module_granularity,
+          filter_engine: cfg.filter_engine === 'agent' ? 'agent' : prev.filter_engine,
         }));
       })
       .catch(() => undefined);
@@ -176,6 +180,7 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
         binary_arch: form.binary_arch.length > 0 ? form.binary_arch : undefined,
         security_focus_categories: form.security_focus_categories.length > 0 ? form.security_focus_categories : undefined,
         module_granularity: form.module_granularity || undefined,
+        filter_engine: form.filter_engine,
         enable_final_check: form.enable_final_check_mode === 'inherit'
           ? undefined
           : form.enable_final_check_mode === 'enabled',
@@ -418,6 +423,25 @@ export const SystemAnalysisTaskFormModal: React.FC<SystemAnalysisTaskFormModalPr
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-xs text-slate-500">过滤引擎 <span className="text-slate-400">(覆盖服务默认)</span></p>
+              <div className="flex gap-2">
+                {[{ value: 'script', label: '脚本驱动' }, { value: 'agent', label: '智能体驱动' }].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, filter_engine: value as 'script' | 'agent' }))}
+                    className={`flex-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${form.filter_engine === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                智能体驱动会直接替代脚本过滤与 S1 粗分类，复用 classify 模型，失败后自动回退脚本路径。
+              </p>
             </div>
 
             <div>
