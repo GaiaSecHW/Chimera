@@ -407,10 +407,10 @@ function buildOverviewStageMetrics(
   const prescanResult = findLatestStageEventData(events, ['prescan']);
   appendMetric(
     preprocessMetrics,
-    '全部的问题',
+    '全部文件',
     result?.summary.total_file_count ?? detail.result_json?.summary?.total_file_count,
   );
-  appendMetric(preprocessMetrics, '过滤后接受的问题', filterResult?.file_count);
+  appendMetric(preprocessMetrics, '过滤后接受的文件', filterResult?.file_count);
   appendMetric(preprocessMetrics, '预扫描摘要', prescanResult?.summary_lines);
   if (filterResult?.effective_engine) {
     preprocessMetrics.push({
