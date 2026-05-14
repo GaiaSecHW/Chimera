@@ -310,6 +310,33 @@ export interface DataflowRunSession {
   calls: Record<string, any>[];
 }
 
+export interface DataflowRunCheckpoint {
+  schema_version?: number;
+  timestamp?: string;
+  cycle?: number;
+  phase?: string;
+  step_key?: string;
+  node_id?: string;
+  node_kind?: string;
+  status?: string;
+  terminal_status?: boolean;
+  resume_policy?: string;
+  agent_id?: string;
+  session_id?: string;
+  detail?: string;
+  started_at?: string;
+  started_epoch?: number;
+  finished_at?: string;
+  finished_epoch?: number;
+  duration_ms?: number;
+  duration_seconds?: number;
+  elapsed_seconds?: number;
+  extra?: Record<string, any>;
+  path?: string;
+  mtime?: number;
+  [key: string]: any;
+}
+
 export interface DataflowRunDetail extends DataflowRunSummary {
   config: Record<string, any>;
   error?: string | null;
@@ -324,6 +351,9 @@ export interface DataflowRunDetail extends DataflowRunSummary {
   run_log: string;
   command?: string[];
   command_display?: string;
+  current_step?: DataflowRunCheckpoint;
+  step_history?: DataflowRunCheckpoint[];
+  cycle_timing?: Record<string, any>;
   raw: Record<string, any>;
 }
 
@@ -356,6 +386,17 @@ export interface DataflowRunMutationResponse {
   process_pid?: number | null;
   process_host?: string | null;
   process_signal?: string | null;
+  resume_preflight?: Record<string, any>;
+}
+
+export interface DataflowRunRetryPreview {
+  success: boolean;
+  run_id: string;
+  project_id: string;
+  can_retry: boolean;
+  reason?: string;
+  process_state?: DataflowRunProcessState;
+  resume_preflight?: Record<string, any>;
 }
 
 export interface DataflowVulnReportResponse {
@@ -537,6 +578,15 @@ export const dataflowVulnScannerApi = {
     const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/cancel`, {
       method: 'POST',
       headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  previewRetryRun: async (runId: string, payload: DataflowRunRetryPayload = {}): Promise<DataflowRunRetryPreview> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/retry/preview`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(response);
   },

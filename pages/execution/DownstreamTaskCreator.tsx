@@ -98,8 +98,23 @@ function joinPath(base: string, child: string): string {
   return `${base.replace(/\/+$/, '')}/${child.replace(/^\/+/, '')}`;
 }
 
-function absoluteRef(path: string): DataflowInputRef {
-  return { source: 'absolute_path', path, filename: basename(path) };
+function dataflowVulnInputRef(projectId: string, path: string): DataflowInputRef {
+  const normalized = String(path || '').replace(/\\/g, '/').trim();
+  const projectRoot = `/data/files/${projectId}`;
+  if (normalized === projectRoot) {
+    return { source: 'project_filesystem', path: '/', filename: basename(normalized) };
+  }
+  if (normalized.startsWith(`${projectRoot}/`)) {
+    return {
+      source: 'project_filesystem',
+      path: `/${normalized.slice(projectRoot.length + 1).replace(/^\/+/, '')}`,
+      filename: basename(normalized),
+    };
+  }
+  if (normalized.startsWith('/data/files/')) {
+    return { source: 'absolute_path', path: normalized, filename: basename(normalized) };
+  }
+  return { source: 'project_filesystem', path: normalized.startsWith('/') ? normalized : `/${normalized}`, filename: basename(normalized) };
 }
 
 function navigateTo(targetStage: TargetStage, id: string, navigate: ReturnType<typeof useNavigate>) {
@@ -381,8 +396,8 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             project_id: projectId,
             title: `${defaultPrefix}-${candidate.label}`,
             task_markdown: `基于数据流分析结果 ${candidate.label} 执行漏洞扫描。`,
-            data_flow: absoluteRef(String(candidate.payload.dataFlowPath)),
-            source_dir: absoluteRef(dfaTask.input_path),
+            data_flow: dataflowVulnInputRef(projectId, String(candidate.payload.dataFlowPath)),
+            source_dir: dataflowVulnInputRef(projectId, dfaTask.input_path),
           });
           rows.push({ id: createdTask.task_id, label: createdTask.title || createdTask.task_id, targetStage: 'vuln_scan' });
         }

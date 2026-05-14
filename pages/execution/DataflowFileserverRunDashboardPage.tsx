@@ -16,6 +16,7 @@ import {
   inspectDataflowFileserverRunOverview,
   listDataflowFileserverRunFiles,
   listDataflowFileserverRunSessions,
+  previewDataflowFileserverRunRetry,
   reportDataflowFileserverRunVulnerabilities,
   retryDataflowFileserverRun,
 } from '../../clients/dataflowVulnRunsFileserver';
@@ -620,7 +621,7 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   color: var(--success);
 }
 
-.badge-failed, .badge-interrupted, .badge-cancelled, .badge-stopped, .badge-delete_requested,
+.badge-failed, .badge-soft_failed, .badge-interrupted, .badge-cancelled, .badge-stopped, .badge-delete_requested,
 .badge-review_error, .badge-review_plateau, .badge-summary_incomplete,
 .badge-runtime_output_limit, .badge-runtime_timeout, .badge-blocked_context_window,
 .badge-blocked_quota, .badge-provider_rate_limited, .badge-model_contract_violation,
@@ -630,19 +631,19 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   color: var(--error);
 }
 
-.badge-running {
+.badge-running, .badge-started {
   background: #ecfeff;
   border-color: #a5f3fc;
   color: var(--primary);
 }
 
-.badge-cancel_requested {
+.badge-cancel_requested, .badge-retrying {
   background: #fffbeb;
   border-color: #fde68a;
   color: #b45309;
 }
 
-.badge-unknown, .badge-pending, .badge-queued {
+.badge-unknown, .badge-pending, .badge-queued, .badge-recorded {
   background: #f8fafc;
   border-color: #e2e8f0;
   color: #64748b;
@@ -1152,6 +1153,489 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
 .call-error {
   color: var(--error);
+}
+
+.execution-trace-card {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(8, 145, 178, 0.14), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.10), transparent 28%),
+    #ffffff;
+}
+
+.execution-trace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.execution-trace-title {
+  color: var(--text-bright);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.execution-trace-subtitle {
+  max-width: 820px;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.execution-trace-badges,
+.session-trace-tags,
+.call-stage-row {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.execution-current-card {
+  position: relative;
+  padding: 18px;
+  border: 1px solid #bae6fd;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(236, 254, 255, 0.96) 0%, rgba(255, 255, 255, 0.96) 58%),
+    #ffffff;
+  box-shadow: 0 18px 38px rgba(14, 165, 233, 0.10);
+}
+
+.execution-current-card::before {
+  content: '';
+  position: absolute;
+  inset: 18px auto auto 18px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #0891b2;
+  box-shadow: 0 0 0 7px rgba(8, 145, 178, 0.12);
+}
+
+.execution-current-card.status-started::before,
+.execution-current-card.status-running::before {
+  animation: executionPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes executionPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 6px rgba(8, 145, 178, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 13px rgba(8, 145, 178, 0.04);
+  }
+}
+
+.execution-current-beacon {
+  margin-left: 22px;
+  color: #0e7490;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.execution-current-main {
+  margin-top: 10px;
+  color: var(--text-bright);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.execution-current-step {
+  margin-top: 6px;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.execution-current-detail {
+  margin-top: 8px;
+  color: #64748b;
+  font-family: var(--mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.execution-current-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.execution-current-cell {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.execution-current-cell span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.execution-current-cell strong {
+  display: block;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.execution-cycle-map {
+  margin-top: 16px;
+}
+
+.execution-map-title {
+  margin-bottom: 10px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.execution-cycle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.execution-cycle-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: rgba(248, 250, 252, 0.82);
+}
+
+.execution-cycle-head,
+.execution-phase-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.execution-cycle-head {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.execution-cycle-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.execution-cycle-duration,
+.execution-current-duration {
+  color: #64748b;
+  font-weight: 900;
+}
+
+.execution-cycle-duration-separator {
+  color: #cbd5e1;
+}
+
+.execution-cycle-head span:last-child,
+.execution-phase-head span:last-child {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.execution-cycle-title .execution-cycle-duration {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.execution-phase-stack {
+  display: grid;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.execution-phase-lane {
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-left-width: 4px;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.execution-phase-lane.phase-worker { border-left-color: #0891b2; }
+.execution-phase-lane.phase-reflect { border-left-color: #6366f1; }
+.execution-phase-lane.phase-summary { border-left-color: #10b981; }
+.execution-phase-lane.phase-global-review { border-left-color: #f59e0b; }
+.execution-phase-lane.phase-result-review { border-left-color: #ef4444; }
+.execution-phase-lane.phase-review { border-left-color: #8b5cf6; }
+.execution-phase-lane.phase-other { border-left-color: #94a3b8; }
+
+.execution-phase-head {
+  color: #334155;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.execution-step-list {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.execution-step-pill,
+.execution-step-more,
+.trace-mini-badge {
+  max-width: 100%;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.execution-step-pill {
+  display: grid;
+  flex: 1 1 240px;
+  min-width: min(100%, 220px);
+  gap: 8px;
+  padding: 10px 11px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.execution-step-head,
+.execution-step-main {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.execution-step-main {
+  flex: 1 1 auto;
+}
+
+.execution-step-label,
+.trace-step-mini {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.execution-step-duration {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: currentColor;
+  font-size: 9px;
+  font-weight: 800;
+  opacity: 0.88;
+  white-space: nowrap;
+}
+
+.execution-step-pill.current {
+  border-color: #0891b2;
+  background: linear-gradient(180deg, #ecfeff 0%, #ffffff 100%);
+  color: #0e7490;
+  box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.10);
+}
+
+.execution-step-pill.status-completed,
+.execution-step-pill.status-passed {
+  background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
+  border-color: #bbf7d0;
+  color: #047857;
+}
+
+.execution-step-pill.status-failed,
+.execution-step-pill.status-error,
+.execution-step-pill.status-soft-failed {
+  background: linear-gradient(180deg, #fff1f2 0%, #ffffff 100%);
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.execution-step-pill.status-retrying {
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.execution-step-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.execution-step-prompt {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.execution-prompt-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.execution-prompt-tag {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.execution-prompt-tag:hover {
+  border-color: #67e8f9;
+  color: #0f766e;
+}
+
+.execution-prompt-tag.user {
+  border-color: #a5f3fc;
+  background: #ecfeff;
+  color: #0e7490;
+}
+
+.execution-prompt-tag.system {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.execution-prompt-preview {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.execution-prompt-preview:hover {
+  border-color: #67e8f9;
+  background: #ecfeff;
+  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.08);
+}
+
+.execution-prompt-preview.loading {
+  opacity: 0.86;
+}
+
+.execution-prompt-preview.error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.execution-prompt-preview-label {
+  display: block;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.execution-prompt-preview-body {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.execution-prompt-preview-body.loading {
+  color: #94a3b8;
+}
+
+.execution-prompt-preview-body.error {
+  color: #be123c;
+}
+
+.execution-prompt-empty {
+  padding: 9px 10px;
+  border: 1px dashed #dbe4ee;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.88);
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.execution-step-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #64748b;
+}
+
+.trace-mini-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border-color: #dbeafe;
+  background: #ffffff;
+}
+
+.trace-mini-badge.phase-worker { color: #0e7490; background: #ecfeff; border-color: #a5f3fc; }
+.trace-mini-badge.phase-reflect { color: #4f46e5; background: #eef2ff; border-color: #c7d2fe; }
+.trace-mini-badge.phase-summary { color: #047857; background: #ecfdf5; border-color: #bbf7d0; }
+.trace-mini-badge.phase-global-review { color: #b45309; background: #fffbeb; border-color: #fde68a; }
+.trace-mini-badge.phase-result-review { color: #be123c; background: #fff1f2; border-color: #fecdd3; }
+.trace-mini-badge.phase-review { color: #6d28d9; background: #f5f3ff; border-color: #ddd6fe; }
+.trace-mini-badge.phase-other { color: #64748b; background: #f8fafc; border-color: #e2e8f0; }
+
+.session-trace-tags {
+  margin-top: 8px;
+}
+
+.call-stage-row {
+  margin-top: 10px;
 }
 
 .log-viewer {
@@ -1922,6 +2406,18 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
     justify-content: flex-start;
   }
 
+  .execution-trace-header {
+    flex-direction: column;
+  }
+
+  .execution-current-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .execution-cycle-grid {
+    grid-template-columns: 1fr;
+  }
+
   .call-status,
   .session-call-list .file-actions {
     width: 100%;
@@ -2071,6 +2567,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     _resultSelectionByRun: {} as Record<string, string[]>,
     _resultReportFeedbackByRun: {} as Record<string, { tone: 'success' | 'error' | 'info'; message: string }>,
     _resultReportBusy: false,
+    _promptPreviewLoadsByRun: {} as Record<string, Record<string, Promise<void>>>,
+    _promptPreviewErrorsByRun: {} as Record<string, Record<string, string>>,
     _handleClick: null as ((event: Event) => void) | null,
     _handleInput: null as ((event: Event) => void) | null,
     _handleChange: null as ((event: Event) => void) | null,
@@ -2127,6 +2625,90 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (!key) return;
       this._resultReportFeedbackByRun[key] = { tone, message };
       if (this.currentRunData?.name === key) this.renderResults(this.currentRunData);
+    },
+
+    getPromptPreviewLoadMap(runName = this.currentRun || '') {
+      const key = String(runName || '');
+      if (!this._promptPreviewLoadsByRun[key]) this._promptPreviewLoadsByRun[key] = {};
+      return this._promptPreviewLoadsByRun[key];
+    },
+
+    getPromptPreviewErrorMap(runName = this.currentRun || '') {
+      const key = String(runName || '');
+      if (!this._promptPreviewErrorsByRun[key]) this._promptPreviewErrorsByRun[key] = {};
+      return this._promptPreviewErrorsByRun[key];
+    },
+
+    summarizePromptPreview(content: string) {
+      const text = String(content || '')
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!text) return 'Prompt 文件为空';
+      return text.length > 220 ? `${text.slice(0, 220)}…` : text;
+    },
+
+    promptPreviewState(runName: string, path: string) {
+      const normalizedRun = String(runName || '');
+      const normalizedPath = String(path || '');
+      if (!normalizedRun || !normalizedPath) return { text: '', loading: false, error: '' };
+      const errors = this.getPromptPreviewErrorMap(normalizedRun);
+      if (errors[normalizedPath]) {
+        return { text: '提示词加载失败，点击查看原文件', loading: false, error: errors[normalizedPath] };
+      }
+      const fileText = this.getRunCache(normalizedRun).fileText[normalizedPath];
+      if (fileText !== undefined) {
+        return { text: this.summarizePromptPreview(String(fileText || '')), loading: false, error: '' };
+      }
+      const loading = !!this.getPromptPreviewLoadMap(normalizedRun)[normalizedPath];
+      return { text: loading ? '加载提示词预览…' : '点击查看 Prompt', loading, error: '' };
+    },
+
+    refreshPromptPreviewNodes(runName: string, path: string) {
+      const normalizedPath = String(path || '');
+      if (!normalizedPath) return;
+      const state = this.promptPreviewState(runName, normalizedPath);
+      this.$all('[data-prompt-preview-path]').forEach((el) => {
+        if (String(el.dataset.promptPreviewPath || '') !== normalizedPath) return;
+        el.textContent = state.text;
+        el.classList.toggle('loading', !!state.loading);
+        el.classList.toggle('error', !!state.error);
+      });
+      this.$all('[data-prompt-preview-button]').forEach((el) => {
+        if (String(el.dataset.promptPreviewButton || '') !== normalizedPath) return;
+        el.classList.toggle('loading', !!state.loading);
+        el.classList.toggle('error', !!state.error);
+      });
+    },
+
+    ensurePromptPreview(runName: string, path: string) {
+      const normalizedRun = String(runName || '');
+      const normalizedPath = String(path || '');
+      if (!normalizedRun || !normalizedPath) return;
+      const runCache = this.getRunCache(normalizedRun);
+      if (runCache.fileText[normalizedPath] !== undefined) {
+        this.refreshPromptPreviewNodes(normalizedRun, normalizedPath);
+        return;
+      }
+      const loadMap = this.getPromptPreviewLoadMap(normalizedRun);
+      if (loadMap[normalizedPath]) return;
+      delete this.getPromptPreviewErrorMap(normalizedRun)[normalizedPath];
+      loadMap[normalizedPath] = this.readRunFileText(normalizedRun, normalizedPath)
+        .then(() => {
+          delete this.getPromptPreviewErrorMap(normalizedRun)[normalizedPath];
+        })
+        .catch((error: any) => {
+          this.getPromptPreviewErrorMap(normalizedRun)[normalizedPath] = error?.message || 'prompt preview load failed';
+        })
+        .finally(() => {
+          delete loadMap[normalizedPath];
+          if (this.currentRun === normalizedRun && this.getActiveTab() === 'sessions') {
+            this.refreshPromptPreviewNodes(normalizedRun, normalizedPath);
+          }
+        });
     },
 
     activeResultFiles(data: DataflowFileserverRunOverview) {
@@ -3460,6 +4042,753 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return String(session.display_name || session.worker_id || basename || session.session_id || 'Session');
     },
 
+    tracePhaseMeta(phase: string) {
+      const key = String(phase || 'other').toLowerCase().replace(/-/g, '_');
+      const map: Record<string, { label: string; shortLabel: string; order: number; cls: string }> = {
+        worker: { label: 'Worker 漏洞挖掘', shortLabel: 'Worker', order: 10, cls: 'worker' },
+        reflect: { label: 'Worker 自审', shortLabel: '自审', order: 20, cls: 'reflect' },
+        summary: { label: '汇总/收敛', shortLabel: '汇总', order: 30, cls: 'summary' },
+        global_review: { label: '全局评审', shortLabel: '全局评审', order: 40, cls: 'global-review' },
+        result_review: { label: '结果评审', shortLabel: '结果评审', order: 50, cls: 'result-review' },
+        review: { label: '评审', shortLabel: '评审', order: 45, cls: 'review' },
+        other: { label: '其他调用', shortLabel: '其他', order: 90, cls: 'other' },
+      };
+      return map[key] || map.other;
+    },
+
+    normalizeTracePhase(...values: any[]) {
+      const text = values.map((value) => String(value || '')).join(' ').toLowerCase().replace(/-/g, '_');
+      if (text.includes('result_review') || (text.includes('result') && text.includes('review'))) return 'result_review';
+      if (text.includes('global_review') || (text.includes('global') && text.includes('review'))) return 'global_review';
+      if (text.includes('reflect') || text.includes('reflection')) return 'reflect';
+      if (text.includes('summary') || text.includes('summar')) return 'summary';
+      if (text.includes('worker') || text.includes('vuln_scan') || text.includes('vulnerability')) return 'worker';
+      if (text.includes('review')) return 'review';
+      return 'other';
+    },
+
+    extractTraceCycle(...values: any[]) {
+      const text = values.map((value) => String(value || '')).join(' ');
+      const patterns = [
+        /cycle[_\-\s]?(\d+)/i,
+        /cycle(\d+)/i,
+        /第\s*(\d+)\s*轮/,
+      ];
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match) {
+          const value = Number(match[1]);
+          if (Number.isFinite(value) && value > 0) return value;
+        }
+      }
+      return 0;
+    },
+
+    traceCycleLabel(cycle: number) {
+      const value = Number(cycle || 0);
+      return value > 0 ? `第 ${String(value).padStart(3, '0')} 轮` : '轮次未知';
+    },
+
+    traceEpoch(value: any) {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value > 1_000_000_000_000 ? value / 1000 : value;
+      }
+      const parsed = Date.parse(String(value || ''));
+      return Number.isFinite(parsed) ? parsed / 1000 : 0;
+    },
+
+    fmtTraceDuration(seconds: number) {
+      const value = Math.max(0, Math.floor(Number(seconds) || 0));
+      if (value <= 0) return '0s';
+      return this.fmtDuration(value);
+    },
+
+    traceTiming(record: Record<string, any> | null | undefined) {
+      const payload = record && typeof record === 'object' ? record : {};
+      const startedEpoch = this.traceEpoch(payload.started_epoch ?? payload.started_at);
+      const finishedEpoch = this.traceEpoch(payload.finished_epoch ?? payload.finished_at);
+      const durationSecondsRaw = Number(payload.duration_seconds);
+      const durationMsRaw = Number(payload.duration_ms);
+      const elapsedSecondsRaw = Number(payload.elapsed_seconds);
+      const status = String(payload.status || '').toLowerCase();
+      const running = !!payload.running || (
+        ['started', 'running'].includes(status)
+        && startedEpoch > 0
+        && finishedEpoch <= 0
+      );
+      let seconds = 0;
+      if (Number.isFinite(durationSecondsRaw) && durationSecondsRaw >= 0 && payload.duration_seconds !== undefined) {
+        seconds = Math.floor(durationSecondsRaw);
+      } else if (Number.isFinite(durationMsRaw) && durationMsRaw >= 0 && payload.duration_ms !== undefined) {
+        seconds = Math.floor(durationMsRaw / 1000);
+      } else if (finishedEpoch > 0 && startedEpoch > 0 && finishedEpoch >= startedEpoch) {
+        seconds = Math.floor(finishedEpoch - startedEpoch);
+      } else if (running && startedEpoch > 0) {
+        seconds = Math.floor(Date.now() / 1000 - startedEpoch);
+      } else if (running && Number.isFinite(elapsedSecondsRaw) && elapsedSecondsRaw >= 0 && payload.elapsed_seconds !== undefined) {
+        seconds = Math.floor(elapsedSecondsRaw);
+      }
+      const hasTiming = (
+        startedEpoch > 0
+        || finishedEpoch > 0
+        || payload.duration_seconds !== undefined
+        || payload.duration_ms !== undefined
+        || payload.elapsed_seconds !== undefined
+      );
+      return {
+        hasTiming,
+        running,
+        startedEpoch,
+        finishedEpoch,
+        seconds: Math.max(0, seconds),
+      };
+    },
+
+    traceDurationLabel(timing: Record<string, any> | null | undefined) {
+      if (!timing || !timing.hasTiming) return '-';
+      return `${timing.running ? '已运行' : '耗时'} ${this.fmtTraceDuration(Number(timing.seconds || 0))}`;
+    },
+
+    traceDurationLiveAttrs(timing: Record<string, any> | null | undefined) {
+      if (!timing || !timing.running || !timing.startedEpoch) return '';
+      return ` data-live-duration-start="${this.attr(String(timing.startedEpoch))}" data-live-duration-prefix="已运行 "`;
+    },
+
+    renderTraceDuration(timing: Record<string, any> | null | undefined, className = 'execution-step-duration') {
+      return `<span class="${this.attr(className)}"${this.traceDurationLiveAttrs(timing)}>${this.esc(this.traceDurationLabel(timing))}</span>`;
+    },
+
+    getRunCycleTimingMap() {
+      const data = (this.currentRunData || {}) as Record<string, any>;
+      const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
+      const timing = data.cycle_timing && typeof data.cycle_timing === 'object'
+        ? data.cycle_timing
+        : raw.cycle_timing;
+      return timing && typeof timing === 'object' ? timing : {};
+    },
+
+    getTraceCycleTiming(cycle: number, items: Record<string, any>[] = []) {
+      const key = String(Number(cycle || 0));
+      const timingMap = this.getRunCycleTimingMap();
+      const backendTiming = timingMap[key] || timingMap[String(cycle).padStart(3, '0')];
+      if (backendTiming && typeof backendTiming === 'object') {
+        return this.traceTiming(backendTiming);
+      }
+      const timings = items
+        .map((item: any) => item?.timing)
+        .filter((timing: any) => timing && timing.hasTiming && timing.startedEpoch > 0);
+      if (!timings.length) return this.traceTiming(null);
+      const startedEpoch = Math.min(...timings.map((timing: any) => Number(timing.startedEpoch || 0)).filter((value: number) => value > 0));
+      const running = timings.some((timing: any) => timing.running);
+      const finishedEpochs = timings.map((timing: any) => Number(timing.finishedEpoch || 0)).filter((value: number) => value > 0);
+      const finishedEpoch = finishedEpochs.length ? Math.max(...finishedEpochs) : 0;
+      const seconds = running
+        ? Math.floor(Date.now() / 1000 - startedEpoch)
+        : (finishedEpoch > 0 ? Math.floor(finishedEpoch - startedEpoch) : 0);
+      return {
+        hasTiming: true,
+        running,
+        startedEpoch,
+        finishedEpoch,
+        seconds: Math.max(0, seconds),
+      };
+    },
+
+    getRunCurrentStep() {
+      const data = (this.currentRunData || {}) as Record<string, any>;
+      const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
+      const step = data.current_step && typeof data.current_step === 'object'
+        ? data.current_step
+        : raw.current_step;
+      return step && typeof step === 'object' && Object.keys(step).length ? step : null;
+    },
+
+    getRunStepHistory() {
+      const data = (this.currentRunData || {}) as Record<string, any>;
+      const raw = data.raw && typeof data.raw === 'object' ? data.raw : {};
+      const history = Array.isArray(data.step_history) ? data.step_history : raw.step_history;
+      return Array.isArray(history) ? history.filter((item: any) => item && typeof item === 'object') : [];
+    },
+
+    humanizeTraceStepKey(phase: string, stepKey: string, extra: Record<string, any> = {}) {
+      const raw = String(stepKey || '').trim();
+      const normalizedPhase = this.normalizeTracePhase(phase, raw);
+      if (!raw) {
+        return this.tracePhaseMeta(normalizedPhase).label;
+      }
+      const parts = raw.split('::').map((part) => part.trim()).filter(Boolean);
+      if (normalizedPhase === 'worker') {
+        return raw === 'worker'
+          ? (extra.worker_prompt_kind === 'rework' ? 'Worker 返工分析' : 'Worker 主分析')
+          : raw;
+      }
+      if (normalizedPhase === 'reflect') {
+        const promptId = parts[1] || parts[0] || raw;
+        const passMatch = raw.match(/pass[_-]?(\d+)/i);
+        const passText = passMatch ? `Pass ${Number(passMatch[1])}` : '自审';
+        return `${passText} · ${promptId}`;
+      }
+      if (normalizedPhase === 'summary') {
+        return 'Summary 汇总与结果写入';
+      }
+      if (normalizedPhase === 'global_review') {
+        const advisor = parts[1] || raw.replace(/^global::?/i, '') || String(extra.advisor_instance_id || '');
+        const attempt = Number(extra.attempt || 0);
+        return `全局评审 · ${advisor || 'advisor'}${attempt > 1 ? ` · attempt ${attempt}` : ''}`;
+      }
+      if (normalizedPhase === 'result_review') {
+        const resultFile = parts[1] || String(extra.result_file || '');
+        const advisor = parts[2] || String(extra.advisor_instance_id || '');
+        const attempt = Number(extra.attempt || 0);
+        return `结果评审 · ${resultFile || 'result'}${advisor ? ` · ${advisor}` : ''}${attempt > 1 ? ` · attempt ${attempt}` : ''}`;
+      }
+      return raw.replace(/_/g, ' ');
+    },
+
+    inferTraceStepLabel(phase: string, text: string, call?: Record<string, any>) {
+      const normalizedPhase = this.normalizeTracePhase(phase, text);
+      const raw = String(text || '');
+      if (normalizedPhase === 'worker') {
+        const match = raw.match(/vuln[_-]?scan[_-]?(.+?)(?:[_-]?cycle|\bcycle|$)/i);
+        if (match && match[1]) {
+          return `漏洞挖掘 · ${match[1].replace(/[_-]+$/g, '').replace(/_/g, ' ')}`;
+        }
+        const turn = Number(call?.turn || 0);
+        if (turn === 1) return 'Worker 主分析';
+        if (turn > 1) return `Worker 续写 #${turn}`;
+        return '漏洞挖掘主阶段';
+      }
+      if (normalizedPhase === 'global_review') {
+        const match = raw.match(/global[_-]review[_-]cycle[_-]?\d+[_-]?(.+)?$/i);
+        return match && match[1] ? `全局评审 · ${match[1]}` : '全局评审';
+      }
+      if (normalizedPhase === 'result_review') {
+        const match = raw.match(/result[_-]review[_-]cycle[_-]?\d+[_-]?(.+)?$/i);
+        return match && match[1] ? `结果评审 · ${match[1]}` : '结果评审';
+      }
+      if (normalizedPhase === 'summary') return 'Summary 汇总与结果写入';
+      if (normalizedPhase === 'reflect') return 'Worker 自审';
+      return this.tracePhaseMeta(normalizedPhase).label;
+    },
+
+    getCheckpointExecutionMeta(step: Record<string, any>, index = 0) {
+      const extra = step.extra && typeof step.extra === 'object' ? step.extra : {};
+      const phase = this.normalizeTracePhase(step.phase, step.step_key);
+      const phaseMeta = this.tracePhaseMeta(phase);
+      const cycle = Number(step.cycle || this.extractTraceCycle(step.path, step.step_key) || 0);
+      const timestamp = this.traceEpoch(step.timestamp) || Number(step.mtime || 0);
+      const stepLabel = this.humanizeTraceStepKey(phase, String(step.step_key || ''), extra);
+      const status = String(step.status || 'unknown').toLowerCase();
+      const timing = this.traceTiming(step);
+      const detailParts = [
+        step.agent_id ? `agent=${step.agent_id}` : '',
+        step.session_id ? `session=${step.session_id}` : '',
+        extra.result_file ? `result=${extra.result_file}` : '',
+        step.detail ? String(step.detail).slice(0, 120) : '',
+      ].filter(Boolean);
+      return {
+        id: `checkpoint:${step.path || step.step_key || index}:${status}`,
+        kind: 'checkpoint',
+        cycle,
+        cycleLabel: this.traceCycleLabel(cycle),
+        phase,
+        phaseLabel: phaseMeta.label,
+        phaseShortLabel: phaseMeta.shortLabel,
+        phaseOrder: phaseMeta.order,
+        phaseClass: phaseMeta.cls,
+        stepKey: String(step.step_key || ''),
+        stepLabel,
+        status,
+        timestamp,
+        timestampLabel: timestamp ? this.fmtDate(timestamp) : String(step.timestamp || '-'),
+        sessionId: String(step.session_id || ''),
+        agentId: String(step.agent_id || ''),
+        callId: '',
+        turn: 0,
+        turnCount: Number(extra.turn_count || step.turn_count || 0),
+        model: '',
+        thinking: '',
+        detail: detailParts.join(' · '),
+        timing,
+        raw: step,
+      };
+    },
+
+    getSessionExecutionMeta(session: Record<string, any>) {
+      const name = this.getSessionDisplayName(session);
+      const text = [
+        name,
+        session.session_id,
+        session.worker_id,
+        session.stage_group,
+        session.role_name,
+        session.jsonl_path,
+      ].join(' ');
+      const phase = this.normalizeTracePhase(text);
+      const phaseMeta = this.tracePhaseMeta(phase);
+      const cycle = this.extractTraceCycle(text);
+      const stepLabel = this.inferTraceStepLabel(phase, text);
+      return {
+        id: `session:${session.session_id || session.jsonl_path || name}`,
+        kind: 'session',
+        cycle,
+        cycleLabel: this.traceCycleLabel(cycle),
+        phase,
+        phaseLabel: phaseMeta.label,
+        phaseShortLabel: phaseMeta.shortLabel,
+        phaseOrder: phaseMeta.order,
+        phaseClass: phaseMeta.cls,
+        stepLabel,
+        status: 'recorded',
+        timestamp: Number(session.mtime || 0),
+        timestampLabel: this.fmtDate(Number(session.mtime || 0)),
+        sessionId: String(session.session_id || ''),
+        agentId: String(session.worker_id || session.role_name || ''),
+        callId: '',
+        turn: 0,
+        model: String(session.model || session.raw_model || ''),
+        thinking: String(session.thinking || ''),
+        detail: String(session.jsonl_path || session.session_id || ''),
+        timing: this.traceTiming(null),
+        raw: session,
+      };
+    },
+
+    getCallExecutionMeta(session: Record<string, any>, call: Record<string, any>, options: Record<string, any> = {}) {
+      const sessionMeta = this.getSessionExecutionMeta(session);
+      const currentStep = this.getRunCurrentStep();
+      const sessionId = String(session.session_id || call.session_id || call.effective_session_id || '');
+      let phase = sessionMeta.phase;
+      let stepLabel = sessionMeta.stepLabel;
+      if (
+        options.isLatestInSession
+        && this.isRunActive()
+        && currentStep
+        && String(currentStep.session_id || '') === sessionId
+      ) {
+        const checkpointMeta = this.getCheckpointExecutionMeta(currentStep);
+        phase = checkpointMeta.phase;
+        stepLabel = checkpointMeta.stepLabel;
+      } else if (phase === 'worker') {
+        stepLabel = this.inferTraceStepLabel(phase, `${sessionMeta.detail} ${sessionMeta.sessionId}`, call);
+      } else if (Number(call.turn || 0) > 1 && (phase === 'global_review' || phase === 'result_review')) {
+        stepLabel = `${stepLabel} · schema 修复/续问 #${Number(call.turn || 0)}`;
+      }
+      const phaseMeta = this.tracePhaseMeta(phase);
+      const cycle = sessionMeta.cycle || this.extractTraceCycle(sessionId, call.call_id, call.call_dir);
+      const status = String(call.status || 'unknown').toLowerCase();
+      const timestamp = Number(call.mtime || session.mtime || 0) + (Number(call.turn || 0) / 100000);
+      const files = call.files && typeof call.files === 'object' ? call.files : {};
+      return {
+        ...sessionMeta,
+        id: `call:${sessionId}:${call.call_id || call.turn || ''}`,
+        kind: 'call',
+        cycle,
+        cycleLabel: this.traceCycleLabel(cycle),
+        phase,
+        phaseLabel: phaseMeta.label,
+        phaseShortLabel: phaseMeta.shortLabel,
+        phaseOrder: phaseMeta.order,
+        phaseClass: phaseMeta.cls,
+        stepLabel,
+        status,
+        timestamp,
+        timestampLabel: this.fmtDate(Number(session.mtime || 0)),
+        sessionId,
+        agentId: String(call.agent_id || sessionMeta.agentId || ''),
+        callId: String(call.call_id || ''),
+        turn: Number(call.turn || 0),
+        detail: String(call.call_dir || call.effective_session_id || sessionId || ''),
+        promptUserPath: String(files.user_prompt || ''),
+        promptSystemPath: String(files.system_prompt || ''),
+        promptRequestPath: String(files.request || ''),
+        raw: call,
+      };
+    },
+
+    promptFilesForExecutionItem(item: Record<string, any>) {
+      const files: Array<{ label: string; path: string; kind: 'user' | 'system' }> = [];
+      const userPath = String(item.promptUserPath || '').trim();
+      const systemPath = String(item.promptSystemPath || '').trim();
+      if (userPath) files.push({ label: 'Prompt', path: userPath, kind: 'user' });
+      if (systemPath && systemPath !== userPath) files.push({ label: 'System', path: systemPath, kind: 'system' });
+      return files;
+    },
+
+    primaryPromptFileForExecutionItem(item: Record<string, any>) {
+      const files = this.promptFilesForExecutionItem(item);
+      return files.find((entry) => entry.kind === 'user') || files[0] || null;
+    },
+
+    attachPromptInfoToExecutionItem(item: Record<string, any>, source: Record<string, any> | null | undefined) {
+      if (!item || !source) return item;
+      const nextUserPath = String(item.promptUserPath || source.promptUserPath || '').trim();
+      const nextSystemPath = String(item.promptSystemPath || source.promptSystemPath || '').trim();
+      const nextRequestPath = String(item.promptRequestPath || source.promptRequestPath || '').trim();
+      if (!nextUserPath && !nextSystemPath && !nextRequestPath) return item;
+      return {
+        ...item,
+        promptUserPath: nextUserPath,
+        promptSystemPath: nextSystemPath,
+        promptRequestPath: nextRequestPath,
+      };
+    },
+
+    executionItemTurnCount(item: Record<string, any>) {
+      const raw = item && typeof item === 'object' ? item.raw : null;
+      const extra = raw && raw.extra && typeof raw.extra === 'object' ? raw.extra : {};
+      const value = Number(item?.turnCount ?? raw?.turn_count ?? extra?.turn_count ?? 0);
+      return Number.isFinite(value) && value > 0 ? value : 0;
+    },
+
+    bestPromptSourceForExecutionItem(
+      item: Record<string, any>,
+      indexes: {
+        bySessionId: Map<string, Record<string, any>>;
+        bySessionCalls: Map<string, Record<string, any>[]>;
+        byCyclePhaseAgent: Map<string, Record<string, any>>;
+        byCyclePhase: Map<string, Record<string, any>>;
+      },
+      options: { turnFloor?: number } = {}
+    ) {
+      const sessionId = String(item.sessionId || '').trim();
+      const turnFloor = Math.max(0, Number(options.turnFloor || 0));
+      const turnCount = this.executionItemTurnCount(item);
+      if (sessionId) {
+        const sessionCalls = indexes.bySessionCalls.get(sessionId) || [];
+        if (sessionCalls.length) {
+          const inRange = sessionCalls.filter((call: any) => {
+            const turn = Number(call.turn || 0);
+            if (!Number.isFinite(turn) || turn <= 0) return false;
+            if (turnCount > 0) return turn > turnFloor && turn <= turnCount;
+            return turn > turnFloor;
+          });
+          const preferred = inRange.find((call: any) => call.promptUserPath || call.promptSystemPath)
+            || inRange[0]
+            || (turnCount > 0 ? sessionCalls.find((call: any) => Number(call.turn || 0) === turnCount && (call.promptUserPath || call.promptSystemPath)) : null)
+            || sessionCalls.find((call: any) => (call.promptUserPath || call.promptSystemPath))
+            || sessionCalls[0];
+          if (preferred) return preferred;
+        }
+        if (indexes.bySessionId.has(sessionId)) {
+          return indexes.bySessionId.get(sessionId) || null;
+        }
+      }
+      const cycle = Number(item.cycle || 0);
+      const phase = String(item.phase || '').trim();
+      const agentId = String(item.agentId || '').trim();
+      const cyclePhaseAgentKey = `${cycle}::${phase}::${agentId}`;
+      if (cycle > 0 && phase && agentId && indexes.byCyclePhaseAgent.has(cyclePhaseAgentKey)) {
+        return indexes.byCyclePhaseAgent.get(cyclePhaseAgentKey) || null;
+      }
+      const cyclePhaseKey = `${cycle}::${phase}`;
+      if (cycle > 0 && phase && indexes.byCyclePhase.has(cyclePhaseKey)) {
+        return indexes.byCyclePhase.get(cyclePhaseKey) || null;
+      }
+      return null;
+    },
+
+    renderExecutionPromptPreview(item: Record<string, any>, runName = this.currentRun || '') {
+      const files = this.promptFilesForExecutionItem(item);
+      if (!files.length) {
+        return '<div class="execution-prompt-empty">未记录 Prompt</div>';
+      }
+      const primary = this.primaryPromptFileForExecutionItem(item);
+      if (!primary) {
+        return '<div class="execution-prompt-empty">未记录 Prompt</div>';
+      }
+      this.ensurePromptPreview(String(runName || ''), primary.path);
+      const state = this.promptPreviewState(String(runName || ''), primary.path);
+      const tagsHtml = files.map((file) => `
+        <button type="button" class="execution-prompt-tag ${this.attr(file.kind)}" data-action="open-file" data-run="${this.attr(runName)}" data-path="${this.attr(file.path)}">
+          ${this.esc(file.label)}
+        </button>
+      `).join('');
+      return `
+        <div class="execution-step-prompt">
+          <div class="execution-prompt-tags">${tagsHtml}</div>
+          <button
+            type="button"
+            class="execution-prompt-preview${state.loading ? ' loading' : ''}${state.error ? ' error' : ''}"
+            data-action="open-file"
+            data-run="${this.attr(runName)}"
+            data-path="${this.attr(primary.path)}"
+            data-prompt-preview-button="${this.attr(primary.path)}"
+          >
+            <span class="execution-prompt-preview-label">${this.esc(primary.label)} 预览</span>
+            <span class="execution-prompt-preview-body${state.loading ? ' loading' : ''}${state.error ? ' error' : ''}" data-prompt-preview-path="${this.attr(primary.path)}">${this.esc(state.text)}</span>
+          </button>
+        </div>
+      `;
+    },
+
+    buildExecutionTraceModel(
+      sessions: DataflowFileserverRunSession[],
+      jsonlSessions: DataflowFileserverRunSession[],
+      callSessions: DataflowFileserverRunSession[],
+    ) {
+      const stepHistory = this.getRunStepHistory();
+      const currentStep = this.getRunCurrentStep();
+      let checkpointItems = stepHistory.map((step: any, index: number) => this.getCheckpointExecutionMeta(step, index));
+      if (currentStep) {
+        const currentMeta = this.getCheckpointExecutionMeta(currentStep, checkpointItems.length);
+        const exists = checkpointItems.some((item: any) =>
+          item.raw?.path === currentMeta.raw?.path
+          && item.raw?.step_key === currentMeta.raw?.step_key
+          && item.status === currentMeta.status
+        );
+        if (!exists) checkpointItems.push(currentMeta);
+      }
+      let sessionItems = jsonlSessions.map((session: any) => this.getSessionExecutionMeta(session));
+      const callItems = callSessions.flatMap((session: any) => {
+        const calls = Array.isArray(session.calls) ? session.calls : [];
+        const latestTurn = calls.reduce((max: number, call: any) => Math.max(max, Number(call.turn || 0)), 0);
+        return calls.map((call: any) =>
+          this.getCallExecutionMeta(session, call, { isLatestInSession: Number(call.turn || 0) === latestTurn })
+        );
+      });
+
+      const callIndexes = {
+        bySessionId: new Map<string, Record<string, any>>(),
+        bySessionCalls: new Map<string, Record<string, any>[]>(),
+        byCyclePhaseAgent: new Map<string, Record<string, any>>(),
+        byCyclePhase: new Map<string, Record<string, any>>(),
+      };
+      const upsertPromptSource = (map: Map<string, Record<string, any>>, key: string, value: Record<string, any>) => {
+        if (!key) return;
+        const existing = map.get(key);
+        if (!existing || Number(value.timestamp || 0) >= Number(existing.timestamp || 0)) {
+          map.set(key, value);
+        }
+      };
+      callItems.forEach((item: any) => {
+        if (!item) return;
+        if (item.sessionId) {
+          if (!callIndexes.bySessionCalls.has(String(item.sessionId))) {
+            callIndexes.bySessionCalls.set(String(item.sessionId), []);
+          }
+          callIndexes.bySessionCalls.get(String(item.sessionId))?.push(item);
+          upsertPromptSource(callIndexes.bySessionId, String(item.sessionId), item);
+        }
+        if (item.cycle && item.phase && item.agentId) {
+          upsertPromptSource(callIndexes.byCyclePhaseAgent, `${item.cycle}::${item.phase}::${item.agentId}`, item);
+        }
+        if (item.cycle && item.phase) {
+          upsertPromptSource(callIndexes.byCyclePhase, `${item.cycle}::${item.phase}`, item);
+        }
+      });
+      callIndexes.bySessionCalls.forEach((items, key) => {
+        items.sort((a: any, b: any) => {
+          const turnDelta = Number(a.turn || 0) - Number(b.turn || 0);
+          if (turnDelta !== 0) return turnDelta;
+          return Number(a.timestamp || 0) - Number(b.timestamp || 0);
+        });
+        const preferred = items.find((entry: any) => entry.promptUserPath || entry.promptSystemPath) || items[0] || null;
+        if (preferred) callIndexes.bySessionId.set(key, preferred);
+      });
+      const orderedCheckpointItems = checkpointItems.slice().sort((a: any, b: any) => {
+        if (a.cycle !== b.cycle) return a.cycle - b.cycle;
+        if (a.phaseOrder !== b.phaseOrder) return a.phaseOrder - b.phaseOrder;
+        return (a.timestamp || 0) - (b.timestamp || 0);
+      });
+      const turnFloorBySession = new Map<string, number>();
+      const promptSourceByCheckpointId = new Map<string, Record<string, any>>();
+      orderedCheckpointItems.forEach((item: any) => {
+        const sessionId = String(item.sessionId || '').trim();
+        const turnFloor = sessionId ? Number(turnFloorBySession.get(sessionId) || 0) : 0;
+        const source = this.bestPromptSourceForExecutionItem(item, callIndexes, { turnFloor });
+        if (source) promptSourceByCheckpointId.set(String(item.id), source);
+        const turnCount = this.executionItemTurnCount(item);
+        if (sessionId && turnCount > turnFloor) {
+          turnFloorBySession.set(sessionId, turnCount);
+        }
+      });
+      checkpointItems = checkpointItems.map((item: any) => this.attachPromptInfoToExecutionItem(item, promptSourceByCheckpointId.get(String(item.id)) || null));
+      sessionItems = sessionItems.map((item: any) => this.attachPromptInfoToExecutionItem(item, this.bestPromptSourceForExecutionItem(item, callIndexes)));
+
+      const timelineItems = (checkpointItems.length ? checkpointItems : (callItems.length ? callItems : sessionItems))
+        .filter((item: any) => item && (item.cycle || item.phase || item.stepLabel));
+      const sortedItems = timelineItems.slice().sort((a: any, b: any) => {
+        if (a.cycle !== b.cycle) return a.cycle - b.cycle;
+        if (a.phaseOrder !== b.phaseOrder) return a.phaseOrder - b.phaseOrder;
+        return (a.timestamp || 0) - (b.timestamp || 0);
+      });
+      const latestByTime = [...checkpointItems, ...callItems, ...sessionItems]
+        .filter(Boolean)
+        .sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0))[0] || null;
+      const currentBase = currentStep ? this.getCheckpointExecutionMeta(currentStep, checkpointItems.length + 1) : latestByTime;
+      const currentSessionId = String(currentBase?.sessionId || '').trim();
+      const currentTurnFloor = currentSessionId ? Number(turnFloorBySession.get(currentSessionId) || 0) : 0;
+      const current = currentBase
+        ? this.attachPromptInfoToExecutionItem(
+            currentBase,
+            promptSourceByCheckpointId.get(String(currentBase.id))
+              || this.bestPromptSourceForExecutionItem(currentBase, callIndexes, { turnFloor: currentTurnFloor })
+          )
+        : null;
+      const groups = new Map<string, any>();
+      for (const item of sortedItems) {
+        const key = item.cycle > 0 ? String(item.cycle) : 'unknown';
+        if (!groups.has(key)) {
+          groups.set(key, {
+            key,
+            cycle: item.cycle || 0,
+            cycleLabel: item.cycleLabel,
+            phases: new Map<string, any[]>(),
+            items: [],
+          });
+        }
+        const group = groups.get(key);
+        group.items.push(item);
+        const phaseKey = item.phase || 'other';
+        if (!group.phases.has(phaseKey)) group.phases.set(phaseKey, []);
+        group.phases.get(phaseKey).push(item);
+      }
+      const cycles = Array.from(groups.values()).sort((a: any, b: any) => {
+        if (!a.cycle && b.cycle) return 1;
+        if (a.cycle && !b.cycle) return -1;
+        return a.cycle - b.cycle;
+      });
+      cycles.forEach((cycle: any) => {
+        cycle.timing = this.getTraceCycleTiming(cycle.cycle, cycle.items);
+      });
+      if (current) {
+        const currentCycle = cycles.find((cycle: any) => Number(cycle.cycle || 0) === Number(current.cycle || 0));
+        current.cycleTiming = currentCycle?.timing || this.getTraceCycleTiming(current.cycle, [current]);
+      }
+      return {
+        current,
+        cycles,
+        items: sortedItems,
+        checkpointItems,
+        callItems,
+        sessionItems,
+        hasCheckpoint: checkpointItems.length > 0,
+        sessionCount: sessions.length,
+      };
+    },
+
+    renderExecutionTraceMiniBadges(meta: Record<string, any>, options: Record<string, any> = {}) {
+      const compact = !!options.compact;
+      const step = compact && meta.stepLabel && meta.stepLabel.length > 28
+        ? meta.stepLabel.slice(0, 28) + '...'
+        : meta.stepLabel;
+      return `
+        <span class="trace-mini-badge phase-${this.attr(meta.phaseClass || 'other')}">${this.esc(meta.cycleLabel || '轮次未知')}</span>
+        <span class="trace-mini-badge phase-${this.attr(meta.phaseClass || 'other')}">${this.esc(meta.phaseShortLabel || meta.phaseLabel || '阶段未知')}</span>
+        ${step ? `<span class="trace-mini-badge trace-step-mini" title="${this.attr(meta.stepLabel)}">${this.esc(step)}</span>` : ''}
+      `;
+    },
+
+    renderExecutionTraceOverview(
+      sessions: DataflowFileserverRunSession[],
+      jsonlSessions: DataflowFileserverRunSession[],
+      callSessions: DataflowFileserverRunSession[],
+    ) {
+      const model = this.buildExecutionTraceModel(sessions, jsonlSessions, callSessions);
+      if (!model.current && !model.items.length) return '';
+      const current = model.current;
+      const sourceLabel = model.hasCheckpoint ? 'Checkpoint 精确定位' : 'Session / Call 推断';
+      const currentStatus = current?.status || (this.isRunActive() ? 'running' : 'recorded');
+      const currentTone = String(currentStatus || '').replace(/_/g, '-');
+      const cycleCards = model.cycles.slice(-4).map((cycle: any) => {
+        const phaseEntries = Array.from(cycle.phases.entries()).sort((a: any, b: any) => {
+          return this.tracePhaseMeta(a[0]).order - this.tracePhaseMeta(b[0]).order;
+        });
+        const phasesHtml = phaseEntries.map(([phaseKey, items]: any) => {
+          const phaseMeta = this.tracePhaseMeta(phaseKey);
+          const visibleItems = items.slice(-5);
+          const hiddenCount = Math.max(0, items.length - visibleItems.length);
+          const pills = visibleItems.map((item: any) => {
+            const isCurrent = current && item.id === current.id;
+            const statusClass = String(item.status || 'recorded').replace(/_/g, '-');
+            const durationLabel = this.traceDurationLabel(item.timing);
+            const title = [item.stepLabel, durationLabel, item.detail, item.timestampLabel].filter(Boolean).join(' · ');
+            return `
+              <div class="execution-step-pill status-${this.attr(statusClass)} ${isCurrent ? 'current' : ''}" title="${this.attr(title)}">
+                <div class="execution-step-head">
+                  <div class="execution-step-main">
+                    <span class="execution-step-dot"></span>
+                    <span class="execution-step-label">${this.esc(item.stepLabel || phaseMeta.shortLabel)}</span>
+                  </div>
+                  ${this.renderTraceDuration(item.timing)}
+                </div>
+                ${this.renderExecutionPromptPreview(item)}
+              </div>
+            `;
+          }).join('');
+          return `
+            <div class="execution-phase-lane phase-${this.attr(phaseMeta.cls)}">
+              <div class="execution-phase-head">
+                <span>${this.esc(phaseMeta.label)}</span>
+                <span>${items.length}</span>
+              </div>
+              <div class="execution-step-list">
+                ${pills}
+                ${hiddenCount > 0 ? `<span class="execution-step-more">+${hiddenCount}</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        return `
+          <div class="execution-cycle-card">
+            <div class="execution-cycle-head">
+              <span class="execution-cycle-title">${this.esc(cycle.cycleLabel)} <span class="execution-cycle-duration-separator">·</span> ${this.renderTraceDuration(cycle.timing, 'execution-cycle-duration')}</span>
+              <span>${cycle.items.length} 个节点</span>
+            </div>
+            <div class="execution-phase-stack">${phasesHtml}</div>
+          </div>
+        `;
+      }).join('');
+      const currentDetailRows = current ? [
+        { label: '当前轮次', value: current.cycleLabel || '轮次未知' },
+        { label: '当前阶段', value: current.phaseLabel || '阶段未知' },
+        { label: '当前步骤', value: current.stepLabel || '-' },
+        { label: '节点耗时', html: this.renderTraceDuration(current.timing, 'execution-current-duration') },
+        { label: '本轮耗时', html: this.renderTraceDuration(current.cycleTiming, 'execution-current-duration') },
+        { label: '最近调用', value: current.callId ? `turn ${current.turn || '-'} · ${current.callId}` : (current.sessionId || '-') },
+        { label: 'Agent / 模型', value: [current.agentId, current.model].filter(Boolean).join(' / ') || '-' },
+        { label: '最后活动', value: current.timestampLabel || '-' },
+      ] : [];
+      return `
+        <div class="card execution-trace-card">
+          <div class="execution-trace-header">
+            <div>
+              <div class="card-title">调用轨迹</div>
+              <div class="execution-trace-title">执行定位</div>
+              <div class="execution-trace-subtitle">按 checkpoint、session 与 runtime call 聚合，优先显示当前轮次、Worker/评审阶段、具体 step，并将对应 Prompt 直接展示在节点卡片中。</div>
+            </div>
+            <div class="execution-trace-badges">
+              <span class="badge badge-mode">${this.esc(sourceLabel)}</span>
+              <span class="badge badge-${this.attr(String(currentStatus || 'unknown'))}">${this.esc(this.statusLabel(String(currentStatus || 'unknown')))}</span>
+            </div>
+          </div>
+          ${current ? `
+            <div class="execution-current-card phase-${this.attr(current.phaseClass || 'other')} status-${this.attr(currentTone)}">
+              <div class="execution-current-beacon">${this.isRunActive() ? '当前执行点' : '最近执行点'}</div>
+              <div class="execution-current-main">${this.esc(current.cycleLabel || '轮次未知')} · ${this.esc(current.phaseLabel || '阶段未知')}</div>
+              <div class="execution-current-step">${this.esc(current.stepLabel || '-')}</div>
+              ${current.detail ? `<div class="execution-current-detail">${this.esc(current.detail)}</div>` : ''}
+              <div class="execution-current-grid">
+                ${currentDetailRows.map((row: any) => `
+                  <div class="execution-current-cell">
+                    <span>${this.esc(row.label)}</span>
+                    <strong>${row.html || this.esc(row.value)}</strong>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          ${cycleCards ? `
+            <div class="execution-cycle-map">
+              <div class="execution-map-title">最近轮次阶段图</div>
+              <div class="execution-cycle-grid">${cycleCards}</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    },
+
     getSelectedSession() {
       const selectedPath = this.sessionBrowser.selectedPath;
       if (!selectedPath) return null;
@@ -3495,14 +4824,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
     renderSessions(sessions: DataflowFileserverRunSession[]) {
       const el = this.$('sessionsContainer');
       if (!el) return;
-      if (!sessions.length) {
+      const safeSessions = Array.isArray(sessions) ? sessions : [];
+      const jsonlSessions = this.getJsonlSessions(safeSessions);
+      const callSessions = safeSessions.filter((s: any) => Array.isArray(s.calls) && s.calls.length > 0);
+      const traceHtml = this.renderExecutionTraceOverview(safeSessions, jsonlSessions, callSessions);
+      if (!safeSessions.length) {
         this.resetSessionBrowser('');
-        el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+        el.innerHTML = traceHtml
+          ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录，执行定位会在 checkpoint 或 runtime call 产生后继续更新</div></div>`
+          : '<div class="empty-state">暂无会话记录</div>';
         return;
       }
 
-      const jsonlSessions = this.getJsonlSessions(sessions);
-      const callSessions = sessions.filter((s: any) => Array.isArray(s.calls) && s.calls.length > 0);
       const selectedPath = this.selectSessionPathForRender(jsonlSessions);
       const selectedChanged = selectedPath !== this.sessionBrowser.selectedPath || this.sessionBrowser.selectedRun !== this.currentRun;
       if (selectedChanged) {
@@ -3510,21 +4843,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       }
 
       if (jsonlSessions.length) {
-        const callsHtml = callSessions.length ? `
-          <div class="card calls-panel">
-            <div class="card-title">CALLS 调用轨迹</div>
-            <div class="text-muted" style="font-size:12px;margin:4px 0 12px">按 runtime call 聚合展示 prompt、响应、stdout/stderr 与重试/截断状态。</div>
-            ${this.renderCallSessions(callSessions)}
-          </div>
-        ` : '';
         const navHtml = jsonlSessions.map((s: any) => {
           const path = this.getSessionPath(s);
           const selected = path === selectedPath;
           const warnings = Array.isArray(s.warnings) ? s.warnings : [];
+          const executionMeta = this.getSessionExecutionMeta(s);
           return `
             <button class="session-nav-item ${selected ? 'active' : ''}" type="button" data-action="select-session" data-path="${this.attr(path)}">
               <div class="session-nav-title">${this.esc(this.getSessionDisplayName(s))}</div>
               <div class="session-nav-path">${this.esc(path)}</div>
+              <div class="session-trace-tags">${this.renderExecutionTraceMiniBadges(executionMeta, { compact: true })}</div>
               <div class="session-nav-meta">
                 <span>${this.fmtSize(Number(s.size || 0))}</span>
                 <span>事件 ${Number(s.event_count || 0)}</span>
@@ -3537,6 +4865,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         }).join('');
         el.innerHTML = `
           <div class="session-content-stack">
+            ${traceHtml}
             <div class="session-browser-shell">
               <div class="card session-browser-nav">
                 <div class="session-nav-header">
@@ -3550,7 +4879,6 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               </div>
               <div id="sessionViewerPane" class="card session-viewer-pane">${this.renderSessionViewerPane()}</div>
             </div>
-            ${callsHtml}
           </div>
         `;
         if (selectedPath && !this.sessionBrowser.loading && !this.sessionBrowser.data) {
@@ -3567,24 +4895,24 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
       if (callSessions.length) {
         this.resetSessionBrowser('');
-        el.innerHTML = `
-          <div class="card calls-panel">
-            <div class="card-title">CALLS 调用轨迹</div>
-            <div class="text-muted" style="font-size:12px;margin:4px 0 12px">当前 Run 没有 JSONL 对话文件，仅发现 runtime calls 记录。</div>
-            ${this.renderCallSessions(callSessions)}
-          </div>
-        `;
+        el.innerHTML = traceHtml
+          ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">当前 Run 暂无 JSONL 会话，Prompt 已整合到最近轮次阶段图中。</div></div>`
+          : '<div class="empty-state">当前 Run 暂无 JSONL 会话记录</div>';
         return;
       }
 
       this.resetSessionBrowser('');
-      el.innerHTML = '<div class="empty-state">暂无会话记录</div>';
+      el.innerHTML = traceHtml
+        ? `<div class="session-content-stack">${traceHtml}<div class="empty-state">暂无会话记录</div></div>`
+        : '<div class="empty-state">暂无会话记录</div>';
     },
 
     renderCallSessions(callSessions: DataflowFileserverRunSession[]) {
       return callSessions.map((s: any) => {
         const calls = Array.isArray(s.calls) ? s.calls : [];
+        const latestTurn = calls.reduce((max: number, c: any) => Math.max(max, Number(c.turn || 0)), 0);
         const callHtml = calls.map((c: any) => {
+          const executionMeta = this.getCallExecutionMeta(s, c, { isLatestInSession: Number(c.turn || 0) === latestTurn });
           const attempts = Array.isArray(c.attempts) ? c.attempts : [];
           const attemptCount = attempts.length;
           const timeoutFailures = Number(c.timeout_failures || 0);
@@ -3633,6 +4961,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                 <span class="call-size">Output ${this.fmtSize(outputBytes)}</span>
                 <span class="call-duration">${c.duration_ms ? (Number(c.duration_ms) / 1000).toFixed(1) + 's' : '-'}</span>
               </div>
+              <div class="call-stage-row">${this.renderExecutionTraceMiniBadges(executionMeta)}</div>
               <div class="call-files-row">
                 <span class="call-files-label">Files</span>
                 <div class="file-actions">${fileActions || '<span class="text-muted">无关联文件</span>'}</div>
@@ -4793,7 +6122,19 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         this._durationSeconds += 1;
         const el = this.$('runDuration');
         if (el) el.textContent = '⏳ ' + this.fmtDuration(this._durationSeconds);
+        this._updateLiveDurationNodes();
       }, 1000);
+    },
+
+    _updateLiveDurationNodes() {
+      const nowEpoch = Date.now() / 1000;
+      this.$all('[data-live-duration-start]').forEach((el) => {
+        const startedEpoch = Number(el.dataset.liveDurationStart || 0);
+        if (!Number.isFinite(startedEpoch) || startedEpoch <= 0) return;
+        const prefix = el.dataset.liveDurationPrefix || '';
+        const seconds = Math.max(0, Math.floor(nowEpoch - startedEpoch));
+        el.textContent = prefix + this.fmtTraceDuration(seconds);
+      });
     },
 
     fmtDuration(seconds: number) {
@@ -4904,11 +6245,47 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         alert('追加评审轮次必须是大于 0 的整数');
         return;
       }
-      if (!window.confirm(`确认重试 Run ${this.currentRun}，追加 ${extraCycles} 个评审轮次？`)) return;
+
+      let preview: any = null;
+      try {
+        preview = await previewDataflowFileserverRunRetry(projectId, this.runsRootPath, this.currentRun, { extra_cycles: extraCycles });
+      } catch (error: any) {
+        alert(error?.message || '生成断点续跑预览失败，暂不能重试');
+        return;
+      }
+      if (!preview?.can_retry) {
+        alert(preview?.reason || '后端尚未确认该 Run 可重试，请刷新后再试。');
+        return;
+      }
+
+      const preflight = preview.resume_preflight && typeof preview.resume_preflight === 'object' ? preview.resume_preflight : {};
+      const target = preflight.resume_target_node && typeof preflight.resume_target_node === 'object' ? preflight.resume_target_node : {};
+      const checkpoint = preflight.step_checkpoint && typeof preflight.step_checkpoint === 'object' ? preflight.step_checkpoint : {};
+      const targetCycle = target.cycle || checkpoint.cycle || '-';
+      const targetPhase = target.phase || checkpoint.phase || preflight.resume_state || '-';
+      const targetStep = target.step_key || checkpoint.step_key || '-';
+      const targetKind = target.node_kind || '-';
+      const policy = preflight.node_resume_policy || 'rerun_current_node';
+      const commandDisplay = String(preflight.command_display || '').trim();
+      const confirmLines = [
+        `确认重试 Run ${this.currentRun}？`,
+        '',
+        '后端将执行结点级断点续跑，而不是从头开始：',
+        `- 恢复结点：Cycle ${targetCycle} / ${targetPhase} / ${targetStep}`,
+        `- 结点类型：${targetKind}`,
+        `- 策略：${policy === 'rerun_current_node' ? '重跑当前未完成结点，跳过此前已完成结点' : policy}`,
+        `- 已完成轮次：${preflight.completed_cycles ?? '-'}`,
+        `- 追加轮次：${extraCycles}`,
+        `- 总轮次上限：${preflight.resume_total_cycle_limit ?? '-'}`,
+        commandDisplay ? `- 命令：${commandDisplay}` : '',
+      ].filter(Boolean);
+      if (!window.confirm(confirmLines.join('\n'))) return;
       this.setMutationBusy('retry');
       try {
         const result = await retryDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun, { extra_cycles: extraCycles });
-        alert(result.message || '重试已提交');
+        const resultPreflight = result.resume_preflight || preflight;
+        const resultTarget = resultPreflight.resume_target_node || target;
+        alert(result.message || `重试已提交，将从 ${resultTarget.phase || targetPhase}/${resultTarget.step_key || targetStep} 继续`);
         await this.reloadCurrentRunAfterMutation();
       } catch (error: any) {
         alert(error?.message || '重试 Run 失败');
@@ -4978,6 +6355,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         succeeded: '成功',
         failed: '失败',
         running: '运行中',
+        started: '进行中',
+        recorded: '已记录',
+        retrying: '重试中',
+        soft_failed: '软失败',
         passed: '通过',
         pending: '等待',
         queued: '排队',
