@@ -92,7 +92,7 @@ const TASK_PURPOSE_META: Record<string, { label: string; className: string }> = 
 };
 
 const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
-  model: 'icsl/zai-org/GLM-5',
+  model: 'my_llm/MiniMax/MiniMax-M2.5',
   review_profile: 'balanced',
   max_review_cycles: 6,
   worker_timeout: 3600,

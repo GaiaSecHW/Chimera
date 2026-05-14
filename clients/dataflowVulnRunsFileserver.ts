@@ -6,6 +6,7 @@ import {
   DataflowRunMutationResponse,
   DataflowRunResolve,
   DataflowRunRetryPayload,
+  DataflowRunRetryPreview,
   DataflowRunSession,
   DataflowRunSummary,
   DataflowVulnReportResponse,
@@ -181,6 +182,16 @@ export const cancelDataflowFileserverRun = async (
   const payload = await dataflowVulnScannerApi.cancelRun(resolved.run_id);
   clearResolveCache(projectId, rootPath, runName);
   return payload;
+};
+
+export const previewDataflowFileserverRunRetry = async (
+  projectId: string,
+  rootPath: string,
+  runName: string,
+  retryPayload: DataflowRunRetryPayload = {}
+): Promise<DataflowRunRetryPreview> => {
+  const resolved = await resolveRun(projectId, rootPath, runName, { force: true });
+  return dataflowVulnScannerApi.previewRetryRun(resolved.run_id, retryPayload);
 };
 
 export const retryDataflowFileserverRun = async (

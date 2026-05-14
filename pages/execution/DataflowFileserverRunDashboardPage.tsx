@@ -16,6 +16,7 @@ import {
   inspectDataflowFileserverRunOverview,
   listDataflowFileserverRunFiles,
   listDataflowFileserverRunSessions,
+  previewDataflowFileserverRunRetry,
   reportDataflowFileserverRunVulnerabilities,
   retryDataflowFileserverRun,
 } from '../../clients/dataflowVulnRunsFileserver';
@@ -6244,11 +6245,47 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         alert('追加评审轮次必须是大于 0 的整数');
         return;
       }
-      if (!window.confirm(`确认重试 Run ${this.currentRun}，追加 ${extraCycles} 个评审轮次？`)) return;
+
+      let preview: any = null;
+      try {
+        preview = await previewDataflowFileserverRunRetry(projectId, this.runsRootPath, this.currentRun, { extra_cycles: extraCycles });
+      } catch (error: any) {
+        alert(error?.message || '生成断点续跑预览失败，暂不能重试');
+        return;
+      }
+      if (!preview?.can_retry) {
+        alert(preview?.reason || '后端尚未确认该 Run 可重试，请刷新后再试。');
+        return;
+      }
+
+      const preflight = preview.resume_preflight && typeof preview.resume_preflight === 'object' ? preview.resume_preflight : {};
+      const target = preflight.resume_target_node && typeof preflight.resume_target_node === 'object' ? preflight.resume_target_node : {};
+      const checkpoint = preflight.step_checkpoint && typeof preflight.step_checkpoint === 'object' ? preflight.step_checkpoint : {};
+      const targetCycle = target.cycle || checkpoint.cycle || '-';
+      const targetPhase = target.phase || checkpoint.phase || preflight.resume_state || '-';
+      const targetStep = target.step_key || checkpoint.step_key || '-';
+      const targetKind = target.node_kind || '-';
+      const policy = preflight.node_resume_policy || 'rerun_current_node';
+      const commandDisplay = String(preflight.command_display || '').trim();
+      const confirmLines = [
+        `确认重试 Run ${this.currentRun}？`,
+        '',
+        '后端将执行结点级断点续跑，而不是从头开始：',
+        `- 恢复结点：Cycle ${targetCycle} / ${targetPhase} / ${targetStep}`,
+        `- 结点类型：${targetKind}`,
+        `- 策略：${policy === 'rerun_current_node' ? '重跑当前未完成结点，跳过此前已完成结点' : policy}`,
+        `- 已完成轮次：${preflight.completed_cycles ?? '-'}`,
+        `- 追加轮次：${extraCycles}`,
+        `- 总轮次上限：${preflight.resume_total_cycle_limit ?? '-'}`,
+        commandDisplay ? `- 命令：${commandDisplay}` : '',
+      ].filter(Boolean);
+      if (!window.confirm(confirmLines.join('\n'))) return;
       this.setMutationBusy('retry');
       try {
         const result = await retryDataflowFileserverRun(projectId, this.runsRootPath, this.currentRun, { extra_cycles: extraCycles });
-        alert(result.message || '重试已提交');
+        const resultPreflight = result.resume_preflight || preflight;
+        const resultTarget = resultPreflight.resume_target_node || target;
+        alert(result.message || `重试已提交，将从 ${resultTarget.phase || targetPhase}/${resultTarget.step_key || targetStep} 继续`);
         await this.reloadCurrentRunAfterMutation();
       } catch (error: any) {
         alert(error?.message || '重试 Run 失败');
