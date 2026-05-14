@@ -210,6 +210,7 @@ type TaskStrategyDraft = {
   module_risk_levels: string[];
 };
 type StrategySectionKey = 'stage_options' | 'module_strategy' | 'execution_policy';
+type ManualOperationState = NonNullable<BinarySecurityTaskDetail['manual_operation_state']>;
 
 const BLOCKING_ACTION_COPY: Record<
   Exclude<BlockingActionKind, ''>,
@@ -931,6 +932,62 @@ function TaskStatusReasonCard({ reason }: { reason: TaskStatusReason }) {
   );
 }
 
+function manualOperationTone(overall: string) {
+  switch (overall) {
+    case 'ready':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-800';
+    case 'in_progress':
+      return 'border-sky-200 bg-sky-50 text-sky-800';
+    default:
+      return 'border-amber-200 bg-amber-50 text-amber-800';
+  }
+}
+
+function manualOperationLabel(overall: string) {
+  switch (overall) {
+    case 'ready':
+      return '可手工操作';
+    case 'in_progress':
+      return '操作处理中';
+    default:
+      return '当前受限';
+  }
+}
+
+function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
+  return (
+    <div className={`rounded-2xl border px-4 py-3 ${manualOperationTone(state.overall)}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-full border border-current/20 bg-white/60 px-3 py-1 text-[11px] font-black">
+          {manualOperationLabel(state.overall)}
+        </span>
+        <span className="text-sm font-black">{state.summary || '-'}</span>
+      </div>
+      <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-current/10 bg-white/55 px-3 py-2">
+          <div className="font-bold opacity-60">当前操作</div>
+          <div className="mt-1 font-black">{state.operation_type || '-'}</div>
+        </div>
+        <div className="rounded-xl border border-current/10 bg-white/55 px-3 py-2">
+          <div className="font-bold opacity-60">锁持有实例</div>
+          <div className="mt-1 break-all font-black">{state.operation_owner || '-'}</div>
+        </div>
+        <div className="rounded-xl border border-current/10 bg-white/55 px-3 py-2">
+          <div className="font-bold opacity-60">最近心跳</div>
+          <div className="mt-1 font-black">{fmt(state.operation_heartbeat_at)}</div>
+        </div>
+        <div className="rounded-xl border border-current/10 bg-white/55 px-3 py-2">
+          <div className="font-bold opacity-60">预计释放</div>
+          <div className="mt-1 font-black">{fmt(state.operation_expires_at)}</div>
+        </div>
+      </div>
+      {state.blocking_reason ? (
+        <div className="mt-2 text-xs font-semibold opacity-80">{state.blocking_reason}</div>
+      ) : null}
+    </div>
+  );
+}
+
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
   const navigate = useNavigate();
@@ -981,18 +1038,22 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   );
   const canActOnTask = Boolean(detail);
   const isPreparing = PREPARING_STATUSES.has(detail?.status || '');
-  const taskRetrySupported = Boolean(detail?.task_retry_supported);
-  const taskRetryReason = detail?.task_retry_reason || '当前任务不可清空并从头开始';
-  const taskContinueSupported = Boolean(detail?.task_continue_supported);
-  const taskContinueReason = detail?.task_continue_reason || '当前任务不可继续';
+  const manualOperationState = detail?.manual_operation_state;
+  const taskRetrySupported = Boolean(manualOperationState?.can_retry ?? detail?.task_retry_supported);
+  const taskRetryReason = manualOperationState?.blocking_reason || detail?.task_retry_reason || '当前任务不可清空并从头开始';
+  const taskContinueSupported = Boolean(manualOperationState?.can_continue ?? detail?.task_continue_supported);
+  const taskContinueReason = manualOperationState?.blocking_reason || detail?.task_continue_reason || '当前任务不可继续';
+  const taskCancelSupported = Boolean(manualOperationState?.can_cancel ?? canActOnTask);
+  const taskDeleteSupported = Boolean(manualOperationState?.can_delete ?? canActOnTask);
+  const moduleConfirmSupported = Boolean(manualOperationState?.can_confirm_modules ?? false);
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
   const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
-  const strategyEditable = Boolean(detail) && !['dispatching', 'running', 'continue_preparing', 'retry_preparing'].includes(detail?.status || '');
+  const strategyEditable = Boolean(manualOperationState?.can_edit_policy ?? (detail && !['dispatching', 'running', 'continue_preparing', 'retry_preparing'].includes(detail?.status || '')));
   const strategyBlockedReason = !detail
     ? '任务详情尚未加载'
     : strategyEditable
       ? null
-      : `任务运行中，任务策略暂不可修改。当前状态：${detail.status}`;
+      : manualOperationState?.blocking_reason || `任务运行中，任务策略暂不可修改。当前状态：${detail.status}`;
   const strategyDirty = useMemo(
     () => !strategyDraftEquals(strategyDraft, strategySavedSnapshot),
     [strategyDraft, strategySavedSnapshot],
@@ -1285,12 +1346,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     if (!detail || TERMINAL.has(detail.status)) return;
     if (detail.status === 'pending_module_confirmation') return;
+    const intervalMs = detail.manual_operation_state?.operation_in_progress ? 2000 : 5000;
     const timer = window.setInterval(
       () => void loadTask({ preserveStrategyDraft: activeTab === 'strategy' && strategyDirty }),
-      5000,
+      intervalMs,
     );
     return () => window.clearInterval(timer);
-  }, [activeTab, detail?.status, projectId, strategyDirty, taskId]);
+  }, [activeTab, detail?.manual_operation_state?.operation_in_progress, detail?.status, projectId, strategyDirty, taskId]);
 
   useEffect(() => {
     if (activeTab !== 'modules' || moduleSelection || moduleSelectionLoading) return;
@@ -1529,6 +1591,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const confirmModuleSelection = async () => {
     if (!projectId || !taskId) return;
+    if (!moduleConfirmSupported) {
+      setError(manualOperationState?.blocking_reason || '当前任务暂不可确认模块');
+      return;
+    }
     if (selectedModuleKeys.length === 0) {
       setError('至少选择 1 个模块');
       return;
@@ -2013,13 +2079,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <button
             type="button"
             onClick={() => void syncDownstreamStatus()}
+            title={manualOperationState?.blocking_reason || undefined}
             disabled={actionLoading !== '' || isPreparing}
             className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-700 disabled:opacity-60"
           >
             <RefreshCw size={16} />
             同步下游状态
           </button>
-          <button type="button" onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !canActOnTask || isPreparing} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
+          <button type="button" title={taskCancelSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可取消')} onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !taskCancelSupported || isPreparing} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
           <button
             type="button"
             title={taskRetrySupported ? undefined : taskRetryReason}
@@ -2038,7 +2105,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           >
             {actionLoading === 'continue' ? '继续中...' : '继续'}
           </button>
-          <button type="button" onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !canActOnTask || isPreparing} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
+          <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isPreparing} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
         </div>
       </div>
 
@@ -2072,6 +2139,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 {taskStatusReason ? (
                   <div className="mt-4">
                     <TaskStatusReasonCard reason={taskStatusReason} />
+                  </div>
+                ) : null}
+                {manualOperationState ? (
+                  <div className="mt-4">
+                    <ManualOperationStateCard state={manualOperationState} />
                   </div>
                 ) : null}
                 <div className="mt-4 grid gap-2">
@@ -2545,18 +2617,24 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             )}
                             <button
                               type="button"
-                              title={shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason) ? stage.retry_reason || '当前阶段不可安全重试' : undefined}
+                              title={
+                                !manualOperationState?.can_retry_stage
+                                  ? (manualOperationState?.blocking_reason || '当前任务暂不可进行阶段重试')
+                                  : shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason)
+                                    ? stage.retry_reason || '当前阶段不可安全重试'
+                                    : undefined
+                              }
                               className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                stage.retryable
+                                stage.retryable && manualOperationState?.can_retry_stage !== false
                                   ? 'bg-slate-900 text-white'
                                   : 'bg-slate-200 text-slate-500'
                               }`}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                if (!stage.retryable || actionLoading !== '') return;
+                                if (!stage.retryable || manualOperationState?.can_retry_stage === false || actionLoading !== '') return;
                                 void retryStage(stage.stage_name);
                               }}
-                              disabled={!stage.retryable || actionLoading !== ''}
+                              disabled={!stage.retryable || manualOperationState?.can_retry_stage === false || actionLoading !== ''}
                             >
                               {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
                             </button>
@@ -3035,7 +3113,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <button
                       type="button"
                       onClick={() => void confirmModuleSelection()}
-                      disabled={actionLoading !== '' || selectedModuleKeys.length === 0}
+                      title={moduleConfirmSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务暂不可确认模块')}
+                      disabled={actionLoading !== '' || selectedModuleKeys.length === 0 || !moduleConfirmSupported}
                       className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
                     >
                       {actionLoading === 'confirm-modules' ? '确认中...' : '确认并继续'}

@@ -180,6 +180,28 @@ const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archi
   return `成功 ${successCount} · 失败 ${failedCount}`;
 };
 
+const manualOperationBadgeTone = (overall?: string) => {
+  switch (overall) {
+    case 'ready':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'in_progress':
+      return 'bg-sky-50 text-sky-700 border-sky-200';
+    default:
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+};
+
+const manualOperationBadgeLabel = (overall?: string) => {
+  switch (overall) {
+    case 'ready':
+      return '可操作';
+    case 'in_progress':
+      return '处理中';
+    default:
+      return '受限';
+  }
+};
+
 const ProjectStatCard: React.FC<{ label: string; value: number; hint: string }> = ({ label, value, hint }) => (
   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
     <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</div>
@@ -779,7 +801,17 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
                       />
                       <h3 className="text-lg font-black text-slate-900">{item.name}</h3>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
+                        {item.manual_operation_state ? (
+                          <span
+                            title={item.manual_operation_state.blocking_reason || item.manual_operation_state.summary}
+                            className={`rounded-full border px-3 py-1 text-xs font-black ${manualOperationBadgeTone(item.manual_operation_state.overall)}`}
+                          >
+                            {manualOperationBadgeLabel(item.manual_operation_state.overall)}
+                          </span>
+                        ) : null}
+                      </div>
                       {item.status === 'pending' && item.queue_position ? (
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
                           排队中，第 {item.queue_position} 位

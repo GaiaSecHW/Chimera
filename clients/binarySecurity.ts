@@ -77,6 +77,24 @@ export interface BinarySecurityTask {
   task_retry_reason?: string | null;
   task_continue_supported: boolean;
   task_continue_reason?: string | null;
+  manual_operation_state?: {
+    overall: 'ready' | 'blocked' | 'in_progress' | string;
+    summary: string;
+    blocking_code?: string | null;
+    blocking_reason?: string | null;
+    operation_in_progress: boolean;
+    operation_type?: string | null;
+    operation_owner?: string | null;
+    operation_expires_at?: string | null;
+    operation_heartbeat_at?: string | null;
+    can_cancel: boolean;
+    can_continue: boolean;
+    can_retry: boolean;
+    can_retry_stage: boolean;
+    can_delete: boolean;
+    can_edit_policy: boolean;
+    can_confirm_modules: boolean;
+  };
 }
 
 export interface BinarySecurityProjectStats {
