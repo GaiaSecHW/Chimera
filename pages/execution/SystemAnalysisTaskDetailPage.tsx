@@ -80,6 +80,12 @@ type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 type DetailTab = 'overview' | 'run-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
 type StageOverviewMetric = { label: string; value: string };
+type EvaluationRoundContextMenu = {
+  roundKey: string;
+  moduleName: string;
+  x: number;
+  y: number;
+};
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
@@ -589,6 +595,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [evaluationModuleFilter, setEvaluationModuleFilter] = useState('');
   const [evaluationStageFilter, setEvaluationStageFilter] = useState('');
   const [evaluationStatusFilter, setEvaluationStatusFilter] = useState('');
+  const [evaluationRoundMenu, setEvaluationRoundMenu] = useState<EvaluationRoundContextMenu | null>(null);
   const [selectedEvaluationRoundKey, setSelectedEvaluationRoundKey] = useState<string | null>(null);
   const [roundSessionSnapshot, setRoundSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
   const [roundSessionWatchStartLine, setRoundSessionWatchStartLine] = useState(0);
@@ -890,8 +897,22 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     if (activeTab !== 'evaluation') {
       closeRoundSessionSocket();
       closeJudgeSessionSocket();
+      setEvaluationRoundMenu(null);
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!evaluationRoundMenu) return;
+    const closeMenu = () => setEvaluationRoundMenu(null);
+    window.addEventListener('click', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+    return () => {
+      window.removeEventListener('click', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [evaluationRoundMenu]);
 
   useEffect(() => {
     if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) {
@@ -1207,6 +1228,28 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     () => buildJudgeRoundSessionMeta(selectedEvaluationJudgeSessionPath, selectedEvaluationRound, selectedEvaluationJudge),
     [selectedEvaluationJudge, selectedEvaluationJudgeSessionPath, selectedEvaluationRound],
   );
+
+  const openEvaluationRoundMenu = (event: React.MouseEvent, round: AppSaEvaluationRound) => {
+    const moduleName = String(round.module_name || '').trim();
+    if (!moduleName) {
+      setEvaluationRoundMenu(null);
+      return;
+    }
+    event.preventDefault();
+    setSelectedEvaluationRoundKey(evaluationRoundKey(round));
+    setEvaluationRoundMenu({
+      roundKey: evaluationRoundKey(round),
+      moduleName,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const handleFilterSingleModule = () => {
+    if (!evaluationRoundMenu?.moduleName) return;
+    setEvaluationModuleFilter(evaluationRoundMenu.moduleName);
+    setEvaluationRoundMenu(null);
+  };
 
   useEffect(() => {
     if (!selectedEvaluationRoundKey) return;
@@ -2561,6 +2604,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               role="button"
                               tabIndex={0}
                               onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))}
+                              onContextMenu={(event) => openEvaluationRoundMenu(event, round)}
                               onKeyDown={(event) => {
                                 if (event.key === 'Enter' || event.key === ' ') {
                                   event.preventDefault();
@@ -2602,6 +2646,26 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </tbody>
                       </table>
                     </div>
+                    {evaluationRoundMenu ? (
+                      <div
+                        className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl"
+                        style={{ left: evaluationRoundMenu.x, top: evaluationRoundMenu.y }}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="border-b border-slate-100 px-3 py-2">
+                          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">轮次操作</div>
+                          <div className="mt-1 truncate font-mono text-xs text-slate-700">{evaluationRoundMenu.moduleName}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleFilterSingleModule}
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
+                        >
+                          <Search size={14} />
+                          仅看此模块
+                        </button>
+                      </div>
+                    ) : null}
                   </section>
                   )}
                 </>
