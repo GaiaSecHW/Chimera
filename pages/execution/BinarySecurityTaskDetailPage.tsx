@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowLeft, Info, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -334,70 +334,6 @@ const VULN_METADATA_KEYS = [
   'run_path',
   'runs_root',
 ];
-
-function ConcurrencyPolicyPanel({
-  policy,
-  stageSequence,
-}: {
-  policy: BinarySecurityTaskPolicy;
-  stageSequence: string[];
-}) {
-  const stageParallelism = policy.stage_parallelism && typeof policy.stage_parallelism === 'object'
-    ? policy.stage_parallelism as Record<string, unknown>
-    : {};
-  const maxStageParallelism = safeInt(policy.max_stage_parallelism, 1);
-  const maxRetries = safeInt(policy.max_retries_per_item, 0);
-  const enabledStages = policy.stage_options && typeof policy.stage_options === 'object'
-    ? policy.stage_options as Record<string, { enabled?: boolean }>
-    : {};
-  const stageItems = stageSequence.map((stageName) => ({
-    stageName,
-    value: safeInt(stageParallelism[stageName], maxStageParallelism),
-    enabled: enabledStages[stageName]?.enabled !== false,
-  }));
-
-  return (
-    <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="rounded-xl bg-slate-100 p-2 text-slate-600">
-            <SlidersHorizontal size={16} />
-          </div>
-          <div>
-            <h2 className="text-base font-black text-slate-900">并发配置</h2>
-            <p className="mt-1 text-xs text-slate-500">展示当前任务创建时固化的阶段并发与失败处理策略。</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-            全局最大阶段并发 {maxStageParallelism}
-          </span>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-            最大重试 {maxRetries}
-          </span>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-            失败后继续 {boolLabel(policy.continue_on_item_failure)}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        {stageItems.map((item) => (
-          <div key={item.stageName} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-            <div className="truncate text-[11px] font-bold text-slate-400">{STAGE_LABELS[item.stageName] || item.stageName}</div>
-            <div className="mt-1 flex items-baseline gap-1">
-              <span className="text-xl font-black text-slate-900">{item.value}</span>
-              <span className="text-xs font-semibold text-slate-500">并发</span>
-            </div>
-            <div className="mt-2 text-[11px] font-semibold text-slate-500">
-              {item.enabled ? '启用' : '停用'}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages: string[]): TaskStrategyDraft => {
   const nextPolicy = policy || {};
@@ -2198,8 +2134,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
 
-          <ConcurrencyPolicyPanel policy={detail.policy} stageSequence={stageSequence} />
-
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
             <div
               className="grid grid-flow-col auto-cols-[minmax(220px,1fr)] gap-2 overflow-x-auto"
@@ -2226,23 +2160,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           {activeTab === 'strategy' && strategyDraft ? (
             <section className="space-y-6">
               <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div>
                   <div>
                     <h2 className="text-xl font-black text-slate-900">任务策略</h2>
                     <p className="mt-2 text-sm text-slate-500">
-                      修改仅对尚未运行的阶段、阶段重试、继续任务、清空并重跑后的后续执行生效。
+                      任务策略只会影响尚未开始的阶段、继续任务、阶段重试和清空重跑后的重新调度，不会改写已完成阶段或正在运行中的阶段项。
                     </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                      汇总最大阶段并发 {Math.max(...Object.values(strategyDraft.stage_parallelism), 1)}
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                      最大重试 {strategyDraft.max_retries_per_item}
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700">
-                      失败后继续 {boolLabel(strategyDraft.continue_on_item_failure)}
-                    </span>
                   </div>
                 </div>
                 <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm ${
@@ -2251,7 +2174,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     : 'border-amber-200 bg-amber-50 text-amber-800'
                 }`}>
                   {strategyEditable
-                    ? '保存后不会修改已完成阶段，也不会实时改写正在运行中的子任务池。'
+                    ? '任务级并发配置、阶段启停和模块推进策略按分块保存；保存后不会修改已完成阶段，也不会实时改写正在运行中的子任务池。'
                     : strategyBlockedReason}
                 </div>
                 {strategyDirty ? (
@@ -2269,7 +2192,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-slate-900">阶段启停</h3>
-                      <p className="mt-1 text-sm text-slate-500">控制当前任务后续阶段是否继续参与流程。</p>
+                      <p className="mt-1 text-sm text-slate-500">控制当前任务后续阶段是否继续参与流程；已完成阶段仅做展示，修改只对后续执行生效。</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -2279,7 +2202,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       disabled={!stageOptionsDirty || Boolean(strategySavingSection)}
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                     >
-                      重置本块
+                      重置阶段启停
                     </button>
                     <button
                       type="button"
@@ -2288,7 +2211,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
                     >
                       {strategySavingSection === 'stage_options' ? <Loader2 size={16} className="animate-spin" /> : null}
-                      {strategySavingSection === 'stage_options' ? '保存中...' : '保存本块'}
+                      {strategySavingSection === 'stage_options' ? '保存中...' : '保存阶段启停'}
                     </button>
                   </div>
                 </div>
@@ -2330,7 +2253,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
                     <h3 className="text-lg font-black text-slate-900">模块推进策略</h3>
-                    <p className="mt-1 text-sm text-slate-500">与创建任务页保持一致，只影响后续模块筛选和推进行为。</p>
+                    <p className="mt-1 text-sm text-slate-500">与创建任务页保持一致，只影响后续模块筛选、人工确认与自动推进行为。</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <button
@@ -2339,7 +2262,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       disabled={!moduleStrategyDirty || Boolean(strategySavingSection)}
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                     >
-                      重置本块
+                      重置模块策略
                     </button>
                     <button
                       type="button"
@@ -2348,7 +2271,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
                     >
                       {strategySavingSection === 'module_strategy' ? <Loader2 size={16} className="animate-spin" /> : null}
-                      {strategySavingSection === 'module_strategy' ? '保存中...' : '保存本块'}
+                      {strategySavingSection === 'module_strategy' ? '保存中...' : '保存模块策略'}
                     </button>
                   </div>
                 </div>
@@ -2403,8 +2326,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900">并发与失败处理</h3>
-                    <p className="mt-1 text-sm text-slate-500">调整后只影响尚未开始的阶段、继续、阶段重试与清空重跑。</p>
+                    <h3 className="text-lg font-black text-slate-900">任务并发与失败处理</h3>
+                    <p className="mt-1 text-sm text-slate-500">这里配置的是任务级阶段并发，不是服务全局并发；仅影响尚未开始的阶段、继续、阶段重试与清空重跑。</p>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <button
@@ -2413,7 +2336,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       disabled={!executionPolicyDirty || Boolean(strategySavingSection)}
                       className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                     >
-                      重置本块
+                      重置并发策略
                     </button>
                     <button
                       type="button"
@@ -2422,15 +2345,18 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
                     >
                       {strategySavingSection === 'execution_policy' ? <Loader2 size={16} className="animate-spin" /> : null}
-                      {strategySavingSection === 'execution_policy' ? '保存中...' : '保存本块'}
+                      {strategySavingSection === 'execution_policy' ? '保存中...' : '保存并发策略'}
                     </button>
                   </div>
+                </div>
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                  阶段并发按当前任务流程分别生效；源码任务只展示源码流程阶段，二进制任务展示完整流程阶段。
                 </div>
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {stageSequence.map((stageName) => (
                     <label key={stageName} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                       <span className="block text-sm font-black text-slate-800">{STAGE_LABELS[stageName] || stageName}</span>
-                      <span className="mt-1 block text-xs text-slate-500">范围 1-32</span>
+                      <span className="mt-1 block text-xs text-slate-500">任务级阶段并发，范围 1-32</span>
                       <input
                         type="number"
                         min={1}
