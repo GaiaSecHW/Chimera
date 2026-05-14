@@ -1364,16 +1364,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 重新运行
               </button>
             ) : null}
-            {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="system_analysis" task={detail} /> : null}
-            {detail ? (
-              <button
-                onClick={() => setCloneModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100"
-              >
-                <ClipboardCopy size={13} />
-                复制任务
-              </button>
-            ) : null}
             {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? (
               <button
                 onClick={() => void handleResume()}
@@ -1382,6 +1372,16 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               >
                 {resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}
                 断点续跑
+              </button>
+            ) : null}
+            {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="system_analysis" task={detail} /> : null}
+            {detail ? (
+              <button
+                onClick={() => setCloneModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+              >
+                <ClipboardCopy size={13} />
+                复制任务
               </button>
             ) : null}
             {detail ? (
