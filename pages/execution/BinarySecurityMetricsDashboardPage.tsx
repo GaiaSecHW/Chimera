@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   BarChart3,
+  Bot,
+  Brain,
+  Coins,
   Database,
   Gauge,
   Loader2,
@@ -10,20 +13,16 @@ import {
   ServerCog,
   TimerReset,
 } from 'lucide-react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { api } from '../../clients/api';
 import {
+  BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS,
+  BINARY_SECURITY_CANONICAL_AI_METRICS,
+  BINARY_SECURITY_METRICS_SECONDARY_TABS,
   BINARY_SECURITY_METRICS_SERVICES,
   BinarySecurityMetricsGroup,
+  BinarySecurityMetricsSecondaryTab,
   BinarySecurityMetricsServiceDefinition,
   BinarySecurityMetricsServiceKey,
 } from '../../clients/binarySecurityMetrics';
@@ -67,6 +66,26 @@ type ServiceViewModel = {
   groupCounts: Array<{ group: BinarySecurityMetricsGroup; count: number }>;
 };
 
+type AiCard = {
+  label: string;
+  value: number;
+  hint: string;
+  icon: React.ReactNode;
+};
+
+type AiCoverage = 'none' | 'basic' | 'partial' | 'complete';
+
+type AiViewModel = {
+  rows: DisplayMetricRow[];
+  cards: AiCard[];
+  coverage: AiCoverage;
+  coverageLabel: string;
+  familyCount: number;
+  roleChart: Array<{ name: string; value: number }>;
+  tokenChart: Array<{ name: string; value: number }>;
+  coverageText: string;
+};
+
 const GROUP_LABELS: Record<BinarySecurityMetricsGroup, string> = {
   http: 'HTTP',
   task: '任务',
@@ -75,6 +94,7 @@ const GROUP_LABELS: Record<BinarySecurityMetricsGroup, string> = {
   duration: '耗时',
   'error-retry-timeout': '异常/重试/超时',
   'llm-token-cost': 'LLM/Token/Cost',
+  'ai-agent': 'AI/智能体',
   'service-specific': '服务特定',
 };
 
@@ -86,10 +106,30 @@ const GROUP_BADGE: Record<BinarySecurityMetricsGroup, string> = {
   duration: 'border-cyan-200 bg-cyan-50 text-cyan-700',
   'error-retry-timeout': 'border-rose-200 bg-rose-50 text-rose-700',
   'llm-token-cost': 'border-violet-200 bg-violet-50 text-violet-700',
+  'ai-agent': 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700',
   'service-specific': 'border-emerald-200 bg-emerald-50 text-emerald-700',
 };
 
+const AI_COVERAGE_BADGE: Record<AiCoverage, string> = {
+  none: 'border-slate-200 bg-slate-50 text-slate-600',
+  basic: 'border-amber-200 bg-amber-50 text-amber-700',
+  partial: 'border-sky-200 bg-sky-50 text-sky-700',
+  complete: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+};
+
+const AI_SERVICE_SCOPE: Record<BinarySecurityMetricsServiceKey, string> = {
+  'binary-security': '编排层 AI 观测聚焦于模块筛选、继续/重试编排、AI 下游阶段活跃度与失败归因。',
+  'binary-evolution': '进化中心 AI 观测聚焦 round 演进、agent 活跃度、重试/超时与轮次衍生结果。',
+  'firmware-unpacker': '固件解包 AI 观测聚焦 AI 辅助/进化链路中的 token、成本、重试与失败分布。',
+  'system-analysis': '系统分析 AI 观测覆盖 worker/judge/session、token/cost、失败分类与 stage round 统计。',
+  'binary-to-source': '二进制逆向 AI 观测覆盖 review 尝试、session、token/cost、validator/judge 相关行为。',
+  'entry-analysis': '入口分析 AI 观测覆盖 worker/judge/session、token/cost、轮次与失败/超时。',
+  'dataflow-analysis': '数据流分析 AI 观测覆盖 judge/session、token/cost、轮次、trace 相关 AI 行为。',
+  'dataflow-vuln': '数据流漏洞挖掘 AI 观测覆盖 cycle/review/plugin、runtime trace、token/cost 与失败分布。',
+};
+
 const CHART_COLOR = '#0f766e';
+const AI_CHART_COLOR = '#7c3aed';
 const CHART_GRID = '#e2e8f0';
 const INITIAL_STATE: MetricsState = { loading: false, rawText: '', error: null, refreshedAt: null };
 
@@ -111,17 +151,13 @@ const formatMetricValue = (value: number) => {
 const formatTime = (timestamp: number | null) =>
   timestamp ? new Date(timestamp).toLocaleString('zh-CN', { hour12: false }) : '-';
 
-const sampleFamilyName = (name: string) =>
-  name.replace(/_(bucket|sum|count|total|created)$/u, '');
+const sampleFamilyName = (name: string) => name.replace(/_(bucket|sum|count|total|created)$/u, '');
 
 const parsePrometheusLabels = (source: string): Record<string, string> => {
   const labels: Record<string, string> = {};
   const regex = /([a-zA-Z_][a-zA-Z0-9_]*)="((?:\\.|[^"\\])*)"/g;
   for (const match of source.matchAll(regex)) {
-    labels[match[1]] = match[2]
-      .replace(/\\n/g, '\n')
-      .replace(/\\"/g, '"')
-      .replace(/\\\\/g, '\\');
+    labels[match[1]] = match[2].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
   }
   return labels;
 };
@@ -145,7 +181,6 @@ const parsePrometheusText = (rawText: string): ParsedMetricSample[] => {
       continue;
     }
     if (line.startsWith('#')) continue;
-
     const match = line.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)(\{.*\})?\s+([^\s]+)(?:\s+\d+)?$/u);
     if (!match) continue;
     const value = Number(match[3]);
@@ -165,9 +200,16 @@ const parsePrometheusText = (rawText: string): ParsedMetricSample[] => {
   return rows;
 };
 
+const isAiMetric = (metric: ParsedMetricSample) => {
+  const fingerprint = `${metric.name} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
+  if (/_ai_/u.test(metric.name)) return true;
+  return /(token|cost|llm|model|prompt|judge|review|agent|session|worker|cycle|round|plugin|advisor|reflection|validator)/u.test(fingerprint);
+};
+
 const detectGroup = (metric: ParsedMetricSample, service: BinarySecurityMetricsServiceDefinition): BinarySecurityMetricsGroup => {
   const fingerprint = `${metric.name} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
   if (service.serviceSpecificKeywords.some((token) => fingerprint.includes(token))) return 'service-specific';
+  if (isAiMetric(metric)) return 'ai-agent';
   if (/(token|cost|llm|model|prompt|judge|review)/u.test(fingerprint)) return 'llm-token-cost';
   if (/(error|fail|retry|timeout|exception|cancel|abort)/u.test(fingerprint)) return 'error-retry-timeout';
   if (/(queue|backlog|lease|pending|claimed)/u.test(fingerprint)) return 'queue';
@@ -198,12 +240,7 @@ const buildInsights = (rows: DisplayMetricRow[]): MetricsInsight[] => {
   const sumByRegex = (label: string, regex: RegExp, group: BinarySecurityMetricsGroup, hint: string) => {
     const matches = rows.filter((row) => regex.test(row.name));
     if (!matches.length) return null;
-    return {
-      label,
-      value: matches.reduce((total, row) => total + row.value, 0),
-      group,
-      hint,
-    } as MetricsInsight;
+    return { label, value: matches.reduce((total, row) => total + row.value, 0), group, hint } as MetricsInsight;
   };
 
   return [
@@ -218,10 +255,7 @@ const buildInsights = (rows: DisplayMetricRow[]): MetricsInsight[] => {
   ].filter((item): item is MetricsInsight => Boolean(item));
 };
 
-const buildServiceViewModel = (
-  rawText: string,
-  service: BinarySecurityMetricsServiceDefinition,
-): ServiceViewModel => {
+const buildServiceViewModel = (rawText: string, service: BinarySecurityMetricsServiceDefinition): ServiceViewModel => {
   const parsed = parsePrometheusText(rawText);
   const rows = parsed
     .map((metric) => ({
@@ -267,22 +301,101 @@ const buildServiceViewModel = (
   };
 };
 
+const canonicalLookup = (rows: DisplayMetricRow[]) => {
+  const matchSum = (predicate: (row: DisplayMetricRow) => boolean) =>
+    rows.filter(predicate).reduce((total, row) => total + row.value, 0);
+
+  return {
+    sessionTotal: matchSum((row) => /_ai_session_total$/u.test(row.name) || /session/u.test(row.name)),
+    tokenInput: matchSum((row) => /_ai_token_usage_total$/u.test(row.name) && row.labels.type === 'input') || matchSum((row) => /token_input/u.test(row.name)),
+    tokenOutput: matchSum((row) => /_ai_token_usage_total$/u.test(row.name) && row.labels.type === 'output') || matchSum((row) => /token_output/u.test(row.name)),
+    tokenCacheRead: matchSum((row) => /_ai_token_usage_total$/u.test(row.name) && row.labels.type === 'cache_read'),
+    tokenCacheWrite: matchSum((row) => /_ai_token_usage_total$/u.test(row.name) && row.labels.type === 'cache_write'),
+    tokenTotal:
+      matchSum((row) => /_ai_token_usage_total$/u.test(row.name) && row.labels.type === 'total') ||
+      matchSum((row) => /token/u.test(row.name) && /(total|usage)/u.test(row.name)),
+    costTotal: matchSum((row) => /_ai_token_cost_total$/u.test(row.name) || /token_cost_total|cost_usage/u.test(row.name)),
+    roleTotal: matchSum((row) => /_ai_role_count$/u.test(row.name)),
+    retryTotal: matchSum((row) => /_ai_retry_total$/u.test(row.name) || /retry/u.test(row.name)),
+    timeoutTotal: matchSum((row) => /_ai_timeout_total$/u.test(row.name) || /timeout/u.test(row.name)),
+    failureTotal: matchSum((row) => /_ai_failure_total$/u.test(row.name) || /error|fail/u.test(row.name)),
+    roundTotal: matchSum((row) => /_ai_round_total$/u.test(row.name) || /(round|cycle|review)_/u.test(row.name)),
+    reviewTotal: matchSum((row) => /_ai_review_total$/u.test(row.name) || /review/u.test(row.name)),
+  };
+};
+
+const buildAiViewModel = (rows: DisplayMetricRow[], service: BinarySecurityMetricsServiceDefinition): AiViewModel => {
+  const aiRows = rows.filter((row) => row.group === 'ai-agent' || isAiMetric(row));
+  const byCanonicalFamily = new Set(
+    aiRows.filter((row) => /_ai_(role_count|session_total|round_total|retry_total|timeout_total|failure_total|token_usage_total|token_cost_total|review_total)$/u.test(row.name)).map((row) => row.familyName),
+  );
+  const lookup = canonicalLookup(aiRows);
+  const roleChart = ['worker', 'judge', 'agent', 'plugin', 'validator', 'advisor']
+    .map((role) => ({
+      name: role,
+      value: aiRows.filter((row) => /_ai_role_count$/u.test(row.name) && row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
+    }))
+    .filter((item) => item.value > 0);
+  const tokenChart = [
+    { name: 'input', value: lookup.tokenInput },
+    { name: 'output', value: lookup.tokenOutput },
+    { name: 'cache_read', value: lookup.tokenCacheRead },
+    { name: 'cache_write', value: lookup.tokenCacheWrite },
+    { name: 'total', value: lookup.tokenTotal },
+    { name: 'cost', value: lookup.costTotal },
+  ].filter((item) => item.value > 0);
+
+  let coverage: AiCoverage = 'none';
+  if (aiRows.length) coverage = 'basic';
+  if (byCanonicalFamily.size >= 4) coverage = 'partial';
+  if (byCanonicalFamily.size >= 7) coverage = 'complete';
+  const coverageLabel =
+    coverage === 'complete' ? '完整埋点' : coverage === 'partial' ? '部分埋点' : coverage === 'basic' ? '基础埋点' : '未埋点';
+
+  return {
+    rows: aiRows,
+    cards: [
+      { label: 'AI Token 总量', value: lookup.tokenTotal || lookup.tokenInput + lookup.tokenOutput, hint: 'input/output/cache/total 聚合', icon: <Brain size={16} /> },
+      { label: 'AI 成本', value: lookup.costTotal, hint: 'token cost / cost usage', icon: <Coins size={16} /> },
+      { label: 'AI 会话数', value: lookup.sessionTotal, hint: 'session / conversation / role session', icon: <Bot size={16} /> },
+      { label: 'Worker/Judge/Agent 活跃数', value: lookup.roleTotal, hint: 'role_count 聚合', icon: <Activity size={16} /> },
+      { label: '重试/超时/失败', value: lookup.retryTotal + lookup.timeoutTotal + lookup.failureTotal, hint: 'retry + timeout + failure', icon: <Gauge size={16} /> },
+      { label: '轮次/周期/评审次数', value: lookup.roundTotal + lookup.reviewTotal, hint: 'round/cycle/review 聚合', icon: <BarChart3 size={16} /> },
+    ],
+    coverage,
+    coverageLabel,
+    familyCount: byCanonicalFamily.size,
+    roleChart,
+    tokenChart,
+    coverageText: AI_SERVICE_SCOPE[service.key],
+  };
+};
+
 const MetricCard: React.FC<{ label: string; value: number; icon: React.ReactNode }> = ({ label, value, icon }) => (
   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
     <div className="flex items-center justify-between gap-3 text-slate-500">
       <span className="text-[11px] font-black uppercase tracking-[0.18em]">{label}</span>
       <span>{icon}</span>
     </div>
-    <div className="mt-3 text-2xl font-black tracking-tight text-slate-900">{formatNumber(value)}</div>
+    <div className="mt-3 text-2xl font-black tracking-tight text-slate-900">{formatNumber(value, 2)}</div>
+  </div>
+);
+
+const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
+  <div className="flex h-full min-h-[220px] items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 px-6 text-center text-sm text-slate-500">
+    {text}
   </div>
 );
 
 export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionMetricsApi = api.domains.execution.metrics;
   const [activeServiceKey, setActiveServiceKey] = useState<BinarySecurityMetricsServiceKey>(BINARY_SECURITY_METRICS_SERVICES[0].key);
+  const [activeSecondaryTab, setActiveSecondaryTab] = useState<BinarySecurityMetricsSecondaryTab>('observability');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [groupFilter, setGroupFilter] = useState<'all' | BinarySecurityMetricsGroup>('all');
+  const [aiSearchKeyword, setAiSearchKeyword] = useState('');
+  const [aiRoleFilter, setAiRoleFilter] = useState<'all' | string>('all');
   const [stateByService, setStateByService] = useState<Record<BinarySecurityMetricsServiceKey, MetricsState>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, INITIAL_STATE])) as Record<BinarySecurityMetricsServiceKey, MetricsState>,
   );
@@ -295,32 +408,18 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const loadMetrics = async (serviceKey: BinarySecurityMetricsServiceKey) => {
     setStateByService((current) => ({
       ...current,
-      [serviceKey]: {
-        ...current[serviceKey],
-        loading: true,
-        error: null,
-      },
+      [serviceKey]: { ...current[serviceKey], loading: true, error: null },
     }));
     try {
       const rawText = await executionMetricsApi.getServiceMetrics(serviceKey);
       setStateByService((current) => ({
         ...current,
-        [serviceKey]: {
-          loading: false,
-          rawText,
-          error: null,
-          refreshedAt: Date.now(),
-        },
+        [serviceKey]: { loading: false, rawText, error: null, refreshedAt: Date.now() },
       }));
     } catch (error: any) {
       setStateByService((current) => ({
         ...current,
-        [serviceKey]: {
-          ...current[serviceKey],
-          loading: false,
-          error: error?.message || '指标抓取失败',
-          refreshedAt: Date.now(),
-        },
+        [serviceKey]: { ...current[serviceKey], loading: false, error: error?.message || '指标抓取失败', refreshedAt: Date.now() },
       }));
     }
   };
@@ -343,13 +442,14 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   useEffect(() => {
     setSearchKeyword('');
     setGroupFilter('all');
+    setAiSearchKeyword('');
+    setAiRoleFilter('all');
+    setActiveSecondaryTab('observability');
   }, [activeServiceKey, projectId]);
 
   const activeState = stateByService[activeServiceKey];
-  const viewModel = useMemo(
-    () => buildServiceViewModel(activeState.rawText, activeService),
-    [activeService, activeState.rawText],
-  );
+  const viewModel = useMemo(() => buildServiceViewModel(activeState.rawText, activeService), [activeService, activeState.rawText]);
+  const aiViewModel = useMemo(() => buildAiViewModel(viewModel.rows, activeService), [activeService, viewModel.rows]);
 
   const filteredRows = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
@@ -360,6 +460,30 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
   }, [groupFilter, searchKeyword, viewModel.rows]);
 
+  const aiRows = useMemo(() => {
+    const keyword = aiSearchKeyword.trim().toLowerCase();
+    return aiViewModel.rows.filter((row) => {
+      if (aiRoleFilter !== 'all') {
+        const roleHit = Object.values(row.labels).some((value) => value === aiRoleFilter);
+        if (!roleHit) return false;
+      }
+      if (!keyword) return true;
+      return `${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
+    });
+  }, [aiRoleFilter, aiSearchKeyword, aiViewModel.rows]);
+
+  const aiRoles = useMemo(() => {
+    const roles = new Set<string>();
+    aiViewModel.rows.forEach((row) => {
+      Object.entries(row.labels).forEach(([key, value]) => {
+        if ((BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS as readonly string[]).includes(key) && value) {
+          roles.add(value);
+        }
+      });
+    });
+    return Array.from(roles).sort((left, right) => left.localeCompare(right, 'zh-CN'));
+  }, [aiViewModel.rows]);
+
   return (
     <div className="space-y-6 px-8 pb-10 pt-8">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -368,7 +492,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-600">Binary Security</p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">性能看板</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
-              面向二进制安全链路的轻量指标看板，直接抓取各微服务的 Prometheus `/metrics` 快照并做紧凑渲染。
+              面向二进制安全链路的轻量指标看板，直接抓取各微服务的 Prometheus `/metrics` 快照，并拆分通用观测与 AI/智能体观测。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -427,6 +551,26 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         </div>
       </section>
 
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          {BINARY_SECURITY_METRICS_SECONDARY_TABS.map((tab) => {
+            const active = tab.key === activeSecondaryTab;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveSecondaryTab(tab.key)}
+                className={`rounded-2xl px-4 py-2.5 text-sm font-black transition ${
+                  active ? 'bg-teal-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {activeState.loading && !activeState.rawText ? (
         <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
           <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
@@ -436,7 +580,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-12 text-center shadow-sm">
           <p className="text-sm font-semibold text-rose-700">{activeState.error}</p>
         </section>
-      ) : (
+      ) : activeSecondaryTab === 'observability' ? (
         <>
           <section className="grid gap-4 xl:grid-cols-4">
             {viewModel.kpis.map((item) => (
@@ -463,18 +607,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-16} textAnchor="end" height={68} />
                       <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-                      <Tooltip
-                        formatter={(value: number) => formatMetricValue(Number(value))}
-                        labelStyle={{ fontWeight: 700, color: '#0f172a' }}
-                        contentStyle={{ borderRadius: 16, borderColor: '#cbd5e1' }}
-                      />
+                      <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
                       <Bar dataKey="value" fill={CHART_COLOR} radius={[8, 8, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
-                    暂无可绘制的指标
-                  </div>
+                  <EmptyCard text="暂无可绘制的指标" />
                 )}
               </div>
             </div>
@@ -501,9 +639,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                    当前服务暂无可自动聚合的关键指标
-                  </div>
+                  <EmptyCard text="当前服务暂无可自动聚合的关键指标" />
                 )}
               </div>
 
@@ -527,18 +663,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <div className="flex flex-wrap gap-2">
                 <div className="relative">
                   <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
-                  <input
-                    value={searchKeyword}
-                    onChange={(event) => setSearchKeyword(event.target.value)}
-                    placeholder="搜索指标名 / labels / help"
-                    className="rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700"
-                  />
+                  <input value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} placeholder="搜索指标名 / labels / help" className="rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                 </div>
-                <select
-                  value={groupFilter}
-                  onChange={(event) => setGroupFilter(event.target.value as 'all' | BinarySecurityMetricsGroup)}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                >
+                <select value={groupFilter} onChange={(event) => setGroupFilter(event.target.value as 'all' | BinarySecurityMetricsGroup)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
                   <option value="all">全部分组</option>
                   {(Object.keys(GROUP_LABELS) as BinarySecurityMetricsGroup[]).map((group) => (
                     <option key={group} value={group}>{GROUP_LABELS[group]}</option>
@@ -577,11 +704,154 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   ))}
                 </tbody>
               </table>
-              {filteredRows.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-slate-500">没有符合过滤条件的指标</div>
-              ) : null}
+              {filteredRows.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">没有符合过滤条件的指标</div> : null}
             </div>
           </section>
+        </>
+      ) : (
+        <>
+          <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-500">AI/智能体</div>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">AI专区</h2>
+                <p className="mt-2 max-w-3xl text-sm text-slate-500">{aiViewModel.coverageText}</p>
+              </div>
+              <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${AI_COVERAGE_BADGE[aiViewModel.coverage]}`}>
+                {aiViewModel.coverageLabel}
+              </div>
+            </div>
+          </section>
+
+          {aiViewModel.rows.length === 0 ? (
+            <EmptyCard text="当前服务尚未完成 AI 观测埋点，AI专区暂时没有可展示的指标。" />
+          ) : (
+            <>
+              <section className="grid gap-4 xl:grid-cols-3">
+                {aiViewModel.cards.map((item) => (
+                  <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
+                ))}
+              </section>
+
+              <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">埋点覆盖</div>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI 指标摘要</h3>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">识别到的 AI 指标族</div>
+                      <div className="mt-3 text-3xl font-black text-slate-900">{formatNumber(aiViewModel.familyCount)}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Canonical 契约</div>
+                      <div className="mt-3 text-base font-black text-slate-900">{aiViewModel.coverageLabel}</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <div className="text-sm font-bold text-slate-800">已识别 canonical 维度</div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {BINARY_SECURITY_CANONICAL_AI_METRICS.map((item) => {
+                        const hit = aiViewModel.rows.some((row) => row.name.includes(item.key.replace(/-/gu, '_')) || (row.help || '').includes(item.label));
+                        return (
+                          <span key={item.key} className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${hit ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                            {item.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色分布</div>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI 角色分布图</h3>
+                  <div className="mt-4 h-72">
+                    {aiViewModel.roleChart.length ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={aiViewModel.roleChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                          <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
+                          <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                          <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
+                          <Bar dataKey="value" fill={AI_CHART_COLOR} radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <EmptyCard text="当前服务暂时没有 AI 角色分布数据" />
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Token / Cost</div>
+                <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI Token/Cost 图</h3>
+                <div className="mt-4 h-72">
+                  {aiViewModel.tokenChart.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={aiViewModel.tokenChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                        <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                        <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
+                        <Bar dataKey="value" fill="#db2777" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyCard text="当前服务暂时没有 token/cost 维度数据" />
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">AI 指标表</div>
+                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI/智能体指标明细</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="relative">
+                      <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                      <input value={aiSearchKeyword} onChange={(event) => setAiSearchKeyword(event.target.value)} placeholder="搜索 AI 指标名 / labels / help" className="rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
+                    </div>
+                    <select value={aiRoleFilter} onChange={(event) => setAiRoleFilter(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                      <option value="all">全部角色/类型</option>
+                      {aiRoles.map((role) => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500">
+                      <tr>
+                        <th className="px-3 py-3">指标名</th>
+                        <th className="px-3 py-3">Labels</th>
+                        <th className="px-3 py-3">Value</th>
+                        <th className="px-3 py-3">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {aiRows.map((row) => (
+                        <tr key={`${row.name}:${row.labelText}`} className="hover:bg-slate-50">
+                          <td className="px-3 py-3 align-top">
+                            <div className="font-mono text-[11px] font-bold text-slate-800">{row.name}</div>
+                            {row.help ? <div className="mt-1 max-w-[34rem] text-[11px] text-slate-500">{row.help}</div> : null}
+                          </td>
+                          <td className="px-3 py-3 font-mono text-[11px] text-slate-600">{row.labelText}</td>
+                          <td className="px-3 py-3 font-mono text-[11px] font-semibold text-slate-800">{formatMetricValue(row.value)}</td>
+                          <td className="px-3 py-3 uppercase text-slate-600">{row.type}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {aiRows.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">没有符合过滤条件的 AI 指标</div> : null}
+                </div>
+              </section>
+            </>
+          )}
         </>
       )}
     </div>

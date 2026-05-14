@@ -79,6 +79,7 @@ const STAGE_STEPS = [
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 type DetailTab = 'overview' | 'run-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
+type StageOverviewMetric = { label: string; value: string };
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
@@ -364,6 +365,88 @@ function stageLabel(stage: string | undefined): string {
     final_report: '最终报告',
   };
   return labels[stage || ''] || stage || '-';
+}
+
+function findLatestStageEventData(events: AppSaStageEvent[], stages: string[]): Record<string, any> | null {
+  const stageSet = new Set(stages.map((item) => String(item)));
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const evt = events[i];
+    if (evt.type !== 'stage_result') continue;
+    const stage = String(evt.data?.stage ?? '');
+    if (stageSet.has(stage)) {
+      return evt.data ?? null;
+    }
+  }
+  return null;
+}
+
+function appendMetric(metrics: StageOverviewMetric[], label: string, value: unknown, digits = 0) {
+  if (value == null || value === '') return;
+  const num = Number(value);
+  const formatted = Number.isFinite(num) ? formatNumber(num, digits) : String(value).trim();
+  if (!formatted || formatted === '-') return;
+  metrics.push({ label, value: formatted });
+}
+
+function buildOverviewStageMetrics(
+  detail: AppSaTaskDetail | null,
+  result: AppSaTaskResult | null,
+  evaluation: AppSaTaskEvaluation | null,
+): Record<string, StageOverviewMetric[]> {
+  if (!detail) return {};
+
+  const events = detail.stages_json?.events ?? [];
+  const stageSummary = evaluation?.summary?.stage_summary ?? {};
+  const preprocessMetrics: StageOverviewMetric[] = [];
+  const classifyMetrics: StageOverviewMetric[] = [];
+  const refineMetrics: StageOverviewMetric[] = [];
+  const analyseMetrics: StageOverviewMetric[] = [];
+  const reportMetrics: StageOverviewMetric[] = [];
+
+  const filterResult = findLatestStageEventData(events, ['filter-engine', 'filter']);
+  const prescanResult = findLatestStageEventData(events, ['prescan']);
+  appendMetric(preprocessMetrics, '过滤文件', filterResult?.file_count);
+  appendMetric(preprocessMetrics, '预扫描摘要', prescanResult?.summary_lines);
+  if (filterResult?.effective_engine) {
+    preprocessMetrics.push({
+      label: '过滤引擎',
+      value: filterResult.effective_engine === 'agent' ? '智能体' : '脚本',
+    });
+  }
+
+  const classifySummary = stageSummary.classify ?? {};
+  appendMetric(classifyMetrics, '轮次', classifySummary.round_count);
+  appendMetric(classifyMetrics, 'Judge 均分', classifySummary.avg_judge_score, 1);
+  appendMetric(classifyMetrics, '模块数', evaluation?.summary?.module_count ?? result?.summary.module_count);
+
+  const refineSummary = stageSummary.refine ?? stageSummary['2-reclassify'] ?? {};
+  appendMetric(refineMetrics, '轮次', refineSummary.round_count);
+  appendMetric(refineMetrics, 'Judge 均分', refineSummary.avg_judge_score, 1);
+  appendMetric(refineMetrics, '完成模块', evaluation?.summary?.completed_module_count);
+
+  const analyseSummary = stageSummary.analyse ?? {};
+  appendMetric(analyseMetrics, '轮次', analyseSummary.round_count);
+  appendMetric(analyseMetrics, '完成模块', evaluation?.summary?.completed_module_count);
+  appendMetric(analyseMetrics, '威胁数', result?.summary.threat_count);
+
+  const reportSummary = stageSummary.final_report ?? {};
+  appendMetric(reportMetrics, '分析模块', result?.summary.module_count);
+  appendMetric(reportMetrics, '高风险模块', result?.summary.high_risk_module_count);
+  appendMetric(reportMetrics, '威胁数', result?.summary.threat_count);
+  if (detail.effective_config_json?.enable_final_check !== undefined) {
+    reportMetrics.push({
+      label: '完整性检查',
+      value: detail.effective_config_json.enable_final_check ? '开启' : '关闭',
+    });
+  }
+
+  return {
+    preprocess: preprocessMetrics.slice(0, 3),
+    classify: classifyMetrics.slice(0, 3),
+    refine: refineMetrics.slice(0, 3),
+    analyse: analyseMetrics.slice(0, 3),
+    report: reportMetrics.slice(0, 3),
+  };
 }
 
 function sessionRoleLabel(role: string | undefined): string {
@@ -768,9 +851,19 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, [activeTab, taskId]);
 
   useEffect(() => {
+    if (activeTab !== 'overview' || !detail || detail.status === 'pending' || resultLoading || result) return;
+    void loadResult();
+  }, [activeTab, detail, result, resultLoading]);
+
+  useEffect(() => {
     if (activeTab !== 'evaluation') return;
     void loadEvaluation();
   }, [activeTab, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'overview' || !detail || ['pending', 'running'].includes(detail.status) || evaluationLoading || evaluation) return;
+    void loadEvaluation();
+  }, [activeTab, detail, evaluation, evaluationLoading]);
 
   useEffect(() => {
     setSelectedEvaluationRoundKey(null);
@@ -1046,6 +1139,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const activeAgentSessionMeta = useMemo(
     () => sessions.find((item) => item.relative_path === activeAgentSessionPath) || null,
     [sessions, activeAgentSessionPath],
+  );
+  const overviewStageMetrics = useMemo(
+    () => buildOverviewStageMetrics(detail, result, evaluation),
+    [detail, evaluation, result],
   );
   const evaluationRounds = evaluation?.rounds || [];
   const evaluationStages = useMemo(
@@ -1510,6 +1607,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     {STAGE_STEPS.map((step, i) => {
                       const st = stageStatuses[i];
                       const timing = stageTimes[i];
+                      const metrics = overviewStageMetrics[step.key] || [];
                       const timingStr = st === 'completed' || st === 'failed'
                         ? formatTsDuration(timing.startTs, timing.endTs)
                         : st === 'running' && timing.startTs
@@ -1537,6 +1635,16 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 {timingStr ? <span className="text-[11px] font-mono text-slate-500">⏱ {timingStr}</span> : null}
                               </div>
                               <p className="mt-1 text-xs text-slate-500">{step.desc}</p>
+                              {st === 'completed' && metrics.length > 0 ? (
+                                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                  <div className="text-[10px] font-black tracking-[0.12em] text-slate-400">
+                                    {metrics.map((item) => item.label).join(' / ')}
+                                  </div>
+                                  <div className="mt-1 text-sm font-bold text-slate-900">
+                                    {metrics.map((item) => item.value).join(' / ')}
+                                  </div>
+                                </div>
+                              ) : null}
                               {artifactFsPath && st !== 'pending' ? (
                                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                   <button
