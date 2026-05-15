@@ -123,6 +123,11 @@ function formatSeconds(seconds: number | null | undefined) {
   return `${hours}h${minutes}m`;
 }
 
+function formatPhaseDuration(seconds: number | null | undefined) {
+  if (seconds == null || !Number.isFinite(seconds)) return '';
+  return `（${formatSeconds(seconds)}）`;
+}
+
 function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
   if (used == null || limit == null || limit <= 0) return '-';
   const percent = Math.max(0, (used / limit) * 100);
@@ -657,6 +662,7 @@ function RoundDetailModal({
 function PhaseStatusBadge({ status }: { status: string }) {
   const cfg: Record<string, string> = {
     pending: 'bg-slate-100 text-slate-500',
+    not_executed: 'bg-slate-100 text-slate-500',
     running: 'bg-blue-100 text-blue-700',
     success: 'bg-emerald-100 text-emerald-700',
     failed: 'bg-red-100 text-red-700',
@@ -664,6 +670,7 @@ function PhaseStatusBadge({ status }: { status: string }) {
   };
   const labels: Record<string, string> = {
     pending: '待执行',
+    not_executed: '未执行',
     running: '进行中',
     success: '已完成',
     failed: '失败',
@@ -781,6 +788,7 @@ function TaskDetailPanel({
   onRetry,
   onRefreshResultCache,
   onCreateEvolution,
+  notify,
   resultRefreshingTaskId,
   onActiveTabChange,
   refreshRequest,
@@ -808,6 +816,7 @@ function TaskDetailPanel({
   onRetry: (id: string) => void;
   onRefreshResultCache: (id: string) => void;
   onCreateEvolution: (id: string) => Promise<void>;
+  notify: (message: string, tone?: 'success' | 'error' | 'info' | 'warning') => void;
   resultRefreshingTaskId: string;
   onActiveTabChange?: (tab: DetailTab) => void;
   refreshRequest?: number;
@@ -851,6 +860,7 @@ function TaskDetailPanel({
   const [evolutionDetailLoading, setEvolutionDetailLoading] = useState(false);
   const [evolutionDetailError, setEvolutionDetailError] = useState('');
   const [evolutionSubmitting, setEvolutionSubmitting] = useState(false);
+  const [evolutionReplacing, setEvolutionReplacing] = useState(false);
   const [evolutionLogModalOpen, setEvolutionLogModalOpen] = useState(false);
   const [evolutionLogModalTitle, setEvolutionLogModalTitle] = useState('');
   const [evolutionLog, setEvolutionLog] = useState<FirmwareTaskLog | null>(null);
@@ -1121,6 +1131,7 @@ function TaskDetailPanel({
     setEvolutionDetailLoading(false);
     setEvolutionDetailError('');
     setEvolutionSubmitting(false);
+    setEvolutionReplacing(false);
     setEvolutionLogModalOpen(false);
     setEvolutionLogModalTitle('');
     setEvolutionLog(null);
@@ -1376,6 +1387,29 @@ function TaskDetailPanel({
   const latestEvolutionJob = evolutionJobs[0] || null;
   const activeEvolutionJob = selectedEvolutionJob || latestEvolutionJob;
   const canCreateEvolution = task?.status === 'success' && !evolutionSubmitting && !evolutionJobs.some((item) => ['pending', 'running'].includes(item.status));
+  const canConfirmEvolutionReplacement = Boolean(
+    activeEvolutionJob
+    && activeEvolutionJob.status === 'success'
+    && activeEvolutionJob.replacement_required
+    && !activeEvolutionJob.replacement_confirmed
+    && activeEvolutionJob.final_tool_path
+    && activeEvolutionJob.replaced_tool_path
+    && !evolutionReplacing
+  );
+  const showConfirmEvolutionReplacementButton = Boolean(activeEvolutionJob);
+  const evolutionReplacementHint = !activeEvolutionJob
+    ? '当前没有可操作的自进化任务'
+    : activeEvolutionJob.status !== 'success'
+      ? '仅进化成功后的任务允许替换原工具'
+      : activeEvolutionJob.replacement_confirmed
+        ? '当前进化结果已确认替换原工具'
+        : !activeEvolutionJob.replacement_required
+          ? '当前进化结果未产生待替换的新工具'
+          : !activeEvolutionJob.final_tool_path || !activeEvolutionJob.replaced_tool_path
+            ? '缺少原工具路径或新工具路径，无法执行替换'
+            : evolutionReplacing
+              ? '正在替换原工具'
+              : '将新工具覆盖到原工具路径';
   const evolutionSessionItems = evolutionSessions?.items || [];
 
   if (!task) {
@@ -1414,6 +1448,29 @@ function TaskDetailPanel({
       await loadEvolutionJobs();
     } finally {
       setEvolutionSubmitting(false);
+    }
+  };
+
+  const handleConfirmEvolutionReplacementClick = async () => {
+    if (!activeEvolutionJob?.id || !activeEvolutionJob.final_tool_path || !activeEvolutionJob.replaced_tool_path) return;
+    const confirmed = await showConfirm({
+      title: '确认替换原工具',
+      description: `将使用新工具覆盖原工具。\n\n原工具：${activeEvolutionJob.replaced_tool_path}\n新工具：${activeEvolutionJob.final_tool_path}`,
+      confirmText: '确认替换',
+      cancelText: '取消',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    setEvolutionReplacing(true);
+    try {
+      const result = await fwApi.confirmEvolutionReplacement(activeEvolutionJob.id);
+      notify(result.message || '已确认替换原工具', 'success');
+      await loadEvolutionJobs();
+      await loadEvolutionJobDetail(activeEvolutionJob.id);
+    } catch (e: any) {
+      notify(`确认替换失败: ${e?.message || 'unknown error'}`, 'error');
+    } finally {
+      setEvolutionReplacing(false);
     }
   };
 
@@ -1617,7 +1674,10 @@ function TaskDetailPanel({
                                 <PhaseNodeStatusIcon status={phase.status} index={index} />
                               </div>
                               <div className={`mt-2 px-1 ${textClass}`}>
-                                <div className="text-xs font-semibold">{phase.label}</div>
+                                <div className="text-xs font-semibold">
+                                  {phase.label}
+                                  {formatPhaseDuration(phase.duration_seconds)}
+                                </div>
                                 <div className="mt-1 flex justify-center">
                                   <PhaseStatusBadge status={phase.status} />
                                 </div>
@@ -2301,9 +2361,9 @@ function TaskDetailPanel({
                 <div className="mt-1 text-xs text-slate-500">{evolutionStageLabel(activeEvolutionJob?.current_stage)}</div>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最终工具</div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最终工具脚本</div>
                 <div className="mt-3 break-all font-mono text-xs text-slate-700">
-                  {activeEvolutionJob?.final_skill_path || task.latest_evolution_final_skill_path || '-'}
+                  {activeEvolutionJob?.final_tool_path || activeEvolutionJob?.final_skill_path || task.latest_evolution_final_skill_path || '-'}
                 </div>
               </div>
             </section>
@@ -2362,7 +2422,7 @@ function TaskDetailPanel({
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-black text-slate-900">最近一次进化状态</div>
-                      <div className="mt-1 text-xs text-slate-500">展示当前选中进化任务的状态、起始方式和最终工具结果。</div>
+                      <div className="mt-1 text-xs text-slate-500">展示当前选中进化任务的状态、起始方式和最终 Python 工具脚本结果。</div>
                     </div>
                     {evolutionDetailLoading ? <Loader2 size={15} className="animate-spin text-slate-400" /> : null}
                   </div>
@@ -2376,13 +2436,34 @@ function TaskDetailPanel({
                     <RoundDetailField label="评审是否通过" value={activeEvolutionJob?.review_passed ? '通过' : '未通过'} />
                     <RoundDetailField label="开始时间" value={fmtTime(activeEvolutionJob?.started_at || null)} />
                     <RoundDetailField label="完成时间" value={fmtTime(activeEvolutionJob?.completed_at || null)} />
-                    <RoundDetailField label="起始方式" value={activeEvolutionJob?.started_without_matched_skill ? '从进化器生成首个工具' : '基于命中工具备份进化'} />
-                    <RoundDetailField label="源工具" value={activeEvolutionJob?.source_skill_path || '-'} mono />
-                    <RoundDetailField label="工作副本" value={activeEvolutionJob?.working_skill_path || '-'} mono />
-                    <RoundDetailField label="覆盖目标" value={activeEvolutionJob?.replaced_skill_path || '-'} mono />
-                    <RoundDetailField label="最终工具" value={activeEvolutionJob?.final_skill_path || '-'} mono />
-                    <RoundDetailField label="是否生成新工具" value={activeEvolutionJob?.generated_new_skill ? '是' : '否'} />
+                    <RoundDetailField label="起始方式" value={activeEvolutionJob?.started_without_matched_skill ? '从进化器生成首个 Python 工具' : '基于命中工具脚本备份进化'} />
+                    <RoundDetailField label="源工具脚本" value={activeEvolutionJob?.source_tool_path || activeEvolutionJob?.source_skill_path || '-'} mono />
+                    <RoundDetailField label="工作副本" value={activeEvolutionJob?.working_tool_path || activeEvolutionJob?.working_skill_path || '-'} mono />
+                    <RoundDetailField label="覆盖目标" value={activeEvolutionJob?.replaced_tool_path || activeEvolutionJob?.replaced_skill_path || '-'} mono />
+                    <RoundDetailField label="最终工具脚本" value={activeEvolutionJob?.final_tool_path || activeEvolutionJob?.final_skill_path || '-'} mono />
+                    <RoundDetailField label="是否生成新工具" value={activeEvolutionJob?.generated_new_tool || activeEvolutionJob?.generated_new_skill ? '是' : '否'} />
+                    <RoundDetailField label="替换状态" value={
+                      activeEvolutionJob?.replacement_required
+                        ? (activeEvolutionJob?.replacement_confirmed ? '已确认替换' : '待确认替换')
+                        : '无需替换'
+                    } />
                   </div>
+                  {showConfirmEvolutionReplacementButton ? (
+                    <div className="mt-4 flex justify-end">
+                      <div className="flex flex-col items-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleConfirmEvolutionReplacementClick}
+                          disabled={!canConfirmEvolutionReplacement}
+                          className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+                        >
+                          {evolutionReplacing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                          确认替换原工具
+                        </button>
+                        <div className="text-xs text-slate-500">{evolutionReplacementHint}</div>
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">错误信息</div>
                     <div className="mt-2 text-sm text-slate-700">{activeEvolutionJob?.error_message || '无'}</div>
@@ -2415,8 +2496,8 @@ function TaskDetailPanel({
                             </span>
                           </div>
                           <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            <RoundDetailField label="改进前工具" value={round.tool_skill_path_before || '-'} mono />
-                            <RoundDetailField label="改进后工具" value={round.tool_skill_path_after || '-'} mono />
+                            <RoundDetailField label="改进前工具" value={round.tool_path_before || round.tool_skill_path_before || '-'} mono />
+                            <RoundDetailField label="改进后工具" value={round.tool_path_after || round.tool_skill_path_after || '-'} mono />
                             <RoundDetailField label="是否改动工具" value={round.tool_changed ? '是' : '否'} />
                             <RoundDetailField label="评审结果摘要" value={round.review_result || '-'} />
                           </div>
@@ -3530,6 +3611,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           onRetry={handleRetry}
           onRefreshResultCache={handleRefreshResultCache}
           onCreateEvolution={handleCreateEvolution}
+          notify={notify}
           resultRefreshingTaskId={resultRefreshingTaskId}
           onActiveTabChange={setDetailActiveTab}
           refreshRequest={detailRefreshRequest}

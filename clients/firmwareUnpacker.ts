@@ -98,6 +98,7 @@ export interface FirmwareTaskProgressPhase {
   updated_at: string | null;
   current_round: number | null;
   total_rounds: number | null;
+  duration_seconds: number | null;
 }
 
 export interface FirmwareTaskProgress {
@@ -228,13 +229,17 @@ export interface FirmwareEvolutionRound {
   status: string;
   tool_skill_path_before: string | null;
   tool_skill_path_after: string | null;
+  tool_path_before: string | null;
+  tool_path_after: string | null;
   tool_changed: boolean;
   review_result: string | null;
   summary_path: string | null;
   reason_path: string | null;
   source_skill_path: string | null;
+  source_tool_path: string | null;
   started_without_matched_skill: boolean;
   generated_new_skill: boolean;
+  generated_new_tool: boolean;
   executed_tool: boolean;
   tool_response_preview: string | null;
   created_at: string | null;
@@ -258,11 +263,19 @@ export interface FirmwareEvolutionJob {
   started_at: string | null;
   completed_at: string | null;
   final_skill_path: string | null;
+  final_tool_path: string | null;
   replaced_skill_path: string | null;
+  replaced_tool_path: string | null;
   review_passed: boolean;
   source_skill_path: string | null;
+  source_tool_path: string | null;
   working_skill_path: string | null;
+  working_tool_path: string | null;
   generated_new_skill: boolean;
+  generated_new_tool: boolean;
+  replacement_required: boolean;
+  replacement_confirmed: boolean;
+  effective_tool_path: string | null;
   started_without_matched_skill: boolean;
   run_root: string | null;
   session_root: string | null;
@@ -715,6 +728,7 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
       updated_at: asNullableString(entry.updated_at),
       current_round: asNullableNumber(entry.current_round),
       total_rounds: asNullableNumber(entry.total_rounds),
+      duration_seconds: asNullableNumber(entry.duration_seconds),
     };
   });
   return {
@@ -1214,13 +1228,17 @@ const normalizeEvolutionRound = (value: unknown): FirmwareEvolutionRound => {
     status: asString(record.status, 'unknown'),
     tool_skill_path_before: asNullableString(record.tool_skill_path_before),
     tool_skill_path_after: asNullableString(record.tool_skill_path_after),
+    tool_path_before: asNullableString(record.tool_path_before) ?? asNullableString(record.tool_skill_path_before),
+    tool_path_after: asNullableString(record.tool_path_after) ?? asNullableString(record.tool_skill_path_after),
     tool_changed: asBoolean(record.tool_changed),
     review_result: asNullableString(record.review_result),
     summary_path: asNullableString(record.summary_path),
     reason_path: asNullableString(record.reason_path),
     source_skill_path: asNullableString(record.source_skill_path),
+    source_tool_path: asNullableString(record.source_tool_path) ?? asNullableString(record.source_skill_path),
     started_without_matched_skill: asBoolean(record.started_without_matched_skill),
     generated_new_skill: asBoolean(record.generated_new_skill),
+    generated_new_tool: asBoolean(record.generated_new_tool || record.generated_new_skill),
     executed_tool: asBoolean(record.executed_tool),
     tool_response_preview: asNullableString(record.tool_response_preview),
     created_at: asNullableString(record.created_at),
@@ -1247,11 +1265,19 @@ const normalizeEvolutionJob = (value: unknown): FirmwareEvolutionJob => {
     started_at: asNullableString(record.started_at),
     completed_at: asNullableString(record.completed_at),
     final_skill_path: asNullableString(record.final_skill_path),
+    final_tool_path: asNullableString(record.final_tool_path) ?? asNullableString(record.final_skill_path),
     replaced_skill_path: asNullableString(record.replaced_skill_path),
+    replaced_tool_path: asNullableString(record.replaced_tool_path) ?? asNullableString(record.replaced_skill_path),
     review_passed: asBoolean(record.review_passed),
     source_skill_path: asNullableString(record.source_skill_path),
+    source_tool_path: asNullableString(record.source_tool_path) ?? asNullableString(record.source_skill_path),
     working_skill_path: asNullableString(record.working_skill_path),
+    working_tool_path: asNullableString(record.working_tool_path) ?? asNullableString(record.working_skill_path),
     generated_new_skill: asBoolean(record.generated_new_skill),
+    generated_new_tool: asBoolean(record.generated_new_tool || record.generated_new_skill),
+    replacement_required: asBoolean(record.replacement_required),
+    replacement_confirmed: asBoolean(record.replacement_confirmed ?? !record.replacement_required),
+    effective_tool_path: asNullableString(record.effective_tool_path),
     started_without_matched_skill: asBoolean(record.started_without_matched_skill),
     run_root: asNullableString(record.run_root),
     session_root: asNullableString(record.session_root),
@@ -1433,6 +1459,15 @@ export const firmwareUnpackerApi = {
     const query = new URLSearchParams({ round: String(round), role });
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/logs?${query.toString()}`, { headers: getHeaders() });
     return normalizeTaskLog(await handleResponse(r));
+  },
+
+  /** POST /api/app/firmware-unpacker/evolution-jobs/{id}/confirm-replacement */
+  confirmEvolutionReplacement: async (jobId: string): Promise<{ message: string; task_id?: string | null }> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/confirm-replacement`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(r);
   },
 
   /** DELETE /api/app/firmware-unpacker/tasks/{id} */
