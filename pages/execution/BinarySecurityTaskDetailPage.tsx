@@ -51,7 +51,7 @@ const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
 ] as const;
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
-  PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, true]),
+  PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
 ) as Record<string, boolean>;
 
 const STAGE_LABELS: Record<string, string> = {
