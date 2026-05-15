@@ -143,28 +143,28 @@ const MetricTile: React.FC<{
   tone?: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet';
   icon?: React.ReactNode;
 }> = ({ label, value, hint, tone = 'slate', icon }) => (
-  <div className={`rounded-[1.25rem] border p-4 ${tileTone(tone)}`}>
-    <div className="flex items-start justify-between gap-3">
+  <div className={`rounded-xl border px-3 py-2.5 ${tileTone(tone)}`}>
+    <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-60">{label}</div>
-        <div className="mt-1 text-2xl font-black tracking-tight">{value}</div>
+        <div className="text-[10px] font-black uppercase tracking-[0.14em] opacity-60">{label}</div>
+        <div className="mt-0.5 text-xl font-black tracking-tight">{value}</div>
       </div>
-      {icon ? <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70">{icon}</div> : null}
+      {icon ? <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/70">{icon}</div> : null}
     </div>
-    {hint ? <div className="mt-2 truncate text-xs font-semibold opacity-70" title={hint}>{hint}</div> : null}
+    {hint ? <div className="mt-1 truncate text-[11px] font-semibold opacity-70" title={hint}>{hint}</div> : null}
   </div>
 );
 
 const SectionCard: React.FC<{ title: string; description?: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, description, children, right }) => (
-  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-    <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
+  <section className="rounded-[1.25rem] border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-1.5 border-b border-slate-100 pb-3 md:flex-row md:items-end md:justify-between">
       <div>
-        <h2 className="text-lg font-black text-slate-900">{title}</h2>
-        {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
+        <h2 className="text-base font-black text-slate-900">{title}</h2>
+        {description ? <p className="mt-0.5 text-[11px] text-slate-500">{description}</p> : null}
       </div>
       {right}
     </div>
-    <div className="mt-4">{children}</div>
+    <div className="mt-3">{children}</div>
   </section>
 );
 
@@ -513,17 +513,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     : '-';
 
   if (!taskId) {
-    return <div className="px-8 pb-10 pt-8 text-sm text-slate-500">未指定任务，请返回列表重新选择。</div>;
+    return <div className="px-6 pb-8 pt-6 text-sm text-slate-500">未指定任务，请返回列表重新选择。</div>;
   }
 
   const renderOverview = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SectionCard
         title="阶段进度"
         description="按 B2S 语义展示任务的当前推进位置。"
         right={<div className="text-xs font-black text-slate-500">当前主进度 {pct(primaryProgress).toFixed(1)}%</div>}
       >
-        <div className="grid gap-3 lg:grid-cols-7">
+        <div className="grid gap-2 lg:grid-cols-7">
           {PHASE_ORDER.map((phase, index) => {
             const count = detail?.items.filter((item) => {
               const currentIndex = Math.max(0, PHASE_ORDER.indexOf(item.phase || 'queued'));
@@ -534,10 +534,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               return currentIndex > index || item.status === 'success';
             }).length || 0;
             return (
-              <div key={phase} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 p-4">
-                <div className={`h-2 rounded-full ${count ? 'bg-blue-500' : completed ? 'bg-emerald-400' : 'bg-slate-200'}`} />
-                <div className="mt-3 text-sm font-black text-slate-900">{PHASE_LABELS[phase]}</div>
-                <div className="mt-1 text-xs font-semibold text-slate-500">当前 {count} · 已过 {completed}</div>
+              <div key={phase} className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+                <div className={`h-1.5 rounded-full ${count ? 'bg-blue-500' : completed ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                <div className="mt-2 text-sm font-black text-slate-900">{PHASE_LABELS[phase]}</div>
+                <div className="mt-0.5 text-[11px] font-semibold text-slate-500">当前 {count} · 已过 {completed}</div>
               </div>
             );
           })}
@@ -550,9 +550,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         right={<div className="text-xs font-black text-slate-500">Header/Executor/Validator {detail?.agent_runtime_summary?.header_agent_count || 0}/{detail?.agent_runtime_summary?.executor_agent_count || 0}/{detail?.agent_runtime_summary?.validator_agent_count || 0}</div>}
       >
         {activeAgents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前没有运行中的智能体。快速模式或已完成任务可能不会保留活跃会话。</div>
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">当前没有运行中的智能体。快速模式或已完成任务可能不会保留活跃会话。</div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
             {activeAgents.map((agent) => (
               <button
                 key={agent.key}
@@ -562,19 +562,19 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   setSelectedItemId(agent.item_id || '__all__');
                   if (agent.relative_path) setSelectedSessionPath(agent.relative_path);
                 }}
-                className="rounded-[1.25rem] border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-black text-slate-900">{agent.label}</div>
-                    <div className="mt-1 truncate text-xs font-semibold text-slate-500">{agent.item_name} · {agent.stage || '-'} · {agent.run_name || '-'}</div>
+                    <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">{agent.item_name} · {agent.stage || '-'} · {agent.run_name || '-'}</div>
                   </div>
                   <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">{agent.role || 'session'}</span>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
-                  {agent.batch_no ? <span className="rounded-full bg-slate-100 px-2 py-1">Batch {agent.batch_no}</span> : null}
-                  {agent.attempt_no ? <span className="rounded-full bg-slate-100 px-2 py-1">第 {agent.attempt_no} 轮</span> : null}
-                  <span className="rounded-full bg-slate-100 px-2 py-1">{agent.updated_at ? formatDateTime(agent.updated_at) : '实时'}</span>
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-semibold text-slate-600">
+                  {agent.batch_no ? <span className="rounded-full bg-slate-100 px-2 py-0.5">Batch {agent.batch_no}</span> : null}
+                  {agent.attempt_no ? <span className="rounded-full bg-slate-100 px-2 py-0.5">第 {agent.attempt_no} 轮</span> : null}
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">{agent.updated_at ? formatDateTime(agent.updated_at) : '实时'}</span>
                 </div>
               </button>
             ))}
@@ -582,7 +582,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         )}
       </SectionCard>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
         <MetricTile label="ELF 完成" value={`${overall?.completed_items || 0}/${overall?.total_items || detail?.total_items || 0}`} hint={`${detail?.running_items || 0} 个运行中`} tone="blue" icon={<Cpu size={18} />} />
         <MetricTile label="Batch 总数" value={observabilitySummary?.total_batches || 0} hint={`均值 ${observabilitySummary?.avg_batches_per_item || 0}`} tone="violet" icon={<Layers3 size={18} />} />
         <MetricTile label="评审轮次" value={observabilitySummary?.total_review_attempts || 0} hint={`均值 ${observabilitySummary?.avg_review_attempts || 0}`} tone="emerald" icon={<GitBranch size={18} />} />
@@ -592,32 +592,32 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       </div>
 
       <SectionCard title="快速风险" description="优先展示失败项、评审未通过项和结果缺失项。">
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 p-4">
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-500">失败 Item</div>
-            <div className="mt-3 space-y-2">
+            <div className="mt-2.5 space-y-1.5">
               {(detail?.items.filter((item) => item.status === 'failed').slice(0, 4) || []).map((item) => (
-                <div key={item.id} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700">{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</div>
+                <div key={item.id} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-rose-700">{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</div>
               ))}
-              {(detail?.items.filter((item) => item.status === 'failed').length || 0) === 0 ? <div className="rounded-xl bg-white px-3 py-4 text-sm text-slate-500">暂无失败项</div> : null}
+              {(detail?.items.filter((item) => item.status === 'failed').length || 0) === 0 ? <div className="rounded-lg bg-white px-3 py-3 text-sm text-slate-500">暂无失败项</div> : null}
             </div>
           </div>
-          <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">评审未通过</div>
-            <div className="mt-3 space-y-2">
+            <div className="mt-2.5 space-y-1.5">
               {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').slice(0, 4) || []).map((item) => (
-                <div key={item.item_id} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-amber-700">{`#${item.sequence_no} ${item.item_name} · ${item.final_verdict_label || item.final_verdict || '-'}`}</div>
+                <div key={item.item_id} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-amber-700">{`#${item.sequence_no} ${item.item_name} · ${item.final_verdict_label || item.final_verdict || '-'}`}</div>
               ))}
-              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').length || 0) === 0 ? <div className="rounded-xl bg-white px-3 py-4 text-sm text-slate-500">暂无未通过项</div> : null}
+              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').length || 0) === 0 ? <div className="rounded-lg bg-white px-3 py-3 text-sm text-slate-500">暂无未通过项</div> : null}
             </div>
           </div>
-          <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">结果缺失</div>
-            <div className="mt-3 space-y-2">
+            <div className="mt-2.5 space-y-1.5">
               {(resultSummary?.items.filter((item) => item.result_file_count === 0).slice(0, 4) || []).map((item) => (
-                <div key={item.item_id} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-700">{`#${item.sequence_no} ${item.item_name}`}</div>
+                <div key={item.item_id} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">{`#${item.sequence_no} ${item.item_name}`}</div>
               ))}
-              {(resultSummary?.items.filter((item) => item.result_file_count === 0).length || 0) === 0 ? <div className="rounded-xl bg-white px-3 py-4 text-sm text-slate-500">所有 item 都已有结果文件</div> : null}
+              {(resultSummary?.items.filter((item) => item.result_file_count === 0).length || 0) === 0 ? <div className="rounded-lg bg-white px-3 py-3 text-sm text-slate-500">所有 item 都已有结果文件</div> : null}
             </div>
           </div>
         </div>
@@ -631,29 +631,29 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       return <SectionCard title="任务配置"><div className="text-sm text-slate-500">当前任务没有可展示的冻结配置。</div></SectionCard>;
     }
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <SectionCard title="基本配置" description="展示任务创建时冻结的任务级配置。">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
             <MetricTile label="任务名" value={snapshot.name || '-'} />
             <MetricTile label="优先级" value={snapshot.priority} />
             <MetricTile label="模式" value={snapshot.mode_label || snapshot.mode || '-'} tone="violet" />
             <MetricTile label="引擎" value={snapshot.engine || '-'} tone="blue" />
           </div>
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">描述</div>
-              <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-700">{snapshot.description || '-'}</div>
+              <div className="mt-1.5 whitespace-pre-wrap break-words text-sm text-slate-700">{snapshot.description || '-'}</div>
             </div>
-            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">标签</div>
-              <div className="mt-2 flex flex-wrap gap-2">{snapshot.tags.length ? snapshot.tags.map((tag) => <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-700">{tag}</span>) : <span className="text-sm text-slate-500">-</span>}</div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">{snapshot.tags.length ? snapshot.tags.map((tag) => <span key={tag} className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-black text-slate-700">{tag}</span>) : <span className="text-sm text-slate-500">-</span>}</div>
             </div>
           </div>
         </SectionCard>
 
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-2">
           <SectionCard title="模型配置">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2.5 md:grid-cols-2">
               <MetricTile label="Provider Key" value={snapshot.llm_provider_key || '-'} tone="blue" />
               <MetricTile label="模型" value={snapshot.llm_provider_model || '-'} tone="blue" />
               <MetricTile label="显示名" value={snapshot.llm_provider_display_name || '-'} />
@@ -661,7 +661,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
             </div>
           </SectionCard>
           <SectionCard title="执行策略">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-2.5 md:grid-cols-2">
               <MetricTile label="并发" value={snapshot.concurrency || '-'} tone="violet" />
               <MetricTile label="超时秒数" value={snapshot.agent_run_timeout_seconds || '-'} tone="amber" />
               <MetricTile label="超时重试" value={snapshot.agent_timeout_retry_enabled ? '开启' : '关闭'} tone="amber" />
@@ -671,7 +671,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         </div>
 
         <SectionCard title="任务来源">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
             <MetricTile label="来源类型" value={snapshot.origin_label || snapshot.task_origin_type || '-'} />
             <MetricTile label="父任务" value={snapshot.parent_task_id || '-'} />
             <MetricTile label="父任务类型" value={snapshot.parent_task_type || '-'} />
@@ -680,7 +680,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         </SectionCard>
 
         <SectionCard title="输入配置" description={`当前任务共包含 ${snapshot.input_count} 个 ELF 输入。`}>
-          <div className="overflow-x-auto rounded-[1.25rem] border border-slate-200">
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/90 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
                 <tr>
@@ -693,13 +693,13 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               <tbody className="divide-y divide-slate-200 bg-white">
                 {snapshot.input_items.map((item) => (
                   <tr key={item.item_id}>
-                    <td className="px-4 py-3 text-sm font-black text-slate-900">#{item.sequence_no}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2.5 text-sm font-black text-slate-900">#{item.sequence_no}</td>
+                    <td className="px-3 py-2.5">
                       <div className="text-sm font-semibold text-slate-900">{fileNameOf(item.source_elf_path || item.elf_path)}</div>
-                      <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={item.source_elf_path || item.elf_path}>{item.source_elf_path || item.elf_path}</div>
+                      <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500" title={item.source_elf_path || item.elf_path}>{item.source_elf_path || item.elf_path}</div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{item.output_subdir || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{item.file_list.length ? `${item.file_list.length} 项` : '-'}</td>
+                    <td className="px-3 py-2.5 text-sm text-slate-700">{item.output_subdir || '-'}</td>
+                    <td className="px-3 py-2.5 text-sm text-slate-700">{item.file_list.length ? `${item.file_list.length} 项` : '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -730,17 +730,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       ) : filteredSessionNodes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务未生成智能体会话。快速模式或尚未进入深度阶段时会出现这个状态。</div>
       ) : (
-        <div className="grid min-h-[680px] grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="grid min-h-[600px] grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="border-b border-slate-200 bg-slate-50/80 xl:border-b-0 xl:border-r">
-            <div className="max-h-[680px] overflow-auto p-3">
+            <div className="max-h-[600px] overflow-auto p-2.5">
               {Object.entries(filteredSessionNodes.reduce<Record<string, B2SSessionNode[]>>((acc, node) => {
                 const key = `#${node.sequence_no} ${node.item_name}`;
                 acc[key] = acc[key] || [];
                 acc[key].push(node);
                 return acc;
               }, {})).map(([group, nodes]) => (
-                <div key={group} className="mb-5">
-                  <div className="mb-2 border-b border-slate-200 px-1 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{group}</div>
+                <div key={group} className="mb-4">
+                  <div className="mb-1.5 border-b border-slate-200 px-1 pb-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">{group}</div>
                   {nodes.map((node) => {
                     const active = selectedSessionPath === node.relative_path;
                     return (
@@ -748,11 +748,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                         key={node.node_id}
                         type="button"
                         onClick={() => setSelectedSessionPath(node.relative_path)}
-                        className={`mb-2 w-full rounded-[1.1rem] border px-3 py-3 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'}`}
+                        className={`mb-1.5 w-full rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'}`}
                       >
                         <div className="truncate text-sm font-black">{node.agent || node.role || fileNameOf(node.relative_path)}</div>
-                        <div className={`mt-1 truncate text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{node.stage} · {node.run_name}</div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold">
+                        <div className={`mt-0.5 truncate text-[10px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{node.stage} · {node.run_name}</div>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5 text-[10px] font-bold">
                           {node.batch_no ? <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-600'}`}>Batch {node.batch_no}</span> : null}
                           {node.attempt_no ? <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-600'}`}>第 {node.attempt_no} 轮</span> : null}
                           <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-blue-500/25 text-blue-100' : 'bg-blue-50 text-blue-700'}`}>{node.role || 'session'}</span>
@@ -764,9 +764,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               ))}
             </div>
           </aside>
-          <div className="min-h-[680px] bg-slate-950">
-            <div className="border-b border-slate-800 px-4 py-3 text-sm font-black text-slate-100">{selectedSessionPath || '请选择左侧会话'}</div>
-            <div className="h-[626px]">
+          <div className="min-h-[600px] bg-slate-950">
+            <div className="border-b border-slate-800 px-4 py-2.5 text-sm font-black text-slate-100">{selectedSessionPath || '请选择左侧会话'}</div>
+            <div className="h-[546px]">
               {selectedSessionPath ? (
                 selectedSessionLoading ? (
                   <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载会话内容中...</div>
@@ -794,23 +794,23 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       ) : relationshipNodes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务未生成可展示的智能体关系数据。</div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid gap-3 md:grid-cols-4">
+        <div className="space-y-4">
+          <div className="grid gap-2.5 md:grid-cols-4">
             <MetricTile label="节点" value={relationshipNodes.length} tone="blue" icon={<Waypoints size={18} />} />
             <MetricTile label="边" value={relationshipEdges.length} tone="violet" icon={<Link2 size={18} />} />
             <MetricTile label="Agent 节点" value={relationshipNodes.filter((node) => node.node_type === 'agent').length} tone="emerald" icon={<Bot size={18} />} />
             <MetricTile label="Batch/Review" value={`${relationshipNodes.filter((node) => node.node_type === 'batch').length}/${relationshipNodes.filter((node) => node.node_type === 'review').length}`} tone="slate" icon={<Network size={18} />} />
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             {Object.entries(relationshipNodes.reduce<Record<string, typeof relationshipNodes>>((acc, node) => {
               const key = node.node_type;
               acc[key] = acc[key] || [];
               acc[key].push(node);
               return acc;
             }, {})).map(([group, nodes]) => (
-              <div key={group} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 p-4">
-                <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500">{group}</div>
-                <div className="space-y-2">
+              <div key={group} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                <div className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{group}</div>
+                <div className="space-y-1.5">
                   {nodes.slice(0, 24).map((node) => {
                     const relatedEdges = relationshipEdges.filter((edge) => edge.source_node_id === node.node_id || edge.target_node_id === node.node_id);
                     return (
@@ -824,12 +824,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                             setSelectedSessionPath(node.relative_path);
                           }
                         }}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-left hover:border-slate-300 hover:bg-slate-50"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left hover:border-slate-300 hover:bg-slate-50"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="truncate text-sm font-black text-slate-900">{node.title}</div>
-                            <div className="mt-1 truncate text-xs text-slate-500">{node.subtitle || '-'} · 关联 {relatedEdges.length}</div>
+                            <div className="mt-0.5 truncate text-[11px] text-slate-500">{node.subtitle || '-'} · 关联 {relatedEdges.length}</div>
                           </div>
                           {node.node_type === 'agent' ? <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">会话</span> : null}
                         </div>
@@ -846,7 +846,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   );
 
   const renderResult = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SectionCard
         title="结果摘要"
         description="任务级汇总和当前 item 的关键产物。"
@@ -856,7 +856,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           </button>
         ) : null}
       >
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-5">
           <MetricTile label="成功" value={resultSummary?.success_items || 0} tone="emerald" icon={<CheckCircle2 size={18} />} />
           <MetricTile label="部分成功" value={resultSummary?.partial_items || 0} tone="violet" icon={<Sparkles size={18} />} />
           <MetricTile label="失败" value={resultSummary?.failed_items || 0} tone="rose" icon={<AlertTriangle size={18} />} />
@@ -872,22 +872,22 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           ) : itemArtifacts.artifacts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前 item 还没有可展示的结果文件。</div>
           ) : (
-            <div className="grid min-h-[680px] grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)]">
+            <div className="grid min-h-[600px] grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)]">
               <aside className="border-b border-slate-200 bg-slate-50/80 xl:border-b-0 xl:border-r">
-                <div className="max-h-[680px] overflow-auto p-3">
+                <div className="max-h-[600px] overflow-auto p-2.5">
                   {itemArtifacts.artifacts.map((artifact) => {
                     const active = selectedArtifactId === artifact.id;
                     return (
-                      <button key={artifact.id} type="button" onClick={() => setSelectedArtifactId(artifact.id)} className={`mb-2 w-full rounded-[1.1rem] border px-3 py-3 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'}`}>
+                      <button key={artifact.id} type="button" onClick={() => setSelectedArtifactId(artifact.id)} className={`mb-1.5 w-full rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'}`}>
                         <div className="truncate text-sm font-black">{artifact.name}</div>
-                        <div className={`mt-1 truncate text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{artifact.stage || artifact.kind} · {artifact.section || '-'}</div>
+                        <div className={`mt-0.5 truncate text-[10px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{artifact.stage || artifact.kind} · {artifact.section || '-'}</div>
                       </button>
                     );
                   })}
                 </div>
               </aside>
-              <div className="min-h-[680px] bg-slate-950">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3 text-sm font-black text-slate-100">
+              <div className="min-h-[600px] bg-slate-950">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-2.5 text-sm font-black text-slate-100">
                   <div className="truncate">{selectedArtifact?.name || '请选择左侧文件'}</div>
                   {selectedArtifact ? (
                     <button
@@ -899,7 +899,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     </button>
                   ) : null}
                 </div>
-                <div className="h-[626px]">
+                <div className="h-[546px]">
                   {selectedArtifact ? (
                     artifactLoading ? (
                       <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载文件中...</div>
@@ -931,22 +931,22 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   );
 
   const renderObservability = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SectionCard title="观测摘要" description="任务级聚合的运行效率、评审质量和过程质量。">
         {!observabilitySummary ? (
           <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载观测指标中...</div>
         ) : (
           <>
-            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm font-black text-slate-800">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-sm font-black text-slate-800">
               轮次/均分/残留&nbsp;&nbsp;{summaryLine}
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
               <MetricTile label="总耗时" value={formatDurationMs(observabilitySummary.total_duration_ms)} tone="slate" icon={<Clock3 size={18} />} />
               <MetricTile label="Batch" value={`${observabilitySummary.total_batches}/${observabilitySummary.avg_batches_per_item}`} tone="violet" icon={<Layers3 size={18} />} />
               <MetricTile label="评审" value={`${observabilitySummary.total_review_attempts}/${observabilitySummary.avg_review_attempts}`} tone="emerald" icon={<GitBranch size={18} />} />
               <MetricTile label="问题" value={`${observabilitySummary.issue_total}/${observabilitySummary.issue_remaining}`} tone="amber" icon={<AlertTriangle size={18} />} />
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-2.5 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
               <MetricTile label="函数完成率" value={`${observabilitySummary.completed_functions}/${observabilitySummary.total_functions}`} tone="blue" icon={<FileCode2 size={18} />} />
               <MetricTile label="字节完成率" value={`${formatBytes(observabilitySummary.completed_bytes)}/${formatBytes(observabilitySummary.total_bytes)}`} tone="blue" icon={<FileText size={18} />} />
               <MetricTile label="平均置信度" value={observabilitySummary.avg_confidence} tone="emerald" icon={<Gauge size={18} />} />
@@ -969,28 +969,28 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   );
 
   return (
-    <div className="space-y-6 px-8 pb-10 pt-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
+    <div className="space-y-4 px-6 pb-8 pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
           <ArrowLeft size={16} />
           {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
         </button>
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => void loadDetail()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => void loadDetail()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             刷新
           </button>
           {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? (
-            <button type="button" onClick={() => void cancelTask()} disabled={cancelling} className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-60">
+            <button type="button" onClick={() => void cancelTask()} disabled={cancelling} className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-sm font-bold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-60">
               <XCircle size={16} />
               {cancelling ? '取消中...' : '取消任务'}
             </button>
           ) : null}
-          <button type="button" onClick={() => void rerunTask()} disabled={rerunning} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-violet-700 shadow-sm hover:bg-violet-100 disabled:opacity-60">
+          <button type="button" onClick={() => void rerunTask()} disabled={rerunning} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3.5 py-2 text-sm font-bold text-violet-700 shadow-sm hover:bg-violet-100 disabled:opacity-60">
             <RotateCcw size={16} />
             {rerunning ? '重跑中...' : '从头重跑'}
           </button>
-          <button type="button" onClick={() => void deleteTask()} disabled={deleting} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 shadow-sm hover:bg-rose-100 disabled:opacity-60">
+          <button type="button" onClick={() => void deleteTask()} disabled={deleting} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-sm font-bold text-rose-700 shadow-sm hover:bg-rose-100 disabled:opacity-60">
             <Trash2 size={16} />
             {deleting ? '删除中...' : '删除任务'}
           </button>
@@ -999,52 +999,52 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
       {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
 
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
         {loading && !detail ? (
-          <div className="flex items-center gap-2 p-8 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
+          <div className="flex items-center gap-2 p-6 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : detail ? (
           <>
-            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_42%,#f8fafc_100%)] p-7">
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_42%,#f8fafc_100%)] p-5">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <B2SStatusBadge status={detail.status} />
                     {detail.mode_label ? <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 ring-1 ring-indigo-200"><Sparkles size={13} />{detail.mode_label}</span> : null}
                   </div>
-                  <h1 className="mt-4 break-words text-3xl font-black tracking-tight text-slate-950">{detail.name || detail.id}</h1>
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
+                  <h1 className="mt-2.5 break-words text-2xl font-black tracking-tight text-slate-950">{detail.name || detail.id}</h1>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-500">
                     <span className="font-mono">任务 ID：{detail.id}</span>
                     <span>创建：{formatDateTime(detail.created_at)}</span>
                     <span>更新：{formatDateTime(detail.updated_at)}</span>
                   </div>
-                  <div className="mt-6 rounded-[1.5rem] border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
-                    <div className="flex items-end justify-between gap-4">
+                  <div className="mt-4 rounded-[1.25rem] border border-white/80 bg-white/75 p-3.5 shadow-sm backdrop-blur">
+                    <div className="flex items-end justify-between gap-3">
                       <div>
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">总体进度</div>
-                        <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{pct(primaryProgress).toFixed(1)}%</div>
+                        <div className="mt-0.5 text-3xl font-black tracking-tight text-slate-950">{pct(primaryProgress).toFixed(1)}%</div>
                       </div>
                       <div className="text-right text-xs font-bold text-slate-500">任务视图</div>
                     </div>
-                    <div className="mt-4">
+                    <div className="mt-3">
                       <B2SProgressBar value={primaryProgress} tone={B2S_TERMINAL_STATUSES.has(detail.status) ? 'emerald' : 'blue'} />
                     </div>
-                    <div className="mt-4 grid grid-cols-3 gap-3 text-xs font-semibold text-slate-600">
-                      <div className="rounded-xl bg-slate-50 px-3 py-2">运行中：<span className="font-black text-slate-800">{detail.running_items}</span></div>
-                      <div className="rounded-xl bg-slate-50 px-3 py-2">ELF：<span className="font-black text-slate-800">{detail.total_items}</span></div>
-                      <div className="rounded-xl bg-slate-50 px-3 py-2">会话：<span className="font-black text-slate-800">{detail.agent_runtime_summary?.total_sessions || 0}</span></div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-600">
+                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">运行中：<span className="font-black text-slate-800">{detail.running_items}</span></div>
+                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">ELF：<span className="font-black text-slate-800">{detail.total_items}</span></div>
+                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">会话：<span className="font-black text-slate-800">{detail.agent_runtime_summary?.total_sessions || 0}</span></div>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <TaskOriginCard origin={detail} />
                   {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? <DownstreamTaskCreator projectId={projectId} task={detail} sourceKind="binary_to_source" /> : null}
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-slate-200 bg-slate-50/70 px-6 py-4">
-              <div className="grid gap-3 md:grid-cols-[240px_minmax(0,1fr)]">
-                <div className="rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3">
+            <div className="border-t border-slate-200 bg-slate-50/70 px-5 py-3">
+              <div className="grid gap-2.5 md:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">ELF Item 选择器</div>
                   <select
                     value={selectedItemId}
@@ -1054,7 +1054,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                       setSelectedArtifactId('');
                       setItemAnalytics(null);
                     }}
-                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400"
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400"
                   >
                     <option value="__all__">全部汇总</option>
                     {detail.items.map((item) => (
@@ -1062,7 +1062,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     ))}
                   </select>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {[
                     { id: 'overview' as DetailTab, label: '总览', icon: <Gauge size={14} /> },
                     { id: 'run-config' as DetailTab, label: '任务配置', icon: <Settings2 size={14} /> },
@@ -1071,7 +1071,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     { id: 'result' as DetailTab, label: '结果', icon: <FileJson2 size={14} /> },
                     { id: 'evaluation' as DetailTab, label: '观测指标', icon: <Gauge size={14} /> },
                   ].map((tab) => (
-                    <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition ${tabButtonTone(activeTab === tab.id)}`}>
+                    <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-black transition ${tabButtonTone(activeTab === tab.id)}`}>
                       {tab.icon}
                       {tab.label}
                     </button>
