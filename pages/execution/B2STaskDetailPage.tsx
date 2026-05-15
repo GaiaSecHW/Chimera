@@ -54,6 +54,7 @@ import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPane
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard } from './taskOrigin';
+import { WarningListPanel } from './WarningListPanel';
 
 interface Props {
   projectId: string;
@@ -116,6 +117,15 @@ const languageFromName = (name?: string | null) => {
   if (lower.endsWith('.md')) return 'markdown';
   if (lower.endsWith('.py')) return 'python';
   return 'plaintext';
+};
+
+const formatSessionUpdatedAt = (value?: string | null) => {
+  if (!value) return '-';
+  return formatDateTime(value);
+};
+
+const sessionGroupLabel = (group: string) => {
+  return group === 'root' ? '根会话' : group;
 };
 
 const tabButtonTone = (active: boolean) => (
@@ -486,6 +496,18 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     if (selectedItemId === '__all__') return nodes;
     return nodes.filter((node) => node.item_id === selectedItemId);
   }, [sessions, selectedItemId]);
+  const groupedSessionNodes = useMemo(() => {
+    const groups = new Map<string, B2SSessionNode[]>();
+    filteredSessionNodes.forEach((node) => {
+      const key = `#${node.sequence_no} ${node.item_name || '未知 Item'}`;
+      groups.set(key, [...(groups.get(key) || []), node]);
+    });
+    return Array.from(groups.entries());
+  }, [filteredSessionNodes]);
+  const selectedSessionNode = useMemo(
+    () => filteredSessionNodes.find((node) => node.relative_path === selectedSessionPath) || null,
+    [filteredSessionNodes, selectedSessionPath],
+  );
   const relationshipNodes = useMemo(() => {
     const nodes = relationship?.nodes || [];
     if (selectedItemId === '__all__') return nodes;
@@ -713,11 +735,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const renderSessions = () => (
     <SectionCard
       title="智能体会话"
-      description="按 ELF Item / Run / Stage / Agent 分层展示 B2S 会话。"
+      description="参考系统分析任务详情页的查看方式，按会话索引 + 右侧统一预览展示 B2S 智能体会话。"
       right={
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-            刷新索引
+          <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50" title="刷新会话">
+            <RefreshCw size={14} />
           </button>
           <button type="button" onClick={() => setAutoRefreshSession((value) => !value)} className={`rounded-xl px-3 py-2 text-xs font-black ${autoRefreshSession ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
             自动刷新 {autoRefreshSession ? 'ON' : 'OFF'}
@@ -730,55 +752,112 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       ) : filteredSessionNodes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务未生成智能体会话。快速模式或尚未进入深度阶段时会出现这个状态。</div>
       ) : (
-        <div className="grid min-h-[600px] grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="border-b border-slate-200 bg-slate-50/80 xl:border-b-0 xl:border-r">
-            <div className="max-h-[600px] overflow-auto p-2.5">
-              {Object.entries(filteredSessionNodes.reduce<Record<string, B2SSessionNode[]>>((acc, node) => {
-                const key = `#${node.sequence_no} ${node.item_name}`;
-                acc[key] = acc[key] || [];
-                acc[key].push(node);
-                return acc;
-              }, {})).map(([group, nodes]) => (
-                <div key={group} className="mb-4">
-                  <div className="mb-1.5 border-b border-slate-200 px-1 pb-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">{group}</div>
-                  {nodes.map((node) => {
-                    const active = selectedSessionPath === node.relative_path;
-                    return (
-                      <button
-                        key={node.node_id}
-                        type="button"
-                        onClick={() => setSelectedSessionPath(node.relative_path)}
-                        className={`mb-1.5 w-full rounded-xl border px-3 py-2.5 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'}`}
-                      >
-                        <div className="truncate text-sm font-black">{node.agent || node.role || fileNameOf(node.relative_path)}</div>
-                        <div className={`mt-0.5 truncate text-[10px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{node.stage} · {node.run_name}</div>
-                        <div className="mt-1.5 flex flex-wrap gap-1.5 text-[10px] font-bold">
-                          {node.batch_no ? <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-600'}`}>Batch {node.batch_no}</span> : null}
-                          {node.attempt_no ? <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-600'}`}>第 {node.attempt_no} 轮</span> : null}
-                          <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-blue-500/25 text-blue-100' : 'bg-blue-50 text-blue-700'}`}>{node.role || 'session'}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
+        <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div>
+                <div className="mt-1 text-xs text-slate-500">{filteredSessionNodes.length} 个会话文件</div>
+              </div>
+              <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" title="刷新会话">
+                <RefreshCw size={14} className={selectedSessionLoading ? 'animate-spin' : ''} />
+              </button>
+            </div>
+
+            {error && activeTab === 'session' ? (
+              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                {error}
+              </div>
+            ) : null}
+
+            <WarningListPanel
+              title="索引生成提示"
+              items={sessions.warnings?.slice(0, 5) || []}
+              className="mt-4 text-xs"
+            />
+
+            <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
+              {groupedSessionNodes.map(([group, nodes]) => (
+                <div key={group}>
+                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    {sessionGroupLabel(group)}
+                  </div>
+                  <div className="space-y-2">
+                    {nodes.map((node) => {
+                      const selected = node.relative_path === selectedSessionPath;
+                      return (
+                        <button
+                          key={node.node_id}
+                          type="button"
+                          onClick={() => setSelectedSessionPath(node.relative_path)}
+                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                            selected
+                              ? 'border-slate-900 bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
+                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-black">{node.agent || node.role || fileNameOf(node.relative_path)}</div>
+                              <div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                {node.relative_path}
+                              </div>
+                            </div>
+                            <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                              node.is_active
+                                ? selected
+                                  ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : selected
+                                  ? 'border-slate-500 bg-slate-800 text-slate-100'
+                                  : 'border-slate-200 bg-white text-slate-500'
+                            }`}>
+                              {node.is_active ? '活跃' : '历史'}
+                            </span>
+                          </div>
+                          <div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                            <span>{node.stage || '-'}</span>
+                            <span>{node.run_name || '-'}</span>
+                            <span>更新时间 {formatSessionUpdatedAt(node.updated_at)}</span>
+                          </div>
+                          <div className={`mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold ${selected ? 'text-slate-200' : 'text-slate-600'}`}>
+                            {node.batch_no ? <span>Batch {node.batch_no}</span> : null}
+                            {node.attempt_no ? <span>第 {node.attempt_no} 轮</span> : null}
+                            {node.role ? <span>{node.role}</span> : null}
+                            {node.section ? <span>{node.section}</span> : null}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
           </aside>
-          <div className="min-h-[600px] bg-slate-950">
-            <div className="border-b border-slate-800 px-4 py-2.5 text-sm font-black text-slate-100">{selectedSessionPath || '请选择左侧会话'}</div>
-            <div className="h-[546px]">
-              {selectedSessionPath ? (
-                selectedSessionLoading ? (
-                  <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载会话内容中...</div>
-                ) : (
-                  <B2SSessionPreview name={fileNameOf(selectedSessionPath)} content={selectedSessionContent} />
-                )
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-slate-500">请选择左侧会话</div>
-              )}
-            </div>
+
+          <div className="space-y-4">
+            <B2SSessionPreview
+              name={fileNameOf(selectedSessionPath)}
+              content={selectedSessionContent}
+              loading={selectedSessionLoading}
+              emptyHint="请选择左侧会话"
+              meta={selectedSessionNode ? {
+                displayName: selectedSessionNode.agent || selectedSessionNode.role || fileNameOf(selectedSessionNode.relative_path),
+                relativePath: selectedSessionNode.relative_path,
+                sessionId: selectedSessionNode.node_id,
+                startedAt: selectedSessionNode.updated_at || null,
+                workingDir: selectedSessionNode.full_path || null,
+                live: selectedSessionNode.is_active,
+                stats: [
+                  `Item #${selectedSessionNode.sequence_no} ${selectedSessionNode.item_name}`,
+                  selectedSessionNode.stage || '-',
+                  selectedSessionNode.run_name || '-',
+                  selectedSessionNode.role || 'session',
+                ],
+              } : undefined}
+            />
           </div>
-        </div>
+        </section>
       )}
     </SectionCard>
   );
