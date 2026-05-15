@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Info, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import {

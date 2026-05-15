@@ -1236,7 +1236,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       return;
     }
     event.preventDefault();
-    setSelectedEvaluationRoundKey(evaluationRoundKey(round));
+    event.stopPropagation();
     setEvaluationRoundMenu({
       roundKey: evaluationRoundKey(round),
       moduleName,
@@ -1246,7 +1246,13 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   };
 
   const handleFilterSingleModule = () => {
-    if (!evaluationRoundMenu?.moduleName) return;
+    const currentFilter = evaluationModuleFilter.trim();
+    if (!evaluationRoundMenu?.moduleName && !currentFilter) return;
+    if (currentFilter) {
+      setEvaluationModuleFilter('');
+      setEvaluationRoundMenu(null);
+      return;
+    }
     setEvaluationModuleFilter(evaluationRoundMenu.moduleName);
     setEvaluationRoundMenu(null);
   };
@@ -2662,7 +2668,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
                         >
                           <Search size={14} />
-                          仅看此模块
+                          {evaluationModuleFilter.trim() ? '取消仅看此模块' : '仅看此模块'}
                         </button>
                       </div>
                     ) : null}

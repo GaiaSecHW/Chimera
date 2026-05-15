@@ -402,6 +402,33 @@ const PageHeader: React.FC<{
   </section>
 );
 
+const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () => void; onReset: () => void }> = ({
+  saving,
+  disabled = false,
+  onSave,
+  onReset,
+}) => (
+  <div className="flex shrink-0 flex-wrap items-center gap-2">
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={saving}
+      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+    >
+      重置为默认
+    </button>
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving || disabled}
+      className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-xs font-black text-white shadow-sm hover:bg-cyan-800 disabled:opacity-50"
+    >
+      {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+      保存配置
+    </button>
+  </div>
+);
+
 interface CreateTaskState {
   title: string;
   profileId: string;
@@ -1529,6 +1556,25 @@ const profilePayloadFromForm = (projectId: string, form: ProfileFormState) => ({
   execution_timeout_seconds: form.executionTimeoutSeconds,
 });
 
+type ProfilePanelId = 'basic' | 'review' | 'runtime';
+
+const PROFILE_PANEL_FIELDS: Record<ProfilePanelId, Array<keyof ProfileFormState>> = {
+  basic: ['name', 'description', 'templateKind', 'enabled', 'isDefault'],
+  review: ['model', 'reviewProfile', 'maxReviewCycles', 'resultReviewConcurrency'],
+  runtime: ['runtimeOverridesText'],
+};
+
+const applyProfilePanel = (base: ProfileFormState, draft: ProfileFormState, panel: ProfilePanelId): ProfileFormState => {
+  const next = { ...base };
+  PROFILE_PANEL_FIELDS[panel].forEach((field) => {
+    next[field] = draft[field] as never;
+  });
+  return next;
+};
+
+const isProfilePanelDirty = (saved: ProfileFormState, draft: ProfileFormState, panel: ProfilePanelId) =>
+  PROFILE_PANEL_FIELDS[panel].some((field) => saved[field] !== draft[field]);
+
 export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: boolean }> = ({ projectId, embedded = false }) => {
   const executionApi = api.domains.execution.dataflowVulnScanner;
   const { notify, confirm, feedbackNodes } = useUiFeedback();
@@ -1540,6 +1586,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
   const [serviceConfig, setServiceConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPanel, setSavingPanel] = useState<ProfilePanelId | null>(null);
 
   const load = async () => {
     if (!projectId) return;
@@ -1589,8 +1636,9 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
   }, [selectedProfileId]);
 
   const selectedProfile = profiles.find((profile) => profile.profile_id === selectedProfileId);
+  const savedForm = selectedProfile ? formFromProfile(selectedProfile) : blankProfileForm();
 
-  const saveProfile = async () => {
+  const saveProfile = async (panel?: ProfilePanelId) => {
     if (!projectId) {
       notify('请先选择项目', 'warning');
       return;
@@ -1600,20 +1648,33 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       return;
     }
     setSaving(true);
+    if (panel) {
+      setSavingPanel(panel);
+    }
     try {
-      const payload = profilePayloadFromForm(projectId, form);
+      const payloadForm = panel ? applyProfilePanel(savedForm, form, panel) : form;
+      const payload = profilePayloadFromForm(projectId, payloadForm);
       const saved = form.profileId
         ? await executionApi.updateProfile(form.profileId, payload)
         : await executionApi.createProfile(payload);
-      notify('Profile 已保存', 'success');
+      const nextSavedForm = formFromProfile(saved);
+      const nextDraft = panel ? applyProfilePanel(form, nextSavedForm, panel) : nextSavedForm;
+      notify(panel ? '分组配置已保存' : 'Profile 已保存', 'success');
       setSelectedProfileId(saved.profile_id);
       await load();
       await loadVersions(saved.profile_id);
+      setForm(nextDraft);
     } catch (error: any) {
       notify(error?.message || '保存 Profile 失败', 'error');
     } finally {
       setSaving(false);
+      setSavingPanel(null);
     }
+  };
+
+  const resetProfilePanel = (panel: ProfilePanelId, label: string) => {
+    setForm((current) => applyProfilePanel(current, blankProfileForm(), panel));
+    notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
 
   const toggleProfile = async (profile: DataflowScanProfile) => {
@@ -1666,14 +1727,6 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       >
         <RefreshCw size={16} />
         刷新
-      </button>
-      <button
-        onClick={() => void saveProfile()}
-        disabled={saving}
-        className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-cyan-800 disabled:opacity-50"
-      >
-        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-        保存
       </button>
     </>
   );
@@ -1778,56 +1831,106 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             ) : null}
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <div className="text-sm font-black text-slate-900">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
-              <div className="mt-1 text-xs text-slate-500">{form.profileId || '尚未保存'}</div>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <div className="text-sm font-black text-slate-900">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
+                <div className="mt-1 text-xs text-slate-500">{form.profileId || '尚未保存'}</div>
+              </div>
+              <div className="space-y-5 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">基础信息</div>
+                    <div className="mt-1 text-xs text-slate-500">名称、模板类型、描述和默认启用状态。</div>
+                  </div>
+                  <PanelActions
+                    saving={savingPanel === 'basic'}
+                    disabled={!isProfilePanelDirty(savedForm, form, 'basic')}
+                    onSave={() => { void saveProfile('basic'); }}
+                    onReset={() => resetProfilePanel('basic', '基础信息')}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Field label="名称">
+                    <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={FORM_INPUT_CLASS} />
+                  </Field>
+                  <Field label="模板类型">
+                    <select value={form.templateKind} onChange={(event) => setForm({ ...form, templateKind: event.target.value })} className={FORM_INPUT_CLASS}>
+                      {TEMPLATE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <Field label="描述">
+                  <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={`${FORM_INPUT_CLASS} min-h-[72px]`} />
+                </Field>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
+                    <input type="checkbox" checked={form.enabled} onChange={(event) => setForm({ ...form, enabled: event.target.checked })} />
+                    启用 Profile
+                  </label>
+                  <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
+                    <input type="checkbox" checked={form.isDefault} onChange={(event) => setForm({ ...form, isDefault: event.target.checked })} />
+                    设为项目默认
+                  </label>
+                </div>
+              </div>
             </div>
-            <div className="space-y-5 p-5">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Field label="名称">
-                  <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={FORM_INPUT_CLASS} />
-                </Field>
-                <Field label="模板类型">
-                  <select value={form.templateKind} onChange={(event) => setForm({ ...form, templateKind: event.target.value })} className={FORM_INPUT_CLASS}>
-                    {TEMPLATE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </Field>
-                <Field label="模型">
-                  <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className={FORM_INPUT_CLASS} />
-                </Field>
-                <Field label="评审档位">
-                  <select value={form.reviewProfile} onChange={(event) => setForm({ ...form, reviewProfile: event.target.value })} className={FORM_INPUT_CLASS}>
-                    {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </Field>
-                <Field label="最大评审轮次">
-                  <NumberInput value={form.maxReviewCycles} onChange={(value) => setForm({ ...form, maxReviewCycles: value })} />
-                </Field>
-                <Field label="结果评审并发">
-                  <NumberInput value={form.resultReviewConcurrency} onChange={(value) => setForm({ ...form, resultReviewConcurrency: value })} />
+
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="space-y-5 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">挖掘与评审参数</div>
+                    <div className="mt-1 text-xs text-slate-500">模型、评审档位、评审轮次和结果评审并发。</div>
+                  </div>
+                  <PanelActions
+                    saving={savingPanel === 'review'}
+                    disabled={!isProfilePanelDirty(savedForm, form, 'review')}
+                    onSave={() => { void saveProfile('review'); }}
+                    onReset={() => resetProfilePanel('review', '挖掘与评审参数')}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Field label="模型">
+                    <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className={FORM_INPUT_CLASS} />
+                  </Field>
+                  <Field label="评审档位">
+                    <select value={form.reviewProfile} onChange={(event) => setForm({ ...form, reviewProfile: event.target.value })} className={FORM_INPUT_CLASS}>
+                      {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="最大评审轮次">
+                    <NumberInput value={form.maxReviewCycles} onChange={(value) => setForm({ ...form, maxReviewCycles: value })} />
+                  </Field>
+                  <Field label="结果评审并发">
+                    <NumberInput value={form.resultReviewConcurrency} onChange={(value) => setForm({ ...form, resultReviewConcurrency: value })} />
+                  </Field>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="space-y-5 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">运行时覆盖</div>
+                    <div className="mt-1 text-xs text-slate-500">针对当前 Profile 的 `runtime_overrides` JSON。</div>
+                  </div>
+                  <PanelActions
+                    saving={savingPanel === 'runtime'}
+                    disabled={!isProfilePanelDirty(savedForm, form, 'runtime')}
+                    onSave={() => { void saveProfile('runtime'); }}
+                    onReset={() => resetProfilePanel('runtime', '运行时覆盖')}
+                  />
+                </div>
+                <Field label="runtime_overrides JSON">
+                  <textarea
+                    value={form.runtimeOverridesText}
+                    onChange={(event) => setForm({ ...form, runtimeOverridesText: event.target.value })}
+                    className={`${FORM_INPUT_CLASS} min-h-[180px] font-mono text-xs`}
+                  />
                 </Field>
               </div>
-              <Field label="描述">
-                <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={`${FORM_INPUT_CLASS} min-h-[72px]`} />
-              </Field>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
-                  <input type="checkbox" checked={form.enabled} onChange={(event) => setForm({ ...form, enabled: event.target.checked })} />
-                  启用 Profile
-                </label>
-                <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
-                  <input type="checkbox" checked={form.isDefault} onChange={(event) => setForm({ ...form, isDefault: event.target.checked })} />
-                  设为项目默认
-                </label>
-              </div>
-              <Field label="runtime_overrides JSON">
-                <textarea
-                  value={form.runtimeOverridesText}
-                  onChange={(event) => setForm({ ...form, runtimeOverridesText: event.target.value })}
-                  className={`${FORM_INPUT_CLASS} min-h-[180px] font-mono text-xs`}
-                />
-              </Field>
             </div>
           </div>
 

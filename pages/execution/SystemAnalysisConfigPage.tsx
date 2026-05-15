@@ -238,13 +238,95 @@ const buildSafeConfig = (projectId: string, cfg?: Partial<SystemAnalysisServiceC
   };
 };
 
+type SystemAnalysisPanelKey =
+  | 'scope'
+  | 'concurrency'
+  | 'retry'
+  | 'stages'
+  | 'self_reflection'
+  | 'workers'
+  | 'judges';
+
+const SYSTEM_ANALYSIS_PANEL_KEYS: SystemAnalysisPanelKey[] = [
+  'scope',
+  'concurrency',
+  'retry',
+  'stages',
+  'self_reflection',
+  'workers',
+  'judges',
+];
+
+const applySystemAnalysisPanel = (
+  base: SystemAnalysisServiceConfig,
+  source: SystemAnalysisServiceConfig,
+  panel: SystemAnalysisPanelKey,
+): SystemAnalysisServiceConfig => {
+  switch (panel) {
+    case 'scope':
+      return {
+        ...base,
+        analyse_targets: source.analyse_targets,
+        binary_arch: source.binary_arch,
+        security_focus_categories: source.security_focus_categories,
+        module_granularity: source.module_granularity,
+        filter_engine: source.filter_engine,
+        enable_final_check: source.enable_final_check,
+        continue_on_module_failure: source.continue_on_module_failure,
+      };
+    case 'concurrency':
+      return {
+        ...base,
+        worker_task_concurrency: source.worker_task_concurrency,
+        parallel_modules: source.parallel_modules,
+        parallel_sub_workers: source.parallel_sub_workers,
+      };
+    case 'retry':
+      return {
+        ...base,
+        agent_max_retries: source.agent_max_retries,
+        agent_retry_delay: source.agent_retry_delay,
+        agent_timeout_seconds: source.agent_timeout_seconds,
+        pi_max_retries: source.pi_max_retries,
+        pi_retry_delay: source.pi_retry_delay,
+        max_rounds_exceeded_action: source.max_rounds_exceeded_action,
+      };
+    case 'stages':
+      return { ...base, stages: source.stages };
+    case 'self_reflection':
+      return { ...base, self_reflection: source.self_reflection };
+    case 'workers':
+      return { ...base, workers: source.workers };
+    case 'judges':
+      return { ...base, judges: source.judges };
+    default:
+      return base;
+  }
+};
+
+const restoreOtherSystemAnalysisPanels = (
+  saved: SystemAnalysisServiceConfig,
+  draft: SystemAnalysisServiceConfig,
+  preservedPanel: SystemAnalysisPanelKey,
+): SystemAnalysisServiceConfig => {
+  return SYSTEM_ANALYSIS_PANEL_KEYS.reduce((acc, panel) => {
+    if (panel === preservedPanel) {
+      return acc;
+    }
+    return applySystemAnalysisPanel(acc, draft, panel);
+  }, saved);
+};
+
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
-const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
+const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div>
-      <h2 className="text-base font-black text-slate-900">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h2 className="text-base font-black text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+      </div>
+      {actions}
     </div>
     {children}
   </section>
@@ -354,14 +436,15 @@ const StageModelsEditor: React.FC<{ stageNames: string[]; modelOptions: string[]
 const RoleConfigBlock: React.FC<{
   title: string;
   subtitle?: string;
+  actions?: React.ReactNode;
   stageNames: string[];
   stageDescs?: Record<string, string>;
   modelOptions: string[];
   value: SystemAnalysisRoleConfig;
   agentDesc?: string;
   onChange: (v: SystemAnalysisRoleConfig) => void;
-}> = ({ title, subtitle, stageNames, stageDescs, modelOptions, value, agentDesc, onChange }) => (
-  <SectionCard title={title} subtitle={subtitle}>
+}> = ({ title, subtitle, actions, stageNames, stageDescs, modelOptions, value, agentDesc, onChange }) => (
+  <SectionCard title={title} subtitle={subtitle} actions={actions}>
     <FieldRow
       label="各阶段模型配置"
       hint="留空则使用实例列表中 agents[0] 的模型"
@@ -380,6 +463,32 @@ const RoleConfigBlock: React.FC<{
       <AgentInstanceList agents={value.agents ?? []} modelOptions={modelOptions} onChange={(agents) => onChange({ ...value, agents })} />
     </FieldRow>
   </SectionCard>
+);
+
+const PanelActions: React.FC<{
+  saving: boolean;
+  onSave: () => void;
+  onReset: () => void;
+}> = ({ saving, onSave, onReset }) => (
+  <div className="flex shrink-0 items-center gap-2">
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={saving}
+      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+    >
+      重置为默认
+    </button>
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving}
+      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+    >
+      {saving && <Loader2 size={12} className="animate-spin" />}
+      保存配置
+    </button>
+  </div>
 );
 
 const PromptEditorCard: React.FC<{
@@ -469,7 +578,9 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPanel, setSavingPanel] = useState<SystemAnalysisPanelKey | null>(null);
   const [config, setConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
+  const [savedConfig, setSavedConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [promptTemplates, setPromptTemplates] = useState<SystemAnalysisPromptTemplate[]>([]);
   const [selectedPromptTemplates, setSelectedPromptTemplates] = useState<Record<string, string>>({});
@@ -522,11 +633,15 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
     setLoading(true);
     systemAnalysis.getConfig(projectId)
       .then((cfg) => {
-        setConfig(buildSafeConfig(projectId, cfg));
+        const normalized = buildSafeConfig(projectId, cfg);
+        setConfig(normalized);
+        setSavedConfig(normalized);
       })
       .catch((err) => {
         notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-        setConfig(defaultConfig(projectId));
+        const fallback = defaultConfig(projectId);
+        setConfig(fallback);
+        setSavedConfig(fallback);
       })
       .finally(() => setLoading(false));
   };
@@ -555,30 +670,52 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
     systemAnalysis.getConfig(projectId)
       .then((cfg) => {
         if (!cancelled) {
-          setConfig(buildSafeConfig(projectId, cfg));
+          const normalized = buildSafeConfig(projectId, cfg);
+          setConfig(normalized);
+          setSavedConfig(normalized);
         }
       })
-      .catch((err) => { if (!cancelled) { notify(`加载配置失败: ${err?.message ?? err}`, 'error'); setConfig(defaultConfig(projectId)); } })
+      .catch((err) => {
+        if (!cancelled) {
+          notify(`加载配置失败: ${err?.message ?? err}`, 'error');
+          const fallback = defaultConfig(projectId);
+          setConfig(fallback);
+          setSavedConfig(fallback);
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [projectId]);
 
-  const handleSave = async () => {
+  const persistConfig = async (nextConfig: SystemAnalysisServiceConfig) => {
     setSaving(true);
     try {
-      const saved = await systemAnalysis.saveConfig({ ...config, project_id: projectId });
-      setConfig(buildSafeConfig(projectId, saved));
-      notify('配置已保存', 'success');
+      const saved = await systemAnalysis.saveConfig({ ...nextConfig, project_id: projectId });
+      return buildSafeConfig(projectId, saved);
     } catch (err: any) {
       notify(`保存失败: ${err?.message ?? err}`, 'error');
+      return null;
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setConfig(defaultConfig(projectId));
-    notify('已重置为默认值（尚未保存）', 'info');
+  const handlePanelSave = async (panel: SystemAnalysisPanelKey, label: string) => {
+    setSavingPanel(panel);
+    const payload = applySystemAnalysisPanel(savedConfig, config, panel);
+    const saved = await persistConfig(payload);
+    if (saved) {
+      setSavedConfig(saved);
+      setConfig((prev) => restoreOtherSystemAnalysisPanels(saved, prev, panel));
+      notify(`${label}已保存`, 'success');
+    }
+    setSavingPanel(null);
+  };
+
+  const handlePanelReset = (panel: SystemAnalysisPanelKey, label: string) => {
+    const defaults = defaultConfig(projectId);
+    setConfig((prev) => applySystemAnalysisPanel(prev, defaults, panel));
+    notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
 
   return (
@@ -644,7 +781,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             notes={SYSTEM_ANALYSIS_FLOW.notes}
             footer={SYSTEM_ANALYSIS_FLOW.footer}
           />
-          <SectionCard title="分析范围配置" subtitle="控制文件过滤、S1 分类阶段的分析范围与模块粒度。以下配置为服务级默认值，可在任务创建时单独覆盖。">
+          <SectionCard
+            title="分析范围配置"
+            subtitle="控制文件过滤、S1 分类阶段的分析范围与模块粒度。以下配置为服务级默认值，可在任务创建时单独覆盖。"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'scope'}
+                onSave={() => { void handlePanelSave('scope', '分析范围配置'); }}
+                onReset={() => handlePanelReset('scope', '分析范围配置')}
+              />
+            )}
+          >
             {/* 文件类型多选 */}
             <FieldRow
               label="文件类型"
@@ -860,7 +1007,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
           </SectionCard>
 
           {/* 1. 并发配置 */}
-          <SectionCard title="并发配置" subtitle="控制模块级并行度，影响分析速度与 LLM API 调用量">
+          <SectionCard
+            title="并发配置"
+            subtitle="控制模块级并行度，影响分析速度与 LLM API 调用量"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'concurrency'}
+                onSave={() => { void handlePanelSave('concurrency', '并发配置'); }}
+                onReset={() => handlePanelReset('concurrency', '并发配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-2 gap-4">
               <FieldRow label="worker_task_concurrency" hint="≥1，默认 4"
                 desc="系统分析 runner 单实例最多同时执行的任务数。该项为服务级在线配置，保存后会对整个系统分析 runner 池生效，无需重启。建议结合 runner 副本数、节点 CPU/内存和下游 LLM 配额一起评估。">
@@ -878,7 +1035,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
           </SectionCard>
 
           {/* 2. 重试配置 */}
-          <SectionCard title="重试配置" subtitle="控制 LLM API 调用失败时的重试策略，以及 pi Agent 进程崩溃时的自动重启策略">
+          <SectionCard
+            title="重试配置"
+            subtitle="控制 LLM API 调用失败时的重试策略，以及 pi Agent 进程崩溃时的自动重启策略"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'retry'}
+                onSave={() => { void handlePanelSave('retry', '重试配置'); }}
+                onReset={() => handlePanelReset('retry', '重试配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-2 gap-4">
               <FieldRow label="agent_max_retries" hint="-1=无限重试"
                 desc="LLM API 调用失败（限流 429、请求超时、5xx 服务器错误）时的最大重试次数。设为 -1 可在网络抖动时自动无限重试，适合长时间无人值守的分析任务。">
@@ -918,7 +1085,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
           </SectionCard>
 
           {/* 3. 阶段配置 */}
-          <SectionCard title="阶段配置" subtitle="控制 Pipeline 各阶段的 Worker-Judge 对话轮数及通过策略。每轮由 Worker 完成分析，Judge 评审后决定是否推进到下一阶段。">
+          <SectionCard
+            title="阶段配置"
+            subtitle="控制 Pipeline 各阶段的 Worker-Judge 对话轮数及通过策略。每轮由 Worker 完成分析，Judge 评审后决定是否推进到下一阶段。"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'stages'}
+                onSave={() => { void handlePanelSave('stages', '阶段配置'); }}
+                onReset={() => handlePanelReset('stages', '阶段配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <StageCard label="classify — 全局分类"
                 desc="Worker 遍历目标目录，对所有文件进行类型识别和分类，输出带注释的文件清单；Judge 评审分类结果的完整性和准确性。"
@@ -939,6 +1116,13 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
           <SectionCard
             title="自省分析（Self-Reflection）"
             subtitle="任务结束后自动在后台分析执行过程，识别 Token 消耗热点、卡顿阶段和质量问题，存储改进建议报告。不影响任务本身的执行结果。"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'self_reflection'}
+                onSave={() => { void handlePanelSave('self_reflection', '自省分析配置'); }}
+                onReset={() => handlePanelReset('self_reflection', '自省分析配置')}
+              />
+            )}
           >
             {/* 启用开关 */}
             <FieldRow
@@ -1050,6 +1234,13 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             value={config.workers}
             agentDesc="Worker 默认模型实例。agents[0] 的模型将作为所有未在「各阶段模型配置」中指定阶段的回退模型。通常只需配置一个实例。"
             onChange={(v) => patch({ workers: v })}
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'workers'}
+                onSave={() => { void handlePanelSave('workers', 'Workers 配置'); }}
+                onReset={() => handlePanelReset('workers', 'Workers 配置')}
+              />
+            )}
           />
 
           {/* 5. Judges */}
@@ -1062,6 +1253,13 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             value={config.judges}
             agentDesc="配置参与评审的 Judge 实例。多个实例会并行独立评审同一内容并投票；建议配置 2–3 个实例以获得稳定的多数投票效果。单实例时 majority / all 效果相同。"
             onChange={(v) => patch({ judges: v })}
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'judges'}
+                onSave={() => { void handlePanelSave('judges', 'Judges 配置'); }}
+                onReset={() => handlePanelReset('judges', 'Judges 配置')}
+              />
+            )}
           />
 
           {SHOW_SYSTEM_ANALYSIS_PROMPT_CONFIG ? (
@@ -1123,18 +1321,6 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             </SectionCard>
           ) : null}
 
-          {/* 操作按钮 */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => void handleSave()} disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
-              {saving && <Loader2 size={14} className="animate-spin" />}
-              保存系统分析配置
-            </button>
-            <button onClick={handleReset} disabled={saving}
-              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-              重置为默认
-            </button>
-          </div>
         </div>
       )}
     </div>

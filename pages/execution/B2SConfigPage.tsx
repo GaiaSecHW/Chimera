@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, RefreshCw, Settings } from 'lucide-react';
+import { Loader2, RefreshCw, Save, Settings } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { B2SServiceConfig } from '../../clients/binaryToSource';
@@ -35,11 +35,19 @@ const B2S_FLOW = {
   ],
 };
 
-const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
+const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({
+  title,
+  subtitle,
+  actions,
+  children,
+}) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div>
-      <h2 className="text-base font-black text-slate-900">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h2 className="text-base font-black text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+      </div>
+      {actions}
     </div>
     {children}
   </section>
@@ -52,6 +60,28 @@ const FieldRow: React.FC<{ label: string; hint?: string; children: React.ReactNo
       {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
     </label>
     {children}
+  </div>
+);
+
+const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
+  <div className="flex shrink-0 items-center gap-2">
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={saving}
+      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+    >
+      重置为默认
+    </button>
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving}
+      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+    >
+      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+      保存配置
+    </button>
   </div>
 );
 
@@ -90,6 +120,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     } finally {
       setSaving(false);
     }
+  };
+
+  const resetPolicy = () => {
+    setConfig(defaultConfig(projectId));
+    notify('终态策略已重置为默认值（尚未保存）', 'info');
   };
 
   return (
@@ -137,7 +172,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
             lanes={B2S_FLOW.lanes}
             notes={B2S_FLOW.notes}
           />
-          <SectionCard title="终态策略" subtitle="预算耗尽类失败的默认收敛动作">
+          <SectionCard
+            title="终态策略"
+            subtitle="预算耗尽类失败的默认收敛动作"
+            actions={<PanelActions saving={saving} onSave={() => { void save(); }} onReset={resetPolicy} />}
+          >
             <FieldRow label="budget_exhausted_action" hint="当下游返回 max_rounds_exceeded / max_retries_reached / timeout_max_retries_exceeded 等预算耗尽类失败时生效">
               <select
                 value={config.budget_exhausted_action}
@@ -151,17 +190,6 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
             <p className="text-xs leading-5 text-slate-500">
               默认值为 `treat_as_passed`。当 `pi-re-agent` 返回预算耗尽类失败时，B2S 会按这里的策略把该子任务收敛为成功或失败。
             </p>
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => { void save(); }}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : null}
-                保存配置
-              </button>
-            </div>
           </SectionCard>
         </div>
       )}

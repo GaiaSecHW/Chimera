@@ -106,6 +106,51 @@ function ConfigRow({
   );
 }
 
+const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({
+  title,
+  subtitle,
+  actions,
+  children,
+}) => (
+  <section className="rounded-2xl bg-white p-5">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <div className="text-sm font-bold text-slate-700">{title}</div>
+        {subtitle ? <div className="mt-2 text-xs text-slate-500">{subtitle}</div> : null}
+      </div>
+      {actions}
+    </div>
+    <div className="mt-4">{children}</div>
+  </section>
+);
+
+const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () => void; onReset: () => void }> = ({
+  saving,
+  disabled = false,
+  onSave,
+  onReset,
+}) => (
+  <div className="flex shrink-0 items-center gap-2">
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={saving}
+      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+    >
+      重置为默认
+    </button>
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving || disabled}
+      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+    >
+      {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+      保存配置
+    </button>
+  </div>
+);
+
 // ──────────────────────────────────────────────────────────
 // Main page
 // ──────────────────────────────────────────────────────────
@@ -115,6 +160,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   const [configError,   setConfigError]   = useState('');
   const [configMessage, setConfigMessage] = useState('');
   const [configSaving,  setConfigSaving]  = useState(false);
+  const [savingPanel,   setSavingPanel]   = useState<string | null>(null);
   const [draftValues,   setDraftValues]   = useState<Record<string, string>>({});
   const [llmConfigFiles,  setLlmConfigFiles]  = useState<FirmwareLlmConfigFileSummary[]>([]);
   const [llmLoading,    setLlmLoading]    = useState(false);
@@ -123,7 +169,15 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   const [clusterLoading,setClusterLoading]= useState(false);
   const [clusterError,  setClusterError]  = useState('');
   const configItems = Array.isArray(configs) ? configs : [];
-  const concurrencyConfigKeys = useMemo(
+  const hiddenConfigKeys = useMemo(
+    () => new Set([
+      ...Object.values(REUSE_AGENT_FIELDS),
+      ...LLM_ROLE_FIELDS.map((item) => item.key),
+      ...Object.values(LLM_MODEL_FIELDS),
+    ]),
+    [],
+  );
+  const podConcurrencyKeys = useMemo(
     () => new Set([
       'concurrency_mode',
       'manual_max_concurrent',
@@ -132,12 +186,13 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
       'reserved_cpu_millis',
       'reserved_memory_mb',
       'max_concurrent',
+    ]),
+    [],
+  );
+  const retryPolicyKeys = useMemo(
+    () => new Set([
       'max_retries',
       'max_retries_reached_action',
-      'reuse_agent_between_rounds',
-      ...Object.values(REUSE_AGENT_FIELDS),
-      ...LLM_ROLE_FIELDS.map((item) => item.key),
-      ...Object.values(LLM_MODEL_FIELDS),
     ]),
     [],
   );
@@ -147,10 +202,8 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
   );
   const concurrencyMode = configMap.get('concurrency_mode')?.value || cluster?.concurrency.mode || 'auto';
   const isManualMode = concurrencyMode === 'manual';
-  const podConcurrencyItems = [
-    configMap.get('manual_max_concurrent'),
-  ].filter((item): item is FirmwareConfigEntry => Boolean(item));
-  const genericConfigItems = configItems.filter((item) => !concurrencyConfigKeys.has(item.key));
+  const podConcurrencyItems = configItems.filter((item) => podConcurrencyKeys.has(item.key));
+  const genericConfigItems = configItems.filter((item) => !hiddenConfigKeys.has(item.key) && !podConcurrencyKeys.has(item.key) && !retryPolicyKeys.has(item.key));
   const maxRetriesEntry = configMap.get('max_retries') || null;
   const maxRetriesActionEntry = configMap.get('max_retries_reached_action') || null;
   const maxRetriesValue = draftValues.max_retries ?? maxRetriesEntry?.value ?? '';
@@ -167,8 +220,23 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     reuseEntry: configMap.get(REUSE_AGENT_FIELDS[field.key]) || null,
     reuseValue: String(draftValues[REUSE_AGENT_FIELDS[field.key]] ?? configMap.get(REUSE_AGENT_FIELDS[field.key])?.value ?? 'true').toLowerCase(),
   }));
-  const hasConfigChanges = configItems.some((item) => draftValues[item.key] !== item.value);
+  const hasPanelChanges = useCallback((keys: string[]) => (
+    keys.some((key) => {
+      const item = configMap.get(key);
+      return item ? (draftValues[key] ?? item.value) !== item.value : false;
+    })
+  ), [configMap, draftValues]);
   const missingLlmRoles = llmRoleConfigs.filter((item) => !String(item.value || '').trim()).map((item) => item.label);
+  const podConcurrencyPanelKeys = useMemo(() => podConcurrencyItems.map((item) => item.key), [podConcurrencyItems]);
+  const llmPanelKeys = useMemo(
+    () => llmRoleConfigs.flatMap((item) => [item.key, item.modelKey, item.reuseKey]).filter(Boolean),
+    [llmRoleConfigs],
+  );
+  const retryPanelKeys = useMemo(
+    () => [maxRetriesEntry?.key, maxRetriesActionEntry?.key].filter((value): value is string => Boolean(value)),
+    [maxRetriesActionEntry?.key, maxRetriesEntry?.key],
+  );
+  const genericPanelKeys = useMemo(() => genericConfigItems.map((item) => item.key), [genericConfigItems]);
 
   // ── load ──────────────────────────────────────────────────
   const loadConfig = useCallback(async () => {
@@ -225,44 +293,61 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
     setDraftValues((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  const handleSaveConfig = useCallback(async () => {
-    if (missingLlmRoles.length > 0) {
+  const saveConfigPanel = useCallback(async (panelId: string, label: string, keys: string[], requireLlmBinding = false) => {
+    if (requireLlmBinding && missingLlmRoles.length > 0) {
       setConfigError(`以下 LLM 角色尚未配置: ${missingLlmRoles.join('、')}`);
       setConfigMessage('');
       return;
     }
+    const keySet = new Set(keys);
     const updates = configItems
-      .filter((item) => draftValues[item.key] !== item.value)
+      .filter((item) => keySet.has(item.key) && draftValues[item.key] !== item.value)
       .map((item) => ({ key: item.key, value: draftValues[item.key] ?? item.value }));
 
     if (updates.length === 0) {
-      setConfigMessage('当前没有需要保存的改动');
+      setConfigMessage(`${label}当前没有需要保存的改动`);
+      setConfigError('');
       return;
     }
 
+    setSavingPanel(panelId);
     setConfigSaving(true);
     setConfigError('');
     setConfigMessage('');
     try {
       const result = await fwApi.batchUpdateConfig(updates);
+      const previousDraft = draftValues;
       setConfigs(result.items);
       setDraftValues(
-        Object.fromEntries(result.items.map((item) => [item.key, item.value])),
+        Object.fromEntries(result.items.map((item) => [
+          item.key,
+          keySet.has(item.key) ? item.value : (previousDraft[item.key] ?? item.value),
+        ])),
       );
-      setConfigMessage('固件解包配置已保存');
+      setConfigMessage(`${label}已保存`);
       void loadCluster();
     } catch (e: any) {
       setConfigError(e?.message || '保存失败');
     } finally {
       setConfigSaving(false);
+      setSavingPanel(null);
     }
   }, [configItems, draftValues, loadCluster, missingLlmRoles]);
 
-  const handleResetConfig = useCallback(() => {
-    setDraftValues(Object.fromEntries(configItems.map((item) => [item.key, item.value])));
-    setConfigMessage('');
+  const resetConfigPanel = useCallback((label: string, keys: string[]) => {
+    setDraftValues((prev) => {
+      const next = { ...prev };
+      keys.forEach((key) => {
+        const item = configMap.get(key);
+        if (item) {
+          next[key] = item.value;
+        }
+      });
+      return next;
+    });
+    setConfigMessage(`${label}已重置为当前生效值`);
     setConfigError('');
-  }, [configItems]);
+  }, [configMap]);
 
   const resolveDraftValue = useCallback((entry: FirmwareConfigEntry) => (
     draftValues[entry.key] ?? entry.value
@@ -347,11 +432,14 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
           />
         </div>
 
-        <div className="mb-5 rounded-2xl bg-white p-5">
+        <SectionCard
+          title="Pod Concurrency"
+          subtitle="按实例资源预算控制固件解包在多 Pod 下的并发上限。"
+          actions={<PanelActions saving={savingPanel === 'pod-concurrency'} disabled={!hasPanelChanges(podConcurrencyPanelKeys)} onSave={() => { void saveConfigPanel('pod-concurrency', 'Pod 并发配置', podConcurrencyPanelKeys); }} onReset={() => resetConfigPanel('Pod 并发配置', podConcurrencyPanelKeys)} />}
+        >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-rose-600">Pod Concurrency</p>
-              <p className="mt-2 text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold text-slate-800">
                 {concurrencyMode === 'manual' ? '手动模式' : '自动模式'}
                 {' · '}
                 当前生效上限 {cluster?.concurrency.effective_max_concurrent ?? '-'}
@@ -438,13 +526,16 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
               ))}
             </div>
           )}
-        </div>
+        </SectionCard>
 
-        <div className="mb-5 rounded-2xl bg-white p-5">
+        <SectionCard
+          title="LLM Role Binding"
+          subtitle="按角色绑定配置文件、模型和轮次间复用策略。"
+          actions={<PanelActions saving={savingPanel === 'llm-role-binding'} disabled={!hasPanelChanges(llmPanelKeys) || missingLlmRoles.length > 0} onSave={() => { void saveConfigPanel('llm-role-binding', 'LLM 角色绑定', llmPanelKeys, true); }} onReset={() => resetConfigPanel('LLM 角色绑定', llmPanelKeys)} />}
+        >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-rose-600">LLM Role Binding</p>
-              <p className="mt-2 text-sm font-semibold text-slate-800">按角色绑定配置文件与模型</p>
+              <p className="text-sm font-semibold text-slate-800">按角色绑定配置文件与模型</p>
             </div>
             {llmLoading && <Loader2 size={16} className="animate-spin text-rose-600" />}
           </div>
@@ -561,16 +652,14 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
 
         {(maxRetriesEntry || maxRetriesActionEntry) && (
-          <div className="mb-5 rounded-2xl bg-white p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-rose-600">Retry Policy</p>
-                <p className="mt-2 text-sm font-semibold text-slate-800">最大重试次数与超限默认动作</p>
-              </div>
-            </div>
+          <SectionCard
+            title="Retry Policy"
+            subtitle="最大重试次数与超限默认动作。"
+            actions={<PanelActions saving={savingPanel === 'retry-policy'} disabled={!hasPanelChanges(retryPanelKeys)} onSave={() => { void saveConfigPanel('retry-policy', '重试策略', retryPanelKeys); }} onReset={() => resetConfigPanel('重试策略', retryPanelKeys)} />}
+          >
             <p className="mt-3 text-xs text-slate-500">
               控制通用 LLM 解包链路的最大轮次，以及当结果落为 `max_retries_reached` 时，默认按通过还是失败收敛。
             </p>
@@ -624,7 +713,7 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
                 </div>
               )}
             </div>
-          </div>
+          </SectionCard>
         )}
 
         {configLoading && configItems.length === 0 ? (
@@ -636,40 +725,24 @@ export const FirmwareUnpackConfigPage: React.FC<Props> = ({ projectId: _projectI
             暂无配置项
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {genericConfigItems.map(e => (
-              <ConfigRow
-                key={e.key}
-                entry={e}
-                value={resolveDraftValue(e)}
-                onChange={(value) => updateDraftValue(e.key, value)}
-                dirty={resolveDraftValue(e) !== e.value}
-              />
-            ))}
-          </div>
+          <SectionCard
+            title="其它运行参数"
+            subtitle="保留未归入并发、角色绑定或重试策略的其它动态参数。"
+            actions={<PanelActions saving={savingPanel === 'generic-config'} disabled={!hasPanelChanges(genericPanelKeys)} onSave={() => { void saveConfigPanel('generic-config', '其它运行参数', genericPanelKeys); }} onReset={() => resetConfigPanel('其它运行参数', genericPanelKeys)} />}
+          >
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              {genericConfigItems.map(e => (
+                <ConfigRow
+                  key={e.key}
+                  entry={e}
+                  value={resolveDraftValue(e)}
+                  onChange={(value) => updateDraftValue(e.key, value)}
+                  dirty={resolveDraftValue(e) !== e.value}
+                />
+              ))}
+            </div>
+          </SectionCard>
         )}
-
-        <div className="mt-6 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={handleResetConfig}
-            disabled={configLoading || configSaving || !hasConfigChanges}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshCw size={16} />
-            撤销改动
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSaveConfig()}
-            disabled={configLoading || configSaving || !hasConfigChanges || missingLlmRoles.length > 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
-          >
-            {configSaving && <Loader2 size={16} className="animate-spin" />}
-            <Save size={16} />
-            保存固件解包配置
-          </button>
-        </div>
       </section>
     </div>
   );

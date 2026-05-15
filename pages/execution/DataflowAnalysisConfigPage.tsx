@@ -65,11 +65,14 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
 
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
-const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
+const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div>
-      <h2 className="text-base font-black text-slate-900">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h2 className="text-base font-black text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+      </div>
+      {actions}
     </div>
     {children}
   </section>
@@ -145,11 +148,12 @@ const AgentInstanceList: React.FC<{
 const RoleConfigBlock: React.FC<{
   title: string;
   subtitle?: string;
+  actions?: React.ReactNode;
   modelOptions: string[];
   value: AppDfaRoleConfig;
   onChange: (v: AppDfaRoleConfig) => void;
-}> = ({ title, subtitle, modelOptions, value, onChange }) => (
-  <SectionCard title={title} subtitle={subtitle}>
+}> = ({ title, subtitle, actions, modelOptions, value, onChange }) => (
+  <SectionCard title={title} subtitle={subtitle} actions={actions}>
     <FieldRow label="Agent 实例列表">
       <AgentInstanceList
         agents={value.agents ?? []}
@@ -160,6 +164,85 @@ const RoleConfigBlock: React.FC<{
   </SectionCard>
 );
 
+type DfaPanelKey = 'basic' | 'analysis' | 'retry' | 'workers' | 'judges';
+
+const DFA_PANEL_KEYS: DfaPanelKey[] = ['basic', 'analysis', 'retry', 'workers', 'judges'];
+
+const applyDfaPanel = (
+  base: AppDfaServiceConfig,
+  source: AppDfaServiceConfig,
+  panel: DfaPanelKey,
+): AppDfaServiceConfig => {
+  switch (panel) {
+    case 'basic':
+      return {
+        ...base,
+        max_rounds: source.max_rounds,
+        max_rounds_exceeded_review_strategy: source.max_rounds_exceeded_review_strategy,
+        min_rounds: source.min_rounds,
+        pass_threshold: source.pass_threshold,
+      };
+    case 'analysis':
+      return {
+        ...base,
+        max_trace_depth: source.max_trace_depth,
+        callee_concurrency: source.callee_concurrency,
+      };
+    case 'retry':
+      return {
+        ...base,
+        agent_max_retries: source.agent_max_retries,
+        agent_retry_delay: source.agent_retry_delay,
+        agent_run_timeout_seconds: source.agent_run_timeout_seconds,
+        agent_timeout_retry_enabled: source.agent_timeout_retry_enabled,
+        agent_timeout_max_retries: source.agent_timeout_max_retries,
+        pi_max_retries: source.pi_max_retries,
+        pi_retry_delay: source.pi_retry_delay,
+      };
+    case 'workers':
+      return { ...base, workers: source.workers };
+    case 'judges':
+      return { ...base, judges: source.judges };
+    default:
+      return base;
+  }
+};
+
+const restoreOtherDfaPanels = (
+  saved: AppDfaServiceConfig,
+  draft: AppDfaServiceConfig,
+  preservedPanel: DfaPanelKey,
+): AppDfaServiceConfig => {
+  return DFA_PANEL_KEYS.reduce((acc, panel) => {
+    if (panel === preservedPanel) {
+      return acc;
+    }
+    return applyDfaPanel(acc, draft, panel);
+  }, saved);
+};
+
+const PanelActions: React.FC<{ saving: boolean; onSave: () => void; onReset: () => void }> = ({ saving, onSave, onReset }) => (
+  <div className="flex shrink-0 items-center gap-2">
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={saving}
+      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+    >
+      重置为默认
+    </button>
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving}
+      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+    >
+      {saving && <Loader2 size={12} className="animate-spin" />}
+      保存配置
+    </button>
+  </div>
+);
+
 // ─── 主页面 ────────────────────────────────────────────────────────────────────
 
 export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?: boolean }> = ({ projectId, embedded = false }) => {
@@ -168,7 +251,9 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPanel, setSavingPanel] = useState<DfaPanelKey | null>(null);
   const [config, setConfig] = useState<AppDfaServiceConfig>(() => defaultConfig(projectId));
+  const [savedConfig, setSavedConfig] = useState<AppDfaServiceConfig>(() => defaultConfig(projectId));
   const [modelOptions, setModelOptions] = useState<string[]>([]);
 
   const patch = (p: Partial<AppDfaServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
@@ -206,11 +291,19 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
     let cancelled = false;
     setLoading(true);
     dfaApi.getConfig(projectId)
-      .then((cfg) => { if (!cancelled) setConfig(mergeConfig(cfg)); })
+      .then((cfg) => {
+        if (!cancelled) {
+          const normalized = mergeConfig(cfg);
+          setConfig(normalized);
+          setSavedConfig(normalized);
+        }
+      })
       .catch((err) => {
         if (!cancelled) {
           notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-          setConfig(defaultConfig(projectId));
+          const fallback = defaultConfig(projectId);
+          setConfig(fallback);
+          setSavedConfig(fallback);
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -222,27 +315,42 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  const handleSave = async () => {
-    const agents = config.workers?.agents ?? [];
-    if (agents.length === 0 || agents.every((a) => !a.model)) {
-      notify('保存失败：请在「Workers 配置」中至少添加一个 Agent 实例并选择模型', 'error');
-      return;
-    }
+  const persistConfig = async (nextConfig: AppDfaServiceConfig) => {
     setSaving(true);
     try {
-      const saved = await dfaApi.saveConfig({ ...config, project_id: projectId });
-      setConfig(mergeConfig(saved));
-      notify('配置已保存', 'success');
+      const saved = await dfaApi.saveConfig({ ...nextConfig, project_id: projectId });
+      return mergeConfig(saved);
     } catch (err: any) {
       notify(`保存失败: ${err?.message ?? err}`, 'error');
+      return null;
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setConfig(defaultConfig(projectId));
-    notify('已重置为默认值（尚未保存）', 'info');
+  const handlePanelSave = async (panel: DfaPanelKey, label: string) => {
+    if (panel === 'workers') {
+      const agents = config.workers?.agents ?? [];
+      if (agents.length === 0 || agents.every((a) => !a.model)) {
+        notify('保存失败：请在「Workers 配置」中至少添加一个 Agent 实例并选择模型', 'error');
+        return;
+      }
+    }
+    setSavingPanel(panel);
+    const payload = applyDfaPanel(savedConfig, config, panel);
+    const saved = await persistConfig(payload);
+    if (saved) {
+      setSavedConfig(saved);
+      setConfig((prev) => restoreOtherDfaPanels(saved, prev, panel));
+      notify(`${label}已保存`, 'success');
+    }
+    setSavingPanel(null);
+  };
+
+  const handlePanelReset = (panel: DfaPanelKey, label: string) => {
+    const defaults = defaultConfig(projectId);
+    setConfig((prev) => applyDfaPanel(prev, defaults, panel));
+    notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
 
   return (
@@ -304,7 +412,17 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
             notes={DATAFLOW_ANALYSIS_FLOW.notes}
           />
           {/* 基本配置 */}
-          <SectionCard title="基本配置" subtitle="分析轮次控制">
+          <SectionCard
+            title="基本配置"
+            subtitle="分析轮次控制"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'basic'}
+                onSave={() => { void handlePanelSave('basic', '基本配置'); }}
+                onReset={() => handlePanelReset('basic', '基本配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               <FieldRow label="max_rounds" hint="-1=无限">
                 <NumberInput value={config.max_rounds} min={-1} onChange={(v) => patch({ max_rounds: v })} />
@@ -340,7 +458,17 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
           </SectionCard>
 
           {/* 数据流专用配置 */}
-          <SectionCard title="数据流配置" subtitle="控制污点追踪深度与并发">
+          <SectionCard
+            title="数据流配置"
+            subtitle="控制污点追踪深度与并发"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'analysis'}
+                onSave={() => { void handlePanelSave('analysis', '数据流配置'); }}
+                onReset={() => handlePanelReset('analysis', '数据流配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-2 gap-4">
               <FieldRow label="max_trace_depth" hint="最大追踪深度">
                 <NumberInput value={config.max_trace_depth} min={1} max={20} onChange={(v) => patch({ max_trace_depth: v })} />
@@ -352,7 +480,17 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
           </SectionCard>
 
           {/* 重试配置 */}
-          <SectionCard title="重试配置" subtitle="LLM API 重试与进程重启策略">
+          <SectionCard
+            title="重试配置"
+            subtitle="LLM API 重试与进程重启策略"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'retry'}
+                onSave={() => { void handlePanelSave('retry', '重试配置'); }}
+                onReset={() => handlePanelReset('retry', '重试配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-2 gap-4">
               <FieldRow label="agent_max_retries" hint="-1=无限">
                 <NumberInput value={config.agent_max_retries} min={-1} onChange={(v) => patch({ agent_max_retries: v })} />
@@ -392,6 +530,13 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'workers'}
+                onSave={() => { void handlePanelSave('workers', 'Workers 配置'); }}
+                onReset={() => handlePanelReset('workers', 'Workers 配置')}
+              />
+            )}
           />
 
           {/* Judges */}
@@ -401,19 +546,14 @@ export const DataflowAnalysisConfigPage: React.FC<{ projectId: string; embedded?
             modelOptions={modelOptions}
             value={config.judges}
             onChange={(v) => patch({ judges: v })}
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'judges'}
+                onSave={() => { void handlePanelSave('judges', 'Judges 配置'); }}
+                onReset={() => handlePanelReset('judges', 'Judges 配置')}
+              />
+            )}
           />
-
-          <div className="flex items-center gap-3">
-            <button onClick={() => void handleSave()} disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
-              {saving && <Loader2 size={14} className="animate-spin" />}
-              保存配置
-            </button>
-            <button onClick={handleReset} disabled={saving}
-              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-              重置为默认
-            </button>
-          </div>
         </div>
       )}
     </div>
