@@ -200,6 +200,7 @@ export interface BinarySecurityOverviewBusinessDetail {
   total_items: number;
   success_items: number;
   failed_items: number;
+  downstream_missing_items: number;
   skipped_items: number;
   running_items: number;
   cancelled_items: number;

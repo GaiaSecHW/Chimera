@@ -24,7 +24,7 @@ interface Props {
   onBack: () => void;
 }
 
-const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
+const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'downstream_missing']);
 const PREPARING_STATUSES = new Set(['continue_preparing', 'retry_preparing']);
 const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'firmware_unpack',
@@ -87,6 +87,8 @@ const statusTone = (status: string) => {
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'failed':
       return 'bg-rose-50 text-rose-700 border-rose-200';
+    case 'downstream_missing':
+      return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'cancelled':
       return 'bg-slate-100 text-slate-500 border-slate-200';
     case 'pending_module_confirmation':
@@ -127,6 +129,8 @@ const stageNodeTone = (status: string, selected: boolean) => {
       return `border-amber-300 bg-amber-50 text-amber-800 ${selectedDepth}`;
     case 'failed':
       return `border-rose-300 bg-rose-50 text-rose-800 ${selectedDepth}`;
+    case 'downstream_missing':
+      return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
     case 'running':
       return `border-blue-300 bg-blue-50 text-blue-800 ${selectedDepth}`;
     case 'continue_preparing':
@@ -154,6 +158,8 @@ const stageConnectorTone = (status: string) => {
       return 'text-amber-400';
     case 'failed':
       return 'text-rose-400';
+    case 'downstream_missing':
+      return 'text-orange-400';
     case 'running':
       return 'text-blue-400';
     case 'continue_preparing':
@@ -174,6 +180,20 @@ const stageItemTone = (selected: boolean) => (
 );
 
 const detailPanelTone = 'rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700';
+const formatBinarySecurityStatus = (status?: string | null) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  const labels: Record<string, string> = {
+    downstream_missing: '子任务不存在',
+  };
+  return labels[normalized] || status || '-';
+};
+const normalizeDownstreamDetailError = (error: any) => {
+  const message = String(error?.message || error || '').toLowerCase();
+  if (message.includes('not found') || message.includes('不存在') || message.includes('404')) {
+    return '下游子任务不存在';
+  }
+  return error?.message || '加载下游任务详情失败';
+};
 
 const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
 const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
@@ -639,7 +659,7 @@ const durationLabel = (started?: string | null, ended?: string | null) => {
 };
 
 const shouldShowStageRetryReason = (status?: string | null, retryable?: boolean, retryReason?: string | null) => (
-  Boolean(!retryable && retryReason && ['failed', 'partial_success', 'cancelled'].includes(String(status || '')))
+  Boolean(!retryable && retryReason && ['failed', 'partial_success', 'cancelled', 'downstream_missing'].includes(String(status || '')))
 );
 
 type TaskStatusReason = {
@@ -678,17 +698,19 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   const stageItems = detail.stage_items || [];
   const archiveJobs = detail.archive_jobs || [];
   const currentStageLabel = STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-';
-  const failedStages = stageSummaries.filter((stage) => ['failed', 'partial_success'].includes(stage.status));
+  const failedStages = stageSummaries.filter((stage) => ['failed', 'partial_success', 'downstream_missing'].includes(stage.status));
   const cancelledStages = stageSummaries.filter((stage) => stage.status === 'cancelled');
   const runningStages = stageSummaries.filter((stage) => ['running', 'dispatching', 'applying'].includes(stage.status));
   const pendingStages = stageSummaries.filter((stage) => stage.status === 'pending');
   const failedItems = stageItems.filter((item) => item.status === 'failed');
+  const missingItems = stageItems.filter((item) => item.status === 'downstream_missing');
   const runningItems = stageItems.filter((item) => ['running', 'dispatching'].includes(item.status));
   const cancelledItems = stageItems.filter((item) => item.status === 'cancelled');
   const failedArchiveJobs = archiveJobs.filter((job) => job.archive_status === 'failed');
   const runningArchiveJobs = archiveJobs.filter((job) => ['pending', 'running', 'archived', 'applying'].includes(job.archive_status));
   const latestFailedStage = failedStages[failedStages.length - 1];
   const latestFailedItem = failedItems[failedItems.length - 1];
+  const latestMissingItem = missingItems[missingItems.length - 1];
   const latestFailedArchive = failedArchiveJobs[failedArchiveJobs.length - 1];
   const latestRunningItem = runningItems[runningItems.length - 1];
   const staleStages = (detail.summary?.stale_stages as string[] | undefined) || [];
@@ -711,6 +733,7 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
       detail.last_error,
       latestFailedStage?.last_error,
       latestFailedItem?.error_message,
+      latestMissingItem?.error_message,
       latestFailedArchive?.error_message,
     );
     const failedStageName = latestFailedStage?.stage_name || latestFailedItem?.stage_name || latestFailedArchive?.stage_name || detail.current_stage;
@@ -721,7 +744,28 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
       evidence: [
         { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
         { label: '失败子任务', value: summarizeCount(failedItems.length) },
+        { label: '丢失子任务', value: summarizeCount(missingItems.length) },
         { label: '归档失败', value: summarizeCount(failedArchiveJobs.length) },
+      ],
+    };
+  }
+
+  if (detail.status === 'downstream_missing') {
+    const reason = firstText(
+      detail.last_error,
+      latestFailedStage?.last_error,
+      latestMissingItem?.error_message,
+      latestFailedItem?.error_message,
+    );
+    const blockedStageName = latestFailedStage?.stage_name || latestMissingItem?.stage_name || latestFailedItem?.stage_name || detail.current_stage;
+    return {
+      tone: 'warn',
+      title: `${STAGE_LABELS[blockedStageName || ''] || blockedStageName || '当前阶段'}存在悬空子任务`,
+      description: reason || '当前阶段的下游微服务任务已经不存在，和普通失败不同，需要重新创建该阶段子任务后再继续推进。',
+      evidence: [
+        { label: '异常阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
+        { label: '丢失子任务', value: summarizeCount(missingItems.length) },
+        { label: '失败子任务', value: summarizeCount(failedItems.length) },
       ],
     };
   }
@@ -740,6 +784,7 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
       evidence: [
         { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
         { label: '失败子任务', value: summarizeCount(failedItems.length) },
+        { label: '丢失子任务', value: summarizeCount(missingItems.length) },
         { label: '取消子任务', value: summarizeCount(cancelledItems.length) },
       ],
     };
@@ -1394,7 +1439,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           }
           return [item.id, { loading: false, error: '当前阶段未配置下游详情加载器' }] as const;
         } catch (fetchError: any) {
-          return [item.id, { loading: false, error: fetchError?.message || '加载下游任务详情失败' }] as const;
+          return [item.id, { loading: false, error: normalizeDownstreamDetailError(fetchError) }] as const;
         }
       }));
 
@@ -2085,7 +2130,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{detail.name}</h1>
                 <div className="mt-2 break-all font-mono text-xs text-slate-400">{detail.id}</div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail.status)}`}>{detail.status}</span>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail.status)}`}>{formatBinarySecurityStatus(detail.status)}</span>
                   <span className="text-sm text-slate-500">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
                 {detail.status === 'continue_preparing' ? (
@@ -2245,7 +2290,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   {stageSequence.map((stageName) => {
                     const summary = stageSummaryByName.get(stageName);
                     const summaryStatus = String(summary?.status || '');
-                    const stageFinished = ['success', 'partial_success', 'failed', 'cancelled', 'skipped'].includes(summaryStatus);
+                    const stageFinished = ['success', 'partial_success', 'failed', 'cancelled', 'skipped', 'downstream_missing'].includes(summaryStatus);
                     const stageRunning = stageName === detail.current_stage && ['running', 'dispatching', 'pending_module_confirmation'].includes(detail.status);
                     const stageMessage = stageRunning
                       ? '运行中，本次修改仅影响后续/下次'
@@ -2257,7 +2302,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="text-sm font-black text-slate-900">{STAGE_LABELS[stageName] || stageName}</div>
-                            <div className="mt-1 text-xs text-slate-500">当前状态：{summaryStatus || 'pending'}</div>
+                            <div className="mt-1 text-xs text-slate-500">当前状态：{formatBinarySecurityStatus(summaryStatus || 'pending')}</div>
                           </div>
                           <input
                             type="checkbox"
@@ -2462,7 +2507,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">当前状态</div>
-                  <div className="mt-1 font-black text-slate-900">{detail.status}</div>
+                  <div className="mt-1 font-black text-slate-900">{formatBinarySecurityStatus(detail.status)}</div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">队列位置</div>
@@ -2545,7 +2590,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             </div>
                           </div>
                           <div className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-center text-[10px] font-black leading-none">
-                            {stage.status_label || archiveStatusLabel(stage.status)}
+                            {formatBinarySecurityStatus(stage.status_label || archiveStatusLabel(stage.status))}
                           </div>
                         </>
                       ) : (
@@ -2580,7 +2625,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             </div>
                           </div>
                           <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
-                            {stage.status_label || stage.status}
+                            {formatBinarySecurityStatus(stage.status_label || stage.status)}
                           </div>
                           <div className="mt-3 flex items-center justify-between gap-2">
                             {staleStages.has(stage.stage_name) ? (
@@ -2663,7 +2708,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <div className="text-xs font-bold text-slate-400">阶段状态</div>
                   <div className="mt-1">
                     <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(selectedBusinessStageNode.status)}`}>
-                      {selectedBusinessStageNode.status_label || selectedBusinessStageNode.status}
+                      {formatBinarySecurityStatus(selectedBusinessStageNode.status_label || selectedBusinessStageNode.status)}
                     </span>
                   </div>
                 </div>
@@ -2818,7 +2863,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
 	                      }`}
 	                    >
-	                      {option.status} {option.count}
+	                      {formatBinarySecurityStatus(option.status)} {option.count}
 	                    </button>
 	                  ))}
 	                </div>
@@ -2916,7 +2961,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                                <td className="px-3 py-3">
 	                                  <div className="flex flex-col gap-2">
 	                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
-                                      {item.status}
+                                      {formatBinarySecurityStatus(item.status)}
                                     </span>
                                     <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
                                       {STAGE_LABELS[item.stage_name] || item.stage_name}
