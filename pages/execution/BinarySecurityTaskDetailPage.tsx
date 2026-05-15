@@ -45,6 +45,14 @@ const MODULE_SELECTION_OPTIONS = [
   { value: 'auto', label: '按风险自动推进' },
   { value: 'manual_confirm', label: '系统分析后人工确认' },
 ];
+const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
+  { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
+  { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
+  { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
+] as const;
+const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
+  PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, true]),
+) as Record<string, boolean>;
 
 const STAGE_LABELS: Record<string, string> = {
   firmware_unpack: '固件解包',
@@ -206,6 +214,7 @@ type TaskStrategyDraft = {
   stage_parallelism: Record<string, number>;
   max_retries_per_item: number;
   continue_on_item_failure: boolean;
+  partial_success_stage_advancement: Record<string, boolean>;
   module_selection_mode: 'auto' | 'manual_confirm';
   module_risk_levels: string[];
 };
@@ -359,6 +368,15 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
     ])),
     max_retries_per_item: Math.max(0, Math.min(20, safeInt(nextPolicy.max_retries_per_item, 0))),
     continue_on_item_failure: Boolean(nextPolicy.continue_on_item_failure),
+    partial_success_stage_advancement: Object.fromEntries(
+      PARTIAL_SUCCESS_ADVANCEMENT_FIELDS
+        .filter((field) => stages.includes(field.key))
+        .map((field) => [
+          field.key,
+          (nextPolicy.partial_success_stage_advancement as Record<string, boolean> | undefined)?.[field.key]
+            ?? DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT[field.key],
+        ]),
+    ),
     module_selection_mode: normalizedMode,
     module_risk_levels: normalizedRiskLevels.length > 0 ? normalizedRiskLevels : ['高'],
   };
@@ -390,10 +408,12 @@ const strategySectionEquals = (
     stage_parallelism: left.stage_parallelism,
     max_retries_per_item: left.max_retries_per_item,
     continue_on_item_failure: left.continue_on_item_failure,
+    partial_success_stage_advancement: left.partial_success_stage_advancement,
   }) === JSON.stringify({
     stage_parallelism: right.stage_parallelism,
     max_retries_per_item: right.max_retries_per_item,
     continue_on_item_failure: right.continue_on_item_failure,
+    partial_success_stage_advancement: right.partial_success_stage_advancement,
   });
 };
 
@@ -1177,6 +1197,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         stage_parallelism: strategySavedSnapshot.stage_parallelism,
         max_retries_per_item: strategySavedSnapshot.max_retries_per_item,
         continue_on_item_failure: strategySavedSnapshot.continue_on_item_failure,
+        partial_success_stage_advancement: strategySavedSnapshot.partial_success_stage_advancement,
       };
     });
     setError(null);
@@ -1210,6 +1231,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               ])),
               max_retries_per_item: Math.max(0, Math.min(20, Number(strategyDraft.max_retries_per_item) || 0)),
               continue_on_item_failure: Boolean(strategyDraft.continue_on_item_failure),
+              partial_success_stage_advancement: Object.fromEntries(
+                PARTIAL_SUCCESS_ADVANCEMENT_FIELDS
+                  .filter((field) => stageSequence.includes(field.key))
+                  .map((field) => [field.key, strategyDraft.partial_success_stage_advancement[field.key] !== false]),
+              ),
             };
       const updated = await executionApi.binarySecurity.updateTaskPolicy(projectId, taskId, payload);
       setDetail(updated);
@@ -2394,6 +2420,29 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   />
                   子任务失败时继续推进其他子任务
                 </label>
+                <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                  {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => stageSequence.includes(field.key)).map((field) => (
+                    <label key={field.key} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={strategyDraft.partial_success_stage_advancement[field.key] !== false}
+                        disabled={!strategyEditable || Boolean(strategySavingSection)}
+                        onChange={(event) => setStrategyDraft((current) => (
+                          current
+                            ? {
+                                ...current,
+                                partial_success_stage_advancement: {
+                                  ...current.partial_success_stage_advancement,
+                                  [field.key]: event.target.checked,
+                                },
+                              }
+                            : current
+                        ))}
+                      />
+                      {field.label}
+                    </label>
+                  ))}
+                </div>
               </section>
             </section>
           ) : null}

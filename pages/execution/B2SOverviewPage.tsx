@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock3, Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
 
 import { B2SElfTaskInput, B2SRunMode, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
@@ -95,10 +95,21 @@ const taskRunDuration = (detail?: B2STaskDetail | null, nowMs: number = Date.now
 export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const assetApi = api.domains.assets;
+  const autoRefreshStorageKey = `secflow:b2s:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `secflow:b2s:refreshInterval:${projectId || 'default'}`;
   const [items, setItems] = useState<B2STask[]>([]);
   const [activeTaskDetails, setActiveTaskDetails] = useState<Record<string, B2STaskDetail>>({});
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [modeFilter, setModeFilter] = useState<'' | B2SRunMode>(''); 
+  const [originFilter, setOriginFilter] = useState<'' | 'manual' | 'binary_security'>('');
+  const [searchText, setSearchText] = useState('');
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
   const [concurrency, setConcurrency] = useState(4);
@@ -116,37 +127,25 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [clockNow, setClockNow] = useState(() => Date.now());
   const hasSelectedProviderInList = !llmProviderKey || llmProviders.some((item) => item.provider_key === llmProviderKey);
 
-  const load = async () => {
+  const load = useCallback(async (showLoading = true) => {
     if (!projectId) return;
-    setLoading(true);
-    setError(null);
+    if (showLoading) setLoading(true);
+    else setRefreshing(true);
     try {
       const data = await executionApi.binaryToSource.listTasks(projectId);
-      const nextItems = data.items || [];
-      setItems(nextItems);
-      const activeTasks = nextItems.filter((task) => !B2S_TERMINAL_STATUSES.has(task.status));
-      if (activeTasks.length === 0) {
-        setActiveTaskDetails({});
-      } else {
-        const details = await Promise.allSettled(activeTasks.map((task) => executionApi.binaryToSource.getTask(projectId, task.id)));
-        const nextDetails: Record<string, B2STaskDetail> = {};
-        details.forEach((result) => {
-          if (result.status === 'fulfilled') {
-            nextDetails[result.value.id] = result.value;
-          }
-        });
-        setActiveTaskDetails(nextDetails);
-      }
+      setItems(data.items || []);
+      setError(null);
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
+      else setRefreshing(false);
     }
-  };
+  }, [executionApi.binaryToSource, projectId]);
 
   useEffect(() => {
-    void load();
-  }, [projectId]);
+    void load(true);
+  }, [load]);
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:b2sTaskId');
@@ -169,12 +168,35 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   );
 
   useEffect(() => {
+    const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
+    const storedInterval = localStorage.getItem(refreshIntervalStorageKey);
+    setAutoRefreshEnabled(storedEnabled === 'true');
+    if (storedInterval) {
+      const parsed = Number(storedInterval);
+      if (Number.isFinite(parsed)) {
+        setRefreshIntervalSec(Math.max(5, Math.floor(parsed)));
+      }
+    } else {
+      setRefreshIntervalSec(10);
+    }
+  }, [autoRefreshStorageKey, refreshIntervalStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(autoRefreshStorageKey, String(autoRefreshEnabled));
+  }, [autoRefreshEnabled, autoRefreshStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(refreshIntervalStorageKey, String(refreshIntervalSec));
+  }, [refreshIntervalSec, refreshIntervalStorageKey]);
+
+  useEffect(() => {
     if (!projectId || !hasActiveTasks) return;
     const timer = window.setInterval(() => {
-      void load();
-    }, 5000);
+      if (!autoRefreshEnabled) return;
+      void load(false);
+    }, Math.max(5, refreshIntervalSec) * 1000);
     return () => window.clearInterval(timer);
-  }, [projectId, hasActiveTasks]);
+  }, [autoRefreshEnabled, hasActiveTasks, load, projectId, refreshIntervalSec]);
 
   useEffect(() => {
     if (!hasActiveTasks) return;
@@ -183,6 +205,61 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [hasActiveTasks]);
 
   const stats = useMemo(() => summarizeB2STasks(items), [items]);
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    return items.filter((task) => {
+      if (statusFilter && task.status !== statusFilter) return false;
+      if (modeFilter && task.mode !== modeFilter) return false;
+      if (originFilter && String(task.task_origin_type || 'manual').trim() !== originFilter) return false;
+      if (!keyword) return true;
+      const haystack = [
+        task.name,
+        task.id,
+        task.parent_task_display,
+        task.parent_task_id,
+        task.origin_label,
+      ].join(' ').toLowerCase();
+      return haystack.includes(keyword);
+    });
+  }, [items, modeFilter, originFilter, searchText, statusFilter]);
+  const total = filteredItems.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const pagedItems = useMemo(() => filteredItems.slice((page - 1) * perPage, page * perPage), [filteredItems, page, perPage]);
+  const pageStart = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * perPage + pagedItems.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, modeFilter, originFilter, searchText, perPage]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    const activeTasks = pagedItems.filter((task) => !B2S_TERMINAL_STATUSES.has(task.status));
+    let cancelled = false;
+    if (activeTasks.length === 0) {
+      setActiveTaskDetails({});
+      return;
+    }
+    void (async () => {
+      const details = await Promise.allSettled(activeTasks.map((task) => executionApi.binaryToSource.getTask(projectId, task.id)));
+      if (cancelled) return;
+      const nextDetails: Record<string, B2STaskDetail> = {};
+      details.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          nextDetails[result.value.id] = result.value;
+        }
+      });
+      setActiveTaskDetails(nextDetails);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [executionApi.binaryToSource, pagedItems, projectId, refreshing]);
 
   const resetCreateForm = () => {
     setName('');
@@ -332,7 +409,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       setShowCreateDialog(false);
       resetCreateForm();
       setCreateResult(`创建成功: ${resp.task_id}`);
-      await load();
+      await load(false);
     } catch (e: any) {
       setCreateError(e?.message || '创建失败');
     } finally {
@@ -363,11 +440,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </button>
             <button
               type="button"
-              onClick={() => void load()}
+              onClick={() => void load(false)}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
             >
-              <RefreshCw size={16} />
-              刷新
+              {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
         </div>
@@ -392,14 +469,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <h2 className="text-xl font-black text-slate-900">任务列表</h2>
-            <p className="mt-1 text-sm text-slate-500">展示任务状态、进度、阶段摘要与最近更新时间。</p>
+            <p className="mt-1 text-sm text-slate-500">展示任务状态、进度、阶段摘要与最近更新时间，并支持筛选、分页和自动刷新。</p>
           </div>
-          {hasActiveTasks && (
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-              <Clock3 size={14} />
-              活跃任务自动刷新中
-            </div>
-          )}
         </div>
 
         {loading ? (
@@ -411,76 +482,228 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
           <div className="py-12 text-center text-sm text-slate-400">当前项目暂无二进制逆向任务。</div>
         ) : (
           <div className="mt-5">
-            <ExecutionTable minWidth={1360}>
-              <ExecutionTableHead>
-                <tr>
-                  <ExecutionTableTh>任务</ExecutionTableTh>
-                  <ExecutionTableTh>状态</ExecutionTableTh>
-                  <ExecutionTableTh>模式</ExecutionTableTh>
-                  <ExecutionTableTh>阶段</ExecutionTableTh>
-                  <ExecutionTableTh>总体进度</ExecutionTableTh>
-                  <ExecutionTableTh>结果分布</ExecutionTableTh>
-                  <ExecutionTableTh>异常项</ExecutionTableTh>
-                  <ExecutionTableTh>运行耗时</ExecutionTableTh>
-                  <ExecutionTableTh>最近更新</ExecutionTableTh>
-                </tr>
-              </ExecutionTableHead>
-              <tbody>
-                {items.map((task) => {
-                  const detail = activeTaskDetails[task.id];
-                  const phaseSummary = buildPhaseSummary(task, detail);
-                  const modeLabel = taskModeLabel(task, detail);
-                  const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
-                  return (
-                    <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => onOpenTask(task.id)}>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">任务列表</h2>
+                <p className="mt-1 text-sm text-slate-500">支持按任务、模式、状态和来源筛选，并按设定间隔自动刷新活跃任务。</p>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={autoRefreshEnabled}
+                    onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                  />
+                  自动刷新
+                </label>
+                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                  间隔
+                  <input
+                    type="number"
+                    min={5}
+                    step={1}
+                    value={refreshIntervalSec}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
+                    }}
+                    className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                  />
+                  秒
+                </label>
+                <input
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="筛选任务名、任务 ID、来源任务 ID"
+                  className="w-64 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700"
+                />
+                <select
+                  value={modeFilter}
+                  onChange={(e) => setModeFilter((e.target.value || '') as '' | B2SRunMode)}
+                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+                  title="任务模式筛选"
+                >
+                  <option value="">全部模式</option>
+                  <option value="fast">快速模式</option>
+                  <option value="deep">深度模式</option>
+                </select>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+                  title="任务状态筛选"
+                >
+                  <option value="">全部状态</option>
+                  {['pending', 'queued', 'running', 'success', 'failed', 'cancelled', 'partial_success'].map((value) => (
+                    <option key={value} value={value}>{formatB2SStatus(value)}</option>
+                  ))}
+                </select>
+                <select
+                  value={originFilter}
+                  onChange={(e) => setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security')}
+                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+                  title="任务来源筛选"
+                >
+                  <option value="">全部来源</option>
+                  <option value="manual">手动任务</option>
+                  <option value="binary_security">总任务关联</option>
+                </select>
+              </div>
+            </div>
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <span>自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
+              {autoRefreshEnabled && !hasActiveTasks ? (
+                <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
+              ) : null}
+              {autoRefreshEnabled && hasActiveTasks ? (
+                <span className="text-cyan-600">检测到活跃任务，按设定间隔自动刷新</span>
+              ) : null}
+              <span>当前筛选结果：{total} 条</span>
+            </div>
+            {pagedItems.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
+                当前筛选条件下没有匹配的任务。
+              </div>
+            ) : (
+              <ExecutionTable minWidth={1480}>
+                <ExecutionTableHead>
+                  <tr>
+                    <ExecutionTableTh>任务</ExecutionTableTh>
+                    <ExecutionTableTh>输入文件</ExecutionTableTh>
+                    <ExecutionTableTh>状态</ExecutionTableTh>
+                    <ExecutionTableTh>模式</ExecutionTableTh>
+                    <ExecutionTableTh>阶段</ExecutionTableTh>
+                    <ExecutionTableTh>总体进度</ExecutionTableTh>
+                    <ExecutionTableTh>结果分布</ExecutionTableTh>
+                    <ExecutionTableTh>异常项</ExecutionTableTh>
+                    <ExecutionTableTh>来源</ExecutionTableTh>
+                    <ExecutionTableTh>运行耗时</ExecutionTableTh>
+                    <ExecutionTableTh>创建时间</ExecutionTableTh>
+                    <ExecutionTableTh>最近更新</ExecutionTableTh>
+                  </tr>
+                </ExecutionTableHead>
+                <tbody>
+                  {pagedItems.map((task) => {
+                    const detail = activeTaskDetails[task.id];
+                    const phaseSummary = buildPhaseSummary(task, detail);
+                    const modeLabel = taskModeLabel(task, detail);
+                    const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
+                    return (
+                      <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => onOpenTask(task.id)}>
                       <ExecutionTableTd className="min-w-[300px]">
                         <div className="min-w-0">
                           <div className="truncate text-sm font-black text-slate-900">{task.name || task.id}</div>
                           <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{task.id}</div>
-                          <div className="mt-2">
-                            <TaskOriginInline origin={task} compact />
-                          </div>
+                        </div>
+                      </ExecutionTableTd>
+                      <ExecutionTableTd className="min-w-[220px]">
+                        <div className="space-y-1">
+                          {(task.input_filenames || []).slice(0, 3).map((filename) => (
+                            <div key={filename} className="truncate text-xs font-medium text-slate-700" title={filename}>
+                              {filename}
+                            </div>
+                          ))}
+                          {(task.input_filenames || []).length > 3 ? (
+                            <div className="text-[11px] text-slate-400">
+                              其余 {(task.input_filenames || []).length - 3} 个文件
+                            </div>
+                          ) : null}
+                          {(!task.input_filenames || task.input_filenames.length === 0) ? (
+                            <span className="text-xs text-slate-400">-</span>
+                          ) : null}
                         </div>
                       </ExecutionTableTd>
                       <ExecutionTableTd><B2SStatusBadge status={task.status} /></ExecutionTableTd>
-                      <ExecutionTableTd>
-                        {modeLabel ? (
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${taskModeTone(task, detail)}`}>
-                            {modeLabel}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </ExecutionTableTd>
-                      <ExecutionTableTd><B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} /></ExecutionTableTd>
-                      <ExecutionTableTd className="min-w-[220px]">
-                        <div className="flex items-center justify-between gap-2 text-xs">
-                          <span className="font-semibold text-slate-700">{buildProgressLabel(task, detail)}</span>
-                          <span className="text-slate-400">{pct(progressValue).toFixed(1)}%</span>
-                        </div>
-                        <div className="mt-2">
-                          <B2SProgressBar value={progressValue} />
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                          <span>待处理 {task.pending_items}</span>
-                          <span>已取消 {task.cancelled_items}</span>
-                        </div>
-                      </ExecutionTableTd>
-                      <ExecutionTableTd>
-                        <div className="text-sm font-semibold text-slate-800">成功 {task.success_items} / 总数 {task.total_items}</div>
-                        <div className="mt-1 text-xs text-slate-400">排队 {task.queued_items} · 运行 {task.running_items}</div>
-                      </ExecutionTableTd>
-                      <ExecutionTableTd>
-                        <div className="text-sm font-semibold text-slate-800">失败 {task.failed_items}</div>
-                        <div className="mt-1 text-xs text-slate-400">部分成功 {task.partial_items}</div>
-                      </ExecutionTableTd>
-                      <ExecutionTableTd className="whitespace-nowrap font-semibold text-slate-700">{taskRunDuration(detail, clockNow)}</ExecutionTableTd>
-                      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.updated_at)}</ExecutionTableTd>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </ExecutionTable>
+                        <ExecutionTableTd>
+                          {modeLabel ? (
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${taskModeTone(task, detail)}`}>
+                              {modeLabel}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </ExecutionTableTd>
+                        <ExecutionTableTd><B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} /></ExecutionTableTd>
+                        <ExecutionTableTd className="min-w-[220px]">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="font-semibold text-slate-700">{buildProgressLabel(task, detail)}</span>
+                            <span className="text-slate-400">{pct(progressValue).toFixed(1)}%</span>
+                          </div>
+                          <div className="mt-2">
+                            <B2SProgressBar value={progressValue} />
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                            <span>待处理 {task.pending_items}</span>
+                            <span>已取消 {task.cancelled_items}</span>
+                          </div>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
+                          <div className="text-sm font-semibold text-slate-800">成功 {task.success_items} / 总数 {task.total_items}</div>
+                          <div className="mt-1 text-xs text-slate-400">排队 {task.queued_items} · 运行 {task.running_items}</div>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
+                          <div className="text-sm font-semibold text-slate-800">失败 {task.failed_items}</div>
+                          <div className="mt-1 text-xs text-slate-400">部分成功 {task.partial_items}</div>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="min-w-[170px]">
+                          <TaskOriginInline origin={task} compact />
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="whitespace-nowrap font-semibold text-slate-700">{taskRunDuration(detail, clockNow)}</ExecutionTableTd>
+                        <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.created_at)}</ExecutionTableTd>
+                        <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.updated_at)}</ExecutionTableTd>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </ExecutionTable>
+            )}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+              <div className="text-xs text-slate-500">
+                共 {total} 条，当前显示 {pageStart}-{pageEnd}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                  每页
+                  <select
+                    value={perPage}
+                    onChange={(e) => setPerPage(Number(e.target.value) || 20)}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+                  >
+                    {[20, 50, 100, 200].map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  条
+                </label>
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(1)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  首页
+                </button>
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  上一页
+                </button>
+                <span className="min-w-16 text-center text-xs text-slate-500">{page} / {totalPages}</span>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  下一页
+                </button>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(totalPages)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  末页
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>

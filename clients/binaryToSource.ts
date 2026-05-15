@@ -60,6 +60,7 @@ export interface B2STask {
   parent_task_display?: string | null;
   mode?: string | null;
   mode_label?: string | null;
+  input_filenames?: string[];
   name: string;
   status: string;
   total_items: number;
@@ -313,6 +314,217 @@ export interface B2SReviewAnalytics {
   trend_insight?: B2SReviewAnalyticsTrend | null;
 }
 
+export interface B2STaskConfigInputItem {
+  item_id: string;
+  sequence_no: number;
+  elf_path: string;
+  source_elf_path?: string | null;
+  output_dir: string;
+  output_subdir?: string | null;
+  file_list: string[];
+}
+
+export interface B2STaskConfigSnapshot {
+  name: string;
+  description?: string | null;
+  priority: number;
+  tags: string[];
+  task_origin_type?: string | null;
+  origin_label?: string | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: string | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  mode?: string | null;
+  mode_label?: string | null;
+  engine?: string | null;
+  llm_provider_key?: string | null;
+  llm_provider_display_name?: string | null;
+  llm_provider_type?: string | null;
+  llm_provider_model?: string | null;
+  concurrency?: number | null;
+  agent_run_timeout_seconds?: number | null;
+  agent_timeout_retry_enabled?: boolean | null;
+  agent_timeout_max_retries?: number | null;
+  budget_exhausted_action?: string | null;
+  input_count: number;
+  input_items: B2STaskConfigInputItem[];
+}
+
+export interface B2SAgentRuntimeEntry {
+  key: string;
+  label: string;
+  item_id?: string | null;
+  sequence_no?: number | null;
+  item_name?: string | null;
+  run_name?: string | null;
+  stage?: string | null;
+  agent?: string | null;
+  role?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
+  relative_path?: string | null;
+  full_path?: string | null;
+  updated_at?: string | null;
+  is_active: boolean;
+  size: number;
+}
+
+export interface B2SAgentRuntimeSummary {
+  total_sessions: number;
+  active_agent_count: number;
+  header_agent_count: number;
+  executor_agent_count: number;
+  validator_agent_count: number;
+  active_agents: B2SAgentRuntimeEntry[];
+}
+
+export interface B2STaskResultItemSummary {
+  item_id: string;
+  sequence_no: number;
+  item_name: string;
+  elf_path: string;
+  output_dir: string;
+  status: string;
+  result_file_count: number;
+  key_result_files: string[];
+  session_file_count: number;
+  review_round_count: number;
+  final_verdict?: string | null;
+  final_verdict_label?: string | null;
+}
+
+export interface B2STaskResultSummary {
+  task_id: string;
+  success_items: number;
+  partial_items: number;
+  failed_items: number;
+  cancelled_items: number;
+  result_file_count: number;
+  session_file_count: number;
+  review_round_count: number;
+  items: B2STaskResultItemSummary[];
+}
+
+export interface B2STaskObservabilityItem {
+  item_id: string;
+  sequence_no: number;
+  item_name: string;
+  status: string;
+  duration_ms?: number | null;
+  batch_count: number;
+  session_count: number;
+  attempt_count: number;
+  final_verdict?: string | null;
+  final_confidence: number;
+  final_quality_score: number;
+  issue_total: number;
+  issue_resolved: number;
+  issue_remaining: number;
+}
+
+export interface B2STaskObservability {
+  task_id: string;
+  total_duration_ms?: number | null;
+  avg_item_duration_ms?: number | null;
+  total_batches: number;
+  avg_batches_per_item: number;
+  total_sessions: number;
+  active_agent_count: number;
+  total_review_attempts: number;
+  avg_review_attempts: number;
+  passed_items: number;
+  not_passed_items: number;
+  issue_total: number;
+  issue_resolved: number;
+  issue_remaining: number;
+  issue_closure_rate: number;
+  completed_functions: number;
+  total_functions: number;
+  completed_bytes: number;
+  total_bytes: number;
+  avg_confidence: number;
+  avg_quality_score: number;
+  residual_risk_distribution: Record<string, number>;
+  items: B2STaskObservabilityItem[];
+}
+
+export interface B2SSessionNode {
+  node_id: string;
+  item_id: string;
+  sequence_no: number;
+  item_name: string;
+  run_name: string;
+  stage: string;
+  stage_order: number;
+  section?: string | null;
+  round?: string | null;
+  round_order?: number | null;
+  agent?: string | null;
+  role?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
+  relative_path: string;
+  full_path: string;
+  size: number;
+  updated_at?: string | null;
+  is_active: boolean;
+  kind: string;
+}
+
+export interface B2SSessionIndex {
+  task_id: string;
+  nodes: B2SSessionNode[];
+  warnings: string[];
+  generated_at?: string | null;
+}
+
+export interface B2SSessionFile {
+  task_id: string;
+  relative_path: string;
+  full_path: string;
+  size: number;
+  content: string;
+  truncated: boolean;
+  next_offset?: number | null;
+  offset: number;
+  limit: number;
+  mime_type: string;
+}
+
+export interface B2SRelationshipNode {
+  node_id: string;
+  node_type: string;
+  item_id?: string | null;
+  sequence_no?: number | null;
+  title: string;
+  subtitle?: string | null;
+  status?: string | null;
+  relative_path?: string | null;
+  full_path?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
+  group_key?: string | null;
+  is_active: boolean;
+}
+
+export interface B2SRelationshipEdge {
+  edge_id: string;
+  source_node_id: string;
+  target_node_id: string;
+  kind: string;
+  label?: string | null;
+}
+
+export interface B2STaskRelationship {
+  task_id: string;
+  nodes: B2SRelationshipNode[];
+  edges: B2SRelationshipEdge[];
+  warnings: string[];
+}
+
 export const MOCK_B2S_REVIEW_ANALYTICS: B2SReviewAnalytics = {
   task_id: 'mock-task',
   item_id: 'mock-item',
@@ -361,6 +573,11 @@ export const MOCK_B2S_REVIEW_ANALYTICS: B2SReviewAnalytics = {
 
 export interface B2STaskDetail extends B2STask {
   overall_progress?: B2SOverallProgress;
+  task_config_snapshot?: B2STaskConfigSnapshot;
+  effective_llm_provider?: B2SLlmProviderSummary | null;
+  agent_runtime_summary?: B2SAgentRuntimeSummary | null;
+  result_summary?: B2STaskResultSummary | null;
+  observability_summary?: B2STaskObservability | null;
   items: Array<{
     id: string;
     sequence_no: number;
@@ -489,11 +706,45 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  rerunTask: async (projectId: string, taskId: string, options?: { clean_output?: boolean; cancel_running?: boolean }) => {
+  getTaskSessions: async (projectId: string, taskId: string): Promise<B2SSessionIndex> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/sessions`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskSessionFile: async (projectId: string, taskId: string, path: string, offset = 0, limit = 512 * 1024): Promise<B2SSessionFile> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/sessions/file?path=${encodeURIComponent(path)}&offset=${offset}&limit=${limit}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskRelationship: async (projectId: string, taskId: string): Promise<B2STaskRelationship> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/relationships`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskResult: async (projectId: string, taskId: string): Promise<B2STaskResultSummary> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/result`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskObservability: async (projectId: string, taskId: string): Promise<B2STaskObservability> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/observability`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  rerunTask: async (projectId: string, taskId: string) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/rerun`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ clean_output: options?.clean_output ?? true, cancel_running: options?.cancel_running ?? true }),
     });
     return handleResponse(resp);
   },

@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldChe
 import { api } from '../../clients/api';
 import { B2SAdvancedFile, B2SAdvancedRun, B2SArtifact, B2SReviewAnalytics, B2STaskDetail, B2STaskItemAdvanced } from '../../clients/binaryToSource';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
+import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
 
 interface Props {
   projectId: string;
@@ -16,6 +17,14 @@ const fileNameOf = (path?: string | null) => {
   if (!path) return '-';
   const normalized = path.replace(/\\/g, '/');
   return normalized.split('/').filter(Boolean).pop() || path;
+};
+
+const shortPath = (path?: string | null) => {
+  if (!path) return '-';
+  const normalized = path.replace(/\\/g, '/');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length <= 4) return normalized;
+  return `.../${parts.slice(-4).join('/')}`;
 };
 
 const languageFromPath = (path?: string | null) => {
@@ -44,120 +53,6 @@ const formatSize = (value?: number | null) => {
   return `${(value / 1024 / 1024).toFixed(2)} MB`;
 };
 
-interface PiSessionEntry {
-  type: string;
-  id?: string;
-  parentId?: string | null;
-  timestamp?: string;
-  message?: any;
-  provider?: string;
-  modelId?: string;
-  thinkingLevel?: string;
-  [key: string]: any;
-}
-
-const parseJsonlSession = (content?: string | null): PiSessionEntry[] => {
-  if (!content) return [];
-  // Pi session JSONL is one JSON object per physical line. Do not split on blank
-  // runs with /\n+/ because pretty/partial payloads can leave meaningful line
-  // numbers behind when users inspect malformed records.
-  return content.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
-    try { return JSON.parse(line) as PiSessionEntry; } catch { return null; }
-  }).filter((entry): entry is PiSessionEntry => !!entry);
-};
-
-const stringifyValue = (value: any): string => {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value, null, 2);
-};
-
-const textFromContent = (content: any, options?: { includeToolCalls?: boolean }): string => {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) return content.map((block) => {
-    if (!block) return '';
-    if (block.type === 'text') return block.text || '';
-    if (block.type === 'thinking') return block.thinking || '';
-    if (block.type === 'toolCall') {
-      return options?.includeToolCalls ? `Tool call: ${block.name || ''}\n${stringifyValue(block.arguments || {})}` : '';
-    }
-    if (block.type === 'image') return `[image: ${block.mimeType || 'image'}]`;
-    return stringifyValue(block);
-  }).filter(Boolean).join('\n\n');
-  return stringifyValue(content);
-};
-
-const getResultText = (result?: any): string => {
-  if (!result) return '';
-  const content = result.content;
-  if (typeof content === 'string') return content;
-  if (!Array.isArray(content)) return stringifyValue(content);
-  return content.filter((block: any) => block?.type === 'text' || typeof block?.text === 'string').map((block: any) => block.text || '').join('\n');
-};
-
-const getLanguageFromPath = (path?: string | null) => {
-  const name = fileNameOf(path).toLowerCase();
-  if (name.endsWith('.ts') || name.endsWith('.tsx')) return 'typescript';
-  if (name.endsWith('.js') || name.endsWith('.jsx')) return 'javascript';
-  if (name.endsWith('.py')) return 'python';
-  if (name.endsWith('.c') || name.endsWith('.h')) return 'c';
-  if (name.endsWith('.cpp') || name.endsWith('.cc') || name.endsWith('.hpp')) return 'cpp';
-  if (name.endsWith('.sh') || name.endsWith('.bash') || name.endsWith('.zsh')) return 'bash';
-  if (name.endsWith('.json')) return 'json';
-  if (name.endsWith('.yaml') || name.endsWith('.yml')) return 'yaml';
-  if (name.endsWith('.md')) return 'markdown';
-  return '';
-};
-
-const shortPath = (value?: string | null) => {
-  if (!value) return '';
-  const parts = value.replace(/\\/g, '/').split('/').filter(Boolean);
-  return parts.length > 3 ? `…/${parts.slice(-3).join('/')}` : value;
-};
-
-const PiToolOutput: React.FC<{ text?: string; maxLines?: number; language?: string }> = ({ text = '', maxLines = 10, language }) => {
-  const normalized = text.replace(/\t/g, '   ');
-  if (!normalized.trim()) return null;
-  const lines = normalized.split('\n');
-  const clipped = lines.length > maxLines;
-  return (
-    <details open={!clipped} className="mt-3 rounded bg-black/20 text-[12px] text-code-output">
-      {clipped && <summary className="cursor-pointer px-3 py-2 text-code-muted">输出预览 · {lines.length - maxLines} more lines</summary>}
-      <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words px-3 py-2 font-mono leading-[18px]">
-        {language ? <code className={`language-${language}`}>{normalized}</code> : normalized}
-      </pre>
-    </details>
-  );
-};
-
-const PiToolExecution: React.FC<{ call: any; result?: any }> = ({ call, result }) => {
-  const args = call?.arguments || {};
-  const name = call?.name || 'tool';
-  const isError = !!result?.isError;
-  const statusClass = result ? (isError ? 'border-red-500/30 bg-red-950/35' : 'border-emerald-500/25 bg-emerald-950/25') : 'border-amber-500/30 bg-amber-950/25';
-  const statusText = result ? (isError ? 'error' : 'success') : 'pending';
-  const resultText = getResultText(result);
-  const toolPath = args.file_path ?? args.path;
-  const lineRange = args.offset || args.limit ? `:${args.offset || 1}${args.limit ? `-${(args.offset || 1) + args.limit - 1}` : ''}` : '';
-
-  const header = (() => {
-    if (name === 'bash') return <div className="font-bold text-slate-100">$ {stringifyValue(args.command) || '...'}</div>;
-    if (['read', 'write', 'edit', 'ls'].includes(name)) return <div><span className="font-bold text-slate-100">{name}</span> <span className="break-all text-violet-300">{shortPath(toolPath || '.')}</span><span className="text-amber-300">{lineRange}</span>{args.limit && name === 'ls' ? <span className="text-slate-400"> (limit {String(args.limit)})</span> : null}</div>;
-    return <div><span className="font-bold text-slate-100">{name}</span></div>;
-  })();
-
-  return (
-    <div className={`tool-execution rounded p-[18px] ${statusClass}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 font-mono text-[12px] leading-[18px]">{header}</div>
-        <span className="rounded border border-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-300">{statusText}</span>
-      </div>
-      {name !== 'bash' && name !== 'read' && name !== 'write' && name !== 'edit' && name !== 'ls' ? <PiToolOutput text={stringifyValue(args)} maxLines={12} language="json" /> : null}
-      {name === 'write' && typeof args.content === 'string' ? <PiToolOutput text={args.content} maxLines={10} language={getLanguageFromPath(toolPath)} /> : null}
-      {result?.details?.diff ? <PiToolOutput text={result.details.diff} maxLines={18} /> : <PiToolOutput text={resultText.trim()} maxLines={name === 'ls' ? 20 : name === 'read' ? 10 : 5} language={name === 'read' ? getLanguageFromPath(toolPath) : undefined} />}
-    </div>
-  );
-};
 
 const isB2SActiveStatus = (status?: string | null) => ['pending', 'queued', 'running', 'dispatching', 'cancelling', 'cancel_requested'].includes(String(status || '').toLowerCase());
 
@@ -261,86 +156,6 @@ const runFileMeta = (file: B2SAdvancedFile): { stage: string; stageOrder: number
 
 const RISK_COLORS: Record<string, string> = { critical: 'var(--color-rose-600)', warning: 'var(--color-amber-600)', passed: 'var(--color-emerald-600)', unknown: 'var(--color-slate-500)' };
 const RISK_LABELS: Record<string, string> = { critical: '高危', warning: '提示', passed: '通过', unknown: '未知' };
-const PiMessageContent: React.FC<{ entry: PiSessionEntry; entries: PiSessionEntry[] }> = ({ entry, entries }) => {
-  const msg = entry.message || {};
-  const content = msg.content;
-  if (msg.role === 'assistant' && Array.isArray(content)) {
-    return (
-      <>
-        {content.map((block: any, idx: number) => {
-          if (block?.type === 'text' && block.text?.trim()) return <div key={idx} className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-100">{block.text}</div>;
-          if (block?.type === 'thinking' && block.thinking?.trim()) return <div key={idx} className="rounded bg-slate-950/40 p-3 text-sm italic leading-6 text-slate-400">{block.thinking}</div>;
-          return null;
-        })}
-        {content.filter((block: any) => block?.type === 'toolCall').map((block: any) => {
-          const result = entries.find((candidate) => candidate.type === 'message' && candidate.message?.role === 'toolResult' && candidate.message?.toolCallId === block.id)?.message;
-          return <PiToolExecution key={block.id || `${block.name}-${Math.random()}`} call={block} result={result} />;
-        })}
-      </>
-    );
-  }
-  if (msg.role === 'bashExecution') {
-    return <PiToolExecution call={{ id: entry.id, name: 'bash', arguments: { command: msg.command } }} result={{ content: [{ type: 'text', text: msg.output || '' }], isError: msg.cancelled || (msg.exitCode !== 0 && msg.exitCode !== null) }} />;
-  }
-  return <pre className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-100">{textFromContent(content, { includeToolCalls: false })}</pre>;
-};
-
-const PiSessionPreview: React.FC<{ file: B2SAdvancedFile }> = ({ file }) => {
-  const entries = useMemo(() => parseJsonlSession(file.content), [file.content]);
-  if (!file.content) {
-    return <div className="flex h-full items-center justify-center text-sm font-semibold text-slate-400">会话内容为空或未加载。</div>;
-  }
-  if (entries.length === 0) {
-    return <pre className="h-full overflow-auto whitespace-pre-wrap p-5 text-sm text-slate-200">{file.content}</pre>;
-  }
-  const header = entries.find((entry) => entry.type === 'session');
-  const messages = entries.filter((entry) => entry.type === 'message');
-  const visibleEntries = entries.filter((entry) => !(entry.type === 'message' && entry.message?.role === 'toolResult'));
-  const modelChanges = entries.filter((entry) => entry.type === 'model_change');
-  const toolCalls = messages.flatMap((entry) => {
-    const content = entry.message?.content;
-    if (!Array.isArray(content)) return [];
-    return content.filter((block: any) => block?.type === 'toolCall');
-  });
-  return (
-    <div className="h-full overflow-auto bg-code-panel p-5 text-slate-100">
-      <div className="rounded-none border border-slate-700 bg-slate-900/80 p-4">
-        <div className="text-xs font-black uppercase tracking-[0.2em] text-violet-300">Pi Agent Session</div>
-        <div className="mt-2 break-all font-mono text-xs text-slate-400">{file.name}</div>
-        <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-300 md:grid-cols-4">
-          <div className="rounded-none bg-slate-800 px-3 py-2">消息<br /><span className="text-lg font-black text-white">{messages.length}</span></div>
-          <div className="rounded-none bg-slate-800 px-3 py-2">工具调用<br /><span className="text-lg font-black text-white">{toolCalls.length}</span></div>
-          <div className="rounded-none bg-slate-800 px-3 py-2">模型<br /><span className="font-black text-white">{modelChanges[0]?.modelId || '-'}</span></div>
-          <div className="rounded-none bg-slate-800 px-3 py-2">会话 ID<br /><span className="font-mono font-black text-white">{header?.id || '-'}</span></div>
-        </div>
-      </div>
-      <div className="mt-4 space-y-3">
-        {visibleEntries.filter((entry) => entry.type !== 'session').map((entry, index) => {
-          const role = entry.message?.role || entry.type;
-          const isUser = role === 'user';
-          const isAssistant = role === 'assistant';
-          const isTool = role === 'bashExecution';
-          const body = entry.type === 'model_change'
-            ? `Model: ${entry.provider || '-'} / ${entry.modelId || '-'}`
-            : entry.type === 'thinking_level_change'
-              ? `Thinking level: ${entry.thinkingLevel || '-'}`
-              : entry.type !== 'message'
-                ? JSON.stringify(entry, null, 2)
-                : '';
-          return (
-            <article key={`${entry.id || index}-${index}`} className={`rounded-none border p-[18px] ${isUser ? 'border-slate-700 bg-chat-user' : isAssistant ? 'border-transparent bg-transparent' : isTool ? 'border-emerald-500/25 bg-emerald-950/25' : 'border-slate-700 bg-slate-900/60'}`}>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-widest">
-                <span className={`${isUser ? 'text-blue-300' : isAssistant ? 'text-emerald-300' : isTool ? 'text-amber-300' : 'text-slate-300'}`}>{role}</span>
-                <span className="font-mono text-slate-500">{entry.timestamp || entry.id || ''}</span>
-              </div>
-              {entry.type === 'message' ? <PiMessageContent entry={entry} entries={entries} /> : <pre className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-100">{body}</pre>}
-            </article>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
 
 export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId, onBack }) => {
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
@@ -613,7 +428,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
               </div>
               <div className="h-[680px]">
                 {isSelectedJsonlSession && selected ? (
-                  <PiSessionPreview key={selectedPreviewKey} file={selected} />
+                  <B2SSessionPreview key={selectedPreviewKey} name={selected.name} content={selected.content} />
                 ) : (
                   <Editor
                     height="100%"

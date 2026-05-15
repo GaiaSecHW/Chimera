@@ -18,6 +18,14 @@ const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'dataflow_analysis', label: '数据流分析' },
   { key: 'vuln_scan', label: '数据流漏洞挖掘' },
 ] as const;
+const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
+  { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
+  { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
+  { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
+] as const;
+const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
+  PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, true]),
+) as Record<string, boolean>;
 
 const DEFAULT_BINARY_SECURITY_SERVICE_CONFIG = {
   max_concurrent_tasks: 50,
@@ -28,6 +36,7 @@ const DEFAULT_BINARY_SECURITY_PROJECT_CONFIG = {
   max_stage_parallelism: 4,
   max_retries_per_item: 2,
   continue_on_item_failure: true,
+  partial_success_stage_advancement: DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   stage_parallelism: {} as Record<string, number>,
   stage_options: {} as Record<string, { enabled: boolean }>,
 };
@@ -64,6 +73,10 @@ const normalizeBinarySecurityProjectConfig = (value: unknown) => {
   return {
     ...DEFAULT_BINARY_SECURITY_PROJECT_CONFIG,
     ...config,
+    partial_success_stage_advancement: {
+      ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+      ...asRecord(config.partial_success_stage_advancement),
+    },
     stage_parallelism: asRecord(config.stage_parallelism),
     stage_options: asRecord(config.stage_options),
   };
@@ -124,6 +137,9 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const [dispatchTimeoutSeconds, setDispatchTimeoutSeconds] = useState(60);
   const [maxRetriesPerItem, setMaxRetriesPerItem] = useState(2);
   const [continueOnItemFailure, setContinueOnItemFailure] = useState(true);
+  const [partialSuccessStageAdvancement, setPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
+    DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+  );
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(
     Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
   );
@@ -154,6 +170,10 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       setDispatchTimeoutSeconds(serviceConfig.dispatch_timeout_seconds);
       setMaxRetriesPerItem(projectConfig.max_retries_per_item);
       setContinueOnItemFailure(projectConfig.continue_on_item_failure);
+      setPartialSuccessStageAdvancement({
+        ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+        ...(projectConfig.partial_success_stage_advancement || {}),
+      });
       setStageParallelism({
         ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
         ...(projectConfig.stage_parallelism || {}),
@@ -188,6 +208,10 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const syncProjectDraft = (projectConfig: Record<string, any>) => {
     setMaxRetriesPerItem(projectConfig.max_retries_per_item);
     setContinueOnItemFailure(projectConfig.continue_on_item_failure);
+    setPartialSuccessStageAdvancement({
+      ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+      ...(projectConfig.partial_success_stage_advancement || {}),
+    });
     setStageParallelism({
       ...Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, 4])),
       ...(projectConfig.stage_parallelism || {}),
@@ -231,6 +255,12 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         max_stage_parallelism: Math.max(...Object.values(normalizedStageParallelism)),
         max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
         continue_on_item_failure: continueOnItemFailure,
+        partial_success_stage_advancement: Object.fromEntries(
+          PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [
+            field.key,
+            partialSuccessStageAdvancement[field.key] !== false,
+          ]),
+        ),
         stage_parallelism: normalizedStageParallelism,
         stage_options: Object.fromEntries(ORCHESTRATOR_STAGE_FIELDS.map((field) => [field.key, { enabled: true }])),
       });
@@ -555,6 +585,19 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                 />
                 子任务失败时继续推进其他子任务
               </label>
+              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
+                {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => (
+                  <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={partialSuccessStageAdvancement[field.key] !== false}
+                      onChange={(e) => setPartialSuccessStageAdvancement((current) => ({ ...current, [field.key]: e.target.checked }))}
+                      disabled={loading || saving}
+                    />
+                    {field.label}
+                  </label>
+                ))}
+              </div>
             </SectionCard>
           </div>
         </section>

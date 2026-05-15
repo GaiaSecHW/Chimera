@@ -1,14 +1,59 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, Code2, Cpu, FileCode2, FileText, Gauge, Layers3, Loader2, RefreshCw, RotateCcw, Sparkles, Trash2, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Bot,
+  CheckCircle2,
+  Clock3,
+  Code2,
+  Cpu,
+  FileCode2,
+  FileJson2,
+  FileText,
+  Gauge,
+  GitBranch,
+  Layers3,
+  Link2,
+  Loader2,
+  Network,
+  RefreshCw,
+  RotateCcw,
+  Settings2,
+  Sparkles,
+  Trash2,
+  Waypoints,
+  X,
+  XCircle,
+} from 'lucide-react';
 
-import { B2STaskDetail } from '../../clients/binaryToSource';
+import {
+  B2SAgentRuntimeEntry,
+  B2SArtifactsResponse,
+  B2SReviewAnalytics,
+  B2SSessionIndex,
+  B2SSessionNode,
+  B2STaskDetail,
+  B2STaskObservability,
+  B2STaskRelationship,
+  B2STaskResultSummary,
+} from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
-import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatBytes, formatDateTime, pct } from './b2sPresentation';
+import {
+  B2SPhaseBadge,
+  B2SProgressBar,
+  B2SStatusBadge,
+  B2S_TERMINAL_STATUSES,
+  formatBytes,
+  formatDateTime,
+  pct,
+} from './b2sPresentation';
+import { DownstreamTaskCreator } from './DownstreamTaskCreator';
+import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
+import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard } from './taskOrigin';
-import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 
 interface Props {
   projectId: string;
@@ -18,159 +63,24 @@ interface Props {
 }
 
 type B2SItem = B2STaskDetail['items'][number];
-type DetailTab = 'overview' | 'result' | 'execution';
+type DetailTab = 'overview' | 'run-config' | 'session' | 'relationship' | 'result' | 'evaluation';
+type ItemFilter = '__all__' | string;
 
+const PHASE_ORDER = ['queued', 'ida', 'batching', 'header', 'body', 'merge', 'completed'];
 const PHASE_LABELS: Record<string, string> = {
-  queued: '排队中',
-  pending: '待处理',
-  ida: '静态分析',
-  batching: '函数分批',
-  header: '生成头文件',
-  body: '还原函数体',
-  merge: '合并结果',
-  completed: '已完成',
-  success: '成功',
-  failed: '失败',
-  cancelled: '已取消',
-};
-
-const PHASE_DESCRIPTIONS: Record<string, string> = {
-  queued: '任务正在等待 worker 接收，通常很快会进入静态分析。',
-  pending: '任务已创建，正在等待调度。',
-  ida: '正在执行静态分析，识别函数、符号和反编译上下文。',
-  batching: '正在根据函数数量拆分处理批次。',
-  header: '正在生成头文件、类型声明和函数原型；头文件完成后整体进度进入 40%。',
-  body: '正在逐批还原函数体源码，整体进度会根据 batch 完成情况实时推进。',
-  merge: '正在合并源码、头文件和最终输出。',
-  completed: '任务已完成，结果文件已生成。',
-  success: '任务项已成功完成。',
-  failed: '任务执行失败，请查看错误诊断。',
-  cancelled: '任务已取消。',
-};
-
-const PHASE_ESTIMATED_PERCENT: Record<string, number> = {
-  pending: 0,
-  queued: 0,
-  ida: 0,
-  batching: 0,
-  header: 15,
-  body: 40,
-  merge: 95,
-  completed: 100,
-  success: 100,
-  failed: 100,
-  cancelled: 100,
+  queued: '排队',
+  ida: 'IDA',
+  batching: 'Batch 切分',
+  header: '头文件生成',
+  body: '函数体还原',
+  merge: '合并输出',
+  completed: '完成',
 };
 
 const fileNameOf = (path?: string | null) => {
   if (!path) return '-';
   const normalized = path.replace(/\\/g, '/');
   return normalized.split('/').filter(Boolean).pop() || path;
-};
-
-const projectPathFromStoragePath = (projectId: string, path: string) => {
-  const normalized = path.replace(/\\/g, '/');
-  const prefix = `/data/files/${projectId}`;
-  if (normalized.startsWith(prefix)) return normalized.slice(prefix.length) || '/';
-  if (normalized.startsWith('/')) return normalized;
-  return `/${normalized}`;
-};
-
-const languageFromPath = (path?: string | null) => {
-  const name = fileNameOf(path).toLowerCase();
-  if (name.endsWith('.c') || name.endsWith('.h')) return 'c';
-  if (name.endsWith('.cpp') || name.endsWith('.cc') || name.endsWith('.cxx') || name.endsWith('.hpp') || name.endsWith('.hh')) return 'cpp';
-  if (name.endsWith('.asm') || name.endsWith('.s')) return 'asm';
-  if (name.endsWith('.json')) return 'json';
-  if (name.endsWith('.md')) return 'markdown';
-  if (name.endsWith('.py')) return 'python';
-  if (name.endsWith('.txt') || name.endsWith('.log')) return 'plaintext';
-  return 'plaintext';
-};
-
-const formatPhaseLabel = (phase?: string | null, fallback?: string | null) => {
-  const value = phase || fallback || '';
-  if (!value) return '-';
-  return PHASE_LABELS[value] || fallback || value;
-};
-
-const hasNumericProgress = (progress?: B2SItem['progress'] | null) => (
-  progress?.percent !== undefined && progress?.percent !== null
-) || (
-  progress?.batches_percent !== undefined && progress?.batches_percent !== null
-) || (
-  progress?.bytes_percent !== undefined && progress?.bytes_percent !== null
-);
-
-const batchProgressPercent = (progress?: B2SItem['progress'] | null) => {
-  if (progress?.batches_percent !== undefined && progress.batches_percent !== null) return pct(progress.batches_percent);
-  const completed = progress?.completed_batches;
-  const total = progress?.total_batches;
-  if (completed !== undefined && completed !== null && total && total > 0) return pct((completed / total) * 100);
-  return null;
-};
-
-const rawProgressPercent = (progress?: B2SItem['progress'] | null) => {
-  const numeric = progress?.percent ?? progress?.batches_percent ?? progress?.bytes_percent;
-  return numeric === undefined || numeric === null ? null : pct(Number(numeric));
-};
-
-const terminalNonSuccessProgressValue = (item: B2SItem) => {
-  const raw = rawProgressPercent(item.progress);
-  if (raw !== null) return raw;
-  const batchPercent = batchProgressPercent(item.progress);
-  if (batchPercent !== null) return batchPercent;
-  return 0;
-};
-
-const phaseAwareProgressValue = (item: B2SItem, numericPercent: number) => {
-  const phase = item.phase || item.status || '';
-  const progress = item.progress;
-  if (item.status === 'success' || item.status === 'completed') return 100;
-  if (item.status === 'failed' || item.status === 'cancelled') return terminalNonSuccessProgressValue(item);
-  if (phase === 'pending' || phase === 'queued' || phase === 'ida' || phase === 'batching') return 0;
-  if (phase === 'header') return 15;
-  if (phase === 'body') {
-    // Body progress is driven by completed batches. Header completion contributes
-    // the first 40%, then body batches move the task from 40% to 90%.
-    const bodyBatchPercent = batchProgressPercent(progress) ?? pct(numericPercent);
-    return 40 + (bodyBatchPercent / 100) * 50;
-  }
-  if (phase === 'merge') return 95;
-  return pct(numericPercent);
-};
-
-const itemProgressPresentation = (item: B2SItem) => {
-  const progress = item.progress;
-  const phase = item.phase || item.status || '';
-  const raw = rawProgressPercent(progress);
-  if (hasNumericProgress(progress)) {
-    const value = phaseAwareProgressValue(item, raw ?? 0);
-    return {
-      value,
-      label: `${value.toFixed(1)}%`,
-      mode: item.status === 'failed' || item.status === 'cancelled' ? '终止进度' : '',
-      estimated: false,
-      description: progress?.message || PHASE_DESCRIPTIONS[phase] || '',
-    };
-  }
-  if (item.status === 'failed' || item.status === 'cancelled') {
-    return {
-      value: 0,
-      label: '0.0%',
-      mode: '终止进度',
-      estimated: false,
-      description: PHASE_DESCRIPTIONS[item.status] || '',
-    };
-  }
-  const estimated = PHASE_ESTIMATED_PERCENT[phase] ?? (B2S_TERMINAL_STATUSES.has(item.status) ? 100 : 12);
-  return {
-    value: estimated,
-    label: `${estimated}%`,
-    mode: B2S_TERMINAL_STATUSES.has(item.status) ? '' : '阶段估算',
-    estimated: !B2S_TERMINAL_STATUSES.has(item.status),
-    description: PHASE_DESCRIPTIONS[item.phase || item.status || ''] || '任务正在执行，系统会在进入函数还原阶段后显示精确进度。',
-  };
 };
 
 const parseBackendTimeMs = (value?: string | null) => {
@@ -180,160 +90,158 @@ const parseBackendTimeMs = (value?: string | null) => {
 };
 
 const formatDurationMs = (durationMs?: number | null) => {
-  if (durationMs === undefined || durationMs === null || Number.isNaN(durationMs) || durationMs < 0) return '-';
+  if (durationMs == null || Number.isNaN(durationMs) || durationMs < 0) return '-';
   const seconds = Math.round(durationMs / 1000);
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   if (minutes < 60) return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  const minuteRest = minutes % 60;
-  return minuteRest ? `${hours}h ${minuteRest}m` : `${hours}h`;
+  return `${hours}h ${minutes % 60}m`;
 };
 
-const formatDuration = (start?: string | null, end?: string | null) => {
-  if (!start || !end) return '-';
+const formatDuration = (start?: string | null, end?: string | null, nowMs: number = Date.now()) => {
+  if (!start) return '-';
   const startMs = parseBackendTimeMs(start);
-  const endMs = parseBackendTimeMs(end);
+  const endMs = end ? parseBackendTimeMs(end) : nowMs;
   if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs < startMs) return '-';
   return formatDurationMs(endMs - startMs);
 };
 
-const taskRunDuration = (detail?: B2STaskDetail | null, nowMs: number = Date.now()) => {
-  if (!detail || detail.items.length === 0) return '-';
-  const startTimes = detail.items
-    .map((item) => item.started_at ? parseBackendTimeMs(item.started_at) : NaN)
-    .filter((value) => !Number.isNaN(value));
-  if (startTimes.length === 0) return '-';
-  const endTimes = detail.items
-    .map((item) => {
-      if (item.finished_at) return parseBackendTimeMs(item.finished_at);
-      if (!B2S_TERMINAL_STATUSES.has(item.status)) return nowMs;
-      return NaN;
-    })
-    .filter((value) => !Number.isNaN(value));
-  if (endTimes.length === 0) return '-';
-  const startMs = Math.min(...startTimes);
-  const endMs = Math.max(...endTimes);
-  return formatDurationMs(endMs - startMs);
+const languageFromName = (name?: string | null) => {
+  const lower = fileNameOf(name).toLowerCase();
+  if (lower.endsWith('.c') || lower.endsWith('.h')) return 'c';
+  if (lower.endsWith('.cpp') || lower.endsWith('.cc') || lower.endsWith('.hpp')) return 'cpp';
+  if (lower.endsWith('.json') || lower.endsWith('.jsonl')) return 'json';
+  if (lower.endsWith('.md')) return 'markdown';
+  if (lower.endsWith('.py')) return 'python';
+  return 'plaintext';
 };
 
-const statusTone = (detail: B2STaskDetail) => {
-  if (detail.failed_items > 0 || detail.status === 'failed') return 'rose';
-  if (detail.status === 'partial') return 'violet';
-  if (B2S_TERMINAL_STATUSES.has(detail.status)) return 'emerald';
-  return 'blue';
-};
-
-const metricToneClass = (tone: string) => {
-  if (tone === 'rose') return 'border-rose-100 bg-rose-50 text-rose-900';
-  if (tone === 'amber') return 'border-amber-100 bg-amber-50 text-amber-900';
-  if (tone === 'emerald') return 'border-emerald-100 bg-emerald-50 text-emerald-900';
-  if (tone === 'blue') return 'border-blue-100 bg-blue-50 text-blue-900';
-  if (tone === 'violet') return 'border-violet-100 bg-violet-50 text-violet-900';
-  if (tone === 'cyan') return 'border-cyan-100 bg-cyan-50 text-cyan-900';
-  return 'border-slate-200 bg-slate-50 text-slate-900';
-};
-
-const MetricCard: React.FC<{ label: string; value: string | number; hint?: string; tone?: string }> = ({ label, value, hint, tone = 'slate' }) => (
-  <div className={`rounded-2xl border px-4 py-3 ${metricToneClass(tone)}`}>
-    <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-55">{label}</div>
-    <div className="mt-1 text-2xl font-black tracking-tight">{value}</div>
-    {hint ? <div className="mt-1 truncate text-xs font-semibold opacity-60" title={hint}>{hint}</div> : null}
-  </div>
+const tabButtonTone = (active: boolean) => (
+  active
+    ? 'border-slate-900 bg-slate-900 text-white shadow-[0_10px_28px_rgba(15,23,42,0.18)]'
+    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
 );
 
-const KPI_TILE_STYLES: Record<string, string> = {
-  blue: 'border-blue-100 bg-blue-50/80 text-blue-900',
-  emerald: 'border-emerald-100 bg-emerald-50/80 text-emerald-900',
-  rose: 'border-rose-100 bg-rose-50/80 text-rose-900',
-  amber: 'border-amber-100 bg-amber-50/80 text-amber-900',
-  violet: 'border-violet-100 bg-violet-50/80 text-violet-900',
-  slate: 'border-slate-200 bg-slate-50/90 text-slate-900',
+const tileTone = (tone: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet' = 'slate') => {
+  const map = {
+    slate: 'border-slate-200 bg-slate-50/90 text-slate-900',
+    blue: 'border-blue-100 bg-blue-50/90 text-blue-900',
+    emerald: 'border-emerald-100 bg-emerald-50/90 text-emerald-900',
+    rose: 'border-rose-100 bg-rose-50/90 text-rose-900',
+    amber: 'border-amber-100 bg-amber-50/90 text-amber-900',
+    violet: 'border-violet-100 bg-violet-50/90 text-violet-900',
+  } as const;
+  return map[tone];
 };
 
-const KPI_ICON_STYLES: Record<string, string> = {
-  blue: 'bg-blue-100 text-blue-700',
-  emerald: 'bg-emerald-100 text-emerald-700',
-  rose: 'bg-rose-100 text-rose-700',
-  amber: 'bg-amber-100 text-amber-700',
-  violet: 'bg-violet-100 text-violet-700',
-  slate: 'bg-slate-200 text-slate-700',
-};
-
-const KpiTile: React.FC<{ label: string; value: string | number; hint?: string; tone?: string; icon: React.ReactNode }> = ({ label, value, hint, tone = 'slate', icon }) => (
-  <div className={`rounded-[1.25rem] border p-4 ${KPI_TILE_STYLES[tone] || KPI_TILE_STYLES.slate}`}>
+const MetricTile: React.FC<{
+  label: string;
+  value: string | number;
+  hint?: string;
+  tone?: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet';
+  icon?: React.ReactNode;
+}> = ({ label, value, hint, tone = 'slate', icon }) => (
+  <div className={`rounded-[1.25rem] border p-4 ${tileTone(tone)}`}>
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-55">{label}</div>
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-60">{label}</div>
         <div className="mt-1 text-2xl font-black tracking-tight">{value}</div>
       </div>
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${KPI_ICON_STYLES[tone] || KPI_ICON_STYLES.slate}`}>
-        {icon}
-      </div>
+      {icon ? <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70">{icon}</div> : null}
     </div>
-    {hint ? <div className="mt-2 truncate text-xs font-semibold opacity-65" title={hint}>{hint}</div> : null}
+    {hint ? <div className="mt-2 truncate text-xs font-semibold opacity-70" title={hint}>{hint}</div> : null}
   </div>
 );
 
-const STAGE_ORDER = ['queued', 'ida', 'batching', 'header', 'body', 'merge', 'completed'];
-const STAGE_LABELS: Record<string, string> = {
-  queued: '调度',
-  ida: '静态分析',
-  batching: '分批',
-  header: '头文件',
-  body: '函数体',
-  merge: '合并',
-  completed: '完成',
-};
+const SectionCard: React.FC<{ title: string; description?: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, description, children, right }) => (
+  <section className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <h2 className="text-lg font-black text-slate-900">{title}</h2>
+        {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
+      </div>
+      {right}
+    </div>
+    <div className="mt-4">{children}</div>
+  </section>
+);
 
-const stageIndex = (phase?: string | null) => {
-  const idx = STAGE_ORDER.indexOf(phase || '');
-  if (idx >= 0) return idx;
-  if (phase === 'pending') return 0;
-  if (phase === 'success') return STAGE_ORDER.length - 1;
-  if (phase === 'failed' || phase === 'cancelled') return -1;
-  return 0;
-};
+const FilePreviewDialog: React.FC<{
+  title: string;
+  subtitle?: string | null;
+  content: string;
+  language: string;
+  loading?: boolean;
+  onClose: () => void;
+}> = ({ title, subtitle, content, language, loading, onClose }) => (
+  <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/65 p-6">
+    <div className="flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-[1.5rem] border border-slate-800 bg-slate-950 shadow-2xl">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-800 px-5 py-4">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-black text-white">{title}</div>
+          {subtitle ? <div className="mt-1 truncate text-xs text-slate-400">{subtitle}</div> : null}
+        </div>
+        <button type="button" onClick={onClose} className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-slate-300 hover:bg-slate-800">
+          <X size={16} />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">
+        {loading ? (
+          <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载中...</div>
+        ) : language === 'json' && title.toLowerCase().endsWith('.jsonl') ? (
+          <B2SSessionPreview name={title} content={content} />
+        ) : title.toLowerCase().endsWith('.jsonl') ? (
+          <B2SSessionPreview name={title} content={content} />
+        ) : (
+          <Editor
+            height="100%"
+            language={language}
+            value={content}
+            theme="vs-dark"
+            options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13, lineNumbers: 'on', scrollBeyondLastLine: false, wordWrap: 'on', automaticLayout: true }}
+          />
+        )}
+      </div>
+    </div>
+  </div>
+);
 
-const dominantRunningPhase = (detail?: B2STaskDetail | null, fallback?: string) => {
-  if (!detail) return fallback || '';
-  const running = detail.items.filter((item) => !B2S_TERMINAL_STATUSES.has(item.status));
-  if (running.length === 0) return fallback || detail.status;
-  const counts = running.reduce<Record<string, number>>((acc, item) => {
-    const phase = item.phase || item.status || 'queued';
-    acc[phase] = (acc[phase] || 0) + 1;
-    return acc;
-  }, {});
-  const [phase] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [];
-  return phase || fallback || detail.status;
-};
-
-const modeLabelFromDetail = (detail?: B2STaskDetail | null) => detail?.mode_label || '-';
-
-const fileKindLabel = (path: string) => {
-  const name = fileNameOf(path).toLowerCase();
-  if (name.endsWith('_ida.c')) return 'IDA C';
-  if (name.endsWith('.h')) return '头文件';
-  if (name.endsWith('.c')) return '还原 C';
-  return languageFromPath(path).toUpperCase();
-};
+function useSelectedItem(detail: B2STaskDetail | null, selectedItemId: ItemFilter) {
+  return useMemo(() => {
+    if (!detail || selectedItemId === '__all__') return null;
+    return detail.items.find((item) => item.id === selectedItemId) || null;
+  }, [detail, selectedItemId]);
+}
 
 export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, onOpenAdvanced }) => {
-  const executionApi = api.domains.execution;
+  const executionApi = api.domains.execution.binaryToSource;
   const [detail, setDetail] = useState<B2STaskDetail | null>(null);
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [loading, setLoading] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [rerunning, setRerunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
-  const [clockNow, setClockNow] = useState(() => Date.now());
-  const [selectedResultPath, setSelectedResultPath] = useState<string>('');
-  const [previewContent, setPreviewContent] = useState('');
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  const [clockNow, setClockNow] = useState(Date.now());
+  const [selectedItemId, setSelectedItemId] = useState<ItemFilter>('__all__');
+  const [result, setResult] = useState<B2STaskResultSummary | null>(null);
+  const [observability, setObservability] = useState<B2STaskObservability | null>(null);
+  const [sessions, setSessions] = useState<B2SSessionIndex | null>(null);
+  const [relationship, setRelationship] = useState<B2STaskRelationship | null>(null);
+  const [selectedSessionPath, setSelectedSessionPath] = useState<string>('');
+  const [selectedSessionContent, setSelectedSessionContent] = useState<string>('');
+  const [selectedSessionLoading, setSelectedSessionLoading] = useState(false);
+  const [autoRefreshSession, setAutoRefreshSession] = useState(true);
+  const [itemArtifacts, setItemArtifacts] = useState<B2SArtifactsResponse | null>(null);
+  const [artifactContent, setArtifactContent] = useState('');
+  const [artifactLoading, setArtifactLoading] = useState(false);
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string>('');
+  const [itemAnalytics, setItemAnalytics] = useState<B2SReviewAnalytics | null>(null);
+  const [previewDialog, setPreviewDialog] = useState<{ title: string; subtitle?: string | null; content: string; language: string; loading?: boolean } | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const selectedItem = useSelectedItem(detail, selectedItemId);
   const hasReturnContext = hasBinarySecurityReturnTarget(detail);
   const handleBack = () => {
     if (navigateBackByTaskOrigin(detail)) return;
@@ -341,13 +249,16 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     onBack();
   };
 
-  const load = async () => {
+  const loadDetail = async () => {
     if (!projectId || !taskId) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await executionApi.binaryToSource.getTask(projectId, taskId);
+      const data = await executionApi.getTask(projectId, taskId);
       setDetail(data);
+      if (selectedItemId !== '__all__' && !data.items.some((item) => item.id === selectedItemId)) {
+        setSelectedItemId('__all__');
+      }
     } catch (e: any) {
       setError(e?.message || '加载任务详情失败');
       setDetail(null);
@@ -356,41 +267,168 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
   };
 
+  const loadResult = async () => {
+    if (!projectId || !taskId) return;
+    try {
+      setResult(await executionApi.getTaskResult(projectId, taskId));
+    } catch (e: any) {
+      setError(e?.message || '加载结果摘要失败');
+    }
+  };
+
+  const loadObservability = async () => {
+    if (!projectId || !taskId) return;
+    try {
+      setObservability(await executionApi.getTaskObservability(projectId, taskId));
+    } catch (e: any) {
+      setError(e?.message || '加载观测指标失败');
+    }
+  };
+
+  const loadSessions = async () => {
+    if (!projectId || !taskId) return;
+    try {
+      const payload = await executionApi.getTaskSessions(projectId, taskId);
+      setSessions(payload);
+      if (!selectedSessionPath && payload.nodes[0]) setSelectedSessionPath(payload.nodes[0].relative_path);
+    } catch (e: any) {
+      setError(e?.message || '加载智能体会话失败');
+    }
+  };
+
+  const loadRelationship = async () => {
+    if (!projectId || !taskId) return;
+    try {
+      setRelationship(await executionApi.getTaskRelationship(projectId, taskId));
+    } catch (e: any) {
+      setError(e?.message || '加载智能体关系失败');
+    }
+  };
+
   useEffect(() => {
-    void load();
+    void loadDetail();
   }, [projectId, taskId]);
 
   useEffect(() => {
-    if (!projectId || !taskId) return;
-    if (!detail || !B2S_TERMINAL_STATUSES.has(detail.status)) {
-      const timer = window.setInterval(() => {
-        void load();
-      }, 5000);
-      return () => window.clearInterval(timer);
-    }
-  }, [projectId, taskId, detail?.status]);
+    if (!detail || B2S_TERMINAL_STATUSES.has(detail.status)) return undefined;
+    const timer = window.setInterval(() => { void loadDetail(); }, 3000);
+    return () => window.clearInterval(timer);
+  }, [detail?.status, projectId, taskId]);
 
   useEffect(() => {
-    if (!detail || B2S_TERMINAL_STATUSES.has(detail.status)) return;
+    if (!detail || B2S_TERMINAL_STATUSES.has(detail.status)) return undefined;
     const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [detail?.status]);
 
+  useEffect(() => {
+    if (activeTab === 'result' && !result) void loadResult();
+    if (activeTab === 'evaluation' && !observability) void loadObservability();
+    if (activeTab === 'session' && !sessions) void loadSessions();
+    if (activeTab === 'relationship' && !relationship) void loadRelationship();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'relationship' || !detail || B2S_TERMINAL_STATUSES.has(detail.status)) return undefined;
+    const timer = window.setInterval(() => { void loadRelationship(); }, 10000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, detail?.status, projectId, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath) return;
+    let cancelled = false;
+    const loadSessionContent = async () => {
+      setSelectedSessionLoading(true);
+      try {
+        const payload = await executionApi.getTaskSessionFile(projectId, taskId, selectedSessionPath);
+        if (!cancelled) setSelectedSessionContent(payload.content || '');
+      } catch (e: any) {
+        if (!cancelled) {
+          setSelectedSessionContent('');
+          setError(e?.message || '加载会话内容失败');
+        }
+      } finally {
+        if (!cancelled) setSelectedSessionLoading(false);
+      }
+    };
+    void loadSessionContent();
+    if (detail && !B2S_TERMINAL_STATUSES.has(detail.status) && autoRefreshSession) {
+      const timer = window.setInterval(() => { void loadSessionContent(); }, 3000);
+      return () => {
+        cancelled = true;
+        window.clearInterval(timer);
+      };
+    }
+    return () => { cancelled = true; };
+  }, [activeTab, selectedSessionPath, autoRefreshSession, detail?.status, projectId, taskId]);
+
+  useEffect(() => {
+    if (!selectedItem || activeTab !== 'result') return;
+    let cancelled = false;
+    const loadItemArtifacts = async () => {
+      try {
+        const payload = await executionApi.getTaskItemArtifacts(projectId, taskId, selectedItem.id);
+        if (!cancelled) {
+          setItemArtifacts(payload);
+          if (!selectedArtifactId && payload.artifacts[0]) setSelectedArtifactId(payload.artifacts[0].id);
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || '加载结果文件失败');
+      }
+    };
+    void loadItemArtifacts();
+    return () => { cancelled = true; };
+  }, [selectedItem?.id, activeTab, projectId, taskId]);
+
+  useEffect(() => {
+    if (!selectedItem || activeTab !== 'evaluation') return;
+    let cancelled = false;
+    const loadAnalytics = async () => {
+      try {
+        const payload = await executionApi.getTaskItemReviewAnalytics(projectId, taskId, selectedItem.id, false);
+        if (!cancelled) setItemAnalytics(payload);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || '加载评审观测失败');
+      }
+    };
+    void loadAnalytics();
+    return () => { cancelled = true; };
+  }, [selectedItem?.id, activeTab, projectId, taskId]);
+
+  useEffect(() => {
+    if (!selectedItem || !itemArtifacts || !selectedArtifactId) return;
+    let cancelled = false;
+    const loadArtifactContent = async () => {
+      setArtifactLoading(true);
+      try {
+        const payload = await executionApi.getTaskItemArtifactContent(projectId, taskId, selectedItem.id, selectedArtifactId);
+        if (!cancelled) setArtifactContent(payload.content || '');
+      } catch (e: any) {
+        if (!cancelled) {
+          setArtifactContent('');
+          setError(e?.message || '加载结果文件内容失败');
+        }
+      } finally {
+        if (!cancelled) setArtifactLoading(false);
+      }
+    };
+    void loadArtifactContent();
+    return () => { cancelled = true; };
+  }, [selectedItem?.id, itemArtifacts?.item_id, selectedArtifactId, projectId, taskId]);
+
   const cancelTask = async () => {
-    if (!projectId || !taskId || cancelling) return;
     const confirmed = await showConfirm({
       title: '取消二进制逆向任务',
-      message: '确认取消该二进制逆向任务？\n\n运行中的 item 会请求后端终止，已生成的输入、输出和中间文件会保留。',
+      message: '确认取消该二进制逆向任务？运行中的 item 会请求终止，已生成的输入、输出和中间文件会保留。',
       confirmText: '确认取消',
       cancelText: '继续运行',
       danger: true,
     });
     if (!confirmed) return;
-    setError(null);
     setCancelling(true);
     try {
-      await executionApi.binaryToSource.terminateTask(projectId, taskId);
-      await load();
+      await executionApi.terminateTask(projectId, taskId);
+      await loadDetail();
     } catch (e: any) {
       setError(e?.message || '取消任务失败');
     } finally {
@@ -399,41 +437,37 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   };
 
   const rerunTask = async () => {
-    if (!projectId || !taskId || rerunning) return;
     const confirmed = await showConfirm({
-      title: '完整重跑二进制逆向任务',
-      message: `确认完整重新运行该任务？\n\n任务 ID：${taskId}\n\n系统会先请求终止当前未完成的 job，保留 input 目录，清理各 item 的 output 目录，并重新提交所有 ELF item。旧结果会被覆盖。`,
+      title: '清空并从头重跑',
+      message: `确认清空并从头重跑任务 ${taskId}？系统会保留 input，清理各 item 输出目录并重新提交所有 ELF item。`,
       confirmText: '确认重跑',
       cancelText: '取消',
       danger: true,
     });
     if (!confirmed) return;
-    setError(null);
     setRerunning(true);
     try {
-      await executionApi.binaryToSource.rerunTask(projectId, taskId, { clean_output: true, cancel_running: true });
-      await load();
+      await executionApi.rerunTask(projectId, taskId);
+      await loadDetail();
     } catch (e: any) {
-      setError(e?.message || '完整重跑任务失败');
+      setError(e?.message || '重跑任务失败');
     } finally {
       setRerunning(false);
     }
   };
 
   const deleteTask = async () => {
-    if (!projectId || !taskId || deleting) return;
     const confirmed = await showConfirm({
-      title: '彻底删除二进制逆向任务',
-      message: `确认彻底删除该二进制逆向任务？\n\n任务 ID：${taskId}\n\n此操作会删除 taskId 目录下的所有输入、输出和中间文件，并删除任务记录，且不可恢复。`,
+      title: '彻底删除任务',
+      message: `确认删除任务 ${taskId}？这会删除任务记录及输入、输出和中间文件，且不可恢复。`,
       confirmText: '确认删除',
       cancelText: '保留任务',
       danger: true,
     });
     if (!confirmed) return;
-    setError(null);
     setDeleting(true);
     try {
-      await executionApi.binaryToSource.deleteTask(projectId, taskId);
+      await executionApi.deleteTask(projectId, taskId);
       handleBack();
     } catch (e: any) {
       setError(e?.message || '删除任务失败');
@@ -443,159 +477,539 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   };
 
   const overall = detail?.overall_progress;
-  const itemPresentations = useMemo(() => {
-    const entries = (detail?.items || []).map((item) => [item.id, itemProgressPresentation(item)] as const);
-    return Object.fromEntries(entries);
-  }, [detail]);
-  const generatedFiles = useMemo(() => {
-    if (!detail) return [] as Array<{ item: B2SItem; path: string }>;
-    return detail.items.flatMap((item) => (item.generated_files || []).map((path) => ({ item, path })));
-  }, [detail]);
+  const primaryProgress = overall?.percent ?? 0;
+  const resultSummary = detail?.result_summary || result;
+  const observabilitySummary = detail?.observability_summary || observability;
+  const activeAgents = detail?.agent_runtime_summary?.active_agents || [];
+  const filteredSessionNodes = useMemo(() => {
+    const nodes = sessions?.nodes || [];
+    if (selectedItemId === '__all__') return nodes;
+    return nodes.filter((node) => node.item_id === selectedItemId);
+  }, [sessions, selectedItemId]);
+  const relationshipNodes = useMemo(() => {
+    const nodes = relationship?.nodes || [];
+    if (selectedItemId === '__all__') return nodes;
+    return nodes.filter((node) => !node.item_id || node.item_id === selectedItemId);
+  }, [relationship, selectedItemId]);
+  const relationshipEdges = useMemo(() => {
+    const nodeIds = new Set(relationshipNodes.map((node) => node.node_id));
+    return (relationship?.edges || []).filter((edge) => nodeIds.has(edge.source_node_id) && nodeIds.has(edge.target_node_id));
+  }, [relationship?.edges, relationshipNodes]);
+  const selectedArtifact = itemArtifacts?.artifacts.find((artifact) => artifact.id === selectedArtifactId) || null;
+  const selectedItemResultSummary = resultSummary?.items.find((item) => item.item_id === selectedItem?.id) || null;
 
-  useEffect(() => {
-    if (generatedFiles.length === 0) {
-      setSelectedResultPath('');
-      return;
-    }
-    setSelectedResultPath((current) => current && generatedFiles.some((file) => file.path === current) ? current : generatedFiles[0].path);
-  }, [generatedFiles]);
+  const summaryLine = observabilitySummary
+    ? `${observabilitySummary.total_review_attempts}/${observabilitySummary.avg_quality_score || 0}/${observabilitySummary.issue_remaining}`
+    : '-';
 
-  useEffect(() => {
-    if (!projectId || !selectedResultPath) {
-      setPreviewContent('');
-      setPreviewError(null);
-      return;
-    }
-    let cancelled = false;
-    const loadPreview = async () => {
-      setPreviewLoading(true);
-      setPreviewError(null);
-      try {
-        const projectPath = projectPathFromStoragePath(projectId, selectedResultPath);
-        const blob = await api.domains.assets.fileserver.fetchProjectFilesystemPreviewBlob(projectId, projectPath);
-        const text = await blob.text();
-        if (!cancelled) setPreviewContent(text);
-      } catch (e: any) {
-        if (!cancelled) {
-          setPreviewContent('');
-          setPreviewError(e?.message || '加载预览失败');
-        }
-      } finally {
-        if (!cancelled) setPreviewLoading(false);
-      }
-    };
-    void loadPreview();
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, selectedResultPath]);
-
-  const dominantPhase = useMemo(() => {
-    const runningPhase = dominantRunningPhase(detail);
-    if (runningPhase) return runningPhase;
-    const summary = overall?.phase_summary || {};
-    const [phase] = Object.entries(summary).sort((a, b) => b[1] - a[1])[0] || [];
-    return phase || detail?.status || '';
-  }, [detail, overall]);
+  const taskDuration = detail
+    ? formatDuration(
+        detail.items.map((item) => item.started_at).filter(Boolean).sort()[0] || null,
+        B2S_TERMINAL_STATUSES.has(detail.status)
+          ? detail.items.map((item) => item.finished_at).filter(Boolean).sort().reverse()[0] || null
+          : null,
+        clockNow,
+      )
+    : '-';
 
   if (!taskId) {
-    return (
-      <div className="px-8 pb-10 pt-8 space-y-6">
-        <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm">
-          <ArrowLeft size={16} />
-          {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
-        </button>
-        <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
-          未指定任务，请返回列表重新选择。
-        </div>
-      </div>
-    );
+    return <div className="px-8 pb-10 pt-8 text-sm text-slate-500">未指定任务，请返回列表重新选择。</div>;
   }
 
-  const phaseLabel = formatPhaseLabel(dominantPhase, dominantPhase);
-  const terminal = !!detail && B2S_TERMINAL_STATUSES.has(detail.status);
-  const showTopPhaseBadge = !!detail && !terminal && !!dominantPhase && dominantPhase !== detail.status;
-  const totalFunctions = overall?.total_functions ?? detail?.items.reduce((sum, item) => sum + (item.progress?.total_functions || 0), 0) ?? 0;
-  const completedFunctions = overall?.completed_functions ?? detail?.items.reduce((sum, item) => sum + (item.progress?.completed_functions || 0), 0) ?? 0;
-  const itemProgressValues = detail?.items.map((item) => itemPresentations[item.id] || itemProgressPresentation(item)) || [];
-  const derivedOverall = itemProgressValues.length
-    ? itemProgressValues.reduce((sum, item) => sum + item.value, 0) / itemProgressValues.length
-    : (overall?.percent ?? 0);
-  const progressValue = overall?.percent !== undefined && overall.percent !== null
-    ? overall.percent
-    : (terminal && (detail?.success_items || 0) + (detail?.partial_items || 0) === (detail?.total_items || 0)
-      ? 100
-      : derivedOverall);
-  const progressModeLabel = !terminal && itemProgressValues.some((item) => item.estimated) ? '阶段估算' : '';
-  const runningItems = detail?.running_items || detail?.items.filter((item) => !B2S_TERMINAL_STATUSES.has(item.status)).length || 0;
-  const resultCount = generatedFiles.length;
-  const modeLabel = modeLabelFromDetail(detail);
-  const primaryActiveItem = detail?.items.find((item) => !B2S_TERMINAL_STATUSES.has(item.status)) || detail?.items.find((item) => item.status === 'failed') || detail?.items[0];
-  const primaryActivePresentation = primaryActiveItem ? (itemPresentations[primaryActiveItem.id] || itemProgressPresentation(primaryActiveItem)) : null;
-  const actionableFailures = detail?.items.filter((item) => item.status === 'failed' || item.error_reason).slice(0, 3) || [];
-  const taskStartedAt = detail?.items
-    .map((item) => item.started_at ? parseBackendTimeMs(item.started_at) : NaN)
-    .filter((value) => !Number.isNaN(value))
-    .sort((a, b) => a - b)[0];
-  const taskFinishedAt = detail && terminal
-    ? detail.items
-      .map((item) => item.finished_at ? parseBackendTimeMs(item.finished_at) : NaN)
-      .filter((value) => !Number.isNaN(value))
-      .sort((a, b) => b - a)[0]
-    : undefined;
-  const firstInputPath = detail?.items[0]?.elf_path || '-';
-  const primaryOutputDir = primaryActiveItem?.output_dir || detail?.items.find((item) => item.output_dir)?.output_dir || '-';
+  const renderOverview = () => (
+    <div className="space-y-6">
+      <SectionCard
+        title="阶段进度"
+        description="按 B2S 语义展示任务的当前推进位置。"
+        right={<div className="text-xs font-black text-slate-500">当前主进度 {pct(primaryProgress).toFixed(1)}%</div>}
+      >
+        <div className="grid gap-3 lg:grid-cols-7">
+          {PHASE_ORDER.map((phase, index) => {
+            const count = detail?.items.filter((item) => {
+              const currentIndex = Math.max(0, PHASE_ORDER.indexOf(item.phase || 'queued'));
+              return currentIndex === index;
+            }).length || 0;
+            const completed = detail?.items.filter((item) => {
+              const currentIndex = Math.max(0, PHASE_ORDER.indexOf(item.phase || 'queued'));
+              return currentIndex > index || item.status === 'success';
+            }).length || 0;
+            return (
+              <div key={phase} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 p-4">
+                <div className={`h-2 rounded-full ${count ? 'bg-blue-500' : completed ? 'bg-emerald-400' : 'bg-slate-200'}`} />
+                <div className="mt-3 text-sm font-black text-slate-900">{PHASE_LABELS[phase]}</div>
+                <div className="mt-1 text-xs font-semibold text-slate-500">当前 {count} · 已过 {completed}</div>
+              </div>
+            );
+          })}
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="当前运行智能体"
+        description="展示当前任务里的活跃 agent，会话点击后直接弹出实时对话。"
+        right={<div className="text-xs font-black text-slate-500">Header/Executor/Validator {detail?.agent_runtime_summary?.header_agent_count || 0}/{detail?.agent_runtime_summary?.executor_agent_count || 0}/{detail?.agent_runtime_summary?.validator_agent_count || 0}</div>}
+      >
+        {activeAgents.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前没有运行中的智能体。快速模式或已完成任务可能不会保留活跃会话。</div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {activeAgents.map((agent) => (
+              <button
+                key={agent.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab('session');
+                  setSelectedItemId(agent.item_id || '__all__');
+                  if (agent.relative_path) setSelectedSessionPath(agent.relative_path);
+                }}
+                className="rounded-[1.25rem] border border-slate-200 bg-white p-4 text-left transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-black text-slate-900">{agent.label}</div>
+                    <div className="mt-1 truncate text-xs font-semibold text-slate-500">{agent.item_name} · {agent.stage || '-'} · {agent.run_name || '-'}</div>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">{agent.role || 'session'}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
+                  {agent.batch_no ? <span className="rounded-full bg-slate-100 px-2 py-1">Batch {agent.batch_no}</span> : null}
+                  {agent.attempt_no ? <span className="rounded-full bg-slate-100 px-2 py-1">第 {agent.attempt_no} 轮</span> : null}
+                  <span className="rounded-full bg-slate-100 px-2 py-1">{agent.updated_at ? formatDateTime(agent.updated_at) : '实时'}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <MetricTile label="ELF 完成" value={`${overall?.completed_items || 0}/${overall?.total_items || detail?.total_items || 0}`} hint={`${detail?.running_items || 0} 个运行中`} tone="blue" icon={<Cpu size={18} />} />
+        <MetricTile label="Batch 总数" value={observabilitySummary?.total_batches || 0} hint={`均值 ${observabilitySummary?.avg_batches_per_item || 0}`} tone="violet" icon={<Layers3 size={18} />} />
+        <MetricTile label="评审轮次" value={observabilitySummary?.total_review_attempts || 0} hint={`均值 ${observabilitySummary?.avg_review_attempts || 0}`} tone="emerald" icon={<GitBranch size={18} />} />
+        <MetricTile label="会话数" value={resultSummary?.session_file_count || detail?.agent_runtime_summary?.total_sessions || 0} hint={`活跃 ${detail?.agent_runtime_summary?.active_agent_count || 0}`} tone="slate" icon={<Bot size={18} />} />
+        <MetricTile label="结果文件" value={resultSummary?.result_file_count || 0} hint="任务级汇总" tone="emerald" icon={<Code2 size={18} />} />
+        <MetricTile label="任务耗时" value={taskDuration} hint={B2S_TERMINAL_STATUSES.has(detail?.status || '') ? '已结束' : '实时计时中'} tone="slate" icon={<Clock3 size={18} />} />
+      </div>
+
+      <SectionCard title="快速风险" description="优先展示失败项、评审未通过项和结果缺失项。">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 p-4">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-500">失败 Item</div>
+            <div className="mt-3 space-y-2">
+              {(detail?.items.filter((item) => item.status === 'failed').slice(0, 4) || []).map((item) => (
+                <div key={item.id} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700">{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</div>
+              ))}
+              {(detail?.items.filter((item) => item.status === 'failed').length || 0) === 0 ? <div className="rounded-xl bg-white px-3 py-4 text-sm text-slate-500">暂无失败项</div> : null}
+            </div>
+          </div>
+          <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">评审未通过</div>
+            <div className="mt-3 space-y-2">
+              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').slice(0, 4) || []).map((item) => (
+                <div key={item.item_id} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-amber-700">{`#${item.sequence_no} ${item.item_name} · ${item.final_verdict_label || item.final_verdict || '-'}`}</div>
+              ))}
+              {(resultSummary?.items.filter((item) => String(item.final_verdict || '').toUpperCase() !== 'PASS').length || 0) === 0 ? <div className="rounded-xl bg-white px-3 py-4 text-sm text-slate-500">暂无未通过项</div> : null}
+            </div>
+          </div>
+          <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">结果缺失</div>
+            <div className="mt-3 space-y-2">
+              {(resultSummary?.items.filter((item) => item.result_file_count === 0).slice(0, 4) || []).map((item) => (
+                <div key={item.item_id} className="rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-700">{`#${item.sequence_no} ${item.item_name}`}</div>
+              ))}
+              {(resultSummary?.items.filter((item) => item.result_file_count === 0).length || 0) === 0 ? <div className="rounded-xl bg-white px-3 py-4 text-sm text-slate-500">所有 item 都已有结果文件</div> : null}
+            </div>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  );
+
+  const renderConfig = () => {
+    const snapshot = detail?.task_config_snapshot;
+    if (!snapshot) {
+      return <SectionCard title="任务配置"><div className="text-sm text-slate-500">当前任务没有可展示的冻结配置。</div></SectionCard>;
+    }
+    return (
+      <div className="space-y-6">
+        <SectionCard title="基本配置" description="展示任务创建时冻结的任务级配置。">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <MetricTile label="任务名" value={snapshot.name || '-'} />
+            <MetricTile label="优先级" value={snapshot.priority} />
+            <MetricTile label="模式" value={snapshot.mode_label || snapshot.mode || '-'} tone="violet" />
+            <MetricTile label="引擎" value={snapshot.engine || '-'} tone="blue" />
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">描述</div>
+              <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-700">{snapshot.description || '-'}</div>
+            </div>
+            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">标签</div>
+              <div className="mt-2 flex flex-wrap gap-2">{snapshot.tags.length ? snapshot.tags.map((tag) => <span key={tag} className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-700">{tag}</span>) : <span className="text-sm text-slate-500">-</span>}</div>
+            </div>
+          </div>
+        </SectionCard>
+
+        <div className="grid gap-6 xl:grid-cols-2">
+          <SectionCard title="模型配置">
+            <div className="grid gap-3 md:grid-cols-2">
+              <MetricTile label="Provider Key" value={snapshot.llm_provider_key || '-'} tone="blue" />
+              <MetricTile label="模型" value={snapshot.llm_provider_model || '-'} tone="blue" />
+              <MetricTile label="显示名" value={snapshot.llm_provider_display_name || '-'} />
+              <MetricTile label="Provider Type" value={snapshot.llm_provider_type || '-'} />
+            </div>
+          </SectionCard>
+          <SectionCard title="执行策略">
+            <div className="grid gap-3 md:grid-cols-2">
+              <MetricTile label="并发" value={snapshot.concurrency || '-'} tone="violet" />
+              <MetricTile label="超时秒数" value={snapshot.agent_run_timeout_seconds || '-'} tone="amber" />
+              <MetricTile label="超时重试" value={snapshot.agent_timeout_retry_enabled ? '开启' : '关闭'} tone="amber" />
+              <MetricTile label="最大超时重试" value={snapshot.agent_timeout_max_retries || '-'} tone="amber" />
+            </div>
+          </SectionCard>
+        </div>
+
+        <SectionCard title="任务来源">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <MetricTile label="来源类型" value={snapshot.origin_label || snapshot.task_origin_type || '-'} />
+            <MetricTile label="父任务" value={snapshot.parent_task_id || '-'} />
+            <MetricTile label="父任务类型" value={snapshot.parent_task_type || '-'} />
+            <MetricTile label="父阶段" value={snapshot.parent_stage_name || '-'} />
+          </div>
+        </SectionCard>
+
+        <SectionCard title="输入配置" description={`当前任务共包含 ${snapshot.input_count} 个 ELF 输入。`}>
+          <div className="overflow-x-auto rounded-[1.25rem] border border-slate-200">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50/90 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">序号</th>
+                  <th className="px-4 py-3">ELF</th>
+                  <th className="px-4 py-3">Output Subdir</th>
+                  <th className="px-4 py-3">函数白名单</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 bg-white">
+                {snapshot.input_items.map((item) => (
+                  <tr key={item.item_id}>
+                    <td className="px-4 py-3 text-sm font-black text-slate-900">#{item.sequence_no}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-semibold text-slate-900">{fileNameOf(item.source_elf_path || item.elf_path)}</div>
+                      <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={item.source_elf_path || item.elf_path}>{item.source_elf_path || item.elf_path}</div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{item.output_subdir || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{item.file_list.length ? `${item.file_list.length} 项` : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+      </div>
+    );
+  };
+
+  const renderSessions = () => (
+    <SectionCard
+      title="智能体会话"
+      description="按 ELF Item / Run / Stage / Agent 分层展示 B2S 会话。"
+      right={
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
+            刷新索引
+          </button>
+          <button type="button" onClick={() => setAutoRefreshSession((value) => !value)} className={`rounded-xl px-3 py-2 text-xs font-black ${autoRefreshSession ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+            自动刷新 {autoRefreshSession ? 'ON' : 'OFF'}
+          </button>
+        </div>
+      }
+    >
+      {!sessions ? (
+        <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载会话索引中...</div>
+      ) : filteredSessionNodes.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务未生成智能体会话。快速模式或尚未进入深度阶段时会出现这个状态。</div>
+      ) : (
+        <div className="grid min-h-[680px] grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)]">
+          <aside className="border-b border-slate-200 bg-slate-50/80 xl:border-b-0 xl:border-r">
+            <div className="max-h-[680px] overflow-auto p-3">
+              {Object.entries(filteredSessionNodes.reduce<Record<string, B2SSessionNode[]>>((acc, node) => {
+                const key = `#${node.sequence_no} ${node.item_name}`;
+                acc[key] = acc[key] || [];
+                acc[key].push(node);
+                return acc;
+              }, {})).map(([group, nodes]) => (
+                <div key={group} className="mb-5">
+                  <div className="mb-2 border-b border-slate-200 px-1 pb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{group}</div>
+                  {nodes.map((node) => {
+                    const active = selectedSessionPath === node.relative_path;
+                    return (
+                      <button
+                        key={node.node_id}
+                        type="button"
+                        onClick={() => setSelectedSessionPath(node.relative_path)}
+                        className={`mb-2 w-full rounded-[1.1rem] border px-3 py-3 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'}`}
+                      >
+                        <div className="truncate text-sm font-black">{node.agent || node.role || fileNameOf(node.relative_path)}</div>
+                        <div className={`mt-1 truncate text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{node.stage} · {node.run_name}</div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold">
+                          {node.batch_no ? <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-600'}`}>Batch {node.batch_no}</span> : null}
+                          {node.attempt_no ? <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-white/10 text-slate-100' : 'bg-slate-100 text-slate-600'}`}>第 {node.attempt_no} 轮</span> : null}
+                          <span className={`rounded-full px-2 py-0.5 ${active ? 'bg-blue-500/25 text-blue-100' : 'bg-blue-50 text-blue-700'}`}>{node.role || 'session'}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </aside>
+          <div className="min-h-[680px] bg-slate-950">
+            <div className="border-b border-slate-800 px-4 py-3 text-sm font-black text-slate-100">{selectedSessionPath || '请选择左侧会话'}</div>
+            <div className="h-[626px]">
+              {selectedSessionPath ? (
+                selectedSessionLoading ? (
+                  <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载会话内容中...</div>
+                ) : (
+                  <B2SSessionPreview name={fileNameOf(selectedSessionPath)} content={selectedSessionContent} />
+                )
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-slate-500">请选择左侧会话</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+
+  const renderRelationship = () => (
+    <SectionCard
+      title="智能体关系"
+      description="展示 item、run、batch、review 与 agent 会话之间的关联。"
+      right={<button type="button" onClick={() => void loadRelationship()} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">刷新关系图</button>}
+    >
+      {!relationship ? (
+        <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载关系图中...</div>
+      ) : relationshipNodes.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务未生成可展示的智能体关系数据。</div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid gap-3 md:grid-cols-4">
+            <MetricTile label="节点" value={relationshipNodes.length} tone="blue" icon={<Waypoints size={18} />} />
+            <MetricTile label="边" value={relationshipEdges.length} tone="violet" icon={<Link2 size={18} />} />
+            <MetricTile label="Agent 节点" value={relationshipNodes.filter((node) => node.node_type === 'agent').length} tone="emerald" icon={<Bot size={18} />} />
+            <MetricTile label="Batch/Review" value={`${relationshipNodes.filter((node) => node.node_type === 'batch').length}/${relationshipNodes.filter((node) => node.node_type === 'review').length}`} tone="slate" icon={<Network size={18} />} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {Object.entries(relationshipNodes.reduce<Record<string, typeof relationshipNodes>>((acc, node) => {
+              const key = node.node_type;
+              acc[key] = acc[key] || [];
+              acc[key].push(node);
+              return acc;
+            }, {})).map(([group, nodes]) => (
+              <div key={group} className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 p-4">
+                <div className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-500">{group}</div>
+                <div className="space-y-2">
+                  {nodes.slice(0, 24).map((node) => {
+                    const relatedEdges = relationshipEdges.filter((edge) => edge.source_node_id === node.node_id || edge.target_node_id === node.node_id);
+                    return (
+                      <button
+                        key={node.node_id}
+                        type="button"
+                        onClick={() => {
+                          if (node.relative_path) {
+                            setActiveTab('session');
+                            setSelectedItemId(node.item_id || '__all__');
+                            setSelectedSessionPath(node.relative_path);
+                          }
+                        }}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-left hover:border-slate-300 hover:bg-slate-50"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-black text-slate-900">{node.title}</div>
+                            <div className="mt-1 truncate text-xs text-slate-500">{node.subtitle || '-'} · 关联 {relatedEdges.length}</div>
+                          </div>
+                          {node.node_type === 'agent' ? <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">会话</span> : null}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+
+  const renderResult = () => (
+    <div className="space-y-6">
+      <SectionCard
+        title="结果摘要"
+        description="任务级汇总和当前 item 的关键产物。"
+        right={selectedItem && onOpenAdvanced ? (
+          <button type="button" onClick={() => onOpenAdvanced(selectedItem.id)} className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100">
+            查看高级视图
+          </button>
+        ) : null}
+      >
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <MetricTile label="成功" value={resultSummary?.success_items || 0} tone="emerald" icon={<CheckCircle2 size={18} />} />
+          <MetricTile label="部分成功" value={resultSummary?.partial_items || 0} tone="violet" icon={<Sparkles size={18} />} />
+          <MetricTile label="失败" value={resultSummary?.failed_items || 0} tone="rose" icon={<AlertTriangle size={18} />} />
+          <MetricTile label="结果文件" value={resultSummary?.result_file_count || 0} tone="blue" icon={<FileCode2 size={18} />} />
+          <MetricTile label="会话/评审" value={`${resultSummary?.session_file_count || 0}/${resultSummary?.review_round_count || 0}`} tone="slate" icon={<GitBranch size={18} />} />
+        </div>
+      </SectionCard>
+
+      {selectedItem ? (
+        <SectionCard title={`当前 Item 结果 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description={`状态 ${selectedItem.status} · Verdict ${selectedItemResultSummary?.final_verdict_label || selectedItemResultSummary?.final_verdict || '-'}`}>
+          {!itemArtifacts ? (
+            <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载结果文件中...</div>
+          ) : itemArtifacts.artifacts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前 item 还没有可展示的结果文件。</div>
+          ) : (
+            <div className="grid min-h-[680px] grid-cols-1 xl:grid-cols-[360px_minmax(0,1fr)]">
+              <aside className="border-b border-slate-200 bg-slate-50/80 xl:border-b-0 xl:border-r">
+                <div className="max-h-[680px] overflow-auto p-3">
+                  {itemArtifacts.artifacts.map((artifact) => {
+                    const active = selectedArtifactId === artifact.id;
+                    return (
+                      <button key={artifact.id} type="button" onClick={() => setSelectedArtifactId(artifact.id)} className={`mb-2 w-full rounded-[1.1rem] border px-3 py-3 text-left transition ${active ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50'}`}>
+                        <div className="truncate text-sm font-black">{artifact.name}</div>
+                        <div className={`mt-1 truncate text-[11px] ${active ? 'text-slate-300' : 'text-slate-500'}`}>{artifact.stage || artifact.kind} · {artifact.section || '-'}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+              <div className="min-h-[680px] bg-slate-950">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3 text-sm font-black text-slate-100">
+                  <div className="truncate">{selectedArtifact?.name || '请选择左侧文件'}</div>
+                  {selectedArtifact ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDialog({ title: selectedArtifact.name, subtitle: selectedArtifact.path, content: artifactContent, language: languageFromName(selectedArtifact.name), loading: artifactLoading })}
+                      className="rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800"
+                    >
+                      弹窗查看
+                    </button>
+                  ) : null}
+                </div>
+                <div className="h-[626px]">
+                  {selectedArtifact ? (
+                    artifactLoading ? (
+                      <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-400"><Loader2 size={16} className="animate-spin" />加载文件中...</div>
+                    ) : selectedArtifact.name.toLowerCase().endsWith('.jsonl') ? (
+                      <B2SSessionPreview name={selectedArtifact.name} content={artifactContent} />
+                    ) : (
+                      <Editor
+                        height="100%"
+                        language={languageFromName(selectedArtifact.name)}
+                        value={artifactContent}
+                        theme="vs-dark"
+                        options={{ readOnly: true, minimap: { enabled: false }, fontSize: 13, lineNumbers: 'on', scrollBeyondLastLine: false, wordWrap: 'on', automaticLayout: true }}
+                      />
+                    )
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-slate-500">请选择左侧文件</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </SectionCard>
+      ) : (
+        <SectionCard title="按 Item 查看结果" description="请先通过顶部 ELF Item 选择器切到某个 item。">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前处于任务级汇总视角。切换到具体 item 后会展示源码、头文件、中间产物、评审文件和会话文件。</div>
+        </SectionCard>
+      )}
+    </div>
+  );
+
+  const renderObservability = () => (
+    <div className="space-y-6">
+      <SectionCard title="观测摘要" description="任务级聚合的运行效率、评审质量和过程质量。">
+        {!observabilitySummary ? (
+          <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载观测指标中...</div>
+        ) : (
+          <>
+            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm font-black text-slate-800">
+              轮次/均分/残留&nbsp;&nbsp;{summaryLine}
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <MetricTile label="总耗时" value={formatDurationMs(observabilitySummary.total_duration_ms)} tone="slate" icon={<Clock3 size={18} />} />
+              <MetricTile label="Batch" value={`${observabilitySummary.total_batches}/${observabilitySummary.avg_batches_per_item}`} tone="violet" icon={<Layers3 size={18} />} />
+              <MetricTile label="评审" value={`${observabilitySummary.total_review_attempts}/${observabilitySummary.avg_review_attempts}`} tone="emerald" icon={<GitBranch size={18} />} />
+              <MetricTile label="问题" value={`${observabilitySummary.issue_total}/${observabilitySummary.issue_remaining}`} tone="amber" icon={<AlertTriangle size={18} />} />
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <MetricTile label="函数完成率" value={`${observabilitySummary.completed_functions}/${observabilitySummary.total_functions}`} tone="blue" icon={<FileCode2 size={18} />} />
+              <MetricTile label="字节完成率" value={`${formatBytes(observabilitySummary.completed_bytes)}/${formatBytes(observabilitySummary.total_bytes)}`} tone="blue" icon={<FileText size={18} />} />
+              <MetricTile label="平均置信度" value={observabilitySummary.avg_confidence} tone="emerald" icon={<Gauge size={18} />} />
+              <MetricTile label="平均质量分" value={observabilitySummary.avg_quality_score} tone="emerald" icon={<Sparkles size={18} />} />
+            </div>
+          </>
+        )}
+      </SectionCard>
+
+      {selectedItem ? (
+        <SectionCard title={`Item 观测明细 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description="直接复用现有评审效果面板。">
+          {itemAnalytics ? <ReviewEffectivenessPanel analytics={itemAnalytics} /> : <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 item 观测中...</div>}
+        </SectionCard>
+      ) : (
+        <SectionCard title="按 Item 查看观测" description="切换到具体 item 后可查看完整评审效果面板。">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前处于任务级汇总视角。切换到具体 item 后可查看该 item 的逐轮评审指标、维度评分与问题收敛情况。</div>
+        </SectionCard>
+      )}
+    </div>
+  );
 
   return (
-    <div className="px-8 pb-10 pt-8 space-y-6">
+    <div className="space-y-6 px-8 pb-10 pt-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
-        >
+        <button type="button" onClick={handleBack} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
           <ArrowLeft size={16} />
           {hasReturnContext ? '返回原任务' : '返回二进制逆向'}
         </button>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60"
-          >
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={() => void loadDetail()} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60">
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             刷新
+          </button>
+          {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? (
+            <button type="button" onClick={() => void cancelTask()} disabled={cancelling} className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-60">
+              <XCircle size={16} />
+              {cancelling ? '取消中...' : '取消任务'}
+            </button>
+          ) : null}
+          <button type="button" onClick={() => void rerunTask()} disabled={rerunning} className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-bold text-violet-700 shadow-sm hover:bg-violet-100 disabled:opacity-60">
+            <RotateCcw size={16} />
+            {rerunning ? '重跑中...' : '从头重跑'}
+          </button>
+          <button type="button" onClick={() => void deleteTask()} disabled={deleting} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 shadow-sm hover:bg-rose-100 disabled:opacity-60">
+            <Trash2 size={16} />
+            {deleting ? '删除中...' : '删除任务'}
           </button>
         </div>
       </div>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          {error}
-        </div>
-      )}
+      {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div> : null}
 
-      <section className={`overflow-hidden rounded-[2rem] border bg-white shadow-sm ${detail && statusTone(detail) === 'rose' ? 'border-rose-200' : 'border-slate-200'}`}>
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
         {loading && !detail ? (
-          <div className="flex items-center gap-2 p-8 text-sm text-slate-500">
-            <Loader2 size={16} className="animate-spin" />
-            加载中...
-          </div>
+          <div className="flex items-center gap-2 p-8 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : detail ? (
-          <div>
-            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_38%,#f8fafc_100%)] p-7">
+          <>
+            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_42%,#f8fafc_100%)] p-7">
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <B2SStatusBadge status={detail.status} />
-                    {showTopPhaseBadge && <B2SPhaseBadge phase={dominantPhase} label={phaseLabel} />}
-                    {modeLabel !== '-' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 ring-1 ring-indigo-200">
-                        <Sparkles size={13} />
-                        {modeLabel}
-                      </span>
-                    )}
+                    {detail.mode_label ? <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 ring-1 ring-indigo-200"><Sparkles size={13} />{detail.mode_label}</span> : null}
                   </div>
                   <h1 className="mt-4 break-words text-3xl font-black tracking-tight text-slate-950">{detail.name || detail.id}</h1>
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
@@ -603,525 +1017,90 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     <span>创建：{formatDateTime(detail.created_at)}</span>
                     <span>更新：{formatDateTime(detail.updated_at)}</span>
                   </div>
-
                   <div className="mt-6 rounded-[1.5rem] border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
                     <div className="flex items-end justify-between gap-4">
                       <div>
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">总体进度</div>
-                        <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{pct(progressValue).toFixed(1)}%</div>
+                        <div className="mt-1 text-4xl font-black tracking-tight text-slate-950">{pct(primaryProgress).toFixed(1)}%</div>
                       </div>
-                      <div className="text-right text-xs font-bold text-slate-500">
-                        {progressModeLabel || (terminal ? '最终进度' : '后端实时进度')}
-                      </div>
+                      <div className="text-right text-xs font-bold text-slate-500">任务视图</div>
                     </div>
                     <div className="mt-4">
-                      <B2SProgressBar value={progressValue} tone={statusTone(detail) === 'emerald' ? 'emerald' : 'blue'} />
+                      <B2SProgressBar value={primaryProgress} tone={B2S_TERMINAL_STATUSES.has(detail.status) ? 'emerald' : 'blue'} />
                     </div>
                     <div className="mt-4 grid grid-cols-3 gap-3 text-xs font-semibold text-slate-600">
-                      <div className="rounded-xl bg-slate-50 px-3 py-2">当前阶段：<span className="font-black text-slate-800">{phaseLabel}</span></div>
-                      <div className="rounded-xl bg-slate-50 px-3 py-2">运行中：<span className="font-black text-slate-800">{runningItems}</span></div>
-                      <div className="rounded-xl bg-slate-50 px-3 py-2">结果文件：<span className="font-black text-slate-800">{resultCount}</span></div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2">运行中：<span className="font-black text-slate-800">{detail.running_items}</span></div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2">ELF：<span className="font-black text-slate-800">{detail.total_items}</span></div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2">会话：<span className="font-black text-slate-800">{detail.agent_runtime_summary?.total_sessions || 0}</span></div>
                     </div>
                   </div>
                 </div>
-
                 <div className="space-y-3">
-                  <div className="rounded-[1.5rem] border border-white/80 bg-white/80 p-4 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前焦点</div>
-                    {primaryActiveItem ? (
-                      <div className="mt-3">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">#{primaryActiveItem.sequence_no}</span>
-                          <div className="min-w-0 truncate text-sm font-black text-slate-900" title={primaryActiveItem.elf_path}>{fileNameOf(primaryActiveItem.elf_path)}</div>
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
-                          <div className="rounded-xl bg-slate-50 px-3 py-2">阶段：<span className="font-black text-slate-800">{formatPhaseLabel(primaryActiveItem.phase, primaryActiveItem.phase_label)}</span></div>
-                          <div className="rounded-xl bg-slate-50 px-3 py-2">进度：<span className="font-black text-slate-800">{primaryActivePresentation?.label || '-'}</span></div>
-                          <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2">当前函数：<span className="font-black text-slate-800">{primaryActiveItem.progress?.current_function || '-'}</span></div>
-                        </div>
-                      </div>
-                    ) : <div className="mt-3 text-sm font-semibold text-slate-500">暂无 item</div>}
-                  </div>
                   <TaskOriginCard origin={detail} />
+                  {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? <DownstreamTaskCreator projectId={projectId} task={detail} sourceKind="binary_to_source" /> : null}
                 </div>
               </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-                <KpiTile label="ELF 完成" value={`${overall?.completed_items ?? detail.success_items + detail.partial_items}/${overall?.total_items ?? detail.total_items}`} hint={`${runningItems} 个运行中`} tone="blue" icon={<Cpu size={19} />} />
-                <KpiTile label="函数" value={`${completedFunctions}/${totalFunctions || '-'}`} hint="已还原 / 总数" tone="emerald" icon={<FileCode2 size={19} />} />
-                <KpiTile label="批次" value={`${overall?.completed_batches ?? 0}/${overall?.total_batches ?? 0}`} hint="completed / total" tone="violet" icon={<Layers3 size={19} />} />
-                <KpiTile label="结果文件" value={resultCount} hint={resultCount ? '可预览' : '等待生成'} tone={resultCount ? 'emerald' : 'slate'} icon={<Code2 size={19} />} />
-                <KpiTile label="失败" value={detail.failed_items || 0} hint={detail.failed_items ? '需要处理' : '无异常'} tone={detail.failed_items ? 'rose' : 'slate'} icon={detail.failed_items ? <AlertTriangle size={19} /> : <CheckCircle2 size={19} />} />
-                <KpiTile label="本轮耗时" value={taskRunDuration(detail, clockNow)} hint={terminal ? '已结束' : '实时计时中'} tone="slate" icon={<Gauge size={19} />} />
-              </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-slate-100 bg-white px-7 py-5 lg:flex-row lg:items-center lg:justify-end">
-              <div className="flex flex-wrap items-center gap-3">
-                {detail && !B2S_TERMINAL_STATUSES.has(detail.status) && (
-                  <button
-                    type="button"
-                    onClick={() => void cancelTask()}
-                    disabled={cancelling}
-                    className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm font-black text-rose-700 shadow-sm hover:bg-rose-50 disabled:opacity-50"
+            <div className="border-t border-slate-200 bg-slate-50/70 px-6 py-4">
+              <div className="grid gap-3 md:grid-cols-[240px_minmax(0,1fr)]">
+                <div className="rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">ELF Item 选择器</div>
+                  <select
+                    value={selectedItemId}
+                    onChange={(event) => {
+                      setSelectedItemId(event.target.value as ItemFilter);
+                      setItemArtifacts(null);
+                      setSelectedArtifactId('');
+                      setItemAnalytics(null);
+                    }}
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400"
                   >
-                    {cancelling ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
-                    取消任务
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void rerunTask()}
-                  disabled={rerunning}
-                  className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-black text-amber-700 shadow-sm hover:bg-amber-100 disabled:opacity-50"
-                >
-                  {rerunning ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
-                  完整重跑
-                </button>
-                <DownstreamTaskCreator
-                  projectId={projectId}
-                  sourceKind="binary_to_source"
-                  task={detail}
-                  buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-black text-emerald-700 shadow-sm hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <button
-                  type="button"
-                  onClick={() => void deleteTask()}
-                  disabled={deleting}
-                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-black text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-50"
-                >
-                  {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                  删除
-                </button>
+                    <option value="__all__">全部汇总</option>
+                    {detail.items.map((item) => (
+                      <option key={item.id} value={item.id}>{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'overview' as DetailTab, label: '总览', icon: <Gauge size={14} /> },
+                    { id: 'run-config' as DetailTab, label: '任务配置', icon: <Settings2 size={14} /> },
+                    { id: 'session' as DetailTab, label: '智能体会话', icon: <Bot size={14} /> },
+                    { id: 'relationship' as DetailTab, label: '智能体关系', icon: <Waypoints size={14} /> },
+                    { id: 'result' as DetailTab, label: '结果', icon: <FileJson2 size={14} /> },
+                    { id: 'evaluation' as DetailTab, label: '观测指标', icon: <Gauge size={14} /> },
+                  ].map((tab) => (
+                    <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition ${tabButtonTone(activeTab === tab.id)}`}>
+                      {tab.icon}
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="p-8 text-sm text-slate-500">未找到任务详情。</div>
-        )}
+          </>
+        ) : null}
       </section>
 
       {detail ? (
-        <>
-          <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              {[
-                { id: 'overview' as DetailTab, label: '总览' },
-                { id: 'result' as DetailTab, label: '还原结果' },
-                { id: 'execution' as DetailTab, label: '执行明细' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`rounded-2xl px-5 py-3 text-sm font-black transition ${
-                    activeTab === tab.id
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </section>
+        activeTab === 'overview' ? renderOverview()
+          : activeTab === 'run-config' ? renderConfig()
+            : activeTab === 'session' ? renderSessions()
+              : activeTab === 'relationship' ? renderRelationship()
+                : activeTab === 'result' ? renderResult()
+                  : renderObservability()
+      ) : null}
 
-          {activeTab === 'overview' ? (
-            <>
-              <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
-                  <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-                    <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">任务 ID</div>
-                      <div className="mt-1 font-mono text-sm text-slate-800">{detail.id}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行模式</div>
-                      <div className="mt-1 text-sm font-semibold text-slate-800">{modeLabel}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">创建时间</div>
-                      <div className="mt-1 text-sm font-semibold text-slate-800">{formatDateTime(detail.created_at)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">开始时间</div>
-                      <div className="mt-1 text-sm font-semibold text-slate-800">{taskStartedAt ? formatDateTime(new Date(taskStartedAt).toISOString()) : '-'}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">更新时间</div>
-                      <div className="mt-1 text-sm font-semibold text-slate-800">{formatDateTime(detail.updated_at)}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完成时间</div>
-                      <div className="mt-1 text-sm font-semibold text-slate-800">{taskFinishedAt ? formatDateTime(new Date(taskFinishedAt).toISOString()) : '-'}</div>
-                    </div>
-                    <div className="md:col-span-2">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">任务名称</div>
-                      <div className="mt-1 text-sm font-semibold text-slate-700">{detail.name || '-'}</div>
-                    </div>
-                    <div className="md:col-span-2">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输入 ELF</div>
-                      <div className="mt-1 break-all font-mono text-xs text-slate-700">{firstInputPath}</div>
-                    </div>
-                    <div className="md:col-span-2">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出目录</div>
-                      <div className="mt-1 break-all font-mono text-xs text-slate-700">{primaryOutputDir}</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前焦点</h2>
-                    {primaryActiveItem ? (
-                      <div className="mt-4">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">#{primaryActiveItem.sequence_no}</span>
-                          <div className="min-w-0 truncate text-sm font-black text-slate-900" title={primaryActiveItem.elf_path}>{fileNameOf(primaryActiveItem.elf_path)}</div>
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
-                          <div className="rounded-xl bg-slate-50 px-3 py-2">阶段：<span className="font-black text-slate-800">{formatPhaseLabel(primaryActiveItem.phase, primaryActiveItem.phase_label)}</span></div>
-                          <div className="rounded-xl bg-slate-50 px-3 py-2">进度：<span className="font-black text-slate-800">{primaryActivePresentation?.label || '-'}</span></div>
-                          <div className="col-span-2 rounded-xl bg-slate-50 px-3 py-2">当前函数：<span className="font-black text-slate-800">{primaryActiveItem.progress?.current_function || '-'}</span></div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-4 text-sm font-semibold text-slate-500">暂无 item</div>
-                    )}
-                  </div>
-                  <TaskOriginCard origin={detail} />
-                </div>
-              </section>
-
-              {actionableFailures.length > 0 && (
-                <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle size={18} className="mt-0.5 shrink-0 text-rose-600" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-black text-rose-900">失败诊断</div>
-                      <div className="mt-2 space-y-2">
-                        {actionableFailures.map((item) => (
-                          <div key={item.id} className="rounded-xl border border-rose-100 bg-white px-3 py-2 text-xs font-semibold text-rose-800">
-                            <span className="font-black">#{item.sequence_no} {fileNameOf(item.elf_path)}：</span>{item.error_reason || item.failure_type || '未知错误'}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              )}
-            </>
-          ) : null}
-
-          {activeTab === 'result' ? (
-            generatedFiles.length > 0 ? (
-              <section id="b2s-results" className="overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-sm">
-                <div className="flex flex-col gap-2 border-b border-emerald-100 bg-emerald-50/70 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900">还原结果</h2>
-                    <p className="mt-1 text-xs text-slate-500">浏览当前任务已生成的头文件、还原源码和辅助产物。</p>
-                  </div>
-                  <div className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-emerald-700 shadow-sm">{generatedFiles.length} 个文件</div>
-                </div>
-                <div className="grid min-h-[520px] grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[440px_minmax(0,1fr)]">
-                  <aside className="border-b border-slate-200 bg-slate-50/70 lg:border-b-0 lg:border-r">
-                    <div className="border-b border-slate-200 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">文件列表</div>
-                    <div className="max-h-[520px] overflow-auto p-3">
-                      {generatedFiles.map(({ item, path }) => {
-                        const active = selectedResultPath === path;
-                        return (
-                          <button
-                            key={`${item.id}-${path}`}
-                            type="button"
-                            onClick={() => setSelectedResultPath(path)}
-                            className={`mb-2 flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-all ${active ? 'border-emerald-300 bg-white shadow-sm ring-2 ring-emerald-100' : 'border-transparent bg-white/70 hover:border-slate-200 hover:bg-white'}`}
-                          >
-                            <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                              {languageFromPath(path) === 'plaintext' ? <FileText size={17} /> : <Code2 size={17} />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-start gap-2">
-                                <div className="break-words text-sm font-black leading-5 text-slate-900 [overflow-wrap:anywhere]" title={fileNameOf(path)}>{fileNameOf(path)}</div>
-                                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">{fileKindLabel(path)}</span>
-                              </div>
-                              <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={path}>#{item.sequence_no} · {projectPathFromStoragePath(projectId, path)}</div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </aside>
-                  <div className="min-w-0 bg-slate-950">
-                    <div className="flex min-h-[48px] items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-4 py-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-black text-slate-100" title={fileNameOf(selectedResultPath)}>{fileNameOf(selectedResultPath)}</div>
-                        <div className="mt-0.5 truncate font-mono text-[11px] text-slate-400" title={selectedResultPath}>{projectPathFromStoragePath(projectId, selectedResultPath)}</div>
-                      </div>
-                      <div className="shrink-0 rounded-full bg-slate-800 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">
-                        {languageFromPath(selectedResultPath)}
-                      </div>
-                    </div>
-                    <div className="h-[520px]">
-                      {previewLoading ? (
-                        <div className="flex h-full items-center justify-center gap-2 text-sm font-bold text-slate-400">
-                          <Loader2 size={18} className="animate-spin" />
-                          加载预览中...
-                        </div>
-                      ) : previewError ? (
-                        <div className="flex h-full items-center justify-center px-6 text-center text-sm font-semibold text-rose-300">{previewError}</div>
-                      ) : (
-                        <Editor
-                          height="100%"
-                          language={languageFromPath(selectedResultPath)}
-                          value={previewContent}
-                          theme="vs-dark"
-                          options={{
-                            readOnly: true,
-                            minimap: { enabled: false },
-                            fontSize: 13,
-                            lineNumbers: 'on',
-                            scrollBeyondLastLine: false,
-                            wordWrap: 'off',
-                            automaticLayout: true,
-                            renderWhitespace: 'selection',
-                          }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </section>
-            ) : (
-              <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm">
-                <div className="text-center">
-                  <div className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">还原结果</div>
-                  <div className="mt-4 text-base font-bold text-slate-800">{terminal ? '当前任务尚未生成可展示的结果文件' : '任务完成后可在此查看还原结果'}</div>
-                  <div className="mt-2 text-sm text-slate-500">现有接口未返回文件时，页面保持空状态，不额外请求新数据源。</div>
-                </div>
-              </section>
-            )
-          ) : null}
-
-          {activeTab === 'execution' ? (
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-2 border-b border-slate-100 pb-4 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <h2 className="text-xl font-black text-slate-900">执行明细</h2>
-                  <p className="mt-1 text-xs text-slate-500">按 item 展示逆向过程、实时进度、统计信息和错误诊断。</p>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs font-black">
-                  <span className="rounded-full bg-blue-50 px-3 py-1.5 text-blue-700">运行 {runningItems}</span>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">成功 {detail.success_items}</span>
-                  <span className="rounded-full bg-rose-50 px-3 py-1.5 text-rose-700">失败 {detail.failed_items}</span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">取消 {detail.cancelled_items}</span>
-                </div>
-              </div>
-
-              {detail.items.length === 0 ? (
-                <div className="py-10 text-center text-sm text-slate-400">当前任务没有可展示的 item。</div>
-              ) : (
-                <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                      <thead className="bg-slate-50/90">
-                        <tr className="text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                          <th className="px-4 py-3">序号</th>
-                          <th className="px-4 py-3">ELF</th>
-                          <th className="px-4 py-3">状态</th>
-                          <th className="px-4 py-3">阶段</th>
-                          <th className="px-4 py-3">进度</th>
-                          <th className="px-4 py-3">函数</th>
-                          <th className="px-4 py-3">批次</th>
-                          <th className="px-4 py-3">耗时</th>
-                          <th className="px-4 py-3">结果文件</th>
-                          <th className="px-4 py-3 text-right">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200 bg-white">
-                        {detail.items.map((item) => {
-                          const progress = item.progress;
-                          const progressPresentation = itemPresentations[item.id] || itemProgressPresentation(item);
-                          const progressValueItem = progressPresentation.value;
-                          const expanded = expandedItems[item.id] ?? !(item.status === 'success' || item.status === 'completed');
-                          const itemGeneratedCount = item.generated_files?.length || 0;
-                          const itemPhaseLabel = formatPhaseLabel(item.phase, item.phase_label);
-                          const itemStageIndex = stageIndex(item.phase || item.status);
-                          const itemTerminal = B2S_TERMINAL_STATUSES.has(item.status);
-                          const rowDuration = item.finished_at
-                            ? formatDuration(item.started_at, item.finished_at)
-                            : formatDurationMs(item.started_at ? clockNow - parseBackendTimeMs(item.started_at) : null);
-                          return (
-                            <React.Fragment key={item.id}>
-                              <tr className={`align-top ${item.status === 'failed' ? 'bg-rose-50/40' : ''}`}>
-                                <td className="whitespace-nowrap px-4 py-4 text-sm font-black text-slate-900">#{item.sequence_no}</td>
-                                <td className="px-4 py-4">
-                                  <div className="max-w-[280px]">
-                                    <div className="truncate text-sm font-black text-slate-900" title={item.elf_path}>{fileNameOf(item.elf_path)}</div>
-                                    <div className="mt-1 truncate font-mono text-[11px] text-slate-500" title={item.elf_path}>{item.elf_path}</div>
-                                    {item.status === 'failed' && (item.error_reason || item.failure_type) ? (
-                                      <div className="mt-2 truncate text-xs font-semibold text-rose-700" title={item.error_reason || item.failure_type}>
-                                        {item.error_reason || item.failure_type}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-4"><B2SStatusBadge status={item.status} /></td>
-                                <td className="whitespace-nowrap px-4 py-4"><B2SPhaseBadge phase={item.phase} label={itemPhaseLabel} /></td>
-                                <td className="px-4 py-4">
-                                  <div className="min-w-[180px]">
-                                    <div className="flex items-center justify-between gap-3 text-xs font-black text-slate-600">
-                                      <span>{progressPresentation.mode || '实时进度'}</span>
-                                      <span>{progressPresentation.label}</span>
-                                    </div>
-                                    <div className="mt-2">
-                                      <B2SProgressBar value={progressValueItem} tone={item.status === 'success' || item.status === 'completed' ? 'emerald' : 'blue'} />
-                                    </div>
-                                    <div className="mt-2 truncate text-[11px] font-semibold text-slate-500" title={progressPresentation.description || ''}>
-                                      {progressPresentation.description || '等待 worker 上报执行信息。'}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">
-                                  <span className="font-black text-slate-900">{progress?.completed_functions ?? 0}</span>
-                                  <span className="text-slate-400"> / </span>
-                                  <span>{progress?.total_functions ?? '-'}</span>
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">
-                                  <span className="font-black text-slate-900">{progress?.completed_batches ?? 0}</span>
-                                  <span className="text-slate-400"> / </span>
-                                  <span>{progress?.total_batches ?? 0}</span>
-                                </td>
-                                <td className="whitespace-nowrap px-4 py-4 text-sm font-semibold text-slate-700">{rowDuration}</td>
-                                <td className="px-4 py-4">
-                                  <div className="text-sm font-black text-slate-900">{itemGeneratedCount}</div>
-                                  <div className="mt-1 text-[11px] font-semibold text-slate-500">{itemGeneratedCount ? '可预览' : '未生成'}</div>
-                                </td>
-                                <td className="px-4 py-4">
-                                  <div className="flex min-w-[180px] flex-col items-stretch gap-2">
-                                    {detail.mode === 'deep' && onOpenAdvanced && (
-                                      <button
-                                        type="button"
-                                        onClick={() => onOpenAdvanced(item.id)}
-                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
-                                      >
-                                        <Code2 size={14} />
-                                        查看高级信息
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => setExpandedItems((current) => ({ ...current, [item.id]: !expanded }))}
-                                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
-                                    >
-                                      {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                      {expanded ? '收起明细' : '展开明细'}
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                              {expanded && (
-                                <tr className="bg-slate-50/70">
-                                  <td colSpan={10} className="px-4 py-4">
-                                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                      <div className="flex flex-col gap-3 border-b border-slate-200 pb-3 md:flex-row md:items-center md:justify-between">
-                                        <div>
-                                          <div className="text-sm font-black text-slate-900">执行明细</div>
-                                          <div className="mt-1 text-xs font-semibold text-slate-500">执行路径、阶段消息、运行统计与错误原文。</div>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">尝试 {progress?.current_attempt ?? '-'}</span>
-                                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">当前函数 {progress?.current_function || '-'}</span>
-                                        </div>
-                                      </div>
-
-                                      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                                        <div className="space-y-4">
-                                          <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
-                                            <div className="mb-3 flex items-center justify-between text-xs font-black text-slate-500">
-                                              <span>ELF 阶段</span>
-                                              <span>{itemPhaseLabel}</span>
-                                            </div>
-                                            <div className="grid grid-cols-7 gap-2">
-                                              {STAGE_ORDER.map((stage, index) => {
-                                                const active = itemTerminal ? stage === 'completed' && (item.status === 'success' || item.status === 'completed') : index === itemStageIndex;
-                                                const done = itemTerminal ? (item.status === 'success' || item.status === 'completed') : index < itemStageIndex;
-                                                const failedHere = (item.status === 'failed' || item.status === 'cancelled') && index === Math.max(0, itemStageIndex);
-                                                return (
-                                                  <div key={stage} className="min-w-0">
-                                                    <div className={`h-1.5 rounded-full ${failedHere ? 'bg-rose-500' : active ? 'bg-blue-500' : done ? 'bg-emerald-400' : 'bg-slate-200'}`} />
-                                                    <div className={`mt-1.5 truncate text-center text-[10px] font-black ${failedHere ? 'text-rose-700' : active ? 'text-blue-700' : done ? 'text-emerald-700' : 'text-slate-400'}`}>{STAGE_LABELS[stage]}</div>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          </div>
-
-                                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">文件路径</div>
-                                            <div className="mt-3 space-y-3">
-                                              <div>
-                                                <div className="text-[11px] font-black text-slate-400">输入 ELF</div>
-                                                <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.elf_path}</div>
-                                              </div>
-                                              <div>
-                                                <div className="text-[11px] font-black text-slate-400">输出目录</div>
-                                                <div className="mt-1 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">{item.output_dir || '-'}</div>
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">消息</div>
-                                            <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                                              <div>
-                                                <div className="text-[11px] font-black text-slate-400">阶段消息</div>
-                                                <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{item.phase_message || '-'}</div>
-                                              </div>
-                                              <div>
-                                                <div className="text-[11px] font-black text-slate-400">进度消息</div>
-                                                <div className="mt-1 min-h-[44px] whitespace-pre-wrap break-words rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">{progress?.message || '-'}</div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                          <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">运行统计</div>
-                                            <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
-                                              <div className="rounded-xl bg-slate-50 px-3 py-2">字节<br /><span className="font-black text-slate-900">{formatBytes(progress?.completed_bytes)} / {formatBytes(progress?.total_bytes)}</span></div>
-                                              <div className="rounded-xl bg-slate-50 px-3 py-2">批次<br /><span className="font-black text-slate-900">{progress?.completed_batches ?? 0} / {progress?.total_batches ?? 0}</span></div>
-                                              <div className="rounded-xl bg-slate-50 px-3 py-2">当前批次<br /><span className="font-black text-slate-900">{progress?.current_batch ?? '-'}</span></div>
-                                              <div className="rounded-xl bg-slate-50 px-3 py-2">函数进度<br /><span className="font-black text-slate-900">{progress?.completed_functions ?? 0} / {progress?.total_functions ?? '-'}</span></div>
-                                              <div className="rounded-xl bg-slate-50 px-3 py-2">开始时间<br /><span className="font-black text-slate-900">{formatDateTime(item.started_at)}</span></div>
-                                              <div className="rounded-xl bg-slate-50 px-3 py-2">结束时间<br /><span className="font-black text-slate-900">{formatDateTime(item.finished_at)}</span></div>
-                                            </div>
-                                          </div>
-
-                                          {(item.error_reason || item.failure_type) && (
-                                            <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 p-4">
-                                              <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-400">错误原文</div>
-                                              <div className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-white px-3 py-2 text-sm font-semibold text-rose-700">{item.error_reason || item.failure_type}</div>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </section>
-          ) : null}
-        </>
+      {previewDialog ? (
+        <FilePreviewDialog
+          title={previewDialog.title}
+          subtitle={previewDialog.subtitle}
+          content={previewDialog.content}
+          language={previewDialog.language}
+          loading={previewDialog.loading}
+          onClose={() => setPreviewDialog(null)}
+        />
       ) : null}
     </div>
   );

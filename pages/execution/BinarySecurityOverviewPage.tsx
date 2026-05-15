@@ -89,6 +89,14 @@ const MODULE_SELECTION_OPTIONS = [
   { value: 'auto', label: '按风险自动推进' },
   { value: 'manual_confirm', label: '系统分析后人工确认' },
 ] as const;
+const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
+  { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
+  { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
+  { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
+] as const;
+const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
+  PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, true]),
+) as Record<string, boolean>;
 const DEFAULT_STAGE_PARALLELISM = {
   firmware_unpack: 4,
   system_analysis: 4,
@@ -313,8 +321,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [defaultStageParallelism, setDefaultStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
   const [defaultMaxRetries, setDefaultMaxRetries] = useState(2);
   const [defaultContinueOnFailure, setDefaultContinueOnFailure] = useState(true);
+  const [defaultPartialSuccessStageAdvancement, setDefaultPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
+    DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+  );
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
+  const [partialSuccessStageAdvancement, setPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
+    DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+  );
   const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
@@ -359,6 +373,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       });
       setDefaultMaxRetries(projectConfig.config.max_retries_per_item ?? 2);
       setDefaultContinueOnFailure(projectConfig.config.continue_on_item_failure ?? true);
+      setDefaultPartialSuccessStageAdvancement({
+        ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+        ...(projectConfig.config.partial_success_stage_advancement || {}),
+      });
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
@@ -496,6 +514,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setUploadSpeed({});
     setMaxRetries(defaultMaxRetries);
     setContinueOnFailure(defaultContinueOnFailure);
+    setPartialSuccessStageAdvancement({
+      ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+      ...defaultPartialSuccessStageAdvancement,
+    });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
     setStageParallelism({
@@ -594,6 +616,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         policy_overrides: {
           max_retries_per_item: maxRetries,
           continue_on_item_failure: continueOnFailure,
+          partial_success_stage_advancement: Object.fromEntries(
+            PARTIAL_SUCCESS_ADVANCEMENT_FIELDS
+              .filter((field) => !isSourceTask || field.key !== 'binary_to_source')
+              .map((field) => [field.key, partialSuccessStageAdvancement[field.key] !== false]),
+          ),
           stage_parallelism: stageParallelism,
           module_selection_mode: moduleSelectionMode,
           module_risk_levels: moduleRiskLevels,
@@ -1024,6 +1051,18 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   <input type="checkbox" checked={continueOnFailure} onChange={(e) => setContinueOnFailure(e.target.checked)} />
                   子任务失败时继续推进其他子任务
                 </label>
+                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => !isSourceTask || field.key !== 'binary_to_source').map((field) => (
+                    <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={partialSuccessStageAdvancement[field.key] !== false}
+                        onChange={(e) => setPartialSuccessStageAdvancement((current) => ({ ...current, [field.key]: e.target.checked }))}
+                      />
+                      {field.label}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {createError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{createError}</div>}

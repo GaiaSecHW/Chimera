@@ -19,6 +19,7 @@ export interface BinarySecurityTaskPolicy {
   max_stage_parallelism?: number;
   max_retries_per_item?: number;
   continue_on_item_failure?: boolean;
+  partial_success_stage_advancement?: Record<string, boolean>;
   stage_parallelism?: Record<string, number>;
   stage_options?: Record<string, BinarySecurityStageOption>;
   module_selection_mode?: BinarySecurityModuleSelectionMode;
@@ -279,6 +280,7 @@ export interface BinarySecurityProjectConfig {
     max_stage_parallelism: number;
     max_retries_per_item: number;
     continue_on_item_failure: boolean;
+    partial_success_stage_advancement: Record<string, boolean>;
     stage_parallelism: Record<string, number>;
     stage_options: Record<string, { enabled: boolean }>;
   };
@@ -356,6 +358,7 @@ export const binarySecurityApi = {
       stage_options?: Record<string, BinarySecurityStageOption>;
       max_retries_per_item?: number;
       continue_on_item_failure?: boolean;
+      partial_success_stage_advancement?: Record<string, boolean>;
       stage_parallelism?: Record<string, number>;
       module_selection_mode?: BinarySecurityModuleSelectionMode;
       module_risk_levels?: string[];
@@ -423,6 +426,7 @@ export const binarySecurityApi = {
         max_stage_parallelism?: number;
         max_retries_per_item?: number;
         continue_on_item_failure?: boolean;
+        partial_success_stage_advancement?: Record<string, boolean>;
         stage_parallelism?: Record<string, number>;
         module_selection_mode?: 'auto' | 'manual_confirm';
         module_risk_levels?: string[];
