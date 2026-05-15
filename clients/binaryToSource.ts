@@ -13,6 +13,8 @@ export type B2SBudgetExhaustedAction = 'treat_as_passed' | 'treat_as_failed';
 export interface B2SServiceConfig {
   project_id: string;
   budget_exhausted_action: B2SBudgetExhaustedAction;
+  llm_provider_key?: string | null;
+  effective_llm_provider?: B2SLlmProviderSummary | null;
   updated_at?: string | null;
 }
 

@@ -2,13 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Save, Settings } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { B2SServiceConfig } from '../../clients/binaryToSource';
+import { B2SLlmProviderSummary, B2SServiceConfig } from '../../clients/binaryToSource';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
 
 const defaultConfig = (projectId: string): B2SServiceConfig => ({
   project_id: projectId,
   budget_exhausted_action: 'treat_as_passed',
+  llm_provider_key: null,
+  effective_llm_provider: null,
 });
 
 const B2S_FLOW = {
@@ -91,15 +93,26 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<B2SServiceConfig>(() => defaultConfig(projectId));
+  const [savedConfig, setSavedConfig] = useState<B2SServiceConfig>(() => defaultConfig(projectId));
+  const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
 
   const reload = async () => {
     setLoading(true);
     try {
-      const next = await b2sApi.getConfig(projectId);
-      setConfig({ ...defaultConfig(projectId), ...next, project_id: projectId });
+      const [next, providerResponse] = await Promise.all([
+        b2sApi.getConfig(projectId),
+        b2sApi.listLlmProviders(projectId),
+      ]);
+      const normalized = { ...defaultConfig(projectId), ...next, project_id: projectId };
+      setConfig(normalized);
+      setSavedConfig(normalized);
+      setLlmProviders(Array.isArray(providerResponse?.items) ? providerResponse.items : []);
     } catch (err: any) {
       notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-      setConfig(defaultConfig(projectId));
+      const fallback = defaultConfig(projectId);
+      setConfig(fallback);
+      setSavedConfig(fallback);
+      setLlmProviders([]);
     } finally {
       setLoading(false);
     }
@@ -109,12 +122,14 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     void reload();
   }, [projectId]);
 
-  const save = async () => {
+  const persistConfig = async (nextConfig: B2SServiceConfig, message: string) => {
     setSaving(true);
     try {
-      const saved = await b2sApi.saveConfig(projectId, config);
-      setConfig({ ...defaultConfig(projectId), ...saved, project_id: projectId });
-      notify('配置已保存', 'success');
+      const saved = await b2sApi.saveConfig(projectId, nextConfig);
+      const normalized = { ...defaultConfig(projectId), ...saved, project_id: projectId };
+      setConfig(normalized);
+      setSavedConfig(normalized);
+      notify(message, 'success');
     } catch (err: any) {
       notify(`保存失败: ${err?.message ?? err}`, 'error');
     } finally {
@@ -122,10 +137,45 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     }
   };
 
+  const saveProviderConfig = async () => {
+    await persistConfig(
+      {
+        ...savedConfig,
+        llm_provider_key: config.llm_provider_key || null,
+      },
+      'LLM / Agent 配置已保存',
+    );
+  };
+
+  const saveBudgetPolicy = async () => {
+    await persistConfig(
+      {
+        ...savedConfig,
+        budget_exhausted_action: config.budget_exhausted_action,
+      },
+      '终态策略已保存',
+    );
+  };
+
+  const resetProviderConfig = () => {
+    setConfig((prev) => ({ ...prev, llm_provider_key: null }));
+    notify('LLM / Agent 配置已重置为默认值（尚未保存）', 'info');
+  };
+
   const resetPolicy = () => {
-    setConfig(defaultConfig(projectId));
+    setConfig((prev) => ({ ...prev, budget_exhausted_action: defaultConfig(projectId).budget_exhausted_action }));
     notify('终态策略已重置为默认值（尚未保存）', 'info');
   };
+
+  const effectiveProvider = config.llm_provider_key
+    ? llmProviders.find((item) => item.provider_key === config.llm_provider_key)
+      || (config.effective_llm_provider?.provider_key === config.llm_provider_key ? config.effective_llm_provider : null)
+    : llmProviders.find((item) => item.provider_key === config.effective_llm_provider?.provider_key)
+      || llmProviders.find((item) => item.is_default)
+      || llmProviders[0]
+      || config.effective_llm_provider
+      || null;
+  const hasSelectedProviderInList = !config.llm_provider_key || llmProviders.some((item) => item.provider_key === config.llm_provider_key);
 
   return (
     <div className={embedded ? 'space-y-6' : 'px-8 pt-8 pb-10 space-y-6'}>
@@ -143,7 +193,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-500">
-                当前配置项归属于 `secflow-app-binary-to-source` 微服务，用于控制反编译子任务在预算耗尽类终态下的默认收敛动作。
+                当前配置项归属于 `secflow-app-binary-to-source` 微服务，用于控制反编译子任务默认使用的 LLM Provider，以及预算耗尽类终态的收敛动作。
               </p>
               {config.updated_at && <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>}
             </div>
@@ -173,9 +223,53 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
             notes={B2S_FLOW.notes}
           />
           <SectionCard
+            title="LLM / Agent 配置"
+            subtitle="配置二进制逆向任务默认使用的 LLM Provider。修改只影响后续新建任务，不影响已创建任务及其重试/重跑。"
+            actions={<PanelActions saving={saving} onSave={() => { void saveProviderConfig(); }} onReset={resetProviderConfig} />}
+          >
+            <FieldRow label="默认 LLM Provider" hint="llm_provider_key">
+              <select
+                value={config.llm_provider_key || ''}
+                onChange={(e) => setConfig((prev) => ({ ...prev, llm_provider_key: e.target.value || null }))}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+              >
+                <option value="">跟随配置中心默认 Provider</option>
+                {!hasSelectedProviderInList && config.llm_provider_key ? (
+                  <option value={config.llm_provider_key}>
+                    {config.llm_provider_key} · 已失效或已禁用
+                  </option>
+                ) : null}
+                {llmProviders.map((provider) => (
+                  <option key={provider.provider_key} value={provider.provider_key} disabled={!provider.enabled}>
+                    {(provider.display_name || provider.provider_key)} · {provider.provider_type || 'unknown'} · {provider.model || 'no-model'}{provider.is_default ? ' · 平台默认' : ''}
+                  </option>
+                ))}
+              </select>
+            </FieldRow>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <div className="font-semibold text-slate-800">当前生效 Provider</div>
+              {effectiveProvider ? (
+                <div className="mt-2 space-y-1 text-xs">
+                  <div>名称：{effectiveProvider.display_name || effectiveProvider.provider_key}</div>
+                  <div className="font-mono break-all">Key：{effectiveProvider.provider_key}</div>
+                  <div>类型：{effectiveProvider.provider_type || '-'}</div>
+                  <div>模型：{effectiveProvider.model || '-'}</div>
+                  <div>{effectiveProvider.is_default ? '平台默认 Provider' : '项目指定 Provider'}</div>
+                </div>
+              ) : (
+                <div className="mt-2 text-xs text-amber-700">
+                  当前无法解析有效 Provider。若项目已保存特定 Provider，请检查该 Provider 是否仍在配置中心启用。
+                </div>
+              )}
+            </div>
+            <p className="text-xs leading-5 text-slate-500">
+              任务创建时若未手工指定 `llm_provider_key`，默认取这里的项目级 Provider；若这里留空，则回退到配置中心默认 Provider。
+            </p>
+          </SectionCard>
+          <SectionCard
             title="终态策略"
             subtitle="预算耗尽类失败的默认收敛动作"
-            actions={<PanelActions saving={saving} onSave={() => { void save(); }} onReset={resetPolicy} />}
+            actions={<PanelActions saving={saving} onSave={() => { void saveBudgetPolicy(); }} onReset={resetPolicy} />}
           >
             <FieldRow label="budget_exhausted_action" hint="当下游返回 max_rounds_exceeded / max_retries_reached / timeout_max_retries_exceeded 等预算耗尽类失败时生效">
               <select

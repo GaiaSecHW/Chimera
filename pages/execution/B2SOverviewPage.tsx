@@ -114,6 +114,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [createResult, setCreateResult] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState('');
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const hasSelectedProviderInList = !llmProviderKey || llmProviders.some((item) => item.provider_key === llmProviderKey);
 
   const load = async () => {
     if (!projectId) return;
@@ -199,10 +200,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     if (!projectId) return;
     setLlmProvidersLoading(true);
     try {
-      const data = await executionApi.binaryToSource.listLlmProviders(projectId);
+      const [data, projectConfig] = await Promise.all([
+        executionApi.binaryToSource.listLlmProviders(projectId),
+        executionApi.binaryToSource.getConfig(projectId),
+      ]);
       const providers = (data.items || []).filter((item) => item.enabled);
+      const projectProviderKey = String(projectConfig?.llm_provider_key || '').trim();
       setLlmProviders(providers);
-      setLlmProviderKey((current) => current || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
+      setLlmProviderKey((current) => current || projectProviderKey || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
     } catch (e: any) {
       setCreateError(e?.message || '加载LLM Provider失败');
     } finally {
@@ -557,6 +562,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
                   >
                     {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
+                    {!hasSelectedProviderInList && llmProviderKey ? (
+                      <option value={llmProviderKey}>
+                        {llmProviderKey} · 项目默认已失效或已禁用
+                      </option>
+                    ) : null}
                     {llmProviders.map((provider) => (
                       <option key={provider.provider_key} value={provider.provider_key}>
                         {(provider.display_name || provider.provider_key)} · {provider.model || '-'}{provider.is_default ? ' · 默认' : ''}
