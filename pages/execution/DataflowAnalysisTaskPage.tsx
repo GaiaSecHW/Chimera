@@ -298,6 +298,30 @@ function extractTaintVars(raw: string): string {
 }
 
 function parseFunctionsList(content: string): EntryItem[] {
+  const stripped = content.trim();
+
+  // JSON array format (new format from functions_list.py)
+  // [{"tag":"P","file":"foo.cpp","line":45,"function":"Bar()","taints":["aMsg"]},...]
+  if (stripped.startsWith('[')) {
+    try {
+      const items = JSON.parse(stripped);
+      if (Array.isArray(items)) {
+        return items
+          .filter((item) => item && typeof item === 'object' && item.function)
+          .map((item) => ({
+            raw: JSON.stringify(item),
+            source_file: item.file || '',
+            function_name: item.function || '',
+            line_hint: item.line ? `L${item.line}` : '',
+            taint_vars: Array.isArray(item.taints) ? item.taints.join(',') : '',
+          }));
+      }
+    } catch {
+      // fall through to text-based parsing
+    }
+  }
+
+  // Text-based formats (legacy)
   const result: EntryItem[] = [];
   for (const raw of content.split('\n')) {
     const line = raw.trim();
