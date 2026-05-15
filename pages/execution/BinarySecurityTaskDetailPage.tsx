@@ -201,6 +201,10 @@ const safeInt = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
 };
+const safeCountLabel = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? String(Math.trunc(parsed)) : '-';
+};
 const boolLabel = (value: unknown) => {
   if (value === undefined || value === null) return '-';
   if (typeof value === 'string') {
@@ -228,7 +232,7 @@ type DownstreamTaskState = {
 type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
-type BlockingActionKind = '' | 'retry' | 'continue';
+type BlockingActionKind = '' | 'retry' | 'retry_failed_items';
 type TaskStrategyDraft = {
   stage_options: Record<string, { enabled: boolean }>;
   stage_parallelism: Record<string, number>;
@@ -240,6 +244,19 @@ type TaskStrategyDraft = {
 };
 type StrategySectionKey = 'stage_options' | 'module_strategy' | 'execution_policy';
 type ManualOperationState = NonNullable<BinarySecurityTaskDetail['manual_operation_state']>;
+
+const systemAnalysisRiskCountLabels = (state?: DownstreamTaskState) => {
+  if (state?.detail?.kind !== 'system_analysis') {
+    return { high: '-', medium: '-', low: '-' };
+  }
+  const summary = state.detail.data.result_json?.summary || {};
+  const resultJson = state.detail.data.result_json || {};
+  return {
+    high: safeCountLabel(summary.high_risk_module_count ?? resultJson.high_risk_module_count),
+    medium: safeCountLabel(summary.medium_risk_module_count ?? resultJson.medium_risk_module_count),
+    low: safeCountLabel(summary.low_risk_module_count ?? resultJson.low_risk_module_count),
+  };
+};
 
 const BLOCKING_ACTION_COPY: Record<
   Exclude<BlockingActionKind, ''>,
@@ -258,11 +275,11 @@ const BLOCKING_ACTION_COPY: Record<
     progressTitle: '后台正在清空并从头开始',
     progressMessage: '请求会立即受理，后台完成清理后自动切回待调度状态。',
   },
-  continue: {
-    confirmTitle: '继续任务',
-    confirmMessage: '将从当前连续成功阶段的下一个阶段开始继续推进。前序连续成功阶段会保留；当前阶段及后续阶段会清空结果摘要，并尽量复用旧下游任务。是否继续？',
-    confirmText: '确认继续',
-    progressTitle: '后台正在继续任务准备',
+  retry_failed_items: {
+    confirmTitle: '重试失败项',
+    confirmMessage: '该操作只会重试当前首个可恢复阶段中的失败子任务，并联动清理这些失败项对应的归档与后续阶段结果；已经成功的子任务会保留，失败子任务不会进入归档。是否继续？',
+    confirmText: '确认重试失败项',
+    progressTitle: '后台正在准备重试失败项',
     progressMessage: '请求会立即受理，后台完成准备后自动切回待调度状态。',
   },
 };
@@ -1042,8 +1059,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const manualOperationState = detail?.manual_operation_state;
   const taskRetrySupported = Boolean(manualOperationState?.can_retry ?? detail?.task_retry_supported);
   const taskRetryReason = manualOperationState?.blocking_reason || detail?.task_retry_reason || '当前任务不可清空并从头开始';
-  const taskContinueSupported = Boolean(manualOperationState?.can_continue ?? detail?.task_continue_supported);
-  const taskContinueReason = manualOperationState?.blocking_reason || detail?.task_continue_reason || '当前任务不可继续';
+  const taskRetryFailedItemsSupported = Boolean(manualOperationState?.can_retry_failed_items ?? detail?.task_retry_failed_items_supported);
+  const taskRetryFailedItemsReason = manualOperationState?.blocking_reason || detail?.task_retry_failed_items_reason || '当前任务不可重试失败项';
   const taskCancelSupported = Boolean(manualOperationState?.can_cancel ?? canActOnTask);
   const taskDeleteSupported = Boolean(manualOperationState?.can_delete ?? canActOnTask);
   const moduleConfirmSupported = Boolean(manualOperationState?.can_confirm_modules ?? false);
@@ -1509,25 +1526,116 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
-  const retryStage = async (stageName: string) => {
+  const retryStageFailedItems = async (stageName: string) => {
     if (!projectId || !taskId || !detail) return;
     const summary = detail.stage_summaries.find((item) => item.stage_name === stageName);
-    if (!summary || !summary.retry_supported) {
+    if (!summary || !summary.retry_failed_supported) {
       return;
     }
     const confirmed = await showConfirm({
-      title: '重试阶段',
-      message: `将重试阶段“${STAGE_LABELS[stageName] || stageName}”的全部子任务。系统会尽量复用当前阶段已有的下游任务，但会清空当前阶段及后续阶段的结果摘要；后续阶段会等待当前阶段完成后重新推进。是否继续？`,
+      title: '重试失败项',
+      message: `将只重试阶段“${STAGE_LABELS[stageName] || stageName}”中的失败子任务，并只联动这些失败项对应的归档；当前阶段已成功子任务会保留，后续阶段会等待当前阶段重试完成后重新推进。是否继续？`,
+      confirmText: '确认重试失败项',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setActionLoading(`stage-failed:${stageName}`);
+    try {
+      await executionApi.binarySecurity.retryStageFailedItems(projectId, taskId, stageName);
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || '阶段失败项重试失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const retryStageFull = async (stageName: string) => {
+    if (!projectId || !taskId || !detail) return;
+    const summary = detail.stage_summaries.find((item) => item.stage_name === stageName);
+    if (!summary || !summary.retry_full_supported) {
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '阶段完全重试',
+      message: `将清空阶段“${STAGE_LABELS[stageName] || stageName}”的全部业务子任务及其对应归档子任务，然后重新读取上游输出并重建该阶段输入。旧子任务会先取消/删除，再重新创建，是否继续？`,
+      confirmText: '确认阶段完全重试',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setActionLoading(`stage-full:${stageName}`);
+    try {
+      await executionApi.binarySecurity.retryStageFull(projectId, taskId, stageName);
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || '阶段完全重试失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const retryArchiveStageFailedItems = async (stageName: string) => {
+    if (!projectId || !taskId) return;
+    const archiveNode = stageDisplayNodes.find((node) => node.kind === 'archive' && node.stage_name === stageName);
+    if (!archiveNode?.retry_failed_supported) return;
+    const confirmed = await showConfirm({
+      title: '重试归档失败项',
+      message: `将只重试阶段“${STAGE_LABELS[stageName] || stageName}”的失败归档任务。该操作不会重跑业务子任务，只会重做归档与状态回写，是否继续？`,
+      confirmText: '确认重试失败项',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setActionLoading(`archive-stage-failed:${stageName}`);
+    setError(null);
+    try {
+      await executionApi.binarySecurity.retryArchiveStageFailedItems(projectId, taskId, stageName);
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || '归档失败项重试失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const retryArchiveStageFull = async (stageName: string) => {
+    if (!projectId || !taskId) return;
+    const archiveNode = stageDisplayNodes.find((node) => node.kind === 'archive' && node.stage_name === stageName);
+    if (!archiveNode?.retry_full_supported) return;
+    const confirmed = await showConfirm({
+      title: '归档阶段完全重试',
+      message: `将清空阶段“${STAGE_LABELS[stageName] || stageName}”当前全部归档子任务，并基于当前业务阶段已成功的子任务重建归档。该操作不会重跑业务子任务，是否继续？`,
+      confirmText: '确认归档阶段完全重试',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setActionLoading(`archive-stage-full:${stageName}`);
+    setError(null);
+    try {
+      await executionApi.binarySecurity.retryArchiveStageFull(projectId, taskId, stageName);
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || '归档阶段完全重试失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const retryArchiveJob = async (job: ArchiveJob) => {
+    if (!projectId || !taskId || !job.retry_supported) return;
+    const confirmed = await showConfirm({
+      title: '重试归档任务',
+      message: `将重试归档任务“${job.item_key || job.item_id}”。该操作只会重新执行产物归档与状态回写，不会重跑下游微服务任务，是否继续？`,
       confirmText: '确认重试',
       cancelText: '取消',
     });
     if (!confirmed) return;
-    setActionLoading(`stage:${stageName}`);
+    setActionLoading(`archive-job:${job.id}`);
+    setError(null);
     try {
-      await executionApi.binarySecurity.retryStage(projectId, taskId, stageName);
+      await executionApi.binarySecurity.retryArchiveJob(projectId, taskId, job.id);
       await refreshActiveTab();
     } catch (e: any) {
-      setError(e?.message || '阶段重试失败');
+      setError(e?.message || '归档任务重试失败');
     } finally {
       setActionLoading('');
     }
@@ -1646,6 +1754,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const detailPayload = selectedArchiveNode.detail as BinarySecurityOverviewNode['detail'] & { jobs?: ArchiveJob[] };
     return detailPayload.jobs || [];
   }, [selectedArchiveNode]);
+  const archiveRetryFailedSupported = Boolean(selectedArchiveNode?.retry_failed_supported && manualOperationState?.can_retry_archive_failed_items !== false);
+  const archiveRetryFailedReason = !manualOperationState?.can_retry_archive_failed_items
+    ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档失败项重试')
+    : (selectedArchiveNode?.retry_failed_reason || undefined);
+  const archiveRetryFullSupported = Boolean(selectedArchiveNode?.retry_full_supported && manualOperationState?.can_retry_archive_full !== false);
+  const archiveRetryFullReason = !manualOperationState?.can_retry_archive_full
+    ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档阶段完全重试')
+    : (selectedArchiveNode?.retry_full_reason || undefined);
   const requiresModuleConfirmation = detail?.status === 'pending_module_confirmation' && Boolean(moduleSelection?.requires_confirmation);
   const systemAnalysisModules = moduleSelection?.system_analysis_modules || [];
   const candidateModules = moduleSelection?.candidate_modules || [];
@@ -1670,6 +1786,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (stageStatusFilter === 'all') return filteredStageItems;
     return filteredStageItems.filter((item) => item.status === stageStatusFilter);
   }, [filteredStageItems, stageStatusFilter]);
+  const isSystemAnalysisStageTable = selectedStage === 'system_analysis';
   const selectedVisibleStageItems = useMemo(
     () => visibleStageItems.filter((item) => selectedStageItemIds.includes(item.id)),
     [selectedStageItemIds, visibleStageItems],
@@ -1731,7 +1848,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     try {
       const result = action === 'retry'
         ? await executionApi.binarySecurity.retryTask(projectId, taskId)
-        : await executionApi.binarySecurity.continueTask(projectId, taskId);
+        : await executionApi.binarySecurity.retryFailedItems(projectId, taskId);
       setNotice(result?.message || '任务操作已受理，后台正在处理中');
       await refreshActiveTab();
     } catch (e: any) {
@@ -2034,7 +2151,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                         <div className="text-xs font-bold text-slate-400">操作类型</div>
                         <div className="mt-1 text-sm font-black text-slate-900">
-                          {modalAction === 'retry' ? '清空并从头开始' : '继续任务'}
+                          {modalAction === 'retry' ? '清空并从头开始' : '重试失败项'}
                         </div>
                       </div>
                     </div>
@@ -2105,12 +2222,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           </button>
           <button
             type="button"
-            title={taskContinueSupported ? undefined : taskContinueReason}
-            onClick={() => setPendingBlockingAction('continue')}
-            disabled={actionLoading !== '' || !taskContinueSupported || isPreparing}
+            title={taskRetryFailedItemsSupported ? undefined : taskRetryFailedItemsReason}
+            onClick={() => setPendingBlockingAction('retry_failed_items')}
+            disabled={actionLoading !== '' || !taskRetryFailedItemsSupported || isPreparing}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-60"
           >
-            {actionLoading === 'continue' ? '继续中...' : '继续'}
+            {actionLoading === 'retry_failed_items' ? '重试中...' : '重试失败项'}
           </button>
           <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isPreparing} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
         </div>
@@ -2140,7 +2257,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 ) : null}
                 {detail.status === 'retry_preparing' ? (
                   <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
-                    正在清空并从头开始。后台正在清理全部阶段与下游任务，完成后会自动重新排队。
+                    正在准备重试。后台正在按当前选择的重试类型清理阶段、归档和下游任务，完成后会自动重新排队。
                   </div>
                 ) : null}
                 {taskStatusReason ? (
@@ -2569,7 +2686,51 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         <>
                           <div className="flex items-center justify-between gap-2">
                             <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">Archive</div>
-                            <div className="h-2.5 w-2.5 rounded-full border border-current bg-current/15" />
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                title={
+                                  !manualOperationState?.can_retry_archive_failed_items
+                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档失败项重试')
+                                    : (stage.retry_failed_reason || undefined)
+                                }
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                  stage.retry_failed_supported && manualOperationState?.can_retry_archive_failed_items !== false
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-slate-200 text-slate-500'
+                                }`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  if (!stage.retry_failed_supported || manualOperationState?.can_retry_archive_failed_items === false || actionLoading !== '') return;
+                                  void retryArchiveStageFailedItems(stage.stage_name);
+                                }}
+                                disabled={!stage.retry_failed_supported || manualOperationState?.can_retry_archive_failed_items === false || actionLoading !== ''}
+                              >
+                                {actionLoading === `archive-stage-failed:${stage.stage_name}` ? '重试中' : '重试失败项'}
+                              </button>
+                              <button
+                                type="button"
+                                title={
+                                  !manualOperationState?.can_retry_archive_full
+                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档阶段完全重试')
+                                    : (stage.retry_full_reason || undefined)
+                                }
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                  stage.retry_full_supported && manualOperationState?.can_retry_archive_full !== false
+                                    ? 'bg-slate-900 text-white'
+                                    : 'bg-slate-200 text-slate-500'
+                                }`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  if (!stage.retry_full_supported || manualOperationState?.can_retry_archive_full === false || actionLoading !== '') return;
+                                  void retryArchiveStageFull(stage.stage_name);
+                                }}
+                                disabled={!stage.retry_full_supported || manualOperationState?.can_retry_archive_full === false || actionLoading !== ''}
+                              >
+                                {actionLoading === `archive-stage-full:${stage.stage_name}` ? '重试中' : '阶段完全重试'}
+                              </button>
+                              <div className="h-2.5 w-2.5 rounded-full border border-current bg-current/15" />
+                            </div>
                           </div>
                           <div className="space-y-1">
                             <div className="text-sm font-black leading-none">产物归档</div>
@@ -2635,33 +2796,54 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             ) : (
                               <span className="text-[11px] font-semibold opacity-70">点击查看子任务</span>
                             )}
-                            <button
-                              type="button"
-                              title={
-                                !manualOperationState?.can_retry_stage
-                                  ? (manualOperationState?.blocking_reason || '当前任务暂不可进行阶段重试')
-                                  : shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason)
-                                    ? stage.retry_reason || '当前阶段不可安全重试'
-                                    : undefined
-                              }
-                              className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                stage.retryable && manualOperationState?.can_retry_stage !== false
-                                  ? 'bg-slate-900 text-white'
-                                  : 'bg-slate-200 text-slate-500'
-                              }`}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                if (!stage.retryable || manualOperationState?.can_retry_stage === false || actionLoading !== '') return;
-                                void retryStage(stage.stage_name);
-                              }}
-                              disabled={!stage.retryable || manualOperationState?.can_retry_stage === false || actionLoading !== ''}
-                            >
-                              {actionLoading === `stage:${stage.stage_name}` ? '重试中' : '重试'}
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                title={
+                                  manualOperationState?.can_retry_stage_failed_items === false
+                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可重试失败项')
+                                    : (stage.retry_failed_reason || undefined)
+                                }
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                  stage.retry_failed_supported && manualOperationState?.can_retry_stage_failed_items !== false
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-slate-200 text-slate-500'
+                                }`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  if (!stage.retry_failed_supported || manualOperationState?.can_retry_stage_failed_items === false || actionLoading !== '') return;
+                                  void retryStageFailedItems(stage.stage_name);
+                                }}
+                                disabled={!stage.retry_failed_supported || manualOperationState?.can_retry_stage_failed_items === false || actionLoading !== ''}
+                              >
+                                {actionLoading === `stage-failed:${stage.stage_name}` ? '重试中' : '重试失败项'}
+                              </button>
+                              <button
+                                type="button"
+                                title={
+                                  manualOperationState?.can_retry_stage_full === false
+                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可完全重试')
+                                    : (stage.retry_full_reason || undefined)
+                                }
+                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
+                                  stage.retry_full_supported && manualOperationState?.can_retry_stage_full !== false
+                                    ? 'bg-slate-900 text-white'
+                                    : 'bg-slate-200 text-slate-500'
+                                }`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  if (!stage.retry_full_supported || manualOperationState?.can_retry_stage_full === false || actionLoading !== '') return;
+                                  void retryStageFull(stage.stage_name);
+                                }}
+                                disabled={!stage.retry_full_supported || manualOperationState?.can_retry_stage_full === false || actionLoading !== ''}
+                              >
+                                {actionLoading === `stage-full:${stage.stage_name}` ? '重试中' : '阶段完全重试'}
+                              </button>
+                            </div>
                           </div>
                           {shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason) ? (
                             <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
-                              {stage.retry_reason}
+                              {stage.retry_failed_reason || stage.retry_full_reason || stage.retry_reason}
                             </div>
                           ) : null}
                         </>
@@ -2737,22 +2919,63 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               {selectedNodeKind === 'archive' ? (
                 <>
                   {selectedArchiveNode ? (
-                    <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-xs font-bold text-slate-400">归档任务</div>
-                        <div className="mt-1 text-lg font-black text-slate-900">{(selectedArchiveNode.detail as any)?.job_count ?? 0}</div>
+                    <div className="space-y-3">
+                      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                        <div className="text-sm font-semibold text-slate-500">
+                          归档阶段支持“重试失败项”和“阶段完全重试”，都不会重跑业务子任务。
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            title={archiveRetryFailedReason}
+                            className={`rounded-full px-4 py-2 text-sm font-black ${
+                              archiveRetryFailedSupported && actionLoading === ''
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                            onClick={() => {
+                              if (!archiveRetryFailedSupported || actionLoading !== '') return;
+                              void retryArchiveStageFailedItems(selectedStage);
+                            }}
+                            disabled={!archiveRetryFailedSupported || actionLoading !== ''}
+                          >
+                            {actionLoading === `archive-stage-failed:${selectedStage}` ? '归档重试中' : '重试失败项'}
+                          </button>
+                          <button
+                            type="button"
+                            title={archiveRetryFullReason}
+                            className={`rounded-full px-4 py-2 text-sm font-black ${
+                              archiveRetryFullSupported && actionLoading === ''
+                                ? 'bg-slate-900 text-white'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                            onClick={() => {
+                              if (!archiveRetryFullSupported || actionLoading !== '') return;
+                              void retryArchiveStageFull(selectedStage);
+                            }}
+                            disabled={!archiveRetryFullSupported || actionLoading !== ''}
+                          >
+                            {actionLoading === `archive-stage-full:${selectedStage}` ? '归档清理中' : '阶段完全重试'}
+                          </button>
+                        </div>
                       </div>
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                        <div className="text-xs font-bold text-emerald-500">完成</div>
-                        <div className="mt-1 text-lg font-black text-emerald-800">{(selectedArchiveNode.detail as any)?.success_count ?? 0}</div>
-                      </div>
-                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
-                        <div className="text-xs font-bold text-rose-500">失败</div>
-                        <div className="mt-1 text-lg font-black text-rose-800">{(selectedArchiveNode.detail as any)?.failed_count ?? 0}</div>
-                      </div>
-                      <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
-                        <div className="text-xs font-bold text-blue-500">总耗时</div>
-                        <div className="mt-1 text-lg font-black text-blue-800">{durationLabel((selectedArchiveNode.detail as any)?.first_created_at, (selectedArchiveNode.detail as any)?.last_updated_at)}</div>
+                      <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <div className="text-xs font-bold text-slate-400">归档任务</div>
+                          <div className="mt-1 text-lg font-black text-slate-900">{(selectedArchiveNode.detail as any)?.job_count ?? 0}</div>
+                        </div>
+                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                          <div className="text-xs font-bold text-emerald-500">完成</div>
+                          <div className="mt-1 text-lg font-black text-emerald-800">{(selectedArchiveNode.detail as any)?.success_count ?? 0}</div>
+                        </div>
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+                          <div className="text-xs font-bold text-rose-500">失败</div>
+                          <div className="mt-1 text-lg font-black text-rose-800">{(selectedArchiveNode.detail as any)?.failed_count ?? 0}</div>
+                        </div>
+                        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+                          <div className="text-xs font-bold text-blue-500">总耗时</div>
+                          <div className="mt-1 text-lg font-black text-blue-800">{durationLabel((selectedArchiveNode.detail as any)?.first_created_at, (selectedArchiveNode.detail as any)?.last_updated_at)}</div>
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -2774,8 +2997,30 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           </div>
                           <div className="mt-3 break-all text-base font-black text-slate-900">{job.item_key || job.item_id}</div>
                         </div>
-                        <div className="shrink-0 whitespace-nowrap rounded-xl border border-slate-200 bg-white/80 px-3 py-2 font-mono text-xs text-slate-600">
-                          {fmt(job.created_at)} {'->'} {fmt(job.completed_at || job.updated_at)}
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                          <button
+                            type="button"
+                            title={
+                              !manualOperationState?.can_retry_archive
+                                ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档重试')
+                                : (job.retry_reason || undefined)
+                            }
+                            className={`rounded-full px-3 py-1 text-xs font-black ${
+                              job.retry_supported && manualOperationState?.can_retry_archive !== false && actionLoading === ''
+                                ? 'bg-slate-900 text-white'
+                                : 'bg-slate-200 text-slate-500'
+                            }`}
+                            onClick={() => {
+                              if (!job.retry_supported || manualOperationState?.can_retry_archive === false || actionLoading !== '') return;
+                              void retryArchiveJob(job);
+                            }}
+                            disabled={!job.retry_supported || manualOperationState?.can_retry_archive === false || actionLoading !== ''}
+                          >
+                            {actionLoading === `archive-job:${job.id}` ? '重试中' : '重试归档'}
+                          </button>
+                          <div className="whitespace-nowrap rounded-xl border border-slate-200 bg-white/80 px-3 py-2 font-mono text-xs text-slate-600">
+                            {fmt(job.created_at)} {'->'} {fmt(job.completed_at || job.updated_at)}
+                          </div>
                         </div>
                       </div>
                       <div className="mt-4 grid grid-cols-1 gap-3 text-xs text-slate-600 xl:grid-cols-2">
@@ -2928,6 +3173,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          <th className="w-24 px-3 py-3">状态</th>
 	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
 	                          <th className="w-24 px-3 py-3">重试</th>
+                          {isSystemAnalysisStageTable ? (
+                            <>
+                              <th className="w-28 px-3 py-3">高风险模块</th>
+                              <th className="w-28 px-3 py-3">中风险模块</th>
+                              <th className="w-28 px-3 py-3">低风险模块</th>
+                            </>
+                          ) : null}
                           <th className="w-44 px-3 py-3">开始时间</th>
                           <th className="w-44 px-3 py-3">结束时间</th>
                           <th className="w-28 px-3 py-3">耗时</th>
@@ -2941,6 +3193,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
 	                          const expanded = expandedStageItemId === item.id;
 	                          const checked = selectedStageItemIds.includes(item.id);
+                            const riskCounts = systemAnalysisRiskCountLabels(downstreamByItemId[item.id]);
 	                          return (
 	                            <React.Fragment key={item.id}>
 	                              <tr className="align-top transition hover:bg-slate-50/80">
@@ -2979,6 +3232,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                   </div>
                                 </td>
                                 <td className="px-3 py-3 font-bold text-slate-700">{item.retry_count || 0}</td>
+                                {isSystemAnalysisStageTable ? (
+                                  <>
+                                    <td className="px-3 py-3 font-black text-slate-900">{riskCounts.high}</td>
+                                    <td className="px-3 py-3 font-black text-slate-900">{riskCounts.medium}</td>
+                                    <td className="px-3 py-3 font-black text-slate-900">{riskCounts.low}</td>
+                                  </>
+                                ) : null}
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.started_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.finished_at)}</td>
                                 <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</td>
@@ -3029,7 +3289,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               </tr>
 	                              {expanded ? (
 	                                <tr className="bg-slate-50/70">
-	                                  <td colSpan={10} className="px-4 py-4">
+	                                  <td colSpan={isSystemAnalysisStageTable ? 13 : 10} className="px-4 py-4">
 	                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
 	                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
                                         <aside className="rounded-2xl border border-slate-200 bg-white/90 p-4">

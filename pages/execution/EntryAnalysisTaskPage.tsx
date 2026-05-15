@@ -1,13 +1,13 @@
 ﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
+import { ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppEaStageEvent, AppEaTaskDetail, AppEaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
-import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
-import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
+import { TaskOriginCard } from './taskOrigin';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -59,6 +59,27 @@ function extractFsRelPath(outputPath: string, projectId: string): string | null 
 function openInFileExplorer(fsPath: string) {
   sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
   window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: fsPath } }));
+}
+
+function getTaskMode(task: Pick<AppEaTaskItem, 'task_origin_type' | 'parent_task_type'>): 'manual' | 'binary' | 'source' {
+  if (String(task.task_origin_type || '').trim() !== 'binary_security') return 'manual';
+  return String(task.parent_task_type || '').trim() === 'source' ? 'source' : 'binary';
+}
+
+function getTaskModeLabel(task: Pick<AppEaTaskItem, 'task_origin_type' | 'parent_task_type'>): string {
+  const mode = getTaskMode(task);
+  if (mode === 'manual') return '手动';
+  return mode === 'source' ? '源码模式' : '二进制模式';
+}
+
+function getTaskModeBadgeClassName(task: Pick<AppEaTaskItem, 'task_origin_type' | 'parent_task_type'>): string {
+  const mode = getTaskMode(task);
+  if (mode === 'manual') return 'bg-slate-100 text-slate-700';
+  return mode === 'source' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700';
+}
+
+function getQuickFilterButtonClassName(active: boolean, baseClassName: string): string {
+  return `${baseClassName} transition-all ${active ? 'ring-2 ring-violet-200 ring-offset-1' : 'hover:opacity-80'}`;
 }
 
 const STAGE_STEPS = [
@@ -198,6 +219,39 @@ const SORT_OPTIONS = [
   { value: 'task_name', label: '任务名称' },
 ];
 
+const HEADER_SORT_FIELDS: Partial<Record<'task' | 'module' | 'status' | 'origin' | 'created_at' | 'duration', string>> = {
+  task: 'task_name',
+  status: 'status',
+  created_at: 'created_at',
+  duration: 'started_at',
+};
+
+type SortableHeaderProps = {
+  label: string;
+  active: boolean;
+  direction: 'asc' | 'desc';
+  onClick?: () => void;
+  className?: string;
+};
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, direction, onClick, className }) => {
+  if (!onClick) return <ExecutionTableTh className={className}>{label}</ExecutionTableTh>;
+  return (
+    <ExecutionTableTh className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`inline-flex items-center gap-1 transition-colors ${active ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+        title={`按${label}排序`}
+      >
+        <span>{label}</span>
+        <ArrowDownUp size={13} className={active ? 'text-sky-600' : 'text-slate-400'} />
+        {active ? <span className="text-[10px] text-sky-600">{direction === 'asc' ? '升序' : '降序'}</span> : null}
+      </button>
+    </ExecutionTableTh>
+  );
+};
+
 export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appEntryAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -216,6 +270,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(100);
   const [statusFilter, setStatusFilter] = useState('');
+  const [modeFilter, setModeFilter] = useState<'' | 'manual' | 'binary' | 'source'>('');
+  const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -238,6 +294,34 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'source' | 'output'>('input');
   const logScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleHeaderSort = (field: 'task' | 'module' | 'status' | 'origin' | 'created_at' | 'duration') => {
+    const mapped = HEADER_SORT_FIELDS[field];
+    if (!mapped) return;
+    if (sortBy === mapped) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(mapped);
+      setSortOrder(field === 'task' || field === 'status' ? 'asc' : 'desc');
+    }
+    setPage(1);
+  };
+
+  const toggleStatusQuickFilter = (status: string) => {
+    setStatusFilter((current) => (current === status ? '' : status));
+    setPage(1);
+  };
+
+  const toggleModeQuickFilter = (mode: '' | 'manual' | 'binary' | 'source') => {
+    setModeFilter((current) => (current === mode ? '' : mode));
+    setPage(1);
+  };
+
+  const toggleParentTaskQuickFilter = (parentTaskId: string) => {
+    if (!parentTaskId) return;
+    setParentTaskIdFilter((current) => (current === parentTaskId ? '' : parentTaskId));
+    setPage(1);
+  };
 
   // Pre-fill input_path from FileExplorer right-click
   useEffect(() => {
@@ -271,6 +355,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         page: p,
         per_page: perPage,
         status: statusFilter,
+        mode: modeFilter || undefined,
+        parent_task_id: parentTaskIdFilter.trim() || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
       });
@@ -281,9 +367,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage, statusFilter, sortBy, sortOrder]);
+  }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -933,6 +1019,24 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               ))}
             </select>
             <select
+              value={modeFilter}
+              onChange={(e) => { setModeFilter((e.target.value as '' | 'manual' | 'binary' | 'source') || ''); setPage(1); }}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
+              title="模式筛选"
+            >
+              <option value="">全部模式</option>
+              <option value="manual">手动</option>
+              <option value="binary">二进制模式</option>
+              <option value="source">源码模式</option>
+            </select>
+            <input
+              value={parentTaskIdFilter}
+              onChange={(e) => { setParentTaskIdFilter(e.target.value); setPage(1); }}
+              placeholder="筛选主任务ID"
+              className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
+              title="按主任务 ID 筛选"
+            />
+            <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
               className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
@@ -1037,7 +1141,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         ) : tasks.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
         ) : (
-          <ExecutionTable minWidth={1360}>
+          <ExecutionTable minWidth={1200}>
             <ExecutionTableHead>
               <tr>
                 <ExecutionTableTh className="w-12">
@@ -1048,13 +1152,33 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     aria-label="全选当前页任务"
                   />
                 </ExecutionTableTh>
-                <ExecutionTableTh>任务</ExecutionTableTh>
+                <SortableHeader
+                  label="任务"
+                  active={sortBy === 'task_name'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('task')}
+                />
                 <ExecutionTableTh>模块</ExecutionTableTh>
-                <ExecutionTableTh>状态</ExecutionTableTh>
-                <ExecutionTableTh>输入路径</ExecutionTableTh>
+                <ExecutionTableTh>模式</ExecutionTableTh>
+                <SortableHeader
+                  label="状态"
+                  active={sortBy === 'status'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('status')}
+                />
                 <ExecutionTableTh>来源</ExecutionTableTh>
-                <ExecutionTableTh>创建时间</ExecutionTableTh>
-                <ExecutionTableTh>耗时</ExecutionTableTh>
+                <SortableHeader
+                  label="创建时间"
+                  active={sortBy === 'created_at'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('created_at')}
+                />
+                <SortableHeader
+                  label="耗时"
+                  active={sortBy === 'started_at'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('duration')}
+                />
                 <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
               </tr>
             </ExecutionTableHead>
@@ -1062,8 +1186,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               {tasks.map((t) => (
                 <tr
                   key={t.task_id}
-                  className={`${executionTableInteractiveRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-violet-50/60' : ''}`.trim()}
-                  onClick={() => handleSelectTask(t.task_id)}
+                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-violet-50/60' : ''}`.trim()}
                 >
                   <ExecutionTableTd>
                     <input
@@ -1075,23 +1198,60 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     />
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[180px]">
-                    <div className="text-sm font-bold text-slate-900">{t.task_name}</div>
-                    <div className="mt-1 font-mono text-[11px] text-slate-400">{t.task_id}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTask(t.task_id)}
+                      className="text-left text-sm font-bold text-slate-900 hover:text-violet-700"
+                      title={`查看任务 ${t.task_name}`}
+                    >
+                      {t.task_name}
+                    </button>
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
                     <div className="text-sm font-semibold text-slate-700">{t.module_name || '-'}</div>
-                    {t.source_path ? <div className="mt-1 truncate text-[11px] text-slate-400" title={t.source_path}>{t.source_path}</div> : null}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => toggleModeQuickFilter(getTaskMode(t))}
+                      className={getQuickFilterButtonClassName(
+                        modeFilter === getTaskMode(t),
+                        `shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${getTaskModeBadgeClassName(t)}`
+                      )}
+                      title={modeFilter === getTaskMode(t) ? '再次点击取消模式筛选' : '点击按模式快速筛选'}
+                    >
+                      {getTaskModeLabel(t)}
+                    </button>
                   </ExecutionTableTd>
                   <ExecutionTableTd>
-                    <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                    <button
+                      type="button"
+                      onClick={() => toggleStatusQuickFilter(t.status)}
+                      className={getQuickFilterButtonClassName(
+                        statusFilter === t.status,
+                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
+                      )}
+                      title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
+                    >
                       {STATUS_LABEL[t.status] ?? t.status}
-                    </span>
+                    </button>
                   </ExecutionTableTd>
-                  <ExecutionTableTd className="max-w-[320px]">
-                    <div className="truncate font-mono text-xs text-slate-500" title={t.input_path}>{t.input_path}</div>
-                  </ExecutionTableTd>
-                  <ExecutionTableTd className="min-w-[170px]">
-                    <TaskOriginInline origin={t} compact />
+                  <ExecutionTableTd className="min-w-[150px]">
+                    {t.parent_task_id ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleParentTaskQuickFilter(t.parent_task_id || '')}
+                        className={getQuickFilterButtonClassName(
+                          parentTaskIdFilter === t.parent_task_id,
+                          'inline-flex max-w-full items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700'
+                        )}
+                        title={parentTaskIdFilter === t.parent_task_id ? '再次点击取消主任务筛选' : '点击按主任务 ID 快速筛选'}
+                      >
+                        <span className="truncate" title={t.parent_task_id}>{t.parent_task_id}</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}

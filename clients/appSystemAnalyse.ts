@@ -72,6 +72,7 @@ export const appSystemAnalyseApi = {
     per_page?: number;
     status?: string;
     analysis_mode?: 'binary' | 'source' | '';
+    parent_task_id?: string;
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
   }): Promise<{ items: AppSaTaskItem[]; total: number; page: number; per_page: number }> => {
@@ -80,6 +81,7 @@ export const appSystemAnalyseApi = {
     if (params.per_page) query.append('per_page', String(params.per_page));
     if (params.status) query.append('status', params.status);
     if (params.analysis_mode) query.append('analysis_mode', params.analysis_mode);
+    if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));

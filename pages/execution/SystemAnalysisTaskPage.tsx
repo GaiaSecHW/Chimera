@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, Plus, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import { ArrowDownUp, Loader2, Plus, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
-import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
 
@@ -37,19 +37,6 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   return `${m}m${s}s`;
 }
 
-function formatParentTaskDisplay(task: AppSaTaskItem): string {
-  if (!task.parent_task_id) return '';
-  return (task.parent_task_display || task.parent_task_id || '').trim();
-}
-
-function renderOriginBadge(task: AppSaTaskItem) {
-  const isLinked = String(task.task_origin_type || '').trim() === 'binary_security';
-  if (isLinked) {
-    return <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">总任务关联</span>;
-  }
-  return <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">手动任务</span>;
-}
-
 const SORT_OPTIONS = [
   { value: 'created_at', label: '创建时间' },
   { value: 'updated_at', label: '更新时间' },
@@ -58,6 +45,47 @@ const SORT_OPTIONS = [
   { value: 'status', label: '任务状态' },
   { value: 'task_name', label: '任务名称' },
 ];
+
+const HEADER_SORT_FIELDS: Partial<Record<'task' | 'status' | 'created_at' | 'duration', string>> = {
+  task: 'task_name',
+  status: 'status',
+  created_at: 'created_at',
+  duration: 'started_at',
+};
+
+type SortableHeaderProps = {
+  label: string;
+  active: boolean;
+  direction: 'asc' | 'desc';
+  onClick?: () => void;
+  className?: string;
+};
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, direction, onClick, className }) => {
+  if (!onClick) return <ExecutionTableTh className={className}>{label}</ExecutionTableTh>;
+  return (
+    <ExecutionTableTh className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`inline-flex items-center gap-1 transition-colors ${active ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+        title={`按${label}排序`}
+      >
+        <span>{label}</span>
+        <ArrowDownUp size={13} className={active ? 'text-sky-600' : 'text-slate-400'} />
+        {active ? <span className="text-[10px] text-sky-600">{direction === 'asc' ? '升序' : '降序'}</span> : null}
+      </button>
+    </ExecutionTableTh>
+  );
+};
+
+function getModeBadgeClassName(mode: string): string {
+  return mode === 'source' ? 'bg-emerald-50 text-emerald-700' : 'bg-cyan-50 text-cyan-700';
+}
+
+function getQuickFilterButtonClassName(active: boolean, baseClassName: string): string {
+  return `${baseClassName} transition-all ${active ? 'ring-2 ring-cyan-200 ring-offset-1' : 'hover:opacity-80'}`;
+}
 
 export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
@@ -75,6 +103,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [perPage, setPerPage] = useState(100);
   const [statusFilter, setStatusFilter] = useState('');
   const [analysisModeFilter, setAnalysisModeFilter] = useState<'' | 'binary' | 'source'>('');
+  const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
@@ -84,6 +113,35 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
+
+  const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
+    const mapped = HEADER_SORT_FIELDS[field];
+    if (!mapped) return;
+    if (sortBy === mapped) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(mapped);
+      setSortOrder(field === 'task' || field === 'status' ? 'asc' : 'desc');
+    }
+    setPage(1);
+  };
+
+  const toggleStatusQuickFilter = (status: string) => {
+    setStatusFilter((current) => (current === status ? '' : status));
+    setPage(1);
+  };
+
+  const toggleModeQuickFilter = (mode: '' | 'binary' | 'source') => {
+    if (!mode) return;
+    setAnalysisModeFilter((current) => (current === mode ? '' : mode));
+    setPage(1);
+  };
+
+  const toggleParentTaskQuickFilter = (parentTaskId: string) => {
+    if (!parentTaskId) return;
+    setParentTaskIdFilter((current) => (current === parentTaskId ? '' : parentTaskId));
+    setPage(1);
+  };
 
   // Pre-fill input_path from FileExplorer right-click
   useEffect(() => {
@@ -118,6 +176,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         per_page: perPage,
         status: statusFilter,
         analysis_mode: analysisModeFilter,
+        parent_task_id: parentTaskIdFilter.trim() || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
       });
@@ -128,9 +187,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage, statusFilter, analysisModeFilter, sortBy, sortOrder]);
+  }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -419,6 +478,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <option value="binary">二进制模式</option>
               <option value="source">源码模式</option>
             </select>
+            <input
+              value={parentTaskIdFilter}
+              onChange={(e) => { setParentTaskIdFilter(e.target.value); setPage(1); }}
+              placeholder="筛选主任务ID"
+              className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
+              title="按主任务 ID 筛选"
+            />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -529,7 +595,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             暂无任务，点击右上角「新建任务」创建
           </div>
         ) : (
-          <ExecutionTable minWidth={1280}>
+          <ExecutionTable minWidth={1200}>
             <ExecutionTableHead>
               <tr>
                 <ExecutionTableTh className="w-12">
@@ -540,13 +606,32 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     aria-label="全选当前页任务"
                   />
                 </ExecutionTableTh>
-                <ExecutionTableTh>任务</ExecutionTableTh>
+                <SortableHeader
+                  label="任务"
+                  active={sortBy === 'task_name'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('task')}
+                />
                 <ExecutionTableTh>分析模式</ExecutionTableTh>
-                <ExecutionTableTh>状态</ExecutionTableTh>
-                <ExecutionTableTh>总任务</ExecutionTableTh>
+                <SortableHeader
+                  label="状态"
+                  active={sortBy === 'status'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('status')}
+                />
                 <ExecutionTableTh>来源</ExecutionTableTh>
-                <ExecutionTableTh>创建时间</ExecutionTableTh>
-                <ExecutionTableTh>耗时</ExecutionTableTh>
+                <SortableHeader
+                  label="创建时间"
+                  active={sortBy === 'created_at'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('created_at')}
+                />
+                <SortableHeader
+                  label="耗时"
+                  active={sortBy === 'started_at'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('duration')}
+                />
                 <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
               </tr>
             </ExecutionTableHead>
@@ -554,8 +639,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               {tasks.map((t) => (
                 <tr
                   key={t.task_id}
-                  className={`${executionTableInteractiveRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
-                  onClick={() => onOpenTask(t.task_id)}
+                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
                 >
                   <ExecutionTableTd>
                     <input
@@ -567,30 +651,57 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     />
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[180px]">
-                    <div className="text-sm font-bold text-slate-900">{t.task_name}</div>
-                    <div className="mt-1 font-mono text-[11px] text-slate-400">{t.task_id}</div>
+                    <button
+                      type="button"
+                      onClick={() => onOpenTask(t.task_id)}
+                      className="text-left text-sm font-bold text-slate-900 hover:text-cyan-700"
+                      title={`查看任务 ${t.task_name}`}
+                    >
+                      {t.task_name}
+                    </button>
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap">
-                    <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                    <button
+                      type="button"
+                      onClick={() => toggleModeQuickFilter((t.analysis_mode || 'binary') as 'binary' | 'source')}
+                      className={getQuickFilterButtonClassName(
+                        analysisModeFilter === (t.analysis_mode || 'binary'),
+                        `rounded-full px-2.5 py-1 text-xs font-semibold ${getModeBadgeClassName(t.analysis_mode === 'source' ? 'source' : 'binary')}`
+                      )}
+                      title={analysisModeFilter === (t.analysis_mode || 'binary') ? '再次点击取消模式筛选' : '点击按模式快速筛选'}
+                    >
                       {t.analysis_mode_label || (t.analysis_mode === 'binary' ? '二进制' : t.analysis_mode === 'source' ? '源码' : '-')}
-                    </span>
+                    </button>
                   </ExecutionTableTd>
                   <ExecutionTableTd>
-                    <span className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                    <button
+                      type="button"
+                      onClick={() => toggleStatusQuickFilter(t.status)}
+                      className={getQuickFilterButtonClassName(
+                        statusFilter === t.status,
+                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
+                      )}
+                      title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
+                    >
                       {STATUS_LABEL[t.status] ?? t.status}
-                    </span>
+                    </button>
                   </ExecutionTableTd>
-                  <ExecutionTableTd className="max-w-[220px]">
-                    {formatParentTaskDisplay(t) ? (
-                      <div className="truncate font-mono text-xs text-slate-500" title={formatParentTaskDisplay(t)}>
-                        {formatParentTaskDisplay(t)}
-                      </div>
+                  <ExecutionTableTd className="min-w-[150px]">
+                    {t.parent_task_id ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleParentTaskQuickFilter(t.parent_task_id || '')}
+                        className={getQuickFilterButtonClassName(
+                          parentTaskIdFilter === t.parent_task_id,
+                          'inline-flex max-w-full items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700'
+                        )}
+                        title={parentTaskIdFilter === t.parent_task_id ? '再次点击取消主任务筛选' : '点击按主任务 ID 快速筛选'}
+                      >
+                        <span className="truncate" title={t.parent_task_id}>{t.parent_task_id}</span>
+                      </button>
                     ) : (
-                      <span className="text-xs text-slate-300"> </span>
+                      <span className="text-xs text-slate-400">-</span>
                     )}
-                  </ExecutionTableTd>
-                  <ExecutionTableTd className="min-w-[170px]">
-                    {renderOriginBadge(t)}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}

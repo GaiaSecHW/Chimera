@@ -65,6 +65,10 @@ export interface BinarySecurityTask {
     retry_count: number;
     retry_supported: boolean;
     retry_reason?: string | null;
+    retry_failed_supported?: boolean;
+    retry_failed_reason?: string | null;
+    retry_full_supported?: boolean;
+    retry_full_reason?: string | null;
     total_items: number;
     success_items: number;
     failed_items: number;
@@ -78,6 +82,8 @@ export interface BinarySecurityTask {
   task_retry_reason?: string | null;
   task_continue_supported: boolean;
   task_continue_reason?: string | null;
+  task_retry_failed_items_supported?: boolean;
+  task_retry_failed_items_reason?: string | null;
   manual_operation_state?: {
     overall: 'ready' | 'blocked' | 'in_progress' | string;
     summary: string;
@@ -91,7 +97,13 @@ export interface BinarySecurityTask {
     can_cancel: boolean;
     can_continue: boolean;
     can_retry: boolean;
+    can_retry_failed_items?: boolean;
     can_retry_stage: boolean;
+    can_retry_stage_failed_items?: boolean;
+    can_retry_stage_full?: boolean;
+    can_retry_archive: boolean;
+    can_retry_archive_failed_items?: boolean;
+    can_retry_archive_full?: boolean;
     can_delete: boolean;
     can_edit_policy: boolean;
     can_confirm_modules: boolean;
@@ -180,7 +192,11 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     started_at?: string | null;
     completed_at?: string | null;
     updated_at?: string | null;
-    copy_stats?: {
+  retry_supported: boolean;
+  retry_reason?: string | null;
+  retry_failed_supported?: boolean;
+  retry_failed_reason?: string | null;
+  copy_stats?: {
       copied_files?: number;
       copied_dirs?: number;
       copied_symlinks?: number;
@@ -238,6 +254,10 @@ export interface BinarySecurityOverviewNode {
   last_error?: string | null;
   retry_supported: boolean;
   retry_reason?: string | null;
+  retry_failed_supported?: boolean;
+  retry_failed_reason?: string | null;
+  retry_full_supported?: boolean;
+  retry_full_reason?: string | null;
   detail: BinarySecurityOverviewBusinessDetail | BinarySecurityOverviewArchiveDetail;
 }
 
@@ -493,6 +513,62 @@ export const binarySecurityApi = {
 
   retryStage: async (projectId: string, taskId: string, stageName: string) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveStage: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/archive/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveJob: async (projectId: string, taskId: string, archiveJobId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/archive-jobs/${archiveJobId}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryFailedItems: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/retry-failed-items`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryStageFailedItems: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry-failed-items`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryStageFull: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry-full`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveStageFailedItems: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/archive/retry-failed-items`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveStageFull: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/archive/retry-full`, {
       method: 'POST',
       headers: getHeaders(),
     });

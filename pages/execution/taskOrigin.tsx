@@ -52,15 +52,46 @@ export const TaskOriginInline: React.FC<{ origin: OriginInfo; compact?: boolean 
       </span>
     );
   }
+  if (compact) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+        <span className={`${pillClassName} border-cyan-200 bg-cyan-50 text-cyan-700`}>
+          总任务关联
+        </span>
+        <span className={`${pillClassName} ${modeInfo.className}`}>
+          {modeInfo.label}
+        </span>
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(event) => {
+            event.stopPropagation();
+            navigateToParentBinarySecurityTask(origin);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              event.stopPropagation();
+              navigateToParentBinarySecurityTask(origin);
+            }
+          }}
+          className={`${pillClassName} cursor-pointer border-slate-200 bg-white font-mono text-slate-700 hover:bg-slate-50`}
+          title={parentTaskId || '-'}
+        >
+          {parentTaskId || '-'}
+        </span>
+      </div>
+    );
+  }
   return (
-    <div className={`flex ${compact ? 'flex-wrap items-center gap-1.5' : 'flex-col gap-1.5'}`}>
+    <div className="flex flex-col gap-1.5">
       <span className={`${pillClassName} border-cyan-200 bg-cyan-50 text-cyan-700`}>
         总任务关联
       </span>
       <span className={`${pillClassName} ${modeInfo.className}`}>
         {modeInfo.label}
       </span>
-      <div className={`flex ${compact ? 'flex-wrap items-center gap-1.5' : 'flex-wrap items-center gap-2'} text-xs text-slate-600`}>
+      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
         <span>{String(origin.origin_label || '').trim() || '二进制安全任务'}</span>
         <span
           role="button"

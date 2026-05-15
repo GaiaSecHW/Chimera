@@ -86,6 +86,17 @@ type EvaluationRoundContextMenu = {
   x: number;
   y: number;
 };
+type GroupedEvaluationRounds = {
+  groupKey: string;
+  displayName: string;
+  firstRound: number | null;
+  firstStageRound: number | null;
+  latestStatus: string;
+  rounds: AppSaEvaluationRound[];
+};
+
+const GLOBAL_TASK_GROUP_KEY = '__task__';
+const GLOBAL_TASK_GROUP_LABEL = '全局任务';
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
@@ -411,12 +422,17 @@ function buildOverviewStageMetrics(
 
   const filterResult = findLatestStageEventData(events, ['filter-engine', 'filter']);
   const prescanResult = findLatestStageEventData(events, ['prescan']);
+  const preprocessSummary = detail.result_json?.preprocess_summary;
   appendMetric(
     preprocessMetrics,
-    '全部文件',
-    result?.summary.total_file_count ?? detail.result_json?.summary?.total_file_count,
+    '全部输入文件',
+    preprocessSummary?.total_input_file_count ?? filterResult?.total_input_file_count,
   );
-  appendMetric(preprocessMetrics, '过滤后接受的文件', filterResult?.file_count);
+  appendMetric(
+    preprocessMetrics,
+    '过滤后接受的文件',
+    preprocessSummary?.accepted_input_file_count ?? filterResult?.accepted_input_file_count ?? filterResult?.file_count,
+  );
   appendMetric(preprocessMetrics, '预扫描摘要', prescanResult?.summary_lines);
   if (filterResult?.effective_engine) {
     preprocessMetrics.push({
@@ -510,6 +526,23 @@ function evaluationRoundKey(round: AppSaEvaluationRound): string {
     round.module_name ?? '',
     round.source_path ?? '',
   ].join('::');
+}
+
+function normalizeEvaluationModuleName(moduleName?: string | null): string {
+  const normalized = String(moduleName || '').trim();
+  return normalized || GLOBAL_TASK_GROUP_LABEL;
+}
+
+function evaluationModuleGroupKey(round: AppSaEvaluationRound): string {
+  const normalized = String(round.module_name || '').trim();
+  return normalized || GLOBAL_TASK_GROUP_KEY;
+}
+
+function compareNullableNumber(a: number | null, b: number | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return a - b;
 }
 
 function normalizeSessionDisplayPath(path: string): string {
@@ -1188,7 +1221,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const filteredEvaluationRounds = useMemo(() => {
     const keyword = evaluationModuleFilter.trim().toLowerCase();
     return evaluationRounds.filter((round) => {
-      const moduleName = String(round.module_name || '').toLowerCase();
+      const moduleName = normalizeEvaluationModuleName(round.module_name).toLowerCase();
       const stage = String(round.stage || '');
       const status = String(round.status || '');
       if (keyword && !moduleName.includes(keyword)) return false;
@@ -1197,6 +1230,59 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       return true;
     });
   }, [evaluationModuleFilter, evaluationRounds, evaluationStageFilter, evaluationStatusFilter]);
+  const groupedEvaluationRounds = useMemo<GroupedEvaluationRounds[]>(() => {
+    const grouped = new Map<string, GroupedEvaluationRounds>();
+    const sortedRounds = [...filteredEvaluationRounds].sort((left, right) => {
+      const roundCompare = compareNullableNumber(
+        Number.isFinite(Number(left.round)) ? Number(left.round) : null,
+        Number.isFinite(Number(right.round)) ? Number(right.round) : null,
+      );
+      if (roundCompare !== 0) return roundCompare;
+      const stageRoundCompare = compareNullableNumber(
+        Number.isFinite(Number(left.stage_round)) ? Number(left.stage_round) : null,
+        Number.isFinite(Number(right.stage_round)) ? Number(right.stage_round) : null,
+      );
+      if (stageRoundCompare !== 0) return stageRoundCompare;
+      const startedAtCompare = String(left.started_at || '').localeCompare(String(right.started_at || ''), 'zh-CN');
+      if (startedAtCompare !== 0) return startedAtCompare;
+      return evaluationRoundKey(left).localeCompare(evaluationRoundKey(right), 'zh-CN');
+    });
+
+    for (const round of sortedRounds) {
+      const groupKey = evaluationModuleGroupKey(round);
+      const displayName = normalizeEvaluationModuleName(round.module_name);
+      const normalizedRound = Number.isFinite(Number(round.round)) ? Number(round.round) : null;
+      const normalizedStageRound = Number.isFinite(Number(round.stage_round)) ? Number(round.stage_round) : null;
+      const current = grouped.get(groupKey);
+      if (!current) {
+        grouped.set(groupKey, {
+          groupKey,
+          displayName,
+          firstRound: normalizedRound,
+          firstStageRound: normalizedStageRound,
+          latestStatus: String(round.status || ''),
+          rounds: [round],
+        });
+        continue;
+      }
+      current.rounds.push(round);
+      if (compareNullableNumber(normalizedRound, current.firstRound) < 0) {
+        current.firstRound = normalizedRound;
+        current.firstStageRound = normalizedStageRound;
+      } else if (normalizedRound === current.firstRound && compareNullableNumber(normalizedStageRound, current.firstStageRound) < 0) {
+        current.firstStageRound = normalizedStageRound;
+      }
+      current.latestStatus = String(round.status || current.latestStatus || '');
+    }
+
+    return Array.from(grouped.values()).sort((left, right) => {
+      const firstRoundCompare = compareNullableNumber(left.firstRound, right.firstRound);
+      if (firstRoundCompare !== 0) return firstRoundCompare;
+      const firstStageRoundCompare = compareNullableNumber(left.firstStageRound, right.firstStageRound);
+      if (firstStageRoundCompare !== 0) return firstStageRoundCompare;
+      return left.displayName.localeCompare(right.displayName, 'zh-CN');
+    });
+  }, [filteredEvaluationRounds]);
   const averageJudgeScore = useMemo(() => {
     const scores = evaluationRounds
       .map((item) => Number(item.metrics?.avg_judge_score))
@@ -1230,11 +1316,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   );
 
   const openEvaluationRoundMenu = (event: React.MouseEvent, round: AppSaEvaluationRound) => {
-    const moduleName = String(round.module_name || '').trim();
-    if (!moduleName) {
-      setEvaluationRoundMenu(null);
-      return;
-    }
+    const moduleName = normalizeEvaluationModuleName(round.module_name);
     event.preventDefault();
     event.stopPropagation();
     setEvaluationRoundMenu({
@@ -2604,45 +2686,54 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {filteredEvaluationRounds.map((round) => (
-                            <tr
-                              key={evaluationRoundKey(round)}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))}
-                              onContextMenu={(event) => openEvaluationRoundMenu(event, round)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                  event.preventDefault();
-                                  setSelectedEvaluationRoundKey(evaluationRoundKey(round));
-                                }
-                              }}
-                              className="cursor-pointer bg-white transition hover:bg-slate-50"
-                            >
-                              <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
-                              <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
-                              <td className="px-3 py-3 font-mono text-slate-700">{round.module_name || '-'}</td>
-                              <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
-                              <td className="px-3 py-3">
-                                <span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{evaluationStatusLabel(round.status)}</span>
-                              </td>
-                              <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
-                              <td className="px-3 py-3 max-w-[180px] truncate font-mono text-slate-600">{round.worker?.model || '-'}</td>
-                              <td className="px-3 py-3 font-bold text-slate-800">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
-                              <td className="px-3 py-3 text-slate-600">{formatRate(round.metrics?.review_pass_rate)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.metrics?.token_total)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-600">{detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'}</td>
-                              <td className="px-3 py-3 text-slate-600">
-                                <div className="flex flex-wrap gap-1">
-                                  {round.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">反思</span> : null}
-                                  {round.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">重分类</span> : null}
-                                  {!round.effectiveness?.needed_reflection && !round.effectiveness?.triggered_reclassify ? '-' : null}
-                                </div>
-                              </td>
-                              <td className="px-3 py-3 text-slate-600">{round.completion_reason || '-'}</td>
-                            </tr>
+                          {groupedEvaluationRounds.flatMap((group) => (
+                            group.rounds.map((round, index) => (
+                              <tr
+                                key={evaluationRoundKey(round)}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))}
+                                onContextMenu={(event) => openEvaluationRoundMenu(event, round)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setSelectedEvaluationRoundKey(evaluationRoundKey(round));
+                                  }
+                                }}
+                                className="cursor-pointer bg-white transition hover:bg-slate-50"
+                              >
+                                <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
+                                {index === 0 ? (
+                                  <td
+                                    rowSpan={group.rounds.length}
+                                    className="px-3 py-3 text-center align-middle font-mono font-bold text-slate-800"
+                                  >
+                                    <div>{group.displayName}</div>
+                                  </td>
+                                ) : null}
+                                <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
+                                <td className="px-3 py-3">
+                                  <span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{evaluationStatusLabel(round.status)}</span>
+                                </td>
+                                <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
+                                <td className="px-3 py-3 max-w-[180px] truncate font-mono text-slate-600">{round.worker?.model || '-'}</td>
+                                <td className="px-3 py-3 font-bold text-slate-800">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
+                                <td className="px-3 py-3 text-slate-600">{formatRate(round.metrics?.review_pass_rate)}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.metrics?.token_total)}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'}</td>
+                                <td className="px-3 py-3 text-slate-600">
+                                  <div className="flex flex-wrap gap-1">
+                                    {round.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">反思</span> : null}
+                                    {round.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">重分类</span> : null}
+                                    {!round.effectiveness?.needed_reflection && !round.effectiveness?.triggered_reclassify ? '-' : null}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3 text-slate-600">{round.completion_reason || '-'}</td>
+                              </tr>
+                            ))
                           ))}
-                          {filteredEvaluationRounds.length === 0 ? (
+                          {groupedEvaluationRounds.length === 0 ? (
                             <tr>
                               <td colSpan={13} className="px-4 py-10 text-center text-sm text-slate-500">
                                 当前筛选条件下没有轮次记录

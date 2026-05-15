@@ -2415,7 +2415,25 @@ export interface AppSaStagesJson {
 export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
-  result_json?: Record<string, any> | null;
+  result_json?: {
+    result_file?: string | null;
+    result_externalized?: boolean;
+    status?: string | null;
+    error?: string | null;
+    module_count?: number;
+    round_count?: number;
+    total_duration_ms?: number | null;
+    total_tokens?: Record<string, any> | null;
+    preprocess_summary?: {
+      total_input_file_count?: number | null;
+      accepted_input_file_count?: number | null;
+      selected_filter_engine?: 'script' | 'agent' | string | null;
+      effective_filter_engine?: 'script' | 'agent' | string | null;
+      fallback_reason?: string | null;
+    } | null;
+    summary?: Record<string, any> | null;
+    [key: string]: any;
+  } | null;
   stages_json?: AppSaStagesJson | null;
   task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
   /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */

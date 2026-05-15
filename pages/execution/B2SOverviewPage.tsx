@@ -5,9 +5,8 @@ import { B2SElfTaskInput, B2SRunMode, B2SLlmProviderSummary, B2STask, B2STaskDet
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
-import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
-import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
-import { TaskOriginInline } from './taskOrigin';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 
 interface Props {
   projectId: string;
@@ -32,29 +31,14 @@ const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
   return `${task.success_items || 0}/${total}`;
 };
 
-const taskModeLabel = (task: B2STask, detail?: B2STaskDetail | null) => detail?.mode_label || task.mode_label || '';
+const B2S_TASK_STATUS_ORDER = ['pending', 'running', 'success', 'partial', 'failed', 'cancelled', 'completed'];
 
-const taskModeTone = (task: B2STask, detail?: B2STaskDetail | null) => {
-  const mode = detail?.mode || task.mode;
-  if (mode === 'deep') return 'bg-violet-50 text-violet-700 ring-violet-200';
-  if (mode === 'fast') return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
-  if (mode === 'mixed') return 'bg-amber-50 text-amber-700 ring-amber-200';
-  return 'bg-slate-100 text-slate-600 ring-slate-200';
-};
-
-const buildPhaseSummary = (task: B2STask, detail?: B2STaskDetail | null) => {
-  const phaseSummary = detail?.overall_progress?.phase_summary;
-  if (phaseSummary && Object.keys(phaseSummary).length > 0) {
-    const [phase, count] = Object.entries(phaseSummary).sort((a, b) => b[1] - a[1])[0];
-    return { phase, label: `${phase} · ${count}` };
-  }
-  if ((task.running_items || 0) > 0) return { phase: 'body', label: `运行中 ${task.running_items}` };
-  if ((task.queued_items || 0) > 0) return { phase: 'queued', label: `排队中 ${task.queued_items}` };
-  if ((task.pending_items || 0) > 0) return { phase: 'queued', label: `待处理 ${task.pending_items}` };
-  if ((task.failed_items || 0) > 0) return { phase: 'failed', label: `失败 ${task.failed_items}` };
-  if ((task.partial_items || 0) > 0) return { phase: 'completed', label: `部分成功 ${task.partial_items}` };
-  if ((task.success_items || 0) > 0) return { phase: 'completed', label: `成功 ${task.success_items}` };
-  return { phase: task.status, label: formatB2SStatus(task.status) };
+const normalizeB2STaskStatus = (status?: string | null) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'partial_success') return 'partial';
+  if (normalized === 'queued') return 'pending';
+  return normalized;
 };
 
 const parseBackendTimeMs = (value?: string | null) => {
@@ -105,7 +89,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [statusFilter, setStatusFilter] = useState('');
-  const [modeFilter, setModeFilter] = useState<'' | B2SRunMode>(''); 
+  const [parentTaskFilter, setParentTaskFilter] = useState('');
   const [originFilter, setOriginFilter] = useState<'' | 'manual' | 'binary_security'>('');
   const [searchText, setSearchText] = useState('');
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
@@ -205,11 +189,15 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [hasActiveTasks]);
 
   const stats = useMemo(() => summarizeB2STasks(items), [items]);
+  const statusOptions = useMemo(() => {
+    const present = new Set(items.map((task) => normalizeB2STaskStatus(task.status)).filter(Boolean));
+    return B2S_TASK_STATUS_ORDER.filter((status) => present.has(status));
+  }, [items]);
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
     return items.filter((task) => {
-      if (statusFilter && task.status !== statusFilter) return false;
-      if (modeFilter && task.mode !== modeFilter) return false;
+      if (statusFilter && normalizeB2STaskStatus(task.status) !== statusFilter) return false;
+      if (parentTaskFilter && String(task.parent_task_id || '').trim() !== parentTaskFilter) return false;
       if (originFilter && String(task.task_origin_type || 'manual').trim() !== originFilter) return false;
       if (!keyword) return true;
       const haystack = [
@@ -221,7 +209,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       ].join(' ').toLowerCase();
       return haystack.includes(keyword);
     });
-  }, [items, modeFilter, originFilter, searchText, statusFilter]);
+  }, [items, originFilter, parentTaskFilter, searchText, statusFilter]);
   const total = filteredItems.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const pagedItems = useMemo(() => filteredItems.slice((page - 1) * perPage, page * perPage), [filteredItems, page, perPage]);
@@ -230,7 +218,19 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, modeFilter, originFilter, searchText, perPage]);
+  }, [statusFilter, parentTaskFilter, originFilter, searchText, perPage]);
+
+  const toggleStatusFilter = (value?: string | null) => {
+    const normalized = normalizeB2STaskStatus(value);
+    if (!normalized) return;
+    setStatusFilter((current) => current === normalized ? '' : normalized);
+  };
+
+  const toggleParentTaskFilter = (value?: string | null) => {
+    const normalized = String(value || '').trim();
+    if (!normalized) return;
+    setParentTaskFilter((current) => current === normalized ? '' : normalized);
+  };
 
   useEffect(() => {
     if (page > totalPages) {
@@ -485,7 +485,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black text-slate-900">任务列表</h2>
-                <p className="mt-1 text-sm text-slate-500">支持按任务、模式、状态和来源筛选，并按设定间隔自动刷新活跃任务。</p>
+                <p className="mt-1 text-sm text-slate-500">点击“任务”列进入详情；点击“状态”或“总任务 ID”单元格可快速切换筛选。</p>
               </div>
               <div className="flex flex-wrap items-center justify-end gap-2">
                 <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
@@ -511,43 +511,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   />
                   秒
                 </label>
-                <input
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="筛选任务名、任务 ID、来源任务 ID"
-                  className="w-64 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700"
-                />
-                <select
-                  value={modeFilter}
-                  onChange={(e) => setModeFilter((e.target.value || '') as '' | B2SRunMode)}
-                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
-                  title="任务模式筛选"
-                >
-                  <option value="">全部模式</option>
-                  <option value="fast">快速模式</option>
-                  <option value="deep">深度模式</option>
-                </select>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
-                  title="任务状态筛选"
-                >
-                  <option value="">全部状态</option>
-                  {['pending', 'queued', 'running', 'success', 'failed', 'cancelled', 'partial_success'].map((value) => (
-                    <option key={value} value={value}>{formatB2SStatus(value)}</option>
-                  ))}
-                </select>
-                <select
-                  value={originFilter}
-                  onChange={(e) => setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security')}
-                  className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
-                  title="任务来源筛选"
-                >
-                  <option value="">全部来源</option>
-                  <option value="manual">手动任务</option>
-                  <option value="binary_security">总任务关联</option>
-                </select>
               </div>
             </div>
             <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -559,6 +522,33 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <span className="text-cyan-600">检测到活跃任务，按设定间隔自动刷新</span>
               ) : null}
               <span>当前筛选结果：{total} 条</span>
+              {statusFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('')}
+                  className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700"
+                >
+                  状态：{formatB2SStatus(statusFilter)} x
+                </button>
+              ) : null}
+              {parentTaskFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setParentTaskFilter('')}
+                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700"
+                >
+                  总任务 ID：{parentTaskFilter} x
+                </button>
+              ) : null}
+              {originFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setOriginFilter('')}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700"
+                >
+                  来源：{originFilter === 'manual' ? '手动任务' : '关联总任务'} x
+                </button>
+              ) : null}
             </div>
             {pagedItems.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
@@ -568,15 +558,53 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
               <ExecutionTable minWidth={1480}>
                 <ExecutionTableHead>
                   <tr>
-                    <ExecutionTableTh>任务</ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>任务</div>
+                        <input
+                          value={searchText}
+                          onChange={(e) => setSearchText(e.target.value)}
+                          placeholder="搜索任务名/任务ID"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      </div>
+                    </ExecutionTableTh>
                     <ExecutionTableTh>输入文件</ExecutionTableTh>
-                    <ExecutionTableTh>状态</ExecutionTableTh>
-                    <ExecutionTableTh>模式</ExecutionTableTh>
-                    <ExecutionTableTh>阶段</ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>状态</div>
+                        <div className="text-[10px] font-semibold normal-case tracking-normal text-slate-400">
+                          {statusFilter ? `当前: ${formatB2SStatus(statusFilter)}` : '点击单元格快速筛选'}
+                        </div>
+                      </div>
+                    </ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>总任务 ID</div>
+                        <div className="text-[10px] font-semibold normal-case tracking-normal text-slate-400">
+                          {parentTaskFilter ? `当前: ${parentTaskFilter}` : '点击单元格快速筛选'}
+                        </div>
+                      </div>
+                    </ExecutionTableTh>
                     <ExecutionTableTh>总体进度</ExecutionTableTh>
                     <ExecutionTableTh>结果分布</ExecutionTableTh>
                     <ExecutionTableTh>异常项</ExecutionTableTh>
-                    <ExecutionTableTh>来源</ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>来源</div>
+                        <select
+                          value={originFilter}
+                          onChange={(e) => setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security')}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <option value="">全部来源</option>
+                          <option value="manual">手动任务</option>
+                          <option value="binary_security">关联总任务</option>
+                        </select>
+                      </div>
+                    </ExecutionTableTh>
                     <ExecutionTableTh>运行耗时</ExecutionTableTh>
                     <ExecutionTableTh>创建时间</ExecutionTableTh>
                     <ExecutionTableTh>最近更新</ExecutionTableTh>
@@ -585,14 +613,24 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <tbody>
                   {pagedItems.map((task) => {
                     const detail = activeTaskDetails[task.id];
-                    const phaseSummary = buildPhaseSummary(task, detail);
-                    const modeLabel = taskModeLabel(task, detail);
                     const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
+                    const parentTaskId = String(task.parent_task_id || '').trim();
+                    const sourceLabel = String(task.task_origin_type || 'manual').trim() === 'binary_security'
+                      ? (String(task.origin_label || '').trim() || '二进制安全任务')
+                      : '手动创建';
+                    const normalizedTaskStatus = normalizeB2STaskStatus(task.status);
                     return (
-                      <tr key={task.id} className={executionTableInteractiveRowClassName} onClick={() => onOpenTask(task.id)}>
+                      <tr key={task.id} className={executionTableRowClassName}>
                       <ExecutionTableTd className="min-w-[300px]">
                         <div className="min-w-0">
-                          <div className="truncate text-sm font-black text-slate-900">{task.name || task.id}</div>
+                          <button
+                            type="button"
+                            onClick={() => onOpenTask(task.id)}
+                            className="truncate text-left text-sm font-black text-slate-900 hover:text-cyan-700"
+                            title={task.name || task.id}
+                          >
+                            {task.name || task.id}
+                          </button>
                           <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{task.id}</div>
                         </div>
                       </ExecutionTableTd>
@@ -613,24 +651,34 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           ) : null}
                         </div>
                       </ExecutionTableTd>
-                      <ExecutionTableTd><B2SStatusBadge status={task.status} /></ExecutionTableTd>
-                        <ExecutionTableTd>
-                          {modeLabel ? (
-                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${taskModeTone(task, detail)}`}>
-                              {modeLabel}
-                            </span>
+                      <ExecutionTableTd>
+                        <button
+                          type="button"
+                          onClick={() => toggleStatusFilter(normalizedTaskStatus)}
+                          className="rounded-xl"
+                          title={statusFilter === normalizedTaskStatus ? '再次点击取消该状态筛选' : '点击按该状态快速筛选'}
+                        >
+                          <B2SStatusBadge status={task.status} />
+                        </button>
+                      </ExecutionTableTd>
+                        <ExecutionTableTd className="min-w-[170px]">
+                          {parentTaskId ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleParentTaskFilter(parentTaskId)}
+                              className="font-mono text-left text-xs font-semibold text-slate-700 hover:text-violet-700"
+                              title={parentTaskFilter === parentTaskId ? '再次点击取消该总任务ID筛选' : '点击按该总任务ID快速筛选'}
+                            >
+                              {parentTaskId}
+                            </button>
                           ) : (
-                            <span className="text-slate-400">-</span>
+                            <span className="font-mono text-xs font-semibold text-slate-400">-</span>
                           )}
                         </ExecutionTableTd>
-                        <ExecutionTableTd><B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} /></ExecutionTableTd>
                         <ExecutionTableTd className="min-w-[220px]">
                           <div className="flex items-center justify-between gap-2 text-xs">
                             <span className="font-semibold text-slate-700">{buildProgressLabel(task, detail)}</span>
                             <span className="text-slate-400">{pct(progressValue).toFixed(1)}%</span>
-                          </div>
-                          <div className="mt-2">
-                            <B2SProgressBar value={progressValue} />
                           </div>
                           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
                             <span>待处理 {task.pending_items}</span>
@@ -639,14 +687,19 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         </ExecutionTableTd>
                         <ExecutionTableTd>
                           <div className="text-sm font-semibold text-slate-800">成功 {task.success_items} / 总数 {task.total_items}</div>
-                          <div className="mt-1 text-xs text-slate-400">排队 {task.queued_items} · 运行 {task.running_items}</div>
+                          <div className="mt-1 text-xs text-slate-400">部分成功 {task.partial_items} · 失败 {task.failed_items}</div>
                         </ExecutionTableTd>
                         <ExecutionTableTd>
                           <div className="text-sm font-semibold text-slate-800">失败 {task.failed_items}</div>
                           <div className="mt-1 text-xs text-slate-400">部分成功 {task.partial_items}</div>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="min-w-[170px]">
-                          <TaskOriginInline origin={task} compact />
+                          <div className="text-sm font-semibold text-slate-800">{sourceLabel}</div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            {String(task.task_origin_type || 'manual').trim() === 'binary_security'
+                              ? `来源阶段 ${String(task.parent_stage_name || '').trim() || '-'}`
+                              : '-'}
+                          </div>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="whitespace-nowrap font-semibold text-slate-700">{taskRunDuration(detail, clockNow)}</ExecutionTableTd>
                         <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.created_at)}</ExecutionTableTd>
