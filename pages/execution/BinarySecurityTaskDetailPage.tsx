@@ -248,7 +248,7 @@ type DownstreamTaskState = {
   error?: string;
 };
 
-type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts';
+type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts' | 'orchestration';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 type BlockingActionKind = '' | 'retry' | 'retry_failed_items';
@@ -1022,6 +1022,92 @@ function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
         <div className="mt-2 text-xs font-semibold opacity-80">{state.blocking_reason}</div>
       ) : null}
     </div>
+  );
+}
+
+function OrchestrationObservabilityPanel({ detail }: { detail: BinarySecurityTaskDetail }) {
+  const obs = detail.orchestration_observability || {};
+  const stateEvents = obs.state_events || {};
+  const lock = obs.task_state_lock || {};
+  const archiveByStage = obs.archive?.by_stage || {};
+  const statusCounts = stateEvents.status_counts || {};
+  const activeEventCount = Number(statusCounts.pending || 0) + Number(statusCounts.retryable || 0) + Number(statusCounts.processing || 0);
+  const deadLetterCount = Number(statusCounts.dead_letter || 0);
+  const processing = stateEvents.processing || [];
+  const deadLetters = stateEvents.dead_letters || [];
+  const recent = stateEvents.recent || [];
+
+  return (
+    <section className="space-y-4">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">事件积压</div>
+          <div className="mt-2 text-2xl font-black text-slate-900">{activeEventCount}</div>
+          <div className="mt-1 text-xs text-slate-500">最老 {Math.round(Number(stateEvents.oldest_active_age_seconds || 0))} 秒</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">死信事件</div>
+          <div className={`mt-2 text-2xl font-black ${deadLetterCount > 0 ? 'text-rose-700' : 'text-slate-900'}`}>{deadLetterCount}</div>
+          <div className="mt-1 text-xs text-slate-500">超过重试上限后进入死信</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">状态锁</div>
+          <div className={`mt-2 text-sm font-black ${lock.active ? 'text-blue-700' : 'text-emerald-700'}`}>{lock.active ? '持锁中' : '空闲'}</div>
+          <div className="mt-1 break-all text-xs text-slate-500">{lock.owner_id || '-'}</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近 Reconcile</div>
+          <div className="mt-2 text-sm font-black text-slate-900">{obs.reconcile?.latest_event_type || '-'}</div>
+          <div className="mt-1 text-xs text-slate-500">{fmt(obs.reconcile?.latest_event_at)}</div>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">文件写入目标</div>
+          <div className="mt-2 break-all font-mono text-[11px] text-slate-600">{obs.files?.metadata_path || '-'}</div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">归档状态分布</h3>
+          <div className="mt-4 space-y-2">
+            {Object.entries(archiveByStage).map(([stage, counts]) => (
+              <div key={stage} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="font-black text-slate-800">{STAGE_LABELS[stage] || stage}</div>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  {Object.entries(counts || {}).map(([status, count]) => (
+                    <span key={status} className={`rounded-full border px-2 py-1 font-bold ${statusTone(status)}`}>{formatBinarySecurityStatus(status)} {count}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {Object.keys(archiveByStage).length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-500">暂无归档任务</div> : null}
+          </div>
+        </div>
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">状态事件</h3>
+          <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+            {Object.entries(statusCounts).map(([status, count]) => (
+              <div key={status} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="font-bold text-slate-500">{status}</div>
+                <div className="mt-1 text-lg font-black text-slate-900">{count}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 space-y-2">
+            {[...processing, ...deadLetters, ...recent].slice(0, 8).map((event: any) => (
+              <div key={event.id} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono font-black text-slate-800">{event.event_type}</span>
+                  <span className={`rounded-full border px-2 py-0.5 font-bold ${statusTone(event.status)}`}>{event.status}</span>
+                </div>
+                <div className="mt-1 break-all text-slate-500">owner={event.leased_by || '-'} · attempts={event.attempts ?? 0} · {fmt(event.created_at)}</div>
+                {event.error_message ? <div className="mt-1 break-all text-rose-600">{event.error_message}</div> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </section>
   );
 }
 
@@ -2111,6 +2197,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     { key: 'overview', label: '总览', hint: '任务基础信息与阶段任务' },
     { key: 'strategy', label: '任务策略', hint: '仅影响后续阶段与下次运行' },
     { key: 'modules', label: '高危模块', hint: '系统分析候选、已选与确认操作' },
+    { key: 'orchestration', label: '编排观测', hint: 'Reducer、事件队列、锁与归档健康' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
     { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
   ];
@@ -3339,6 +3426,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
           </section>
             </>
+          ) : null}
+
+          {activeTab === 'orchestration' ? (
+            <OrchestrationObservabilityPanel detail={detail} />
           ) : null}
 
           {activeTab === 'modules' ? (

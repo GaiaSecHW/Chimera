@@ -16,6 +16,12 @@ interface Props {
 const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
 const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
+const safeCount = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : null;
+};
+
 const formatBytes = (value: number): string => {
   if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
   if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
@@ -239,14 +245,19 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [page, totalPages]);
 
   useEffect(() => {
-    const activeTasks = pagedItems.filter((task) => !B2S_TERMINAL_STATUSES.has(task.status));
+    const tasksNeedingDetails = pagedItems.filter((task) => (
+      !B2S_TERMINAL_STATUSES.has(task.status)
+      || task.total_functions == null
+      || task.completed_functions == null
+      || task.uncompleted_functions == null
+    ));
     let cancelled = false;
-    if (activeTasks.length === 0) {
+    if (tasksNeedingDetails.length === 0) {
       setActiveTaskDetails({});
       return;
     }
     void (async () => {
-      const details = await Promise.allSettled(activeTasks.map((task) => executionApi.binaryToSource.getTask(projectId, task.id)));
+      const details = await Promise.allSettled(tasksNeedingDetails.map((task) => executionApi.binaryToSource.getTask(projectId, task.id)));
       if (cancelled) return;
       const nextDetails: Record<string, B2STaskDetail> = {};
       details.forEach((result) => {
@@ -588,7 +599,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       </div>
                     </ExecutionTableTh>
                     <ExecutionTableTh>总体进度</ExecutionTableTh>
-                    <ExecutionTableTh>结果分布</ExecutionTableTh>
+                    <ExecutionTableTh>函数处理</ExecutionTableTh>
                     <ExecutionTableTh>异常项</ExecutionTableTh>
                     <ExecutionTableTh>
                       <div className="space-y-2">
@@ -619,6 +630,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       ? (String(task.origin_label || '').trim() || '二进制安全任务')
                       : '手动创建';
                     const normalizedTaskStatus = normalizeB2STaskStatus(task.status);
+                    const totalFunctions = safeCount(task.total_functions ?? detail?.overall_progress?.total_functions);
+                    const completedFunctions = safeCount(task.completed_functions ?? detail?.overall_progress?.completed_functions);
+                    const uncompletedFunctions = safeCount(task.uncompleted_functions) ?? (
+                      totalFunctions !== null && completedFunctions !== null ? Math.max(0, totalFunctions - completedFunctions) : null
+                    );
+                    const failedFunctions = safeCount(task.failed_functions);
                     return (
                       <tr key={task.id} className={executionTableRowClassName}>
                       <ExecutionTableTd className="min-w-[300px]">
@@ -686,8 +703,17 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           </div>
                         </ExecutionTableTd>
                         <ExecutionTableTd>
-                          <div className="text-sm font-semibold text-slate-800">成功 {task.success_items} / 总数 {task.total_items}</div>
-                          <div className="mt-1 text-xs text-slate-400">部分成功 {task.partial_items} · 失败 {task.failed_items}</div>
+                          {totalFunctions !== null && totalFunctions > 0 && completedFunctions !== null ? (
+                            <>
+                              <div className="text-sm font-semibold text-slate-800">成功 {completedFunctions} / 总数 {totalFunctions}</div>
+                              <div className="mt-1 text-xs text-slate-400">
+                                未完成 {uncompletedFunctions ?? '-'}
+                                {failedFunctions !== null ? ` · 失败 ${failedFunctions}` : ''}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
                         </ExecutionTableTd>
                         <ExecutionTableTd>
                           <div className="text-sm font-semibold text-slate-800">失败 {task.failed_items}</div>

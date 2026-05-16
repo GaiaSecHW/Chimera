@@ -210,6 +210,36 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     };
   }>;
   overview_nodes: BinarySecurityOverviewNode[];
+  orchestration_observability?: BinarySecurityOrchestrationObservability;
+}
+
+export interface BinarySecurityOrchestrationObservability {
+  state_events?: {
+    status_counts?: Record<string, number>;
+    oldest_active_age_seconds?: number;
+    processing?: Array<Record<string, any>>;
+    dead_letters?: Array<Record<string, any>>;
+    recent?: Array<Record<string, any>>;
+  };
+  task_state_lock?: {
+    active?: boolean;
+    owner_id?: string | null;
+    operation?: string | null;
+    lease_expires_at?: string | null;
+    heartbeat_at?: string | null;
+  };
+  archive?: {
+    by_stage?: Record<string, Record<string, number>>;
+  };
+  reconcile?: {
+    latest_event_type?: string | null;
+    latest_event_at?: string | null;
+    latest_message?: string | null;
+  };
+  files?: {
+    summary_path?: string | null;
+    metadata_path?: string | null;
+  };
 }
 
 export interface BinarySecurityOverviewBusinessDetail {
@@ -353,6 +383,14 @@ export const binarySecurityApi = {
 
   getTask: async (projectId: string, taskId: string): Promise<BinarySecurityTaskDetail> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  getOrchestrationObservability: async (projectId: string, taskId: string): Promise<BinarySecurityOrchestrationObservability> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/orchestration-observability`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

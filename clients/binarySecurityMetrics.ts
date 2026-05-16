@@ -105,7 +105,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     serviceName: 'secflow-app-binary-security',
     metricsPath: `${API_BASE}/api/app/binary-security/metrics`,
     preferredGroups: ['task', 'queue', 'worker', 'error-retry-timeout', 'duration', 'http', 'llm-token-cost', 'ai-agent', 'service-specific'],
-    serviceSpecificKeywords: ['stage', 'dispatch', 'downstream', 'archive', 'module'],
+    serviceSpecificKeywords: ['stage', 'dispatch', 'downstream', 'archive', 'module', 'state', 'reducer', 'lock', 'dead_letter'],
   },
   {
     key: 'binary-evolution',

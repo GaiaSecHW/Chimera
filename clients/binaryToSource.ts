@@ -71,6 +71,10 @@ export interface B2STask {
   partial_items: number;
   failed_items: number;
   cancelled_items: number;
+  total_functions?: number | null;
+  completed_functions?: number | null;
+  failed_functions?: number | null;
+  uncompleted_functions?: number | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -1455,10 +1455,10 @@ function TaskDetailPanel({
     if (!activeEvolutionJob?.id || !activeEvolutionJob.final_tool_path || !activeEvolutionJob.replaced_tool_path) return;
     const confirmed = await showConfirm({
       title: '确认替换原工具',
-      description: `将使用新工具覆盖原工具。\n\n原工具：${activeEvolutionJob.replaced_tool_path}\n新工具：${activeEvolutionJob.final_tool_path}`,
+      message: `将使用新工具覆盖原工具。\n\n原工具：${activeEvolutionJob.replaced_tool_path}\n新工具：${activeEvolutionJob.final_tool_path}`,
       confirmText: '确认替换',
       cancelText: '取消',
-      tone: 'danger',
+      danger: true,
     });
     if (!confirmed) return;
     setEvolutionReplacing(true);
