@@ -120,7 +120,6 @@ export const ReviewEffectivenessPanel: React.FC<{ analytics: B2SReviewAnalytics 
     <section className="overflow-hidden rounded-none border border-slate-200 bg-white p-6 shadow-section">
       <div className="relative mb-6 flex items-center justify-between gap-3">
         <div className="text-xl font-black tracking-[0.05em] text-slate-900">代码还原质量迭代追踪</div>
-        {(analytics.meta?.mock ?? analytics.summary.mock) && <div className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-black tracking-[0.12em] text-cyan-700">模拟数据</div>}
       </div>
 
       <div className={`mb-4 rounded-none border border-l-4 p-5 ${verdictBg}`}>

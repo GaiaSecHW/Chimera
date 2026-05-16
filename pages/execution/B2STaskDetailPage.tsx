@@ -395,7 +395,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     let cancelled = false;
     const loadAnalytics = async () => {
       try {
-        const payload = await executionApi.getTaskItemReviewAnalytics(projectId, taskId, selectedItem.id, false);
+        const payload = await executionApi.getTaskItemReviewAnalytics(projectId, taskId, selectedItem.id);
         if (!cancelled) setItemAnalytics(payload);
       } catch (e: any) {
         if (!cancelled) setError(e?.message || '加载评审观测失败');

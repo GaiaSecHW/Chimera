@@ -205,6 +205,25 @@ const safeCountLabel = (value: unknown) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? String(Math.trunc(parsed)) : '-';
 };
+const stageItemEntryCountLabel = (
+  item: BinarySecurityTaskDetail['stage_items'][number],
+  entryCountByItemKey?: Map<string, number>,
+) => {
+  if (item.stage_name !== 'entry_analysis' || item.status !== 'success') return '-';
+  const mapped = entryCountByItemKey?.get(String(item.item_key || '').trim());
+  if (mapped != null) return String(mapped);
+  const candidates = [
+    item.result?.entry_count,
+    item.result?.summary?.entry_count,
+    item.output_ref?.entry_count,
+    item.output_ref?.summary?.entry_count,
+  ];
+  for (const candidate of candidates) {
+    const parsed = Number(candidate);
+    if (Number.isFinite(parsed)) return String(Math.trunc(parsed));
+  }
+  return '-';
+};
 const boolLabel = (value: unknown) => {
   if (value === undefined || value === null) return '-';
   if (typeof value === 'string') {
@@ -1768,6 +1787,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const selectedModules = moduleSelection?.selected_modules || [];
   const moduleRiskLevels = (moduleSelection?.risk_levels?.length ? moduleSelection.risk_levels : detail?.selected_risk_levels) || [];
   const systemAnalysisModuleCount = systemAnalysisModules.length || Number(detail?.summary?.system_analysis_module_count || 0);
+  const entryAnalysisEntryCountByItemKey = useMemo(() => {
+    const mapping = new Map<string, number>();
+    const entryResults = Array.isArray(detail?.summary?.entry_results) ? detail.summary.entry_results : [];
+    for (const row of entryResults) {
+      if (!row || typeof row !== 'object') continue;
+      const itemKey = String((row as any).module_key || '').trim();
+      if (!itemKey) continue;
+      const explicit = Number((row as any).entry_count);
+      const entries = Array.isArray((row as any).entries) ? (row as any).entries.length : NaN;
+      const value = Number.isFinite(explicit) ? Math.trunc(explicit) : Number.isFinite(entries) ? Math.trunc(entries) : null;
+      if (value != null) mapping.set(itemKey, value);
+    }
+    return mapping;
+  }, [detail?.summary]);
 
   const filteredStageItems = useMemo(() => {
     if (!detail) return [];
@@ -1787,6 +1820,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return filteredStageItems.filter((item) => item.status === stageStatusFilter);
   }, [filteredStageItems, stageStatusFilter]);
   const isSystemAnalysisStageTable = selectedStage === 'system_analysis';
+  const isEntryAnalysisStageTable = selectedStage === 'entry_analysis';
   const selectedVisibleStageItems = useMemo(
     () => visibleStageItems.filter((item) => selectedStageItemIds.includes(item.id)),
     [selectedStageItemIds, visibleStageItems],
@@ -2654,200 +2688,116 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 {stageDisplayNodes.map((stage, index) => (
                   <React.Fragment key={stage.id}>
                     <div
-                      role="button"
-                      tabIndex={0}
-                      title={stage.kind === 'archive' ? `产物归档 · ${STAGE_LABELS[stage.stage_name] || stage.stage_name} · ${archiveStatusLabel(stage.status)}` : undefined}
-                      aria-label={stage.kind === 'archive' ? `产物归档 ${STAGE_LABELS[stage.stage_name] || stage.stage_name} ${archiveStatusLabel(stage.status)}` : undefined}
-                      onClick={() => {
-                        setSelectedStage(stage.stage_name);
-                        setSelectedNodeKind(stage.kind);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelectedStage(stage.stage_name);
-                          setSelectedNodeKind(stage.kind);
-                        }
-                      }}
                       style={stageFlowLayout.mode === 'horizontal'
                         ? { width: `${stage.kind === 'archive' ? ARCHIVE_STAGE_CARD_WIDTH : stageFlowLayout.cardWidth}px` }
                         : undefined}
-                      className={`rounded-[1.75rem] border text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${
-                        stage.kind === 'archive'
-                          ? stageFlowLayout.mode === 'horizontal'
-                            ? 'flex min-h-[172px] shrink-0 flex-col justify-between p-4'
-                            : 'mx-auto flex min-h-[172px] w-full max-w-[260px] flex-col justify-between p-4'
-                          : stageFlowLayout.mode === 'horizontal'
-                            ? 'shrink-0 p-4'
-                            : 'w-full p-4'
-                      } ${stageNodeTone(stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind)}`}
+                      className={stageFlowLayout.mode === 'horizontal' ? 'shrink-0' : 'w-full'}
                     >
-                      {stage.kind === 'archive' ? (
-                        <>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">Archive</div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                title={
-                                  !manualOperationState?.can_retry_archive_failed_items
-                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档失败项重试')
-                                    : (stage.retry_failed_reason || undefined)
-                                }
-                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                  stage.retry_failed_supported && manualOperationState?.can_retry_archive_failed_items !== false
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'bg-slate-200 text-slate-500'
-                                }`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  if (!stage.retry_failed_supported || manualOperationState?.can_retry_archive_failed_items === false || actionLoading !== '') return;
-                                  void retryArchiveStageFailedItems(stage.stage_name);
-                                }}
-                                disabled={!stage.retry_failed_supported || manualOperationState?.can_retry_archive_failed_items === false || actionLoading !== ''}
-                              >
-                                {actionLoading === `archive-stage-failed:${stage.stage_name}` ? '重试中' : '重试失败项'}
-                              </button>
-                              <button
-                                type="button"
-                                title={
-                                  !manualOperationState?.can_retry_archive_full
-                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可进行归档阶段完全重试')
-                                    : (stage.retry_full_reason || undefined)
-                                }
-                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                  stage.retry_full_supported && manualOperationState?.can_retry_archive_full !== false
-                                    ? 'bg-slate-900 text-white'
-                                    : 'bg-slate-200 text-slate-500'
-                                }`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  if (!stage.retry_full_supported || manualOperationState?.can_retry_archive_full === false || actionLoading !== '') return;
-                                  void retryArchiveStageFull(stage.stage_name);
-                                }}
-                                disabled={!stage.retry_full_supported || manualOperationState?.can_retry_archive_full === false || actionLoading !== ''}
-                              >
-                                {actionLoading === `archive-stage-full:${stage.stage_name}` ? '重试中' : '阶段完全重试'}
-                              </button>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        title={stage.kind === 'archive' ? `产物归档 · ${STAGE_LABELS[stage.stage_name] || stage.stage_name} · ${archiveStatusLabel(stage.status)}` : undefined}
+                        aria-label={stage.kind === 'archive' ? `产物归档 ${STAGE_LABELS[stage.stage_name] || stage.stage_name} ${archiveStatusLabel(stage.status)}` : undefined}
+                        onClick={() => {
+                          setSelectedStage(stage.stage_name);
+                          setSelectedNodeKind(stage.kind);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedStage(stage.stage_name);
+                            setSelectedNodeKind(stage.kind);
+                          }
+                        }}
+                        className={`rounded-[1.75rem] border text-left transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none ${
+                          stage.kind === 'archive'
+                            ? stageFlowLayout.mode === 'horizontal'
+                              ? 'flex min-h-[172px] flex-col justify-between p-4'
+                              : 'mx-auto flex min-h-[172px] w-full max-w-[260px] flex-col justify-between p-4'
+                            : stageFlowLayout.mode === 'horizontal'
+                              ? 'p-4'
+                              : 'w-full p-4'
+                        } ${stageNodeTone(stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind)}`}
+                      >
+                        {stage.kind === 'archive' ? (
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">Archive</div>
                               <div className="h-2.5 w-2.5 rounded-full border border-current bg-current/15" />
                             </div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-sm font-black leading-none">产物归档</div>
-                            <div className="text-[11px] font-semibold leading-tight opacity-75">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
-                          </div>
-                          <div className="mt-3 space-y-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="shrink-0 whitespace-nowrap opacity-60">开始</span>
-                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.started_at)}</span>
+                            <div className="space-y-1">
+                              <div className="text-sm font-black leading-none">产物归档</div>
+                              <div className="text-[11px] font-semibold leading-tight opacity-75">{STAGE_LABELS[stage.stage_name] || stage.stage_name}</div>
                             </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="shrink-0 whitespace-nowrap opacity-60">结束</span>
-                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.finished_at)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
-                              <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
-                            </div>
-                          </div>
-                          <div className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-center text-[10px] font-black leading-none">
-                            {formatBinarySecurityStatus(stage.status_label || archiveStatusLabel(stage.status))}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">
-                                {`Stage ${stage.sequence_no}`}
+                            <div className="mt-3 space-y-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="shrink-0 whitespace-nowrap opacity-60">开始</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.started_at)}</span>
                               </div>
-                              <div className="mt-2 text-base font-black">{stage.label}</div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="shrink-0 whitespace-nowrap opacity-60">结束</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.finished_at)}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                              </div>
                             </div>
-                            <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
-                          </div>
-                          <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
-                            <div>总数 {(stage.detail as any)?.total_items ?? 0}</div>
-                            <div>成功 {(stage.detail as any)?.success_items ?? 0}</div>
-                            <div>失败 {(stage.detail as any)?.failed_items ?? 0}</div>
-                            <div>运行 {(stage.detail as any)?.running_items ?? 0}</div>
-                          </div>
-                          <div className="mt-3 grid gap-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="shrink-0 whitespace-nowrap opacity-60">开始</span>
-                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.started_at)}</span>
+                            <div className="rounded-full border border-current/20 bg-white/60 px-2 py-1 text-center text-[10px] font-black leading-none">
+                              {formatBinarySecurityStatus(stage.status_label || archiveStatusLabel(stage.status))}
                             </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="shrink-0 whitespace-nowrap opacity-60">结束</span>
-                              <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.finished_at)}</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-[11px] font-black uppercase tracking-[0.24em] opacity-60">
+                                  {`Stage ${stage.sequence_no}`}
+                                </div>
+                                <div className="mt-2 text-base font-black">{stage.label}</div>
+                              </div>
+                              <div className="h-3 w-3 rounded-full border border-current bg-current/15" />
                             </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
-                              <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
+                              <div>总数 {(stage.detail as any)?.total_items ?? 0}</div>
+                              <div>成功 {(stage.detail as any)?.success_items ?? 0}</div>
+                              <div>失败 {(stage.detail as any)?.failed_items ?? 0}</div>
+                              <div>运行 {(stage.detail as any)?.running_items ?? 0}</div>
                             </div>
-                          </div>
-                          <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
-                            {formatBinarySecurityStatus(stage.status_label || stage.status)}
-                          </div>
-                          <div className="mt-3 flex items-center justify-between gap-2">
-                            {staleStages.has(stage.stage_name) ? (
-                              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700">
-                                结果已过期
-                              </span>
-                            ) : (
-                              <span className="text-[11px] font-semibold opacity-70">点击查看子任务</span>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                title={
-                                  manualOperationState?.can_retry_stage_failed_items === false
-                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可重试失败项')
-                                    : (stage.retry_failed_reason || undefined)
-                                }
-                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                  stage.retry_failed_supported && manualOperationState?.can_retry_stage_failed_items !== false
-                                    ? 'bg-emerald-600 text-white'
-                                    : 'bg-slate-200 text-slate-500'
-                                }`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  if (!stage.retry_failed_supported || manualOperationState?.can_retry_stage_failed_items === false || actionLoading !== '') return;
-                                  void retryStageFailedItems(stage.stage_name);
-                                }}
-                                disabled={!stage.retry_failed_supported || manualOperationState?.can_retry_stage_failed_items === false || actionLoading !== ''}
-                              >
-                                {actionLoading === `stage-failed:${stage.stage_name}` ? '重试中' : '重试失败项'}
-                              </button>
-                              <button
-                                type="button"
-                                title={
-                                  manualOperationState?.can_retry_stage_full === false
-                                    ? (manualOperationState?.blocking_reason || '当前任务暂不可完全重试')
-                                    : (stage.retry_full_reason || undefined)
-                                }
-                                className={`rounded-full px-2.5 py-1 text-[11px] font-black ${
-                                  stage.retry_full_supported && manualOperationState?.can_retry_stage_full !== false
-                                    ? 'bg-slate-900 text-white'
-                                    : 'bg-slate-200 text-slate-500'
-                                }`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  if (!stage.retry_full_supported || manualOperationState?.can_retry_stage_full === false || actionLoading !== '') return;
-                                  void retryStageFull(stage.stage_name);
-                                }}
-                                disabled={!stage.retry_full_supported || manualOperationState?.can_retry_stage_full === false || actionLoading !== ''}
-                              >
-                                {actionLoading === `stage-full:${stage.stage_name}` ? '重试中' : '阶段完全重试'}
-                              </button>
+                            <div className="mt-3 grid gap-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="shrink-0 whitespace-nowrap opacity-60">开始</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.started_at)}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="shrink-0 whitespace-nowrap opacity-60">结束</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-mono">{fmt(stage.finished_at)}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="shrink-0 whitespace-nowrap opacity-60">耗时</span>
+                                <span className="shrink-0 whitespace-nowrap text-right font-black">{durationLabel(stage.started_at, stage.finished_at)}</span>
+                              </div>
                             </div>
-                          </div>
-                          {shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason) ? (
-                            <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
-                              {stage.retry_failed_reason || stage.retry_full_reason || stage.retry_reason}
+                            <div className="mt-3 rounded-full border border-current/20 bg-white/60 px-3 py-1 text-center text-[11px] font-black">
+                              {formatBinarySecurityStatus(stage.status_label || stage.status)}
                             </div>
-                          ) : null}
-                        </>
-                      )}
+                            <div className="mt-3 flex items-center justify-between gap-2">
+                              {staleStages.has(stage.stage_name) ? (
+                                <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-black text-amber-700">
+                                  结果已过期
+                                </span>
+                              ) : (
+                                <span className="text-[11px] font-semibold opacity-70">点击查看子任务</span>
+                              )}
+                            </div>
+                            {shouldShowStageRetryReason(stage.status, stage.retryable, stage.retry_reason) ? (
+                              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+                                {stage.retry_failed_reason || stage.retry_full_reason || stage.retry_reason}
+                              </div>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
                     </div>
                     {index < stageDisplayNodes.length - 1 ? (
                       stageFlowLayout.mode === 'horizontal' ? (
@@ -3084,6 +3034,53 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </>
 	              ) : (
 	                <>
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="text-sm font-semibold text-slate-500">
+                    业务阶段支持“重试失败项”和“阶段完全重试”；会重跑当前阶段子任务，并在完成后重新评估后续阶段推进。
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      title={
+                        manualOperationState?.can_retry_stage_failed_items === false
+                          ? (manualOperationState?.blocking_reason || '当前任务暂不可重试失败项')
+                          : (selectedBusinessStageNode?.retry_failed_reason || undefined)
+                      }
+                      className={`rounded-full px-4 py-2 text-sm font-black ${
+                        selectedBusinessStageNode?.retry_failed_supported && manualOperationState?.can_retry_stage_failed_items !== false && actionLoading === ''
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-200 text-slate-500'
+                      }`}
+                      onClick={() => {
+                        if (!selectedBusinessStageNode?.retry_failed_supported || manualOperationState?.can_retry_stage_failed_items === false || actionLoading !== '') return;
+                        void retryStageFailedItems(selectedStage);
+                      }}
+                      disabled={!selectedBusinessStageNode?.retry_failed_supported || manualOperationState?.can_retry_stage_failed_items === false || actionLoading !== ''}
+                    >
+                      {actionLoading === `stage-failed:${selectedStage}` ? '重试中' : '重试失败项'}
+                    </button>
+                    <button
+                      type="button"
+                      title={
+                        manualOperationState?.can_retry_stage_full === false
+                          ? (manualOperationState?.blocking_reason || '当前任务暂不可完全重试')
+                          : (selectedBusinessStageNode?.retry_full_reason || undefined)
+                      }
+                      className={`rounded-full px-4 py-2 text-sm font-black ${
+                        selectedBusinessStageNode?.retry_full_supported && manualOperationState?.can_retry_stage_full !== false && actionLoading === ''
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-200 text-slate-500'
+                      }`}
+                      onClick={() => {
+                        if (!selectedBusinessStageNode?.retry_full_supported || manualOperationState?.can_retry_stage_full === false || actionLoading !== '') return;
+                        void retryStageFull(selectedStage);
+                      }}
+                      disabled={!selectedBusinessStageNode?.retry_full_supported || manualOperationState?.can_retry_stage_full === false || actionLoading !== ''}
+                    >
+                      {actionLoading === `stage-full:${selectedStage}` ? '重试中' : '阶段完全重试'}
+                    </button>
+                  </div>
+                </div>
 	              <div className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
 	                <div className="flex flex-wrap items-center gap-2">
 	                  <button
@@ -3180,6 +3177,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               <th className="w-28 px-3 py-3">低风险模块</th>
                             </>
                           ) : null}
+                          {isEntryAnalysisStageTable ? <th className="w-24 px-3 py-3">入口数量</th> : null}
                           <th className="w-44 px-3 py-3">开始时间</th>
                           <th className="w-44 px-3 py-3">结束时间</th>
                           <th className="w-28 px-3 py-3">耗时</th>
@@ -3239,6 +3237,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     <td className="px-3 py-3 font-black text-slate-900">{riskCounts.low}</td>
                                   </>
                                 ) : null}
+                                {isEntryAnalysisStageTable ? (
+                                  <td className="px-3 py-3 font-black text-slate-900">{stageItemEntryCountLabel(item, entryAnalysisEntryCountByItemKey)}</td>
+                                ) : null}
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.started_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.finished_at)}</td>
                                 <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</td>
@@ -3289,7 +3290,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               </tr>
 	                              {expanded ? (
 	                                <tr className="bg-slate-50/70">
-	                                  <td colSpan={isSystemAnalysisStageTable ? 13 : 10} className="px-4 py-4">
+	                                  <td colSpan={isSystemAnalysisStageTable ? 13 : isEntryAnalysisStageTable ? 11 : 10} className="px-4 py-4">
 	                                    <div className={`rounded-[1.25rem] border p-4 ${stageItemTone(item.stage_name === selectedStage)}`}>
 	                                      <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
                                         <aside className="rounded-2xl border border-slate-200 bg-white/90 p-4">

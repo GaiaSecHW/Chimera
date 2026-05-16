@@ -178,7 +178,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
         api.domains.execution.binaryToSource.getTask(projectId, taskId),
         api.domains.execution.binaryToSource.getTaskItemAdvanced(projectId, taskId, itemId, false),
         api.domains.execution.binaryToSource.getTaskItemArtifacts(projectId, taskId, itemId),
-        api.domains.execution.binaryToSource.getTaskItemReviewAnalytics(projectId, taskId, itemId, false),
+        api.domains.execution.binaryToSource.getTaskItemReviewAnalytics(projectId, taskId, itemId),
       ]);
       setDetail(taskDetail);
       setAdvanced(advancedDetail);
@@ -292,7 +292,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
           api.domains.execution.binaryToSource.getTask(projectId, taskId),
           api.domains.execution.binaryToSource.getTaskItemAdvanced(projectId, taskId, itemId, false),
           api.domains.execution.binaryToSource.getTaskItemArtifacts(projectId, taskId, itemId),
-          api.domains.execution.binaryToSource.getTaskItemReviewAnalytics(projectId, taskId, itemId, false),
+          api.domains.execution.binaryToSource.getTaskItemReviewAnalytics(projectId, taskId, itemId),
         ]);
         if (!cancelled) {
           setDetail(taskDetail);

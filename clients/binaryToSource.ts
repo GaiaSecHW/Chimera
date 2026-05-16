@@ -284,7 +284,6 @@ export interface B2SReviewAnalytics {
     source: string;
     data_quality: string;
     generated_at?: string | null;
-    mock: boolean;
   };
   summary: {
     attempts: number;
@@ -303,7 +302,6 @@ export interface B2SReviewAnalytics {
     issue_closure_rate: number;
     residual_risk: string;
     residual_risk_label?: string | null;
-    mock: boolean;
   };
   attempts: B2SReviewAnalyticsAttempt[];
   issues: B2SReviewAnalyticsIssue[];
@@ -525,52 +523,6 @@ export interface B2STaskRelationship {
   warnings: string[];
 }
 
-export const MOCK_B2S_REVIEW_ANALYTICS: B2SReviewAnalytics = {
-  task_id: 'mock-task',
-  item_id: 'mock-item',
-  summary: { attempts: 3, final_verdict: 'PASS', final_confidence: 92, issue_closure_rate: 1, residual_risk: 'low', mock: true },
-  attempts: [
-    { attempt_no: 1, verdict: 'FAIL', total_functions: 10, verified_functions: 7, blocking_issues: 4, warnings: 0, semantic_score: 61, confidence: 58 },
-    { attempt_no: 2, verdict: 'FAIL', total_functions: 10, verified_functions: 9, blocking_issues: 1, warnings: 1, semantic_score: 82, confidence: 76 },
-    { attempt_no: 3, verdict: 'PASS', total_functions: 10, verified_functions: 10, blocking_issues: 0, warnings: 1, semantic_score: 96, confidence: 92 },
-  ],
-  issues: [
-    { id: 'I1', label: 'Length Logic', display_label: '长度校验逻辑反转', description: '序列号长度判断方向错误，导致有效输入路径被错误处理。', function: 'sub_880', category: 'Validation', category_label: '输入校验', severity: 'blocking', severity_label: '阻断', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved', status_label: '已解决' },
-    { id: 'I2', label: 'Return Code', display_label: 'accepted 返回值错误', description: 'accepted 分支返回值与原始二进制语义不一致。', function: 'sub_880', category: 'Return', category_label: '返回语义', severity: 'blocking', severity_label: '阻断', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved', status_label: '已解决' },
-    { id: 'I3', label: 'Extra Check', display_label: '多余校验条件', description: '输出中出现原始逻辑不存在的 hex_len == 0 校验。', function: 'sub_880', category: 'Validation', category_label: '输入校验', severity: 'major', severity_label: '重要', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved', status_label: '已解决' },
-    { id: 'I4', label: 'Semantic', display_label: '语义问题', description: '还原代码与原始二进制语义存在偏差。', function: 'sub_E74', category: 'Semantic', category_label: '语义一致性', severity: 'major', severity_label: '重要', introduced_attempt: 2, resolved_attempt: 3, status: 'resolved', status_label: '已解决' },
-  ],
-  function_matrix: ['.init_proc', 'sub_880', 'start', 'sub_E74', 'sub_E90', 'sub_EC0', 'sub_F00', 'sub_F50', 'sub_F60', '.term_proc'].map((name) => ({
-    function: name,
-    attempts: [
-      { attempt_no: 1, risk: name === 'sub_880' ? 'critical' : 'passed', score: name === 'sub_880' ? 42 : 82 },
-      { attempt_no: 2, risk: name === 'sub_E74' ? 'warning' : 'passed', score: name === 'sub_E74' ? 78 : 91 },
-      { attempt_no: 3, risk: 'passed', score: 96 },
-    ],
-  })),
-  radar: [
-    { attempt_no: 1, completeness: 92, control_flow: 66, return_semantics: 52, input_validation: 44, call_fidelity: 84, type_struct_fidelity: 80 },
-    { attempt_no: 2, completeness: 96, control_flow: 88, return_semantics: 84, input_validation: 90, call_fidelity: 91, type_struct_fidelity: 88 },
-    { attempt_no: 3, completeness: 100, control_flow: 96, return_semantics: 97, input_validation: 97, call_fidelity: 96, type_struct_fidelity: 95 },
-  ],
-  dimensions: [
-    { key: 'logic_accuracy', label: '代码逻辑准确性', score: 97, initial_score: 64, delta: 33, delta_percent: 52, level: 'excellent', level_label: '优秀', description: '控制流、返回值和关键条件高度匹配原始程序', color_hint: 'logic', points: [{ attempt_no: 1, label: '第1轮', score: 64 }, { attempt_no: 2, label: '第2轮', score: 88 }, { attempt_no: 3, label: '第3轮', score: 97 }], components: {} },
-    { key: 'data_structure_accuracy', label: '数据结构准确性', score: 96, initial_score: 83, delta: 13, delta_percent: 16, level: 'excellent', level_label: '优秀', description: '类型、结构体和参数含义还原合理', color_hint: 'structure', points: [{ attempt_no: 1, label: '第1轮', score: 83 }, { attempt_no: 2, label: '第2轮', score: 90 }, { attempt_no: 3, label: '第3轮', score: 96 }], components: {} },
-    { key: 'readability', label: '可读性', score: 97, initial_score: 86, delta: 11, delta_percent: 13, level: 'excellent', level_label: '优秀', description: '命名、代码结构和表达便于人工审查', color_hint: 'readability', points: [{ attempt_no: 1, label: '第1轮', score: 86 }, { attempt_no: 2, label: '第2轮', score: 91 }, { attempt_no: 3, label: '第3轮', score: 97 }], components: {} },
-  ],
-  trend: {
-    title: '质量显著提升',
-    conclusion: '经过 3 轮评审修复，质量分从 78 提升至 97，累计提升 19 分。',
-    tone: 'positive',
-    primary_metric: '质量分',
-    first_score: 78,
-    final_score: 97,
-    delta: 19,
-    series: [],
-  },
-  trend_insight: null,
-};
-
 export interface B2STaskDetail extends B2STask {
   overall_progress?: B2SOverallProgress;
   task_config_snapshot?: B2STaskConfigSnapshot;
@@ -698,9 +650,8 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  getTaskItemReviewAnalytics: async (projectId: string, taskId: string, itemId: string, mock = false): Promise<B2SReviewAnalytics> => {
-    if (mock) return { ...MOCK_B2S_REVIEW_ANALYTICS, task_id: taskId, item_id: itemId };
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/review-analytics?mock=false`, {
+  getTaskItemReviewAnalytics: async (projectId: string, taskId: string, itemId: string): Promise<B2SReviewAnalytics> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/review-analytics`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);
