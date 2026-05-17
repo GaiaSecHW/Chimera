@@ -89,12 +89,6 @@ const MODULE_SELECTION_OPTIONS = [
   { value: 'auto', label: '按风险自动推进' },
   { value: 'manual_confirm', label: '系统分析后人工确认' },
 ] as const;
-const toProjectFilesystemPath = (projectId: string, path: string) => {
-  const normalized = String(path || '').trim().replace(/\\/g, '/').replace(/^\/+/, '');
-  const projectRoot = `data/files/${projectId}/`;
-  if (normalized.startsWith(projectRoot)) return normalized.slice(projectRoot.length).replace(/^\/+/, '');
-  return normalized;
-};
 const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
   { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
@@ -632,12 +626,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           module_risk_levels: moduleRiskLevels,
         },
       });
-      const inputDir = toProjectFilesystemPath(projectId, created.summary?.input_dir || `app/secflow-app-binary-security/${prepared.task_id}/input`);
-      const tempUploadDir = toProjectFilesystemPath(projectId, created.summary?.temp_upload_dir || `app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`);
+      const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/input`;
+      const tempUploadDir = created.summary?.temp_upload_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
       const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
         if (!basePath || !relativeDir) return;
-        const normalizedBase = basePath.replace(/^\/+|\/+$/g, '');
+        const normalizedBase = basePath.replace(/\/+$/g, '');
         const parts = relativeDir.split('/').filter(Boolean);
         let current = normalizedBase;
         for (const part of parts) {
