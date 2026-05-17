@@ -2763,6 +2763,10 @@ export interface AppEaTaskEvaluation {
   task_id: string;
   status: string;
   available: boolean;
+  source?: 'final_result' | 'runtime_snapshot' | 'none' | string;
+  is_realtime?: boolean;
+  snapshot_generated_at?: string | null;
+  runtime_summary?: Record<string, any> | null;
   summary?: Record<string, any> | null;
   rounds: AppSaEvaluationRound[];
   warnings: string[];
