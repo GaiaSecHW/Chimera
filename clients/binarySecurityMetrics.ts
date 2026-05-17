@@ -21,7 +21,7 @@ export type BinarySecurityMetricsGroup =
   | 'ai-agent'
   | 'service-specific';
 
-export type BinarySecurityMetricsSecondaryTab = 'observability' | 'ai-zone';
+export type BinarySecurityMetricsSecondaryTab = 'observability' | 'reducer' | 'ai-zone';
 
 export type BinarySecurityCanonicalAiMetricKey =
   | 'request-total'
@@ -57,6 +57,7 @@ export interface BinarySecurityCanonicalAiMetricDefinition {
 
 export const BINARY_SECURITY_METRICS_SECONDARY_TABS: Array<{ key: BinarySecurityMetricsSecondaryTab; label: string }> = [
   { key: 'observability', label: '通用观测' },
+  { key: 'reducer', label: 'Reducer' },
   { key: 'ai-zone', label: 'AI专区' },
 ];
 
@@ -178,6 +179,21 @@ export const binarySecurityMetricsApi = {
     const service = getBinarySecurityMetricsService(serviceKey);
     const response = await fetchWithRetry(
       service.metricsPath,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'text/plain',
+          ...getAuthHeaders(),
+        },
+      },
+      { retries: 2, retryDelayMs: 400 },
+    );
+    const payload = await handleResponse(response);
+    return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+  },
+  getBinarySecurityReducerMetrics: async (): Promise<string> => {
+    const response = await fetchWithRetry(
+      `${API_BASE}/api/app/binary-security/metrics/reducer`,
       {
         method: 'GET',
         headers: {
