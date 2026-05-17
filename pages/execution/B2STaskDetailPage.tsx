@@ -109,6 +109,28 @@ const formatDuration = (start?: string | null, end?: string | null, nowMs: numbe
   return formatDurationMs(endMs - startMs);
 };
 
+const compactText = (value?: string | null, fallback = '-') => {
+  const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+  return normalized || fallback;
+};
+
+const failureSuggestion = (item: B2SItem) => {
+  const reason = `${item.failure_type || ''} ${item.error_reason || ''} ${item.phase_message || ''}`.toLowerCase();
+  if (reason.includes('ida') && reason.includes('timeout')) {
+    return 'IDA 静态分析超时，优先检查 ELF 规模/架构识别/IDA 日志；可单独重跑该 item 或调大 IDA 分析超时。';
+  }
+  if (reason.includes('openrouter') || reason.includes('api key')) {
+    return '模型 Provider 或 API Key 异常，检查配置中心 Provider、pi-re-agent models.json 与任务冻结配置。';
+  }
+  if (reason.includes('not found') || reason.includes('missing')) {
+    return '上游 job 或产物缺失，通常适合重新派发/重跑，必要时检查 PVC 路径是否存在。';
+  }
+  if (reason.includes('timeout')) {
+    return '执行超时，检查对应智能体会话、worker 负载和超时重试配置。';
+  }
+  return '查看 pi job、worker 日志和当前阶段消息，确认是输入、执行器还是模型侧异常。';
+};
+
 const languageFromName = (name?: string | null) => {
   const lower = fileNameOf(name).toLowerCase();
   if (lower.endsWith('.c') || lower.endsWith('.h')) return 'c';
@@ -253,6 +275,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
   const selectedItem = useSelectedItem(detail, selectedItemId);
   const hasReturnContext = hasBinarySecurityReturnTarget(detail);
+  const failedItems = detail?.items.filter((item) => item.status === 'failed') || [];
   const handleBack = () => {
     if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
@@ -618,10 +641,26 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-rose-500">失败 Item</div>
             <div className="mt-2.5 space-y-1.5">
-              {(detail?.items.filter((item) => item.status === 'failed').slice(0, 4) || []).map((item) => (
-                <div key={item.id} className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-rose-700">{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</div>
+              {failedItems.slice(0, 4).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedItemId(item.id);
+                    setActiveTab('result');
+                  }}
+                  className="w-full rounded-lg bg-white px-3 py-2 text-left text-sm font-semibold text-rose-800 ring-1 ring-rose-100 transition hover:bg-rose-50"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate">{`#${item.sequence_no} ${fileNameOf(item.elf_path)}`}</span>
+                    <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-black text-rose-700">{item.failure_type || item.phase || 'failed'}</span>
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-rose-600" title={compactText(item.error_reason || item.phase_message)}>
+                    {compactText(item.error_reason || item.phase_message, '无详细错误信息')}
+                  </div>
+                </button>
               ))}
-              {(detail?.items.filter((item) => item.status === 'failed').length || 0) === 0 ? <div className="rounded-lg bg-white px-3 py-3 text-sm text-slate-500">暂无失败项</div> : null}
+              {failedItems.length === 0 ? <div className="rounded-lg bg-white px-3 py-3 text-sm text-slate-500">暂无失败项</div> : null}
             </div>
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -946,6 +985,32 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
       {selectedItem ? (
         <SectionCard title={`当前 Item 结果 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description={`状态 ${selectedItem.status} · Verdict ${selectedItemResultSummary?.final_verdict_label || selectedItemResultSummary?.final_verdict || '-'}`}>
+          {selectedItem.status === 'failed' || selectedItem.error_reason ? (
+            <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-2 font-black">
+                  <AlertTriangle size={16} />
+                  失败原因
+                </div>
+                <div className="flex flex-wrap gap-1.5 text-[10px] font-black">
+                  <span className="rounded-full bg-white px-2 py-0.5 text-rose-700 ring-1 ring-rose-100">类型：{selectedItem.failure_type || '-'}</span>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-rose-700 ring-1 ring-rose-100">阶段：{selectedItem.phase_label || selectedItem.phase || '-'}</span>
+                  <span className="rounded-full bg-white px-2 py-0.5 text-rose-700 ring-1 ring-rose-100">pi job：{selectedItem.pi_job_id || '-'}</span>
+                </div>
+              </div>
+              <div className="mt-2 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.7fr)]">
+                <div className="rounded-xl bg-white/80 p-2.5 ring-1 ring-rose-100">
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-rose-400">Error</div>
+                  <div className="mt-1 break-words font-semibold">{compactText(selectedItem.error_reason || selectedItem.phase_message, '无详细错误信息')}</div>
+                </div>
+                <div className="rounded-xl bg-white/80 p-2.5 ring-1 ring-rose-100">
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-rose-400">定位建议</div>
+                  <div className="mt-1 font-semibold">{failureSuggestion(selectedItem)}</div>
+                  {selectedItem.pi_worker_url ? <div className="mt-1 truncate text-[11px] text-rose-500" title={selectedItem.pi_worker_url}>Worker: {selectedItem.pi_worker_url}</div> : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
           {!itemArtifacts ? (
             <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载结果文件中...</div>
           ) : itemArtifacts.artifacts.length === 0 ? (

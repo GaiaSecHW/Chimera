@@ -546,6 +546,8 @@ export interface B2STaskDetail extends B2STask {
     progress?: B2SProgress;
     failure_type?: string;
     error_reason?: string;
+    pi_job_id?: string | null;
+    pi_worker_url?: string | null;
     generated_files: string[];
     started_at?: string;
     finished_at?: string;
