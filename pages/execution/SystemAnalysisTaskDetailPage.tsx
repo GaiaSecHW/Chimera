@@ -2061,11 +2061,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             </section>
           ) : activeTab === 'result' ? (
             <section className="space-y-4">
-              <div className="grid gap-4 xl:grid-cols-5">
+              <div className="grid gap-4 xl:grid-cols-6">
                 <MetricCard label="模块数" value={moduleCount} icon={<ScrollText size={18} />} />
                 <MetricCard label="高风险模块" value={highRiskCount} icon={<ShieldAlert size={18} />} />
                 <MetricCard label="总文件数" value={result?.summary.total_file_count ?? 0} icon={<FolderOpen size={18} />} />
                 <MetricCard label="威胁总数" value={result?.summary.threat_count ?? 0} icon={<AlertTriangle size={18} />} />
+                <MetricCard label="报告来源" value={result?.report_generation_label || '-'} icon={<ScrollText size={18} />} />
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div>
                   <div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div>

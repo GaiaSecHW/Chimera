@@ -2479,6 +2479,8 @@ export interface AppSaTaskResult {
   output_root?: string | null;
   final_report_path?: string | null;
   modules_list_path?: string | null;
+  report_generation_type?: 'ai' | 'program' | 'unknown' | 'missing' | string;
+  report_generation_label?: string | null;
   final_report_markdown?: string | null;
   modules: AppSaResultModule[];
   summary: AppSaTaskResultSummary;
