@@ -56,10 +56,54 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 const STAGE_STEPS = [
-  { key: 'init', label: '模块加载', desc: '扫描目标路径，加载模块文件', triggers: ['task_start', 'module_load', 'task_resume'], artifactSubpath: 'run' },
-  { key: 'analyse', label: '入口分析', desc: 'Worker 分析入口点并生成候选结果', triggers: ['round_start', 'worker_start', 'master_worker_start'], artifactSubpath: 'run/sessions' },
-  { key: 'judge', label: '裁判综合', desc: 'Judge 评审 Worker 输出并投票', triggers: ['judge_start', 'judge_eval', 'judge_end'], artifactSubpath: 'run' },
-  { key: 'finish', label: '生成结果', desc: '输出 Markdown、functions.list 与运行报告', triggers: ['round_end', 'task_end'], artifactSubpath: 'output' },
+  {
+    key: 'init',
+    label: '模块加载',
+    desc: '扫描模块文件，建立软链接工作目录',
+    triggers: ['task_start', 'module_load', 'module_found', 'module_ready', 'task_resume'],
+    artifactSubpath: 'run',
+  },
+  {
+    key: 'r1',
+    label: 'R1 函数提取',
+    desc: '文件级并行：静态工具 + LLM 验证，逐函数提取定义与函数体',
+    triggers: ['r1_static_extract', 'r1_static_done', 'r1_w_agent_start', 'r1_w_agent_done', 'r1_j_start', 'r1_j_done', 'r1_j_retry'],
+    artifactSubpath: 'run/functions',
+  },
+  {
+    key: 'r2',
+    label: 'R2 函数分析',
+    desc: '函数级并行：逐函数判断是否含外部输入（被动参数 / 主动拉取）',
+    triggers: ['r2_w_start', 'r2_w_done', 'r2_j_start', 'r2_j_done', 'r2_j_retry',
+               // 兼容旧流程事件
+               'round_start', 'worker_start', 'master_worker_start'],
+    artifactSubpath: 'run/analysis',
+  },
+  {
+    key: 'r3',
+    label: 'R3 文件过滤',
+    desc: '文件级并行：筛选文件内最外层真实外部数据入口',
+    triggers: ['r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done', 'r3_j_retry',
+               // 兼容旧流程事件
+               'judge_start', 'judge_eval', 'judge_end'],
+    artifactSubpath: 'run/entries',
+  },
+  {
+    key: 'r4',
+    label: 'R4 模块汇总',
+    desc: '模块级：跨文件调用链分析，保留真实最外层外部入口',
+    triggers: ['r4_w_start', 'r4_w_done', 'r4_j_start', 'r4_j_done', 'r4_j_retry',
+               // 兼容旧流程事件
+               'round_end'],
+    artifactSubpath: 'run',
+  },
+  {
+    key: 'finish',
+    label: '生成结果',
+    desc: '输出 final_report.md 与 functions.list（JSON 格式）',
+    triggers: ['task_end', 'functions_list_synced', 'functions_list_error'],
+    artifactSubpath: 'output',
+  },
 ];
 
 type DetailTab = 'overview' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
@@ -101,10 +145,15 @@ function formatMs(value: unknown): string {
 
 function stageLabel(stage: string | undefined): string {
   const labels: Record<string, string> = {
-    init: '模块加载',
-    analyse: '入口分析',
-    judge: '裁判综合',
+    init:   '模块加载',
+    r1:     'R1 函数提取',
+    r2:     'R2 函数分析',
+    r3:     'R3 文件过滤',
+    r4:     'R4 模块汇总',
     finish: '生成结果',
+    // 旧流程兼容
+    analyse: '入口分析',
+    judge:   '裁判综合',
   };
   return labels[stage || ''] || stage || '-';
 }
@@ -150,7 +199,11 @@ function formatSessionMtime(value?: number) {
 }
 
 function sessionRoleLabel(role?: string) {
-  if (role === 'judge') return 'Judge';
+  if (role === 'judge' || role?.startsWith('r') && role.endsWith('_judge')) return role?.startsWith('r') ? role.replace('_judge', '-J').toUpperCase() : 'Judge';
+  if (role === 'r1_worker') return 'R1-W';
+  if (role === 'r2_worker') return 'R2-W';
+  if (role === 'r3_worker') return 'R3-W';
+  if (role === 'r4_worker') return 'R4-W';
   if (role === 'sub_worker') return 'Sub Worker';
   if (role === 'worker') return 'Worker';
   if (role === 'master' || role === 'master_worker') return 'Master';
@@ -158,7 +211,11 @@ function sessionRoleLabel(role?: string) {
 }
 
 function sessionRoleTone(role?: string) {
-  if (role === 'judge') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (role === 'judge' || role?.endsWith('_judge')) return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (role === 'r1_worker') return 'border-sky-200 bg-sky-50 text-sky-700';
+  if (role === 'r2_worker') return 'border-indigo-200 bg-indigo-50 text-indigo-700';
+  if (role === 'r3_worker') return 'border-teal-200 bg-teal-50 text-teal-700';
+  if (role === 'r4_worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
   if (role === 'sub_worker') return 'border-violet-200 bg-violet-50 text-violet-700';
   if (role === 'master' || role === 'master_worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
   return 'border-slate-200 bg-slate-50 text-slate-600';
@@ -247,22 +304,55 @@ function formatEvent(evt: AppEaStageEvent): string {
   const ts = new Date(evt.ts * 1000).toLocaleTimeString('zh-CN');
   const d = evt.data || {};
   switch (evt.type) {
-    case 'task_start': return `[${ts}] 任务开始`;
-    case 'task_resume': return `[${ts}] 断点续跑 start_round=${d.start_round ?? ''}`;
-    case 'module_load': return `[${ts}] ▶ 加载模块: ${d.module ?? ''}`;
-    case 'module_found': return `[${ts}] │ 模块文件: ${d.file_count ?? ''} 个`;
-    case 'module_ready': return `[${ts}] ✓ 模块就绪: ${d.entry_count ?? ''} 个入口点`;
-    case 'round_start': return `[${ts}] ▶ 第 ${d.round ?? ''} 轮开始`;
-    case 'worker_start': return `[${ts}] │ Worker ${d.worker_id ?? d.worker_idx ?? ''}: ${d.entry ?? ''}`;
-    case 'worker_end': return `[${ts}] ✓ Worker ${d.worker_idx ?? ''} 完成`;
+    // ── 公共 ──────────────────────────────────────────────────────────
+    case 'task_start':   return `[${ts}] ▶ 任务开始`;
+    case 'task_resume':  return `[${ts}] ↩ 断点续跑 start_round=${d.start_round ?? ''}`;
+    case 'module_load':  return `[${ts}] ▶ 加载模块: ${d.module ?? ''}`;
+    case 'module_found': return `[${ts}] │ 模块文件: ${d.file_count ?? d.files?.length ?? ''} 个`;
+    case 'module_ready': return `[${ts}] ✓ 模块就绪 ${d.count ?? ''} 个文件`;
+    case 'error':        return `[${ts}] ✗ 错误: ${d.error ?? JSON.stringify(d)}`;
+    case 'task_end':     return `[${ts}] ✓ 任务结束 status=${d.status ?? ''}`;
+    // ── R1 函数提取 ───────────────────────────────────────────────────
+    case 'r1_static_extract':   return `[${ts}] │ R1 静态提取: ${d.file ?? ''}（${d.file_hash ?? ''}）`;
+    case 'r1_static_done':      return `[${ts}] │ R1 静态完成: ${d.file ?? ''} → ${d.count ?? 0} 个函数`;
+    case 'r1_w_agent_start':    return `[${ts}] ▶ R1-W 启动: ${d.file ?? ''}${d.is_retry ? '（重试）' : ''}`;
+    case 'r1_w_agent_done':     return `[${ts}] ✓ R1-W 完成: ${d.file ?? ''} in=${d.tokens_in ?? 0} out=${d.tokens_out ?? 0}${d.error ? ` ✗${d.error.slice(0, 60)}` : ''}`;
+    case 'r1_j_start':          return `[${ts}] ▶ R1-J 评审函数: ${d.func_hash ?? d.function ?? ''}`;
+    case 'r1_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R1-J 函数评审 ${d.passed ? '通过' : '未通过'}: ${d.func_hash ?? d.function ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    case 'r1_j_retry':          return `[${ts}] ↺ R1 重试函数: ${d.func_hash ?? ''} (第${d.attempt ?? '?'}次)`;
+    // ── R2 函数分析 ───────────────────────────────────────────────────
+    case 'r2_w_start':          return `[${ts}] ▶ R2-W 分析: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r2_w_done':           return `[${ts}] ✓ R2-W 完成: ${d.function ?? d.func_hash ?? ''} has_input=${d.has_external_input ?? ''}`;
+    case 'r2_j_start':          return `[${ts}] ▶ R2-J 评审文件: ${d.file ?? d.file_hash ?? ''}`;
+    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 文件评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''} 问题函数=${d.failed_count ?? 0}`;
+    case 'r2_j_retry':          return `[${ts}] ↺ R2 重试函数列表: ${d.file ?? ''} (${d.retry_count ?? '?'} 个)`;
+    // ── R3 文件过滤 ───────────────────────────────────────────────────
+    case 'r3_w_start':          return `[${ts}] ▶ R3-W 文件过滤: ${d.file ?? d.file_hash ?? ''}`;
+    case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.file ?? ''} 保留入口=${d.entry_count ?? 0}`;
+    case 'r3_j_start':          return `[${ts}] ▶ R3-J 评审: ${d.file ?? d.file_hash ?? ''}`;
+    case 'r3_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R3-J 评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''}`;
+    case 'r3_j_retry':          return `[${ts}] ↺ R3 重试: ${d.file ?? ''}`;
+    // ── R4 模块汇总 ───────────────────────────────────────────────────
+    case 'r4_w_start':          return `[${ts}] ▶ R4-W 模块汇总开始`;
+    case 'r4_w_done':           return `[${ts}] ✓ R4-W 完成 最终入口=${d.entry_count ?? 0}`;
+    case 'r4_j_start':          return `[${ts}] ▶ R4-J 最终评审`;
+    case 'r4_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R4-J 最终评审 ${d.passed ? '通过' : '未通过'}`;
+    case 'r4_j_retry':          return `[${ts}] ↺ R4 重试 (第${d.attempt ?? '?'}次)`;
+    // ── 输出产物 ──────────────────────────────────────────────────────
+    case 'functions_list_synced':   return `[${ts}] ✓ functions.list 生成: ${d.functions_count ?? 0} 条`;
+    case 'functions_list_error':    return `[${ts}] ✗ functions.list 错误: ${String(d.error ?? '').slice(0, 80)}`;
+    case 'functions_list_autofix':  return `[${ts}] │ functions.list 自动修复 ${d.fixes?.length ?? 0} 处`;
+    // ── 旧流程兼容（parallel worker / master 模式）────────────────────
+    case 'round_start':         return `[${ts}] ▶ 第 ${d.round ?? ''} 轮开始`;
+    case 'worker_start':        return `[${ts}] │ Worker ${d.worker_id ?? ''}: ${d.entry ?? ''}`;
+    case 'worker_done':         return `[${ts}] ✓ Worker ${d.worker_id ?? ''} 完成`;
     case 'master_worker_start': return `[${ts}] ▶ Master Worker Round ${d.round ?? ''} 开始合并`;
-    case 'master_worker_done': return `[${ts}] ✓ Master Worker Round ${d.round ?? ''} 合并完成`;
-    case 'judge_start': return `[${ts}] ▶ Judge ${d.judge_id ?? d.judge_idx ?? ''} 开始评审`;
-    case 'judge_end': return `[${ts}] ✓ Judge ${d.judge_idx ?? ''} 评审完成 passed=${d.passed ?? ''}`;
-    case 'round_end': return `[${ts}] ✓ 第 ${d.round ?? ''} 轮结束 passed=${d.passed ?? ''}`;
-    case 'error': return `[${ts}] ✗ 错误: ${d.error ?? JSON.stringify(d)}`;
-    case 'task_end': return `[${ts}] 任务结束 status=${d.status ?? ''}`;
-    default: return `[${ts}] ${evt.type}: ${String(d.text ?? d.output ?? JSON.stringify(d)).replace(/\n+/g, ' ').slice(0, 150)}`;
+    case 'master_worker_done':  return `[${ts}] ✓ Master Worker Round ${d.round ?? ''} 合并完成`;
+    case 'judge_start':         return `[${ts}] ▶ Judge ${d.judge_id ?? ''} 开始评审`;
+    case 'judge_eval':          return `[${ts}] │ Judge 评分 score=${d.score ?? ''} passed=${d.passed ?? ''}`;
+    case 'judge_end':           return `[${ts}] ✓ Judge 评审完成 passed=${d.passed ?? ''}`;
+    case 'round_end':           return `[${ts}] ✓ 第 ${d.round ?? ''} 轮结束 passed=${d.passed ?? ''}`;
+    default:                    return `[${ts}] ${evt.type}: ${String(d.text ?? d.output ?? JSON.stringify(d)).replace(/\n+/g, ' ').slice(0, 150)}`;
   }
 }
 
