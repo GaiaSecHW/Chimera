@@ -70,6 +70,13 @@ type ServiceViewModel = {
   groupCounts: Array<{ group: BinarySecurityMetricsGroup; count: number }>;
 };
 
+type AggregateCoverageSummary = {
+  attempted: number;
+  successful: number;
+  partial: boolean;
+  attemptedByRole: Array<{ role: string; attempted: number; successful: number }>;
+};
+
 type AiCard = {
   label: string;
   value: number;
@@ -365,6 +372,32 @@ const buildServiceViewModel = (rawText: string, service: BinarySecurityMetricsSe
     })),
     insights: buildInsights(rows),
     groupCounts,
+  };
+};
+
+const buildAggregateCoverageSummary = (rows: DisplayMetricRow[], serviceKey: BinarySecurityMetricsServiceKey): AggregateCoverageSummary | null => {
+  if (serviceKey !== 'binary-security') return null;
+  const attemptedRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_scrape_targets');
+  const successRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_scrape_success_targets');
+  if (!attemptedRows.length && !successRows.length) return null;
+  const roles = new Set<string>();
+  attemptedRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
+  successRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
+  const attemptedByRole = Array.from(roles)
+    .sort((left, right) => left.localeCompare(right, 'zh-CN'))
+    .map((role) => ({
+      role,
+      attempted: attemptedRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
+      successful: successRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
+    }));
+  const attempted = attemptedByRole.reduce((sum, item) => sum + item.attempted, 0);
+  const successful = attemptedByRole.reduce((sum, item) => sum + item.successful, 0);
+  const partialRow = rows.find((row) => row.name === 'secflow_binary_security_metrics_aggregate_partial');
+  return {
+    attempted,
+    successful,
+    partial: Boolean((partialRow?.value || 0) > 0),
+    attemptedByRole,
   };
 };
 
@@ -765,6 +798,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const activeState = stateByService[activeServiceKey];
   const activeRefreshTimestamp = activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer' ? reducerMetricsState.refreshedAt : activeState.refreshedAt;
   const viewModel = useMemo(() => buildServiceViewModel(activeState.rawText, activeService), [activeService, activeState.rawText]);
+  const aggregateCoverage = useMemo(
+    () => buildAggregateCoverageSummary(viewModel.rows, activeServiceKey),
+    [activeServiceKey, viewModel.rows],
+  );
   const aiViewModel = useMemo(() => buildAiViewModel(viewModel.rows, activeService), [activeService, viewModel.rows]);
   const reducerViewModel = useMemo(
     () =>
@@ -914,6 +951,35 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         </section>
       ) : activeSecondaryTab === 'observability' ? (
         <>
+          {aggregateCoverage ? (
+            <section
+              className={`rounded-[2rem] border px-5 py-4 shadow-sm ${
+                aggregateCoverage.partial ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Cluster Aggregate</div>
+                  <h2 className="mt-2 text-lg font-black tracking-tight text-slate-900">当前展示的是二进制安全编排器多实例聚合指标</h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    已抓取 {aggregateCoverage.successful}/{aggregateCoverage.attempted} 个实例。
+                    {aggregateCoverage.partial ? ' 当前为部分聚合结果，个别 Pod scrape 失败时数值可能略有偏差。' : ' 当前结果已覆盖本次发现的全部实例。'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {aggregateCoverage.attemptedByRole.map((item) => (
+                    <span
+                      key={item.role}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-3 py-1 text-xs font-bold text-slate-700"
+                    >
+                      {item.role}: {formatNumber(item.successful, 0)}/{formatNumber(item.attempted, 0)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="grid gap-4 xl:grid-cols-4">
             {viewModel.kpis.map((item) => (
               <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
