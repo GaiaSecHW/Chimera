@@ -40,6 +40,12 @@ const DEFAULT_SOURCE_STAGE_SEQUENCE = [
   'dataflow_analysis',
   'vuln_scan',
 ];
+const DEFAULT_MODULE_STAGE_SEQUENCE = [
+  'binary_to_source',
+  'entry_analysis',
+  'dataflow_analysis',
+  'vuln_scan',
+];
 const MODULE_RISK_OPTIONS = ['高', '中', '低'];
 const MODULE_SELECTION_OPTIONS = [
   { value: 'auto', label: '按风险自动推进' },
@@ -275,6 +281,18 @@ const systemAnalysisRiskCountLabels = (state?: DownstreamTaskState) => {
     medium: safeCountLabel(summary.medium_risk_module_count ?? resultJson.medium_risk_module_count),
     low: safeCountLabel(summary.low_risk_module_count ?? resultJson.low_risk_module_count),
   };
+};
+
+const taskTypeLabel = (taskType: BinarySecurityTaskType) => {
+  if (taskType === 'source') return '源码扫描';
+  if (taskType === 'binary_module') return '二进制模块扫描';
+  return '二进制类扫描';
+};
+
+const taskDetailViewLabel = (taskType: BinarySecurityTaskType) => {
+  if (taskType === 'source') return '源码任务总览详情';
+  if (taskType === 'binary_module') return '二进制模块任务总览详情';
+  return '二进制任务总览详情';
 };
 
 const BLOCKING_ACTION_COPY: Record<
@@ -1153,11 +1171,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   });
 
   const isSourceTask = taskType === 'source';
+  const isBinaryModuleTask = taskType === 'binary_module';
   const stageSequence = useMemo(
     () => (detail?.stage_sequence?.length
       ? detail.stage_sequence
-      : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE)),
-    [detail?.stage_sequence, isSourceTask],
+      : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : isBinaryModuleTask ? DEFAULT_MODULE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE)),
+    [detail?.stage_sequence, isBinaryModuleTask, isSourceTask],
   );
   const canActOnTask = Boolean(detail);
   const isPreparing = PREPARING_STATUSES.has(detail?.status || '');
@@ -1204,7 +1223,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       setDetail(task);
       const nextStages = task.stage_sequence?.length
         ? task.stage_sequence
-        : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE);
+        : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : isBinaryModuleTask ? DEFAULT_MODULE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE);
       const nextDraft = buildStrategyDraft(task.policy, nextStages);
       if (!options?.preserveStrategyDraft) {
         setStrategyDraft(nextDraft);
@@ -1263,7 +1282,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (!projectId || !taskId || timelineClearing) return;
     const confirmed = await showConfirm({
       title: '清空事件时间线',
-      message: `将删除当前${isSourceTask ? '源码任务' : '二进制任务'}的全部事件时间线记录。该操作不影响任务状态、阶段结果和产物文件，删除后不可恢复，是否继续？`,
+      message: `将删除当前${isBinaryModuleTask ? '二进制模块任务' : isSourceTask ? '源码任务' : '二进制任务'}的全部事件时间线记录。该操作不影响任务状态、阶段结果和产物文件，删除后不可恢复，是否继续？`,
       confirmText: '确认清空',
       cancelText: '取消',
       danger: true,
@@ -1408,7 +1427,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       setDetail(updated);
       const nextStages = updated.stage_sequence?.length
         ? updated.stage_sequence
-        : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE);
+        : (isSourceTask ? DEFAULT_SOURCE_STAGE_SEQUENCE : isBinaryModuleTask ? DEFAULT_MODULE_STAGE_SEQUENCE : DEFAULT_BINARY_STAGE_SEQUENCE);
       const nextDraft = buildStrategyDraft(updated.policy, nextStages);
       setStrategyDraft(nextDraft);
       setStrategySavedSnapshot(nextDraft);
@@ -1486,7 +1505,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     if (activeTab !== 'modules' || moduleSelection || moduleSelectionLoading) return;
     if (!detail) return;
-    const hasModuleData = detail.selected_module_count > 0 || detail.candidate_module_count > 0 || detail.high_risk_module_count > 0 || detail.current_stage === 'system_analysis' || detail.status === 'pending_module_confirmation';
+    const hasModuleData = isBinaryModuleTask
+      || detail.selected_module_count > 0
+      || detail.candidate_module_count > 0
+      || detail.high_risk_module_count > 0
+      || detail.current_stage === 'system_analysis'
+      || detail.status === 'pending_module_confirmation';
     if (hasModuleData) {
       void loadModuleSelection();
     }
@@ -1496,6 +1520,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     moduleSelection,
     moduleSelectionLoading,
     projectId,
+    isBinaryModuleTask,
     taskId,
   ]);
 
@@ -1984,7 +2009,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     const detailSupport = downstreamDetailSupport(item.stage_name, downstreamTaskId);
     if (!downstreamTaskId || !detailSupport.supported) return;
     saveBinarySecurityReturnContext({
-      view: taskType === 'source' ? 'source-security-detail' : 'binary-security-detail',
+      view: taskType === 'source' ? 'source-security-detail' : taskType === 'binary_module' ? 'binary-module-security-detail' : 'binary-security-detail',
       taskId,
       taskType,
     });
@@ -2222,7 +2247,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       {modalRunning ? modalCopy.progressTitle : modalCopy.confirmTitle}
                     </h3>
                     <p className="mt-1 text-sm text-slate-500">
-                      {isSourceTask ? '源码任务总览详情' : '二进制任务总览详情'}
+                      {taskDetailViewLabel(taskType)}
                     </p>
                   </div>
                 </div>
@@ -2311,7 +2336,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <ArrowLeft size={16} />
           返回任务列表
         </button>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap justify-end gap-3">
           <button
             type="button"
             onClick={() => void refreshActiveTab()}
@@ -2362,7 +2387,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       ) : detail ? (
         <>
           <section className="rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.85fr)] xl:items-start">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)] xl:items-start">
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security Detail</p>
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{detail.name}</h1>
@@ -2393,7 +2418,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 ) : null}
                 <div className="mt-4 grid gap-2">
                   <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{isSourceTask ? '源码目录' : '输入目录'}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{isSourceTask ? '源码目录' : isBinaryModuleTask ? '模块输入目录' : '输入目录'}</div>
                     <div className="mt-1 break-all font-mono text-xs text-slate-700">{detail.firmware_path}</div>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
@@ -2401,43 +2426,43 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <div className="mt-1 break-all font-mono text-xs text-slate-700">{detail.output_root}</div>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">模块策略</div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{isBinaryModuleTask ? '模块输入' : '模块策略'}</div>
                     <div className="mt-1 text-xs text-slate-700">
-                      {detail.module_selection_mode === 'manual_confirm' ? '系统分析后人工确认' : '按风险自动推进'}
-                      {' · '}
-                      风险等级：{(detail.selected_risk_levels || []).join(' / ') || '-'}
+                      {isBinaryModuleTask
+                        ? `模块级直接输入 · 模块名：${String((detail.summary as any)?.module_input?.module_name || detail.name || '-').trim() || '-'}`
+                        : `${detail.module_selection_mode === 'manual_confirm' ? '系统分析后人工确认' : '按风险自动推进'} · 风险等级：${(detail.selected_risk_levels || []).join(' / ') || '-'}`}
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+              <div className="min-w-0 grid grid-cols-2 gap-2">
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
                   <div className="text-slate-400">创建时间</div>
-                  <div className="mt-1 font-bold text-slate-900">{fmt(detail.created_at)}</div>
+                  <div className="mt-1 break-words font-bold text-slate-900">{fmt(detail.created_at)}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
                   <div className="text-slate-400">完成时间</div>
-                  <div className="mt-1 font-bold text-slate-900">{fmt(detail.finished_at)}</div>
+                  <div className="mt-1 break-words font-bold text-slate-900">{fmt(detail.finished_at)}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-                  <div className="text-slate-400">{isSourceTask ? '源码文件数' : '固件数量'}</div>
-                  <div className="mt-1 text-lg font-black text-slate-900">{detail.firmware_item_count}</div>
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">{isSourceTask ? '源码文件数' : isBinaryModuleTask ? 'ELF 数量' : '固件数量'}</div>
+                  <div className="mt-1 break-words text-lg font-black text-slate-900">{detail.firmware_item_count}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-                  <div className="text-slate-400">{isSourceTask ? '入口数量' : '已解包/失败'}</div>
-                  <div className="mt-1 text-lg font-black text-slate-900">{isSourceTask ? detail.entry_count : `${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</div>
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">{isSourceTask ? '入口数量' : isBinaryModuleTask ? '当前模式' : '已解包/失败'}</div>
+                  <div className="mt-1 break-words text-lg font-black text-slate-900">{isSourceTask ? detail.entry_count : isBinaryModuleTask ? '模块级' : `${detail.unpacked_firmware_count} / ${detail.failed_firmware_count}`}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-                  <div className="text-slate-400">已选模块</div>
-                  <div className="mt-1 text-lg font-black text-slate-900">{detail.selected_module_count}</div>
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">{isBinaryModuleTask ? '模块数量' : '已选模块'}</div>
+                  <div className="mt-1 break-words text-lg font-black text-slate-900">{isBinaryModuleTask ? Math.max(1, detail.selected_module_count || 1) : detail.selected_module_count}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
-                  <div className="text-slate-400">高危模块</div>
-                  <div className="mt-1 text-lg font-black text-slate-900">{detail.high_risk_module_count}</div>
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                  <div className="text-slate-400">{isBinaryModuleTask ? '候选模块' : '高危模块'}</div>
+                  <div className="mt-1 break-words text-lg font-black text-slate-900">{isBinaryModuleTask ? Math.max(1, detail.candidate_module_count || 1) : detail.high_risk_module_count}</div>
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
                   <div className="text-slate-400">漏洞结果</div>
-                  <div className="mt-1 text-lg font-black text-slate-900">{detail.vuln_result_count}</div>
+                  <div className="mt-1 break-words text-lg font-black text-slate-900">{detail.vuln_result_count}</div>
                 </div>
               </div>
             </div>
@@ -2483,7 +2508,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     : 'border-amber-200 bg-amber-50 text-amber-800'
                 }`}>
                   {strategyEditable
-                    ? '任务级并发配置、阶段启停和模块推进策略按分块保存；保存后不会修改已完成阶段，也不会实时改写正在运行中的子任务池。'
+                    ? `任务级并发配置、阶段启停${isBinaryModuleTask ? '' : '和模块推进策略'}按分块保存；保存后不会修改已完成阶段，也不会实时改写正在运行中的子任务池。`
                     : strategyBlockedReason}
                 </div>
                 {strategyDirty ? (
@@ -2558,6 +2583,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </section>
 
+              {!isBinaryModuleTask ? (
               <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
@@ -2631,6 +2657,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   </div>
                 </div>
               </section>
+              ) : null}
 
               <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -2659,7 +2686,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                  阶段并发按当前任务流程分别生效；源码任务只展示源码流程阶段，二进制任务展示完整流程阶段。
+                  阶段并发按当前任务流程分别生效；源码任务只展示源码流程阶段，二进制任务展示完整流程阶段，模块任务展示模块级四阶段流程。
                 </div>
                 <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   {stageSequence.map((stageName) => (
@@ -2737,7 +2764,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">任务类型</div>
-                  <div className="mt-1 font-black text-slate-900">{isSourceTask ? '源码扫描' : '二进制类扫描'}</div>
+                  <div className="mt-1 font-black text-slate-900">{taskTypeLabel(taskType)}</div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">阶段数</div>
@@ -3437,9 +3464,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <section className={`rounded-[2rem] border p-6 shadow-sm ${requiresModuleConfirmation ? 'border-amber-200 bg-amber-50/70' : 'border-slate-200 bg-white'}`}>
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
-                    <h2 className="text-xl font-black text-slate-900">高危模块确认</h2>
+                    <h2 className="text-xl font-black text-slate-900">{isBinaryModuleTask ? '模块输入' : '高危模块确认'}</h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      {requiresModuleConfirmation
+                      {isBinaryModuleTask
+                        ? '当前任务绕过系统分析，直接以手工输入的单模块多 ELF 作为后续阶段的统一输入。'
+                        : requiresModuleConfirmation
                         ? '系统分析已经产出候选高危模块。请确认需要继续推进的数据范围，确认后任务会继续进入后续阶段。'
                         : '展示系统分析产出的全部模块、候选高危模块和当前已确认模块。'}
                     </p>
@@ -3499,7 +3528,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <section className="rounded-[2rem] border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">正在加载模块确认信息...</section>
               ) : !moduleSelection ? (
                 <section className="rounded-[2rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-400 shadow-sm">
-                  当前任务尚未生成可展示的模块确认数据。
+                  {isBinaryModuleTask ? '当前任务未生成额外模块表数据，可继续通过总览与阶段详情查看该模块的 ELF 输入和执行进度。' : '当前任务尚未生成可展示的模块确认数据。'}
                 </section>
               ) : (
                 <div className="grid gap-6 xl:grid-cols-3">

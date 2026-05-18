@@ -1363,7 +1363,6 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   onClick={() => handleHeaderSort('status')}
                 />
                 <ExecutionTableTh>源码路径</ExecutionTableTh>
-                <ExecutionTableTh>Prompt</ExecutionTableTh>
                 <ExecutionTableTh>来源</ExecutionTableTh>
                 <SortableHeader
                   label="创建时间"
@@ -1433,9 +1432,6 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </ExecutionTableTd>
                   <ExecutionTableTd className="max-w-[320px]">
                     <div className="truncate font-mono text-xs text-slate-500" title={t.input_path}>{t.input_path}</div>
-                  </ExecutionTableTd>
-                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
-                    {t.prompt_template_id || '-'}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
                     {t.parent_task_id ? (

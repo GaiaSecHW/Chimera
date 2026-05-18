@@ -8,7 +8,7 @@ export interface BinarySecurityInputFile {
   metadata?: Record<string, any>;
 }
 
-export type BinarySecurityTaskType = 'binary' | 'source';
+export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 
 export interface BinarySecurityStageOption {
@@ -478,6 +478,7 @@ export const binarySecurityApi = {
       task_type?: BinarySecurityTaskType;
       name: string;
       description?: string;
+      module_name?: string;
       input_files: BinarySecurityInputFile[];
       output_root?: string;
       stage_options?: Record<string, { enabled: boolean }>;

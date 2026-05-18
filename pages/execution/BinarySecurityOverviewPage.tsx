@@ -15,6 +15,7 @@ interface Props {
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
 const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
+const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 
 const statusTone = (status: string) => {
   switch (status) {
@@ -321,6 +322,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [moduleName, setModuleName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
@@ -342,11 +344,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
 
   const isSourceTask = taskType === 'source';
-  const pageTitle = isSourceTask ? '源码扫描' : '二进制安全';
-  const createTitle = isSourceTask ? '创建源码扫描任务' : '创建二进制安全任务';
-  const emptyLabel = isSourceTask ? '当前项目还没有源码扫描任务。' : '当前项目还没有二进制安全任务。';
-  const namePrefix = isSourceTask ? 'source-security' : 'binary-security';
-  const stages = isSourceTask ? SOURCE_STAGES : BINARY_STAGES;
+  const isBinaryModuleTask = taskType === 'binary_module';
+  const pageTitle = isSourceTask ? '源码扫描' : isBinaryModuleTask ? '二进制模块扫描' : '二进制安全';
+  const createTitle = isSourceTask ? '创建源码扫描任务' : isBinaryModuleTask ? '创建二进制模块任务' : '创建二进制安全任务';
+  const emptyLabel = isSourceTask ? '当前项目还没有源码扫描任务。' : isBinaryModuleTask ? '当前项目还没有二进制模块任务。' : '当前项目还没有二进制安全任务。';
+  const namePrefix = isSourceTask ? 'source-security' : isBinaryModuleTask ? 'binary-module-security' : 'binary-security';
+  const stages = isSourceTask ? SOURCE_STAGES : isBinaryModuleTask ? MODULE_STAGES : BINARY_STAGES;
 
   const fileKey = (file: File) => {
     const rel = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
@@ -520,6 +523,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   }) => {
     setName('');
     setDescription('');
+    setModuleName('');
     setFiles([]);
     setUploadProgress({});
     setUploadSpeed({});
@@ -622,6 +626,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setCreateError('请输入任务名称');
       return;
     }
+    if (isBinaryModuleTask && !moduleName.trim()) {
+      setCreateError('请输入模块名');
+      return;
+    }
     if (files.length === 0) {
       setCreateError('请选择至少一个输入文件');
       return;
@@ -638,7 +646,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setCreateError(`存在重复${isSourceTask ? '路径' : '文件名'}: ${duplicateNames[0]}`);
       return;
     }
-    if (moduleRiskLevels.length === 0) {
+    if (!isBinaryModuleTask && moduleRiskLevels.length === 0) {
       setCreateError('至少选择一个模块风险等级');
       return;
     }
@@ -655,18 +663,19 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         task_type: taskType,
         name: name.trim(),
         description: description.trim() || undefined,
+        module_name: isBinaryModuleTask ? moduleName.trim() : undefined,
         input_files: inputFiles,
         policy_overrides: {
           max_retries_per_item: maxRetries,
           continue_on_item_failure: continueOnFailure,
           partial_success_stage_advancement: Object.fromEntries(
             PARTIAL_SUCCESS_ADVANCEMENT_FIELDS
-              .filter((field) => !isSourceTask || field.key !== 'binary_to_source')
+              .filter((field) => stages.includes(field.key))
               .map((field) => [field.key, partialSuccessStageAdvancement[field.key] !== false]),
           ),
-          stage_parallelism: stageParallelism,
-          module_selection_mode: moduleSelectionMode,
-          module_risk_levels: moduleRiskLevels,
+          stage_parallelism: Object.fromEntries(stages.map((stage) => [stage, stageParallelism[stage] ?? 1])),
+          module_selection_mode: isBinaryModuleTask ? undefined : moduleSelectionMode,
+          module_risk_levels: isBinaryModuleTask ? undefined : moduleRiskLevels,
         },
       });
       const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/input`;
@@ -691,7 +700,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         }
       };
       for (const file of files) {
-        const rel = isSourceTask ? file.name : file.name;
+        const rel = file.name;
         const normalizedRel = rel.replace(/\\/g, '/');
         const relDir = normalizedRel.includes('/') ? normalizedRel.split('/').slice(0, -1).join('/') : '';
         const uploadBase = isSourceTask ? tempUploadDir : inputDir;
@@ -713,7 +722,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               setUploadSpeed((current) => ({ ...current, [fileKey(file)]: progress.speed_bytes_per_sec || 0 }));
             },
             trackGlobal: false,
-            sourceLabel: isSourceTask ? '源码扫描输入上传' : '二进制安全输入上传',
+            sourceLabel: isSourceTask ? '源码扫描输入上传' : isBinaryModuleTask ? '二进制模块输入上传' : '二进制安全输入上传',
           },
         );
         setUploadProgress((current) => ({ ...current, [fileKey(file)]: 100 }));
@@ -742,6 +751,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               {isSourceTask
                 ? '为当前项目统一编排系统分析、入口分析、数据流分析和漏洞扫描，聚合查看源码工程任务的阶段状态与结果。'
+                : isBinaryModuleTask
+                  ? '为当前项目统一编排模块级二进制逆向、入口分析、数据流分析和漏洞扫描，直接以单模块下的多个 ELF 作为输入自动推进。'
                 : '为当前项目统一编排固件解包、系统分析、反编译、入口分析、数据流分析和漏洞扫描，聚合查看多固件任务的阶段状态与结果。'}
             </p>
           </div>
@@ -791,12 +802,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             <ChevronRight size={14} className={`transition-transform ${stageStatsExpanded ? 'rotate-90' : ''}`} />
           </button>
         </div>
-        <div className="mt-2 text-sm text-slate-500">任务、固件和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
+        <div className="mt-2 text-sm text-slate-500">任务、输入和结果统计基于当前项目；运行中、排队中和最大并发为服务全局队列指标。</div>
         <div className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-6">
           <ProjectStatCard label="任务总数" value={stats.total} hint={`成功 ${stats.success} · 部分成功 ${stats.partial_success} · 失败 ${stats.failed}`} />
           <ProjectStatCard label="运行中任务" value={stats.running} hint={`全局运行 ${runningCount} · 排队 ${queuedCount}`} />
-          <ProjectStatCard label={isSourceTask ? '源码输入' : '固件输入'} value={stats.input_count} hint={isSourceTask ? '当前项目源码输入总量' : `已解包 ${stats.unpacked_firmware_count} · 失败 ${stats.failed_firmware_count}`} />
-          <ProjectStatCard label="已选模块" value={stats.selected_module_count} hint={`候选 ${stats.candidate_module_count} · 高危 ${stats.high_risk_module_count}`} />
+          <ProjectStatCard label={isSourceTask ? '源码输入' : isBinaryModuleTask ? 'ELF 输入' : '固件输入'} value={stats.input_count} hint={isSourceTask ? '当前项目源码输入总量' : isBinaryModuleTask ? '当前项目模块级 ELF 输入总量' : `已解包 ${stats.unpacked_firmware_count} · 失败 ${stats.failed_firmware_count}`} />
+          <ProjectStatCard label={isBinaryModuleTask ? '模块任务' : '已选模块'} value={stats.selected_module_count} hint={isBinaryModuleTask ? `固定模块 ${stats.candidate_module_count}` : `候选 ${stats.candidate_module_count} · 高危 ${stats.high_risk_module_count}`} />
           <ProjectStatCard label="入口结果" value={stats.entry_count} hint="入口分析产出总量" />
           <ProjectStatCard label="漏洞结果" value={stats.vuln_result_count} hint={`队列最大并发 ${maxConcurrentTasks}`} />
         </div>
@@ -897,9 +908,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     <div className="mt-3 break-all rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-500">{item.firmware_path}</div>
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 xl:grid-cols-6">
                       <div>当前阶段：<span className="font-bold text-slate-900">{formatStageLabel(item.current_stage)}</span></div>
-                      <div>{isSourceTask ? '源码文件' : '固件数'}：<span className="font-bold text-slate-900">{item.firmware_item_count}</span></div>
-                      <div>{isSourceTask ? '已选模块' : '已解包'}：<span className="font-bold text-slate-900">{isSourceTask ? item.selected_module_count : item.unpacked_firmware_count}</span></div>
-                      <div>{isSourceTask ? '入口数量' : '解包失败'}：<span className="font-bold text-slate-900">{isSourceTask ? item.entry_count : item.failed_firmware_count}</span></div>
+                      <div>{isSourceTask ? '源码文件' : isBinaryModuleTask ? 'ELF 数' : '固件数'}：<span className="font-bold text-slate-900">{item.firmware_item_count}</span></div>
+                      <div>{isSourceTask ? '已选模块' : isBinaryModuleTask ? '模块数' : '已解包'}：<span className="font-bold text-slate-900">{isSourceTask ? item.selected_module_count : isBinaryModuleTask ? item.selected_module_count || 1 : item.unpacked_firmware_count}</span></div>
+                      <div>{isSourceTask ? '入口数量' : isBinaryModuleTask ? '任务模式' : '解包失败'}：<span className="font-bold text-slate-900">{isSourceTask ? item.entry_count : isBinaryModuleTask ? '模块级' : item.failed_firmware_count}</span></div>
                       <div>漏洞结果：<span className="font-bold text-slate-900">{item.vuln_result_count}</span></div>
                       <div>开始时间：<span className="font-bold text-slate-900">{fmt(item.started_at)}</span></div>
                     </div>
@@ -946,7 +957,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               <div>
                 <h3 className="text-xl font-black text-slate-900">{createTitle}</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {isSourceTask ? '仅支持上传常见源码压缩包；文件会先上传到临时目录，再由后端解压到任务 input 目录。' : '每个上传文件都会作为独立固件进入完整的安全分析编排流程。'}
+                  {isSourceTask
+                    ? '仅支持上传常见源码压缩包；文件会先上传到临时目录，再由后端解压到任务 input 目录。'
+                    : isBinaryModuleTask
+                      ? '请输入模块名并上传属于该模块的多个 ELF，任务会直接从二进制逆向阶段开始自动推进。'
+                      : '每个上传文件都会作为独立固件进入完整的安全分析编排流程。'}
                 </p>
               </div>
               <button type="button" onClick={closeCreateDialog} disabled={submitting} className="text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-50">
@@ -958,12 +973,15 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
                 <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述（可选）" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
               </div>
+              {isBinaryModuleTask ? (
+                <input value={moduleName} onChange={(e) => setModuleName(e.target.value)} placeholder="模块名" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              ) : null}
 
               <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-black text-slate-900">输入文件</div>
-                    <div className="mt-1 text-sm text-slate-500">{isSourceTask ? '仅支持 zip、tar、tgz、tar.gz、tbz2、tar.bz2、txz、tar.xz 等常见压缩文件。' : '支持一次选择多个文件；文件名不能重复。'}</div>
+                    <div className="mt-1 text-sm text-slate-500">{isSourceTask ? '仅支持 zip、tar、tgz、tar.gz、tbz2、tar.bz2、txz、tar.xz 等常见压缩文件。' : isBinaryModuleTask ? '支持一次选择多个 ELF 文件；文件名不能重复。' : '支持一次选择多个文件；文件名不能重复。'}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button
@@ -972,7 +990,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
                     >
                       <Upload size={16} />
-                      选择文件
+                      {isBinaryModuleTask ? '选择 ELF' : '选择文件'}
                     </button>
                     <div className="text-sm text-slate-500">{files.length} 个文件 · {fmtSize(totalUploadBytes)}</div>
                     {submitting && activeUploadSpeed > 0 && (
@@ -1026,54 +1044,56 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </div>
               </div>
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  <div>
-                    <div className="text-sm font-black text-slate-900">模块推进方式</div>
-                    <div className="mt-3 grid gap-2">
-                      {MODULE_SELECTION_OPTIONS.map((option) => (
-                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                          <input
-                            type="radio"
-                            name="moduleSelectionMode"
-                            checked={moduleSelectionMode === option.value}
-                            onChange={() => setModuleSelectionMode(option.value)}
-                          />
-                          {option.label}
-                        </label>
-                      ))}
+              {!isBinaryModuleTask ? (
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">模块推进方式</div>
+                      <div className="mt-3 grid gap-2">
+                        {MODULE_SELECTION_OPTIONS.map((option) => (
+                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                            <input
+                              type="radio"
+                              name="moduleSelectionMode"
+                              checked={moduleSelectionMode === option.value}
+                              onChange={() => setModuleSelectionMode(option.value)}
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-black text-slate-900">后续分析模块风险等级</div>
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {MODULE_RISK_OPTIONS.map((risk) => (
-                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
-                          <input
-                            type="checkbox"
-                            checked={moduleRiskLevels.includes(risk)}
-                            onChange={(event) => {
-                              setModuleRiskLevels((current) => {
-                                if (event.target.checked) return current.includes(risk) ? current : current.concat(risk);
-                                return current.filter((item) => item !== risk);
-                              });
-                            }}
-                          />
-                          {risk}
-                        </label>
-                      ))}
-                    </div>
-                    <div className="mt-2 text-xs text-slate-500">
-                      先按风险等级筛选候选模块；若选择人工确认，系统分析完成后再由人工从候选模块中确认最终推进集合。
+                    <div>
+                      <div className="text-sm font-black text-slate-900">后续分析模块风险等级</div>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {MODULE_RISK_OPTIONS.map((risk) => (
+                          <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={moduleRiskLevels.includes(risk)}
+                              onChange={(event) => {
+                                setModuleRiskLevels((current) => {
+                                  if (event.target.checked) return current.includes(risk) ? current : current.concat(risk);
+                                  return current.filter((item) => item !== risk);
+                                });
+                              }}
+                            />
+                            {risk}
+                          </label>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        先按风险等级筛选候选模块；若选择人工确认，系统分析完成后再由人工从候选模块中确认最终推进集合。
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
               <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="text-sm font-black text-slate-900">阶段并发配置</div>
                 <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
-                  {STAGE_PARALLELISM_FIELDS.filter((field) => !isSourceTask || !['firmware_unpack', 'binary_to_source'].includes(field.key)).map((field) => (
+                  {STAGE_PARALLELISM_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
                     <div key={field.key}>
                       <div className="mb-2 text-sm font-bold text-slate-700">{field.label}</div>
                       <input
@@ -1096,7 +1116,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   子任务失败时继续推进其他子任务
                 </label>
                 <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => !isSourceTask || field.key !== 'binary_to_source').map((field) => (
+                  {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
                     <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
                       <input
                         type="checkbox"

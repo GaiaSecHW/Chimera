@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   AlertTriangle,
@@ -175,11 +175,11 @@ const MetricTile: React.FC<{
   tone?: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet';
   icon?: React.ReactNode;
 }> = ({ label, value, hint, tone = 'slate', icon }) => (
-  <div className={`rounded-xl border px-3 py-2.5 ${tileTone(tone)}`}>
+  <div className={`min-w-0 rounded-xl border px-3 py-2.5 ${tileTone(tone)}`}>
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
         <div className="text-[10px] font-black uppercase tracking-[0.14em] opacity-60">{label}</div>
-        <div className="mt-0.5 text-xl font-black tracking-tight">{value}</div>
+        <div className="mt-0.5 break-words text-xl font-black tracking-tight">{value}</div>
       </div>
       {icon ? <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/70">{icon}</div> : null}
     </div>
@@ -282,10 +282,13 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     onBack();
   };
 
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
-    setLoading(true);
-    setError(null);
+    const silent = options?.silent === true;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await executionApi.getTask(projectId, taskId);
       setDetail(data);
@@ -293,79 +296,118 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         setSelectedItemId('__all__');
       }
     } catch (e: any) {
-      setError(e?.message || '加载任务详情失败');
-      setDetail(null);
+      if (!silent) {
+        setError(e?.message || '加载任务详情失败');
+        setDetail(null);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, [executionApi, projectId, selectedItemId, taskId]);
 
-  const loadResult = async () => {
+  const loadResult = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
     try {
       setResult(await executionApi.getTaskResult(projectId, taskId));
     } catch (e: any) {
-      setError(e?.message || '加载结果摘要失败');
+      if (!options?.silent) {
+        setError(e?.message || '加载结果摘要失败');
+      }
     }
-  };
+  }, [executionApi, projectId, taskId]);
 
-  const loadObservability = async () => {
+  const loadObservability = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
     try {
       setObservability(await executionApi.getTaskObservability(projectId, taskId));
     } catch (e: any) {
-      setError(e?.message || '加载观测指标失败');
+      if (!options?.silent) {
+        setError(e?.message || '加载观测指标失败');
+      }
     }
-  };
+  }, [executionApi, projectId, taskId]);
 
-  const loadSessions = async () => {
+  const loadSessions = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
     try {
       const payload = await executionApi.getTaskSessions(projectId, taskId);
       setSessions(payload);
       if (!selectedSessionPath && payload.nodes[0]) setSelectedSessionPath(payload.nodes[0].relative_path);
     } catch (e: any) {
-      setError(e?.message || '加载智能体会话失败');
+      if (!options?.silent) {
+        setError(e?.message || '加载智能体会话失败');
+      }
     }
-  };
+  }, [executionApi, projectId, selectedSessionPath, taskId]);
 
-  const loadRelationship = async () => {
+  const loadRelationship = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
     try {
       setRelationship(await executionApi.getTaskRelationship(projectId, taskId));
     } catch (e: any) {
-      setError(e?.message || '加载智能体关系失败');
+      if (!options?.silent) {
+        setError(e?.message || '加载智能体关系失败');
+      }
     }
-  };
+  }, [executionApi, projectId, taskId]);
 
   useEffect(() => {
     void loadDetail();
-  }, [projectId, taskId]);
+  }, [loadDetail]);
+
+  const isTaskRunning = !!detail && !B2S_TERMINAL_STATUSES.has(detail.status);
 
   useEffect(() => {
-    if (!detail || B2S_TERMINAL_STATUSES.has(detail.status)) return undefined;
-    const timer = window.setInterval(() => { void loadDetail(); }, 3000);
-    return () => window.clearInterval(timer);
-  }, [detail?.status, projectId, taskId]);
-
-  useEffect(() => {
-    if (!detail || B2S_TERMINAL_STATUSES.has(detail.status)) return undefined;
+    if (!isTaskRunning) return undefined;
     const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [detail?.status]);
+  }, [isTaskRunning]);
 
   useEffect(() => {
     if (activeTab === 'result' && !result) void loadResult();
     if (activeTab === 'evaluation' && !observability) void loadObservability();
     if (activeTab === 'session' && !sessions) void loadSessions();
     if (activeTab === 'relationship' && !relationship) void loadRelationship();
-  }, [activeTab]);
+  }, [activeTab, loadObservability, loadRelationship, loadResult, loadSessions, observability, relationship, result, sessions]);
 
   useEffect(() => {
-    if (activeTab !== 'relationship' || !detail || B2S_TERMINAL_STATUSES.has(detail.status)) return undefined;
-    const timer = window.setInterval(() => { void loadRelationship(); }, 10000);
-    return () => window.clearInterval(timer);
-  }, [activeTab, detail?.status, projectId, taskId]);
+    if (!isTaskRunning) return undefined;
+
+    if (activeTab === 'overview') {
+      const timer = window.setInterval(() => { void loadDetail({ silent: true }); }, 5000);
+      return () => window.clearInterval(timer);
+    }
+
+    if (activeTab === 'result') {
+      const timer = window.setInterval(() => {
+        void loadDetail({ silent: true });
+        void loadResult({ silent: true });
+      }, 5000);
+      return () => window.clearInterval(timer);
+    }
+
+    if (activeTab === 'evaluation') {
+      const timer = window.setInterval(() => {
+        void loadDetail({ silent: true });
+        void loadObservability({ silent: true });
+      }, 5000);
+      return () => window.clearInterval(timer);
+    }
+
+    if (activeTab === 'session') {
+      const timer = window.setInterval(() => { void loadSessions({ silent: true }); }, 5000);
+      return () => window.clearInterval(timer);
+    }
+
+    if (activeTab === 'relationship') {
+      const timer = window.setInterval(() => { void loadRelationship({ silent: true }); }, 10000);
+      return () => window.clearInterval(timer);
+    }
+
+    return undefined;
+  }, [activeTab, isTaskRunning, loadDetail, loadObservability, loadRelationship, loadResult, loadSessions]);
 
   useEffect(() => {
     if (activeTab !== 'session' || !selectedSessionPath) return;
@@ -385,7 +427,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       }
     };
     void loadSessionContent();
-    if (detail && !B2S_TERMINAL_STATUSES.has(detail.status) && autoRefreshSession) {
+    if (isTaskRunning && autoRefreshSession) {
       const timer = window.setInterval(() => { void loadSessionContent(); }, 3000);
       return () => {
         cancelled = true;
@@ -393,7 +435,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       };
     }
     return () => { cancelled = true; };
-  }, [activeTab, selectedSessionPath, autoRefreshSession, detail?.status, projectId, taskId]);
+  }, [activeTab, selectedSessionPath, autoRefreshSession, isTaskRunning, projectId, taskId, executionApi]);
 
   useEffect(() => {
     if (!selectedItem || activeTab !== 'result') return;
@@ -1148,40 +1190,39 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <div className="flex items-center gap-2 p-6 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div>
         ) : detail ? (
           <>
-            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_42%,#f8fafc_100%)] p-5">
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="bg-[radial-gradient(circle_at_top_left,#eff6ff_0,#ffffff_42%,#f8fafc_100%)] p-3.5">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)]">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <B2SStatusBadge status={detail.status} />
                     {detail.mode_label ? <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-black text-indigo-700 ring-1 ring-indigo-200"><Sparkles size={13} />{detail.mode_label}</span> : null}
                   </div>
-                  <h1 className="mt-2.5 break-words text-2xl font-black tracking-tight text-slate-950">{detail.name || detail.id}</h1>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-500">
+                  <h1 className="mt-1.5 break-words text-[1.5rem] font-black leading-tight tracking-tight text-slate-950">{detail.name || detail.id}</h1>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-500">
                     <span className="font-mono">任务 ID：{detail.id}</span>
                     <span>创建：{formatDateTime(detail.created_at)}</span>
                     <span>更新：{formatDateTime(detail.updated_at)}</span>
                   </div>
-                  <div className="mt-4 rounded-[1.25rem] border border-white/80 bg-white/75 p-3.5 shadow-sm backdrop-blur">
+                  <div className="mt-2.5 rounded-[1.25rem] border border-white/80 bg-white/75 p-2.5 shadow-sm backdrop-blur">
                     <div className="flex items-end justify-between gap-3">
                       <div>
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">总体进度</div>
-                        <div className="mt-0.5 text-3xl font-black tracking-tight text-slate-950">{pct(primaryProgress).toFixed(1)}%</div>
+                        <div className="mt-0.5 text-[1.6rem] font-black tracking-tight text-slate-950">{pct(primaryProgress).toFixed(1)}%</div>
                       </div>
-                      <div className="text-right text-xs font-bold text-slate-500">任务视图</div>
+                      <div className="text-right text-[11px] font-bold text-slate-500">任务视图</div>
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-2.5">
                       <B2SProgressBar value={primaryProgress} tone={B2S_TERMINAL_STATUSES.has(detail.status) ? 'emerald' : 'blue'} />
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-600">
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-600">
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">运行中：<span className="font-black text-slate-800">{detail.running_items}</span></div>
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">ELF：<span className="font-black text-slate-800">{detail.total_items}</span></div>
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">会话：<span className="font-black text-slate-800">{detail.agent_runtime_summary?.total_sessions || 0}</span></div>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2.5">
+                <div className="min-w-0">
                   <TaskOriginCard origin={detail} />
-                  {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? <DownstreamTaskCreator projectId={projectId} task={detail} sourceKind="binary_to_source" /> : null}
                 </div>
               </div>
             </div>
@@ -1222,6 +1263,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   ))}
                 </div>
               </div>
+              {detail && !B2S_TERMINAL_STATUSES.has(detail.status) ? (
+                <div className="mt-2.5 border-t border-slate-200 pt-2.5">
+                  <DownstreamTaskCreator projectId={projectId} task={detail} sourceKind="binary_to_source" />
+                </div>
+              ) : null}
             </div>
           </>
         ) : null}

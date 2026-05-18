@@ -19,6 +19,7 @@ import {
   HardDrive,
   Key,
   Layers,
+  Layers3,
   LayoutDashboard,
   ListTodo,
   Lock,
@@ -146,6 +147,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'binary-security-task-list',
   'binary-security-detail',
   'binary-security-metrics',
+  'binary-module-security',
+  'binary-module-security-detail',
   'source-security',
   'source-security-detail',
   'mobile-security-ipc-vuln',
@@ -225,6 +228,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'security-assessment' ||
     view === 'kernel-scan' ||
     view.startsWith('binary-security') ||
+    view.startsWith('binary-module-security') ||
     view.startsWith('binary-evolution') ||
     view.startsWith('source-security') ||
     view.startsWith('mobile-security-') ||
@@ -346,6 +350,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'binary-security', label: '二进制任务总览', icon: ShieldAlert, aliases: ['binary-security-root', 'binary-security-task-list', 'binary-security-detail'], requiresProject: true },
         { id: 'source-security', label: '源码任务总览', icon: FileSearch, aliases: ['source-security-detail'], requiresProject: true },
+        { id: 'binary-module-security', label: '二进制模块任务总览', icon: Layers3, aliases: ['binary-module-security-detail'], requiresProject: true },
         { id: 'pentest-exec-firmware-unpacker', label: '固件解包', icon: Package, aliases: ['pentest-exec-firmware-task-list'], requiresProject: true },
         { id: 'pentest-system', label: '系统分析', icon: Activity, aliases: ['system-analysis-task', 'system-analysis-detail'], requiresProject: true },
         { id: 'pentest-exec-b2s', label: '二进制逆向', icon: FileSearch, aliases: ['pentest-exec-b2s-root', 'pentest-exec-b2s-task-list', 'pentest-exec-b2s-create', 'pentest-exec-b2s-queue', 'pentest-exec-b2s-result', 'pentest-exec-b2s-detail', 'pentest-exec-b2s-advanced'], requiresProject: true },

@@ -47,12 +47,6 @@ const normalizeB2STaskStatus = (status?: string | null) => {
   return normalized;
 };
 
-const parseBackendTimeMs = (value?: string | null) => {
-  if (!value) return NaN;
-  const normalized = /(?:Z|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
-  return new Date(normalized).getTime();
-};
-
 const formatDurationMs = (durationMs?: number | null) => {
   if (durationMs === undefined || durationMs === null || Number.isNaN(durationMs) || durationMs < 0) return '-';
   const seconds = Math.round(durationMs / 1000);
@@ -63,23 +57,6 @@ const formatDurationMs = (durationMs?: number | null) => {
   const hours = Math.floor(minutes / 60);
   const minuteRest = minutes % 60;
   return minuteRest ? `${hours}h ${minuteRest}m` : `${hours}h`;
-};
-
-const taskRunDuration = (detail?: B2STaskDetail | null, nowMs: number = Date.now()) => {
-  if (!detail || detail.items.length === 0) return '-';
-  const startTimes = detail.items
-    .map((item) => item.started_at ? parseBackendTimeMs(item.started_at) : NaN)
-    .filter((value) => !Number.isNaN(value));
-  if (startTimes.length === 0) return '-';
-  const endTimes = detail.items
-    .map((item) => {
-      if (item.finished_at) return parseBackendTimeMs(item.finished_at);
-      if (!B2S_TERMINAL_STATUSES.has(item.status)) return nowMs;
-      return NaN;
-    })
-    .filter((value) => !Number.isNaN(value));
-  if (endTimes.length === 0) return '-';
-  return formatDurationMs(Math.max(...endTimes) - Math.min(...startTimes));
 };
 
 export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
@@ -96,6 +73,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [perPage, setPerPage] = useState(20);
   const [statusFilter, setStatusFilter] = useState('');
   const [parentTaskFilter, setParentTaskFilter] = useState('');
+  const [inputFileFilter, setInputFileFilter] = useState('');
+  const [expandedInputTaskIds, setExpandedInputTaskIds] = useState<string[]>([]);
   const [originFilter, setOriginFilter] = useState<'' | 'manual' | 'binary_security'>('');
   const [searchText, setSearchText] = useState('');
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
@@ -114,7 +93,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [createError, setCreateError] = useState<string>('');
   const [createResult, setCreateResult] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState('');
-  const [clockNow, setClockNow] = useState(() => Date.now());
   const hasSelectedProviderInList = !llmProviderKey || llmProviders.some((item) => item.provider_key === llmProviderKey);
 
   const load = useCallback(async (showLoading = true) => {
@@ -188,12 +166,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     return () => window.clearInterval(timer);
   }, [autoRefreshEnabled, hasActiveTasks, load, projectId, refreshIntervalSec]);
 
-  useEffect(() => {
-    if (!hasActiveTasks) return;
-    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [hasActiveTasks]);
-
   const stats = useMemo(() => summarizeB2STasks(items), [items]);
   const statusOptions = useMemo(() => {
     const present = new Set(items.map((task) => normalizeB2STaskStatus(task.status)).filter(Boolean));
@@ -201,9 +173,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [items]);
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
+    const inputKeyword = inputFileFilter.trim().toLowerCase();
     return items.filter((task) => {
       if (statusFilter && normalizeB2STaskStatus(task.status) !== statusFilter) return false;
       if (parentTaskFilter && String(task.parent_task_id || '').trim() !== parentTaskFilter) return false;
+      if (inputKeyword) {
+        const filenames = (task.input_filenames || []).map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+        if (!filenames.some((value) => value.includes(inputKeyword))) return false;
+      }
       if (originFilter && String(task.task_origin_type || 'manual').trim() !== originFilter) return false;
       if (!keyword) return true;
       const haystack = [
@@ -215,7 +192,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       ].join(' ').toLowerCase();
       return haystack.includes(keyword);
     });
-  }, [items, originFilter, parentTaskFilter, searchText, statusFilter]);
+  }, [inputFileFilter, items, originFilter, parentTaskFilter, searchText, statusFilter]);
   const total = filteredItems.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const pagedItems = useMemo(() => filteredItems.slice((page - 1) * perPage, page * perPage), [filteredItems, page, perPage]);
@@ -224,7 +201,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, parentTaskFilter, originFilter, searchText, perPage]);
+  }, [statusFilter, parentTaskFilter, inputFileFilter, originFilter, searchText, perPage]);
 
   const toggleStatusFilter = (value?: string | null) => {
     const normalized = normalizeB2STaskStatus(value);
@@ -236,6 +213,20 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     const normalized = String(value || '').trim();
     if (!normalized) return;
     setParentTaskFilter((current) => current === normalized ? '' : normalized);
+  };
+
+  const toggleInputFileFilter = (value?: string | null) => {
+    const normalized = String(value || '').trim();
+    if (!normalized) return;
+    setInputFileFilter((current) => current === normalized ? '' : normalized);
+  };
+
+  const toggleExpandedInputFiles = (taskId: string) => {
+    setExpandedInputTaskIds((current) => (
+      current.includes(taskId)
+        ? current.filter((value) => value !== taskId)
+        : current.concat(taskId)
+    ));
   };
 
   useEffect(() => {
@@ -551,6 +542,15 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   总任务 ID：{parentTaskFilter} x
                 </button>
               ) : null}
+              {inputFileFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setInputFileFilter('')}
+                  className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700"
+                >
+                  输入文件：{inputFileFilter} x
+                </button>
+              ) : null}
               {originFilter ? (
                 <button
                   type="button"
@@ -581,7 +581,18 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         />
                       </div>
                     </ExecutionTableTh>
-                    <ExecutionTableTh>输入文件</ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>输入文件</div>
+                        <input
+                          value={inputFileFilter}
+                          onChange={(e) => setInputFileFilter(e.target.value)}
+                          placeholder="搜索输入文件"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      </div>
+                    </ExecutionTableTh>
                     <ExecutionTableTh>
                       <div className="space-y-2">
                         <div>状态</div>
@@ -624,6 +635,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 <tbody>
                   {pagedItems.map((task) => {
                     const detail = activeTaskDetails[task.id];
+                    const inputFilenames = task.input_filenames || [];
+                    const inputsExpanded = expandedInputTaskIds.includes(task.id);
+                    const visibleInputFilenames = inputsExpanded ? inputFilenames : inputFilenames.slice(0, 3);
                     const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
                     const parentTaskId = String(task.parent_task_id || '').trim();
                     const sourceLabel = String(task.task_origin_type || 'manual').trim() === 'binary_security'
@@ -653,17 +667,27 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       </ExecutionTableTd>
                       <ExecutionTableTd className="min-w-[220px]">
                         <div className="space-y-1">
-                          {(task.input_filenames || []).slice(0, 3).map((filename) => (
-                            <div key={filename} className="truncate text-xs font-medium text-slate-700" title={filename}>
+                          {visibleInputFilenames.map((filename) => (
+                            <button
+                              key={filename}
+                              type="button"
+                              onClick={() => toggleInputFileFilter(filename)}
+                              className="block max-w-full truncate text-left text-xs font-medium text-slate-700 hover:text-cyan-700"
+                              title={inputFileFilter === filename ? '再次点击取消该输入文件筛选' : '点击按该输入文件快速筛选'}
+                            >
                               {filename}
-                            </div>
+                            </button>
                           ))}
-                          {(task.input_filenames || []).length > 3 ? (
-                            <div className="text-[11px] text-slate-400">
-                              其余 {(task.input_filenames || []).length - 3} 个文件
-                            </div>
+                          {inputFilenames.length > 3 ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleExpandedInputFiles(task.id)}
+                              className="text-[11px] text-slate-400 hover:text-cyan-700"
+                            >
+                              {inputsExpanded ? '收起剩余文件' : `其余 ${inputFilenames.length - 3} 个文件`}
+                            </button>
                           ) : null}
-                          {(!task.input_filenames || task.input_filenames.length === 0) ? (
+                          {inputFilenames.length === 0 ? (
                             <span className="text-xs text-slate-400">-</span>
                           ) : null}
                         </div>
@@ -727,7 +751,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                               : '-'}
                           </div>
                         </ExecutionTableTd>
-                        <ExecutionTableTd className="whitespace-nowrap font-semibold text-slate-700">{taskRunDuration(detail, clockNow)}</ExecutionTableTd>
+                        <ExecutionTableTd className="whitespace-nowrap font-semibold text-slate-700">{formatDurationMs(task.run_duration_ms)}</ExecutionTableTd>
                         <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.created_at)}</ExecutionTableTd>
                         <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.updated_at)}</ExecutionTableTd>
                       </tr>

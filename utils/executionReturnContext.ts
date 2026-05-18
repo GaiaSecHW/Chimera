@@ -1,7 +1,7 @@
 export type BinarySecurityReturnContext = {
-  view: 'binary-security-detail' | 'source-security-detail';
+  view: 'binary-security-detail' | 'source-security-detail' | 'binary-module-security-detail';
   taskId: string;
-  taskType: 'binary' | 'source';
+  taskType: 'binary' | 'source' | 'binary_module';
 };
 
 type NavigateDetail = {
@@ -30,8 +30,8 @@ export const getBinarySecurityReturnContext = (): BinarySecurityReturnContext | 
   try {
     const parsed = JSON.parse(raw) as Partial<BinarySecurityReturnContext>;
     if (
-      (parsed.view === 'binary-security-detail' || parsed.view === 'source-security-detail')
-      && (parsed.taskType === 'binary' || parsed.taskType === 'source')
+      (parsed.view === 'binary-security-detail' || parsed.view === 'source-security-detail' || parsed.view === 'binary-module-security-detail')
+      && (parsed.taskType === 'binary' || parsed.taskType === 'source' || parsed.taskType === 'binary_module')
       && typeof parsed.taskId === 'string'
       && parsed.taskId.trim()
     ) {
@@ -60,9 +60,10 @@ export const getBinarySecurityOriginReturnContext = (
   if (String(origin?.task_origin_type || '').trim() !== 'binary_security' || !parentTaskId) {
     return null;
   }
-  const taskType = String(origin?.parent_task_type || '').trim() === 'source' ? 'source' : 'binary';
+  const parentTaskType = String(origin?.parent_task_type || '').trim();
+  const taskType = parentTaskType === 'source' ? 'source' : parentTaskType === 'binary_module' ? 'binary_module' : 'binary';
   return {
-    view: taskType === 'source' ? 'source-security-detail' : 'binary-security-detail',
+    view: taskType === 'source' ? 'source-security-detail' : taskType === 'binary_module' ? 'binary-module-security-detail' : 'binary-security-detail',
     taskId: parentTaskId,
     taskType,
   };

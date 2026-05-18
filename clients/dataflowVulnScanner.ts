@@ -208,7 +208,7 @@ export interface DataflowCreateTaskPayload {
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
-  parent_task_type?: 'binary' | 'source';
+  parent_task_type?: 'binary' | 'source' | 'binary_module';
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;

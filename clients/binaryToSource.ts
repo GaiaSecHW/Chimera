@@ -30,7 +30,7 @@ export interface B2STaskCreatePayload {
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
-  parent_task_type?: 'binary' | 'source';
+  parent_task_type?: 'binary' | 'source' | 'binary_module';
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
@@ -75,6 +75,9 @@ export interface B2STask {
   completed_functions?: number | null;
   failed_functions?: number | null;
   uncompleted_functions?: number | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  run_duration_ms?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -450,6 +453,7 @@ export interface B2STaskObservability {
   avg_confidence: number;
   avg_quality_score: number;
   residual_risk_distribution: Record<string, number>;
+  business_runtime_metrics?: Record<string, unknown> | null;
   items: B2STaskObservabilityItem[];
 }
 

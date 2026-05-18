@@ -97,6 +97,20 @@ type AiViewModel = {
   coverageText: string;
 };
 
+type B2SBusinessViewModel = {
+  availableItems: number | null;
+  missingItems: number | null;
+  headerAvgSeconds: number | null;
+  bodyAvgSeconds: number | null;
+  batchAvgSeconds: number | null;
+  functionThroughput: number | null;
+  batchAttempts: number | null;
+  batchValidation: number | null;
+  artifactBytes: number | null;
+  tokenTotal: number | null;
+  costTotal: number | null;
+};
+
 type BinarySecurityReducerSnapshot = {
   capturedAt: number;
   pendingDepth: number | null;
@@ -508,6 +522,20 @@ const buildBinarySecurityReducerSnapshot = (rows: DisplayMetricRow[]): BinarySec
   lockHeldAvgSeconds: histogramAverage(rows, 'secflow_binary_security_task_state_lock_held_seconds'),
 });
 
+const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewModel => ({
+  availableItems: metricValueByName(rows, 'secflow_binary_to_source_business_metric_available_items'),
+  missingItems: metricValueByName(rows, 'secflow_binary_to_source_business_metric_missing_items'),
+  headerAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_header_recovery_duration_seconds'),
+  bodyAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_body_recovery_duration_seconds'),
+  batchAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_batch_recovery_duration_seconds'),
+  functionThroughput: metricValueByName(rows, 'secflow_binary_to_source_function_throughput'),
+  batchAttempts: metricValueByName(rows, 'secflow_binary_to_source_batch_attempts_total'),
+  batchValidation: metricValueByName(rows, 'secflow_binary_to_source_batch_validation_total'),
+  artifactBytes: metricValueByName(rows, 'secflow_binary_to_source_artifact_bytes'),
+  tokenTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_usage_total'),
+  costTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_cost_total'),
+});
+
 const dedupeReducerHistory = (history: BinarySecurityReducerSnapshot[]) => {
   const result: BinarySecurityReducerSnapshot[] = [];
   for (const item of history) {
@@ -803,6 +831,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     [activeServiceKey, viewModel.rows],
   );
   const aiViewModel = useMemo(() => buildAiViewModel(viewModel.rows, activeService), [activeService, viewModel.rows]);
+  const b2sBusinessViewModel = useMemo(
+    () => (activeServiceKey === 'binary-to-source' ? buildB2SBusinessViewModel(viewModel.rows) : null),
+    [activeServiceKey, viewModel.rows],
+  );
   const reducerViewModel = useMemo(
     () =>
       activeServiceKey === 'binary-security'
@@ -985,6 +1017,43 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
             ))}
           </section>
+
+          {b2sBusinessViewModel ? (
+            <section className="rounded-[2rem] border border-cyan-200 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.12),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#ecfeff_100%)] p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">Binary To Source Business</div>
+                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">二进制逆向业务指标</h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    来自 PI 任务内部埋点，不从日志反推；用于观察头文件还原、函数体还原、批次吞吐、Token/成本与产物规模。
+                  </p>
+                </div>
+                <span className="inline-flex rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-black text-cyan-800">
+                  metrics {formatNumber(b2sBusinessViewModel.availableItems)} / missing {formatNumber(b2sBusinessViewModel.missingItems)}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                {[
+                  { label: '头文件平均耗时', value: formatSeconds(b2sBusinessViewModel.headerAvgSeconds), hint: 'header_synthesis', tone: 'text-cyan-900' },
+                  { label: '函数体平均耗时', value: formatSeconds(b2sBusinessViewModel.bodyAvgSeconds), hint: 'body_generation', tone: 'text-cyan-900' },
+                  { label: '批次平均耗时', value: formatSeconds(b2sBusinessViewModel.batchAvgSeconds), hint: 'batch duration', tone: 'text-cyan-900' },
+                  { label: '函数吞吐', value: `${formatNumber(b2sBusinessViewModel.functionThroughput, 3)} /s`, hint: 'functions per second', tone: 'text-emerald-700' },
+                  { label: '产物规模', value: formatMetricValue(b2sBusinessViewModel.artifactBytes ?? Number.NaN), hint: 'artifact bytes', tone: 'text-slate-900' },
+                  { label: '批次尝试', value: formatNumber(b2sBusinessViewModel.batchAttempts), hint: 'attempt total', tone: 'text-slate-900' },
+                  { label: '校验样本', value: formatNumber(b2sBusinessViewModel.batchValidation), hint: 'validation total', tone: 'text-slate-900' },
+                  { label: 'Token 总量', value: formatNumber(b2sBusinessViewModel.tokenTotal), hint: 'runtime llm summary', tone: 'text-indigo-700' },
+                  { label: '成本', value: formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN), hint: 'runtime cost', tone: 'text-indigo-700' },
+                  { label: '缺失指标项', value: formatNumber(b2sBusinessViewModel.missingItems), hint: '老任务兼容', tone: (b2sBusinessViewModel.missingItems || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
             <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">

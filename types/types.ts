@@ -1872,6 +1872,7 @@ export type ViewType =
   | 'pentest-exec-b2s' | 'pentest-exec-b2s-root' | 'pentest-exec-b2s-task-list' | 'pentest-exec-b2s-create' | 'pentest-exec-b2s-queue' | 'pentest-exec-b2s-result' | 'pentest-exec-b2s-detail' | 'pentest-exec-b2s-advanced'
   | 'binary-security' | 'binary-security-root' | 'binary-security-task-list' | 'binary-security-detail' | 'binary-security-config'
   | 'source-security' | 'source-security-detail'
+  | 'binary-module-security' | 'binary-module-security-detail'
   | 'mobile-security-ipc-vuln'
   | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'
   | 'pentest-report'
@@ -2382,7 +2383,7 @@ export interface AppSaTaskItem {
   task_origin_type?: 'manual' | 'binary_security' | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
-  parent_task_type?: 'binary' | 'source' | null;
+  parent_task_type?: 'binary' | 'source' | 'binary_module' | null;
   parent_stage_name?: string | null;
   parent_stage_item_id?: string | null;
   parent_stage_item_key?: string | null;
@@ -2676,7 +2677,7 @@ export interface AppSaTaskCreateRequest {
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
-  parent_task_type?: 'binary' | 'source';
+  parent_task_type?: 'binary' | 'source' | 'binary_module';
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
@@ -2691,7 +2692,7 @@ export interface AppEaTaskItem {
   task_origin_type?: 'manual' | 'binary_security' | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
-  parent_task_type?: 'binary' | 'source' | null;
+  parent_task_type?: 'binary' | 'source' | 'binary_module' | null;
   parent_stage_name?: string | null;
   parent_stage_item_id?: string | null;
   parent_stage_item_key?: string | null;
@@ -2793,7 +2794,7 @@ export interface AppEaTaskCreateRequest {
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
-  parent_task_type?: 'binary' | 'source';
+  parent_task_type?: 'binary' | 'source' | 'binary_module';
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
@@ -2892,7 +2893,7 @@ export interface AppDfaTaskItem {
   task_origin_type?: 'manual' | 'binary_security' | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
-  parent_task_type?: 'binary' | 'source' | null;
+  parent_task_type?: 'binary' | 'source' | 'binary_module' | null;
   parent_stage_name?: string | null;
   parent_stage_item_id?: string | null;
   parent_stage_item_key?: string | null;
@@ -2934,7 +2935,7 @@ export interface AppDfaTaskCreateRequest {
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
-  parent_task_type?: 'binary' | 'source';
+  parent_task_type?: 'binary' | 'source' | 'binary_module';
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;

@@ -477,6 +477,38 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           onBack={() => ctx.setCurrentView('source-security')}
         />
       );
+    case 'binary-module-security':
+      return (
+        <BinarySecurityOverviewPage
+          projectId={ctx.selectedProjectId}
+          taskType="binary_module"
+          onOpenTask={(taskId) => {
+            ctx.setActiveBinarySecurityTaskId(taskId);
+            ctx.setCurrentView('binary-module-security-detail');
+          }}
+        />
+      );
+    case 'binary-module-security-detail':
+      if (!ctx.activeBinarySecurityTaskId) {
+        return (
+          <BinarySecurityOverviewPage
+            projectId={ctx.selectedProjectId}
+            taskType="binary_module"
+            onOpenTask={(taskId) => {
+              ctx.setActiveBinarySecurityTaskId(taskId);
+              ctx.setCurrentView('binary-module-security-detail');
+            }}
+          />
+        );
+      }
+      return (
+        <BinarySecurityTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeBinarySecurityTaskId}
+          taskType="binary_module"
+          onBack={() => ctx.setCurrentView('binary-module-security')}
+        />
+      );
     case 'binary-security-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
     case 'binary-security-metrics':
