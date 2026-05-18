@@ -297,6 +297,12 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
 
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
+  const fallbackCreateDefaults = useMemo(() => ({
+    stageParallelism: { ...DEFAULT_STAGE_PARALLELISM },
+    maxRetries: 2,
+    continueOnFailure: true,
+    partialSuccessStageAdvancement: { ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT },
+  }), []);
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
   const [projectStats, setProjectStats] = useState<BinarySecurityProjectStats>(() => emptyProjectStats());
   const [projectStageAggregates, setProjectStageAggregates] = useState<BinarySecurityProjectStageAggregate[]>(() => emptyStageAggregates());
@@ -307,6 +313,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [createDefaultsLoading, setCreateDefaultsLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -356,10 +363,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setLoading(true);
     setError(null);
     try {
-      const [data, projectConfig] = await Promise.all([
-        executionApi.binarySecurity.listTasks(projectId, undefined, taskType),
-        executionApi.binarySecurity.getProjectConfig(projectId),
-      ]);
+      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
       const nextItems = data.items || [];
       setItems(nextItems);
       setProjectStats(data.project_stats || deriveProjectStats(nextItems));
@@ -367,16 +371,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setRunningCount(data.running_count || 0);
       setQueuedCount(data.queued_count || 0);
       setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
-      setDefaultStageParallelism({
-        ...DEFAULT_STAGE_PARALLELISM,
-        ...(projectConfig.config.stage_parallelism || {}),
-      });
-      setDefaultMaxRetries(projectConfig.config.max_retries_per_item ?? 2);
-      setDefaultContinueOnFailure(projectConfig.config.continue_on_item_failure ?? true);
-      setDefaultPartialSuccessStageAdvancement({
-        ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
-        ...(projectConfig.config.partial_success_stage_advancement || {}),
-      });
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
@@ -506,30 +500,79 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const selectedCount = selectedTaskIds.length;
   const allSelected = items.length > 0 && selectedCount === items.length;
 
-  const resetCreateForm = () => {
+  const applyCreateDefaults = (defaults: {
+    stageParallelism: Record<string, number>;
+    maxRetries: number;
+    continueOnFailure: boolean;
+    partialSuccessStageAdvancement: Record<string, boolean>;
+  }) => {
+    setDefaultStageParallelism({ ...defaults.stageParallelism });
+    setDefaultMaxRetries(defaults.maxRetries);
+    setDefaultContinueOnFailure(defaults.continueOnFailure);
+    setDefaultPartialSuccessStageAdvancement({ ...defaults.partialSuccessStageAdvancement });
+  };
+
+  const resetCreateForm = (defaults = {
+    stageParallelism: defaultStageParallelism,
+    maxRetries: defaultMaxRetries,
+    continueOnFailure: defaultContinueOnFailure,
+    partialSuccessStageAdvancement: defaultPartialSuccessStageAdvancement,
+  }) => {
     setName('');
     setDescription('');
     setFiles([]);
     setUploadProgress({});
     setUploadSpeed({});
-    setMaxRetries(defaultMaxRetries);
-    setContinueOnFailure(defaultContinueOnFailure);
+    setMaxRetries(defaults.maxRetries);
+    setContinueOnFailure(defaults.continueOnFailure);
     setPartialSuccessStageAdvancement({
       ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
-      ...defaultPartialSuccessStageAdvancement,
+      ...defaults.partialSuccessStageAdvancement,
     });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
     setStageParallelism({
-      ...defaultStageParallelism,
+      ...defaults.stageParallelism,
     });
     setCreateError(null);
   };
 
-  const openCreateDialog = () => {
+  const loadCreateDefaults = async () => {
+    if (!projectId) {
+      return fallbackCreateDefaults;
+    }
+    const projectConfig = await executionApi.binarySecurity.getProjectConfig(projectId);
+    return {
+      stageParallelism: {
+        ...DEFAULT_STAGE_PARALLELISM,
+        ...(projectConfig.config.stage_parallelism || {}),
+      },
+      maxRetries: projectConfig.config.max_retries_per_item ?? 2,
+      continueOnFailure: projectConfig.config.continue_on_item_failure ?? true,
+      partialSuccessStageAdvancement: {
+        ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+        ...(projectConfig.config.partial_success_stage_advancement || {}),
+      },
+    };
+  };
+
+  const openCreateDialog = async () => {
     setCreateResult(null);
-    resetCreateForm();
+    setCreateDefaultsLoading(true);
+    let defaults = fallbackCreateDefaults;
+    let defaultsError: string | null = null;
+    try {
+      defaults = await loadCreateDefaults();
+    } catch (e: any) {
+      defaultsError = e?.message ? `项目默认配置加载失败，已使用系统默认值：${e.message}` : '项目默认配置加载失败，已使用系统默认值';
+    }
+    applyCreateDefaults(defaults);
+    resetCreateForm(defaults);
+    if (defaultsError) {
+      setCreateError(defaultsError);
+    }
     setShowCreateDialog(true);
+    setCreateDefaultsLoading(false);
   };
 
   const closeCreateDialog = () => {
@@ -705,11 +748,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={openCreateDialog}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
+              onClick={() => void openCreateDialog()}
+              disabled={createDefaultsLoading}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Plus size={16} />
-              创建任务
+              {createDefaultsLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {createDefaultsLoading ? '加载默认配置...' : '创建任务'}
             </button>
             <button
               type="button"
