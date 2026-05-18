@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, fetchWithRetry, getHeaders, handleResponse } from './base';
 
 const PREFIX = `${API_BASE}/api/app/ipc-audit`;
 
@@ -25,14 +25,75 @@ const noStoreGetInit = (): RequestInit => ({
   cache: 'no-store',
 });
 
+const isRetryableBrowserNetworkError = (error: unknown) => {
+  const message = (error instanceof Error ? error.message : String(error || '')).toLowerCase();
+  return (
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('load failed') ||
+    message.includes('connection reset') ||
+    message.includes('err_connection_reset')
+  );
+};
+
+const xhrRequestAsResponse = async (params: {
+  url: string;
+  method?: string;
+  headers?: Record<string, string>;
+  body?: Document | XMLHttpRequestBodyInit | null;
+  timeoutMs?: number;
+}): Promise<Response> => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(params.method || 'GET', params.url, true);
+    xhr.timeout = params.timeoutMs ?? 30000;
+
+    Object.entries(params.headers || {}).forEach(([key, value]) => {
+      xhr.setRequestHeader(key, value);
+    });
+
+    xhr.onload = () => {
+      const responseHeaders = new Headers();
+      const rawHeaders = xhr.getAllResponseHeaders() || '';
+      rawHeaders.split(/\r?\n/).forEach((line) => {
+        const index = line.indexOf(':');
+        if (index <= 0) return;
+        const name = line.slice(0, index).trim();
+        const value = line.slice(index + 1).trim();
+        if (name) responseHeaders.append(name, value);
+      });
+
+      resolve(new Response(xhr.responseText || '', {
+        status: xhr.status,
+        statusText: xhr.statusText,
+        headers: responseHeaders,
+      }));
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('网络错误，请求失败'));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error('请求已取消'));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new Error('请求超时'));
+    };
+
+    xhr.send(params.body ?? null);
+  });
+};
+
 const withCacheBust = (path: string) => withQuery(path, { _: Date.now() });
 
 export interface IpcAuditCapability {
   service: string;
   runtime_mode: string;
   pipeline_modes: string[];
-  executor_modes: Array<'mock' | 'codex_cli' | 'opencode_cli'>;
-  default_executor_mode?: 'mock' | 'codex_cli' | 'opencode_cli' | null;
+  executor_modes: IpcAuditExecutorMode[];
+  default_executor_mode?: IpcAuditExecutorMode | null;
   input_kinds: string[];
   allow_custom_project_path: boolean;
   show_scan_strategy: boolean;
@@ -121,6 +182,25 @@ export interface IpcAuditCatalogRefreshJob {
   message?: string | null;
 }
 
+export interface IpcAuditProviderSummary {
+  provider_key: string;
+  display_name: string;
+  provider_type: string;
+  enabled: boolean;
+  is_default: boolean;
+  api_base: string;
+  model: string;
+  updated_at?: string | null;
+  mapped_env_keys: string[];
+  mapped_file_paths: string[];
+}
+
+export interface IpcAuditProviderList {
+  total: number;
+  default_provider_key?: string | null;
+  items: IpcAuditProviderSummary[];
+}
+
 export interface IpcAuditTaskSummary {
   task_id: string;
   project_id?: string | null;
@@ -138,6 +218,43 @@ export interface IpcAuditTaskSummary {
   message?: string | null;
 }
 
+export type IpcAuditExecutorMode = 'mock' | 'codex_cli' | 'opencode_cli' | 'agentflow_cli';
+export type IpcAuditPipelineMode = 'audit_then_poc' | 'audit_only' | 'poc_only' | 'custom_graph';
+export type IpcAuditReportFormat = 'markdown' | 'text' | 'json';
+
+export interface IpcAuditTaskReportOutputSpec {
+  output_id: string;
+  node_id: string;
+  title: string;
+  path: string;
+  format: IpcAuditReportFormat;
+  required: boolean;
+  order: number;
+}
+
+export interface IpcAuditInlineJsonGraphSource {
+  type: 'inline_json';
+  content: Record<string, any>;
+  declared_nodes?: string[];
+}
+
+export interface IpcAuditPythonBuilderGraphSource {
+  type: 'python_builder';
+  entry?: string | null;
+  code?: string | null;
+  declared_nodes?: string[];
+}
+
+export type IpcAuditTaskGraphSource = IpcAuditInlineJsonGraphSource | IpcAuditPythonBuilderGraphSource;
+
+export interface IpcAuditGraphValidateResponse {
+  valid: boolean;
+  message: string;
+  graph_source_type: 'inline_json' | 'python_builder';
+  node_count: number;
+  node_ids: string[];
+}
+
 export interface IpcAuditAttemptWorker {
   worker_id?: string | null;
   claimed_at?: string | null;
@@ -146,7 +263,7 @@ export interface IpcAuditAttemptWorker {
 }
 
 export interface IpcAuditStageRun {
-  stage_name: 'audit' | 'poc';
+  stage_name: string;
   status: string;
   attempt_no: number;
   started_at?: string | null;
@@ -154,6 +271,39 @@ export interface IpcAuditStageRun {
   return_code?: number | null;
   log_artifact_id?: string | null;
   message?: string | null;
+}
+
+export interface IpcAuditTaskReportOutput extends IpcAuditTaskReportOutputSpec {
+  exists: boolean;
+  artifact_id?: string | null;
+  preview_url?: string | null;
+  download_url?: string | null;
+  size?: number | null;
+  created_at?: string | null;
+  content_type?: string | null;
+  sha256?: string | null;
+}
+
+export interface IpcAuditTaskTemplateConfig {
+  pipeline_mode: IpcAuditPipelineMode;
+  executor_mode?: IpcAuditExecutorMode | null;
+  model?: string | null;
+  provider_keys: string[];
+  graph_source?: IpcAuditTaskGraphSource | null;
+  report_outputs: IpcAuditTaskReportOutputSpec[];
+  notes?: string | null;
+}
+
+export interface IpcAuditTaskTemplate {
+  template_id: string;
+  workspace_id: string;
+  name: string;
+  description?: string | null;
+  config: IpcAuditTaskTemplateConfig;
+  created_by: string;
+  created_at: string;
+  updated_by?: string | null;
+  updated_at: string;
 }
 
 export interface IpcAuditAttemptDetail {
@@ -164,6 +314,7 @@ export interface IpcAuditAttemptDetail {
   worker: IpcAuditAttemptWorker;
   effective_config: Record<string, any>;
   stage_runs: IpcAuditStageRun[];
+  report_outputs: IpcAuditTaskReportOutput[];
   message?: string | null;
   created_at: string;
   started_at?: string | null;
@@ -299,6 +450,53 @@ export const ipcAuditApi = {
     return handleResponse(response);
   },
 
+  listTemplates: async (params: { workspaceId?: string } = {}): Promise<IpcAuditTaskTemplate[]> => {
+    const response = await fetch(withQuery(`${PREFIX}/templates`, {
+      workspace_id: params.workspaceId,
+    }), noStoreGetInit());
+    return handleResponse(response);
+  },
+
+  getTemplate: async (templateId: string): Promise<IpcAuditTaskTemplate> => {
+    const response = await fetch(`${PREFIX}/templates/${encodeURIComponent(templateId)}`, noStoreGetInit());
+    return handleResponse(response);
+  },
+
+  createTemplate: async (payload: {
+    workspace_id: string;
+    name: string;
+    description?: string;
+    config: IpcAuditTaskTemplateConfig;
+  }): Promise<IpcAuditTaskTemplate> => {
+    const response = await fetch(`${PREFIX}/templates`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateTemplate: async (templateId: string, payload: {
+    name: string;
+    description?: string;
+    config: IpcAuditTaskTemplateConfig;
+  }): Promise<IpcAuditTaskTemplate> => {
+    const response = await fetch(`${PREFIX}/templates/${encodeURIComponent(templateId)}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  deleteTemplate: async (templateId: string): Promise<IpcAuditSuccessResponse> => {
+    const response = await fetch(`${PREFIX}/templates/${encodeURIComponent(templateId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   browseWorkspaceTree: async (workspaceId: string, params: { path?: string; depth?: number; directoriesOnly?: boolean } = {}): Promise<IpcAuditWorkspaceTree> => {
     const response = await fetch(withQuery(`${PREFIX}/workspaces/${encodeURIComponent(workspaceId)}/tree`, {
       path: params.path,
@@ -315,6 +513,42 @@ export const ipcAuditApi = {
       body: JSON.stringify({ workspace_id: workspaceId, input_ref: inputRef }),
     });
     return handleResponse(response);
+  },
+
+  validateGraph: async (payload: {
+    workspace_id: string;
+    executor_mode?: IpcAuditExecutorMode;
+    model?: string;
+    provider_keys?: string[];
+    graph_source: IpcAuditTaskGraphSource;
+    report_outputs?: IpcAuditTaskReportOutputSpec[];
+  }): Promise<IpcAuditGraphValidateResponse> => {
+    const url = `${PREFIX}/graphs/validate`;
+    const headers = getHeaders();
+    const body = JSON.stringify(payload);
+    try {
+      const response = await fetchWithRetry(url, {
+        method: 'POST',
+        headers,
+        body,
+      }, {
+        retries: 1,
+        retryDelayMs: 250,
+      });
+      return handleResponse(response);
+    } catch (error) {
+      if (!isRetryableBrowserNetworkError(error)) {
+        throw error;
+      }
+      const response = await xhrRequestAsResponse({
+        url,
+        method: 'POST',
+        headers,
+        body,
+        timeoutMs: 30000,
+      });
+      return handleResponse(response);
+    }
   },
 
   listPresetProjects: async (workspaceId: string, params: {
@@ -353,6 +587,16 @@ export const ipcAuditApi = {
     return handleResponse(response);
   },
 
+  listProviders: async (): Promise<IpcAuditProviderList> => {
+    const response = await fetch(`${PREFIX}/providers`, noStoreGetInit());
+    return handleResponse(response);
+  },
+
+  getProvider: async (providerKey: string): Promise<IpcAuditProviderSummary> => {
+    const response = await fetch(`${PREFIX}/providers/${encodeURIComponent(providerKey)}`, noStoreGetInit());
+    return handleResponse(response);
+  },
+
   listTasks: async (params: {
     projectId?: string;
     workspaceId?: string;
@@ -380,10 +624,13 @@ export const ipcAuditApi = {
     project_id?: string;
     title: string;
     workspace_id: string;
-    pipeline_mode?: 'audit_then_poc' | 'audit_only' | 'poc_only';
+    pipeline_mode?: IpcAuditPipelineMode;
     input_ref: IpcAuditInputRef;
-    executor_mode?: 'mock' | 'codex_cli' | 'opencode_cli';
+    executor_mode?: IpcAuditExecutorMode;
     model?: string;
+    provider_keys?: string[];
+    graph_source?: IpcAuditTaskGraphSource;
+    report_outputs?: IpcAuditTaskReportOutputSpec[];
     notes?: string;
     idempotency_key?: string;
   }): Promise<IpcAuditTaskSummary> => {
@@ -473,7 +720,7 @@ export const ipcAuditApi = {
     return handleResponse(response);
   },
 
-  retryTask: async (taskId: string, payload: { retry_scope?: 'task' | 'from_stage'; stage?: 'audit' | 'poc' } = {}): Promise<IpcAuditTaskSummary> => {
+  retryTask: async (taskId: string, payload: { retry_scope?: 'task' | 'from_stage'; stage?: string } = {}): Promise<IpcAuditTaskSummary> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/retry`, {
       method: 'POST',
       headers: getHeaders(),

@@ -6,8 +6,10 @@ import {
   DataflowRunMutationResponse,
   DataflowRunResolve,
   DataflowRunRetryPayload,
+  DataflowRunRetryPreview,
   DataflowRunSession,
   DataflowRunSummary,
+  DataflowVulnReportResponse,
 } from './dataflowVulnScanner';
 
 export const DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT = '/dataflow-vuln-scanner/runs';
@@ -182,6 +184,16 @@ export const cancelDataflowFileserverRun = async (
   return payload;
 };
 
+export const previewDataflowFileserverRunRetry = async (
+  projectId: string,
+  rootPath: string,
+  runName: string,
+  retryPayload: DataflowRunRetryPayload = {}
+): Promise<DataflowRunRetryPreview> => {
+  const resolved = await resolveRun(projectId, rootPath, runName, { force: true });
+  return dataflowVulnScannerApi.previewRetryRun(resolved.run_id, retryPayload);
+};
+
 export const retryDataflowFileserverRun = async (
   projectId: string,
   rootPath: string,
@@ -203,4 +215,14 @@ export const deleteDataflowFileserverRun = async (
   const payload = await dataflowVulnScannerApi.deleteRun(resolved.run_id);
   clearResolveCache(projectId, rootPath, runName);
   return payload;
+};
+
+export const reportDataflowFileserverRunVulnerabilities = async (
+  projectId: string,
+  rootPath: string,
+  runName: string,
+  resultFiles: string[]
+): Promise<DataflowVulnReportResponse> => {
+  const resolved = await resolveRun(projectId, rootPath, runName);
+  return dataflowVulnScannerApi.reportRunVulnerabilities(resolved.run_id, resultFiles);
 };

@@ -135,7 +135,10 @@ export const SystemAnalysisPromptPage: React.FC<{ projectId: string }> = ({ proj
       {feedbackNodes}
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Prompt 管理</h1>
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Prompt 模板库</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          这里管理可复用的 Prompt 模板。模板不会自动影响系统分析执行链路，需要在“参数配置 - 系统分析”中导入后，后续进入运行态的任务才会使用。
+        </p>
       </section>
 
       {loading ? <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"><Loader2 size={15} className="animate-spin" />加载中...</div> : null}

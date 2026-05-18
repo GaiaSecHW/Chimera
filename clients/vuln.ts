@@ -18,6 +18,16 @@ export const vulnApi = {
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases/ops/dashboard/overview?${query}`, { headers: getHeaders() }));
   },
 
+  getProjectConfig: async (projectId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
+  updateProjectConfig: async (projectId: string, config: Record<string, any>): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ project_id: projectId, config }),
+    })),
+
   listServices: async (): Promise<{ items: any[]; total: number }> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/services`, { headers: getHeaders() })),
 
@@ -54,7 +64,7 @@ export const vulnApi = {
       body: JSON.stringify(payload)
     })),
 
-  listCases: async (params: { project_id?: string; current_stage?: string } = {}): Promise<{ items: any[]; total: number }> => {
+  listCases: async (params: { project_id?: string; current_stage?: string; source_service_name?: string; source_task_id?: string; source_execution_id?: string; pool_type?: string; evolution_task_id?: string; evolution_round?: number } = {}): Promise<{ items: any[]; total: number }> => {
     const query = new URLSearchParams(params as any).toString();
     return handleResponse(await fetch(`${API_BASE}/api/vuln/cases?${query}`, { headers: getHeaders() }));
   },

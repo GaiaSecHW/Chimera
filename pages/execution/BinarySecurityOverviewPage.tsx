@@ -34,6 +34,10 @@ const statusTone = (status: string) => {
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     case 'dispatching':
       return 'bg-sky-50 text-sky-700 border-sky-200';
+    case 'continue_preparing':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'retry_preparing':
+      return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'pending_module_confirmation':
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'waiting_confirmation':
@@ -85,6 +89,14 @@ const MODULE_SELECTION_OPTIONS = [
   { value: 'auto', label: '按风险自动推进' },
   { value: 'manual_confirm', label: '系统分析后人工确认' },
 ] as const;
+const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
+  { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
+  { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
+  { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
+] as const;
+const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
+  PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
+) as Record<string, boolean>;
 const DEFAULT_STAGE_PARALLELISM = {
   firmware_unpack: 4,
   system_analysis: 4,
@@ -176,6 +188,28 @@ const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archi
   return `成功 ${successCount} · 失败 ${failedCount}`;
 };
 
+const manualOperationBadgeTone = (overall?: string) => {
+  switch (overall) {
+    case 'ready':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    case 'in_progress':
+      return 'bg-sky-50 text-sky-700 border-sky-200';
+    default:
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+};
+
+const manualOperationBadgeLabel = (overall?: string) => {
+  switch (overall) {
+    case 'ready':
+      return '可操作';
+    case 'in_progress':
+      return '处理中';
+    default:
+      return '受限';
+  }
+};
+
 const ProjectStatCard: React.FC<{ label: string; value: number; hint: string }> = ({ label, value, hint }) => (
   <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
     <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{label}</div>
@@ -263,6 +297,12 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
 
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
+  const fallbackCreateDefaults = useMemo(() => ({
+    stageParallelism: { ...DEFAULT_STAGE_PARALLELISM },
+    maxRetries: 2,
+    continueOnFailure: true,
+    partialSuccessStageAdvancement: { ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT },
+  }), []);
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
   const [projectStats, setProjectStats] = useState<BinarySecurityProjectStats>(() => emptyProjectStats());
   const [projectStageAggregates, setProjectStageAggregates] = useState<BinarySecurityProjectStageAggregate[]>(() => emptyStageAggregates());
@@ -273,6 +313,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [createDefaultsLoading, setCreateDefaultsLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -287,8 +328,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [defaultStageParallelism, setDefaultStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
   const [defaultMaxRetries, setDefaultMaxRetries] = useState(2);
   const [defaultContinueOnFailure, setDefaultContinueOnFailure] = useState(true);
+  const [defaultPartialSuccessStageAdvancement, setDefaultPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
+    DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+  );
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
+  const [partialSuccessStageAdvancement, setPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
+    DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+  );
   const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
@@ -316,10 +363,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setLoading(true);
     setError(null);
     try {
-      const [data, projectConfig] = await Promise.all([
-        executionApi.binarySecurity.listTasks(projectId, undefined, taskType),
-        executionApi.binarySecurity.getProjectConfig(projectId),
-      ]);
+      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
       const nextItems = data.items || [];
       setItems(nextItems);
       setProjectStats(data.project_stats || deriveProjectStats(nextItems));
@@ -327,12 +371,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setRunningCount(data.running_count || 0);
       setQueuedCount(data.queued_count || 0);
       setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
-      setDefaultStageParallelism({
-        ...DEFAULT_STAGE_PARALLELISM,
-        ...(projectConfig.config.stage_parallelism || {}),
-      });
-      setDefaultMaxRetries(projectConfig.config.max_retries_per_item ?? 2);
-      setDefaultContinueOnFailure(projectConfig.config.continue_on_item_failure ?? true);
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
@@ -462,26 +500,79 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const selectedCount = selectedTaskIds.length;
   const allSelected = items.length > 0 && selectedCount === items.length;
 
-  const resetCreateForm = () => {
+  const applyCreateDefaults = (defaults: {
+    stageParallelism: Record<string, number>;
+    maxRetries: number;
+    continueOnFailure: boolean;
+    partialSuccessStageAdvancement: Record<string, boolean>;
+  }) => {
+    setDefaultStageParallelism({ ...defaults.stageParallelism });
+    setDefaultMaxRetries(defaults.maxRetries);
+    setDefaultContinueOnFailure(defaults.continueOnFailure);
+    setDefaultPartialSuccessStageAdvancement({ ...defaults.partialSuccessStageAdvancement });
+  };
+
+  const resetCreateForm = (defaults = {
+    stageParallelism: defaultStageParallelism,
+    maxRetries: defaultMaxRetries,
+    continueOnFailure: defaultContinueOnFailure,
+    partialSuccessStageAdvancement: defaultPartialSuccessStageAdvancement,
+  }) => {
     setName('');
     setDescription('');
     setFiles([]);
     setUploadProgress({});
     setUploadSpeed({});
-    setMaxRetries(defaultMaxRetries);
-    setContinueOnFailure(defaultContinueOnFailure);
+    setMaxRetries(defaults.maxRetries);
+    setContinueOnFailure(defaults.continueOnFailure);
+    setPartialSuccessStageAdvancement({
+      ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+      ...defaults.partialSuccessStageAdvancement,
+    });
     setModuleSelectionMode('auto');
     setModuleRiskLevels(['高']);
     setStageParallelism({
-      ...defaultStageParallelism,
+      ...defaults.stageParallelism,
     });
     setCreateError(null);
   };
 
-  const openCreateDialog = () => {
+  const loadCreateDefaults = async () => {
+    if (!projectId) {
+      return fallbackCreateDefaults;
+    }
+    const projectConfig = await executionApi.binarySecurity.getProjectConfig(projectId);
+    return {
+      stageParallelism: {
+        ...DEFAULT_STAGE_PARALLELISM,
+        ...(projectConfig.config.stage_parallelism || {}),
+      },
+      maxRetries: projectConfig.config.max_retries_per_item ?? 2,
+      continueOnFailure: projectConfig.config.continue_on_item_failure ?? true,
+      partialSuccessStageAdvancement: {
+        ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
+        ...(projectConfig.config.partial_success_stage_advancement || {}),
+      },
+    };
+  };
+
+  const openCreateDialog = async () => {
     setCreateResult(null);
-    resetCreateForm();
+    setCreateDefaultsLoading(true);
+    let defaults = fallbackCreateDefaults;
+    let defaultsError: string | null = null;
+    try {
+      defaults = await loadCreateDefaults();
+    } catch (e: any) {
+      defaultsError = e?.message ? `项目默认配置加载失败，已使用系统默认值：${e.message}` : '项目默认配置加载失败，已使用系统默认值';
+    }
+    applyCreateDefaults(defaults);
+    resetCreateForm(defaults);
+    if (defaultsError) {
+      setCreateError(defaultsError);
+    }
     setShowCreateDialog(true);
+    setCreateDefaultsLoading(false);
   };
 
   const closeCreateDialog = () => {
@@ -568,17 +659,22 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         policy_overrides: {
           max_retries_per_item: maxRetries,
           continue_on_item_failure: continueOnFailure,
+          partial_success_stage_advancement: Object.fromEntries(
+            PARTIAL_SUCCESS_ADVANCEMENT_FIELDS
+              .filter((field) => !isSourceTask || field.key !== 'binary_to_source')
+              .map((field) => [field.key, partialSuccessStageAdvancement[field.key] !== false]),
+          ),
           stage_parallelism: stageParallelism,
           module_selection_mode: moduleSelectionMode,
           module_risk_levels: moduleRiskLevels,
         },
       });
-      const inputDir = created.summary?.input_dir || `/app/secflow-app-binary-security/${prepared.task_id}/input`;
-      const tempUploadDir = created.summary?.temp_upload_dir || `/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
+      const inputDir = created.summary?.input_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/input`;
+      const tempUploadDir = created.summary?.temp_upload_dir || `/data/files/${projectId}/app/secflow-app-binary-security/${prepared.task_id}/run/upload-tmp`;
       const ensuredDirs = new Set<string>();
       const ensureUploadSubdirectories = async (basePath: string, relativeDir: string) => {
         if (!basePath || !relativeDir) return;
-        const normalizedBase = basePath.replace(/^\/+|\/+$/g, '');
+        const normalizedBase = basePath.replace(/\/+$/g, '');
         const parts = relativeDir.split('/').filter(Boolean);
         let current = normalizedBase;
         for (const part of parts) {
@@ -652,11 +748,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={openCreateDialog}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
+              onClick={() => void openCreateDialog()}
+              disabled={createDefaultsLoading}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Plus size={16} />
-              创建任务
+              {createDefaultsLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              {createDefaultsLoading ? '加载默认配置...' : '创建任务'}
             </button>
             <button
               type="button"
@@ -775,7 +872,17 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                         className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
                       />
                       <h3 className="text-lg font-black text-slate-900">{item.name}</h3>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
+                        {item.manual_operation_state ? (
+                          <span
+                            title={item.manual_operation_state.blocking_reason || item.manual_operation_state.summary}
+                            className={`rounded-full border px-3 py-1 text-xs font-black ${manualOperationBadgeTone(item.manual_operation_state.overall)}`}
+                          >
+                            {manualOperationBadgeLabel(item.manual_operation_state.overall)}
+                          </span>
+                        ) : null}
+                      </div>
                       {item.status === 'pending' && item.queue_position ? (
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
                           排队中，第 {item.queue_position} 位
@@ -988,6 +1095,18 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   <input type="checkbox" checked={continueOnFailure} onChange={(e) => setContinueOnFailure(e.target.checked)} />
                   子任务失败时继续推进其他子任务
                 </label>
+                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.filter((field) => !isSourceTask || field.key !== 'binary_to_source').map((field) => (
+                    <label key={field.key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={partialSuccessStageAdvancement[field.key] !== false}
+                        onChange={(e) => setPartialSuccessStageAdvancement((current) => ({ ...current, [field.key]: e.target.checked }))}
+                      />
+                      {field.label}
+                    </label>
+                  ))}
+                </div>
               </div>
 
               {createError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{createError}</div>}

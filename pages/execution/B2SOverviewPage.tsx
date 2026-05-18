@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock3, Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
 
 import { B2SElfTaskInput, B2SRunMode, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
-import { B2SPhaseBadge, B2SProgressBar, B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
-import { TaskOriginInline } from './taskOrigin';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 
 interface Props {
   projectId: string;
@@ -16,6 +16,12 @@ interface Props {
 const B2S_APP_ROOT = 'app/secflow-app-binary-to-source';
 const FILESERVER_STORAGE_ROOT = '/data';
 const standardInputPath = (taskId: string, sequenceNo: number): string => `/${B2S_APP_ROOT}/${taskId}/${sequenceNo}/input`;
+const safeCount = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : null;
+};
+
 const formatBytes = (value: number): string => {
   if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(2)} MB`;
   if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
@@ -31,29 +37,14 @@ const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
   return `${task.success_items || 0}/${total}`;
 };
 
-const taskModeLabel = (task: B2STask, detail?: B2STaskDetail | null) => detail?.mode_label || task.mode_label || '';
+const B2S_TASK_STATUS_ORDER = ['pending', 'running', 'success', 'partial', 'failed', 'cancelled', 'completed'];
 
-const taskModeTone = (task: B2STask, detail?: B2STaskDetail | null) => {
-  const mode = detail?.mode || task.mode;
-  if (mode === 'deep') return 'bg-violet-50 text-violet-700 ring-violet-200';
-  if (mode === 'fast') return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
-  if (mode === 'mixed') return 'bg-amber-50 text-amber-700 ring-amber-200';
-  return 'bg-slate-100 text-slate-600 ring-slate-200';
-};
-
-const buildPhaseSummary = (task: B2STask, detail?: B2STaskDetail | null) => {
-  const phaseSummary = detail?.overall_progress?.phase_summary;
-  if (phaseSummary && Object.keys(phaseSummary).length > 0) {
-    const [phase, count] = Object.entries(phaseSummary).sort((a, b) => b[1] - a[1])[0];
-    return { phase, label: `${phase} · ${count}` };
-  }
-  if ((task.running_items || 0) > 0) return { phase: 'body', label: `运行中 ${task.running_items}` };
-  if ((task.queued_items || 0) > 0) return { phase: 'queued', label: `排队中 ${task.queued_items}` };
-  if ((task.pending_items || 0) > 0) return { phase: 'queued', label: `待处理 ${task.pending_items}` };
-  if ((task.failed_items || 0) > 0) return { phase: 'failed', label: `失败 ${task.failed_items}` };
-  if ((task.partial_items || 0) > 0) return { phase: 'completed', label: `部分成功 ${task.partial_items}` };
-  if ((task.success_items || 0) > 0) return { phase: 'completed', label: `成功 ${task.success_items}` };
-  return { phase: task.status, label: formatB2SStatus(task.status) };
+const normalizeB2STaskStatus = (status?: string | null) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (!normalized) return '';
+  if (normalized === 'partial_success') return 'partial';
+  if (normalized === 'queued') return 'pending';
+  return normalized;
 };
 
 const parseBackendTimeMs = (value?: string | null) => {
@@ -94,10 +85,21 @@ const taskRunDuration = (detail?: B2STaskDetail | null, nowMs: number = Date.now
 export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const assetApi = api.domains.assets;
+  const autoRefreshStorageKey = `secflow:b2s:autoRefresh:${projectId || 'default'}`;
+  const refreshIntervalStorageKey = `secflow:b2s:refreshInterval:${projectId || 'default'}`;
   const [items, setItems] = useState<B2STask[]>([]);
   const [activeTaskDetails, setActiveTaskDetails] = useState<Record<string, B2STaskDetail>>({});
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [parentTaskFilter, setParentTaskFilter] = useState('');
+  const [originFilter, setOriginFilter] = useState<'' | 'manual' | 'binary_security'>('');
+  const [searchText, setSearchText] = useState('');
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
   const [concurrency, setConcurrency] = useState(4);
@@ -113,38 +115,27 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [createResult, setCreateResult] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState('');
   const [clockNow, setClockNow] = useState(() => Date.now());
+  const hasSelectedProviderInList = !llmProviderKey || llmProviders.some((item) => item.provider_key === llmProviderKey);
 
-  const load = async () => {
+  const load = useCallback(async (showLoading = true) => {
     if (!projectId) return;
-    setLoading(true);
-    setError(null);
+    if (showLoading) setLoading(true);
+    else setRefreshing(true);
     try {
       const data = await executionApi.binaryToSource.listTasks(projectId);
-      const nextItems = data.items || [];
-      setItems(nextItems);
-      const activeTasks = nextItems.filter((task) => !B2S_TERMINAL_STATUSES.has(task.status));
-      if (activeTasks.length === 0) {
-        setActiveTaskDetails({});
-      } else {
-        const details = await Promise.allSettled(activeTasks.map((task) => executionApi.binaryToSource.getTask(projectId, task.id)));
-        const nextDetails: Record<string, B2STaskDetail> = {};
-        details.forEach((result) => {
-          if (result.status === 'fulfilled') {
-            nextDetails[result.value.id] = result.value;
-          }
-        });
-        setActiveTaskDetails(nextDetails);
-      }
+      setItems(data.items || []);
+      setError(null);
     } catch (e: any) {
       setError(e?.message || '加载失败');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
+      else setRefreshing(false);
     }
-  };
+  }, [executionApi.binaryToSource, projectId]);
 
   useEffect(() => {
-    void load();
-  }, [projectId]);
+    void load(true);
+  }, [load]);
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:b2sTaskId');
@@ -167,12 +158,35 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   );
 
   useEffect(() => {
+    const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
+    const storedInterval = localStorage.getItem(refreshIntervalStorageKey);
+    setAutoRefreshEnabled(storedEnabled === 'true');
+    if (storedInterval) {
+      const parsed = Number(storedInterval);
+      if (Number.isFinite(parsed)) {
+        setRefreshIntervalSec(Math.max(5, Math.floor(parsed)));
+      }
+    } else {
+      setRefreshIntervalSec(10);
+    }
+  }, [autoRefreshStorageKey, refreshIntervalStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(autoRefreshStorageKey, String(autoRefreshEnabled));
+  }, [autoRefreshEnabled, autoRefreshStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(refreshIntervalStorageKey, String(refreshIntervalSec));
+  }, [refreshIntervalSec, refreshIntervalStorageKey]);
+
+  useEffect(() => {
     if (!projectId || !hasActiveTasks) return;
     const timer = window.setInterval(() => {
-      void load();
-    }, 5000);
+      if (!autoRefreshEnabled) return;
+      void load(false);
+    }, Math.max(5, refreshIntervalSec) * 1000);
     return () => window.clearInterval(timer);
-  }, [projectId, hasActiveTasks]);
+  }, [autoRefreshEnabled, hasActiveTasks, load, projectId, refreshIntervalSec]);
 
   useEffect(() => {
     if (!hasActiveTasks) return;
@@ -181,6 +195,82 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [hasActiveTasks]);
 
   const stats = useMemo(() => summarizeB2STasks(items), [items]);
+  const statusOptions = useMemo(() => {
+    const present = new Set(items.map((task) => normalizeB2STaskStatus(task.status)).filter(Boolean));
+    return B2S_TASK_STATUS_ORDER.filter((status) => present.has(status));
+  }, [items]);
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    return items.filter((task) => {
+      if (statusFilter && normalizeB2STaskStatus(task.status) !== statusFilter) return false;
+      if (parentTaskFilter && String(task.parent_task_id || '').trim() !== parentTaskFilter) return false;
+      if (originFilter && String(task.task_origin_type || 'manual').trim() !== originFilter) return false;
+      if (!keyword) return true;
+      const haystack = [
+        task.name,
+        task.id,
+        task.parent_task_display,
+        task.parent_task_id,
+        task.origin_label,
+      ].join(' ').toLowerCase();
+      return haystack.includes(keyword);
+    });
+  }, [items, originFilter, parentTaskFilter, searchText, statusFilter]);
+  const total = filteredItems.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const pagedItems = useMemo(() => filteredItems.slice((page - 1) * perPage, page * perPage), [filteredItems, page, perPage]);
+  const pageStart = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * perPage + pagedItems.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, parentTaskFilter, originFilter, searchText, perPage]);
+
+  const toggleStatusFilter = (value?: string | null) => {
+    const normalized = normalizeB2STaskStatus(value);
+    if (!normalized) return;
+    setStatusFilter((current) => current === normalized ? '' : normalized);
+  };
+
+  const toggleParentTaskFilter = (value?: string | null) => {
+    const normalized = String(value || '').trim();
+    if (!normalized) return;
+    setParentTaskFilter((current) => current === normalized ? '' : normalized);
+  };
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    const tasksNeedingDetails = pagedItems.filter((task) => (
+      !B2S_TERMINAL_STATUSES.has(task.status)
+      || task.total_functions == null
+      || task.completed_functions == null
+      || task.uncompleted_functions == null
+    ));
+    let cancelled = false;
+    if (tasksNeedingDetails.length === 0) {
+      setActiveTaskDetails({});
+      return;
+    }
+    void (async () => {
+      const details = await Promise.allSettled(tasksNeedingDetails.map((task) => executionApi.binaryToSource.getTask(projectId, task.id)));
+      if (cancelled) return;
+      const nextDetails: Record<string, B2STaskDetail> = {};
+      details.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          nextDetails[result.value.id] = result.value;
+        }
+      });
+      setActiveTaskDetails(nextDetails);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [executionApi.binaryToSource, pagedItems, projectId, refreshing]);
 
   const resetCreateForm = () => {
     setName('');
@@ -198,10 +288,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     if (!projectId) return;
     setLlmProvidersLoading(true);
     try {
-      const data = await executionApi.binaryToSource.listLlmProviders(projectId);
+      const [data, projectConfig] = await Promise.all([
+        executionApi.binaryToSource.listLlmProviders(projectId),
+        executionApi.binaryToSource.getConfig(projectId),
+      ]);
       const providers = (data.items || []).filter((item) => item.enabled);
+      const projectProviderKey = String(projectConfig?.llm_provider_key || '').trim();
       setLlmProviders(providers);
-      setLlmProviderKey((current) => current || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
+      setLlmProviderKey((current) => current || projectProviderKey || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
     } catch (e: any) {
       setCreateError(e?.message || '加载LLM Provider失败');
     } finally {
@@ -326,7 +420,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       setShowCreateDialog(false);
       resetCreateForm();
       setCreateResult(`创建成功: ${resp.task_id}`);
-      await load();
+      await load(false);
     } catch (e: any) {
       setCreateError(e?.message || '创建失败');
     } finally {
@@ -357,11 +451,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </button>
             <button
               type="button"
-              onClick={() => void load()}
+              onClick={() => void load(false)}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
             >
-              <RefreshCw size={16} />
-              刷新
+              {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+              {refreshing ? '刷新中...' : '刷新'}
             </button>
           </div>
         </div>
@@ -386,14 +480,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <h2 className="text-xl font-black text-slate-900">任务列表</h2>
-            <p className="mt-1 text-sm text-slate-500">展示任务状态、进度、阶段摘要与最近更新时间。</p>
+            <p className="mt-1 text-sm text-slate-500">展示任务状态、进度、阶段摘要与最近更新时间，并支持筛选、分页和自动刷新。</p>
           </div>
-          {hasActiveTasks && (
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-              <Clock3 size={14} />
-              活跃任务自动刷新中
-            </div>
-          )}
         </div>
 
         {loading ? (
@@ -404,90 +492,297 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         ) : items.length === 0 ? (
           <div className="py-12 text-center text-sm text-slate-400">当前项目暂无二进制逆向任务。</div>
         ) : (
-          <div className="mt-5 space-y-4">
-            {items.map((task) => {
-              const detail = activeTaskDetails[task.id];
-              const phaseSummary = buildPhaseSummary(task, detail);
-              const modeLabel = taskModeLabel(task, detail);
-              const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
-              return (
+          <div className="mt-5">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">任务列表</h2>
+                <p className="mt-1 text-sm text-slate-500">点击“任务”列进入详情；点击“状态”或“总任务 ID”单元格可快速切换筛选。</p>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={autoRefreshEnabled}
+                    onChange={(e) => setAutoRefreshEnabled(e.target.checked)}
+                  />
+                  自动刷新
+                </label>
+                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+                  间隔
+                  <input
+                    type="number"
+                    min={5}
+                    step={1}
+                    value={refreshIntervalSec}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      setRefreshIntervalSec(Number.isFinite(value) ? Math.max(5, Math.floor(value)) : 5);
+                    }}
+                    className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                  />
+                  秒
+                </label>
+              </div>
+            </div>
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <span>自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
+              {autoRefreshEnabled && !hasActiveTasks ? (
+                <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
+              ) : null}
+              {autoRefreshEnabled && hasActiveTasks ? (
+                <span className="text-cyan-600">检测到活跃任务，按设定间隔自动刷新</span>
+              ) : null}
+              <span>当前筛选结果：{total} 条</span>
+              {statusFilter ? (
                 <button
-                  key={task.id}
                   type="button"
-                  onClick={() => onOpenTask(task.id)}
-                  className="w-full rounded-[1.5rem] border border-slate-200 bg-white p-5 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                  onClick={() => setStatusFilter('')}
+                  className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700"
                 >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="text-lg font-black text-slate-900">{task.name || task.id}</div>
-                        <B2SStatusBadge status={task.status} />
-                        {modeLabel && (
-                          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${taskModeTone(task, detail)}`}>
-                            {modeLabel}
-                          </span>
-                        )}
-                        <B2SPhaseBadge phase={phaseSummary.phase} label={phaseSummary.label} />
-                      </div>
-                      <div className="mt-2 break-all font-mono text-xs text-slate-400">{task.id}</div>
-                      <div className="mt-3">
-                        <TaskOriginInline origin={task} compact />
-                      </div>
-                      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">任务结果</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            成功 {task.success_items} / 总数 {task.total_items}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">执行分布</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            排队 {task.queued_items} · 运行 {task.running_items}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">异常项</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            失败 {task.failed_items} · 部分成功 {task.partial_items}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">运行耗时</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">
-                            {taskRunDuration(detail, clockNow)}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">最近更新</div>
-                          <div className="mt-1 text-sm font-bold text-slate-800">{formatDateTime(task.updated_at)}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="w-full xl:max-w-[260px]">
-                      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm font-bold text-slate-700">总体进度</div>
-                          <div className="text-sm font-black text-slate-900">{buildProgressLabel(task, detail)}</div>
-                        </div>
-                        <div className="mt-3">
-                          <B2SProgressBar value={progressValue} />
-                        </div>
-                        <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-                          <span>待处理 {task.pending_items}</span>
-                          <span>已取消 {task.cancelled_items}</span>
-                        </div>
-                        <div className="mt-5 inline-flex items-center gap-1 text-sm font-bold text-slate-700">
-                          查看详情
-                          <ChevronRight size={16} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  状态：{formatB2SStatus(statusFilter)} x
                 </button>
-              );
-            })}
+              ) : null}
+              {parentTaskFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setParentTaskFilter('')}
+                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700"
+                >
+                  总任务 ID：{parentTaskFilter} x
+                </button>
+              ) : null}
+              {originFilter ? (
+                <button
+                  type="button"
+                  onClick={() => setOriginFilter('')}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-700"
+                >
+                  来源：{originFilter === 'manual' ? '手动任务' : '关联总任务'} x
+                </button>
+              ) : null}
+            </div>
+            {pagedItems.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
+                当前筛选条件下没有匹配的任务。
+              </div>
+            ) : (
+              <ExecutionTable minWidth={1480}>
+                <ExecutionTableHead>
+                  <tr>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>任务</div>
+                        <input
+                          value={searchText}
+                          onChange={(e) => setSearchText(e.target.value)}
+                          placeholder="搜索任务名/任务ID"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          onClick={(event) => event.stopPropagation()}
+                        />
+                      </div>
+                    </ExecutionTableTh>
+                    <ExecutionTableTh>输入文件</ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>状态</div>
+                        <div className="text-[10px] font-semibold normal-case tracking-normal text-slate-400">
+                          {statusFilter ? `当前: ${formatB2SStatus(statusFilter)}` : '点击单元格快速筛选'}
+                        </div>
+                      </div>
+                    </ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>总任务 ID</div>
+                        <div className="text-[10px] font-semibold normal-case tracking-normal text-slate-400">
+                          {parentTaskFilter ? `当前: ${parentTaskFilter}` : '点击单元格快速筛选'}
+                        </div>
+                      </div>
+                    </ExecutionTableTh>
+                    <ExecutionTableTh>总体进度</ExecutionTableTh>
+                    <ExecutionTableTh>函数处理</ExecutionTableTh>
+                    <ExecutionTableTh>异常项</ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <div className="space-y-2">
+                        <div>来源</div>
+                        <select
+                          value={originFilter}
+                          onChange={(e) => setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security')}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs normal-case tracking-normal text-slate-700"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <option value="">全部来源</option>
+                          <option value="manual">手动任务</option>
+                          <option value="binary_security">关联总任务</option>
+                        </select>
+                      </div>
+                    </ExecutionTableTh>
+                    <ExecutionTableTh>运行耗时</ExecutionTableTh>
+                    <ExecutionTableTh>创建时间</ExecutionTableTh>
+                    <ExecutionTableTh>最近更新</ExecutionTableTh>
+                  </tr>
+                </ExecutionTableHead>
+                <tbody>
+                  {pagedItems.map((task) => {
+                    const detail = activeTaskDetails[task.id];
+                    const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
+                    const parentTaskId = String(task.parent_task_id || '').trim();
+                    const sourceLabel = String(task.task_origin_type || 'manual').trim() === 'binary_security'
+                      ? (String(task.origin_label || '').trim() || '二进制安全任务')
+                      : '手动创建';
+                    const normalizedTaskStatus = normalizeB2STaskStatus(task.status);
+                    const totalFunctions = safeCount(task.total_functions ?? detail?.overall_progress?.total_functions);
+                    const completedFunctions = safeCount(task.completed_functions ?? detail?.overall_progress?.completed_functions);
+                    const uncompletedFunctions = safeCount(task.uncompleted_functions) ?? (
+                      totalFunctions !== null && completedFunctions !== null ? Math.max(0, totalFunctions - completedFunctions) : null
+                    );
+                    const failedFunctions = safeCount(task.failed_functions);
+                    return (
+                      <tr key={task.id} className={executionTableRowClassName}>
+                      <ExecutionTableTd className="min-w-[300px]">
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => onOpenTask(task.id)}
+                            className="truncate text-left text-sm font-black text-slate-900 hover:text-cyan-700"
+                            title={task.name || task.id}
+                          >
+                            {task.name || task.id}
+                          </button>
+                          <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{task.id}</div>
+                        </div>
+                      </ExecutionTableTd>
+                      <ExecutionTableTd className="min-w-[220px]">
+                        <div className="space-y-1">
+                          {(task.input_filenames || []).slice(0, 3).map((filename) => (
+                            <div key={filename} className="truncate text-xs font-medium text-slate-700" title={filename}>
+                              {filename}
+                            </div>
+                          ))}
+                          {(task.input_filenames || []).length > 3 ? (
+                            <div className="text-[11px] text-slate-400">
+                              其余 {(task.input_filenames || []).length - 3} 个文件
+                            </div>
+                          ) : null}
+                          {(!task.input_filenames || task.input_filenames.length === 0) ? (
+                            <span className="text-xs text-slate-400">-</span>
+                          ) : null}
+                        </div>
+                      </ExecutionTableTd>
+                      <ExecutionTableTd>
+                        <button
+                          type="button"
+                          onClick={() => toggleStatusFilter(normalizedTaskStatus)}
+                          className="rounded-xl"
+                          title={statusFilter === normalizedTaskStatus ? '再次点击取消该状态筛选' : '点击按该状态快速筛选'}
+                        >
+                          <B2SStatusBadge status={task.status} />
+                        </button>
+                      </ExecutionTableTd>
+                        <ExecutionTableTd className="min-w-[170px]">
+                          {parentTaskId ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleParentTaskFilter(parentTaskId)}
+                              className="font-mono text-left text-xs font-semibold text-slate-700 hover:text-violet-700"
+                              title={parentTaskFilter === parentTaskId ? '再次点击取消该总任务ID筛选' : '点击按该总任务ID快速筛选'}
+                            >
+                              {parentTaskId}
+                            </button>
+                          ) : (
+                            <span className="font-mono text-xs font-semibold text-slate-400">-</span>
+                          )}
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="min-w-[220px]">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="font-semibold text-slate-700">{buildProgressLabel(task, detail)}</span>
+                            <span className="text-slate-400">{pct(progressValue).toFixed(1)}%</span>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                            <span>待处理 {task.pending_items}</span>
+                            <span>已取消 {task.cancelled_items}</span>
+                          </div>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
+                          {totalFunctions !== null && totalFunctions > 0 && completedFunctions !== null ? (
+                            <>
+                              <div className="text-sm font-semibold text-slate-800">成功 {completedFunctions} / 总数 {totalFunctions}</div>
+                              <div className="mt-1 text-xs text-slate-400">
+                                未完成 {uncompletedFunctions ?? '-'}
+                                {failedFunctions !== null ? ` · 失败 ${failedFunctions}` : ''}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
+                          <div className="text-sm font-semibold text-slate-800">失败 {task.failed_items}</div>
+                          <div className="mt-1 text-xs text-slate-400">部分成功 {task.partial_items}</div>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="min-w-[170px]">
+                          <div className="text-sm font-semibold text-slate-800">{sourceLabel}</div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            {String(task.task_origin_type || 'manual').trim() === 'binary_security'
+                              ? `来源阶段 ${String(task.parent_stage_name || '').trim() || '-'}`
+                              : '-'}
+                          </div>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="whitespace-nowrap font-semibold text-slate-700">{taskRunDuration(detail, clockNow)}</ExecutionTableTd>
+                        <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.created_at)}</ExecutionTableTd>
+                        <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(task.updated_at)}</ExecutionTableTd>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </ExecutionTable>
+            )}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+              <div className="text-xs text-slate-500">
+                共 {total} 条，当前显示 {pageStart}-{pageEnd}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                  每页
+                  <select
+                    value={perPage}
+                    onChange={(e) => setPerPage(Number(e.target.value) || 20)}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+                  >
+                    {[20, 50, 100, 200].map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  条
+                </label>
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(1)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  首页
+                </button>
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  上一页
+                </button>
+                <span className="min-w-16 text-center text-xs text-slate-500">{page} / {totalPages}</span>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  下一页
+                </button>
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(totalPages)}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+                >
+                  末页
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>
@@ -569,6 +864,11 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm disabled:bg-slate-50 disabled:text-slate-400"
                   >
                     {llmProviders.length === 0 && <option value="">{llmProvidersLoading ? '加载中...' : '使用后端默认 Provider'}</option>}
+                    {!hasSelectedProviderInList && llmProviderKey ? (
+                      <option value={llmProviderKey}>
+                        {llmProviderKey} · 项目默认已失效或已禁用
+                      </option>
+                    ) : null}
                     {llmProviders.map((provider) => (
                       <option key={provider.provider_key} value={provider.provider_key}>
                         {(provider.display_name || provider.provider_key)} · {provider.model || '-'}{provider.is_default ? ' · 默认' : ''}

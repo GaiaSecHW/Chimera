@@ -13,6 +13,7 @@ import { ConfigCenterLlmPage } from '../pages/platform/ConfigCenterLlmPage';
 import { ConfigCenterLlmChatPage } from '../pages/platform/ConfigCenterLlmChatPage';
 import { PublicResourceManagementPage } from '../pages/assets/PublicResourceManagementPage';
 import { ProjectFileExplorerPage } from '../pages/assets/ProjectFileExplorerPage';
+import { FileserverArchiveTasksPage } from '../pages/assets/FileserverArchiveTasksPage';
 import { EnvAgentPage } from '../pages/environment/EnvAgentPage';
 import { EnvTemplatePage } from '../pages/environment/EnvTemplatePage';
 import { EnvTasksPage } from '../pages/environment/EnvTasksPage';
@@ -48,8 +49,10 @@ import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatf
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
+import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
+import { BinarySecurityMetricsDashboardPage } from '../pages/execution/BinarySecurityMetricsDashboardPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
 import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcVulnPage';
 import { KernelScanPage } from '../pages/execution/KernelScanPage';
@@ -64,6 +67,7 @@ import { VulnDecisionDetailPage } from '../pages/vuln/VulnDecisionDetailPage';
 import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
+import { VulnParameterConfigPage } from '../pages/vuln/VulnParameterConfigPage';
 import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
 import { B2STaskAdvancedPage } from '../pages/execution/B2STaskAdvancedPage';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
@@ -198,6 +202,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="tasks" />;
     case 'project-file-explorer':
       return <ProjectFileExplorerPage projectId={ctx.selectedProjectId} projects={ctx.projects} />;
+    case 'fileserver-archive-tasks':
+      return <FileserverArchiveTasksPage projectId={ctx.selectedProjectId} />;
     case 'env-agent':
       return <EnvAgentPage projectId={ctx.selectedProjectId} />;
     case 'env-service':
@@ -473,6 +479,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'binary-security-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} />;
+    case 'binary-security-metrics':
+      return <BinarySecurityMetricsDashboardPage projectId={ctx.selectedProjectId} />;
     case 'mobile-security-ipc-vuln':
       return <MobileSecurityIpcVulnPage projectId={ctx.selectedProjectId} />;
     case 'kernel-scan':
@@ -480,6 +488,9 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
+    case 'binary-evolution-center':
+    case 'binary-evolution-dataflow-vuln':
+      return <BinaryEvolutionCenterPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln-task-detail':
       return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln')} />;
     case 'pentest-exec-dataflow-vuln-system-config':
@@ -511,6 +522,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <VulnServicesPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-repro-config':
       return <VulnReproConfigPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+    case 'vuln-parameter-config':
+      return <VulnParameterConfigPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'sys-settings':
       return <WorkflowPlaceholder title="系统设置" icon={<Settings />} />;
     case 'change-password':

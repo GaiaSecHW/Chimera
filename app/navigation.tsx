@@ -106,6 +106,7 @@ export const TOP_LEVEL_NAV_ITEMS: TopLevelNavItem[] = [
 
 export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'project-file-explorer',
+  'fileserver-archive-tasks',
   'public-resource-pvc-management',
   'public-resource-task-management',
   'pvc-management',
@@ -144,6 +145,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'binary-security-root',
   'binary-security-task-list',
   'binary-security-detail',
+  'binary-security-metrics',
   'source-security',
   'source-security-detail',
   'mobile-security-ipc-vuln',
@@ -164,6 +166,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-b2s-detail',
   'pentest-exec-b2s-advanced',
   'pentest-exec-dataflow-vuln',
+  'binary-evolution-center',
+  'binary-evolution-dataflow-vuln',
   'pentest-exec-dataflow-vuln-task-list',
   'pentest-exec-dataflow-vuln-task-detail',
   'pentest-exec-dataflow-vuln-system-config',
@@ -180,6 +184,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-queue',
   'vuln-services',
   'vuln-repro-config',
+  'vuln-parameter-config',
 ]);
 
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
@@ -191,6 +196,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
 
   if (
     view === 'project-file-explorer' ||
+    view === 'fileserver-archive-tasks' ||
     view === 'public-resource-pvc-management' ||
     view === 'public-resource-task-management' ||
     view === 'pvc-management' ||
@@ -219,6 +225,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view === 'security-assessment' ||
     view === 'kernel-scan' ||
     view.startsWith('binary-security') ||
+    view.startsWith('binary-evolution') ||
     view.startsWith('source-security') ||
     view.startsWith('mobile-security-') ||
     view.startsWith('pentest-') ||
@@ -284,6 +291,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '资产供应',
       items: [
         { id: 'project-file-explorer', label: '项目文件', icon: FolderTree, requiresProject: true },
+        { id: 'fileserver-archive-tasks', label: '打包下载任务', icon: Archive, requiresProject: true },
         { id: 'public-resource-pvc-management', label: 'PVC 管理', icon: HardDrive, requiresProject: true },
         { id: 'public-resource-task-management', label: '资源任务', icon: ListTodo, requiresProject: true },
       ],
@@ -344,7 +352,22 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
         { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, aliases: ['dataflow-analysis-task', 'dataflow-analysis-detail'], requiresProject: true },
         { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
+        {
+          id: 'binary-evolution-center',
+          label: '进化中心',
+          icon: Sparkles,
+          requiresProject: true,
+          subItems: [
+            {
+              id: 'binary-evolution-dataflow-vuln',
+              label: '进化数据流漏洞挖掘',
+              aliases: ['binary-evolution-center'],
+              requiresProject: true,
+            },
+          ],
+        },
         { id: 'binary-security-config', label: '参数配置', icon: Settings, aliases: ['pentest-exec-dataflow-vuln-system-config'], requiresProject: true },
+        { id: 'binary-security-metrics', label: '性能看板', icon: Monitor, requiresProject: true },
       ],
     },
     {
@@ -381,6 +404,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'vuln-queue', label: '运行队列', icon: Workflow, requiresProject: true },
         { id: 'vuln-services', label: '能力注册', icon: ServerCog, requiresProject: true },
         { id: 'vuln-repro-config', label: '复现配置', icon: Settings, requiresProject: true },
+        { id: 'vuln-parameter-config', label: '参数配置', icon: Settings, requiresProject: true },
       ],
     },
   ],

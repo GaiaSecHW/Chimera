@@ -5,17 +5,74 @@ import { api } from '../../clients/api';
 import {
   LlmProviderSummary,
   SystemAnalysisAgentInstance,
+  SystemAnalysisPromptOverrideGroup,
+  SystemAnalysisPromptOverrideItem,
+  SystemAnalysisPromptTemplate,
   SystemAnalysisRoleConfig,
   SystemAnalysisServiceConfig,
   SystemAnalysisStageLoopConfig,
   SystemAnalysisStagesConfig,
+  SystemAnalysisSelfReflectionConfig,
 } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
 
 // ─── 常量 ──────────────────────────────────────────────────────────────────────
 
 const WORKER_STAGES = ['explore', 'classify', 'refine', 'sub_read', 'analyse', 'report'];
 const JUDGE_STAGES = ['classify', 'refine', 'analyse', 'completeness', 'report'];
+const WORKER_PROMPT_KEYS = [
+  'default',
+  'step1_explore',
+  'step1_classify',
+  'reflect_classify',
+  'step2_sub_read',
+  'step2_refine',
+  'reflect_refine',
+  'step2_reclassify',
+  'step3_analyse',
+  'reflect_analyse',
+  'step4_final_report',
+  'reflect_report',
+] as const;
+const JUDGE_PROMPT_KEYS = [
+  'default',
+  'step1_check_classify',
+  'step2_check_refine',
+  'step3_check_analyse',
+  'step4_check_completeness',
+  'step4_check_report',
+] as const;
+
+const WORKER_PROMPT_DESCS: Record<string, string> = {
+  default: 'Worker 默认 system prompt，供未命中特定阶段或个别兜底逻辑使用。',
+  step1_explore: 'Stage 0 目录探索提示词，用于快速理解目标目录、结构和关键线索。',
+  step1_classify: 'Stage 1 全局分类提示词，用于按功能对文件进行模块划分。',
+  reflect_classify: 'Stage 1 分类反思提示词，用于根据 Judge 反馈修正分类。',
+  step2_sub_read: 'Stage 2 大文件预读提示词，用于对子文件批次做摘要压缩。',
+  step2_refine: 'Stage 2 模块细分提示词，用于精细化模块边界与文件归属。',
+  reflect_refine: 'Stage 2 细分反思提示词，用于根据评审结果修正模块粒度。',
+  step2_reclassify: 'Stage 2 重新分类提示词，用于对需要重分组的模块重新划分。',
+  step3_analyse: 'Stage 3 安全分析提示词，是系统分析的核心执行 prompt。',
+  reflect_analyse: 'Stage 3 分析反思提示词，用于根据评审反馈补充威胁发现。',
+  step4_final_report: 'Stage 4 最终报告提示词，用于汇总模块分析并生成总报告。',
+  reflect_report: 'Stage 4 报告反思提示词，用于根据报告评审意见修正最终报告。',
+};
+
+const JUDGE_PROMPT_DESCS: Record<string, string> = {
+  default: 'Judge 默认 system prompt，供未命中特定阶段或个别兜底逻辑使用。',
+  step1_check_classify: 'Stage 1 分类评审提示词，用于判断模块划分是否完整合理。',
+  step2_check_refine: 'Stage 2 细分评审提示词，用于判断模块粒度是否合理。',
+  step3_check_analyse: 'Stage 3 安全分析评审提示词，用于复核威胁发现质量。',
+  step4_check_completeness: 'Stage 4 完整性检查提示词，用于确认模块分析覆盖完整。',
+  step4_check_report: 'Stage 4 报告评审提示词，用于判断最终报告结构与一致性。',
+};
+
+const emptyPromptItem = (): SystemAnalysisPromptOverrideItem => ({ content: '', source: 'default', default_content: '' });
+const defaultPromptOverrides = (): SystemAnalysisPromptOverrideGroup => ({
+  workers: Object.fromEntries(WORKER_PROMPT_KEYS.map((key) => [key, emptyPromptItem()])) as Record<string, SystemAnalysisPromptOverrideItem>,
+  judges: Object.fromEntries(JUDGE_PROMPT_KEYS.map((key) => [key, emptyPromptItem()])) as Record<string, SystemAnalysisPromptOverrideItem>,
+});
 
 /** 各 Worker 阶段的功能说明与模型选型建议 */
 const WORKER_STAGE_DESCS: Record<string, string> = {
@@ -47,6 +104,39 @@ const JUDGE_STAGE_DESCS: Record<string, string> = {
     '报告评审 — 评估最终报告的结构、一致性与可读性，决定报告是否达到交付标准。',
 };
 
+const SHOW_SYSTEM_ANALYSIS_PROMPT_CONFIG = false;
+
+const SYSTEM_ANALYSIS_FLOW = {
+  title: '系统分析阶段推进关系',
+  subtitle: '展示系统分析微服务的默认推进链路与关键收敛点，便于在调整参数前快速理解不同阶段的职责边界。',
+  lanes: [
+    {
+      label: '主执行链路',
+      steps: [
+        { id: 'sa-stage-0', title: 'Stage 0 预处理', desc: '过滤目标文件、探索目录结构并预扫描关键线索。', badge: 'S0', tone: 'analysis' as const },
+        { id: 'sa-stage-1', title: 'Stage 1 全局分类', desc: '按功能与职责划分模块边界，产出初始模块清单。', badge: 'S1', tone: 'analysis' as const },
+        { id: 'sa-stage-2', title: 'Stage 2 细分类', desc: '细化模块粒度，并执行全局补分类以减少遗漏。', badge: 'S2', tone: 'analysis' as const },
+        { id: 'sa-stage-3', title: 'Stage 3 安全分析', desc: '逐模块开展 STRIDE 与威胁分析，沉淀核心发现。', badge: 'S3', tone: 'review' as const },
+        { id: 'sa-stage-4a', title: 'Stage 4a 完整性检查', desc: '对模块覆盖完整性做最终复核，可按配置关闭。', badge: 'S4a', tone: 'guard' as const },
+        { id: 'sa-stage-4b', title: 'Stage 4b 报告生成', desc: '汇总模块分析与评审结果，输出最终总报告。', badge: 'S4b', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '反思与回退',
+      detail: 'Stage 1/2/3 若未通过评审会进入反思重试；Stage 4a 若发现覆盖缺口，可回退补做缺失模块。',
+      tone: 'review' as const,
+    },
+    {
+      title: '遗漏文件收敛',
+      detail: 'Stage 2 末尾会做全局补分类检查，尽量在最终报告前收敛未归类文件。',
+      tone: 'guard' as const,
+    },
+  ],
+  footer: 'Stage 4a 为可选阶段；关闭完整性检查后，任务会直接从 Stage 3 推进到 Stage 4b。',
+};
+
 // ─── 默认值 ────────────────────────────────────────────────────────────────────
 
 const defaultRole = (): SystemAnalysisRoleConfig => ({
@@ -59,12 +149,20 @@ const defaultRole = (): SystemAnalysisRoleConfig => ({
 
 const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   project_id: projectId,
+  max_rounds_exceeded_action: 'treat_as_passed',
+  continue_on_module_failure: true,
   analyse_targets: ['all'],
   binary_arch: ['all'],
+  security_focus_categories: ['all'],
+  module_granularity: 'fine',
+  filter_engine: 'script',
+  enable_final_check: false,
+  worker_task_concurrency: 4,
   parallel_modules: 1,
   parallel_sub_workers: 1,
   agent_max_retries: 100,
   agent_retry_delay: 30,
+  agent_timeout_seconds: 1800,
   pi_max_retries: -1,
   pi_retry_delay: 10,
   stages: {
@@ -75,20 +173,160 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   },
   workers: defaultRole(),
   judges: defaultRole(),
+  prompt_overrides: defaultPromptOverrides(),
   output_dir: '/data/output',
   archive_dir: '/data/output',
   result_dir: '/data/output',
   start_stage: 1,
   resume_workspace: '',
+  self_reflection: {
+    enabled: false,
+    model: '',
+    output_dir: `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`,
+    max_session_lines: 1000,
+  },
 });
+
+const normalizePromptOverrides = (value: unknown): SystemAnalysisPromptOverrideGroup => {
+  const base = defaultPromptOverrides();
+  const raw = value && typeof value === 'object' ? value as Partial<SystemAnalysisPromptOverrideGroup> : {};
+  const normalizeGroup = (
+    keys: readonly string[],
+    incoming: unknown,
+  ): Record<string, SystemAnalysisPromptOverrideItem> => {
+    const next = incoming && typeof incoming === 'object' ? incoming as Record<string, any> : {};
+    return Object.fromEntries(keys.map((key) => {
+      const item = next[key];
+      if (item && typeof item === 'object') {
+        return [key, {
+          content: String(item.content ?? ''),
+          source: item.source === 'project' ? 'project' : 'default',
+          default_content: String(item.default_content ?? ''),
+        } satisfies SystemAnalysisPromptOverrideItem];
+      }
+      if (typeof item === 'string') {
+        return [key, { content: item, source: 'project' } satisfies SystemAnalysisPromptOverrideItem];
+      }
+      return [key, base.workers[key] ?? base.judges[key] ?? emptyPromptItem()];
+    }));
+  };
+  return {
+    workers: normalizeGroup(WORKER_PROMPT_KEYS, raw.workers),
+    judges: normalizeGroup(JUDGE_PROMPT_KEYS, raw.judges),
+  };
+};
+
+const buildSafeConfig = (projectId: string, cfg?: Partial<SystemAnalysisServiceConfig> | null): SystemAnalysisServiceConfig => {
+  const base = defaultConfig(projectId);
+  return {
+    ...base,
+    ...(cfg || {}),
+    project_id: projectId,
+    stages: {
+      ...base.stages,
+      ...(cfg?.stages && typeof cfg.stages === 'object' ? cfg.stages : {}),
+    },
+    workers: {
+      ...base.workers,
+      ...(cfg?.workers && typeof cfg.workers === 'object' ? cfg.workers : {}),
+    },
+    judges: {
+      ...base.judges,
+      ...(cfg?.judges && typeof cfg.judges === 'object' ? cfg.judges : {}),
+    },
+    prompt_overrides: normalizePromptOverrides(cfg?.prompt_overrides),
+  };
+};
+
+type SystemAnalysisPanelKey =
+  | 'scope'
+  | 'concurrency'
+  | 'retry'
+  | 'stages'
+  | 'self_reflection'
+  | 'workers'
+  | 'judges';
+
+const SYSTEM_ANALYSIS_PANEL_KEYS: SystemAnalysisPanelKey[] = [
+  'scope',
+  'concurrency',
+  'retry',
+  'stages',
+  'self_reflection',
+  'workers',
+  'judges',
+];
+
+const applySystemAnalysisPanel = (
+  base: SystemAnalysisServiceConfig,
+  source: SystemAnalysisServiceConfig,
+  panel: SystemAnalysisPanelKey,
+): SystemAnalysisServiceConfig => {
+  switch (panel) {
+    case 'scope':
+      return {
+        ...base,
+        analyse_targets: source.analyse_targets,
+        binary_arch: source.binary_arch,
+        security_focus_categories: source.security_focus_categories,
+        module_granularity: source.module_granularity,
+        filter_engine: source.filter_engine,
+        enable_final_check: source.enable_final_check,
+        continue_on_module_failure: source.continue_on_module_failure,
+      };
+    case 'concurrency':
+      return {
+        ...base,
+        worker_task_concurrency: source.worker_task_concurrency,
+        parallel_modules: source.parallel_modules,
+        parallel_sub_workers: source.parallel_sub_workers,
+      };
+    case 'retry':
+      return {
+        ...base,
+        agent_max_retries: source.agent_max_retries,
+        agent_retry_delay: source.agent_retry_delay,
+        agent_timeout_seconds: source.agent_timeout_seconds,
+        pi_max_retries: source.pi_max_retries,
+        pi_retry_delay: source.pi_retry_delay,
+        max_rounds_exceeded_action: source.max_rounds_exceeded_action,
+      };
+    case 'stages':
+      return { ...base, stages: source.stages };
+    case 'self_reflection':
+      return { ...base, self_reflection: source.self_reflection };
+    case 'workers':
+      return { ...base, workers: source.workers };
+    case 'judges':
+      return { ...base, judges: source.judges };
+    default:
+      return base;
+  }
+};
+
+const restoreOtherSystemAnalysisPanels = (
+  saved: SystemAnalysisServiceConfig,
+  draft: SystemAnalysisServiceConfig,
+  preservedPanel: SystemAnalysisPanelKey,
+): SystemAnalysisServiceConfig => {
+  return SYSTEM_ANALYSIS_PANEL_KEYS.reduce((acc, panel) => {
+    if (panel === preservedPanel) {
+      return acc;
+    }
+    return applySystemAnalysisPanel(acc, draft, panel);
+  }, saved);
+};
 
 // ─── 子组件 ────────────────────────────────────────────────────────────────────
 
-const SectionCard: React.FC<{ title: string; subtitle?: string; children: React.ReactNode }> = ({ title, subtitle, children }) => (
+const SectionCard: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }> = ({ title, subtitle, actions, children }) => (
   <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-    <div>
-      <h2 className="text-base font-black text-slate-900">{title}</h2>
-      {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <h2 className="text-base font-black text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+      </div>
+      {actions}
     </div>
     {children}
   </section>
@@ -198,14 +436,15 @@ const StageModelsEditor: React.FC<{ stageNames: string[]; modelOptions: string[]
 const RoleConfigBlock: React.FC<{
   title: string;
   subtitle?: string;
+  actions?: React.ReactNode;
   stageNames: string[];
   stageDescs?: Record<string, string>;
   modelOptions: string[];
   value: SystemAnalysisRoleConfig;
   agentDesc?: string;
   onChange: (v: SystemAnalysisRoleConfig) => void;
-}> = ({ title, subtitle, stageNames, stageDescs, modelOptions, value, agentDesc, onChange }) => (
-  <SectionCard title={title} subtitle={subtitle}>
+}> = ({ title, subtitle, actions, stageNames, stageDescs, modelOptions, value, agentDesc, onChange }) => (
+  <SectionCard title={title} subtitle={subtitle} actions={actions}>
     <FieldRow
       label="各阶段模型配置"
       hint="留空则使用实例列表中 agents[0] 的模型"
@@ -226,6 +465,111 @@ const RoleConfigBlock: React.FC<{
   </SectionCard>
 );
 
+const PanelActions: React.FC<{
+  saving: boolean;
+  onSave: () => void;
+  onReset: () => void;
+}> = ({ saving, onSave, onReset }) => (
+  <div className="flex shrink-0 items-center gap-2">
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={saving}
+      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+    >
+      重置为默认
+    </button>
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving}
+      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+    >
+      {saving && <Loader2 size={12} className="animate-spin" />}
+      保存配置
+    </button>
+  </div>
+);
+
+const PromptEditorCard: React.FC<{
+  role: 'workers' | 'judges';
+  promptKey: string;
+  desc: string;
+  item: SystemAnalysisPromptOverrideItem;
+  templates: SystemAnalysisPromptTemplate[];
+  selectedTemplateId: string;
+  onChangeTemplateId: (value: string) => void;
+  onChange: (value: SystemAnalysisPromptOverrideItem) => void;
+  onImportTemplate: () => void;
+  onRestoreDefault: () => void;
+}> = ({
+  role,
+  promptKey,
+  desc,
+  item,
+  templates,
+  selectedTemplateId,
+  onChangeTemplateId,
+  onChange,
+  onImportTemplate,
+  onRestoreDefault,
+}) => (
+  <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-bold text-slate-900">{promptKey}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{desc}</p>
+      </div>
+      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black tracking-[0.12em] ${
+        item.source === 'project'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          : 'border-slate-200 bg-white text-slate-500'
+      }`}>
+        {item.source === 'project' ? 'PROJECT' : 'DEFAULT'}
+      </span>
+    </div>
+
+    <textarea
+      value={item.content}
+      onChange={(event) => onChange({ ...item, content: event.target.value, source: 'project' })}
+      className="min-h-[180px] w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs leading-6 text-slate-800"
+      spellCheck={false}
+    />
+
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div className="flex items-center gap-2">
+        <select
+          value={selectedTemplateId}
+          onChange={(event) => onChangeTemplateId(event.target.value)}
+          className="min-w-[220px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+        >
+          <option value="">从模板库选择</option>
+          {templates.map((template) => (
+            <option key={`${role}-${template.prompt_id}`} value={template.prompt_id}>
+              {template.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={onImportTemplate}
+          disabled={!selectedTemplateId}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+        >
+          导入模板
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onRestoreDefault}
+        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+      >
+        恢复默认
+      </button>
+    </div>
+  </div>
+);
+
 // ─── 主页面 ────────────────────────────────────────────────────────────────────
 
 export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: boolean }> = ({ projectId, embedded = false }) => {
@@ -234,41 +578,70 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPanel, setSavingPanel] = useState<SystemAnalysisPanelKey | null>(null);
   const [config, setConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
+  const [savedConfig, setSavedConfig] = useState<SystemAnalysisServiceConfig>(() => defaultConfig(projectId));
   const [modelOptions, setModelOptions] = useState<string[]>([]);
+  const [promptTemplates, setPromptTemplates] = useState<SystemAnalysisPromptTemplate[]>([]);
+  const [selectedPromptTemplates, setSelectedPromptTemplates] = useState<Record<string, string>>({});
 
   const patch = (p: Partial<SystemAnalysisServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
 
   const patchStage = (key: keyof SystemAnalysisStagesConfig, p: Partial<SystemAnalysisStageLoopConfig>) =>
     setConfig((prev) => ({ ...prev, stages: { ...prev.stages, [key]: { ...prev.stages[key], ...p } } }));
 
+  const patchPrompt = (role: 'workers' | 'judges', promptKey: string, item: SystemAnalysisPromptOverrideItem) =>
+    setConfig((prev) => ({
+      ...prev,
+      prompt_overrides: {
+        ...prev.prompt_overrides,
+        [role]: {
+          ...prev.prompt_overrides[role],
+          [promptKey]: item,
+        },
+      },
+    }));
+
+  const setTemplateSelection = (role: 'workers' | 'judges', promptKey: string, value: string) =>
+    setSelectedPromptTemplates((prev) => ({ ...prev, [`${role}:${promptKey}`]: value }));
+
+  const importPromptTemplate = (role: 'workers' | 'judges', promptKey: string) => {
+    const selectedId = selectedPromptTemplates[`${role}:${promptKey}`];
+    const template = promptTemplates.find((item) => item.prompt_id === selectedId);
+    if (!template) {
+      notify('请先从模板库选择一个 Prompt 模板', 'info');
+      return;
+    }
+    const current = config.prompt_overrides[role][promptKey];
+    patchPrompt(role, promptKey, {
+      ...current,
+      content: template.content || '',
+      source: 'project',
+    });
+  };
+
+  const restorePromptDefault = (role: 'workers' | 'judges', promptKey: string) => {
+    const current = config.prompt_overrides[role][promptKey];
+    patchPrompt(role, promptKey, {
+      content: current?.default_content || '',
+      source: 'default',
+      default_content: current?.default_content || '',
+    });
+  };
+
   const reload = () => {
     setLoading(true);
     systemAnalysis.getConfig(projectId)
       .then((cfg) => {
-        const base = defaultConfig(projectId);
-        const safe: SystemAnalysisServiceConfig = {
-          ...base,
-          ...cfg,
-          project_id: projectId,
-          stages: {
-            ...base.stages,
-            ...(cfg.stages && typeof cfg.stages === 'object' ? cfg.stages : {}),
-          },
-          workers: {
-            ...base.workers,
-            ...(cfg.workers && typeof cfg.workers === 'object' ? cfg.workers : {}),
-          },
-          judges: {
-            ...base.judges,
-            ...(cfg.judges && typeof cfg.judges === 'object' ? cfg.judges : {}),
-          },
-        };
-        setConfig(safe);
+        const normalized = buildSafeConfig(projectId, cfg);
+        setConfig(normalized);
+        setSavedConfig(normalized);
       })
       .catch((err) => {
         notify(`加载配置失败: ${err?.message ?? err}`, 'error');
-        setConfig(defaultConfig(projectId));
+        const fallback = defaultConfig(projectId);
+        setConfig(fallback);
+        setSavedConfig(fallback);
       })
       .finally(() => setLoading(false));
   };
@@ -286,63 +659,63 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
   }, []);
 
   useEffect(() => {
+    systemAnalysis.listPrompts({ page: 1, per_page: 200, is_enabled: true })
+      .then((resp) => setPromptTemplates(Array.isArray(resp?.items) ? resp.items : []))
+      .catch(() => setPromptTemplates([]));
+  }, [projectId]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     systemAnalysis.getConfig(projectId)
       .then((cfg) => {
         if (!cancelled) {
-          // Always deep-merge with local defaults so missing/null nested fields
-          // (stages, workers, judges) never cause a runtime crash.
-          const base = defaultConfig(projectId);
-          const safe: SystemAnalysisServiceConfig = {
-            ...base,
-            ...cfg,
-            project_id: projectId,
-            stages: {
-              ...base.stages,
-              ...(cfg.stages && typeof cfg.stages === 'object' ? cfg.stages : {}),
-            },
-            workers: {
-              ...base.workers,
-              ...(cfg.workers && typeof cfg.workers === 'object' ? cfg.workers : {}),
-            },
-            judges: {
-              ...base.judges,
-              ...(cfg.judges && typeof cfg.judges === 'object' ? cfg.judges : {}),
-            },
-          };
-          setConfig(safe);
+          const normalized = buildSafeConfig(projectId, cfg);
+          setConfig(normalized);
+          setSavedConfig(normalized);
         }
       })
-      .catch((err) => { if (!cancelled) { notify(`加载配置失败: ${err?.message ?? err}`, 'error'); setConfig(defaultConfig(projectId)); } })
+      .catch((err) => {
+        if (!cancelled) {
+          notify(`加载配置失败: ${err?.message ?? err}`, 'error');
+          const fallback = defaultConfig(projectId);
+          setConfig(fallback);
+          setSavedConfig(fallback);
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [projectId]);
 
-  const handleSave = async () => {
+  const persistConfig = async (nextConfig: SystemAnalysisServiceConfig) => {
     setSaving(true);
     try {
-      const saved = await systemAnalysis.saveConfig({ ...config, project_id: projectId });
-      const base = defaultConfig(projectId);
-      setConfig({
-        ...base,
-        ...saved,
-        project_id: projectId,
-        stages: { ...base.stages, ...(saved.stages && typeof saved.stages === 'object' ? saved.stages : {}) },
-        workers: { ...base.workers, ...(saved.workers && typeof saved.workers === 'object' ? saved.workers : {}) },
-        judges: { ...base.judges, ...(saved.judges && typeof saved.judges === 'object' ? saved.judges : {}) },
-      });
-      notify('配置已保存', 'success');
+      const saved = await systemAnalysis.saveConfig({ ...nextConfig, project_id: projectId });
+      return buildSafeConfig(projectId, saved);
     } catch (err: any) {
       notify(`保存失败: ${err?.message ?? err}`, 'error');
+      return null;
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setConfig(defaultConfig(projectId));
-    notify('已重置为默认值（尚未保存）', 'info');
+  const handlePanelSave = async (panel: SystemAnalysisPanelKey, label: string) => {
+    setSavingPanel(panel);
+    const payload = applySystemAnalysisPanel(savedConfig, config, panel);
+    const saved = await persistConfig(payload);
+    if (saved) {
+      setSavedConfig(saved);
+      setConfig((prev) => restoreOtherSystemAnalysisPanels(saved, prev, panel));
+      notify(`${label}已保存`, 'success');
+    }
+    setSavingPanel(null);
+  };
+
+  const handlePanelReset = (panel: SystemAnalysisPanelKey, label: string) => {
+    const defaults = defaultConfig(projectId);
+    setConfig((prev) => applySystemAnalysisPanel(prev, defaults, panel));
+    notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
 
   return (
@@ -354,7 +727,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
           <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
           <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析配置</h1>
           <p className="mt-2 text-sm text-slate-500">配置分析引擎全局运行参数，包括并发度、重试策略、Pipeline 阶段循环控制及 Agent 模型配置。各项配置作为全局默认值对所有任务生效。</p>
-          <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 二进制架构过滤）属于任务级配置，请在「新建任务」弹窗中单独设置。</p>
+          <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）均可在此作为服务级默认值，也可在「新建任务」弹窗中覆盖。</p>
           {config.updated_at && (
             <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
           )}
@@ -373,7 +746,7 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               <p className="mt-2 text-sm text-slate-500">
                 当前 Tab 中的全部配置项都归属于 `secflow-app-system-analyse` 微服务，用于控制系统分析服务的并发、重试、阶段循环和 Agent 模型行为。
               </p>
-              <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 二进制架构过滤）属于任务级配置，请在「新建任务」弹窗中单独设置。</p>
+              <p className="mt-1 text-xs text-slate-400">提示：分析范围（文件类型 / 架构 / 安全维度 / 模块粒度）可在此设置服务级默认值，也可在「新建任务」弹窗中单独覆盖。</p>
               {config.updated_at && (
                 <p className="mt-1 text-xs text-slate-400">上次保存：{new Date(config.updated_at).toLocaleString()}</p>
               )}
@@ -401,9 +774,255 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
         </div>
       ) : (
         <div className="space-y-6">
+          <StaticPipelineFlow
+            title={SYSTEM_ANALYSIS_FLOW.title}
+            subtitle={SYSTEM_ANALYSIS_FLOW.subtitle}
+            lanes={SYSTEM_ANALYSIS_FLOW.lanes}
+            notes={SYSTEM_ANALYSIS_FLOW.notes}
+            footer={SYSTEM_ANALYSIS_FLOW.footer}
+          />
+          <SectionCard
+            title="分析范围配置"
+            subtitle="控制文件过滤、S1 分类阶段的分析范围与模块粒度。以下配置为服务级默认值，可在任务创建时单独覆盖。"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'scope'}
+                onSave={() => { void handlePanelSave('scope', '分析范围配置'); }}
+                onReset={() => handlePanelReset('scope', '分析范围配置')}
+              />
+            )}
+          >
+            {/* 文件类型多选 */}
+            <FieldRow
+              label="文件类型"
+              hint="analyse_targets"
+              desc="S0 文件过滤阶段只处理勾选类型。选择「all」不过滤。">
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {['all', 'binary', 'script', 'source', 'config', 'firmware', 'crypto', 'database', 'web', 'network_model', 'document', 'archive'].map((t) => {
+                  const selected = config.analyse_targets?.includes(t) ?? false;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        const cur = config.analyse_targets ?? ['all'];
+                        let next: string[];
+                        if (t === 'all') { next = ['all']; }
+                        else if (selected) { next = cur.filter(c => c !== t); if (next.length === 0) next = ['all']; }
+                        else { next = cur.filter(c => c !== 'all').concat(t); }
+                        patch({ analyse_targets: next });
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                        selected
+                          ? 'border-rose-400 bg-rose-50 text-rose-700'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                      }`}
+                    >{t}</button>
+                  );
+                })}
+              </div>
+            </FieldRow>
+
+            {/* 二进制架构多选 */}
+            <FieldRow
+              label="二进制架构"
+              hint="binary_arch"
+              desc="binary 类型文件的架构过滤，只在 analyse_targets 含 binary 时生效。选择「all」不过滤。">
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {['all', 'x86', 'x86_64', 'arm', 'aarch64', 'mips', 'mips64', 'ppc', 'ppc64', 'riscv', 's390'].map((t) => {
+                  const selected = config.binary_arch?.includes(t) ?? false;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        const cur = config.binary_arch ?? ['all'];
+                        let next: string[];
+                        if (t === 'all') { next = ['all']; }
+                        else if (selected) { next = cur.filter(c => c !== t); if (next.length === 0) next = ['all']; }
+                        else { next = cur.filter(c => c !== 'all').concat(t); }
+                        patch({ binary_arch: next });
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                        selected
+                          ? 'border-rose-400 bg-rose-50 text-rose-700'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                      }`}
+                    >{t}</button>
+                  );
+                })}
+              </div>
+            </FieldRow>
+
+            {/* 安全维度多选 */}
+            <FieldRow
+              label="安全维度过滤"
+              hint="security_focus_categories"
+              desc="S1 分类时只将与指定安全维度相关的文件归入模块，无关文件（构建脚本、i18n、文档等）直接丢弃。选择「全部」不做过滤。">
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {[
+                  { key: 'all', label: '全部（不过滤）' },
+                  { key: 'network_protocol', label: '网络协议解析' },
+                  { key: 'file_parsing', label: '文件格式处理' },
+                  { key: 'auth_access', label: '认证与访问控制' },
+                  { key: 'crypto', label: '密码学操作' },
+                  { key: 'ipc', label: '进程间通信' },
+                  { key: 'config_parsing', label: '配置与脚本解析' },
+                  { key: 'input_handling', label: '输入处理与验证' },
+                  { key: 'privilege_process', label: '权限与进程管理' },
+                  { key: 'web_api', label: 'Web 与 API 接口' },
+                  { key: 'memory_manage', label: '内存管理' },
+                ].map(({ key, label }) => {
+                  const selected = config.security_focus_categories?.includes(key) ?? false;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        const cats = config.security_focus_categories ?? ['all'];
+                        let next: string[];
+                        if (key === 'all') {
+                          next = ['all'];
+                        } else if (selected) {
+                          next = cats.filter((c) => c !== key);
+                          if (next.length === 0) next = ['all'];
+                        } else {
+                          next = cats.filter((c) => c !== 'all').concat(key);
+                        }
+                        patch({ security_focus_categories: next });
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                        selected
+                          ? 'border-rose-400 bg-rose-50 text-rose-700'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </FieldRow>
+
+            {/* 模块粒度切换 */}
+            <FieldRow
+              label="模块划分粒度"
+              hint="module_granularity"
+              desc="粗粒度：以完整协议/服务/安全功能为边界（HTTP 全部代码 = 1 模块），适合协议多、文件多的固件。细粒度：当前默认行为，按子组件/功能模块拆分。">
+              <div className="flex gap-2">
+                {[
+                  { value: 'fine', label: '细粒度（子组件级，默认）' },
+                  { value: 'coarse', label: '粗粒度（协议/服务/功能级）' },
+                ].map(({ value: v, label }) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => patch({ module_granularity: v })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.module_granularity === v
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            <FieldRow
+              label="过滤引擎"
+              hint="filter_engine"
+              desc="智能体驱动会直接替代脚本过滤与 S1 粗分类，默认复用 classify 模型；若执行失败会自动回退到脚本驱动。">
+              <div className="flex gap-2">
+                {[
+                  { value: 'script', label: '脚本驱动（兼容现有）' },
+                  { value: 'agent', label: '智能体驱动' },
+                ].map(({ value: v, label }) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => patch({ filter_engine: v as SystemAnalysisServiceConfig['filter_engine'] })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.filter_engine === v
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            <FieldRow
+              label="完整性检查阶段开关"
+              hint="enable_final_check"
+              desc="控制是否执行 `final_check — 完整性检查` 阶段。默认关闭；关闭时仅跳过 Stage 4a，不影响最终报告生成与评审。任务创建时如果未单独指定，将继承这里的服务级默认值。">
+              <div className="flex gap-2">
+                {([
+                  { value: true, label: '开启 Stage 4a' },
+                  { value: false, label: '关闭 Stage 4a（默认）' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    onClick={() => patch({ enable_final_check: value })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.enable_final_check === value
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            <FieldRow
+              label="单模块失败后继续"
+              hint="continue_on_module_failure"
+              desc="控制当单个模块在 refine/analyse/补做阶段失败时，是否继续推进其他模块和后续阶段。默认开启。开启后失败模块会保留在评估结果中，但不阻断整任务；关闭后任一模块失败都会使任务失败。">
+              <div className="flex gap-2">
+                {([
+                  { value: true, label: '允许继续（默认）' },
+                  { value: false, label: '失败即终止任务' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    onClick={() => patch({ continue_on_module_failure: value })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      config.continue_on_module_failure === value
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+          </SectionCard>
+
           {/* 1. 并发配置 */}
-          <SectionCard title="并发配置" subtitle="控制模块级并行度，影响分析速度与 LLM API 调用量">
+          <SectionCard
+            title="并发配置"
+            subtitle="控制模块级并行度，影响分析速度与 LLM API 调用量"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'concurrency'}
+                onSave={() => { void handlePanelSave('concurrency', '并发配置'); }}
+                onReset={() => handlePanelReset('concurrency', '并发配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-2 gap-4">
+              <FieldRow label="worker_task_concurrency" hint="≥1，默认 4"
+                desc="系统分析 runner 单实例最多同时执行的任务数。该项为服务级在线配置，保存后会对整个系统分析 runner 池生效，无需重启。建议结合 runner 副本数、节点 CPU/内存和下游 LLM 配额一起评估。">
+                <NumberInput value={config.worker_task_concurrency} min={1} max={32} onChange={(v) => patch({ worker_task_concurrency: v })} />
+              </FieldRow>
               <FieldRow label="parallel_modules" hint="≥1，默认 1"
                 desc="同时分析的模块（子目录 / 功能模块）数量。增大此值可显著加速分析，但会成倍增加并发 API 调用量，需确保 LLM API 配额充足。建议先以 1 运行单任务评估效果后再逐步提高。">
                 <NumberInput value={config.parallel_modules} min={1} max={32} onChange={(v) => patch({ parallel_modules: v })} />
@@ -416,7 +1035,17 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
           </SectionCard>
 
           {/* 2. 重试配置 */}
-          <SectionCard title="重试配置" subtitle="控制 LLM API 调用失败时的重试策略，以及 pi Agent 进程崩溃时的自动重启策略">
+          <SectionCard
+            title="重试配置"
+            subtitle="控制 LLM API 调用失败时的重试策略，以及 pi Agent 进程崩溃时的自动重启策略"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'retry'}
+                onSave={() => { void handlePanelSave('retry', '重试配置'); }}
+                onReset={() => handlePanelReset('retry', '重试配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-2 gap-4">
               <FieldRow label="agent_max_retries" hint="-1=无限重试"
                 desc="LLM API 调用失败（限流 429、请求超时、5xx 服务器错误）时的最大重试次数。设为 -1 可在网络抖动时自动无限重试，适合长时间无人值守的分析任务。">
@@ -425,6 +1054,10 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               <FieldRow label="agent_retry_delay（秒）" hint="首次等待，之后指数递增"
                 desc="API 重试的首次等待时间（秒），后续以指数退避递增（delay × 2ⁿ），最大上限 300 秒。对于频繁限流的服务，适当加大此值可减少无效重试。">
                 <NumberInput value={config.agent_retry_delay} min={0} step={0.5} onChange={(v) => patch({ agent_retry_delay: v })} />
+              </FieldRow>
+              <FieldRow label="agent_timeout_seconds（秒）" hint="单次会话硬超时"
+                desc="单个 Worker / Judge 智能体会话的最大等待时间。超过该阈值后，系统会主动中断当前会话并将当前阶段按超时失败处理，防止某个会话卡住拖死整个系统分析流程。该项为服务级在线配置，保存后对后续任务统一生效。">
+                <NumberInput value={config.agent_timeout_seconds} min={60} step={1} onChange={(v) => patch({ agent_timeout_seconds: v })} />
               </FieldRow>
               <FieldRow label="pi_max_retries" hint="-1=无限重启"
                 desc="pi Agent 进程因非 API 原因崩溃（如内存不足、信号中断）后的最大重启次数。通常设为 -1，系统会自动恢复并从上次 checkpoint 继续执行。">
@@ -435,10 +1068,34 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
                 <NumberInput value={config.pi_retry_delay} min={0} step={0.5} onChange={(v) => patch({ pi_retry_delay: v })} />
               </FieldRow>
             </div>
+            <div className="mt-4 grid grid-cols-1 gap-4">
+              <FieldRow
+                label="max_rounds_exceeded_action"
+                desc="当任一系统分析阶段达到 `max_rounds` 后仍未满足评审通过条件时，决定该阶段按通过继续后续流程，还是直接按失败终止任务。">
+                <SelectInput
+                  value={config.max_rounds_exceeded_action}
+                  options={['treat_as_passed', 'treat_as_failed']}
+                  onChange={(v) => patch({ max_rounds_exceeded_action: v as SystemAnalysisServiceConfig['max_rounds_exceeded_action'] })}
+                />
+              </FieldRow>
+              <p className="text-xs leading-5 text-slate-500">
+                默认值为 `treat_as_passed`。该策略对 classify / refine / analyse / final_check 四个阶段统一生效。
+              </p>
+            </div>
           </SectionCard>
 
           {/* 3. 阶段配置 */}
-          <SectionCard title="阶段配置" subtitle="控制 Pipeline 各阶段的 Worker-Judge 对话轮数及通过策略。每轮由 Worker 完成分析，Judge 评审后决定是否推进到下一阶段。">
+          <SectionCard
+            title="阶段配置"
+            subtitle="控制 Pipeline 各阶段的 Worker-Judge 对话轮数及通过策略。每轮由 Worker 完成分析，Judge 评审后决定是否推进到下一阶段。"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'stages'}
+                onSave={() => { void handlePanelSave('stages', '阶段配置'); }}
+                onReset={() => handlePanelReset('stages', '阶段配置')}
+              />
+            )}
+          >
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <StageCard label="classify — 全局分类"
                 desc="Worker 遍历目标目录，对所有文件进行类型识别和分类，输出带注释的文件清单；Judge 评审分类结果的完整性和准确性。"
@@ -455,6 +1112,118 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             </div>
           </SectionCard>
 
+          {/* 自省分析配置 */}
+          <SectionCard
+            title="自省分析（Self-Reflection）"
+            subtitle="任务结束后自动在后台分析执行过程，识别 Token 消耗热点、卡顿阶段和质量问题，存储改进建议报告。不影响任务本身的执行结果。"
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'self_reflection'}
+                onSave={() => { void handlePanelSave('self_reflection', '自省分析配置'); }}
+                onReset={() => handlePanelReset('self_reflection', '自省分析配置')}
+              />
+            )}
+          >
+            {/* 启用开关 */}
+            <FieldRow
+              label="启用自省分析"
+              hint="self_reflection.enabled"
+              desc="任务完成后（passed/failed/error）在后台异步运行，不阻塞任务本身的执行和结果。分析报告存储在配置的输出目录中。">
+              <div className="flex gap-2">
+                {([true, false] as const).map((val) => (
+                  <button
+                    key={String(val)}
+                    type="button"
+                    onClick={() => patch({
+                      self_reflection: {
+                        ...(config.self_reflection ?? {}),
+                        enabled: val,
+                      } as SystemAnalysisSelfReflectionConfig,
+                    })}
+                    className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                      (config.self_reflection?.enabled ?? false) === val
+                        ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {val ? '启用' : '关闭'}
+                  </button>
+                ))}
+              </div>
+            </FieldRow>
+
+            {/* 模型选择 */}
+            <FieldRow
+              label="自省分析模型"
+              hint="self_reflection.model"
+              desc="用于执行自省分析的 LLM 模型。留空时自动使用 workers.agents[0] 的模型。建议使用具备推理能力的中等模型，无需最强模型（分析任务相对直接）。">
+              <select
+                value={config.self_reflection?.model ?? ''}
+                onChange={(e) => patch({
+                  self_reflection: {
+                    ...(config.self_reflection ?? {}),
+                    model: e.target.value,
+                  } as SystemAnalysisSelfReflectionConfig,
+                })}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">(与 workers.agents[0] 相同)</option>
+                {modelOptions.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </FieldRow>
+
+            {/* 输出目录 */}
+            <FieldRow
+              label="报告存储目录"
+              hint="self_reflection.output_dir"
+              desc="自省报告存储路径（容器内绝对路径）。默认为项目级目录，所有任务的报告统一存入此目录，每份报告标名为 {task_id}_{timestamp}.md。">
+              <div className="relative flex items-center gap-2">
+                <input
+                  type="text"
+                  value={config.self_reflection?.output_dir ?? `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`}
+                  onChange={(e) => patch({
+                    self_reflection: {
+                      ...(config.self_reflection ?? {}),
+                      output_dir: e.target.value,
+                    } as SystemAnalysisSelfReflectionConfig,
+                  })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => patch({
+                    self_reflection: {
+                      ...(config.self_reflection ?? {}),
+                      output_dir: `/data/files/${projectId}/app/secflow-app-system-analyse/self-reflection`,
+                    } as SystemAnalysisSelfReflectionConfig,
+                  })}
+                  className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                >重置</button>
+              </div>
+            </FieldRow>
+
+            {/* session 读取限制 */}
+            <FieldRow
+              label="Session 最大读取行数"
+              hint="self_reflection.max_session_lines"
+              desc="每个 .jsonl 会话文件最多读取的行数，防止 context 窗口溢出。推荐 500–2000 行。">
+              <NumberInput
+                value={config.self_reflection?.max_session_lines ?? 1000}
+                min={100}
+                max={10000}
+                step={100}
+                onChange={(v) => patch({
+                  self_reflection: {
+                    ...(config.self_reflection ?? {}),
+                    max_session_lines: v,
+                  } as SystemAnalysisSelfReflectionConfig,
+                })}
+              />
+            </FieldRow>
+          </SectionCard>
+
           {/* 4. Workers */}
           <RoleConfigBlock
             title="Workers 配置"
@@ -465,6 +1234,13 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             value={config.workers}
             agentDesc="Worker 默认模型实例。agents[0] 的模型将作为所有未在「各阶段模型配置」中指定阶段的回退模型。通常只需配置一个实例。"
             onChange={(v) => patch({ workers: v })}
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'workers'}
+                onSave={() => { void handlePanelSave('workers', 'Workers 配置'); }}
+                onReset={() => handlePanelReset('workers', 'Workers 配置')}
+              />
+            )}
           />
 
           {/* 5. Judges */}
@@ -477,20 +1253,74 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
             value={config.judges}
             agentDesc="配置参与评审的 Judge 实例。多个实例会并行独立评审同一内容并投票；建议配置 2–3 个实例以获得稳定的多数投票效果。单实例时 majority / all 效果相同。"
             onChange={(v) => patch({ judges: v })}
+            actions={(
+              <PanelActions
+                saving={savingPanel === 'judges'}
+                onSave={() => { void handlePanelSave('judges', 'Judges 配置'); }}
+                onReset={() => handlePanelReset('judges', 'Judges 配置')}
+              />
+            )}
           />
 
-          {/* 操作按钮 */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => void handleSave()} disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
-              {saving && <Loader2 size={14} className="animate-spin" />}
-              保存系统分析配置
-            </button>
-            <button onClick={handleReset} disabled={saving}
-              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-              重置为默认
-            </button>
-          </div>
+          {SHOW_SYSTEM_ANALYSIS_PROMPT_CONFIG ? (
+            <SectionCard
+              title="执行 Prompt 配置"
+              subtitle="这里管理系统分析执行链路实际使用的 Worker / Judge system prompt。只要任务还没进入 running，后续启动时都会使用这里的最新配置。"
+            >
+              <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-700">
+                Prompt 管理页面继续作为模板库使用。这里编辑的是当前项目实际生效的执行 Prompt；从模板库导入只会复制文本，不建立动态绑定。
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Workers Prompt</h3>
+                  <p className="mt-1 text-xs text-slate-500">覆盖目录探索、分类、细分、分析、报告生成以及反思相关的 Worker system prompt。</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                  {WORKER_PROMPT_KEYS.map((promptKey) => (
+                    <PromptEditorCard
+                      key={`worker-${promptKey}`}
+                      role="workers"
+                      promptKey={promptKey}
+                      desc={WORKER_PROMPT_DESCS[promptKey] || ''}
+                      item={config.prompt_overrides.workers[promptKey] ?? emptyPromptItem()}
+                      templates={promptTemplates}
+                      selectedTemplateId={selectedPromptTemplates[`workers:${promptKey}`] || ''}
+                      onChangeTemplateId={(value) => setTemplateSelection('workers', promptKey, value)}
+                      onChange={(value) => patchPrompt('workers', promptKey, value)}
+                      onImportTemplate={() => importPromptTemplate('workers', promptKey)}
+                      onRestoreDefault={() => restorePromptDefault('workers', promptKey)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Judges Prompt</h3>
+                  <p className="mt-1 text-xs text-slate-500">覆盖分类评审、细分评审、安全分析评审、完整性检查和最终报告评审的 Judge system prompt。</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                  {JUDGE_PROMPT_KEYS.map((promptKey) => (
+                    <PromptEditorCard
+                      key={`judge-${promptKey}`}
+                      role="judges"
+                      promptKey={promptKey}
+                      desc={JUDGE_PROMPT_DESCS[promptKey] || ''}
+                      item={config.prompt_overrides.judges[promptKey] ?? emptyPromptItem()}
+                      templates={promptTemplates}
+                      selectedTemplateId={selectedPromptTemplates[`judges:${promptKey}`] || ''}
+                      onChangeTemplateId={(value) => setTemplateSelection('judges', promptKey, value)}
+                      onChange={(value) => patchPrompt('judges', promptKey, value)}
+                      onImportTemplate={() => importPromptTemplate('judges', promptKey)}
+                      onRestoreDefault={() => restorePromptDefault('judges', promptKey)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </SectionCard>
+          ) : null}
+
         </div>
       )}
     </div>

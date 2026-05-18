@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
+import { ArrowDownUp, Loader2, Plus, RefreshCw, RotateCcw, Trash2, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
-import { TaskOriginInline } from './taskOrigin';
+import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -37,18 +37,6 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   return `${m}m${s}s`;
 }
 
-const emptyForm = {
-  task_name: '',
-  input_path: '',
-  output_path: '',
-  task_description: '',
-  analysis_mode: 'binary' as 'binary' | 'source',
-  analyse_targets: ['all'] as string[],
-  binary_arch: ['all'] as string[],
-};
-
-const SOURCE_MODE_DEFAULT_TARGETS = ['source', 'script', 'config'];
-
 const SORT_OPTIONS = [
   { value: 'created_at', label: '创建时间' },
   { value: 'updated_at', label: '更新时间' },
@@ -58,6 +46,47 @@ const SORT_OPTIONS = [
   { value: 'task_name', label: '任务名称' },
 ];
 
+const HEADER_SORT_FIELDS: Partial<Record<'task' | 'status' | 'created_at' | 'duration', string>> = {
+  task: 'task_name',
+  status: 'status',
+  created_at: 'created_at',
+  duration: 'started_at',
+};
+
+type SortableHeaderProps = {
+  label: string;
+  active: boolean;
+  direction: 'asc' | 'desc';
+  onClick?: () => void;
+  className?: string;
+};
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, direction, onClick, className }) => {
+  if (!onClick) return <ExecutionTableTh className={className}>{label}</ExecutionTableTh>;
+  return (
+    <ExecutionTableTh className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`inline-flex items-center gap-1 transition-colors ${active ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'}`}
+        title={`按${label}排序`}
+      >
+        <span>{label}</span>
+        <ArrowDownUp size={13} className={active ? 'text-sky-600' : 'text-slate-400'} />
+        {active ? <span className="text-[10px] text-sky-600">{direction === 'asc' ? '升序' : '降序'}</span> : null}
+      </button>
+    </ExecutionTableTh>
+  );
+};
+
+function getModeBadgeClassName(mode: string): string {
+  return mode === 'source' ? 'bg-emerald-50 text-emerald-700' : 'bg-cyan-50 text-cyan-700';
+}
+
+function getQuickFilterButtonClassName(active: boolean, baseClassName: string): string {
+  return `${baseClassName} transition-all ${active ? 'ring-2 ring-cyan-200 ring-offset-1' : 'hover:opacity-80'}`;
+}
+
 export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -65,7 +94,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const refreshIntervalStorageKey = `secflow:systemAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRestarting, setBatchRestarting] = useState(false);
@@ -75,19 +103,45 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [perPage, setPerPage] = useState(100);
   const [statusFilter, setStatusFilter] = useState('');
   const [analysisModeFilter, setAnalysisModeFilter] = useState<'' | 'binary' | 'source'>('');
+  const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
-
-  const [form, setForm] = useState(emptyForm);
-  const [analysisScopeTouched, setAnalysisScopeTouched] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerTarget, setPickerTarget] = useState<'input' | 'output'>('input');
+  const [createModalInitialForm, setCreateModalInitialForm] = useState<SystemAnalysisTaskFormState>(() => buildDefaultSystemAnalysisTaskForm(projectId));
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
+
+  const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
+    const mapped = HEADER_SORT_FIELDS[field];
+    if (!mapped) return;
+    if (sortBy === mapped) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(mapped);
+      setSortOrder(field === 'task' || field === 'status' ? 'asc' : 'desc');
+    }
+    setPage(1);
+  };
+
+  const toggleStatusQuickFilter = (status: string) => {
+    setStatusFilter((current) => (current === status ? '' : status));
+    setPage(1);
+  };
+
+  const toggleModeQuickFilter = (mode: '' | 'binary' | 'source') => {
+    if (!mode) return;
+    setAnalysisModeFilter((current) => (current === mode ? '' : mode));
+    setPage(1);
+  };
+
+  const toggleParentTaskQuickFilter = (parentTaskId: string) => {
+    if (!parentTaskId) return;
+    setParentTaskIdFilter((current) => (current === parentTaskId ? '' : parentTaskId));
+    setPage(1);
+  };
 
   // Pre-fill input_path from FileExplorer right-click
   useEffect(() => {
@@ -95,8 +149,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     if (stored) {
       sessionStorage.removeItem('secflow:systemAnalysisInputPath');
       setCreateModalOpen(true);
-      setForm({ ...emptyForm, input_path: stored, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` });
-      setAnalysisScopeTouched(false);
+      setCreateModalInitialForm({
+        ...buildDefaultSystemAnalysisTaskForm(projectId),
+        input_path: stored,
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -120,6 +176,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         per_page: perPage,
         status: statusFilter,
         analysis_mode: analysisModeFilter,
+        parent_task_id: parentTaskIdFilter.trim() || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
       });
@@ -130,9 +187,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     } finally {
       setLoading(false);
     }
-  }, [projectId, page, perPage, statusFilter, analysisModeFilter, sortBy, sortOrder]);
+  }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -184,40 +241,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, projectId, page]);
-
-  const handleInputPathChange = (value: string) => {
-    setForm((prev) => ({ ...prev, input_path: value }));
-  };
-
-  // ── Create task ───────────────────────────────────────────────────────────
-
-  const handleCreate = async () => {
-    if (!form.task_name.trim()) { notify('任务名称不能为空', 'error'); return; }
-    if (!form.input_path.trim()) { notify('输入路径不能为空', 'error'); return; }
-    setCreating(true);
-    try {
-      const resp = await appApi.createTask({
-        project_id: projectId,
-        task_name: form.task_name.trim(),
-        input_path: form.input_path.trim(),
-        output_path: form.output_path.trim() || undefined,
-        task_description: form.task_description.trim() || undefined,
-        analysis_mode: form.analysis_mode,
-        analyse_targets: form.analyse_targets.length > 0 && !form.analyse_targets.includes('all') ? form.analyse_targets : undefined,
-        binary_arch: form.binary_arch.length > 0 && !form.binary_arch.includes('all') ? form.binary_arch : undefined,
-      });
-      notify(`任务创建成功: ${resp.task_id}`, 'success');
-      setForm({ ...emptyForm });
-      setAnalysisScopeTouched(false);
-      setCreateModalOpen(false);
-      setPage(1);
-      await loadTasks(1);
-    } catch (err: any) {
-      notify(`任务创建失败: ${err?.message || err}`, 'error');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleDelete = async (taskId: string, taskName: string) => {
     const confirmed = await showConfirm({
@@ -386,52 +409,41 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
   };
 
-  const totalPages = Math.ceil(total / perPage);
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const pageStart = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * perPage + tasks.length);
   const allPageSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
   const hasSelection = selectedTaskIds.size > 0;
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
-      <FileServerPickerModal
-        projectId={projectId}
-        isOpen={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onSelect={(containerPath) => {
-          setPickerOpen(false);
-          if (pickerTarget === 'output') {
-            setForm((p) => ({ ...p, output_path: containerPath }));
-          } else {
-            handleInputPathChange(containerPath);
-          }
-        }}
-      />
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
+            { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+            { label: '失败/取消', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error' || t.status === 'cancelled').length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+          ].map((s) => (
+            <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
+              <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{s.label}</p>
+            </div>
+          ))}
+        </div>
       </section>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
-          { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-          { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-          { label: '失败/取消', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error' || t.status === 'cancelled').length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-        ].map((s) => (
-          <div key={s.label} className={`rounded-2xl border ${s.border} ${s.bg} p-5 flex flex-col gap-1 shadow-sm`}>
-            <p className={`text-3xl font-black ${s.text}`}>{s.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
 
       {/* Task list */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
               <input
@@ -466,6 +478,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <option value="binary">二进制模式</option>
               <option value="source">源码模式</option>
             </select>
+            <input
+              value={parentTaskIdFilter}
+              onChange={(e) => { setParentTaskIdFilter(e.target.value); setPage(1); }}
+              placeholder="筛选主任务ID"
+              className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 placeholder:text-slate-400"
+              title="按主任务 ID 筛选"
+            />
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -496,18 +515,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <option value="desc">降序</option>
               <option value="asc">升序</option>
             </select>
-            <select
-              value={perPage}
-              onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
-              title="每页显示条数"
-            >
-              {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
-            </select>
             <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
-            <button onClick={() => { setCreateModalOpen(true); setForm({ ...emptyForm, output_path: `/data/files/${projectId}/app/secflow-app-system-analyse` }); setAnalysisScopeTouched(false); }}
+            <button onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
               className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">
               <Plus size={13} />新建任务
             </button>
@@ -575,250 +586,214 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           </div>
         ) : null}
 
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500 py-6"><Loader2 size={14} className="animate-spin" />加载中...</div>
+        {loading && tasks.length === 0 ? (
+          <div className="flex items-center justify-center py-12 text-slate-400">
+            <Loader2 size={20} className="mr-2 animate-spin" /> 加载中...
+          </div>
         ) : tasks.length === 0 ? (
-          <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
+            暂无任务，点击右上角「新建任务」创建
+          </div>
         ) : (
-          <div className="space-y-2 pr-1">
-            <label className="mb-2 flex items-center gap-2 px-1 text-xs text-slate-500">
-              <input
-                type="checkbox"
-                checked={allPageSelected}
-                onChange={(e) => toggleAllPageSelection(e.target.checked)}
-              />
-              全选当前页（{tasks.length} 条）
-            </label>
-            {tasks.map((t) => (
-              <div
-                key={t.task_id}
-                className={`group relative rounded-xl border bg-white transition-colors hover:bg-slate-50 hover:border-slate-300 ${
-                  selectedTaskIds.has(t.task_id) ? 'border-cyan-300 bg-cyan-50/40' : 'border-slate-200'
-                }`}
-              >
-                <div className="absolute left-3 top-3 z-10">
+          <ExecutionTable minWidth={1200}>
+            <ExecutionTableHead>
+              <tr>
+                <ExecutionTableTh className="w-12">
                   <input
                     type="checkbox"
-                    checked={selectedTaskIds.has(t.task_id)}
-                    onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label={`选择任务 ${t.task_name}`}
+                    checked={allPageSelected}
+                    onChange={(e) => toggleAllPageSelection(e.target.checked)}
+                    aria-label="全选当前页任务"
                   />
-                </div>
-                <button
-                  onClick={() => onOpenTask(t.task_id)}
-                  className="w-full p-4 pl-10 text-left"
+                </ExecutionTableTh>
+                <SortableHeader
+                  label="任务"
+                  active={sortBy === 'task_name'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('task')}
+                />
+                <ExecutionTableTh>分析模式</ExecutionTableTh>
+                <SortableHeader
+                  label="状态"
+                  active={sortBy === 'status'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('status')}
+                />
+                <ExecutionTableTh>来源</ExecutionTableTh>
+                <SortableHeader
+                  label="创建时间"
+                  active={sortBy === 'created_at'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('created_at')}
+                />
+                <SortableHeader
+                  label="耗时"
+                  active={sortBy === 'started_at'}
+                  direction={sortOrder}
+                  onClick={() => handleHeaderSort('duration')}
+                />
+                <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
+              </tr>
+            </ExecutionTableHead>
+            <tbody>
+              {tasks.map((t) => (
+                <tr
+                  key={t.task_id}
+                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-slate-900 truncate">{t.task_name}</div>
-                      <div className="mt-0.5 text-xs text-slate-500 truncate font-mono">{t.input_path}</div>
-                      <div className="mt-2">
-                        <TaskOriginInline origin={t} compact />
-                      </div>
-                    </div>
-                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                  <ExecutionTableTd>
+                    <input
+                      type="checkbox"
+                      checked={selectedTaskIds.has(t.task_id)}
+                      onChange={(e) => toggleTaskSelection(t.task_id, e.target.checked)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`选择任务 ${t.task_name}`}
+                    />
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[180px]">
+                    <button
+                      type="button"
+                      onClick={() => onOpenTask(t.task_id)}
+                      className="text-left text-sm font-bold text-slate-900 hover:text-cyan-700"
+                      title={`查看任务 ${t.task_name}`}
+                    >
+                      {t.task_name}
+                    </button>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => toggleModeQuickFilter((t.analysis_mode || 'binary') as 'binary' | 'source')}
+                      className={getQuickFilterButtonClassName(
+                        analysisModeFilter === (t.analysis_mode || 'binary'),
+                        `rounded-full px-2.5 py-1 text-xs font-semibold ${getModeBadgeClassName(t.analysis_mode === 'source' ? 'source' : 'binary')}`
+                      )}
+                      title={analysisModeFilter === (t.analysis_mode || 'binary') ? '再次点击取消模式筛选' : '点击按模式快速筛选'}
+                    >
+                      {t.analysis_mode_label || (t.analysis_mode === 'binary' ? '二进制' : t.analysis_mode === 'source' ? '源码' : '-')}
+                    </button>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd>
+                    <button
+                      type="button"
+                      onClick={() => toggleStatusQuickFilter(t.status)}
+                      className={getQuickFilterButtonClassName(
+                        statusFilter === t.status,
+                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
+                      )}
+                      title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
+                    >
                       {STATUS_LABEL[t.status] ?? t.status}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-slate-400">
-                    <span>创建: {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}</span>
-                    <span>耗时: {formatDuration(t.started_at, t.finished_at, clockNow)}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
-                  title="删除任务及输出文件"
-                  className="absolute right-3 top-3 hidden group-hover:flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+                    </button>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[150px]">
+                    {t.parent_task_id ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleParentTaskQuickFilter(t.parent_task_id || '')}
+                        className={getQuickFilterButtonClassName(
+                          parentTaskIdFilter === t.parent_task_id,
+                          'inline-flex max-w-full items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700'
+                        )}
+                        title={parentTaskIdFilter === t.parent_task_id ? '再次点击取消主任务筛选' : '点击按主任务 ID 快速筛选'}
+                      >
+                        <span className="truncate" title={t.parent_task_id}>{t.parent_task_id}</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {formatDuration(t.started_at, t.finished_at, clockNow)}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="text-right">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void handleDelete(t.task_id, t.task_name); }}
+                      title="删除任务及输出文件"
+                      className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </ExecutionTableTd>
+                </tr>
+              ))}
+            </tbody>
+          </ExecutionTable>
         )}
 
-        {totalPages > 1 ? (
-          <div className="mt-4 flex items-center justify-center gap-2 text-sm">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">上一页</button>
-            <span className="text-slate-500">{page} / {totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">下一页</button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+          <div className="text-xs text-slate-500">
+            共 {total} 条，当前显示 {pageStart}-{pageEnd}
           </div>
-        ) : null}
-      </section>
-
-      {/* Create Task Modal */}
-      {createModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl">
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-slate-900">新建任务</h2>
-                <button onClick={() => setCreateModalOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
-              </div>
-
-              <label className="block text-sm text-slate-600">
-                任务名称 <span className="text-red-500">*</span>
-                <input
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={form.task_name}
-                  onChange={(e) => setForm((p) => ({ ...p, task_name: e.target.value }))}
-                  placeholder="例：固件安全分析-2025"
-                />
-              </label>
-
-              <label className="block text-sm text-slate-600">
-                输入路径 <span className="text-red-500">*</span>
-                <div className="mt-1 flex gap-1">
-                  <input
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
-                    value={form.input_path}
-                    onChange={(e) => handleInputPathChange(e.target.value)}
-                    placeholder="/data/files/<project>/<subproject>"
-                  />
-                  <button
-                    type="button"
-                    title="从文件资源中选择目录"
-                    onClick={() => { setPickerTarget('input'); setPickerOpen(true); }}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 shrink-0"
-                  >
-                    <FolderOpen size={13} />浏览
-                  </button>
-                </div>
-              </label>
-
-              <label className="block text-sm text-slate-600">
-                输出路径 <span className="text-red-500">*</span>
-                <div className="mt-1 flex gap-1">
-                  <input
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono"
-                    value={form.output_path}
-                    onChange={(e) => setForm((p) => ({ ...p, output_path: e.target.value }))}
-                    placeholder="/data/files/<project>/<subproject>"
-                  />
-                  <button
-                    type="button"
-                    title="从文件资源中选择目录"
-                    onClick={() => { setPickerTarget('output'); setPickerOpen(true); }}
-                    className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 hover:bg-slate-50 shrink-0"
-                  >
-                    <FolderOpen size={13} />浏览
-                  </button>
-                </div>
-              </label>
-
-              <label className="block text-sm text-slate-600">
-                任务描述 <span className="text-slate-400 text-xs">(可选)</span>
-                <input
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={form.task_description}
-                  onChange={(e) => setForm((p) => ({ ...p, task_description: e.target.value }))}
-                  placeholder="简要说明分析目标或背景"
-                />
-              </label>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs font-semibold text-slate-600">分析模式</p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  {[
-                    { value: 'binary' as const, label: '二进制模式', desc: '面向固件、解包目录、二进制与系统组件分析' },
-                    { value: 'source' as const, label: '源码模式', desc: '面向源码项目、代码模块、脚本与配置分析' },
-                  ].map((option) => (
-                    <label
-                      key={option.value}
-                      className={`cursor-pointer rounded-xl border px-3 py-2 text-sm ${
-                        form.analysis_mode === option.value ? 'border-cyan-300 bg-cyan-50 text-cyan-800' : 'border-slate-200 bg-slate-50 text-slate-600'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="analysis_mode"
-                        className="mr-2"
-                        checked={form.analysis_mode === option.value}
-                        onChange={() => {
-                          setForm((prev) => ({
-                            ...prev,
-                            analysis_mode: option.value,
-                            analyse_targets: !analysisScopeTouched
-                              ? (option.value === 'source' ? SOURCE_MODE_DEFAULT_TARGETS : ['all'])
-                              : prev.analyse_targets,
-                          }));
-                        }}
-                      />
-                      <span className="font-semibold">{option.label}</span>
-                      <span className="mt-1 block text-xs opacity-75">{option.desc}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Per-task analysis scope */}
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold text-slate-600">分析范围 <span className="font-normal text-slate-400">(覆盖服务默认配置，默认 all)</span></p>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1.5">文件类型</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['all','binary','script','source','config','firmware','crypto','database','web','network_model','document','archive'].map((t) => (
-                      <label key={t} className="flex items-center gap-1 text-xs cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={form.analyse_targets.includes(t)}
-                          onChange={(e) => {
-                            setAnalysisScopeTouched(true);
-                            setForm((p) => {
-                              let next = e.target.checked
-                                ? (t === 'all' ? ['all'] : p.analyse_targets.filter(x => x !== 'all').concat(t))
-                                : p.analyse_targets.filter(x => x !== t);
-                              if (next.length === 0) next = ['all'];
-                              return { ...p, analyse_targets: next };
-                            });
-                          }}
-                        />
-                        {t}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1.5">二进制架构</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['all','x86','x86_64','arm','aarch64','mips','mips64','ppc','ppc64','riscv','s390'].map((a) => (
-                      <label key={a} className="flex items-center gap-1 text-xs cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="rounded"
-                          checked={form.binary_arch.includes(a)}
-                          onChange={(e) => {
-                            setForm((p) => {
-                              let next = e.target.checked
-                                ? (a === 'all' ? ['all'] : p.binary_arch.filter(x => x !== 'all').concat(a))
-                                : p.binary_arch.filter(x => x !== a);
-                              if (next.length === 0) next = ['all'];
-                              return { ...p, binary_arch: next };
-                            });
-                          }}
-                        />
-                        {a}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => void handleCreate()}
-                disabled={creating || !form.task_name.trim() || !form.input_path.trim() || !form.output_path.trim()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+              每页
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  const nextSize = Number(e.target.value) || 50;
+                  setPerPage(nextSize);
+                  setPage(1);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
               >
-                {creating ? <Loader2 size={15} className="animate-spin" /> : null}
-                创建分析任务
-              </button>
-            </div>
+                {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+              条
+            </label>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage(1)}
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              首页
+            </button>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              上一页
+            </button>
+            <span className="min-w-16 text-center text-xs text-slate-500">{page} / {totalPages}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              下一页
+            </button>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage(totalPages)}
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 disabled:opacity-40 hover:bg-slate-50"
+            >
+              末页
+            </button>
           </div>
         </div>
-      ) : null}
+      </section>
+
+      <SystemAnalysisTaskFormModal
+        projectId={projectId}
+        isOpen={createModalOpen}
+        title="新建任务"
+        submitLabel="创建分析任务"
+        initialForm={createModalInitialForm}
+        loadProjectDefaultsOnOpen
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={async (task) => {
+          notify(`任务创建成功: ${task.task_id}`, 'success');
+          setCreateModalOpen(false);
+          setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId));
+          setPage(1);
+          await loadTasks(1);
+        }}
+        onError={(message) => notify(message, 'error')}
+      />
     </div>
   );
 };

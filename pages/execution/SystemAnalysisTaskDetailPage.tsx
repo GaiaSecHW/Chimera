@@ -25,6 +25,7 @@ import { api } from '../../clients/api';
 import {
   AppSaResultModule,
   AppSaSessionEvent,
+  AppSaSessionIndex,
   AppSaSessionMeta,
   AppSaSessionSnapshot,
   AppSaStageEvent,
@@ -36,12 +37,18 @@ import {
 import { FileWatchMessage } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import { hasBinarySecurityReturnContext, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { getAnalysisModeInfo, TaskOriginCard } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
+import { AgentSessionDialogHeader } from './AgentSessionDialogHeader';
+import { AgentSessionWarningPanel } from './AgentSessionWarningPanel';
 import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { blobToText, buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
+import { SessionRelationshipGraph } from './SessionRelationshipGraph';
+import { buildCloneFormFromTask, SystemAnalysisTaskFormModal } from './SystemAnalysisTaskFormModal';
+import { SystemAnalysisTaskConfigPanel } from './TaskConfigPanels';
+import { WarningListPanel } from './WarningListPanel';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -70,8 +77,26 @@ const STAGE_STEPS = [
 ];
 
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
-type DetailTab = 'overview' | 'session' | 'result' | 'evaluation';
+type DetailTab = 'overview' | 'run-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type ResultSelection = { type: 'report' } | { type: 'module'; moduleName: string };
+type StageOverviewMetric = { label: string; value: string };
+type EvaluationRoundContextMenu = {
+  roundKey: string;
+  moduleName: string;
+  x: number;
+  y: number;
+};
+type GroupedEvaluationRounds = {
+  groupKey: string;
+  displayName: string;
+  firstRound: number | null;
+  firstStageRound: number | null;
+  latestStatus: string;
+  rounds: AppSaEvaluationRound[];
+};
+
+const GLOBAL_TASK_GROUP_KEY = '__task__';
+const GLOBAL_TASK_GROUP_LABEL = '全局任务';
 
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined): string {
   if (!startedAt || !finishedAt) return '-';
@@ -333,12 +358,6 @@ function formatNumber(value: unknown, digits = 0): string {
   });
 }
 
-function formatCost(value: unknown): string {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return '-';
-  return `$${num.toFixed(num >= 1 ? 4 : 6)}`;
-}
-
 function formatRate(value: unknown): string {
   const num = Number(value);
   if (!Number.isFinite(num)) return '-';
@@ -358,18 +377,145 @@ function stageLabel(stage: string | undefined): string {
   const labels: Record<string, string> = {
     classify: '全局分类',
     refine: '细分类',
+    '2-reclassify': '细分类补归类',
     analyse: '安全分析',
     final_report: '最终报告',
   };
   return labels[stage || ''] || stage || '-';
 }
 
+function findLatestStageEventData(events: AppSaStageEvent[], stages: string[]): Record<string, any> | null {
+  const stageSet = new Set(stages.map((item) => String(item)));
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const evt = events[i];
+    if (evt.type !== 'stage_result') continue;
+    const stage = String(evt.data?.stage ?? '');
+    if (stageSet.has(stage)) {
+      return evt.data ?? null;
+    }
+  }
+  return null;
+}
+
+function appendMetric(metrics: StageOverviewMetric[], label: string, value: unknown, digits = 0) {
+  if (value == null || value === '') return;
+  const num = Number(value);
+  const formatted = Number.isFinite(num) ? formatNumber(num, digits) : String(value).trim();
+  if (!formatted || formatted === '-') return;
+  metrics.push({ label, value: formatted });
+}
+
+function buildOverviewStageMetrics(
+  detail: AppSaTaskDetail | null,
+  result: AppSaTaskResult | null,
+  evaluation: AppSaTaskEvaluation | null,
+): Record<string, StageOverviewMetric[]> {
+  if (!detail) return {};
+
+  const events = detail.stages_json?.events ?? [];
+  const stageSummary = evaluation?.summary?.stage_summary ?? {};
+  const preprocessMetrics: StageOverviewMetric[] = [];
+  const classifyMetrics: StageOverviewMetric[] = [];
+  const refineMetrics: StageOverviewMetric[] = [];
+  const analyseMetrics: StageOverviewMetric[] = [];
+  const reportMetrics: StageOverviewMetric[] = [];
+
+  const filterResult = findLatestStageEventData(events, ['filter-engine', 'filter']);
+  const prescanResult = findLatestStageEventData(events, ['prescan']);
+  const preprocessSummary = detail.result_json?.preprocess_summary;
+  appendMetric(
+    preprocessMetrics,
+    '全部输入文件',
+    preprocessSummary?.total_input_file_count ?? filterResult?.total_input_file_count,
+  );
+  appendMetric(
+    preprocessMetrics,
+    '过滤后接受的文件',
+    preprocessSummary?.accepted_input_file_count ?? filterResult?.accepted_input_file_count ?? filterResult?.file_count,
+  );
+  appendMetric(preprocessMetrics, '预扫描摘要', prescanResult?.summary_lines);
+  if (filterResult?.effective_engine) {
+    preprocessMetrics.push({
+      label: '过滤引擎',
+      value: filterResult.effective_engine === 'agent' ? '智能体' : '脚本',
+    });
+  }
+
+  const classifySummary = stageSummary.classify ?? {};
+  appendMetric(classifyMetrics, '轮次', classifySummary.round_count);
+  appendMetric(classifyMetrics, 'Judge 均分', classifySummary.avg_judge_score, 1);
+  appendMetric(classifyMetrics, '模块数', evaluation?.summary?.module_count ?? result?.summary.module_count);
+
+  const refineSummary = stageSummary.refine ?? stageSummary['2-reclassify'] ?? {};
+  appendMetric(refineMetrics, '轮次', refineSummary.round_count);
+  appendMetric(refineMetrics, 'Judge 均分', refineSummary.avg_judge_score, 1);
+  appendMetric(refineMetrics, '完成模块', evaluation?.summary?.completed_module_count);
+
+  const analyseSummary = stageSummary.analyse ?? {};
+  appendMetric(analyseMetrics, '轮次', analyseSummary.round_count);
+  appendMetric(analyseMetrics, '完成模块', evaluation?.summary?.completed_module_count);
+  appendMetric(analyseMetrics, '威胁数', result?.summary.threat_count);
+
+  const reportSummary = stageSummary.final_report ?? {};
+  appendMetric(reportMetrics, '分析模块', result?.summary.module_count);
+  appendMetric(reportMetrics, '高风险模块', result?.summary.high_risk_module_count);
+  appendMetric(reportMetrics, '威胁数', result?.summary.threat_count);
+  if (detail.effective_config_json?.enable_final_check !== undefined) {
+    reportMetrics.push({
+      label: '完整性检查',
+      value: detail.effective_config_json.enable_final_check ? '开启' : '关闭',
+    });
+  }
+  if (detail.effective_config_json?.continue_on_module_failure !== undefined) {
+    reportMetrics.push({
+      label: '单模块失败后继续',
+      value: detail.effective_config_json.continue_on_module_failure ? '允许继续' : '失败即终止',
+    });
+  }
+
+  return {
+    preprocess: preprocessMetrics.slice(0, 4),
+    classify: classifyMetrics.slice(0, 3),
+    refine: refineMetrics.slice(0, 3),
+    analyse: analyseMetrics.slice(0, 3),
+    report: reportMetrics.slice(0, 3),
+  };
+}
+
+function sessionRoleLabel(role: string | undefined): string {
+  const normalized = String(role || '').toLowerCase();
+  if (normalized === 'worker') return 'Worker';
+  if (normalized === 'judge') return 'Judge';
+  return role || '-';
+}
+
+function sessionRoleTone(role: string | undefined) {
+  const normalized = String(role || '').toLowerCase();
+  if (normalized === 'worker') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  if (normalized === 'judge') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-slate-200 bg-slate-100 text-slate-600';
+}
+
 function evaluationStatusTone(status?: string) {
   if (status === 'passed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (status === 'failed') return 'border-red-200 bg-red-50 text-red-700';
   if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
+  if (status === 'needs_reflection') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (status === 'needs_retry') return 'border-orange-200 bg-orange-50 text-orange-700';
+  if (status === 'reclassify_required') return 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700';
   if (status === 'skipped') return 'border-amber-200 bg-amber-50 text-amber-700';
   return 'border-slate-200 bg-slate-100 text-slate-600';
+}
+
+function evaluationStatusLabel(status?: string) {
+  if (status === 'passed') return '已通过';
+  if (status === 'failed') return '失败';
+  if (status === 'running') return '运行中';
+  if (status === 'needs_reflection') return '待反思';
+  if (status === 'needs_retry') return '待重试';
+  if (status === 'reclassify_required') return '待重分类';
+  if (status === 'skipped') return '已跳过';
+  return status || '-';
 }
 
 function evaluationRoundKey(round: AppSaEvaluationRound): string {
@@ -380,6 +526,23 @@ function evaluationRoundKey(round: AppSaEvaluationRound): string {
     round.module_name ?? '',
     round.source_path ?? '',
   ].join('::');
+}
+
+function normalizeEvaluationModuleName(moduleName?: string | null): string {
+  const normalized = String(moduleName || '').trim();
+  return normalized || GLOBAL_TASK_GROUP_LABEL;
+}
+
+function evaluationModuleGroupKey(round: AppSaEvaluationRound): string {
+  const normalized = String(round.module_name || '').trim();
+  return normalized || GLOBAL_TASK_GROUP_KEY;
+}
+
+function compareNullableNumber(a: number | null, b: number | null): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  return a - b;
 }
 
 function normalizeSessionDisplayPath(path: string): string {
@@ -455,7 +618,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
   const [detail, setDetail] = useState<AppSaTaskDetail | null>(null);
-  const hasReturnContext = hasBinarySecurityReturnTarget(detail);
+  const hasReturnContext = hasBinarySecurityReturnContext();
   const [result, setResult] = useState<AppSaTaskResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [resultLoading, setResultLoading] = useState(false);
@@ -465,6 +628,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const [evaluationModuleFilter, setEvaluationModuleFilter] = useState('');
   const [evaluationStageFilter, setEvaluationStageFilter] = useState('');
   const [evaluationStatusFilter, setEvaluationStatusFilter] = useState('');
+  const [evaluationRoundMenu, setEvaluationRoundMenu] = useState<EvaluationRoundContextMenu | null>(null);
   const [selectedEvaluationRoundKey, setSelectedEvaluationRoundKey] = useState<string | null>(null);
   const [roundSessionSnapshot, setRoundSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
   const [roundSessionWatchStartLine, setRoundSessionWatchStartLine] = useState(0);
@@ -485,15 +649,20 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const judgeSessionSocketRef = useRef<WebSocket | null>(null);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [repairingOrigin, setRepairingOrigin] = useState(false);
+  const [originEditMode, setOriginEditMode] = useState<'binary' | 'source' | null>(null);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
   const [logsExpanded, setLogsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [selection, setSelection] = useState<ResultSelection>({ type: 'report' });
   const logScrollRef = useRef<HTMLDivElement>(null);
   const [sessions, setSessions] = useState<AppSaSessionMeta[]>([]);
+  const [sessionIndex, setSessionIndex] = useState<AppSaSessionIndex | null>(null);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
+  const [activeAgentSessionPath, setActiveAgentSessionPath] = useState<string | null>(null);
   const [sessionSnapshot, setSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
   const [sessionWatchStartLine, setSessionWatchStartLine] = useState(0);
   const [sessionEvents, setSessionEvents] = useState<AppSaSessionEvent[]>([]);
@@ -504,7 +673,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const sessionSocketRef = useRef<WebSocket | null>(null);
 
   const handleBack = () => {
-    if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();
   };
@@ -596,6 +764,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     setJudgeSessionLive(false);
   };
 
+  const openActiveAgentSession = (path: string) => {
+    setSelectedSessionPath(path);
+    setActiveAgentSessionPath(path);
+  };
+
   const loadSessions = async (options?: { silent?: boolean }) => {
     if (!taskId) return;
     if (!options?.silent) {
@@ -603,8 +776,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       setSessionsError(null);
     }
     try {
-      const data = await appApi.listTaskSessions(taskId);
+      const [data, index] = await Promise.all([
+        appApi.listTaskSessions(taskId),
+        appApi.getTaskSessionIndex(taskId).catch(() => null),
+      ]);
       setSessions(data);
+      setSessionIndex(index);
       setSessionsError(null);
       setSelectedSessionPath((current) => {
         if (current && data.some((item) => item.relative_path === current)) {
@@ -725,9 +902,19 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   }, [activeTab, taskId]);
 
   useEffect(() => {
+    if (activeTab !== 'overview' || !detail || detail.status === 'pending' || resultLoading || result) return;
+    void loadResult();
+  }, [activeTab, detail, result, resultLoading]);
+
+  useEffect(() => {
     if (activeTab !== 'evaluation') return;
     void loadEvaluation();
   }, [activeTab, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'overview' || !detail || ['pending', 'running'].includes(detail.status) || evaluationLoading || evaluation) return;
+    void loadEvaluation();
+  }, [activeTab, detail, evaluation, evaluationLoading]);
 
   useEffect(() => {
     setSelectedEvaluationRoundKey(null);
@@ -743,27 +930,42 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     if (activeTab !== 'evaluation') {
       closeRoundSessionSocket();
       closeJudgeSessionSocket();
+      setEvaluationRoundMenu(null);
     }
   }, [activeTab]);
 
   useEffect(() => {
-    if (activeTab !== 'session') {
+    if (!evaluationRoundMenu) return;
+    const closeMenu = () => setEvaluationRoundMenu(null);
+    window.addEventListener('click', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+    return () => {
+      window.removeEventListener('click', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [evaluationRoundMenu]);
+
+  useEffect(() => {
+    if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) {
       closeSessionSocket();
       return;
     }
     void loadSessions();
-  }, [activeTab, taskId]);
+  }, [activeTab, taskId, activeAgentSessionPath]);
 
   useEffect(() => {
-    if (activeTab !== 'session') return;
+    if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) return;
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadSessions({ silent: true }), 12000);
     return () => window.clearInterval(timer);
-  }, [activeTab, detail?.status, taskId]);
+  }, [activeTab, detail?.status, taskId, activeAgentSessionPath]);
 
   useEffect(() => {
-    if (activeTab !== 'session' || !selectedSessionPath) {
-      if (activeTab !== 'session') {
+    const sessionViewerActive = activeTab === 'session' || activeTab === 'relationship' || activeAgentSessionPath === selectedSessionPath;
+    if (!sessionViewerActive || !selectedSessionPath) {
+      if (!sessionViewerActive) {
         setSessionSnapshot(null);
         setSessionEvents([]);
         setSessionWarnings([]);
@@ -773,10 +975,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
     closeSessionSocket();
     void loadSessionFile(selectedSessionPath);
-  }, [activeTab, selectedSessionPath, taskId]);
+  }, [activeTab, selectedSessionPath, taskId, activeAgentSessionPath]);
 
   useEffect(() => {
-    if (activeTab !== 'session' || !selectedSessionPath || !sessionSnapshot) return;
+    const sessionViewerActive = activeTab === 'session' || activeTab === 'relationship' || activeAgentSessionPath === selectedSessionPath;
+    if (!sessionViewerActive || !selectedSessionPath || !sessionSnapshot) return;
     if (!['pending', 'running'].includes(detail?.status || '')) {
       setSessionLive(false);
       return;
@@ -871,7 +1074,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
         socket.close();
       }
     };
-  }, [activeTab, selectedSessionPath, sessionSnapshot?.path, sessionWatchStartLine, taskId, detail?.status, detail?.output_path, detail?.task_id, projectId]);
+  }, [activeTab, selectedSessionPath, sessionSnapshot?.path, sessionWatchStartLine, taskId, detail?.status, detail?.output_path, detail?.task_id, projectId, activeAgentSessionPath]);
 
   useEffect(() => {
     if (!result) return;
@@ -941,6 +1144,21 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
   };
 
+  const handleRepairOrigin = async () => {
+    if (!detail || !originEditMode) return;
+    setRepairingOrigin(true);
+    try {
+      const updated = await appApi.repairTaskOrigin(detail.task_id, originEditMode);
+      setDetail(updated);
+      notify(`来源信息已切换为${originEditMode === 'source' ? '源码模式' : '二进制模式'}`, 'success');
+      setOriginEditMode(null);
+    } catch (err: any) {
+      notify(`来源信息修复失败: ${err?.message || err}`, 'error');
+    } finally {
+      setRepairingOrigin(false);
+    }
+  };
+
   const stageStatuses = detail
     ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
     : STAGE_STEPS.map((): StepStatus => 'pending');
@@ -960,6 +1178,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const moduleCount = result?.summary.module_count || result?.modules.length || 0;
   const highRiskCount = result?.summary.high_risk_module_count || result?.modules.filter((item) => item.risk_level === '高').length || 0;
   const analysisModeInfo = detail ? getAnalysisModeInfo(detail) : null;
+  const canRepairOrigin = Boolean(
+    detail &&
+    !['pending', 'running'].includes(detail.status) &&
+    String(detail.task_origin_type || 'manual').trim() === 'manual',
+  );
+  const effectiveOriginEditMode = originEditMode || analysisModeInfo?.mode || 'binary';
   const selectedSession = useMemo(
     () => sessions.find((item) => item.relative_path === selectedSessionPath) || null,
     [sessions, selectedSessionPath],
@@ -973,6 +1197,18 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     }
     return Array.from(map.entries());
   }, [sessions]);
+  const activeSessions = useMemo(
+    () => sessions.filter((item) => item.is_active),
+    [sessions],
+  );
+  const activeAgentSessionMeta = useMemo(
+    () => sessions.find((item) => item.relative_path === activeAgentSessionPath) || null,
+    [sessions, activeAgentSessionPath],
+  );
+  const overviewStageMetrics = useMemo(
+    () => buildOverviewStageMetrics(detail, result, evaluation),
+    [detail, evaluation, result],
+  );
   const evaluationRounds = evaluation?.rounds || [];
   const evaluationStages = useMemo(
     () => Array.from(new Set(evaluationRounds.map((item) => item.stage).filter(Boolean) as string[])).sort(),
@@ -985,7 +1221,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   const filteredEvaluationRounds = useMemo(() => {
     const keyword = evaluationModuleFilter.trim().toLowerCase();
     return evaluationRounds.filter((round) => {
-      const moduleName = String(round.module_name || '').toLowerCase();
+      const moduleName = normalizeEvaluationModuleName(round.module_name).toLowerCase();
       const stage = String(round.stage || '');
       const status = String(round.status || '');
       if (keyword && !moduleName.includes(keyword)) return false;
@@ -994,6 +1230,59 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
       return true;
     });
   }, [evaluationModuleFilter, evaluationRounds, evaluationStageFilter, evaluationStatusFilter]);
+  const groupedEvaluationRounds = useMemo<GroupedEvaluationRounds[]>(() => {
+    const grouped = new Map<string, GroupedEvaluationRounds>();
+    const sortedRounds = [...filteredEvaluationRounds].sort((left, right) => {
+      const roundCompare = compareNullableNumber(
+        Number.isFinite(Number(left.round)) ? Number(left.round) : null,
+        Number.isFinite(Number(right.round)) ? Number(right.round) : null,
+      );
+      if (roundCompare !== 0) return roundCompare;
+      const stageRoundCompare = compareNullableNumber(
+        Number.isFinite(Number(left.stage_round)) ? Number(left.stage_round) : null,
+        Number.isFinite(Number(right.stage_round)) ? Number(right.stage_round) : null,
+      );
+      if (stageRoundCompare !== 0) return stageRoundCompare;
+      const startedAtCompare = String(left.started_at || '').localeCompare(String(right.started_at || ''), 'zh-CN');
+      if (startedAtCompare !== 0) return startedAtCompare;
+      return evaluationRoundKey(left).localeCompare(evaluationRoundKey(right), 'zh-CN');
+    });
+
+    for (const round of sortedRounds) {
+      const groupKey = evaluationModuleGroupKey(round);
+      const displayName = normalizeEvaluationModuleName(round.module_name);
+      const normalizedRound = Number.isFinite(Number(round.round)) ? Number(round.round) : null;
+      const normalizedStageRound = Number.isFinite(Number(round.stage_round)) ? Number(round.stage_round) : null;
+      const current = grouped.get(groupKey);
+      if (!current) {
+        grouped.set(groupKey, {
+          groupKey,
+          displayName,
+          firstRound: normalizedRound,
+          firstStageRound: normalizedStageRound,
+          latestStatus: String(round.status || ''),
+          rounds: [round],
+        });
+        continue;
+      }
+      current.rounds.push(round);
+      if (compareNullableNumber(normalizedRound, current.firstRound) < 0) {
+        current.firstRound = normalizedRound;
+        current.firstStageRound = normalizedStageRound;
+      } else if (normalizedRound === current.firstRound && compareNullableNumber(normalizedStageRound, current.firstStageRound) < 0) {
+        current.firstStageRound = normalizedStageRound;
+      }
+      current.latestStatus = String(round.status || current.latestStatus || '');
+    }
+
+    return Array.from(grouped.values()).sort((left, right) => {
+      const firstRoundCompare = compareNullableNumber(left.firstRound, right.firstRound);
+      if (firstRoundCompare !== 0) return firstRoundCompare;
+      const firstStageRoundCompare = compareNullableNumber(left.firstStageRound, right.firstStageRound);
+      if (firstStageRoundCompare !== 0) return firstStageRoundCompare;
+      return left.displayName.localeCompare(right.displayName, 'zh-CN');
+    });
+  }, [filteredEvaluationRounds]);
   const averageJudgeScore = useMemo(() => {
     const scores = evaluationRounds
       .map((item) => Number(item.metrics?.avg_judge_score))
@@ -1025,6 +1314,30 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     () => buildJudgeRoundSessionMeta(selectedEvaluationJudgeSessionPath, selectedEvaluationRound, selectedEvaluationJudge),
     [selectedEvaluationJudge, selectedEvaluationJudgeSessionPath, selectedEvaluationRound],
   );
+
+  const openEvaluationRoundMenu = (event: React.MouseEvent, round: AppSaEvaluationRound) => {
+    const moduleName = normalizeEvaluationModuleName(round.module_name);
+    event.preventDefault();
+    event.stopPropagation();
+    setEvaluationRoundMenu({
+      roundKey: evaluationRoundKey(round),
+      moduleName,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  };
+
+  const handleFilterSingleModule = () => {
+    const currentFilter = evaluationModuleFilter.trim();
+    if (!evaluationRoundMenu?.moduleName && !currentFilter) return;
+    if (currentFilter) {
+      setEvaluationModuleFilter('');
+      setEvaluationRoundMenu(null);
+      return;
+    }
+    setEvaluationModuleFilter(evaluationRoundMenu.moduleName);
+    setEvaluationRoundMenu(null);
+  };
 
   useEffect(() => {
     if (!selectedEvaluationRoundKey) return;
@@ -1231,6 +1544,22 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
+      {detail ? (
+        <SystemAnalysisTaskFormModal
+          projectId={projectId}
+          isOpen={cloneModalOpen}
+          title="复制任务"
+          submitLabel="创建复制任务"
+          initialForm={buildCloneFormFromTask(detail, projectId)}
+          loadProjectDefaultsOnOpen={false}
+          onClose={() => setCloneModalOpen(false)}
+          onCreated={async (task) => {
+            notify(`复制任务创建成功: ${task.task_id}`, 'success');
+            setCloneModalOpen(false);
+          }}
+          onError={(message) => notify(message, 'error')}
+        />
+      ) : null}
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1274,7 +1603,6 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 重新运行
               </button>
             ) : null}
-            {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="system_analysis" task={detail} /> : null}
             {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? (
               <button
                 onClick={() => void handleResume()}
@@ -1283,6 +1611,16 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               >
                 {resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}
                 断点续跑
+              </button>
+            ) : null}
+            {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="system_analysis" task={detail} /> : null}
+            {detail ? (
+              <button
+                onClick={() => setCloneModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100"
+              >
+                <ClipboardCopy size={13} />
+                复制任务
               </button>
             ) : null}
             {detail ? (
@@ -1303,7 +1641,52 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             </button>
           </div>
         </div>
-        {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
+        {detail ? (
+          <div className="mt-5">
+            <TaskOriginCard
+              origin={detail}
+              actions={canRepairOrigin ? (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+                    {([
+                      { value: 'binary' as const, label: '二进制模式' },
+                      { value: 'source' as const, label: '源码模式' },
+                    ]).map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setOriginEditMode(option.value)}
+                        disabled={repairingOrigin}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                          effectiveOriginEditMode === option.value
+                            ? 'bg-slate-900 text-white'
+                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void handleRepairOrigin()}
+                    disabled={repairingOrigin || effectiveOriginEditMode === (analysisModeInfo?.mode || 'binary')}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {repairingOrigin ? <Loader2 size={13} className="animate-spin" /> : null}
+                    修复来源
+                  </button>
+                </div>
+              ) : (
+                <span className="text-[11px] font-semibold text-slate-400">
+                  {String(detail.task_origin_type || 'manual').trim() !== 'manual'
+                    ? '仅手动任务支持切换'
+                    : '仅非运行态可切换'}
+                </span>
+              )}
+            />
+          </div>
+        ) : null}
       </section>
 
       {loading && !detail ? (
@@ -1319,12 +1702,14 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
         <>
           <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
-              {[
-                { id: 'overview' as DetailTab, label: '总览' },
-                { id: 'session' as DetailTab, label: '智能体会话' },
-                { id: 'result' as DetailTab, label: '结果' },
-                { id: 'evaluation' as DetailTab, label: '观测指标' },
-              ].map((tab) => (
+                {[
+                  { id: 'overview' as DetailTab, label: '总览' },
+                  { id: 'run-config' as DetailTab, label: '任务配置' },
+                  { id: 'session' as DetailTab, label: '智能体会话' },
+                  { id: 'relationship' as DetailTab, label: '智能体关系' },
+                  { id: 'result' as DetailTab, label: '结果' },
+                  { id: 'evaluation' as DetailTab, label: '观测指标' },
+                ].map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
@@ -1364,6 +1749,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     {STAGE_STEPS.map((step, i) => {
                       const st = stageStatuses[i];
                       const timing = stageTimes[i];
+                      const metrics = overviewStageMetrics[step.key] || [];
                       const timingStr = st === 'completed' || st === 'failed'
                         ? formatTsDuration(timing.startTs, timing.endTs)
                         : st === 'running' && timing.startTs
@@ -1391,6 +1777,16 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 {timingStr ? <span className="text-[11px] font-mono text-slate-500">⏱ {timingStr}</span> : null}
                               </div>
                               <p className="mt-1 text-xs text-slate-500">{step.desc}</p>
+                              {st === 'completed' && metrics.length > 0 ? (
+                                <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                  <div className="text-[10px] font-black tracking-[0.12em] text-slate-400">
+                                    {metrics.map((item) => item.label).join(' / ')}
+                                  </div>
+                                  <div className="mt-1 text-sm font-bold text-slate-900">
+                                    {metrics.map((item) => item.value).join(' / ')}
+                                  </div>
+                                </div>
+                              ) : null}
                               {artifactFsPath && st !== 'pending' ? (
                                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                   <button
@@ -1417,6 +1813,65 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     })}
                   </div>
                 </div>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
+                    <p className="mt-1 text-xs text-slate-400">展示当前任务仍处于活跃状态的智能体会话与角色。</p>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+                    {activeSessions.length} 个活跃会话
+                  </span>
+                </div>
+                {sessionsLoading && sessions.length === 0 ? (
+                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    <Loader2 size={15} className="animate-spin" />
+                    加载智能体状态中...
+                  </div>
+                ) : activeSessions.length > 0 ? (
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                    <div className="divide-y divide-slate-200 bg-white">
+                      {activeSessions.map((session) => (
+                        <button
+                          key={session.relative_path}
+                          type="button"
+                          onClick={() => openActiveAgentSession(session.relative_path)}
+                          className="w-full px-4 py-4 text-left transition hover:bg-slate-50"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
+                              <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
+                              <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                                <span>分组 {session.stage_group || '-'}</span>
+                                <span>事件 {session.event_count}</span>
+                                <span>更新时间 {formatSessionMtime(session.mtime)}</span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>
+                                {sessionRoleLabel(session.role_name)}
+                              </span>
+                              <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                                活跃
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                    {detail.status === 'pending'
+                      ? '任务尚未启动，当前没有活跃智能体。'
+                      : ['running', 'pending'].includes(detail.status)
+                        ? '当前没有检测到活跃智能体会话。'
+                        : '任务已结束，当前没有活跃智能体。'}
+                  </div>
+                )}
               </section>
 
               {detail.error ? (
@@ -1470,6 +1925,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 ) : null}
               </section>
             </>
+          ) : activeTab === 'run-config' ? (
+            <SystemAnalysisTaskConfigPanel detail={detail} />
           ) : activeTab === 'session' ? (
             <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
               <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1493,6 +1950,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     {sessionsError}
                   </div>
                 ) : null}
+
+                <WarningListPanel
+                  title="索引生成提示"
+                  items={sessionIndex?.warnings?.slice(0, 5) || []}
+                  className="mt-4 text-xs"
+                />
 
                 {sessionsLoading && sessions.length === 0 ? (
                   <div className="mt-4 flex min-h-[240px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm text-slate-500">
@@ -1531,7 +1994,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                       {session.relative_path}
                                     </div>
                                   </div>
-                                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                  <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${
                                     session.is_active
                                       ? selected
                                         ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
@@ -1563,16 +2026,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
               </aside>
 
               <div className="space-y-4">
-                {sessionWarnings.length > 0 ? (
-                  <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
-                    <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
-                      {sessionWarnings.map((warning, index) => (
-                        <li key={`${warning}-${index}`}>{warning}</li>
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
+                <AgentSessionWarningPanel warnings={sessionWarnings} />
 
                 <AgentSessionViewer
                   sessionMeta={selectedSession}
@@ -1584,13 +2038,35 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 />
               </div>
             </section>
+          ) : activeTab === 'relationship' ? (
+            <section className="space-y-4">
+              <WarningListPanel title="索引生成提示" items={sessionIndex?.warnings?.slice(0, 5) || []} />
+
+              <AgentSessionWarningPanel warnings={sessionWarnings} />
+
+              <SessionRelationshipGraph
+                index={sessionIndex}
+                selectedPath={selectedSessionPath}
+                onSelect={setSelectedSessionPath}
+                sessionPreview={{
+                  path: selectedSessionPath,
+                  sessionMeta: selectedSession,
+                  sessionHeader: sessionSnapshot?.session_meta,
+                  events: sessionEvents,
+                  loading: sessionLoading,
+                  live: sessionLive,
+                  error: sessionError,
+                }}
+              />
+            </section>
           ) : activeTab === 'result' ? (
             <section className="space-y-4">
-              <div className="grid gap-4 xl:grid-cols-5">
+              <div className="grid gap-4 xl:grid-cols-6">
                 <MetricCard label="模块数" value={moduleCount} icon={<ScrollText size={18} />} />
                 <MetricCard label="高风险模块" value={highRiskCount} icon={<ShieldAlert size={18} />} />
                 <MetricCard label="总文件数" value={result?.summary.total_file_count ?? 0} icon={<FolderOpen size={18} />} />
                 <MetricCard label="威胁总数" value={result?.summary.threat_count ?? 0} icon={<AlertTriangle size={18} />} />
+                <MetricCard label="报告来源" value={result?.report_generation_label || '-'} icon={<ScrollText size={18} />} />
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div>
                   <div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div>
@@ -1638,19 +2114,10 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 </section>
               ) : (
                 <>
-                  {result.warnings.length > 0 ? (
-                    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-                      <div className="flex items-center gap-2 text-sm font-bold text-amber-800">
-                        <AlertTriangle size={16} />
-                        结果存在部分缺失，以下内容已按可用文件展示
-                      </div>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
-                        {result.warnings.map((warning, index) => (
-                          <li key={`${warning}-${index}`}>{warning}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  ) : null}
+                  <WarningListPanel
+                    title="结果存在部分缺失，以下内容已按可用文件展示"
+                    items={result.warnings}
+                  />
 
                   <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
                     <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1885,19 +2352,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                 </section>
               ) : (
                 <>
-                  {evaluation.warnings.length > 0 ? (
-                    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-                      <div className="flex items-center gap-2 text-sm font-bold text-amber-800">
-                        <AlertTriangle size={16} />
-                        部分观测文件读取异常
-                      </div>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
-                        {evaluation.warnings.map((warning, index) => (
-                          <li key={`${warning}-${index}`}>{warning}</li>
-                        ))}
-                      </ul>
-                    </section>
-                  ) : null}
+                  <WarningListPanel title="部分观测文件读取异常" items={evaluation.warnings} />
 
                   <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <MetricCard label="模块总数" value={formatNumber(evaluation.summary?.module_count)} icon={<ScrollText size={18} />} />
@@ -1905,10 +2360,63 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     <MetricCard label="失败模块" value={formatNumber(evaluation.summary?.failed_module_count)} icon={<XCircle size={18} />} />
                     <MetricCard label="总轮数" value={formatNumber(evaluation.summary?.round_count ?? evaluation.rounds.length)} icon={<BarChart3 size={18} />} />
                     <MetricCard label="总 Token" value={formatNumber(evaluation.summary?.total_tokens)} icon={<ScrollText size={18} />} />
-                    <MetricCard label="总 Cost" value={formatCost(evaluation.summary?.total_cost)} icon={<ShieldAlert size={18} />} />
+                    <MetricCard label="实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ShieldAlert size={18} />} />
                     <MetricCard label="平均 Judge 分" value={averageJudgeScore == null ? '-' : formatNumber(averageJudgeScore, 1)} icon={<BarChart3 size={18} />} />
                     <MetricCard label="最终通过率" value={formatRate(evaluation.summary?.effectiveness?.final_module_pass_rate)} icon={<CheckCircle2 size={18} />} />
                   </section>
+
+                  {evaluation.summary?.final_check_disabled ? (
+                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Stage 4a 已关闭</h2>
+                          <p className="mt-1 text-xs text-slate-400">
+                            当前任务未执行最终完整性检查，以下为基于当前模块归类结果推导出的遗漏文件。
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">遗漏文件数</div>
+                          <div className="mt-2 text-2xl font-black tracking-tight text-slate-900">
+                            {formatNumber(evaluation.summary?.missing_file_count ?? 0)}
+                          </div>
+                          <span
+                            className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-bold ${
+                              Number(evaluation.summary?.missing_file_count ?? 0) > 0
+                                ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            }`}
+                          >
+                            {Number(evaluation.summary?.missing_file_count ?? 0) > 0 ? '存在遗漏' : '0 个遗漏'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-4 text-xs text-slate-500">
+                        计算时间：{evaluation.summary?.missing_files_computed_at ? new Date(evaluation.summary.missing_files_computed_at).toLocaleString('zh-CN') : '-'}
+                      </div>
+                      {Number(evaluation.summary?.missing_file_count ?? 0) > 0 ? (
+                        <div className="mt-4 space-y-3">
+                          <div className="max-h-56 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="space-y-2">
+                              {(evaluation.summary?.missing_files_preview || []).map((file: string) => (
+                                <div key={file} className="break-all rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">
+                                  {file}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {Number(evaluation.summary?.missing_file_count ?? 0) > (evaluation.summary?.missing_files_preview || []).length ? (
+                            <div className="text-xs text-slate-500">
+                              还有 {Number(evaluation.summary?.missing_file_count ?? 0) - (evaluation.summary?.missing_files_preview || []).length} 个未展开
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm font-semibold text-emerald-700">
+                          当前未发现遗漏文件
+                        </div>
+                      )}
+                    </section>
+                  ) : null}
 
                   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1957,7 +2465,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             </h2>
                             <div className="mt-2 flex flex-wrap gap-2 text-xs">
                               <span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>
-                                {selectedEvaluationRound.status || '-'}
+                                {evaluationStatusLabel(selectedEvaluationRound.status)}
                               </span>
                               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-600">
                                 {stageLabel(selectedEvaluationRound.stage)}
@@ -1977,7 +2485,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <MetricCard label="耗时" value={formatMs(selectedEvaluationRound.duration_ms)} icon={<BarChart3 size={18} />} />
                         <MetricCard label="Token" value={formatNumber(selectedEvaluationRound.metrics?.token_total)} icon={<ScrollText size={18} />} />
-                        <MetricCard label="Cost" value={formatCost(selectedEvaluationRound.metrics?.cost)} icon={<ShieldAlert size={18} />} />
+                        <MetricCard label="任务实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ShieldAlert size={18} />} />
                         <MetricCard label="Judge 均分" value={formatNumber(selectedEvaluationRound.metrics?.avg_judge_score, 1)} icon={<CheckCircle2 size={18} />} />
                       </section>
 
@@ -2085,14 +2593,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 ) : null}
                               </div>
                             </section>
-                            {judgeSessionWarnings.length > 0 ? (
-                              <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
-                                <div className="font-bold">Judge 会话文件存在部分异常行，已跳过不可解析内容</div>
-                                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
-                                  {judgeSessionWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
-                                </ul>
-                              </section>
-                            ) : null}
+                            <WarningListPanel title="Judge 会话文件存在部分异常行，已跳过不可解析内容" items={judgeSessionWarnings} />
                             <AgentSessionViewer
                               sessionMeta={selectedEvaluationJudgeSessionMeta}
                               sessionHeader={judgeSessionSnapshot?.session_meta}
@@ -2119,14 +2620,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             ) : null}
                           </div>
                         </section>
-                        {roundSessionWarnings.length > 0 ? (
-                          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800 shadow-sm">
-                            <div className="font-bold">会话文件存在部分异常行，已跳过不可解析内容</div>
-                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
-                              {roundSessionWarnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
-                            </ul>
-                          </section>
-                        ) : null}
+                        <WarningListPanel title="会话文件存在部分异常行，已跳过不可解析内容" items={roundSessionWarnings} />
                         <AgentSessionViewer
                           sessionMeta={selectedEvaluationSessionMeta}
                           sessionHeader={roundSessionSnapshot?.session_meta}
@@ -2187,50 +2681,60 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             <th className="px-3 py-3">Judge 均分</th>
                             <th className="px-3 py-3">通过率</th>
                             <th className="px-3 py-3">Token</th>
-                            <th className="px-3 py-3">Cost</th>
+                            <th className="px-3 py-3">任务实际开始时间</th>
                             <th className="px-3 py-3">效果</th>
                             <th className="px-3 py-3">完成原因</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {filteredEvaluationRounds.map((round) => (
-                            <tr
-                              key={evaluationRoundKey(round)}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                  event.preventDefault();
-                                  setSelectedEvaluationRoundKey(evaluationRoundKey(round));
-                                }
-                              }}
-                              className="cursor-pointer bg-white transition hover:bg-slate-50"
-                            >
-                              <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
-                              <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
-                              <td className="px-3 py-3 font-mono text-slate-700">{round.module_name || '-'}</td>
-                              <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
-                              <td className="px-3 py-3">
-                                <span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span>
-                              </td>
-                              <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
-                              <td className="px-3 py-3 max-w-[180px] truncate font-mono text-slate-600">{round.worker?.model || '-'}</td>
-                              <td className="px-3 py-3 font-bold text-slate-800">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
-                              <td className="px-3 py-3 text-slate-600">{formatRate(round.metrics?.review_pass_rate)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.metrics?.token_total)}</td>
-                              <td className="px-3 py-3 font-mono text-slate-600">{formatCost(round.metrics?.cost)}</td>
-                              <td className="px-3 py-3 text-slate-600">
-                                <div className="flex flex-wrap gap-1">
-                                  {round.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">反思</span> : null}
-                                  {round.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">重分类</span> : null}
-                                  {!round.effectiveness?.needed_reflection && !round.effectiveness?.triggered_reclassify ? '-' : null}
-                                </div>
-                              </td>
-                              <td className="px-3 py-3 text-slate-600">{round.completion_reason || '-'}</td>
-                            </tr>
+                          {groupedEvaluationRounds.flatMap((group) => (
+                            group.rounds.map((round, index) => (
+                              <tr
+                                key={evaluationRoundKey(round)}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))}
+                                onContextMenu={(event) => openEvaluationRoundMenu(event, round)}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setSelectedEvaluationRoundKey(evaluationRoundKey(round));
+                                  }
+                                }}
+                                className="cursor-pointer bg-white transition hover:bg-slate-50"
+                              >
+                                <td className="px-3 py-3 font-mono font-bold text-slate-800">#{round.round ?? '-'}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{round.stage_round ?? '-'}</td>
+                                {index === 0 ? (
+                                  <td
+                                    rowSpan={group.rounds.length}
+                                    className="px-3 py-3 text-center align-middle font-mono font-bold text-slate-800"
+                                  >
+                                    <div>{group.displayName}</div>
+                                  </td>
+                                ) : null}
+                                <td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td>
+                                <td className="px-3 py-3">
+                                  <span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{evaluationStatusLabel(round.status)}</span>
+                                </td>
+                                <td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td>
+                                <td className="px-3 py-3 max-w-[180px] truncate font-mono text-slate-600">{round.worker?.model || '-'}</td>
+                                <td className="px-3 py-3 font-bold text-slate-800">{formatNumber(round.metrics?.avg_judge_score, 1)}</td>
+                                <td className="px-3 py-3 text-slate-600">{formatRate(round.metrics?.review_pass_rate)}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{formatNumber(round.metrics?.token_total)}</td>
+                                <td className="px-3 py-3 font-mono text-slate-600">{detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'}</td>
+                                <td className="px-3 py-3 text-slate-600">
+                                  <div className="flex flex-wrap gap-1">
+                                    {round.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">反思</span> : null}
+                                    {round.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-red-700">重分类</span> : null}
+                                    {!round.effectiveness?.needed_reflection && !round.effectiveness?.triggered_reclassify ? '-' : null}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-3 text-slate-600">{round.completion_reason || '-'}</td>
+                              </tr>
+                            ))
                           ))}
-                          {filteredEvaluationRounds.length === 0 ? (
+                          {groupedEvaluationRounds.length === 0 ? (
                             <tr>
                               <td colSpan={13} className="px-4 py-10 text-center text-sm text-slate-500">
                                 当前筛选条件下没有轮次记录
@@ -2240,6 +2744,26 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                         </tbody>
                       </table>
                     </div>
+                    {evaluationRoundMenu ? (
+                      <div
+                        className="fixed z-50 min-w-[180px] rounded-2xl border border-slate-200 bg-white p-1 shadow-2xl"
+                        style={{ left: evaluationRoundMenu.x, top: evaluationRoundMenu.y }}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="border-b border-slate-100 px-3 py-2">
+                          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">轮次操作</div>
+                          <div className="mt-1 truncate font-mono text-xs text-slate-700">{evaluationRoundMenu.moduleName}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleFilterSingleModule}
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700"
+                        >
+                          <Search size={14} />
+                          {evaluationModuleFilter.trim() ? '取消仅看此模块' : '仅看此模块'}
+                        </button>
+                      </div>
+                    ) : null}
                   </section>
                   )}
                 </>
@@ -2247,6 +2771,34 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
             </section>
           )}
         </>
+      ) : null}
+
+      {activeAgentSessionPath ? (
+        <div className="fixed inset-0 z-[280] bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] shadow-[0_32px_120px_rgba(15,23,42,0.35)]">
+            <AgentSessionDialogHeader
+              title={activeAgentSessionMeta?.display_name || activeAgentSessionPath}
+              subtitle={activeAgentSessionMeta?.relative_path || activeAgentSessionPath}
+              stage={activeAgentSessionMeta?.stage_group}
+              roleLabel={sessionRoleLabel(activeAgentSessionMeta?.role_name)}
+              roleToneClass={sessionRoleTone(activeAgentSessionMeta?.role_name)}
+              eventCount={activeAgentSessionMeta?.event_count}
+              live={sessionLive}
+              onClose={() => setActiveAgentSessionPath(null)}
+            />
+            <div className="flex-1 overflow-auto px-6 py-6">
+              <AgentSessionWarningPanel warnings={sessionWarnings} className="mb-4" />
+              <AgentSessionViewer
+                sessionMeta={activeAgentSessionMeta || selectedSession}
+                sessionHeader={sessionSnapshot?.session_meta}
+                events={sessionEvents}
+                loading={sessionLoading}
+                live={sessionLive}
+                error={sessionError}
+              />
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

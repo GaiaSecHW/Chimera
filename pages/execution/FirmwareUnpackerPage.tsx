@@ -9,10 +9,23 @@ import {
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { FileWatchMessage } from '../../clients/fileserver';
-import { FirmwareTaskEvent, FirmwareTaskLog, FirmwareTaskMetrics, FirmwareTaskProgress, FirmwareTaskResourceUsage, FirmwareTaskResult, FirmwareTaskRoundMetric, FirmwareUnpackTask, TaskListQuery } from '../../clients/firmwareUnpacker';
+import {
+  FirmwareEvolutionJob,
+  FirmwareEvolutionSessionIndex,
+  FirmwareTaskEvent,
+  FirmwareTaskLog,
+  FirmwareTaskMetrics,
+  FirmwareTaskProgress,
+  FirmwareTaskResourceUsage,
+  FirmwareTaskResult,
+  FirmwareTaskRoundMetric,
+  FirmwareUnpackTask,
+  TaskListQuery,
+} from '../../clients/firmwareUnpacker';
 import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProject } from '../../types/types';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -42,6 +55,12 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: '已取消' },
   { value: 'success', label: '成功' },
   { value: 'failed', label: '失败' },
+];
+
+const ORIGIN_MODE_OPTIONS = [
+  { value: '', label: '全部来源' },
+  { value: 'manual', label: '手动任务' },
+  { value: 'linked', label: '总任务关联' },
 ];
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -87,6 +106,13 @@ function fmtDuration(s: string | null, e: string | null) {
   return sec < 60 ? `${sec}s` : `${Math.floor(sec / 60)}m${sec % 60}s`;
 }
 
+function basename(path: string | null | undefined) {
+  const normalized = String(path || '').replace(/\/+$/, '');
+  if (!normalized) return '-';
+  const parts = normalized.split('/');
+  return parts[parts.length - 1] || normalized;
+}
+
 function formatSeconds(seconds: number | null | undefined) {
   if (seconds == null || !Number.isFinite(seconds)) return '-';
   const value = Math.max(0, Math.round(seconds));
@@ -95,6 +121,11 @@ function formatSeconds(seconds: number | null | undefined) {
   const hours = Math.floor(value / 3600);
   const minutes = Math.floor((value % 3600) / 60);
   return `${hours}h${minutes}m`;
+}
+
+function formatPhaseDuration(seconds: number | null | undefined) {
+  if (seconds == null || !Number.isFinite(seconds)) return '';
+  return `（${formatSeconds(seconds)}）`;
 }
 
 function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
@@ -296,16 +327,35 @@ function EventDetailBlock({ detail }: { detail: Record<string, any> | null }) {
   );
 }
 
-function formatSkillGenerationStatus(status: string | null | undefined) {
+function formatEvolutionStatus(status: string | null | undefined) {
   const raw = String(status || '').toLowerCase();
   const labels: Record<string, string> = {
     pending: '排队中',
-    running: '生成中',
-    success: '生成成功',
-    failed: '生成失败',
-    not_applicable: '未触发',
+    running: '运行中',
+    success: '成功',
+    failed: '失败',
+    cancelled: '已取消',
   };
   return labels[raw] || (status || '-');
+}
+
+function evolutionStatusTone(status: string | null | undefined) {
+  const raw = String(status || '').toLowerCase();
+  if (raw === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (raw === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
+  if (raw === 'pending') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (raw === 'failed') return 'border-red-200 bg-red-50 text-red-700';
+  if (raw === 'cancelled') return 'border-slate-200 bg-slate-50 text-slate-600';
+  return 'border-slate-200 bg-slate-50 text-slate-600';
+}
+
+function evolutionStageLabel(stage: string | null | undefined) {
+  const labels: Record<string, string> = {
+    tool_execute: '工具执行',
+    review: '评审',
+    evolve: '工具进化',
+  };
+  return labels[String(stage || '')] || (stage || '-');
 }
 
 function MetricBar({ label, value, tone = 'blue' }: { label: string; value: number | null | undefined; tone?: 'blue' | 'emerald' | 'amber' | 'rose' }) {
@@ -330,20 +380,20 @@ function MetricBar({ label, value, tone = 'blue' }: { label: string; value: numb
 }
 
 function TaskStatusBadge({ status }: { status: string }) {
-  const cfg: Record<string, { icon: React.ReactNode; cls: string; label: string }> = {
-    pending: { icon: <Clock size={12} />, cls: 'bg-amber-50 text-amber-700 border-amber-200', label: '排队中' },
-    retry_preparing: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: '重试准备中' },
-    running: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-blue-50 text-blue-700 border-blue-200', label: '运行中' },
-    cancelling: { icon: <Loader2 size={12} className="animate-spin" />, cls: 'bg-orange-50 text-orange-700 border-orange-200', label: '取消中' },
-    cancelled: { icon: <XCircle size={12} />, cls: 'bg-slate-50 text-slate-500 border-slate-200', label: '已取消' },
-    success: { icon: <CheckCircle2 size={12} />, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: '成功' },
-    failed: { icon: <XCircle size={12} />, cls: 'bg-red-50 text-red-700 border-red-200', label: '失败' },
-    max_retries_reached: { icon: <XCircle size={12} />, cls: 'bg-red-50 text-red-700 border-red-200', label: '超限' },
+  const cfg: Record<string, { cls: string; label: string }> = {
+    pending: { cls: 'bg-amber-50 text-amber-700 border-amber-200', label: '排队中' },
+    retry_preparing: { cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: '重试准备中' },
+    running: { cls: 'bg-blue-50 text-blue-700 border-blue-200', label: '运行中' },
+    cancelling: { cls: 'bg-orange-50 text-orange-700 border-orange-200', label: '取消中' },
+    cancelled: { cls: 'bg-slate-50 text-slate-500 border-slate-200', label: '已取消' },
+    success: { cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: '成功' },
+    failed: { cls: 'bg-red-50 text-red-700 border-red-200', label: '失败' },
+    max_retries_reached: { cls: 'bg-red-50 text-red-700 border-red-200', label: '超限' },
   };
-  const { icon, cls, label } = cfg[status] ?? { icon: null, cls: 'bg-slate-50 text-slate-500', label: status };
+  const { cls, label } = cfg[status] ?? { cls: 'bg-slate-50 text-slate-500', label: status };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${cls}`}>
-      {icon} {label}
+    <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-bold ${cls}`}>
+      {label}
     </span>
   );
 }
@@ -612,6 +662,7 @@ function RoundDetailModal({
 function PhaseStatusBadge({ status }: { status: string }) {
   const cfg: Record<string, string> = {
     pending: 'bg-slate-100 text-slate-500',
+    not_executed: 'bg-slate-100 text-slate-500',
     running: 'bg-blue-100 text-blue-700',
     success: 'bg-emerald-100 text-emerald-700',
     failed: 'bg-red-100 text-red-700',
@@ -619,6 +670,7 @@ function PhaseStatusBadge({ status }: { status: string }) {
   };
   const labels: Record<string, string> = {
     pending: '待执行',
+    not_executed: '未执行',
     running: '进行中',
     success: '已完成',
     failed: '失败',
@@ -664,22 +716,14 @@ function TaskRow({
   onSelect: (id: string, checked: boolean) => void;
   onOpenDetail: (id: string) => void;
 }) {
-  const running = !isTerminal(task.status);
-
   return (
-    <div
-      className={`cursor-pointer rounded-xl border transition-colors ${
-        active
-          ? 'border-blue-300 bg-blue-50/50 shadow-sm'
-          : selected
-            ? 'border-slate-300 bg-slate-50/70'
-            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'
-      }`}
+    <tr
+      className={`${executionTableInteractiveRowClassName} ${
+        active ? 'bg-blue-50/60' : selected ? 'bg-slate-50/90' : ''
+      }`.trim()}
       onClick={() => onOpenDetail(task.id)}
     >
-      <div
-        className="flex items-center gap-2 px-3 py-3"
-      >
+      <ExecutionTableTd>
         <input
           type="checkbox"
           checked={selected}
@@ -690,20 +734,33 @@ function TaskRow({
           onClick={(e) => e.stopPropagation()}
           className="rounded border-slate-300 text-blue-600"
         />
-        <TaskStatusBadge status={task.status} />
-        <span className="flex-1 min-w-0 truncate font-mono text-xs text-slate-600">{task.firmware_path}</span>
-        <div onClick={(e) => e.stopPropagation()} className="hidden 2xl:block max-w-[240px] overflow-hidden">
-          <TaskOriginInline origin={task} compact />
-        </div>
-        {task.worker_id && (
-          <span className="hidden xl:inline max-w-[120px] truncate text-[10px] text-slate-400">{task.worker_id}</span>
+      </ExecutionTableTd>
+      <ExecutionTableTd className="min-w-[96px] whitespace-nowrap"><TaskStatusBadge status={task.status} /></ExecutionTableTd>
+      <ExecutionTableTd className="min-w-[340px]">
+        <div className="truncate font-mono text-xs text-slate-600" title={task.firmware_path}>{basename(task.firmware_path)}</div>
+        <div className="mt-1 font-mono text-[11px] text-slate-400">{task.id}</div>
+      </ExecutionTableTd>
+      <ExecutionTableTd className="min-w-[170px]">
+        <TaskOriginInline origin={task} compact />
+      </ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+        {task.worker_id ? (
+          <span className="inline-flex items-center gap-1">
+            <span className="max-w-[120px] truncate">{task.worker_id}</span>
+          </span>
+        ) : (
+          '-'
         )}
-        {running && <Loader2 size={11} className="shrink-0 animate-spin text-blue-400" />}
-        <span className="hidden lg:inline shrink-0 text-[10px] text-slate-500">{fmtDuration(task.started_at, task.completed_at)}</span>
-        <span className="shrink-0 text-[10px] text-slate-400">{fmtTime(task.created_at)}</span>
-        <ChevronRight size={14} className={`shrink-0 text-slate-400 transition-transform ${active ? 'translate-x-0.5 text-blue-500' : ''}`} />
-      </div>
-    </div>
+      </ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{fmtDuration(task.started_at, task.completed_at)}</ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">{fmtTime(task.created_at)}</ExecutionTableTd>
+      <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+        {task.result_status || '-'}
+      </ExecutionTableTd>
+      <ExecutionTableTd className="text-right">
+        <ChevronRight size={14} className={`ml-auto text-slate-400 transition-transform ${active ? 'translate-x-0.5 text-blue-500' : ''}`} />
+      </ExecutionTableTd>
+    </tr>
   );
 }
 
@@ -730,6 +787,8 @@ function TaskDetailPanel({
   onDelete,
   onRetry,
   onRefreshResultCache,
+  onCreateEvolution,
+  notify,
   resultRefreshingTaskId,
   onActiveTabChange,
   refreshRequest,
@@ -756,6 +815,8 @@ function TaskDetailPanel({
   onDelete: (id: string) => void;
   onRetry: (id: string) => void;
   onRefreshResultCache: (id: string) => void;
+  onCreateEvolution: (id: string) => Promise<void>;
+  notify: (message: string, tone?: 'success' | 'error' | 'info' | 'warning') => void;
   resultRefreshingTaskId: string;
   onActiveTabChange?: (tab: DetailTab) => void;
   refreshRequest?: number;
@@ -790,6 +851,20 @@ function TaskDetailPanel({
   const [sessionError, setSessionError] = useState('');
   const [sessionLive, setSessionLive] = useState(false);
   const [sessionWatchStartLine, setSessionWatchStartLine] = useState(0);
+  const [evolutionJobs, setEvolutionJobs] = useState<FirmwareEvolutionJob[]>([]);
+  const [evolutionJobsLoading, setEvolutionJobsLoading] = useState(false);
+  const [evolutionJobsError, setEvolutionJobsError] = useState('');
+  const [selectedEvolutionJobId, setSelectedEvolutionJobId] = useState<string | null>(null);
+  const [selectedEvolutionJob, setSelectedEvolutionJob] = useState<FirmwareEvolutionJob | null>(null);
+  const [evolutionSessions, setEvolutionSessions] = useState<FirmwareEvolutionSessionIndex | null>(null);
+  const [evolutionDetailLoading, setEvolutionDetailLoading] = useState(false);
+  const [evolutionDetailError, setEvolutionDetailError] = useState('');
+  const [evolutionSubmitting, setEvolutionSubmitting] = useState(false);
+  const [evolutionReplacing, setEvolutionReplacing] = useState(false);
+  const [evolutionLogModalOpen, setEvolutionLogModalOpen] = useState(false);
+  const [evolutionLogModalTitle, setEvolutionLogModalTitle] = useState('');
+  const [evolutionLog, setEvolutionLog] = useState<FirmwareTaskLog | null>(null);
+  const [evolutionLogLoading, setEvolutionLogLoading] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
   const lastRefreshRequestRef = useRef(refreshRequest ?? 0);
 
@@ -950,6 +1025,69 @@ function TaskDetailPanel({
     }
   }, [fileserverApi, task?.output_path, task?.project_id]);
 
+  const loadEvolutionJobs = useCallback(async (options?: { silent?: boolean }) => {
+    if (!task?.id) {
+      setEvolutionJobs([]);
+      setSelectedEvolutionJobId(null);
+      setSelectedEvolutionJob(null);
+      setEvolutionSessions(null);
+      setEvolutionJobsError('');
+      return;
+    }
+    if (!options?.silent) {
+      setEvolutionJobsLoading(true);
+      setEvolutionJobsError('');
+    }
+    try {
+      const res = await fwApi.listEvolutionJobs(task.id, task.project_id);
+      const items = res.items || [];
+      setEvolutionJobs(items);
+      setSelectedEvolutionJobId((current) => {
+        if (current && items.some((item) => item.id === current)) return current;
+        return items[0]?.id || null;
+      });
+    } catch (e: any) {
+      if (!options?.silent) {
+        setEvolutionJobs([]);
+        setSelectedEvolutionJobId(null);
+        setSelectedEvolutionJob(null);
+        setEvolutionSessions(null);
+        setEvolutionJobsError(e?.message || '加载进化任务失败');
+      }
+    } finally {
+      if (!options?.silent) setEvolutionJobsLoading(false);
+    }
+  }, [task?.id]);
+
+  const loadEvolutionJobDetail = useCallback(async (jobId: string, options?: { silent?: boolean }) => {
+    if (!jobId) {
+      setSelectedEvolutionJob(null);
+      setEvolutionSessions(null);
+      setEvolutionDetailError('');
+      return;
+    }
+    if (!options?.silent) {
+      setEvolutionDetailLoading(true);
+      setEvolutionDetailError('');
+    }
+    try {
+      const [job, sessionsPayload] = await Promise.all([
+        fwApi.getEvolutionJob(jobId),
+        fwApi.getEvolutionSessions(jobId).catch(() => ({ version: 1, session_root: null, items: [] })),
+      ]);
+      setSelectedEvolutionJob(job);
+      setEvolutionSessions(sessionsPayload);
+    } catch (e: any) {
+      if (!options?.silent) {
+        setSelectedEvolutionJob(null);
+        setEvolutionSessions(null);
+        setEvolutionDetailError(e?.message || '加载进化任务详情失败');
+      }
+    } finally {
+      if (!options?.silent) setEvolutionDetailLoading(false);
+    }
+  }, []);
+
   const refreshCurrentDetail = useCallback(() => {
     if (!task?.id) return;
     onRefresh(task.id);
@@ -957,7 +1095,8 @@ function TaskDetailPanel({
     if (activeTab === 'events') void loadTimeline();
     if (activeTab === 'result') void loadResult();
     if (activeTab === 'session') void loadSessions();
-  }, [activeTab, loadMetrics, loadResult, loadSessions, loadTimeline, onRefresh, task?.id]);
+    if (activeTab === 'evolution') void loadEvolutionJobs();
+  }, [activeTab, loadEvolutionJobs, loadMetrics, loadResult, loadSessions, loadTimeline, onRefresh, task?.id]);
 
   useEffect(() => {
     setActiveTab('overview');
@@ -983,6 +1122,20 @@ function TaskDetailPanel({
     setSessionEvents([]);
     setSessionWarnings([]);
     setSessionError('');
+    setEvolutionJobs([]);
+    setEvolutionJobsError('');
+    setEvolutionJobsLoading(false);
+    setSelectedEvolutionJobId(null);
+    setSelectedEvolutionJob(null);
+    setEvolutionSessions(null);
+    setEvolutionDetailLoading(false);
+    setEvolutionDetailError('');
+    setEvolutionSubmitting(false);
+    setEvolutionReplacing(false);
+    setEvolutionLogModalOpen(false);
+    setEvolutionLogModalTitle('');
+    setEvolutionLog(null);
+    setEvolutionLogLoading(false);
     closeSessionSocket();
   }, [closeSessionSocket, task?.id]);
 
@@ -1029,6 +1182,36 @@ function TaskDetailPanel({
     if (activeTab !== 'result' || !task?.id) return;
     void loadResult();
   }, [activeTab, loadResult, task?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'evolution' || !task?.id) return;
+    void loadEvolutionJobs();
+  }, [activeTab, loadEvolutionJobs, task?.id]);
+
+  useEffect(() => {
+    if (activeTab !== 'evolution' || !selectedEvolutionJobId) {
+      if (activeTab !== 'evolution') {
+        setSelectedEvolutionJob(null);
+        setEvolutionSessions(null);
+        setEvolutionDetailError('');
+      }
+      return;
+    }
+    void loadEvolutionJobDetail(selectedEvolutionJobId);
+  }, [activeTab, loadEvolutionJobDetail, selectedEvolutionJobId]);
+
+  useEffect(() => {
+    const isRunningEvolution = Boolean(
+      selectedEvolutionJob && ['pending', 'running'].includes(selectedEvolutionJob.status),
+    );
+    if (activeTab !== 'evolution' || !task?.id || !isRunningEvolution) return;
+    const timer = window.setInterval(() => {
+      void loadEvolutionJobs({ silent: true });
+      if (selectedEvolutionJobId) void loadEvolutionJobDetail(selectedEvolutionJobId, { silent: true });
+      onRefresh(task.id);
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, loadEvolutionJobDetail, loadEvolutionJobs, onRefresh, selectedEvolutionJob, selectedEvolutionJobId, task?.id]);
 
   useEffect(() => {
     if (activeTab !== 'session') {
@@ -1201,6 +1384,33 @@ function TaskDetailPanel({
     });
   }, [roundFallbackFilter, roundItems, roundKeywordFilter, roundReviewFilter, roundStatusFilter]);
   const latestRoundMetric = roundItems.length > 0 ? roundItems[roundItems.length - 1] : null;
+  const latestEvolutionJob = evolutionJobs[0] || null;
+  const activeEvolutionJob = selectedEvolutionJob || latestEvolutionJob;
+  const canCreateEvolution = task?.status === 'success' && !evolutionSubmitting && !evolutionJobs.some((item) => ['pending', 'running'].includes(item.status));
+  const canConfirmEvolutionReplacement = Boolean(
+    activeEvolutionJob
+    && activeEvolutionJob.status === 'success'
+    && activeEvolutionJob.replacement_required
+    && !activeEvolutionJob.replacement_confirmed
+    && activeEvolutionJob.final_tool_path
+    && activeEvolutionJob.replaced_tool_path
+    && !evolutionReplacing
+  );
+  const showConfirmEvolutionReplacementButton = Boolean(activeEvolutionJob);
+  const evolutionReplacementHint = !activeEvolutionJob
+    ? '当前没有可操作的自进化任务'
+    : activeEvolutionJob.status !== 'success'
+      ? '仅进化成功后的任务允许替换原工具'
+      : activeEvolutionJob.replacement_confirmed
+        ? '当前进化结果已确认替换原工具'
+        : !activeEvolutionJob.replacement_required
+          ? '当前进化结果未产生待替换的新工具'
+          : !activeEvolutionJob.final_tool_path || !activeEvolutionJob.replaced_tool_path
+            ? '缺少原工具路径或新工具路径，无法执行替换'
+            : evolutionReplacing
+              ? '正在替换原工具'
+              : '将新工具覆盖到原工具路径';
+  const evolutionSessionItems = evolutionSessions?.items || [];
 
   if (!task) {
     return (
@@ -1229,6 +1439,68 @@ function TaskDetailPanel({
         { label: '结果缓存', ok: metrics.health.result_cache_available, hint: metrics.health.result_cache_available ? '可用' : '缺失' },
       ])
     : [];
+
+  const handleCreateEvolutionClick = async () => {
+    if (!canCreateEvolution) return;
+    setEvolutionSubmitting(true);
+    try {
+      await onCreateEvolution(task.id);
+      await loadEvolutionJobs();
+    } finally {
+      setEvolutionSubmitting(false);
+    }
+  };
+
+  const handleConfirmEvolutionReplacementClick = async () => {
+    if (!activeEvolutionJob?.id || !activeEvolutionJob.final_tool_path || !activeEvolutionJob.replaced_tool_path) return;
+    const confirmed = await showConfirm({
+      title: '确认替换原工具',
+      message: `将使用新工具覆盖原工具。\n\n原工具：${activeEvolutionJob.replaced_tool_path}\n新工具：${activeEvolutionJob.final_tool_path}`,
+      confirmText: '确认替换',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setEvolutionReplacing(true);
+    try {
+      const result = await fwApi.confirmEvolutionReplacement(activeEvolutionJob.id);
+      notify(result.message || '已确认替换原工具', 'success');
+      await loadEvolutionJobs();
+      await loadEvolutionJobDetail(activeEvolutionJob.id);
+    } catch (e: any) {
+      notify(`确认替换失败: ${e?.message || 'unknown error'}`, 'error');
+    } finally {
+      setEvolutionReplacing(false);
+    }
+  };
+
+  const handleOpenEvolutionLog = async (jobId: string, round: number, role: 'tool_executor' | 'reviewer' | 'evolver') => {
+    const roleLabelMap: Record<string, string> = {
+      tool_executor: '工具执行器',
+      reviewer: '评审器',
+      evolver: '工具进化器',
+    };
+    setEvolutionLogModalTitle(`第 ${round} 轮 · ${roleLabelMap[role]} 日志`);
+    setEvolutionLog(null);
+    setEvolutionLogLoading(true);
+    setEvolutionLogModalOpen(true);
+    try {
+      const payload = await fwApi.getEvolutionLogs(jobId, round, role);
+      setEvolutionLog(payload);
+    } catch (e: any) {
+      setEvolutionLog({
+        task_id: task.id,
+        run_path: null,
+        available: false,
+        log_text: '',
+        files: [],
+        phase: `evolution:${role}:round_${round}`,
+        message: e?.message || '加载进化日志失败',
+      });
+    } finally {
+      setEvolutionLogLoading(false);
+    }
+  };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -1402,7 +1674,10 @@ function TaskDetailPanel({
                                 <PhaseNodeStatusIcon status={phase.status} index={index} />
                               </div>
                               <div className={`mt-2 px-1 ${textClass}`}>
-                                <div className="text-xs font-semibold">{phase.label}</div>
+                                <div className="text-xs font-semibold">
+                                  {phase.label}
+                                  {formatPhaseDuration(phase.duration_seconds)}
+                                </div>
                                 <div className="mt-1 flex justify-center">
                                   <PhaseStatusBadge status={phase.status} />
                                 </div>
@@ -1995,7 +2270,7 @@ function TaskDetailPanel({
                                     {session.relative_path}
                                   </div>
                                 </div>
-                                <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${
+                                <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-bold ${
                                   indexItem?.status === 'running'
                                     ? selected ? 'bg-emerald-400/20 text-emerald-100' : 'bg-emerald-50 text-emerald-700'
                                     : selected ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600'
@@ -2039,77 +2314,255 @@ function TaskDetailPanel({
 
         {activeTab === 'evolution' ? (
           <section className="space-y-4">
-            <section className="grid gap-4 xl:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">SKILL 执行状态</div>
-                <div className="mt-4 space-y-3 text-sm text-slate-600">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>命中 SKILL</span>
-                    <span className="max-w-[240px] truncate font-mono text-xs text-slate-800">{task.matched_skill || '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>SKILL 版本</span>
-                    <span className="font-bold text-slate-800">{task.matched_skill_version ?? '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>匹配得分</span>
-                    <span className="font-bold text-slate-800">{task.matched_skill_score ?? '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>是否回退到 LLM</span>
-                    <span className="font-bold text-slate-800">{task.fallback_to_llm ? '是' : '否'}</span>
-                  </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Manual Evolution</div>
+                  <h4 className="mt-2 text-lg font-black text-slate-900">手动自进化</h4>
+                  <p className="mt-2 text-sm text-slate-500">
+                    主解包任务成功后，才允许单独发起工具进化。若主任务已命中工具，则基于备份副本进化；若未命中工具，则从进化器生成首个工具开始。进化任务不会改写主任务状态，只会独立产生日志、会话和覆盖结果。
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCreateEvolutionClick}
+                  disabled={!canCreateEvolution}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+                >
+                  {evolutionSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  进化
+                </button>
+              </div>
+              {!canCreateEvolution ? (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                  {task.status !== 'success'
+                    ? '仅主解包任务 success 后允许发起进化。'
+                    : evolutionJobs.some((item) => ['pending', 'running'].includes(item.status))
+                      ? '当前已有 pending/running 进化任务，不能重复发起。'
+                      : '当前条件不满足，暂不可发起进化。'}
+                </div>
+              ) : null}
+            </section>
+
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近一次状态</div>
+                <div className="mt-3">
+                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${evolutionStatusTone(activeEvolutionJob?.status)}`}>
+                    {formatEvolutionStatus(activeEvolutionJob?.status)}
+                  </span>
                 </div>
               </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">SKILL 生成结果</div>
-                <div className="mt-4 space-y-3 text-sm text-slate-600">
-                  <div className="flex items-center justify-between gap-3">
-                    <span>沉淀状态</span>
-                    <span className="font-bold text-slate-800">{formatSkillGenerationStatus(task.skill_generation_status)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>候选状态</span>
-                    <span className="font-bold text-slate-800">{task.generated_skill_status || '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>累计成功次数</span>
-                    <span className="font-bold text-slate-800">{task.promotion_success_count ?? '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>开始时间</span>
-                    <span className="font-bold text-slate-800">{fmtTime(task.skill_generation_started_at)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span>完成时间</span>
-                    <span className="font-bold text-slate-800">{fmtTime(task.skill_generation_completed_at)}</span>
-                  </div>
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">轮次 / 阶段</div>
+                <div className="mt-3 text-sm font-bold text-slate-800">
+                  {activeEvolutionJob ? `${activeEvolutionJob.current_round ?? 0}/${activeEvolutionJob.max_rounds}` : '-'}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">{evolutionStageLabel(activeEvolutionJob?.current_stage)}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最终工具脚本</div>
+                <div className="mt-3 break-all font-mono text-xs text-slate-700">
+                  {activeEvolutionJob?.final_tool_path || activeEvolutionJob?.final_skill_path || task.latest_evolution_final_skill_path || '-'}
                 </div>
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">生成产物</div>
-              <div className="mt-4 space-y-4">
-                <div>
-                  <div className="text-xs font-bold text-slate-500">候选 SKILL 路径</div>
-                  <div className="mt-1 break-all rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
-                    {task.generated_skill_path || '-'}
-                  </div>
+            <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-black text-slate-900">历史任务列表</div>
+                  {evolutionJobsLoading ? <Loader2 size={14} className="animate-spin text-slate-400" /> : null}
                 </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-500">异步任务 ID</div>
-                  <div className="mt-1 break-all rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
-                    {task.skill_generation_job_id || '-'}
+                {evolutionJobsError ? (
+                  <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-700">{evolutionJobsError}</div>
+                ) : null}
+                {!evolutionJobsLoading && evolutionJobs.length === 0 ? (
+                  <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+                    暂无手动进化任务
                   </div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-slate-500">失败原因</div>
-                  <div className="mt-1 min-h-[64px] rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                    {task.skill_generation_error || '无'}
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {evolutionJobs.map((job) => {
+                      const selected = job.id === selectedEvolutionJobId;
+                      return (
+                        <button
+                          key={job.id}
+                          type="button"
+                          onClick={() => setSelectedEvolutionJobId(job.id)}
+                          className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                            selected
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="font-mono text-xs">{job.id}</div>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                              selected ? 'border-white/20 bg-white/10 text-white' : evolutionStatusTone(job.status)
+                            }`}>
+                              {formatEvolutionStatus(job.status)}
+                            </span>
+                          </div>
+                          <div className={`mt-2 text-xs ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                            轮次 {job.current_round ?? 0}/{job.max_rounds} · {evolutionStageLabel(job.current_stage)}
+                          </div>
+                          <div className={`mt-1 text-[11px] ${selected ? 'text-slate-400' : 'text-slate-400'}`}>
+                            {fmtTime(job.created_at)}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                </div>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">最近一次进化状态</div>
+                      <div className="mt-1 text-xs text-slate-500">展示当前选中进化任务的状态、起始方式和最终 Python 工具脚本结果。</div>
+                    </div>
+                    {evolutionDetailLoading ? <Loader2 size={15} className="animate-spin text-slate-400" /> : null}
+                  </div>
+                  {evolutionDetailError ? (
+                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-700">{evolutionDetailError}</div>
+                  ) : null}
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <RoundDetailField label="状态" value={formatEvolutionStatus(activeEvolutionJob?.status)} />
+                    <RoundDetailField label="轮次" value={activeEvolutionJob ? `${activeEvolutionJob.current_round ?? 0}/${activeEvolutionJob.max_rounds}` : '-'} />
+                    <RoundDetailField label="当前阶段" value={evolutionStageLabel(activeEvolutionJob?.current_stage)} />
+                    <RoundDetailField label="评审是否通过" value={activeEvolutionJob?.review_passed ? '通过' : '未通过'} />
+                    <RoundDetailField label="开始时间" value={fmtTime(activeEvolutionJob?.started_at || null)} />
+                    <RoundDetailField label="完成时间" value={fmtTime(activeEvolutionJob?.completed_at || null)} />
+                    <RoundDetailField label="起始方式" value={activeEvolutionJob?.started_without_matched_skill ? '从进化器生成首个 Python 工具' : '基于命中工具脚本备份进化'} />
+                    <RoundDetailField label="源工具脚本" value={activeEvolutionJob?.source_tool_path || activeEvolutionJob?.source_skill_path || '-'} mono />
+                    <RoundDetailField label="工作副本" value={activeEvolutionJob?.working_tool_path || activeEvolutionJob?.working_skill_path || '-'} mono />
+                    <RoundDetailField label="覆盖目标" value={activeEvolutionJob?.replaced_tool_path || activeEvolutionJob?.replaced_skill_path || '-'} mono />
+                    <RoundDetailField label="最终工具脚本" value={activeEvolutionJob?.final_tool_path || activeEvolutionJob?.final_skill_path || '-'} mono />
+                    <RoundDetailField label="是否生成新工具" value={activeEvolutionJob?.generated_new_tool || activeEvolutionJob?.generated_new_skill ? '是' : '否'} />
+                    <RoundDetailField label="替换状态" value={
+                      activeEvolutionJob?.replacement_required
+                        ? (activeEvolutionJob?.replacement_confirmed ? '已确认替换' : '待确认替换')
+                        : '无需替换'
+                    } />
+                  </div>
+                  {showConfirmEvolutionReplacementButton ? (
+                    <div className="mt-4 flex justify-end">
+                      <div className="flex flex-col items-end gap-2">
+                        <button
+                          type="button"
+                          onClick={handleConfirmEvolutionReplacementClick}
+                          disabled={!canConfirmEvolutionReplacement}
+                          className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-500 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-amber-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-200 disabled:text-slate-500"
+                        >
+                          {evolutionReplacing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                          确认替换原工具
+                        </button>
+                        <div className="text-xs text-slate-500">{evolutionReplacementHint}</div>
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">错误信息</div>
+                    <div className="mt-2 text-sm text-slate-700">{activeEvolutionJob?.error_message || '无'}</div>
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-sm font-black text-slate-900">轮次时间线</div>
+                  {!activeEvolutionJob ? (
+                    <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+                      选择一条进化任务后查看轮次详情
+                    </div>
+                  ) : activeEvolutionJob.rounds.length === 0 ? (
+                    <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+                      当前进化任务暂未产出轮次记录
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-4">
+                      {activeEvolutionJob.rounds.map((round) => (
+                        <div key={round.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-black text-slate-900">第 {round.round} 轮</div>
+                              <div className="mt-1 text-xs text-slate-500">
+                                {fmtTime(round.created_at)} {'->'} {fmtTime(round.completed_at)}
+                              </div>
+                            </div>
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${roundStatusTone(round.status)}`}>
+                              {roundStatusLabel(round.status)}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <RoundDetailField label="改进前工具" value={round.tool_path_before || round.tool_skill_path_before || '-'} mono />
+                            <RoundDetailField label="改进后工具" value={round.tool_path_after || round.tool_skill_path_after || '-'} mono />
+                            <RoundDetailField label="是否改动工具" value={round.tool_changed ? '是' : '否'} />
+                            <RoundDetailField label="评审结果摘要" value={round.review_result || '-'} />
+                          </div>
+                          <div className="mt-4 grid gap-3 md:grid-cols-3">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'tool_executor')}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                            >
+                              <Terminal size={12} />
+                              工具执行器日志
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'reviewer')}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                            >
+                              <Terminal size={12} />
+                              评审器日志
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEvolutionLog(activeEvolutionJob.id, round.round, 'evolver')}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                            >
+                              <Terminal size={12} />
+                              工具进化器日志
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="text-sm font-black text-slate-900">进化会话索引</div>
+                  <div className="mt-1 text-xs text-slate-500">当前展示所选进化任务的 session 索引，便于定位工具执行器、评审器和工具进化器对话文件。</div>
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">Session Root</div>
+                    <div className="mt-1 break-all font-mono text-xs text-slate-700">{evolutionSessions?.session_root || '-'}</div>
+                  </div>
+                  {evolutionSessionItems.length === 0 ? (
+                    <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+                      暂无进化会话索引
+                    </div>
+                  ) : (
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      {evolutionSessionItems.map((item) => (
+                        <div key={`${item.session_file}-${item.role}-${item.name}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-xs font-black text-slate-900">{item.role}/{item.name}</div>
+                            <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${item.status === 'running' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                              {item.status === 'running' ? '运行中' : '历史'}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-[11px] text-slate-500">
+                            轮次 {item.round ?? '-'} · 阶段 {evolutionStageLabel(item.phase)}
+                          </div>
+                          <div className="mt-2 break-all font-mono text-[11px] text-slate-700">{item.session_file}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
               </div>
             </section>
           </section>
@@ -2446,6 +2899,52 @@ function TaskDetailPanel({
         </div>
       )}
 
+      {evolutionLogModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-6 backdrop-blur-sm">
+          <div className="flex max-h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-600">Evolution Log</p>
+                <h3 className="mt-2 text-xl font-black text-slate-900">{evolutionLogModalTitle}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEvolutionLogModalOpen(false)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 overflow-auto px-6 py-5">
+              {evolutionLogLoading ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 size={15} className="animate-spin" /> 加载日志中...
+                </div>
+              ) : !evolutionLog?.available ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                  {evolutionLog?.message || '当前阶段日志不可用'}
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志目录</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-700">{evolutionLog.run_path || '-'}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">日志文件</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-700">{evolutionLog.files?.join(', ') || '-'}</p>
+                    </div>
+                  </div>
+                  <pre className="min-h-[320px] overflow-auto rounded-2xl bg-slate-950 px-4 py-4 text-[12px] leading-6 text-slate-100 whitespace-pre-wrap break-words">{evolutionLog.log_text || evolutionLog.message || '暂无日志内容'}</pre>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {selectedMetricRound && (
         <RoundDetailModal
           round={selectedMetricRound}
@@ -2487,6 +2986,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const normalizedInitialTaskId = initialTaskId.trim();
 
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterOriginMode, setFilterOriginMode] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
   const [filterWorker, setFilterWorker] = useState('');
   const [page, setPage] = useState(0);
@@ -2521,6 +3021,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     pageOverride?: number;
     pageSizeOverride?: number;
     statusOverride?: string;
+    originModeOverride?: string;
     searchOverride?: string;
     workerOverride?: string;
   }) => {
@@ -2541,6 +3042,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     const currentPage = resetPage ? 0 : options?.pageOverride ?? page;
     const currentPageSize = options?.pageSizeOverride ?? pageSize;
     const currentStatus = options?.statusOverride ?? filterStatus;
+    const currentOriginMode = options?.originModeOverride ?? filterOriginMode;
     const currentSearch = options?.searchOverride ?? filterSearch;
     const currentWorker = options?.workerOverride ?? filterWorker;
     if (resetPage) setPage(0);
@@ -2552,6 +3054,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       };
       if (currentStatus) query.status = currentStatus;
       if (currentWorker) query.worker_id = currentWorker;
+      if (currentOriginMode) query.origin_mode = currentOriginMode;
       if (currentSearch) query.search = currentSearch;
       const res = await fwApi.listTasks(query);
       setTasks((prev) => {
@@ -2568,7 +3071,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [activeTaskId, page, pageSize, projectId, filterStatus, filterSearch, filterWorker]);
+  }, [activeTaskId, page, pageSize, projectId, filterStatus, filterOriginMode, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string, options?: {
     showDetailLoading?: boolean;
@@ -2631,16 +3134,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const hasRunning = useMemo(() => taskItems.some((task) => !isTerminal(task.status)), [taskItems]);
 
   useEffect(() => {
-    if (hasRunning) {
+    if (hasRunning && !activeTaskId) {
       pollingRef.current = setInterval(() => {
         void fetchTasks(false, { silent: true });
-        if (activeTaskId && activeTask && !isTerminal(activeTask.status)) {
-          void refreshOne(activeTaskId, {
-            showDetailLoading: false,
-            refreshProgress: detailActiveTab === 'overview',
-            refreshResource: detailActiveTab === 'overview',
-          });
-        }
       }, 5000);
     } else if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -2650,7 +3146,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [activeTask, activeTaskId, detailActiveTab, fetchTasks, hasRunning, refreshOne]);
+  }, [activeTaskId, fetchTasks, hasRunning]);
 
   useEffect(() => {
     fetchTasks(true);
@@ -2829,6 +3325,19 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setResultRefreshingTaskId('');
     }
   };
+
+  const handleCreateEvolution = useCallback(async (id: string) => {
+    try {
+      const taskItem = taskItems.find((item) => item.id === id) || null;
+      const result = await fwApi.createEvolutionJob(id, taskItem?.project_id);
+      notify(`手动进化任务已创建：${result.job_id}`, 'success');
+      await refreshOne(id, { showDetailLoading: false, refreshProgress: false, refreshResource: false });
+      await fetchTasks(false, { silent: true });
+    } catch (e: any) {
+      notify(`发起进化失败: ${e?.message || 'unknown error'}`, 'error');
+      throw e;
+    }
+  }, [fetchTasks, notify, refreshOne]);
 
   const handleOpenPhaseLog = useCallback(async (taskId: string, phaseKey: string, phaseLabel: string) => {
     setLogModalTitle(`${phaseLabel} 日志`);
@@ -3056,7 +3565,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
             <h2 className="text-sm font-bold text-slate-800">
               {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
             </h2>
-            {hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
+            {!showingDetail && hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
           </div>
         </div>
         <div className="flex gap-2">
@@ -3101,6 +3610,8 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
           onDelete={handleDelete}
           onRetry={handleRetry}
           onRefreshResultCache={handleRefreshResultCache}
+          onCreateEvolution={handleCreateEvolution}
+          notify={notify}
           resultRefreshingTaskId={resultRefreshingTaskId}
           onActiveTabChange={setDetailActiveTab}
           refreshRequest={detailRefreshRequest}
@@ -3163,6 +3674,20 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
             >
               {STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+
+            <select
+              value={filterOriginMode}
+              onChange={(e) => {
+                const nextOriginMode = e.target.value;
+                setFilterOriginMode(nextOriginMode);
+                fetchTasks(true, { originModeOverride: nextOriginMode });
+              }}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
+            >
+              {ORIGIN_MODE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
@@ -3245,18 +3770,40 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
               暂无任务记录
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {taskItems.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  selected={selected.has(task.id)}
-                  active={activeTaskId === task.id}
-                  onSelect={toggleSelect}
-                  onOpenDetail={setActiveTaskId}
-                />
-              ))}
-            </div>
+            <ExecutionTable minWidth={1320}>
+              <ExecutionTableHead>
+                <tr>
+                  <ExecutionTableTh className="w-12">
+                    <input
+                      type="checkbox"
+                      checked={selected.size === taskItems.length && taskItems.length > 0}
+                      onChange={(e) => toggleAll(e.target.checked)}
+                      aria-label="全选当前页任务"
+                    />
+                  </ExecutionTableTh>
+                  <ExecutionTableTh className="w-[104px]">状态</ExecutionTableTh>
+                  <ExecutionTableTh>固件路径</ExecutionTableTh>
+                  <ExecutionTableTh>来源</ExecutionTableTh>
+                  <ExecutionTableTh>Worker</ExecutionTableTh>
+                  <ExecutionTableTh>耗时</ExecutionTableTh>
+                  <ExecutionTableTh>创建时间</ExecutionTableTh>
+                  <ExecutionTableTh>结果</ExecutionTableTh>
+                  <ExecutionTableTh className="text-right">详情</ExecutionTableTh>
+                </tr>
+              </ExecutionTableHead>
+              <tbody>
+                {taskItems.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    selected={selected.has(task.id)}
+                    active={activeTaskId === task.id}
+                    onSelect={toggleSelect}
+                    onOpenDetail={setActiveTaskId}
+                  />
+                ))}
+              </tbody>
+            </ExecutionTable>
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">

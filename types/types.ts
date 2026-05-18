@@ -1860,7 +1860,7 @@ export interface DeployScriptListResponse {
 
 export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
-  | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer'
+  | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
@@ -1875,7 +1875,7 @@ export type ViewType =
   | 'mobile-security-ipc-vuln'
   | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'
   | 'pentest-report'
-  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config'
+  | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config' | 'vuln-parameter-config'
   | 'sys-settings' | 'change-password'
   | 'user-mgmt-users' | 'user-mgmt-roles' | 'user-mgmt-perms' | 'user-mgmt-access' | 'user-mgmt-online' | 'user-mgmt-machine'
   | 'org-mgmt-departments' | 'org-mgmt-members' | 'org-mgmt-projects';
@@ -2061,6 +2061,17 @@ export interface SystemAnalysisRoleConfig {
   stage_models?: Record<string, string>;
 }
 
+export interface SystemAnalysisPromptOverrideItem {
+  content: string;
+  source: 'default' | 'project';
+  default_content?: string;
+}
+
+export interface SystemAnalysisPromptOverrideGroup {
+  workers: Record<string, SystemAnalysisPromptOverrideItem>;
+  judges: Record<string, SystemAnalysisPromptOverrideItem>;
+}
+
 export interface SystemAnalysisStagesConfig {
   classify: SystemAnalysisStageLoopConfig;
   refine: SystemAnalysisStageLoopConfig;
@@ -2068,24 +2079,41 @@ export interface SystemAnalysisStagesConfig {
   final_check: SystemAnalysisStageLoopConfig;
 }
 
+export interface SystemAnalysisSelfReflectionConfig {
+  enabled: boolean;
+  model: string;
+  output_dir: string;
+  max_session_lines: number;
+}
+
 export interface SystemAnalysisServiceConfig {
   project_id: string;
+  max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
+  continue_on_module_failure: boolean;
   analyse_targets: string[];
   binary_arch: string[];
+  security_focus_categories: string[];
+  module_granularity: string;
+  filter_engine: 'script' | 'agent';
+  enable_final_check: boolean;
+  worker_task_concurrency: number;
   parallel_modules: number;
   parallel_sub_workers: number;
   agent_max_retries: number;
   agent_retry_delay: number;
+  agent_timeout_seconds: number;
   pi_max_retries: number;
   pi_retry_delay: number;
   stages: SystemAnalysisStagesConfig;
   workers: SystemAnalysisRoleConfig;
   judges: SystemAnalysisRoleConfig;
+  prompt_overrides: SystemAnalysisPromptOverrideGroup;
   output_dir: string;
   archive_dir: string;
   result_dir: string;
   start_stage: number;
   resume_workspace: string;
+  self_reflection?: SystemAnalysisSelfReflectionConfig;
   updated_at?: string | null;
 }
 
@@ -2387,9 +2415,31 @@ export interface AppSaStagesJson {
 export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
-  result_json?: Record<string, any> | null;
+  result_json?: {
+    result_file?: string | null;
+    result_externalized?: boolean;
+    status?: string | null;
+    error?: string | null;
+    module_count?: number;
+    round_count?: number;
+    total_duration_ms?: number | null;
+    total_tokens?: Record<string, any> | null;
+    preprocess_summary?: {
+      total_input_file_count?: number | null;
+      accepted_input_file_count?: number | null;
+      selected_filter_engine?: 'script' | 'agent' | string | null;
+      effective_filter_engine?: 'script' | 'agent' | string | null;
+      fallback_reason?: string | null;
+    } | null;
+    summary?: Record<string, any> | null;
+    [key: string]: any;
+  } | null;
   stages_json?: AppSaStagesJson | null;
-  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[] } | null;
+  task_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean; start_stage?: number; resume_workspace?: string; resolved_config_snapshot?: Record<string, any> } | null;
+  /** 实际生效配置（task_config_json 覆盖项目配置后的合并结果） */
+  effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
+  /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
+  effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project' } | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -2429,6 +2479,8 @@ export interface AppSaTaskResult {
   output_root?: string | null;
   final_report_path?: string | null;
   modules_list_path?: string | null;
+  report_generation_type?: 'ai' | 'program' | 'unknown' | 'missing' | string;
+  report_generation_label?: string | null;
   final_report_markdown?: string | null;
   modules: AppSaResultModule[];
   summary: AppSaTaskResultSummary;
@@ -2454,6 +2506,11 @@ export interface AppSaEvaluationSummary {
   total_cost?: number;
   stage_summary?: Record<string, Record<string, any>>;
   effectiveness?: Record<string, any>;
+  final_check_disabled?: boolean;
+  missing_file_count?: number;
+  missing_files?: string[];
+  missing_files_preview?: string[];
+  missing_files_computed_at?: string;
   [key: string]: any;
 }
 
@@ -2464,6 +2521,7 @@ export interface AppSaEvaluationRound {
   round?: number;
   stage_round?: number;
   status?: string;
+  raw_status?: string;
   started_at?: string;
   ended_at?: string;
   duration_ms?: number;
@@ -2499,6 +2557,75 @@ export interface AppSaSessionMeta {
   line_count: number;
   is_active: boolean;
   display_name: string;
+  warnings: string[];
+}
+
+export interface AppSaSessionIndexNode {
+  node_id: string;
+  relative_path: string;
+  session_name: string;
+  display_name: string;
+  role: string;
+  role_label: string;
+  status: string;
+  is_active: boolean;
+  stage_key: string;
+  stage_label: string;
+  stage_order: number;
+  stage_group: string;
+  module_name?: string | null;
+  attempt?: number | null;
+  judge_index?: number | null;
+  batch_index?: number | null;
+  parent_relative_path?: string | null;
+  parallel_group?: string | null;
+  family_key?: string | null;
+  flow_kind?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  started_ts?: number | null;
+  last_event_at?: string | null;
+  last_event_ts?: number | null;
+  mtime: number;
+  size: number;
+  event_count: number;
+  line_count: number;
+  warnings: string[];
+  session_header?: Record<string, any> | null;
+  cwd?: string | null;
+  model?: string | null;
+  latest_round_ref?: Record<string, any> | null;
+  round_refs: Array<Record<string, any>>;
+  attempts_seen: number[];
+}
+
+export interface AppSaSessionIndexEdge {
+  edge_id: string;
+  source_node_id: string;
+  target_node_id: string;
+  kind: string;
+  label: string;
+}
+
+export interface AppSaSessionIndexGroup {
+  group_id: string;
+  kind: string;
+  label: string;
+  stage_key?: string | null;
+  module_name?: string | null;
+  node_ids: string[];
+}
+
+export interface AppSaSessionIndex {
+  task_id: string;
+  status: string;
+  sessions_root?: string | null;
+  index_path?: string | null;
+  generated_at?: string | null;
+  summary?: Record<string, any> | null;
+  nodes: AppSaSessionIndexNode[];
+  edges: AppSaSessionIndexEdge[];
+  groups: AppSaSessionIndexGroup[];
   warnings: string[];
 }
 
@@ -2541,6 +2668,11 @@ export interface AppSaTaskCreateRequest {
   analysis_mode?: 'binary' | 'source';
   analyse_targets?: string[];
   binary_arch?: string[];
+  security_focus_categories?: string[];
+  module_granularity?: string;
+  filter_engine?: 'script' | 'agent';
+  enable_final_check?: boolean;
+  continue_on_module_failure?: boolean;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -2631,6 +2763,10 @@ export interface AppEaTaskEvaluation {
   task_id: string;
   status: string;
   available: boolean;
+  source?: 'final_result' | 'runtime_snapshot' | 'none' | string;
+  is_realtime?: boolean;
+  snapshot_generated_at?: string | null;
+  runtime_summary?: Record<string, any> | null;
   summary?: Record<string, any> | null;
   rounds: AppSaEvaluationRound[];
   warnings: string[];
@@ -2639,6 +2775,10 @@ export interface AppEaTaskEvaluation {
 export type AppEaSessionMeta = AppSaSessionMeta;
 export type AppEaSessionEvent = AppSaSessionEvent;
 export type AppEaSessionSnapshot = AppSaSessionSnapshot;
+export type AppEaSessionIndexNode = AppSaSessionIndexNode;
+export type AppEaSessionIndexEdge = AppSaSessionIndexEdge;
+export type AppEaSessionIndexGroup = AppSaSessionIndexGroup;
+export type AppEaSessionIndex = AppSaSessionIndex;
 export type AppEaEvaluationRound = AppSaEvaluationRound;
 
 export interface AppEaTaskCreateRequest {
@@ -2694,13 +2834,19 @@ export interface EntryAnalysisRoleConfig {
 export interface EntryAnalysisServiceConfig {
   project_id: string;
   max_rounds: number;
+  max_rounds_exceeded_action: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
   pass_threshold: number;
+  max_concurrent_tasks: number;
   agent_max_retries: number;
   agent_retry_delay: number;
+  agent_run_timeout_seconds: number;
+  agent_timeout_retry_enabled: boolean;
+  agent_timeout_max_retries: number;
   pi_max_retries: number;
   pi_retry_delay: number;
   worker_parallel: boolean;
+  worker_parallelism: number;
   workers: EntryAnalysisRoleConfig;
   judges: EntryAnalysisRoleConfig;
   output_dir: string;
@@ -2808,6 +2954,24 @@ export interface AppDfaSessionMeta {
   display_name: string;
 }
 
+export type AppDfaSessionIndexNode = AppSaSessionIndexNode;
+export type AppDfaSessionIndexEdge = AppSaSessionIndexEdge;
+export type AppDfaSessionIndexGroup = AppSaSessionIndexGroup;
+
+export interface AppDfaSessionIndex {
+  task_id: string;
+  status: string;
+  sessions_root?: string | null;
+  index_path?: string | null;
+  generated_at?: string | null;
+  current_epoch?: string | null;
+  summary?: Record<string, any> | null;
+  nodes: AppDfaSessionIndexNode[];
+  edges: AppDfaSessionIndexEdge[];
+  groups: AppDfaSessionIndexGroup[];
+  warnings: string[];
+}
+
 export interface AppDfaSessionEvent {
   type: string;
   event_index?: number;
@@ -2907,10 +3071,14 @@ export interface AppDfaRoleConfig {
 export interface AppDfaServiceConfig {
   project_id: string;
   max_rounds: number;
+  max_rounds_exceeded_review_strategy: 'treat_as_passed' | 'treat_as_failed';
   min_rounds: number;
   pass_threshold: number;
   agent_max_retries: number;
   agent_retry_delay: number;
+  agent_run_timeout_seconds: number;
+  agent_timeout_retry_enabled: boolean;
+  agent_timeout_max_retries: number;
   pi_max_retries: number;
   pi_retry_delay: number;
   max_trace_depth: number;

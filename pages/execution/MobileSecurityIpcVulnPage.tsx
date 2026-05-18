@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Bot, CheckCircle2, Clock3, Loader2, Plus, RefreshCw, RotateCcw, Search, Server, SquareTerminal, Trash2, XCircle } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Background, Controls, Edge, Handle, MarkerType, Node, NodeProps, Position, ReactFlow } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { AlertTriangle, ArrowLeft, Bot, CheckCircle2, Clock3, Info, Loader2, Plus, RefreshCw, RotateCcw, Search, Server, SquareTerminal, Trash2, Wrench, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -10,23 +12,68 @@ import {
   IpcAuditAttemptDetail,
   IpcAuditCapability,
   IpcAuditCatalogRefreshJob,
+  IpcAuditExecutorMode,
   IpcAuditEvent,
+  IpcAuditPipelineMode,
+  IpcAuditProviderList,
   IpcAuditPresetProject,
+  IpcAuditProviderSummary,
+  IpcAuditReportFormat,
   IpcAuditRuntimeConfig,
   IpcAuditStageLog,
   IpcAuditStageSessionFile,
   IpcAuditStageSessionSummary,
   IpcAuditTaskDetail,
+  IpcAuditTaskGraphSource,
+  IpcAuditTaskReportOutput,
+  IpcAuditTaskReportOutputSpec,
   IpcAuditTaskSummary,
+  IpcAuditTaskTemplate,
   IpcAuditWorkspaceSummary,
 } from '../../clients/ipcAudit';
-import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot } from '../../types/types';
+import { AppSaSessionEvent, AppSaSessionMeta } from '../../types/types';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { AgentSessionViewer } from './AgentSessionViewer';
+import { mergeAgentSessionToolResults } from './agentSessionParsing';
 
-type StageName = 'audit' | 'poc';
-type ExecutorMode = 'mock' | 'codex_cli' | 'opencode_cli';
+type StageName = string;
+type ExecutorMode = IpcAuditExecutorMode;
+type PipelineMode = IpcAuditPipelineMode;
+type GraphSourceType = 'inline_json' | 'python_builder';
+type BuilderSourceMode = 'entry' | 'code';
 type ProjectInputKind = 'preset_project' | 'custom_project';
+
+interface ReportOutputDraft {
+  key: string;
+  outputId: string;
+  nodeId: string;
+  title: string;
+  path: string;
+  format: IpcAuditReportFormat;
+  required: boolean;
+  order: string;
+}
+
+interface GraphTemplateConfig {
+  pipelineMode: PipelineMode;
+  executorMode: ExecutorMode;
+  modelName: string;
+  providerKey: string;
+  graphSourceType: GraphSourceType;
+  builderSourceMode: BuilderSourceMode;
+  inlineJsonText: string;
+  pythonBuilderEntry: string;
+  pythonBuilderCode: string;
+  reportOutputs: ReportOutputDraft[];
+}
+
+interface GraphTemplateRecord {
+  templateId: string;
+  name: string;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  config: GraphTemplateConfig;
+}
 
 interface ProjectInputItem {
   path: string;
@@ -49,24 +96,92 @@ interface AuditedResultSummary {
   infoFindings: string;
 }
 
-type SessionDeltaParseResult = {
-  sessionMeta: Record<string, any> | null;
-  events: AppSaSessionEvent[];
-  warnings: string[];
-  lineCount: number;
+interface TaskRuntimeSummary {
+  executorMode: string;
+  model: string;
+  taskModel: string;
+  providerKeys: string[];
+  providerSnapshots: Record<string, any>[];
+}
+
+interface TaskGraphManifestReport {
+  output_id: string;
+  node_id?: string;
+  title: string;
+  relative_path: string;
+  format: string;
+  required: boolean;
+  exists: boolean;
+}
+
+interface TaskGraphManifestPipelineNode {
+  id: string;
+  depends_on: string[];
+  agent: string;
+  model?: string | null;
+  tools?: string | null;
+  target?: Record<string, any> | null;
+  success_criteria?: Record<string, any>[];
+  prompt?: string | null;
+}
+
+interface TaskGraphManifestNodeRuntime {
+  status: string;
+  message?: string | null;
+  return_code?: number | null;
+  log_path?: string | null;
+  session_files: string[];
+  reports: TaskGraphManifestReport[];
+}
+
+interface TaskGraphManifest {
+  kind: string;
+  pipeline?: {
+    name?: string | null;
+    working_dir?: string | null;
+    nodes: TaskGraphManifestPipelineNode[];
+  } | null;
+  nodes: Record<string, TaskGraphManifestNodeRuntime>;
+  reports: TaskGraphManifestReport[];
+}
+
+interface TaskGraphNodeView {
+  id: string;
+  label: string;
+  status: string;
+  message: string;
+  returnCode: number | null;
+  dependsOn: string[];
+  agent: string;
+  model: string;
+  tools: string;
+  targetCwd: string;
+  prompt: string;
+  sessionFiles: string[];
+  reports: IpcAuditTaskReportOutput[];
+  hasEventsJsonl: boolean;
+  hasLastMessage: boolean;
+  hasPrompt: boolean;
+}
+
+type TaskGraphCanvasNodeData = Record<string, unknown> & {
+  label: string;
+  status: string;
+  agent: string;
+  model: string;
+  reportCount: number;
+  active: boolean;
+  hasEventsJsonl: boolean;
+  hasLastMessage: boolean;
 };
+
+type TaskGraphCanvasNodeType = Node<TaskGraphCanvasNodeData, 'taskGraphNode'>;
+
+type GraphEditorTarget = 'inline_json' | 'python_entry' | 'python_code';
 
 const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'cancel_requested']);
 const CANCELLABLE_TASK_STATUSES = new Set(['queued', 'running']);
-const STAGE_NAMES: StageName[] = ['audit', 'poc'];
-const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
-  off: 'off',
-  minimal: 'minimal',
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-  'x-high': 'xhigh',
-};
+const HIDDEN_READY_CHECK_KEYS = new Set(['executor_config:opencode_cli']);
 
 const TASK_STATUS_LABELS: Record<string, string> = {
   queued: '排队中',
@@ -121,9 +236,20 @@ const formatStageStatus = (status?: string | null) => STAGE_STATUS_LABELS[String
 const isActiveTaskStatus = (status?: string | null) => ACTIVE_TASK_STATUSES.has(String(status || '').toLowerCase());
 const isCancellableTaskStatus = (status?: string | null) => CANCELLABLE_TASK_STATUSES.has(String(status || '').toLowerCase());
 const isCompletedTaskStatus = (status?: string | null) => ['succeeded', 'partial_success'].includes(String(status || '').toLowerCase());
+const humanizeIdentifier = (value?: string | null) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '-';
+  if (raw.toLowerCase() === 'poc') return 'PoC';
+  if (raw.toLowerCase() === 'audit') return 'Audit';
+  return raw
+    .split(/[_\-./]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
 const formatStageLabel = (stage?: string | null) => {
   if (!stage) return '-';
-  return stage === 'poc' ? 'PoC' : 'Audit';
+  return humanizeIdentifier(stage);
 };
 const formatInputKind = (kind?: string | null) => {
   if (kind === 'preset_project') return '预设项目';
@@ -132,10 +258,24 @@ const formatInputKind = (kind?: string | null) => {
   return kind || '-';
 };
 const formatExecutorMode = (mode?: string | null) => {
+  if (mode === 'agentflow_cli') return 'AgentFlow';
   if (mode === 'codex_cli') return 'Codex';
   if (mode === 'opencode_cli') return 'OpenCode';
   if (mode === 'mock') return 'Mock';
   return mode || '-';
+};
+const formatPipelineMode = (mode?: string | null) => {
+  if (mode === 'custom_graph') return 'Custom Graph';
+  if (mode === 'audit_then_poc') return 'Audit + PoC';
+  if (mode === 'audit_only') return 'Audit Only';
+  if (mode === 'poc_only') return 'PoC Only';
+  return humanizeIdentifier(mode);
+};
+const formatReportFormat = (format?: string | null) => {
+  if (format === 'markdown') return 'Markdown';
+  if (format === 'json') return 'JSON';
+  if (format === 'text') return 'Text';
+  return humanizeIdentifier(format);
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -246,6 +386,411 @@ const parseAuditedResultSummary = (artifact: IpcAuditArtifact, content: string):
   };
 };
 
+const normalizeStageNames = (values: Array<string | null | undefined>): string[] => {
+  const next: string[] = [];
+  const seen = new Set<string>();
+  values.forEach((value) => {
+    const normalized = String(value || '').trim();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    next.push(normalized);
+  });
+  return next;
+};
+
+const deriveStageNamesFromAttempt = (attempt?: IpcAuditAttemptDetail | null): string[] => {
+  const config = asRecord(attempt?.effective_config);
+  const configured = Array.isArray(config.stage_names) ? config.stage_names.map((item) => String(item || '').trim()) : [];
+  const stageRuns = Array.isArray(attempt?.stage_runs) ? attempt.stage_runs.map((item) => item.stage_name) : [];
+  const reportOutputNodes = Array.isArray(attempt?.report_outputs) ? attempt.report_outputs.map((item) => item.node_id) : [];
+  return normalizeStageNames([...configured, ...stageRuns, ...reportOutputNodes]);
+};
+
+const emptyStageSessionMap = (stageNames: string[]): Record<string, IpcAuditStageSessionSummary[]> =>
+  Object.fromEntries(stageNames.map((stageName) => [stageName, []]));
+
+const emptyStageLogMap = (stageNames: string[]): Record<string, IpcAuditStageLog | null> =>
+  Object.fromEntries(stageNames.map((stageName) => [stageName, null]));
+
+const extractNodeIdsFromInlineGraphContent = (value: unknown): string[] => {
+  const graph = asRecord(value);
+  const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+  return normalizeStageNames(nodes.map((item) => (
+    item && typeof item === 'object' && !Array.isArray(item)
+      ? String((item as Record<string, unknown>).id || '').trim()
+      : ''
+  )));
+};
+
+const extractNodeIdsFromInlineGraphText = (value: string): string[] => {
+  try {
+    return extractNodeIdsFromInlineGraphContent(JSON.parse(value));
+  } catch {
+    return [];
+  }
+};
+
+const createDraftKey = () => `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const toReportOutputDraft = (item: Partial<IpcAuditTaskReportOutputSpec>, index = 0): ReportOutputDraft => ({
+  key: createDraftKey(),
+  outputId: String(item.output_id || '').trim(),
+  nodeId: String(item.node_id || '').trim(),
+  title: String(item.title || '').trim(),
+  path: String(item.path || '').trim(),
+  format: (item.format || 'markdown') as IpcAuditReportFormat,
+  required: item.required !== false,
+  order: String(item.order ?? index * 10),
+});
+
+const buildDefaultReportOutputs = (_mode: PipelineMode, declaredNodes: string[] = []): ReportOutputDraft[] => {
+  const nodes = declaredNodes.length > 0 ? declaredNodes : ['stage_1'];
+  return nodes.map((nodeId, index) => toReportOutputDraft({
+    output_id: `${nodeId.replace(/[^a-zA-Z0-9_\-]/g, '_')}_report`,
+    node_id: nodeId,
+    title: `${formatStageLabel(nodeId)} Report`,
+    path: `exports/${nodeId}-report.md`,
+    format: 'markdown',
+    required: true,
+    order: (index + 1) * 10,
+  }, index));
+};
+
+const cloneReportOutputDrafts = (items: ReportOutputDraft[]): ReportOutputDraft[] =>
+  items.map((item) => ({ ...item, key: createDraftKey() }));
+
+const defaultCustomGraphAuditedResultPath = '[[ task.attempt_root ]]/exports/audited-result.json';
+
+const defaultAuditGraphPrompt = `OpenHarmony IPC deep OOB audit task.
+Embedded workflow profile: openharmony-project-deep-oob-audit
+Repo root: [[ task.repo_root ]]
+Subproject: [[ task.project_path ]]
+Output report path: [[ task.report_outputs["audit_report"].absolute_path ]]
+
+This prompt is self-contained. Do not invoke, require, or assume any external Codex/OpenCode skill.
+
+Goal:
+- Audit only the specified OpenHarmony subproject for IPC-reachable out-of-bounds memory reads/writes.
+- Stay scoped to the subproject for candidate surfaces, but follow call chains to real implementations anywhere under Repo root when needed.
+- Write the final Markdown report exactly to Output report path. Create parent directories if needed.
+
+Workflow:
+1. Find IPC-reachable attack surfaces first.
+- Search under the subproject for server-side IPC handlers and parcel consumers: OnRemoteRequest, OnRemoteRequestInner, IRemoteStub, RemoteStub, IPCObjectStub, transaction dispatch switches/tables, and helpers that read MessageParcel/data.
+- Prefer rg under the subproject first. Exclude tests, fuzzers, demos, and sample code unless they reveal the production path.
+
+2. Resolve real implementations; never guess.
+- When a relevant function or class is declared, generated, virtual, or referenced indirectly, resolve its real implementation before judging safety.
+- Prefer readtags against the Repo root tags file when available: readtags -e -t <Repo root>/tags <symbol> | grep -v test.
+- If an implementation cannot be found, record it in an Unresolved section and do not claim a vulnerability based on assumptions.
+
+3. Build the full serialization/deserialization object graph.
+- For each IPC transaction, enumerate every parcel read in order: scalar fields, strings, vectors, arrays, maps, file descriptors, raw buffers, blobs, shared memory, ReadParcelable/ReadStrongParcelable, Unmarshalling, ReadFromParcel, and helper parsers.
+- For each reconstructed object, inspect field validation, nested member types, constructors, setters, normalizers, conversion helpers, and later consumers.
+- Treat all deserialized fields as attacker-controlled until a relevant invariant is proven.
+
+4. Report only concrete OOB read/write issues.
+- A valid finding needs this chain: attacker controls IPC parcel data; validation is missing/incomplete or invalidated later; tainted value reaches index/offset/length/stride/count/copy arithmetic; the use can cross the target object's or buffer's bounds.
+- Do not report permission issues, null dereference, use-after-free, double free, memory leaks, gradual resource exhaustion, or pure integer overflow unless they are necessary to prove a concrete OOB read/write.
+
+5. Trace into dependent classes and sinks.
+- Follow tainted fields beyond the immediate MessageParcel reader into business logic, storage classes, codecs, TLV parsers, flatten/unflatten code, and custom binary parsers.
+- Pay special attention to size/count/length/capacity/offset/stride/index/start/end fields, paired offset+length or width+height+stride fields, enum/tag controlled decoding, raw pointers/views, and container sizes trusted before indexing/copying.
+- Inspect sinks such as memcpy, memmove, memset, strncpy-like helpers, manual pointer arithmetic, subspan slicing, vector/array/string indexing, and loops controlled by parcel-derived counts.
+
+6. Demand concrete evidence.
+- Cite exact attacker-controlled parcel fields and exact later OOB sinks.
+- Include file paths and line numbers wherever possible.
+- If safety depends on an assumption you cannot prove from code, mark the path unresolved instead of reporting it.
+
+Report requirements:
+- Include Scope: Repo root, Subproject, audited IPC entrypoints, and transaction codes if known.
+- For each finding include title, severity, affected IPC entrypoint/transaction path, deserialization chain, dependent class/helper chain, concrete OOB sink, attacker-controlled fields, impact, evidence, exploitability notes, and suggested fix.
+- If no issue is found, say so explicitly and summarize the IPC surfaces and object graphs inspected.
+- Add an Unresolved section for missing definitions or uncertain paths, including the exact rg/readtags attempts made.`;
+
+const defaultPocGraphPrompt = `OpenHarmony IPC audit report PoC validation task.
+Embedded workflow profile: openharmony-ipc-project-report-poc
+Repo root: [[ task.repo_root ]]
+Project report: [[ task.report_outputs["audit_report"].absolute_path ]]
+Output PoC report path: [[ task.report_outputs["poc_report"].absolute_path ]]
+Output audited result json path: ${defaultCustomGraphAuditedResultPath}
+PoC report language: 简体中文. Do not translate code blocks, paths, identifiers, or classification tokens.
+
+Container PoC runtime rules:
+- You are already inside the secflow-app-ipc-audit container.
+- Do not start an additional service/OHEMU Docker container. Do not call ohemu-container.sh, docker run, docker exec, or docker compose.
+- Use the in-container QEMU helper: /usr/local/bin/ipc-audit-qemu
+- The helper sources OpenHarmony QEMU scripts from: /workspace/openharmony_6_1/vendor/edu/docker/src
+- OpenHarmony workspace root: /workspace/openharmony_6_1
+- Prepared qcow2 root: /workspace/openharmony_6_1/vendor/edu/docker/volumes/qcow2_cache
+- Default boot dir: /workspace/openharmony_6_1/vendor/edu/docker/volumes/qcow2_cache/arm64/boot
+- QEMU runtime/state root: /var/lib/secflow-ipc-audit/ohemu
+- Per-task overlay disk root: /var/lib/secflow-ipc-audit/ohemu/runtime/instances/ipc-audit-task
+- Default QEMU arch/network: arm64/bridge
+- Default HDC endpoint in this container: 127.0.0.1:55555
+- HDC binary: /workspace/openharmony_6_1/vendor/edu/docker/src/hdc
+- Preferred instance name for this task: ipc-audit-task
+
+Use these commands when runtime testing is needed:
+  /usr/local/bin/ipc-audit-qemu list
+  /usr/local/bin/ipc-audit-qemu ensure ipc-audit-task
+  /workspace/openharmony_6_1/vendor/edu/docker/src/hdc tconn 127.0.0.1:<HDC_PORT_FROM_HELPER_LIST>
+  /workspace/openharmony_6_1/vendor/edu/docker/src/hdc list targets
+
+Network rules:
+- In bridge mode, the guest normally receives a 192.168.111.x address and /usr/local/bin/ipc-audit-qemu starts socat to forward 127.0.0.1:<HDC_PORT> to <GUEST_IP>:55555.
+- Prefer the HDC endpoint printed by the helper or recorded in the runtime/state/*.env file; do not guess the IP/port.
+- The helper waits for the helper-reported HDC endpoint to become Connected before returning, unless OHEMU_WAIT_FOR_HDC_READY=0 is explicitly set.
+- If bridge setup is unavailable, usermode may show a 20.20.20.x guest IP and QEMU hostfwd may listen before hdcd is ready; still use the helper-reported HDC endpoint and wait for Connected.
+
+Disk safety rules:
+- QEMU must run only with per-task overlay qcow2 files under /var/lib/secflow-ipc-audit/ohemu/runtime/instances/ipc-audit-task.
+- The prepared base qcow2 files under /workspace/openharmony_6_1/vendor/edu/docker/volumes/qcow2_cache/arm64/base are backing files only; do not write to them.
+- Do not run QEMU directly on OpenHarmony out/*/images/*.img, prepared base qcow2 files, or any shared qcow2 cache file.
+- If overlay creation fails or no per-task overlay exists, classify runtime verification as BLOCKED_ENV instead of running on the shared images.
+
+Failure handling rules:
+- If the runtime helper returns an error, preserve stdout/stderr verbatim in the report and classify the runtime step as BLOCKED_ENV unless you already have enough evidence for CONFIRMED_NO_POC or CONFIRMED_BUT_NOT_REPRODUCED.
+- Read the HDC port from the helper output or from the state file under the runtime/state directory; do not assume guest-side port 5555 is the host-connect port.
+- If the helper, qemu binary, mounted workspace, prepared qcow2 cache, boot images, or hdc binary is missing, classify runtime verification as BLOCKED_ENV and record the exact failing command and output.
+
+This prompt is self-contained. Do not invoke, require, or assume any external Codex/OpenCode skill.
+
+Goal:
+- Validate the issues in Project report against the code under Repo root.
+- Always write a PoC report exactly to Output PoC report path. Create parent directories if needed.
+- Always write a JSON stats file exactly to Output audited result json path. Create parent directories if needed.
+
+Scope rules:
+- If a reported sink cannot be triggered from OnRemoteRequest or an equivalent IPC stub dispatch into the service-side implementation, classify it as NOT_APPLICABLE and do not generate a PoC for it.
+- For Lite system reports, issues based on Lite IPC IpcIo rather than MessageParcel-based IPC are NOT_APPLICABLE in this workflow.
+- Do not patch the target service implementation to force a crash.
+
+Validation workflow:
+1. Load Project report and extract each issue's component, file/function, root cause, impact, transaction code/interface token hints, and prerequisites.
+2. Confirm or refute each issue with code evidence:
+- Reachability from IPC entrypoint to service-side implementation.
+- Attacker control from IPC data such as MessageParcel fields, raw buffers, vectors, strings, fds, ashmem, or parcelized objects.
+- The exact memory-safety hazard.
+- Whether mitigations exist in helpers, callees, service guards, or permission gates.
+3. Use these classification tokens exactly: CONFIRMED_POC_FEASIBLE, CONFIRMED_NO_POC, CONFIRMED_BUT_NOT_REPRODUCED, BLOCKED_ENV, NOT_APPLICABLE, NOT_CONFIRMED.
+4. If all issues are NOT_CONFIRMED or NOT_APPLICABLE, skip PoC build/runtime work and still write the report and JSON stats.
+
+PoC workflow when feasible:
+1. Derive the minimal trigger details: target SA/service, how to obtain IRemoteObject, request code, interface token, parameter order, and malformed payload.
+2. Prefer a small standalone native PoC source under a task-local or repo-local audit directory. Keep it focused and do not add/modify GN targets by default.
+3. Prefer manual clang++ compilation inside the current container from existing out/<product> metadata when available. Use existing obj/**/<target>.ninja, *_module_info.json, packaged .so files, and generated sources instead of running GN.
+4. If the current build outputs do not contain enough metadata/generated code/libraries, record BLOCKED_ENV or CONFIRMED_NO_POC with exact missing prerequisites instead of modifying BUILD.gn.
+5. If runtime testing is possible, use the in-container QEMU helper from the runtime rules above to boot or reuse OHEMU/QEMU inside the current container, connect with hdc, deploy the PoC, run it, and collect stdout/stderr, hilog, tombstone/faultlogger, or service death/restart evidence.
+6. If the PoC builds but does not crash after one minimal adjustment, classify as CONFIRMED_BUT_NOT_REPRODUCED and record evidence.
+
+PoC report requirements:
+- Write in the requested report language, normally 简体中文.
+- Preserve code, paths, commands, logs, return codes, GN targets, identifiers, and classification tokens verbatim.
+- Include Source report path and short summary.
+- Include Issue validation for every issue with classification and code evidence.
+- Include PoC design, build commands/results, runtime commands/results, selected in-container QEMU instance/HDC port if used, and limitations.
+- If no PoC was attempted, explain why using the classification evidence.
+
+JSON stats requirements:
+- Write valid JSON to Output audited result json path.
+- Use this stable schema:
+{
+  "vulnerabilities_found": 0,
+  "pocs_developed": 0,
+  "info_findings": 0,
+  "report": {
+    "project_report": "<Project report>",
+    "poc_report": "<Output PoC report path>"
+  },
+  "counts": {
+    "audit_findings_total": 0,
+    "poc_confirmed_problem_count": 0,
+    "poc_generated_count": 0,
+    "poc_generated_crash_count": 0
+  },
+  "notes": []
+}
+- vulnerabilities_found counts confirmed real vulnerability findings, including CONFIRMED_POC_FEASIBLE, CONFIRMED_NO_POC, and CONFIRMED_BUT_NOT_REPRODUCED.
+- pocs_developed counts generated PoC programs/scripts/binaries.
+- info_findings counts informational findings, environmental blockers, unresolved items, or non-vulnerability observations worth surfacing.
+- audit_findings_total counts issues described in Project report.
+- poc_confirmed_problem_count counts confirmed real problems, including CONFIRMED_POC_FEASIBLE, CONFIRMED_NO_POC, and CONFIRMED_BUT_NOT_REPRODUCED.
+- poc_generated_count counts generated PoC programs/scripts/binaries.
+- poc_generated_crash_count counts generated PoCs that produced crash/service-death evidence.`;
+
+const defaultCustomGraphPipeline = {
+  name: 'custom-graph',
+  nodes: [
+    {
+      id: 'audit',
+      agent: 'opencode',
+      prompt: defaultAuditGraphPrompt,
+      success_criteria: [
+        {
+          kind: 'file_nonempty',
+          path: '[[ task.report_outputs["audit_report"].absolute_path ]]',
+        },
+      ],
+    },
+    {
+      id: 'poc',
+      agent: 'opencode',
+      depends_on: ['audit'],
+      prompt: defaultPocGraphPrompt,
+      success_criteria: [
+        {
+          kind: 'file_nonempty',
+          path: '[[ task.report_outputs["poc_report"].absolute_path ]]',
+        },
+        {
+          kind: 'json_valid',
+          path: defaultCustomGraphAuditedResultPath,
+        },
+      ],
+    },
+  ],
+};
+
+const defaultCustomGraphContent = JSON.stringify(defaultCustomGraphPipeline, null, 2);
+
+const defaultPythonBuilderCode = [
+  'import argparse',
+  'import json',
+  'from pathlib import Path',
+  '',
+  'from agentflow import Graph, opencode',
+  '',
+  `AUDIT_PROMPT = ${JSON.stringify(defaultAuditGraphPrompt)}`,
+  `POC_PROMPT = ${JSON.stringify(defaultPocGraphPrompt)}`,
+  `AUDIT_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["audit_report"].absolute_path ]]')}`,
+  `POC_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["poc_report"].absolute_path ]]')}`,
+  `AUDITED_RESULT_PATH = ${JSON.stringify(defaultCustomGraphAuditedResultPath)}`,
+  '',
+  'def parse_args():',
+  '    parser = argparse.ArgumentParser()',
+  '    parser.add_argument("--context", required=True)',
+  '    parser.add_argument("--output", required=True)',
+  '    return parser.parse_args()',
+  '',
+  'def build_graph(context: dict) -> Graph:',
+  '    task = context.get("task") if isinstance(context.get("task"), dict) else context',
+  '    repo_root = str(task.get("repo_root") or ".")',
+  '    with Graph("custom-graph", working_dir=repo_root, concurrency=1) as dag:',
+  '        audit = opencode(',
+  '            task_id="audit",',
+  '            prompt=AUDIT_PROMPT,',
+  '            tools="read_write",',
+  '            success_criteria=[',
+  '                {"kind": "file_nonempty", "path": AUDIT_REPORT_PATH},',
+  '            ],',
+  '        )',
+  '        poc = opencode(',
+  '            task_id="poc",',
+  '            prompt=POC_PROMPT,',
+  '            tools="read_write",',
+  '            success_criteria=[',
+  '                {"kind": "file_nonempty", "path": POC_REPORT_PATH},',
+  '                {"kind": "json_valid", "path": AUDITED_RESULT_PATH},',
+  '            ],',
+  '        )',
+  '        audit >> poc',
+  '    return dag',
+  '',
+  'def main():',
+  '    args = parse_args()',
+  '    context = json.loads(Path(args.context).read_text(encoding="utf-8"))',
+  '    output_path = Path(args.output)',
+  '    output_path.parent.mkdir(parents=True, exist_ok=True)',
+  '    dag = build_graph(context)',
+  '    pipeline = json.loads(dag.to_json())',
+  '    output_path.write_text(json.dumps(pipeline, ensure_ascii=False, indent=2), encoding="utf-8")',
+  '',
+  'if __name__ == "__main__":',
+  '    main()',
+].join('\n');
+
+const normalizeBuilderState = (
+  builderSourceMode: BuilderSourceMode,
+  pythonBuilderEntry: string,
+  pythonBuilderCode: string,
+): {
+  builderSourceMode: BuilderSourceMode;
+  pythonBuilderEntry: string;
+  pythonBuilderCode: string;
+} => {
+  const normalizedEntry = String(pythonBuilderEntry || '').trim();
+  const normalizedCode = String(pythonBuilderCode || '');
+  if (builderSourceMode === 'entry' && normalizedEntry && !normalizedCode.trim()) {
+    return {
+      builderSourceMode: 'entry',
+      pythonBuilderEntry: normalizedEntry,
+      pythonBuilderCode: '',
+    };
+  }
+  if (normalizedCode.trim()) {
+    return {
+      builderSourceMode: 'code',
+      pythonBuilderEntry: normalizedEntry,
+      pythonBuilderCode: normalizedCode,
+    };
+  }
+  if (normalizedEntry) {
+    return {
+      builderSourceMode: 'entry',
+      pythonBuilderEntry: normalizedEntry,
+      pythonBuilderCode: '',
+    };
+  }
+  return {
+    builderSourceMode: 'code',
+    pythonBuilderEntry: '',
+    pythonBuilderCode: defaultPythonBuilderCode,
+  };
+};
+
+const templateToRecord = (template: IpcAuditTaskTemplate): GraphTemplateRecord => {
+  const graphSource = template.config.graph_source || null;
+  const inlineNodes = graphSource?.type === 'inline_json'
+    ? extractNodeIdsFromInlineGraphContent(graphSource.content)
+    : [];
+  const normalizedBuilder = normalizeBuilderState(
+    graphSource?.type === 'python_builder' && graphSource.code ? 'code' : 'entry',
+    graphSource?.type === 'python_builder' ? String(graphSource.entry || '') : '',
+    graphSource?.type === 'python_builder' ? String(graphSource.code || '') : '',
+  );
+  return {
+    templateId: template.template_id,
+    name: template.name,
+    description: template.description || null,
+    createdAt: template.created_at,
+    updatedAt: template.updated_at,
+    config: {
+      pipelineMode: 'custom_graph',
+      executorMode: 'agentflow_cli',
+      modelName: String(template.config.model || ''),
+      providerKey: String((template.config.provider_keys || [])[0] || ''),
+      graphSourceType: graphSource?.type === 'python_builder' ? 'python_builder' : 'inline_json',
+      builderSourceMode: normalizedBuilder.builderSourceMode,
+      inlineJsonText: graphSource?.type === 'inline_json'
+        ? JSON.stringify(graphSource.content || {}, null, 2)
+        : defaultCustomGraphContent,
+      pythonBuilderEntry: normalizedBuilder.pythonBuilderEntry,
+      pythonBuilderCode: normalizedBuilder.pythonBuilderCode,
+      reportOutputs: cloneReportOutputDrafts((template.config.report_outputs || []).map((item, index) => toReportOutputDraft({
+        output_id: item.output_id,
+        node_id: item.node_id,
+        title: item.title,
+        path: item.path,
+        format: item.format,
+        required: item.required,
+        order: item.order ?? index * 10,
+      }, index))),
+    },
+  };
+};
+
 const shortPath = (value?: string | null) => {
   if (!value) return '-';
   const parts = value.replace(/\\/g, '/').split('/').filter(Boolean);
@@ -266,11 +811,52 @@ const asRecord = (value: unknown): Record<string, any> =>
 const asString = (value: unknown, fallback = ''): string =>
   typeof value === 'string' ? value : value == null ? fallback : String(value);
 
-const normalizeReadyState = (value: { status?: string | null; ready?: boolean | null; checks?: Record<string, boolean> | null }): IpcAuditReadyState => ({
-  status: value.status || 'unknown',
-  ready: Boolean(value.ready),
-  checks: value.checks && typeof value.checks === 'object' ? value.checks : {},
-});
+const asRecordArray = (value: unknown): Record<string, any>[] => (
+  Array.isArray(value)
+    ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item)) as Record<string, any>[]
+    : []
+);
+
+type SessionDeltaParseResult = {
+  sessionMeta: Record<string, any> | null;
+  events: AppSaSessionEvent[];
+  warnings: string[];
+  lineCount: number;
+};
+
+const SESSION_THINKING_LEVEL_MAP: Record<string, string> = {
+  off: 'off',
+  minimal: 'minimal',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  'x-high': 'xhigh',
+  xhigh: 'xhigh',
+};
+
+const sessionNestedRecord = (value: Record<string, any>, key: string): Record<string, any> => asRecord(value[key]);
+
+const sessionFirstString = (...values: unknown[]): string => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value;
+    if (value != null && typeof value !== 'object') {
+      const text = String(value).trim();
+      if (text) return text;
+    }
+  }
+  return '';
+};
+
+const sessionNestedSdkSpecific = (...records: Record<string, any>[]): Record<string, any> => {
+  for (const record of records) {
+    const sdk = sessionNestedRecord(record, 'sdk_specific');
+    if (Object.keys(sdk).length) return sdk;
+    const runtime = sessionNestedRecord(record, 'runtime_config');
+    const runtimeSdk = sessionNestedRecord(runtime, 'sdk_specific');
+    if (Object.keys(runtimeSdk).length) return runtimeSdk;
+  }
+  return {};
+};
 
 const normalizeSessionTimestamp = (value: unknown): string => {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -285,79 +871,26 @@ const normalizeToolName = (value: unknown, fallback = 'tool') => {
   return name || fallback;
 };
 
-const parseSessionMessageParts = (content: unknown): Array<Record<string, any>> => {
-  const parts: Array<Record<string, any>> = [];
-  if (typeof content === 'string') {
-    parts.push({ type: 'text', text: content });
-    return parts;
-  }
-  if (content && typeof content === 'object' && !Array.isArray(content)) {
-    const item = content as Record<string, any>;
-    const contentType = String(item.type || item.kind || '');
-    if (contentType === 'text' || typeof item.text === 'string') {
-      parts.push({ type: 'text', text: item.text || '' });
-      return parts;
-    }
-    if (contentType === 'thinking' || typeof item.thinking === 'string') {
-      parts.push({ type: 'thinking', text: item.thinking || '' });
-      return parts;
-    }
-    if (contentType === 'toolCall' || contentType === 'tool_call') {
-      parts.push({
-        type: 'toolCall',
-        name: normalizeToolName(item.name || item.tool),
-        id: item.id || item.callId || item.callID || '',
-        arguments: item.arguments || item.args || item.input || {},
-      });
-      return parts;
-    }
-    if (contentType === 'toolResult' || contentType === 'tool_result' || typeof item.output === 'string') {
-      parts.push({
-        type: 'toolResult',
-        text: item.text || item.output || '',
-        name: normalizeToolName(item.name || item.tool, ''),
-        isError: Boolean(item.isError ?? item.is_error ?? item.error ?? false),
-      });
-      return parts;
-    }
-  }
-  if (!Array.isArray(content)) return parts;
-  for (const item of content) {
-    if (!item || typeof item !== 'object') continue;
-    const part = item as Record<string, any>;
-    const contentType = String(part.type || part.kind || '');
-    if (contentType === 'text') {
-      parts.push({ type: 'text', text: part.text || '' });
-    } else if (contentType === 'thinking') {
-      parts.push({ type: 'thinking', text: part.thinking || part.text || '' });
-    } else if (contentType === 'toolCall' || contentType === 'tool_call') {
-      parts.push({
-        type: 'toolCall',
-        name: normalizeToolName(part.name || part.tool),
-        id: part.id || part.callId || part.callID || '',
-        arguments: part.arguments || part.args || part.input || {},
-      });
-    } else if (contentType === 'toolResult' || contentType === 'tool_result') {
-      parts.push({
-        type: 'toolResult',
-        text: part.text || part.output || '',
-        name: normalizeToolName(part.name || part.tool, ''),
-        isError: Boolean(part.isError ?? part.is_error ?? part.error ?? false),
-      });
-    } else {
-      parts.push({ type: 'unknown', detail: JSON.stringify(part).slice(0, 200) });
-    }
-  }
-  return parts;
+const trimSessionTextBlock = (value: string): string => value.replace(/^\n+|\n+$/g, '');
+
+const pushSessionTextPart = (parts: Array<Record<string, any>>, type: 'text' | 'thinking', value: unknown) => {
+  const text = trimSessionTextBlock(asString(value));
+  if (!text.trim()) return;
+  parts.push({ type, text });
 };
 
-const isSilentSessionLifecycleEvent = (obj: Record<string, any>): boolean => {
-  const eventType = String(obj.type || '');
-  const partType = String(asRecord(obj.part).type || '');
-  return eventType === 'step_start'
-    || eventType === 'step_finish'
-    || partType === 'step-start'
-    || partType === 'step-finish';
+const parseTaggedTextParts = (content: string): Array<Record<string, any>> => {
+  const parts: Array<Record<string, any>> = [];
+  const pattern = /<think>([\s\S]*?)<\/think>/gi;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(content)) !== null) {
+    pushSessionTextPart(parts, 'text', content.slice(lastIndex, match.index));
+    pushSessionTextPart(parts, 'thinking', match[1] || '');
+    lastIndex = match.index + match[0].length;
+  }
+  pushSessionTextPart(parts, 'text', content.slice(lastIndex));
+  return parts;
 };
 
 const buildSessionMessageEvent = (
@@ -380,15 +913,243 @@ const buildSessionMessageEvent = (
   ...extra,
 });
 
-function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, lineNo: number): {
+const buildSessionStatusEvent = (
+  lineNo: number,
+  timestamp: string,
+  type: string,
+  summary: string,
+  rawLine: string,
+): AppSaSessionEvent => ({
+  type,
+  line: lineNo,
+  event_index: lineNo,
+  timestamp,
+  display_timestamp: timestamp,
+  summary,
+  raw_line: rawLine,
+});
+
+const buildToolEvents = (
+  lineNo: number,
+  timestamp: string,
+  toolName: string,
+  callId: string,
+  input: unknown,
+  output: string,
+  rawLine: string,
+  isError: boolean,
+): AppSaSessionEvent[] => {
+  const events = [
+    buildSessionMessageEvent(lineNo, timestamp, 'assistant', [{
+      type: 'toolCall',
+      name: toolName,
+      id: callId,
+      arguments: input && typeof input === 'object' ? input as Record<string, any> : {},
+    }], rawLine),
+  ];
+  if (output || isError) {
+    events.push(buildSessionMessageEvent(lineNo, timestamp, 'toolResult', [{
+      type: 'toolResult',
+      name: toolName,
+      text: output || '(no output)',
+      isError,
+    }], rawLine, {
+      toolCallId: callId,
+      toolName,
+      isError,
+    }));
+  }
+  return events;
+};
+
+const toolNameFromTitle = (value: unknown) => {
+  const title = asString(value);
+  const match = /^tool (?:result|error):\s*(.+)$/i.exec(title.trim());
+  return normalizeToolName(match?.[1] || '', '');
+};
+
+const isSilentSessionLifecycleEvent = (obj: Record<string, any>): boolean => {
+  const eventType = String(obj.type || '');
+  const partType = String(asRecord(obj.part).type || '');
+  const title = asString(obj.title).toLowerCase();
+  return title === 'thread.started'
+    || title === 'turn.started'
+    || eventType === 'thread.started'
+    || eventType === 'turn.started'
+    || partType === 'step-start'
+    || partType === 'step-finish';
+};
+
+const parseSessionMessageParts = (content: unknown): Array<Record<string, any>> => {
+  const parts: Array<Record<string, any>> = [];
+  if (typeof content === 'string') {
+    return parseTaggedTextParts(content);
+  }
+  if (content && typeof content === 'object' && !Array.isArray(content)) {
+    const item = content as Record<string, any>;
+    const contentType = String(item.type || item.kind || '');
+    if (contentType === 'text' || typeof item.text === 'string') {
+      return parseTaggedTextParts(asString(item.text));
+    }
+    if (contentType === 'thinking' || typeof item.thinking === 'string') {
+      pushSessionTextPart(parts, 'thinking', item.thinking || item.text || '');
+      return parts;
+    }
+    if (contentType === 'toolCall' || contentType === 'tool_call') {
+      parts.push({
+        type: 'toolCall',
+        name: normalizeToolName(item.name || item.tool),
+        id: item.id || item.callId || item.callID || '',
+        arguments: item.arguments || item.args || item.input || {},
+      });
+      return parts;
+    }
+    if (contentType === 'toolResult' || contentType === 'tool_result' || typeof item.output === 'string') {
+      parts.push({
+        type: 'toolResult',
+        text: item.text || item.output || '',
+        name: normalizeToolName(item.name || item.tool, ''),
+        isError: Boolean(item.isError ?? item.is_error ?? item.error ?? false),
+      });
+      return parts;
+    }
+    return parts;
+  }
+  if (!Array.isArray(content)) return parts;
+  for (const item of content) {
+    if (!item || typeof item !== 'object') continue;
+    const part = item as Record<string, any>;
+    const contentType = String(part.type || part.kind || '');
+    if (contentType === 'text') {
+      parts.push(...parseTaggedTextParts(asString(part.text)));
+    } else if (contentType === 'thinking') {
+      pushSessionTextPart(parts, 'thinking', part.thinking || part.text || '');
+    } else if (contentType === 'toolCall' || contentType === 'tool_call') {
+      parts.push({
+        type: 'toolCall',
+        name: normalizeToolName(part.name || part.tool),
+        id: part.id || part.callId || part.callID || '',
+        arguments: part.arguments || part.args || part.input || {},
+      });
+    } else if (contentType === 'toolResult' || contentType === 'tool_result') {
+      parts.push({
+        type: 'toolResult',
+        text: part.text || part.output || '',
+        name: normalizeToolName(part.name || part.tool, ''),
+        isError: Boolean(part.isError ?? part.is_error ?? part.error ?? false),
+      });
+    } else {
+      parts.push({ type: 'unknown', detail: JSON.stringify(part).slice(0, 200) });
+    }
+  }
+  return parts;
+};
+
+const parseSessionJsonlObject = (obj: Record<string, any>, rawLine: string, lineNo: number): {
   sessionMeta?: Record<string, any>;
   events?: AppSaSessionEvent[];
-} {
+} => {
   const eventType = String(obj.type || '');
   const timestamp = normalizeSessionTimestamp(obj.timestamp || obj.time || '');
+  const payload = sessionNestedRecord(obj, 'payload');
+  const data = sessionNestedRecord(obj, 'data');
+  const config = sessionNestedRecord(obj, 'config');
+  const metadata = sessionNestedRecord(obj, 'metadata');
+  const options = sessionNestedRecord(obj, 'options');
+  const settings = sessionNestedRecord(obj, 'settings');
+  const message = obj.message && typeof obj.message === 'object' ? obj.message as Record<string, any> : {};
+  const raw = asRecord(obj.raw);
+  const sdk = sessionNestedSdkSpecific(obj, payload, data, config, metadata, options, settings);
   if (isSilentSessionLifecycleEvent(obj)) {
     return {};
   }
+  const modelProvider = sessionFirstString(
+    obj.provider,
+    obj.modelProvider,
+    obj.model_provider,
+    payload.provider,
+    data.provider,
+    config.provider,
+    metadata.provider,
+    options.provider,
+    settings.provider,
+    message.provider,
+    sdk.provider,
+  );
+  const modelId = sessionFirstString(
+    obj.modelId,
+    obj.modelID,
+    obj.model_id,
+    obj.model,
+    obj.modelName,
+    obj.model_name,
+    payload.modelId,
+    payload.model_id,
+    payload.model,
+    data.modelId,
+    data.model_id,
+    data.model,
+    config.model,
+    metadata.modelId,
+    metadata.model_id,
+    metadata.model,
+    options.modelId,
+    options.model_id,
+    options.model,
+    settings.modelId,
+    settings.model_id,
+    settings.model,
+    message.modelId,
+    message.model_id,
+    message.model,
+    sdk.model,
+  );
+  const thinkingLevel = sessionFirstString(
+    obj.thinkingLevel,
+    obj.thinking_level,
+    obj.thinking,
+    obj.reasoningEffort,
+    obj.reasoning_effort,
+    obj.level,
+    payload.thinkingLevel,
+    payload.thinking_level,
+    payload.thinking,
+    payload.reasoning_effort,
+    payload.level,
+    data.thinkingLevel,
+    data.thinking_level,
+    data.thinking,
+    data.reasoning_effort,
+    data.level,
+    config.thinkingLevel,
+    config.thinking_level,
+    config.thinking,
+    config.reasoning_effort,
+    config.level,
+    metadata.thinkingLevel,
+    metadata.thinking_level,
+    metadata.thinking,
+    metadata.reasoning_effort,
+    metadata.level,
+    options.thinkingLevel,
+    options.thinking_level,
+    options.thinking,
+    options.reasoning_effort,
+    options.level,
+    settings.thinkingLevel,
+    settings.thinking_level,
+    settings.thinking,
+    settings.reasoning_effort,
+    settings.level,
+    message.thinkingLevel,
+    message.thinking_level,
+    message.thinking,
+    message.reasoning_effort,
+    message.level,
+    sdk.thinking,
+    sdk.reasoning_effort,
+    sdk.level,
+  );
   if (eventType === 'session') {
     return {
       sessionMeta: {
@@ -396,10 +1157,13 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
         version: obj.version || '',
         timestamp,
         cwd: obj.cwd || obj.path || '',
+        provider: modelProvider,
+        model: modelId,
+        thinking: thinkingLevel,
       },
     };
   }
-  if (eventType === 'model_change') {
+  if (['model_change', 'model', 'model_changed', 'set_model'].includes(eventType) || (modelId && !eventType.startsWith('message'))) {
     return {
       events: [{
         type: 'model_change',
@@ -407,14 +1171,14 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
         event_index: lineNo,
         timestamp,
         display_timestamp: timestamp,
-        provider: obj.provider || '',
-        modelId: obj.modelId || obj.model || '',
+        provider: modelProvider,
+        modelId,
         raw_line: rawLine,
       }],
     };
   }
-  if (eventType === 'thinking_level_change') {
-    const level = String(obj.thinkingLevel || obj.thinking_level || '');
+  if (['thinking_level_change', 'thinking_level', 'thinking', 'reasoning_effort_change', 'reasoning_effort'].includes(eventType) || (thinkingLevel && !eventType.startsWith('message'))) {
+    const level = thinkingLevel;
     return {
       events: [{
         type: 'thinking_level_change',
@@ -428,62 +1192,144 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
       }],
     };
   }
-  if (eventType === 'message' || eventType === 'assistant_message' || eventType === 'agent_message') {
-    const msg = obj.message && typeof obj.message === 'object' ? obj.message as Record<string, any> : {};
-    const content = msg.content ?? obj.content ?? obj.text ?? (typeof obj.message === 'string' ? obj.message : '');
+  if (eventType === 'message' || eventType === 'message_end' || eventType === 'assistant_message' || eventType === 'agent_message') {
+    const content = message.content ?? obj.content ?? obj.text ?? (typeof obj.message === 'string' ? obj.message : '');
     const parts = parseSessionMessageParts(content);
     const inferredRole = parts.length === 1 && parts[0].type === 'toolResult' ? 'toolResult' : 'assistant';
-    const role = String(msg.role || obj.role || inferredRole);
+    const role = String(message.role || obj.role || inferredRole);
+    if (parts.length === 0) return {};
     const event = buildSessionMessageEvent(lineNo, timestamp, role, parts, rawLine);
     if (role === 'toolResult') {
       const resultPart = parts.find((part) => part.type === 'toolResult') || {};
-      event.toolCallId = msg.toolCallId || msg.tool_call_id || '';
-      event.toolName = msg.toolName || msg.tool_name || resultPart.name || '';
-      event.isError = Boolean(msg.isError ?? msg.is_error ?? resultPart.isError ?? false);
+      event.toolCallId = message.toolCallId || message.tool_call_id || '';
+      event.toolName = message.toolName || message.tool_name || resultPart.name || '';
+      event.isError = Boolean(message.isError ?? message.is_error ?? resultPart.isError ?? false);
     }
     return { events: [event] };
   }
+  if (eventType === 'item_completed') {
+    const rawItem = asRecord(raw.item);
+    const rawItemType = asString(rawItem.type).trim().toLowerCase();
+    const content = rawItem.text ?? obj.content ?? '';
+    if (rawItemType === 'agent_message' || asString(content).trim()) {
+      const parts = parseSessionMessageParts(content);
+      if (parts.length > 0) {
+        return { events: [buildSessionMessageEvent(lineNo, timestamp, 'assistant', parts, rawLine)] };
+      }
+    }
+    return {
+      events: [buildSessionStatusEvent(
+        lineNo,
+        timestamp,
+        'item_completed',
+        asString(obj.title || `Item completed${rawItemType ? `: ${rawItemType}` : ''}`),
+        rawLine,
+      )],
+    };
+  }
   if (eventType === 'text') {
     const part = asRecord(obj.part);
-    const text = asString(part.text ?? obj.text ?? obj.content);
-    if (!text) return {};
-    return { events: [buildSessionMessageEvent(lineNo, timestamp, 'assistant', [{ type: 'text', text }], rawLine)] };
+    const parts = parseSessionMessageParts(part.text ?? obj.text ?? obj.content);
+    if (parts.length === 0) return {};
+    return { events: [buildSessionMessageEvent(lineNo, timestamp, 'assistant', parts, rawLine)] };
   }
   if (eventType === 'tool_use' || eventType === 'tool_call') {
     const part = asRecord(obj.part);
     const state = asRecord(part.state);
-    const metadata = asRecord(state.metadata);
+    const metadataState = asRecord(state.metadata);
     const toolName = normalizeToolName(part.tool || state.title || obj.tool || obj.name);
-    const callId = asString(part.callID || part.callId || part.id || obj.callID || obj.callId || obj.id);
+    const callId = sessionFirstString(part.callID, part.callId, part.id, obj.callID, obj.callId, obj.id);
     const input = state.input || part.input || obj.input || obj.arguments || {};
-    const output = asString(state.output ?? metadata.output ?? part.output ?? obj.output ?? '');
-    const status = asString(state.status || obj.status || '');
-    const events = [
-      buildSessionMessageEvent(lineNo, timestamp, 'assistant', [{
-        type: 'toolCall',
-        name: toolName,
-        id: callId,
-        arguments: input,
-      }], rawLine),
-    ];
-    if (output) {
-      events.push(buildSessionMessageEvent(lineNo, timestamp, 'toolResult', [{
-        type: 'toolResult',
-        name: toolName,
-        text: output,
-        isError: status === 'error' || status === 'failed',
-      }], rawLine, {
-        toolCallId: callId,
+    const output = asString(state.output ?? metadataState.output ?? part.output ?? obj.output ?? '');
+    const status = sessionFirstString(state.status, obj.status);
+    return {
+      events: buildToolEvents(
+        lineNo,
+        timestamp,
         toolName,
-        isError: status === 'error' || status === 'failed',
-      }));
+        callId,
+        input,
+        output,
+        rawLine,
+        status === 'error' || status === 'failed',
+      ),
+    };
+  }
+  if (eventType === 'tool_result' || eventType === 'tool_error') {
+    const part = asRecord(raw.part);
+    const state = asRecord(part.state);
+    const metadataState = asRecord(state.metadata);
+    const toolName = normalizeToolName(part.tool || state.title || obj.tool || obj.name || toolNameFromTitle(obj.title));
+    const callId = sessionFirstString(part.callID, part.callId, part.id, obj.callID, obj.callId, obj.id);
+    const input = state.input || part.input || obj.input || obj.arguments || {};
+    const output = asString(obj.content ?? state.output ?? metadataState.output ?? part.output ?? obj.output ?? '');
+    const status = sessionFirstString(state.status, obj.status);
+    return {
+      events: buildToolEvents(
+        lineNo,
+        timestamp,
+        toolName,
+        callId,
+        input,
+        output,
+        rawLine,
+        eventType === 'tool_error' || status === 'error' || status === 'failed',
+      ),
+    };
+  }
+  if (eventType === 'stderr' || String(obj.source || '') === 'stderr') {
+    const summary = asString(obj.content ?? obj.raw ?? obj.message ?? obj.title);
+    if (!summary.trim()) return {};
+    return { events: [buildSessionStatusEvent(lineNo, timestamp, 'stderr', summary, rawLine)] };
+  }
+  if (eventType === 'step_started' || eventType === 'step_start') {
+    return {};
+  }
+  if (eventType === 'step_finished' || eventType === 'step_finish') {
+    return {};
+  }
+  if (['completed', 'failed', 'cancelled', 'timed_out', 'permission'].includes(eventType)) {
+    const summary = sessionFirstString(obj.content, obj.message, obj.title, eventType.replace(/_/g, ' '));
+    if (eventType === 'failed') {
+      return {
+        events: [{
+          type: 'error',
+          line: lineNo,
+          event_index: lineNo,
+          timestamp,
+          display_timestamp: timestamp,
+          summary,
+          raw_line: rawLine.slice(0, 200),
+        }],
+      };
     }
-    return { events };
+    return { events: [buildSessionStatusEvent(lineNo, timestamp, eventType, summary, rawLine)] };
+  }
+  if (eventType === 'event') {
+    const title = asString(obj.title).trim().toLowerCase();
+    const summary = sessionFirstString(obj.content, obj.message, obj.title, 'event');
+    if (title === 'thread.started' || title === 'turn.started') {
+      return {};
+    }
+    if (title === 'error') {
+      return {
+        events: [{
+          type: 'error',
+          line: lineNo,
+          event_index: lineNo,
+          timestamp,
+          display_timestamp: timestamp,
+          summary,
+          raw_line: rawLine.slice(0, 200),
+        }],
+      };
+    }
+    return { events: [buildSessionStatusEvent(lineNo, timestamp, 'event', summary, rawLine)] };
   }
   if (eventType === 'error') {
     const error = asRecord(obj.error);
-    const data = asRecord(error.data);
-    const message = asString(data.message || error.message || obj.message || 'Agent error');
+    const dataError = asRecord(error.data);
+    const summary = asString(dataError.message || error.message || obj.message || obj.content || 'Agent error');
     return {
       events: [{
         type: 'error',
@@ -491,7 +1337,7 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
         event_index: lineNo,
         timestamp,
         display_timestamp: timestamp,
-        summary: message,
+        summary,
         raw_line: rawLine.slice(0, 200),
       }],
     };
@@ -507,9 +1353,9 @@ function parseSessionJsonlObject(obj: Record<string, any>, rawLine: string, line
       raw_line: rawLine.slice(0, 200),
     }],
   };
-}
+};
 
-function parseSessionJsonlDelta(lines: string[], startLine: number): SessionDeltaParseResult {
+const parseSessionJsonlDelta = (lines: string[], startLine: number): SessionDeltaParseResult => {
   const events: AppSaSessionEvent[] = [];
   const warnings: string[] = [];
   let sessionMeta: Record<string, any> | null = null;
@@ -520,6 +1366,10 @@ function parseSessionJsonlDelta(lines: string[], startLine: number): SessionDelt
     const trimmed = rawLine.trim();
     if (!trimmed) return;
     lineCount += 1;
+    if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+      events.push(buildSessionStatusEvent(lineNo, '', 'stderr', trimmed, trimmed.slice(0, 200)));
+      return;
+    }
     try {
       const parsed = JSON.parse(trimmed);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -536,9 +1386,9 @@ function parseSessionJsonlDelta(lines: string[], startLine: number): SessionDelt
   });
 
   return { sessionMeta, events, warnings, lineCount };
-}
+};
 
-function buildSessionSnapshotFromText(path: string, content: string): AppSaSessionSnapshot {
+const buildSessionSnapshotFromText = (path: string, content: string) => {
   const lines = content.split(/\r?\n/);
   const parsed = parseSessionJsonlDelta(lines, 1);
   return {
@@ -548,21 +1398,306 @@ function buildSessionSnapshotFromText(path: string, content: string): AppSaSessi
     warnings: parsed.warnings,
     line_count: parsed.lineCount,
   };
-}
+};
+
+const buildProviderSnapshotMap = (value: unknown): Map<string, Record<string, any>> => {
+  const map = new Map<string, Record<string, any>>();
+  asRecordArray(value).forEach((item) => {
+    const key = String(item.provider_key || '').trim();
+    if (key) map.set(key, item);
+  });
+  return map;
+};
+
+const displayProviderName = (providerKey: string, snapshotMap: Map<string, Record<string, any>>) => {
+  const snapshot = snapshotMap.get(providerKey);
+  return String(snapshot?.display_name || providerKey).trim() || providerKey;
+};
+
+const buildTaskRuntimeSummary = (effectiveConfig: unknown): TaskRuntimeSummary | null => {
+  const config = asRecord(effectiveConfig);
+  const providerKeys = normalizeProviderKeys(config.provider_keys);
+  const providerSnapshots = asRecordArray(config.provider_snapshots);
+  const executorMode = asString(config.executor_mode || config.execution_mode).trim();
+  const model = asString(config.model).trim();
+  const taskModel = asString(config.task_model).trim();
+  if (!executorMode && !model && !taskModel && providerKeys.length === 0 && providerSnapshots.length === 0) return null;
+  return {
+    executorMode,
+    model,
+    taskModel,
+    providerKeys,
+    providerSnapshots,
+  };
+};
+
+const parseTaskGraphManifest = (content: string): TaskGraphManifest | null => {
+  const payload = asRecord(JSON.parse(content));
+  if (!payload || String(payload.kind || '').trim() !== 'custom_graph') return null;
+  const pipeline = asRecord(payload.pipeline);
+  const rawPipelineNodes = Array.isArray(pipeline.nodes) ? pipeline.nodes : [];
+  const rawNodeMap = asRecord(payload.nodes);
+  const manifestNodeMap: Record<string, TaskGraphManifestNodeRuntime> = {};
+  Object.entries(rawNodeMap).forEach(([nodeId, rawValue]) => {
+    const item = asRecord(rawValue);
+    manifestNodeMap[nodeId] = {
+      status: asString(item.status).trim(),
+      message: asString(item.message).trim(),
+      return_code: item.return_code == null ? null : Number(item.return_code),
+      log_path: asString(item.log_path).trim(),
+      session_files: Array.isArray(item.session_files) ? item.session_files.map((value) => asString(value).trim()).filter(Boolean) : [],
+      reports: Array.isArray(item.reports)
+        ? item.reports.map((report) => {
+          const normalized = asRecord(report);
+          return {
+            output_id: asString(normalized.output_id).trim(),
+            node_id: nodeId,
+            title: asString(normalized.title).trim(),
+            relative_path: asString(normalized.relative_path).trim(),
+            format: asString(normalized.format).trim(),
+            required: Boolean(normalized.required),
+            exists: Boolean(normalized.exists),
+          };
+        })
+        : [],
+    };
+  });
+  return {
+    kind: 'custom_graph',
+    pipeline: {
+      name: asString(pipeline.name).trim(),
+      working_dir: asString(pipeline.working_dir).trim(),
+      nodes: rawPipelineNodes.map((rawNode) => {
+        const node = asRecord(rawNode);
+        return {
+          id: asString(node.id).trim(),
+          depends_on: Array.isArray(node.depends_on) ? node.depends_on.map((value) => asString(value).trim()).filter(Boolean) : [],
+          agent: asString(node.agent).trim(),
+          model: asString(node.model).trim(),
+          tools: asString(node.tools).trim(),
+          target: node.target && typeof node.target === 'object' && !Array.isArray(node.target) ? node.target as Record<string, any> : null,
+          success_criteria: asRecordArray(node.success_criteria),
+          prompt: asString(node.prompt),
+        };
+      }).filter((node) => node.id),
+    },
+    nodes: manifestNodeMap,
+    reports: Array.isArray(payload.reports)
+      ? payload.reports.map((report) => {
+        const normalized = asRecord(report);
+        return {
+          output_id: asString(normalized.output_id).trim(),
+          node_id: asString(normalized.node_id).trim(),
+          title: asString(normalized.title).trim(),
+          relative_path: asString(normalized.relative_path).trim(),
+          format: asString(normalized.format).trim(),
+          required: Boolean(normalized.required),
+          exists: Boolean(normalized.exists),
+        };
+      })
+      : [],
+  };
+};
+
+const extractPipelineNodesFromGraphSource = (graphSource: unknown): TaskGraphManifestPipelineNode[] => {
+  const source = asRecord(graphSource);
+  if (String(source.type || '').trim() !== 'inline_json') return [];
+  const content = asRecord(source.content);
+  const nodes = Array.isArray(content.nodes) ? content.nodes : [];
+  return nodes.map((rawNode) => {
+    const node = asRecord(rawNode);
+    return {
+      id: asString(node.id).trim(),
+      depends_on: Array.isArray(node.depends_on) ? node.depends_on.map((value) => asString(value).trim()).filter(Boolean) : [],
+      agent: asString(node.agent).trim(),
+      model: asString(node.model).trim(),
+      tools: asString(node.tools).trim(),
+      target: node.target && typeof node.target === 'object' && !Array.isArray(node.target) ? node.target as Record<string, any> : null,
+      success_criteria: asRecordArray(node.success_criteria),
+      prompt: asString(node.prompt),
+    };
+  }).filter((node) => node.id);
+};
+
+const extractPipelineNodesFromEffectiveConfig = (effectiveConfig: unknown): TaskGraphManifestPipelineNode[] => {
+  const config = asRecord(effectiveConfig);
+  const materialized = extractPipelineNodesFromGraphSource(config.materialized_graph_source);
+  if (materialized.length > 0) return materialized;
+  return extractPipelineNodesFromGraphSource(config.graph_source);
+};
+
+const buildTaskGraphNodeViews = (
+  attempt: IpcAuditAttemptDetail | null,
+  manifest: TaskGraphManifest | null,
+  reportOutputs: IpcAuditTaskReportOutput[],
+  sessions: Record<string, IpcAuditStageSessionSummary[]>,
+): TaskGraphNodeView[] => {
+  const stageRunMap = new Map((attempt?.stage_runs || []).map((item) => [item.stage_name, item]));
+  const pipelineNodes = (manifest?.pipeline?.nodes || []).length > 0
+    ? (manifest?.pipeline?.nodes || [])
+    : extractPipelineNodesFromEffectiveConfig(attempt?.effective_config);
+  const pipelineNodeMap = new Map(pipelineNodes.map((item) => [item.id, item]));
+  const manifestNodeMap = manifest?.nodes || {};
+  const reportOutputMap = new Map<string, IpcAuditTaskReportOutput[]>();
+  reportOutputs.forEach((item) => {
+    const existing = reportOutputMap.get(item.node_id) || [];
+    existing.push(item);
+    reportOutputMap.set(item.node_id, existing);
+  });
+  reportOutputMap.forEach((items, nodeId) => {
+    reportOutputMap.set(nodeId, [...items].sort((left, right) => ((left.order ?? 0) - (right.order ?? 0)) || left.title.localeCompare(right.title)));
+  });
+  const nodeIds = normalizeStageNames([
+    ...pipelineNodes.map((item) => item.id),
+    ...deriveStageNamesFromAttempt(attempt),
+    ...Object.keys(manifestNodeMap),
+  ]);
+  return nodeIds.map((nodeId) => {
+    const pipelineNode = pipelineNodeMap.get(nodeId);
+    const runtimeNode = manifestNodeMap[nodeId];
+    const stageRun = stageRunMap.get(nodeId);
+    const sessionFiles = normalizeStageNames([
+      ...(runtimeNode?.session_files || []),
+      ...(sessions[nodeId] || []).map((item) => item.path),
+    ]);
+    return {
+      id: nodeId,
+      label: formatStageLabel(nodeId),
+      status: String(runtimeNode?.status || stageRun?.status || 'pending').trim() || 'pending',
+      message: String(runtimeNode?.message || stageRun?.message || '').trim(),
+      returnCode: runtimeNode?.return_code ?? stageRun?.return_code ?? null,
+      dependsOn: normalizeStageNames(pipelineNode?.depends_on || []),
+      agent: String(pipelineNode?.agent || '').trim(),
+      model: String(pipelineNode?.model || '').trim(),
+      tools: String(pipelineNode?.tools || '').trim(),
+      targetCwd: String(asRecord(pipelineNode?.target).cwd || '').trim(),
+      prompt: String(pipelineNode?.prompt || '').trim(),
+      sessionFiles,
+      reports: reportOutputMap.get(nodeId) || [],
+      hasEventsJsonl: sessionFiles.some((path) => fileNameOf(path) === 'events.jsonl'),
+      hasLastMessage: sessionFiles.some((path) => fileNameOf(path) === 'last-message.md'),
+      hasPrompt: sessionFiles.some((path) => fileNameOf(path) === 'prompt.txt'),
+    };
+  });
+};
+
+const graphNodeBadgeTone = (status: string) => {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'succeeded' || normalized === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (normalized === 'running' || normalized === 'queued') return 'border-sky-200 bg-sky-50 text-sky-700';
+  if (normalized === 'failed' || normalized === 'timed_out' || normalized === 'cancelled') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'skipped') return 'border-slate-200 bg-slate-100 text-slate-600';
+  return 'border-amber-200 bg-amber-50 text-amber-700';
+};
+
+const graphNodeCardTone = (status: string, active: boolean) => {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'succeeded' || normalized === 'completed') {
+    return active ? 'border-emerald-300 bg-emerald-50 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]' : 'border-emerald-200 bg-white';
+  }
+  if (normalized === 'running' || normalized === 'queued') {
+    return active ? 'border-sky-300 bg-sky-50 shadow-[0_0_0_3px_rgba(59,130,246,0.12)]' : 'border-sky-200 bg-white';
+  }
+  if (normalized === 'failed' || normalized === 'timed_out' || normalized === 'cancelled') {
+    return active ? 'border-rose-300 bg-rose-50 shadow-[0_0_0_3px_rgba(244,63,94,0.12)]' : 'border-rose-200 bg-white';
+  }
+  if (normalized === 'skipped') {
+    return active ? 'border-slate-300 bg-slate-100 shadow-[0_0_0_3px_rgba(100,116,139,0.10)]' : 'border-slate-200 bg-white';
+  }
+  return active ? 'border-amber-300 bg-amber-50 shadow-[0_0_0_3px_rgba(245,158,11,0.12)]' : 'border-amber-200 bg-white';
+};
+
+const buildTaskGraphFlow = (
+  items: TaskGraphNodeView[],
+  selectedNodeId: string,
+): { nodes: TaskGraphCanvasNodeType[]; edges: Edge[] } => {
+  const TASK_GRAPH_NODE_WIDTH = 240;
+  const TASK_GRAPH_NODE_HEIGHT = 108;
+  const TASK_GRAPH_COLUMN_GAP = 320;
+  const TASK_GRAPH_ROW_GAP = 170;
+  const dependencyMap = new Map(items.map((item) => [item.id, item.dependsOn.filter((dep) => items.some((candidate) => candidate.id === dep))]));
+  const depthCache = new Map<string, number>();
+  const resolveDepth = (nodeId: string, visiting: Set<string>): number => {
+    if (depthCache.has(nodeId)) return depthCache.get(nodeId) || 0;
+    if (visiting.has(nodeId)) return 0;
+    visiting.add(nodeId);
+    const depth = Math.max(0, ...((dependencyMap.get(nodeId) || []).map((dep) => resolveDepth(dep, visiting) + 1)));
+    visiting.delete(nodeId);
+    depthCache.set(nodeId, depth);
+    return depth;
+  };
+  const groups = new Map<number, TaskGraphNodeView[]>();
+  items.forEach((item) => {
+    const depth = resolveDepth(item.id, new Set<string>());
+    const existing = groups.get(depth) || [];
+    existing.push(item);
+    groups.set(depth, existing);
+  });
+  const sortedDepths = [...groups.keys()].sort((left, right) => left - right);
+  const nodes: TaskGraphCanvasNodeType[] = [];
+  sortedDepths.forEach((depth) => {
+    const group = groups.get(depth) || [];
+    group.forEach((item, index) => {
+      nodes.push({
+        id: item.id,
+        type: 'taskGraphNode',
+        position: { x: depth * TASK_GRAPH_COLUMN_GAP, y: index * TASK_GRAPH_ROW_GAP },
+        data: {
+          label: item.label,
+          status: item.status,
+          agent: item.agent,
+          model: item.model,
+          reportCount: item.reports.length,
+          active: item.id === selectedNodeId,
+          hasEventsJsonl: item.hasEventsJsonl,
+          hasLastMessage: item.hasLastMessage,
+        },
+        draggable: false,
+        selectable: true,
+        style: { width: TASK_GRAPH_NODE_WIDTH },
+        initialWidth: TASK_GRAPH_NODE_WIDTH,
+        initialHeight: TASK_GRAPH_NODE_HEIGHT,
+      } as TaskGraphCanvasNodeType);
+    });
+  });
+  const edges: Edge[] = items.flatMap((item) => item.dependsOn
+    .filter((dep) => items.some((candidate) => candidate.id === dep))
+    .map((dep) => ({
+      id: `${dep}->${item.id}`,
+      source: dep,
+      target: item.id,
+      markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18, color: '#94a3b8' },
+      style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+      animated: item.status === 'running',
+    })));
+  return { nodes, edges };
+};
+
+const normalizeReadyState = (value: { status?: string | null; ready?: boolean | null; checks?: Record<string, boolean> | null }): IpcAuditReadyState => ({
+  status: value.status || 'unknown',
+  ready: Boolean(value.ready),
+  checks: value.checks && typeof value.checks === 'object' ? value.checks : {},
+});
 
 const formatReadyFailure = (checks?: Record<string, boolean>) => {
   const failedChecks = Object.entries(checks || {})
-    .filter(([, ok]) => !ok)
+    .filter(([key, ok]) => !ok && !HIDDEN_READY_CHECK_KEYS.has(key))
     .map(([key]) => key);
   return failedChecks.length > 0 ? `失败检查项：${failedChecks.join(', ')}` : '服务未就绪';
 };
 
-const defaultStage = (sessions: Record<StageName, IpcAuditStageSessionSummary[]>, attempt?: IpcAuditAttemptDetail | null): StageName => {
-  if (sessions.audit.length > 0) return 'audit';
-  if (sessions.poc.length > 0) return 'poc';
+const defaultStage = (
+  stageNames: string[],
+  sessions: Record<string, IpcAuditStageSessionSummary[]>,
+  attempt?: IpcAuditAttemptDetail | null,
+): StageName => {
+  const ordered = normalizeStageNames(stageNames);
+  for (const stageName of ordered) {
+    if ((sessions[stageName] || []).length > 0) return stageName;
+  }
   const running = attempt?.stage_runs.find((item) => item.status === 'running');
-  if (running?.stage_name === 'poc') return 'poc';
-  return 'audit';
+  if (running?.stage_name && ordered.includes(running.stage_name)) return running.stage_name;
+  return ordered[0] || 'audit';
 };
 
 const preferredSession = (items: IpcAuditStageSessionSummary[]) => {
@@ -576,6 +1711,13 @@ const preferredSession = (items: IpcAuditStageSessionSummary[]) => {
 };
 
 const normalizeProjectPathInput = (value: string) => value.trim().replace(/^\/+|\/+$/g, '');
+const normalizeProviderKeys = (value: unknown): string[] => (
+  Array.isArray(value)
+    ? value
+      .map((item) => String(item || '').trim())
+      .filter((item, index, items) => Boolean(item) && items.indexOf(item) === index)
+    : []
+);
 
 const buildDefaultTitle = (inputPath?: string | null, displayName?: string | null) => {
   const rawPath = String(inputPath || '').trim();
@@ -594,27 +1736,40 @@ const buildBatchTaskTitle = (titlePrefix: string, targetCount: number, inputPath
 };
 
 const resolvePipelineMode = (capabilities: IpcAuditCapability | null, workspace: IpcAuditWorkspaceSummary | null) => {
-  const supported = capabilities?.pipeline_modes || [];
-  const preferred = workspace?.default_pipeline_mode || capabilities?.default_pipeline_mode || supported[0] || 'audit_only';
-  return supported.includes(preferred) ? preferred : (supported[0] || 'audit_only');
+  void capabilities;
+  void workspace;
+  return 'custom_graph' as PipelineMode;
 };
 
 const resolveExecutorMode = (capabilities: IpcAuditCapability | null) => {
   const supported = capabilities?.executor_modes || [];
-  const preferred = supported.includes('opencode_cli')
-    ? 'opencode_cli'
-    : capabilities?.default_executor_mode && capabilities.default_executor_mode !== 'mock'
-      ? capabilities.default_executor_mode
-      : supported.find((item) => item !== 'mock') || supported[0] || 'opencode_cli';
-  return supported.includes(preferred) ? preferred : (supported[0] || 'codex_cli');
+  const preferred = capabilities?.default_executor_mode && capabilities.default_executor_mode !== 'mock'
+    ? capabilities.default_executor_mode
+    : supported.includes('agentflow_cli')
+      ? 'agentflow_cli'
+      : supported.includes('opencode_cli')
+        ? 'opencode_cli'
+        : supported.includes('codex_cli')
+          ? 'codex_cli'
+          : supported.find((item) => item !== 'mock') || supported[0] || 'opencode_cli';
+  return (supported.includes(preferred) ? preferred : (supported[0] || 'codex_cli')) as ExecutorMode;
 };
 
-const modelHintForExecutor = (mode?: string | null) => {
+const modelHintForExecutor = (mode?: string | null, providerModel?: string | null) => {
+  if (mode === 'agentflow_cli') {
+    return providerModel
+      ? `可留空，AgentFlow 节点会优先复用当前 Provider 的模型 ${providerModel}；图内如有更细粒度配置，以图定义为准。`
+      : '可留空，AgentFlow 节点会优先复用当前 Provider 的模型；图内如有更细粒度配置，以图定义为准。';
+  }
   if (mode === 'opencode_cli') {
-    return '可留空，沿用 OpenCode 当前默认模型；手填时建议使用 provider/model 形式。';
+    return providerModel
+      ? `可留空，自动使用当前 Provider 的模型 ${providerModel}；手填时建议使用 provider/model 形式。`
+      : '可留空，自动使用当前 Provider 的模型；手填时建议使用 provider/model 形式。';
   }
   if (mode === 'codex_cli') {
-    return '可留空，沿用 Codex 当前默认模型。';
+    return providerModel
+      ? `可留空，自动使用当前 Provider 的模型 ${providerModel}。`
+      : '可留空，自动使用当前 Provider 的模型。';
   }
   return 'Mock 执行器不会真正调用模型，填写后仅记录到任务配置。';
 };
@@ -629,6 +1784,30 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode; sub?: string
   </div>
 );
 
+const TaskGraphCanvasNode: React.FC<NodeProps<TaskGraphCanvasNodeType>> = ({ data }) => (
+  <div className={`w-[240px] rounded-2xl border px-4 py-3 shadow-sm transition ${graphNodeCardTone(data.status, data.active)}`}>
+    <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !border-2 !border-white !bg-slate-400" />
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="truncate text-sm font-black text-slate-900">{data.label}</div>
+        <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{data.agent || 'agentflow node'}</div>
+      </div>
+      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${graphNodeBadgeTone(data.status)}`}>
+        {formatStageStatus(data.status)}
+      </span>
+    </div>
+    <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+      {data.model ? <span className="rounded-full border border-slate-200 bg-white px-2 py-1 normal-case tracking-normal text-slate-500">{data.model}</span> : null}
+      <span>{data.reportCount} outputs</span>
+      {data.hasEventsJsonl ? <span>jsonl</span> : null}
+      {data.hasLastMessage ? <span>message</span> : null}
+    </div>
+    <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !border-2 !border-white !bg-slate-400" />
+  </div>
+);
+
+const taskGraphNodeTypes = { taskGraphNode: TaskGraphCanvasNode };
+
 const SessionTextViewer: React.FC<{ title: string; content?: string | null; truncated?: boolean }> = ({ title, content, truncated }) => (
   <div className="h-full overflow-auto rounded-2xl bg-slate-950 p-4 text-slate-100">
     <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
@@ -641,6 +1820,305 @@ const SessionTextViewer: React.FC<{ title: string; content?: string | null; trun
     <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-100">{content || ''}</pre>
   </div>
 );
+
+const formatSessionEventTime = (value?: string) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleTimeString('zh-CN');
+};
+
+const SessionMarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
+  <div className="markdown-body break-words leading-6">
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+        a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="font-semibold text-cyan-700 underline">{children}</a>,
+        ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
+        h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-slate-900 last:mb-0">{children}</h1>,
+        h2: ({ children }) => <h2 className="mb-3 text-lg font-black text-slate-900 last:mb-0">{children}</h2>,
+        h3: ({ children }) => <h3 className="mb-2 text-base font-black text-slate-900 last:mb-0">{children}</h3>,
+        blockquote: ({ children }) => <blockquote className="mb-3 border-l-4 border-slate-300 bg-slate-50 px-4 py-2 italic text-slate-700 last:mb-0">{children}</blockquote>,
+        table: ({ children }) => <div className="mb-3 overflow-x-auto last:mb-0"><table className="min-w-full border-collapse text-left text-xs">{children}</table></div>,
+        thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
+        th: ({ children }) => <th className="border border-slate-200 px-3 py-2 font-black text-slate-800">{children}</th>,
+        td: ({ children }) => <td className="border border-slate-200 px-3 py-2 align-top">{children}</td>,
+        code: ({ children, className }) => className
+          ? <code className="block overflow-x-auto rounded-2xl bg-slate-950 px-4 py-3 font-mono text-xs text-slate-100">{children}</code>
+          : <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-900">{children}</code>,
+        pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  </div>
+);
+
+const SessionThinkingBlock: React.FC<{ text: string }> = ({ text }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border border-violet-200 bg-violet-50/80 px-4 py-3">
+      <button type="button" onClick={() => setOpen((value) => !value)} className="text-xs font-bold text-violet-700">
+        {open ? '▼ hide' : '▶ thinking'}
+      </button>
+      {open ? <pre className="mt-3 whitespace-pre-wrap break-all text-xs leading-6 text-violet-950">{text}</pre> : null}
+    </div>
+  );
+};
+
+const SessionToolResultBlock: React.FC<{ event: AppSaSessionEvent }> = ({ event }) => {
+  const text = (event.parts || [])
+    .filter((part) => part.type === 'text' || part.type === 'toolResult')
+    .map((part) => String(part.text || ''))
+    .join('\n');
+  return (
+    <div className={`rounded-2xl border px-4 py-3 ${event.isError ? 'border-rose-200 bg-rose-50' : 'border-emerald-200 bg-emerald-50'}`}>
+      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-slate-600">
+        <Wrench size={12} />
+        {event.toolName || 'Tool Result'}
+      </div>
+      {text ? <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-all text-xs leading-6 text-slate-700">{text}</pre> : null}
+    </div>
+  );
+};
+
+const SessionToolCallBlock: React.FC<{ part: Record<string, any> }> = ({ part }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="flex items-center gap-2 text-xs font-black text-slate-700">
+        <Wrench size={12} />
+        <span>{part.name || 'tool'}</span>
+      </div>
+      <button type="button" onClick={() => setOpen((value) => !value)} className="mt-2 text-xs font-semibold text-slate-500">
+        {open ? '▼ hide args' : '▶ show args'}
+      </button>
+      {open ? (
+        <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">
+          {JSON.stringify(part.arguments || {}, null, 2)}
+        </pre>
+      ) : null}
+    </div>
+  );
+};
+
+const sessionEventPresentation = (event: AppSaSessionEvent) => {
+  if (event.type === 'stderr') {
+    return {
+      icon: <SquareTerminal size={13} />,
+      label: 'stderr',
+      className: 'border-amber-200 bg-amber-50 text-amber-900',
+      textClassName: 'text-amber-900',
+    };
+  }
+  if (event.type === 'error') {
+    return {
+      icon: <XCircle size={13} />,
+      label: 'error',
+      className: 'border-rose-200 bg-rose-50 text-rose-900',
+      textClassName: 'text-rose-900',
+    };
+  }
+  if (event.type === 'completed') {
+    return {
+      icon: <CheckCircle2 size={13} />,
+      label: 'completed',
+      className: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+      textClassName: 'text-emerald-900',
+    };
+  }
+  if (event.type === 'permission') {
+    return {
+      icon: <AlertTriangle size={13} />,
+      label: 'permission',
+      className: 'border-violet-200 bg-violet-50 text-violet-900',
+      textClassName: 'text-violet-900',
+    };
+  }
+  if (event.type === 'cancelled' || event.type === 'timed_out') {
+    return {
+      icon: <AlertTriangle size={13} />,
+      label: event.type,
+      className: 'border-slate-200 bg-slate-100 text-slate-800',
+      textClassName: 'text-slate-800',
+    };
+  }
+  return {
+    icon: <Info size={13} />,
+    label: event.type.replace(/_/g, ' '),
+    className: 'border-slate-200 bg-slate-100 text-slate-800',
+    textClassName: 'text-slate-800',
+  };
+};
+
+const SessionStatusEvent: React.FC<{ event: AppSaSessionEvent }> = ({ event }) => {
+  const time = formatSessionEventTime(event.timestamp || event.display_timestamp);
+  const presentation = sessionEventPresentation(event);
+  return (
+    <div className={`rounded-2xl border px-4 py-3 ${presentation.className}`}>
+      <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em]">
+        {presentation.icon}
+        {presentation.label}
+        {time ? <span className="font-medium normal-case tracking-normal opacity-70">{time}</span> : null}
+      </div>
+      {event.summary ? (
+        <pre className={`mt-3 whitespace-pre-wrap break-all text-xs leading-6 ${presentation.textClassName}`}>
+          {event.summary}
+        </pre>
+      ) : null}
+    </div>
+  );
+};
+
+const SessionMessage: React.FC<{ event: AppSaSessionEvent & { _toolResults?: AppSaSessionEvent[] } }> = ({ event }) => {
+  const time = formatSessionEventTime(event.timestamp || event.display_timestamp);
+  const parts = event.parts || [];
+
+  if (event.role === 'user') {
+    const text = parts.filter((part) => part.type === 'text').map((part) => String(part.text || '')).join('\n');
+    return (
+      <div className="rounded-3xl bg-slate-800 px-5 py-4 text-slate-100">
+        {time ? <div className="mb-2 text-[11px] text-slate-400">{time}</div> : null}
+        <div className="text-sm leading-7"><SessionMarkdownMessage content={text} /></div>
+      </div>
+    );
+  }
+
+  if (event.role === 'assistant') {
+    return (
+      <div className="space-y-3 rounded-3xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+          <Bot size={13} />
+          Assistant
+          {time ? <span className="font-medium tracking-normal text-slate-400">{time}</span> : null}
+        </div>
+        {parts.map((part, index) => {
+          if (part.type === 'thinking') return <SessionThinkingBlock key={`thinking-${index}`} text={String(part.text || '')} />;
+          if (part.type === 'text') return <div key={`text-${index}`} className="text-sm leading-7 text-slate-700"><SessionMarkdownMessage content={String(part.text || '')} /></div>;
+          if (part.type === 'toolCall') return <SessionToolCallBlock key={`tool-${index}`} part={part} />;
+          return null;
+        })}
+        {(event._toolResults || []).map((toolResult, index) => <SessionToolResultBlock key={`tool-result-${index}-${toolResult.line || index}`} event={toolResult} />)}
+      </div>
+    );
+  }
+
+  if (event.role === 'toolResult') {
+    return <SessionToolResultBlock event={event} />;
+  }
+
+  return <div className="rounded-2xl bg-slate-100 px-4 py-3 text-xs text-slate-500">{event.role || event.type}</div>;
+};
+
+const TaskSessionViewer: React.FC<{
+  sessionMeta?: AppSaSessionMeta | null;
+  sessionHeader?: Record<string, any> | null;
+  events: AppSaSessionEvent[];
+  loading?: boolean;
+  live?: boolean;
+  error?: string | null;
+}> = ({ sessionMeta, sessionHeader, events, loading = false, live = false, error = null }) => {
+  const merged = useMemo(() => mergeAgentSessionToolResults(events), [events]);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollerRef.current) return;
+    scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight;
+  }, [merged.length]);
+
+  const userCount = events.filter((event) => event.type === 'message' && event.role === 'user').length;
+  const assistantCount = events.filter((event) => event.type === 'message' && event.role === 'assistant').length;
+  const toolResultCount = events.filter((event) => event.type === 'message' && event.role === 'toolResult').length;
+  const toolCallCount = events.reduce((count, event) => count + ((event.parts || []).filter((part) => part.type === 'toolCall').length), 0);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-slate-200 bg-white text-sm text-slate-500 shadow-sm">
+        <Loader2 size={16} className="mr-2 animate-spin" />
+        加载会话中...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-10 text-sm text-rose-700 shadow-sm">
+        {error}
+      </div>
+    );
+  }
+
+  if (!sessionMeta) {
+    return (
+      <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
+        请选择左侧会话
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-slate-50/70 shadow-sm">
+      <div className="border-b border-slate-200 px-6 py-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-xl font-black tracking-tight text-slate-900">{sessionMeta.display_name}</h2>
+          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${live ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600'}`}>
+            {live ? '实时连接中' : '历史会话'}
+          </span>
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Session ID</div>
+            <div className="mt-1 break-all font-mono text-xs text-slate-700">{sessionHeader?.id || sessionMeta.session_id}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Started</div>
+            <div className="mt-1 break-all text-xs text-slate-700">{sessionHeader?.timestamp || '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Working Dir</div>
+            <div className="mt-1 break-all font-mono text-xs text-slate-700">{sessionHeader?.cwd || '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Events</div>
+            <div className="mt-1 text-xs text-slate-700">{events.length}</div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-5 text-xs font-semibold text-slate-500">
+          <span>User {userCount}</span>
+          <span>Assistant {assistantCount}</span>
+          <span>Tool Calls {toolCallCount}</span>
+          <span>Results {toolResultCount}</span>
+        </div>
+      </div>
+
+      <div ref={scrollerRef} className="max-h-[calc(100vh-24rem)] overflow-auto px-6 py-5">
+        <div className="space-y-4">
+          {merged.length > 0 ? merged.map((event) => {
+            if (event.type === 'model_change') {
+              return <div key={`model-${event.line}`} className="text-xs text-slate-500">Model: <span className="font-semibold text-cyan-700">{event.provider || ''}/{event.modelId || ''}</span></div>;
+            }
+            if (event.type === 'thinking_level_change') {
+              return <div key={`thinking-level-${event.line}`} className="text-xs text-slate-500">Thinking: <span className="font-semibold text-violet-700">{event.thinkingLevel || ''}</span></div>;
+            }
+            if (event.type === 'message') {
+              return <SessionMessage key={`message-${event.line}`} event={event} />;
+            }
+            if (['stderr', 'completed', 'cancelled', 'timed_out', 'permission', 'event', 'item_completed', 'error'].includes(event.type)) {
+              return <SessionStatusEvent key={`status-${event.line}-${event.type}`} event={event} />;
+            }
+            return <div key={`raw-${event.line}`} className="rounded-2xl bg-slate-100 px-4 py-3 text-xs text-slate-500">[Line {event.line}] {event.summary || event.type}</div>;
+          }) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500">
+              Empty session
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ArtifactPreviewBody: React.FC<{ artifact: IpcAuditArtifact; content: IpcAuditArtifactContent }> = ({ artifact, content }) => {
   const formatted = formatPreviewContent(artifact, content);
@@ -663,6 +2141,10 @@ const ArtifactPreviewBody: React.FC<{ artifact: IpcAuditArtifact; content: IpcAu
 export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionApi = api.domains.execution.ipcAudit;
   const { notify, confirm, feedbackNodes } = useUiFeedback();
+  const graphDefinitionCardRef = useRef<HTMLDivElement | null>(null);
+  const inlineJsonInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const pythonBuilderEntryInputRef = useRef<HTMLInputElement | null>(null);
+  const pythonBuilderCodeInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [bootstrapping, setBootstrapping] = useState(true);
   const [overviewError, setOverviewError] = useState<string | null>(null);
@@ -681,13 +2163,32 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [presetKeyword, setPresetKeyword] = useState('');
   const [refreshJob, setRefreshJob] = useState<IpcAuditCatalogRefreshJob | null>(null);
   const [refreshingCatalog, setRefreshingCatalog] = useState(false);
+  const [providerOptions, setProviderOptions] = useState<IpcAuditProviderSummary[]>([]);
+  const [defaultProviderKey, setDefaultProviderKey] = useState('');
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providerLoadError, setProviderLoadError] = useState<string | null>(null);
+  const [selectedProviderKey, setSelectedProviderKey] = useState('');
 
   const [selectedProjectPaths, setSelectedProjectPaths] = useState<string[]>([]);
   const [customProjectPaths, setCustomProjectPaths] = useState<string[]>([]);
   const [customPath, setCustomPath] = useState('');
   const [title, setTitle] = useState('');
-  const [executorMode, setExecutorMode] = useState<ExecutorMode>('opencode_cli');
+  const [pipelineMode, setPipelineMode] = useState<PipelineMode>('custom_graph');
+  const [executorMode, setExecutorMode] = useState<ExecutorMode>('agentflow_cli');
   const [modelName, setModelName] = useState('');
+  const [graphSourceType, setGraphSourceType] = useState<GraphSourceType>('inline_json');
+  const [builderSourceMode, setBuilderSourceMode] = useState<BuilderSourceMode>('code');
+  const [inlineJsonText, setInlineJsonText] = useState(defaultCustomGraphContent);
+  const [pythonBuilderEntry, setPythonBuilderEntry] = useState('');
+  const [pythonBuilderCode, setPythonBuilderCode] = useState(defaultPythonBuilderCode);
+  const [reportOutputDrafts, setReportOutputDrafts] = useState<ReportOutputDraft[]>(
+    buildDefaultReportOutputs('custom_graph', extractNodeIdsFromInlineGraphText(defaultCustomGraphContent)),
+  );
+  const [graphTemplates, setGraphTemplates] = useState<GraphTemplateRecord[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const [tasksLoading, setTasksLoading] = useState(false);
@@ -705,10 +2206,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [selectedAttemptId, setSelectedAttemptId] = useState('');
 
   const [resourcesLoading, setResourcesLoading] = useState(false);
-  const [stageSessions, setStageSessions] = useState<Record<StageName, IpcAuditStageSessionSummary[]>>({ audit: [], poc: [] });
-  const [stageLogs, setStageLogs] = useState<Record<StageName, IpcAuditStageLog | null>>({ audit: null, poc: null });
+  const [stageSessions, setStageSessions] = useState<Record<string, IpcAuditStageSessionSummary[]>>({});
+  const [stageLogs, setStageLogs] = useState<Record<string, IpcAuditStageLog | null>>({});
   const [events, setEvents] = useState<IpcAuditEvent[]>([]);
   const [artifacts, setArtifacts] = useState<IpcAuditArtifact[]>([]);
+  const [graphManifest, setGraphManifest] = useState<TaskGraphManifest | null>(null);
+  const [graphManifestLoading, setGraphManifestLoading] = useState(false);
+  const [graphManifestError, setGraphManifestError] = useState<string | null>(null);
   const [previewArtifact, setPreviewArtifact] = useState<IpcAuditArtifact | null>(null);
   const [previewArtifactContent, setPreviewArtifactContent] = useState<IpcAuditArtifactContent | null>(null);
   const [previewArtifactLoading, setPreviewArtifactLoading] = useState(false);
@@ -718,8 +2222,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [auditedResultError, setAuditedResultError] = useState<string | null>(null);
   const [taskAuditedResultSummaries, setTaskAuditedResultSummaries] = useState<Record<string, AuditedResultSummary | null>>({});
   const [taskAuditedResultLoadingIds, setTaskAuditedResultLoadingIds] = useState<Record<string, boolean>>({});
+  const [taskRuntimeSummaries, setTaskRuntimeSummaries] = useState<Record<string, TaskRuntimeSummary | null>>({});
+  const [taskRuntimeLoadingIds, setTaskRuntimeLoadingIds] = useState<Record<string, boolean>>({});
 
-  const [selectedStage, setSelectedStage] = useState<StageName>('audit');
+  const [selectedStage, setSelectedStage] = useState<StageName>('');
   const [selectedSessionPath, setSelectedSessionPath] = useState('');
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionFile, setSessionFile] = useState<IpcAuditStageSessionFile | null>(null);
@@ -732,12 +2238,35 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const sessionStreamRef = useRef<EventSource | null>(null);
   const sessionCursorRef = useRef(0);
   const sessionLineRef = useRef(0);
+  const graphManifestRef = useRef<TaskGraphManifest | null>(null);
+  const graphManifestScopeRef = useRef('');
 
   const [creating, setCreating] = useState(false);
+  const [validatingGraph, setValidatingGraph] = useState(false);
   const [actingTask, setActingTask] = useState(false);
   const [batchActingTasks, setBatchActingTasks] = useState(false);
 
   const selectedWorkspace = workspaces.find((item) => item.workspace_id === workspaceId) || null;
+  const providerOptionMap = new Map<string, IpcAuditProviderSummary>();
+  providerOptions.forEach((item) => {
+    providerOptionMap.set(item.provider_key, item);
+  });
+  const selectedProvider = providerOptionMap.get(selectedProviderKey) || null;
+  const providerFallbackModel = selectedProvider?.model || '';
+  const applyProviderList = (providerResponse: IpcAuditProviderList) => {
+    const items = Array.isArray(providerResponse.items) ? providerResponse.items : [];
+    const normalizedDefaultProviderKey = String(providerResponse.default_provider_key || '').trim()
+      || items.find((item) => item.is_default)?.provider_key
+      || items[0]?.provider_key
+      || '';
+    setProviderOptions(items);
+    setDefaultProviderKey(normalizedDefaultProviderKey);
+    setSelectedProviderKey((current) => (
+      current && items.some((item) => item.provider_key === current && item.enabled !== false)
+        ? current
+        : normalizedDefaultProviderKey
+    ));
+  };
   const projectInputItemMap = new Map<string, ProjectInputItem>();
   presetProjects.forEach((item) => {
     const path = normalizeProjectPathInput(item.project_path);
@@ -765,10 +2294,43 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     .map((path) => projectInputItemMap.get(path))
     .filter((item): item is ProjectInputItem => !!item);
   const currentAttempt = attempts.find((item) => item.attempt_id === selectedAttemptId) || selectedTask?.latest_attempt || null;
+  const currentStageNames = deriveStageNamesFromAttempt(currentAttempt);
   const currentExecutorMode = String(currentAttempt?.effective_config?.executor_mode || currentAttempt?.effective_config?.execution_mode || '');
   const currentModelName = String(currentAttempt?.effective_config?.model || '').trim();
+  const currentProviderKeys = normalizeProviderKeys(currentAttempt?.effective_config?.provider_keys);
+  const currentProviderSnapshotMap = buildProviderSnapshotMap(currentAttempt?.effective_config?.provider_snapshots);
+  const currentReportOutputs = useMemo(() => [...(currentAttempt?.report_outputs || [])].sort((left, right) => (
+    (left.order ?? 0) - (right.order ?? 0)
+    || left.title.localeCompare(right.title)
+  )), [currentAttempt?.report_outputs]);
   const visibleArtifacts = artifacts.filter((item) => item.artifact_kind !== 'session_file');
+  const currentGraphManifestArtifact = visibleArtifacts.find((item) => item.artifact_kind === 'graph_manifest') || null;
   const auditedResultArtifact = findAuditedResultArtifact(visibleArtifacts);
+  const currentGraphScopeKey = showTaskDetail && selectedTask?.pipeline_mode === 'custom_graph' && selectedTaskId && selectedAttemptId
+    ? `${selectedTaskId}:${selectedAttemptId}`
+    : '';
+  const taskGraphNodeViews = selectedTask?.pipeline_mode === 'custom_graph'
+    ? buildTaskGraphNodeViews(currentAttempt, graphManifest, currentReportOutputs, stageSessions)
+    : [];
+  const selectedGraphNode = taskGraphNodeViews.find((item) => item.id === selectedStage) || taskGraphNodeViews[0] || null;
+  const taskGraphFlowSignature = JSON.stringify({
+    selectedNodeId: selectedGraphNode?.id || '',
+    nodes: taskGraphNodeViews.map((item) => ({
+      id: item.id,
+      label: item.label,
+      status: item.status,
+      agent: item.agent,
+      model: item.model,
+      dependsOn: item.dependsOn,
+      reportCount: item.reports.length,
+      hasEventsJsonl: item.hasEventsJsonl,
+      hasLastMessage: item.hasLastMessage,
+    })),
+  });
+  const taskGraphFlow = useMemo(
+    () => buildTaskGraphFlow(taskGraphNodeViews, selectedGraphNode?.id || ''),
+    [taskGraphFlowSignature],
+  );
   const currentStageRun = currentAttempt?.stage_runs.find((item) => item.stage_name === selectedStage) || null;
   const selectedStageSessions = stageSessions[selectedStage] || [];
   const selectedStageLog = stageLogs[selectedStage];
@@ -806,8 +2368,33 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     const keyword = toSearchText(taskKeyword);
     if (!keyword) return true;
     const path = item.input_ref.project_path || item.input_ref.report_path || '';
-    return `${toSearchText(item.title)} ${toSearchText(path)} ${toSearchText(item.task_id)} ${toSearchText(formatTaskStatus(item.status))}`.includes(keyword);
+    const runtimeSummary = taskRuntimeSummaries[item.task_id];
+    const providerSearchText = runtimeSummary
+      ? runtimeSummary.providerKeys.concat(runtimeSummary.providerSnapshots.map((snapshot) => String(snapshot.display_name || snapshot.provider_key || ''))).join(' ')
+      : '';
+    return `${toSearchText(item.title)} ${toSearchText(path)} ${toSearchText(item.task_id)} ${toSearchText(formatTaskStatus(item.status))} ${toSearchText(runtimeSummary?.executorMode)} ${toSearchText(runtimeSummary?.model)} ${toSearchText(runtimeSummary?.taskModel)} ${toSearchText(providerSearchText)}`.includes(keyword);
   });
+  const taskStageOptions = normalizeStageNames(tasks.map((item) => item.current_stage));
+  const supportedPipelineModes = ['custom_graph'] as PipelineMode[];
+  const supportsAgentflowExecutor = (capabilities?.executor_modes || []).includes('agentflow_cli');
+  const inlineGraphNodeIds = graphSourceType === 'inline_json'
+    ? extractNodeIdsFromInlineGraphText(inlineJsonText)
+    : [];
+  const customGraphNodeIds = normalizeStageNames([
+    ...inlineGraphNodeIds,
+    ...reportOutputDrafts.map((item) => item.nodeId),
+  ]);
+  const customGraphNodeKey = customGraphNodeIds.join('|');
+  const currentStageKey = currentStageNames.join('|');
+  const supportedPipelineModeKey = supportedPipelineModes.join('|');
+  const focusStageArtifacts = (stageName: string, preferredFileName?: 'events.jsonl' | 'last-message.md' | 'prompt.txt') => {
+    setSelectedStage(stageName);
+    const items = stageSessions[stageName] || [];
+    const next = preferredFileName
+      ? items.find((item) => fileNameOf(item.path) === preferredFileName) || preferredSession(items)
+      : preferredSession(items);
+    if (next) setSelectedSessionPath(next.path);
+  };
   const selectedTaskIdSet = new Set(selectedTaskIds);
   const selectedTaskSummaries = selectedTaskIds
     .map((taskId) => tasks.find((item) => item.task_id === taskId))
@@ -818,6 +2405,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const skippedActiveSelectedTaskCount = selectedTaskSummaries.length - actionableSelectedTasks.length;
   const cancellableSelectedTasks = selectedTaskSummaries.filter((item) => isCancellableTaskStatus(item.status));
   const skippedNonCancellableSelectedTaskCount = selectedTaskSummaries.length - cancellableSelectedTasks.length;
+  const serviceReady = Boolean(readyState?.ready);
+  const baseDataLoading = bootstrapping || readyState === null;
+  const workspaceScopedLoading = Boolean(readyState?.ready) && !workspaceId;
+  const taskQueueLoading = tasksLoading || baseDataLoading || workspaceScopedLoading;
+  const projectListLoading = presetLoading || baseDataLoading || workspaceScopedLoading;
+  const providerPanelLoading = providersLoading || baseDataLoading || (serviceReady && !providerLoadError && providerOptions.length === 0);
 
   const closeSessionStream = () => {
     if (sessionStreamRef.current) {
@@ -826,6 +2419,25 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     }
     setSessionLive(false);
   };
+
+  useEffect(() => {
+    graphManifestRef.current = graphManifest;
+  }, [graphManifest]);
+
+  useEffect(() => {
+    if (!currentGraphScopeKey) {
+      graphManifestRef.current = null;
+      graphManifestScopeRef.current = '';
+      return;
+    }
+    if (graphManifestScopeRef.current && graphManifestScopeRef.current !== currentGraphScopeKey) {
+      graphManifestRef.current = null;
+      setGraphManifest(null);
+      setGraphManifestError(null);
+      setGraphManifestLoading(false);
+    }
+    graphManifestScopeRef.current = currentGraphScopeKey;
+  }, [currentGraphScopeKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -844,6 +2456,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setWorkspaces([]);
           setWorkspaceId('');
           setPresetProjects([]);
+          setProviderOptions([]);
+          setDefaultProviderKey('');
+          setProviderLoadError(null);
+          setSelectedProviderKey('');
           setTasks([]);
           setPresetLoading(false);
           setTasksLoading(false);
@@ -858,6 +2474,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setWorkspaces([]);
           setWorkspaceId('');
           setPresetProjects([]);
+          setProviderOptions([]);
+          setDefaultProviderKey('');
+          setProviderLoadError(null);
+          setSelectedProviderKey('');
           setTasks([]);
           setPresetLoading(false);
           setTasksLoading(false);
@@ -895,6 +2515,32 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   }, []);
 
   useEffect(() => {
+    if (!readyState?.ready) return;
+    let cancelled = false;
+    const loadProviders = async () => {
+      setProvidersLoading(true);
+      setProviderLoadError(null);
+      try {
+        const providerResponse = await executionApi.listProviders();
+        if (cancelled) return;
+        applyProviderList(providerResponse);
+      } catch (error) {
+        if (cancelled) return;
+        setProviderOptions([]);
+        setDefaultProviderKey('');
+        setSelectedProviderKey('');
+        setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
+      } finally {
+        if (!cancelled) setProvidersLoading(false);
+      }
+    };
+    void loadProviders();
+    return () => {
+      cancelled = true;
+    };
+  }, [readyState?.ready]);
+
+  useEffect(() => {
     const supported = capabilities?.executor_modes || [];
     if (!supported.length) return;
     setExecutorMode((current) => (
@@ -903,6 +2549,23 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         : resolveExecutorMode(capabilities)
     ));
   }, [capabilities]);
+
+  useEffect(() => {
+    if (providerOptions.length === 0) {
+      setSelectedProviderKey('');
+      return;
+    }
+    const availableKeys = new Set(providerOptions.filter((item) => item.enabled !== false).map((item) => item.provider_key));
+    const fallbackKey = (
+      (defaultProviderKey && availableKeys.has(defaultProviderKey) ? defaultProviderKey : '')
+      || providerOptions.find((item) => item.is_default && item.enabled !== false)?.provider_key
+      || providerOptions.find((item) => item.enabled !== false)?.provider_key
+      || providerOptions.find((item) => item.is_default)?.provider_key
+      || providerOptions[0]?.provider_key
+      || ''
+    );
+    setSelectedProviderKey((current) => (current && availableKeys.has(current) ? current : fallbackKey));
+  }, [providerOptions, defaultProviderKey]);
 
   useEffect(() => {
     setSelectedProjectPaths([]);
@@ -968,6 +2631,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
         ]);
         if (cancelled) return;
         setSelectedTask(taskDetail);
+        setTaskRuntimeSummaries((current) => ({
+          ...current,
+          [selectedTaskId]: buildTaskRuntimeSummary(taskDetail.latest_attempt?.effective_config),
+        }));
         setAttempts(attemptItems);
         setSelectedAttemptId((current) => {
           if (current && attemptItems.some((item) => item.attempt_id === current)) return current;
@@ -991,10 +2658,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
   useEffect(() => {
     if (!showTaskDetail || !selectedTaskId || !selectedAttemptId) {
-      setStageSessions({ audit: [], poc: [] });
-      setStageLogs({ audit: null, poc: null });
+      setStageSessions({});
+      setStageLogs({});
       setEvents([]);
       setArtifacts([]);
+      setGraphManifest(null);
+      setGraphManifestError(null);
+      setGraphManifestLoading(false);
       setAuditedResultSummary(null);
       setAuditedResultError(null);
       setAuditedResultLoading(false);
@@ -1013,47 +2683,65 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     const loadAttemptResources = async () => {
       setResourcesLoading(true);
       setDetailError(null);
-      const result = await Promise.allSettled([
-        executionApi.listEvents(selectedTaskId, { attemptId: selectedAttemptId, limit: 200 }),
-        executionApi.listArtifacts(selectedTaskId, selectedAttemptId),
-        executionApi.listStageSessions(selectedTaskId, selectedAttemptId, 'audit'),
-        executionApi.listStageSessions(selectedTaskId, selectedAttemptId, 'poc'),
-        executionApi.getStageLog(selectedTaskId, selectedAttemptId, 'audit', { lines: 240 }),
-        executionApi.getStageLog(selectedTaskId, selectedAttemptId, 'poc', { lines: 240 }),
+      const selectedAttempt = attempts.find((item) => item.attempt_id === selectedAttemptId) || null;
+      const stageNames = deriveStageNamesFromAttempt(selectedAttempt);
+      if (stageNames.length === 0) {
+        setStageSessions({});
+        setStageLogs({});
+        setSelectedStage('');
+        setSelectedSessionPath('');
+        setResourcesLoading(false);
+        return;
+      }
+      const [eventsResult, artifactsResult, sessionResults, logResults] = await Promise.all([
+        executionApi.listEvents(selectedTaskId, { attemptId: selectedAttemptId, limit: 200 }).then((value) => ({ ok: true as const, value })).catch((reason) => ({ ok: false as const, reason })),
+        executionApi.listArtifacts(selectedTaskId, selectedAttemptId).then((value) => ({ ok: true as const, value })).catch((reason) => ({ ok: false as const, reason })),
+        Promise.allSettled(stageNames.map(async (stageName) => ({ stageName, value: await executionApi.listStageSessions(selectedTaskId, selectedAttemptId, stageName) }))),
+        Promise.allSettled(stageNames.map(async (stageName) => ({ stageName, value: await executionApi.getStageLog(selectedTaskId, selectedAttemptId, stageName, { lines: 240 }) }))),
       ]);
       if (cancelled) return;
-      const [eventsResult, artifactsResult, auditSessionsResult, pocSessionsResult, auditLogResult, pocLogResult] = result;
 
-      if (eventsResult.status === 'fulfilled') setEvents(eventsResult.value.items || []);
+      if (eventsResult.ok) setEvents(eventsResult.value.items || []);
       else setEvents([]);
 
-      if (artifactsResult.status === 'fulfilled') setArtifacts(artifactsResult.value.items || []);
+      if (artifactsResult.ok) setArtifacts(artifactsResult.value.items || []);
       else setArtifacts([]);
 
-      const nextSessions = {
-        audit: auditSessionsResult.status === 'fulfilled' ? auditSessionsResult.value : [],
-        poc: pocSessionsResult.status === 'fulfilled' ? pocSessionsResult.value : [],
-      };
-      setStageSessions(nextSessions);
-      setStageLogs({
-        audit: auditLogResult.status === 'fulfilled' ? auditLogResult.value : null,
-        poc: pocLogResult.status === 'fulfilled' ? pocLogResult.value : null,
-      });
+      const nextSessions = emptyStageSessionMap(stageNames);
+      const nextLogs = emptyStageLogMap(stageNames);
+      const errors: string[] = [];
 
-      const selectedAttempt = attempts.find((item) => item.attempt_id === selectedAttemptId) || null;
-      const nextStage = defaultStage(nextSessions, selectedAttempt);
+      sessionResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          nextSessions[result.value.stageName] = result.value.value || [];
+        } else {
+          errors.push(getErrorMessage(result.reason, '加载阶段会话失败'));
+        }
+      });
+      logResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          nextLogs[result.value.stageName] = result.value.value || null;
+        } else {
+          errors.push(getErrorMessage(result.reason, '加载阶段日志失败'));
+        }
+      });
+      if (!eventsResult.ok && 'reason' in eventsResult) errors.push(getErrorMessage(eventsResult.reason, '加载事件流失败'));
+      if (!artifactsResult.ok && 'reason' in artifactsResult) errors.push(getErrorMessage(artifactsResult.reason, '加载产物失败'));
+
+      setStageSessions(nextSessions);
+      setStageLogs(nextLogs);
+
+      const nextStage = defaultStage(stageNames, nextSessions, selectedAttempt);
       setSelectedStage((current) => {
-        if (nextSessions[current].length > 0) return current;
+        if (current && stageNames.includes(current) && ((nextSessions[current] || []).length > 0 || nextLogs[current])) return current;
         return nextStage;
       });
       setSelectedSessionPath((current) => {
-        const currentExists = Object.values(nextSessions).some((items) => items.some((item) => item.path === current));
+        const currentExists = stageNames.some((stageName) => (nextSessions[stageName] || []).some((item) => item.path === current));
         if (currentExists) return current;
-        return preferredSession(nextSessions[nextStage])?.path || '';
+        return preferredSession(nextSessions[nextStage] || [])?.path || '';
       });
-
-      const firstRejected = result.find((item) => item.status === 'rejected') as PromiseRejectedResult | undefined;
-      setDetailError(firstRejected?.reason?.message || null);
+      setDetailError(errors[0] || null);
       setResourcesLoading(false);
     };
     void loadAttemptResources();
@@ -1061,6 +2749,58 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       cancelled = true;
     };
   }, [showTaskDetail, selectedTaskId, selectedAttemptId, attempts]);
+
+  useEffect(() => {
+    if (!showTaskDetail || !selectedTaskId || !selectedAttemptId || selectedTask?.pipeline_mode !== 'custom_graph') {
+      graphManifestRef.current = null;
+      graphManifestScopeRef.current = '';
+      setGraphManifest(null);
+      setGraphManifestError(null);
+      setGraphManifestLoading(false);
+      return;
+    }
+    if (!currentGraphManifestArtifact?.artifact_id) {
+      setGraphManifestLoading(false);
+      if (!graphManifestRef.current && isCompletedTaskStatus(selectedTask?.status)) {
+        setGraphManifestError('未找到 graph-manifest.json');
+      } else {
+        setGraphManifestError(null);
+      }
+      return;
+    }
+    let cancelled = false;
+    const loadGraphManifest = async () => {
+      setGraphManifestLoading(true);
+      setGraphManifestError(null);
+      try {
+        const content = await executionApi.getArtifactContent(currentGraphManifestArtifact.artifact_id, { maxBytes: 1024 * 1024 });
+        if (cancelled) return;
+        const parsed = parseTaskGraphManifest(content.content || '');
+        if (!parsed) {
+          if (!graphManifestRef.current) {
+            setGraphManifest(null);
+          }
+          setGraphManifestError('graph-manifest.json 不是可识别的 custom_graph 清单');
+          return;
+        }
+        graphManifestRef.current = parsed;
+        graphManifestScopeRef.current = currentGraphScopeKey;
+        setGraphManifest(parsed);
+      } catch (error: any) {
+        if (cancelled) return;
+        if (!graphManifestRef.current) {
+          setGraphManifest(null);
+        }
+        setGraphManifestError(error?.message || '加载 graph-manifest.json 失败');
+      } finally {
+        if (!cancelled) setGraphManifestLoading(false);
+      }
+    };
+    void loadGraphManifest();
+    return () => {
+      cancelled = true;
+    };
+  }, [showTaskDetail, selectedTaskId, selectedAttemptId, selectedTask?.pipeline_mode, selectedTask?.status, currentGraphManifestArtifact?.artifact_id, executionApi]);
 
   useEffect(() => {
     if (!showTaskDetail || !selectedTaskId || !selectedAttemptId || !selectedTask || !isCompletedTaskStatus(selectedTask.status)) {
@@ -1326,6 +3066,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             executionApi.listAttempts(selectedTaskId),
           ]);
           setSelectedTask(taskDetail);
+          setTaskRuntimeSummaries((current) => ({
+            ...current,
+            [selectedTaskId]: buildTaskRuntimeSummary(taskDetail.latest_attempt?.effective_config),
+          }));
           setAttempts(attemptItems);
           setSelectedAttemptId((current) => {
             if (current && attemptItems.some((item) => item.attempt_id === current)) return current;
@@ -1342,38 +3086,45 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   useEffect(() => {
     if (!showTaskDetail || !selectedTaskId || !selectedAttemptId || !isSelectedTaskActive) return;
     const timer = window.setInterval(async () => {
-      const result = await Promise.allSettled([
-        executionApi.listEvents(selectedTaskId, { attemptId: selectedAttemptId, limit: 200 }),
-        executionApi.listArtifacts(selectedTaskId, selectedAttemptId),
-        executionApi.listStageSessions(selectedTaskId, selectedAttemptId, 'audit'),
-        executionApi.listStageSessions(selectedTaskId, selectedAttemptId, 'poc'),
-        executionApi.getStageLog(selectedTaskId, selectedAttemptId, 'audit', { lines: 240 }),
-        executionApi.getStageLog(selectedTaskId, selectedAttemptId, 'poc', { lines: 240 }),
+      if (currentStageNames.length === 0) return;
+      const [eventsResult, artifactsResult, sessionResults, logResults] = await Promise.all([
+        executionApi.listEvents(selectedTaskId, { attemptId: selectedAttemptId, limit: 200 }).then((value) => ({ ok: true as const, value })).catch(() => ({ ok: false as const })),
+        executionApi.listArtifacts(selectedTaskId, selectedAttemptId).then((value) => ({ ok: true as const, value })).catch(() => ({ ok: false as const })),
+        Promise.allSettled(currentStageNames.map(async (stageName) => ({ stageName, value: await executionApi.listStageSessions(selectedTaskId, selectedAttemptId, stageName) }))),
+        Promise.allSettled(currentStageNames.map(async (stageName) => ({ stageName, value: await executionApi.getStageLog(selectedTaskId, selectedAttemptId, stageName, { lines: 240 }) }))),
       ]);
-      const [eventsResult, artifactsResult, auditSessionsResult, pocSessionsResult, auditLogResult, pocLogResult] = result;
-      if (eventsResult.status === 'fulfilled') setEvents(eventsResult.value.items || []);
-      if (artifactsResult.status === 'fulfilled') setArtifacts(artifactsResult.value.items || []);
-      const nextSessions = {
-        audit: auditSessionsResult.status === 'fulfilled' ? auditSessionsResult.value : stageSessions.audit,
-        poc: pocSessionsResult.status === 'fulfilled' ? pocSessionsResult.value : stageSessions.poc,
-      };
+      if (eventsResult.ok) setEvents(eventsResult.value.items || []);
+      if (artifactsResult.ok) setArtifacts(artifactsResult.value.items || []);
+
+      const nextSessions = emptyStageSessionMap(currentStageNames);
+      sessionResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          nextSessions[result.value.stageName] = result.value.value || [];
+        }
+      });
       setStageSessions(nextSessions);
-      setStageLogs((current) => ({
-        audit: auditLogResult.status === 'fulfilled' ? auditLogResult.value : current.audit,
-        poc: pocLogResult.status === 'fulfilled' ? pocLogResult.value : current.poc,
-      }));
+      setStageLogs((current) => {
+        const next = { ...emptyStageLogMap(currentStageNames), ...current };
+        logResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            next[result.value.stageName] = result.value.value || null;
+          }
+        });
+        return next;
+      });
       setSelectedStage((current) => {
-        if (nextSessions[current].length > 0) return current;
-        return defaultStage(nextSessions, currentAttempt);
+        if (current && currentStageNames.includes(current) && ((nextSessions[current] || []).length > 0 || stageLogs[current])) return current;
+        return defaultStage(currentStageNames, nextSessions, currentAttempt);
       });
       setSelectedSessionPath((current) => {
-        const currentExists = Object.values(nextSessions).some((items) => items.some((item) => item.path === current));
+        const currentExists = currentStageNames.some((stageName) => (nextSessions[stageName] || []).some((item) => item.path === current));
         if (currentExists) return current;
-        return preferredSession(nextSessions[defaultStage(nextSessions, currentAttempt)])?.path || current;
+        const fallbackStage = defaultStage(currentStageNames, nextSessions, currentAttempt);
+        return preferredSession(nextSessions[fallbackStage] || [])?.path || current;
       });
     }, 3000);
     return () => window.clearInterval(timer);
-  }, [showTaskDetail, selectedTaskId, selectedAttemptId, isSelectedTaskActive, executionApi, currentAttempt, stageSessions.audit, stageSessions.poc]);
+  }, [showTaskDetail, selectedTaskId, selectedAttemptId, isSelectedTaskActive, executionApi, currentAttempt, currentStageKey, stageLogs]);
 
   useEffect(() => {
     if (!selectedTaskId) {
@@ -1395,7 +3146,58 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       });
       return next;
     });
+    setTaskRuntimeSummaries((current) => {
+      const next: Record<string, TaskRuntimeSummary | null> = {};
+      Object.entries(current).forEach(([taskId, summary]) => {
+        if (taskIds.has(taskId)) next[taskId] = summary;
+      });
+      return next;
+    });
+    setTaskRuntimeLoadingIds((current) => {
+      const next: Record<string, boolean> = {};
+      Object.entries(current).forEach(([taskId, loading]) => {
+        if (taskIds.has(taskId)) next[taskId] = loading;
+      });
+      return next;
+    });
   }, [tasks]);
+
+  useEffect(() => {
+    const targets = filteredTasks
+      .filter((task) => taskRuntimeSummaries[task.task_id] === undefined && !taskRuntimeLoadingIds[task.task_id])
+      .slice(0, 16);
+    if (targets.length === 0) return;
+    const targetIds = targets.map((task) => task.task_id);
+    setTaskRuntimeLoadingIds((current) => {
+      const next = { ...current };
+      targetIds.forEach((taskId) => {
+        next[taskId] = true;
+      });
+      return next;
+    });
+    const loadTaskRuntimeSummaries = async () => {
+      const results = await Promise.allSettled(targets.map(async (task) => {
+        const taskDetail = await executionApi.getTask(task.task_id);
+        return { taskId: task.task_id, summary: buildTaskRuntimeSummary(taskDetail.latest_attempt?.effective_config) };
+      }));
+      setTaskRuntimeSummaries((current) => {
+        const next = { ...current };
+        results.forEach((result, index) => {
+          const taskId = targets[index].task_id;
+          next[taskId] = result.status === 'fulfilled' ? result.value.summary : null;
+        });
+        return next;
+      });
+      setTaskRuntimeLoadingIds((current) => {
+        const next = { ...current };
+        targetIds.forEach((taskId) => {
+          delete next[taskId];
+        });
+        return next;
+      });
+    };
+    void loadTaskRuntimeSummaries();
+  }, [filteredTasks, taskRuntimeSummaries, taskRuntimeLoadingIds, executionApi]);
 
   useEffect(() => {
     const targets = filteredTasks
@@ -1443,6 +3245,52 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   }, [tasks, taskKeyword, taskStatusFilter, taskStageFilter, taskAuditedResultSummaries, executionApi]);
 
   useEffect(() => {
+    if (!workspaceId) {
+      setGraphTemplates([]);
+      setSelectedTemplateId('');
+      return;
+    }
+    let cancelled = false;
+    const loadTemplates = async () => {
+      setTemplatesLoading(true);
+      try {
+        const items = await executionApi.listTemplates({ workspaceId });
+        if (cancelled) return;
+        setGraphTemplates((items || []).map(templateToRecord));
+      } catch {
+        if (cancelled) return;
+        setGraphTemplates([]);
+      } finally {
+        if (!cancelled) setTemplatesLoading(false);
+      }
+    };
+    void loadTemplates();
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId, executionApi]);
+
+  useEffect(() => {
+    if (!selectedTemplateId) return;
+    if (graphTemplates.some((item) => item.templateId === selectedTemplateId)) return;
+    setSelectedTemplateId('');
+  }, [graphTemplates, selectedTemplateId]);
+
+  useEffect(() => {
+    if (supportedPipelineModes.length === 0) return;
+    setPipelineMode(resolvePipelineMode(capabilities, selectedWorkspace));
+  }, [supportedPipelineModeKey, capabilities, selectedWorkspace]);
+
+  useEffect(() => {
+    setExecutorMode('agentflow_cli');
+  }, [capabilities, pipelineMode]);
+
+  useEffect(() => {
+    if (reportOutputDrafts.length > 0) return;
+    setReportOutputDrafts(buildDefaultReportOutputs(pipelineMode, customGraphNodeIds));
+  }, [pipelineMode, customGraphNodeKey, reportOutputDrafts.length]);
+
+  useEffect(() => {
     if (!createModalOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !creating) {
@@ -1464,6 +3312,24 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       setOverviewError(error?.message || '刷新任务列表失败');
     } finally {
       setTasksLoading(false);
+    }
+  };
+
+  const handleRefreshProviders = async () => {
+    setProvidersLoading(true);
+    setProviderLoadError(null);
+    try {
+      const providerResponse = await executionApi.listProviders();
+      applyProviderList(providerResponse);
+      notify(`已同步 ${Array.isArray(providerResponse.items) ? providerResponse.items.length : 0} 个 Provider`, 'success');
+    } catch (error) {
+      setProviderOptions([]);
+      setDefaultProviderKey('');
+      setSelectedProviderKey('');
+      setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
+      notify(`Provider 列表加载失败：${getErrorMessage(error, '未知错误')}`, 'error');
+    } finally {
+      setProvidersLoading(false);
     }
   };
 
@@ -1575,6 +3441,288 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     setSelectedProjectPaths((current) => current.filter((item) => item !== normalized));
   };
 
+  const applyTemplateConfig = (config: GraphTemplateConfig) => {
+    const normalizedBuilder = normalizeBuilderState(
+      config.builderSourceMode,
+      config.pythonBuilderEntry || '',
+      config.pythonBuilderCode || '',
+    );
+    setPipelineMode('custom_graph');
+    setExecutorMode('agentflow_cli');
+    setModelName(config.modelName || '');
+    setSelectedProviderKey(config.providerKey || '');
+    setGraphSourceType(config.graphSourceType);
+    setBuilderSourceMode(normalizedBuilder.builderSourceMode);
+    setInlineJsonText(config.inlineJsonText || defaultCustomGraphContent);
+    setPythonBuilderEntry(normalizedBuilder.pythonBuilderEntry);
+    setPythonBuilderCode(normalizedBuilder.pythonBuilderCode);
+    setReportOutputDrafts(
+      cloneReportOutputDrafts(
+        config.reportOutputs.length > 0
+          ? config.reportOutputs
+          : buildDefaultReportOutputs('custom_graph', extractNodeIdsFromInlineGraphText(config.inlineJsonText || defaultCustomGraphContent)),
+      ),
+    );
+  };
+
+  const buildTemplateConfigPayload = () => ({
+    pipeline_mode: 'custom_graph' as PipelineMode,
+    executor_mode: 'agentflow_cli' as ExecutorMode,
+    model: modelName.trim() || undefined,
+    provider_keys: selectedProviderKey ? [selectedProviderKey] : [],
+    graph_source: buildGraphSourcePayload(),
+    report_outputs: buildReportOutputSpecs(),
+  });
+
+  const focusGraphEditor = (target: GraphEditorTarget) => {
+    if (target === 'inline_json') {
+      setGraphSourceType('inline_json');
+    }
+    if (target === 'python_entry' || target === 'python_code') {
+      setGraphSourceType('python_builder');
+      setBuilderSourceMode(target === 'python_entry' ? 'entry' : 'code');
+    }
+    graphDefinitionCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(() => {
+      if (target === 'inline_json') {
+        inlineJsonInputRef.current?.focus();
+        return;
+      }
+      if (target === 'python_entry') {
+        pythonBuilderEntryInputRef.current?.focus();
+        return;
+      }
+      pythonBuilderCodeInputRef.current?.focus();
+    }, 120);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!workspaceId) {
+      notify('请先选择工作区', 'error');
+      return;
+    }
+    const normalizedName = templateName.trim();
+    if (!normalizedName) {
+      notify('请先填写模板名称', 'error');
+      return;
+    }
+    try {
+      const payload = {
+        name: normalizedName,
+        description: templateDescription.trim() || undefined,
+        config: buildTemplateConfigPayload(),
+      };
+      const saved = selectedTemplateId
+        ? await executionApi.updateTemplate(selectedTemplateId, payload)
+        : await executionApi.createTemplate({ workspace_id: workspaceId, ...payload });
+      const record = templateToRecord(saved);
+      setGraphTemplates((current) => {
+        const next = [...current.filter((item) => item.templateId !== record.templateId), record]
+          .sort((left, right) => left.name.localeCompare(right.name));
+        return next;
+      });
+      setSelectedTemplateId(record.templateId);
+      notify(selectedTemplateId ? '模板已更新到服务端' : '模板已保存到服务端', 'success');
+    } catch (error) {
+      notify(getErrorMessage(error, '保存模板失败'), 'error');
+    }
+  };
+
+  const handleLoadTemplate = () => {
+    const target = graphTemplates.find((item) => item.templateId === selectedTemplateId) || null;
+    if (!target) {
+      notify('请选择一个模板', 'error');
+      return;
+    }
+    applyTemplateConfig(target.config);
+    setTemplateName(target.name);
+    setTemplateDescription(target.description || '');
+    notify(`已加载模板 ${target.name}`, 'success');
+  };
+
+  const handleDeleteTemplate = async () => {
+    const target = graphTemplates.find((item) => item.templateId === selectedTemplateId) || null;
+    if (!target) {
+      notify('请选择一个模板', 'error');
+      return;
+    }
+    const confirmed = await confirm({
+      title: '删除模板',
+      message: `确认删除服务端模板「${target.name}」吗？`,
+      confirmText: '删除模板',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await executionApi.deleteTemplate(target.templateId);
+      const nextTemplates = graphTemplates.filter((item) => item.templateId !== target.templateId);
+      setGraphTemplates(nextTemplates);
+      setSelectedTemplateId('');
+      if (templateName.trim() === target.name) setTemplateName('');
+      if ((templateDescription || '').trim() === (target.description || '').trim()) setTemplateDescription('');
+      notify('模板已删除', 'success');
+    } catch (error) {
+      notify(getErrorMessage(error, '删除模板失败'), 'error');
+    }
+  };
+
+  const handleResetReportOutputs = () => {
+    setReportOutputDrafts(buildDefaultReportOutputs(pipelineMode, customGraphNodeIds));
+  };
+
+  const handleValidateInlineGraph = async () => {
+    if (!workspaceId) {
+      notify('请先选择工作区', 'error');
+      return;
+    }
+    setValidatingGraph(true);
+    try {
+      const reportOutputs = buildReportOutputSpecs();
+      const result = await executionApi.validateGraph({
+        workspace_id: workspaceId,
+        executor_mode: 'agentflow_cli',
+        model: modelName.trim() || undefined,
+        provider_keys: selectedProviderKey ? [selectedProviderKey] : [],
+        graph_source: {
+          type: 'inline_json',
+          content: JSON.parse(inlineJsonText),
+        },
+        report_outputs: reportOutputs,
+      });
+      const nodeLabel = result.node_ids.length > 0 ? `：${result.node_ids.join(', ')}` : '';
+      notify(`Graph JSON 校验通过，共 ${result.node_count} 个节点${nodeLabel}`, 'success');
+    } catch (error) {
+      notify(getErrorMessage(error, 'Graph JSON 校验失败'), 'error');
+    } finally {
+      setValidatingGraph(false);
+    }
+  };
+
+  const handleValidatePythonBuilderCode = async () => {
+    if (!workspaceId) {
+      notify('请先选择工作区', 'error');
+      return;
+    }
+    const code = pythonBuilderCode.trim();
+    if (!code) {
+      notify('请先填写 Python builder 代码', 'error');
+      return;
+    }
+    setValidatingGraph(true);
+    try {
+      const reportOutputs = buildReportOutputSpecs();
+      const result = await executionApi.validateGraph({
+        workspace_id: workspaceId,
+        executor_mode: 'agentflow_cli',
+        model: modelName.trim() || undefined,
+        provider_keys: selectedProviderKey ? [selectedProviderKey] : [],
+        graph_source: {
+          type: 'python_builder',
+          code,
+        },
+        report_outputs: reportOutputs,
+      });
+      const nodeLabel = result.node_ids.length > 0 ? `：${result.node_ids.join(', ')}` : '';
+      notify(`Python 图定义校验通过，共 ${result.node_count} 个节点${nodeLabel}`, 'success');
+    } catch (error) {
+      notify(getErrorMessage(error, 'Python builder 校验失败'), 'error');
+    } finally {
+      setValidatingGraph(false);
+    }
+  };
+
+  const handleAddReportOutput = () => {
+    setReportOutputDrafts((current) => current.concat(toReportOutputDraft({
+      output_id: `report_${current.length + 1}`,
+      node_id: customGraphNodeIds[current.length] || customGraphNodeIds[0] || '',
+      title: `Report ${current.length + 1}`,
+      path: `exports/report-${current.length + 1}.md`,
+      format: 'markdown',
+      required: true,
+      order: (current.length + 1) * 10,
+    }, current.length)));
+  };
+
+  const handleUpdateReportOutput = (key: string, field: keyof ReportOutputDraft, value: string | boolean) => {
+    setReportOutputDrafts((current) => current.map((item) => (
+      item.key === key
+        ? { ...item, [field]: value }
+        : item
+    )));
+  };
+
+  const handleRemoveReportOutput = (key: string) => {
+    setReportOutputDrafts((current) => current.filter((item) => item.key !== key));
+  };
+
+  const buildReportOutputSpecs = (): IpcAuditTaskReportOutputSpec[] => {
+    const seenIds = new Set<string>();
+    const seenPaths = new Set<string>();
+    const normalized = reportOutputDrafts
+      .map((item, index) => ({
+        output_id: item.outputId.trim(),
+        node_id: item.nodeId.trim(),
+        title: item.title.trim(),
+        path: item.path.trim(),
+        format: item.format,
+        required: item.required,
+        order: Number(item.order || index * 10),
+      }))
+      .filter((item) => item.output_id || item.node_id || item.title || item.path);
+    normalized.forEach((item, index) => {
+      if (!item.output_id || !item.node_id || !item.title || !item.path) {
+        throw new Error(`报告输出 #${index + 1} 需要完整填写 output_id、node_id、title 和 path`);
+      }
+      if (!Number.isFinite(item.order)) {
+        throw new Error(`报告输出 #${index + 1} 的 order 必须是数字`);
+      }
+      if (seenIds.has(item.output_id)) {
+        throw new Error(`重复的报告输出 ID：${item.output_id}`);
+      }
+      if (seenPaths.has(item.path)) {
+        throw new Error(`重复的报告输出路径：${item.path}`);
+      }
+      seenIds.add(item.output_id);
+      seenPaths.add(item.path);
+    });
+    return normalized;
+  };
+
+  const buildGraphSourcePayload = (): IpcAuditTaskGraphSource | undefined => {
+    if (graphSourceType === 'inline_json') {
+      let content: Record<string, any>;
+      try {
+        const parsed = JSON.parse(inlineJsonText);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('Graph JSON 顶层必须是对象');
+        }
+        content = parsed as Record<string, any>;
+      } catch (error) {
+        throw new Error(getErrorMessage(error, 'Graph JSON 解析失败'));
+      }
+      return {
+        type: 'inline_json',
+        content,
+      };
+    }
+    const code = pythonBuilderCode.trim();
+    if (code) {
+      return {
+        type: 'python_builder',
+        code,
+      };
+    }
+    const entry = pythonBuilderEntry.trim();
+    if (entry) {
+      return {
+        type: 'python_builder',
+        entry,
+      };
+    }
+    throw new Error('请填写 Python builder 代码');
+  };
+
   const handleCreateTask = async () => {
     if (!workspaceId) {
       notify('当前没有可用工作区', 'error');
@@ -1584,13 +3732,33 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       notify('请至少选择一个项目路径', 'error');
       return;
     }
+    const normalizedProviderKey = String(selectedProviderKey || '').trim();
+    const selectedProviderOption = providerOptionMap.get(normalizedProviderKey) || null;
+    if (normalizedProviderKey && (!selectedProviderOption || selectedProviderOption.enabled === false)) {
+      notify('当前 Provider 不可用，请刷新后重试', 'error');
+      return;
+    }
+    if (!supportsAgentflowExecutor) {
+      notify('当前服务未暴露 agentflow_cli，暂时不能创建 custom_graph 任务', 'error');
+      return;
+    }
 
     setCreating(true);
     try {
       const createdTasks: IpcAuditTaskSummary[] = [];
       const failedItems: Array<{ path: string; message: string }> = [];
-      const pipelineMode = resolvePipelineMode(capabilities, selectedWorkspace) as 'audit_then_poc' | 'audit_only' | 'poc_only';
-      const resolvedExecutorMode = executorMode || resolveExecutorMode(capabilities);
+      const resolvedPipelineMode = 'custom_graph' as PipelineMode;
+      const resolvedExecutorMode = 'agentflow_cli' as ExecutorMode;
+      const reportOutputs = buildReportOutputSpecs();
+      const graphSource = buildGraphSourcePayload();
+      await executionApi.validateGraph({
+        workspace_id: workspaceId,
+        executor_mode: resolvedExecutorMode,
+        model: modelName.trim() || undefined,
+        provider_keys: normalizedProviderKey ? [normalizedProviderKey] : [],
+        graph_source: graphSource,
+        report_outputs: reportOutputs,
+      });
       for (const target of selectedProjectItems) {
         try {
           const inputRef = { kind: target.kind, project_path: target.path };
@@ -1601,10 +3769,13 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             project_id: projectId || undefined,
             title: finalTitle,
             workspace_id: workspaceId,
-            pipeline_mode: pipelineMode,
+            pipeline_mode: resolvedPipelineMode,
             input_ref: validation.normalized_input_ref,
             executor_mode: resolvedExecutorMode,
             model: modelName.trim() || undefined,
+            provider_keys: normalizedProviderKey ? [normalizedProviderKey] : [],
+            graph_source: graphSource,
+            report_outputs: reportOutputs,
           });
           createdTasks.push(createdTask);
         } catch (error: any) {
@@ -1876,6 +4047,29 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
     }
   };
 
+  const handlePreviewReportOutput = async (output: IpcAuditTaskReportOutput) => {
+    if (!output.artifact_id || !output.preview_url || !output.download_url) {
+      notify('当前报告输出还没有可预览的产物', 'error');
+      return;
+    }
+    const artifact: IpcAuditArtifact = {
+      artifact_id: output.artifact_id,
+      task_id: selectedTaskId,
+      attempt_id: selectedAttemptId,
+      stage_name: output.node_id,
+      artifact_kind: 'report_output',
+      display_name: output.title,
+      relative_path: output.path,
+      content_type: output.content_type || (output.format === 'json' ? 'application/json' : output.format === 'text' ? 'text/plain' : 'text/markdown'),
+      size: output.size || 0,
+      sha256: output.sha256 || null,
+      preview_url: output.preview_url,
+      download_url: output.download_url,
+      created_at: output.created_at || '',
+    };
+    await handlePreviewArtifact(artifact);
+  };
+
   const handleCloseArtifactPreview = () => {
     setPreviewArtifact(null);
     setPreviewArtifactContent(null);
@@ -1892,17 +4086,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   };
   const handleBackToList = () => setShowTaskDetail(false);
 
-  if (bootstrapping) {
-    return (
-      <div className="flex min-h-[480px] items-center justify-center px-8 pt-8 pb-10">
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-5 py-4 text-sm font-semibold text-slate-600 shadow-sm">
-          <Loader2 size={18} className="animate-spin text-slate-500" />
-          正在初始化 IPC 漏洞扫描页面...
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 px-8 pt-8 pb-10">
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
@@ -1918,8 +4101,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </p>
           </div>
           <div className="grid w-full gap-3 sm:grid-cols-2 xl:max-w-4xl xl:grid-cols-4">
-            <MetricCard label="服务状态" value={readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'secflow-app-ipc-audit'} />
-            <MetricCard label="工作区" value={selectedWorkspace?.display_name || '-'} sub={selectedWorkspace?.workspace_id || '未选择'} />
+            <MetricCard label="服务状态" value={baseDataLoading ? 'Loading' : readyState?.ready ? 'Ready' : readyState?.status || 'Unknown'} sub={capabilities?.service || 'secflow-app-ipc-audit'} />
+            <MetricCard label="工作区" value={baseDataLoading ? '加载中' : selectedWorkspace?.display_name || '-'} sub={baseDataLoading ? '等待工作区' : selectedWorkspace?.workspace_id || '未选择'} />
             <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">并发上限</div>
               <div className="mt-2 flex items-center gap-2">
@@ -1942,15 +4125,19 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 </button>
               </div>
               <div className="mt-1 text-xs font-medium text-slate-500">
-                当前运行 {runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 {runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}
+                {baseDataLoading
+                  ? '正在同步运行时配置...'
+                  : `当前运行 ${runtimeConfig?.active_attempts ?? activeTaskCount} 个，默认 ${runtimeConfig?.default_max_parallel_tasks ?? capabilities?.max_parallel_tasks ?? 1}`}
               </div>
             </div>
-            <MetricCard label="PoC 能力" value={selectedWorkspace?.supports_poc ? '开启' : '关闭'} sub={capabilities?.poc_runtime_available ? '运行环境可用' : '运行环境未就绪'} />
+            <MetricCard label="PoC 能力" value={baseDataLoading ? '加载中' : selectedWorkspace?.supports_poc ? '开启' : '关闭'} sub={baseDataLoading ? '等待能力信息' : capabilities?.poc_runtime_available ? '运行环境可用' : '运行环境未就绪'} />
           </div>
         </div>
         {readyState ? (
           <div className="mt-5 flex flex-wrap gap-2">
-            {Object.entries(readyState.checks || {}).map(([key, passed]) => (
+            {Object.entries(readyState.checks || {})
+              .filter(([key]) => !HIDDEN_READY_CHECK_KEYS.has(key))
+              .map(([key, passed]) => (
               <span
                 key={key}
                 className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${passed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}
@@ -1987,10 +4174,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 <button
                   type="button"
                   onClick={handleRefreshTasks}
-                  disabled={tasksLoading || !workspaceId}
+                  disabled={taskQueueLoading || !workspaceId}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {tasksLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                  {taskQueueLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                   刷新
                 </button>
               </div>
@@ -2086,8 +4273,9 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                 className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
               >
                 <option value="all">全部阶段</option>
-                <option value="audit">Audit</option>
-                <option value="poc">PoC</option>
+                {taskStageOptions.map((stageName) => (
+                  <option key={stageName} value={stageName}>{formatStageLabel(stageName)}</option>
+                ))}
                 <option value="none">等待调度</option>
               </select>
               <button
@@ -2105,10 +4293,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
             </div>
 
             <div className="mt-4 max-h-[840px] space-y-3 overflow-auto pr-1">
-              {tasksLoading ? (
+              {taskQueueLoading ? (
                 <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
                   <Loader2 size={16} className="animate-spin" />
-                  正在加载任务列表...
+                  正在加载任务列表和工作区上下文...
+                </div>
+              ) : !serviceReady ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm font-semibold text-slate-500">
+                  等待服务就绪后加载任务列表。
                 </div>
               ) : tasks.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center text-sm font-semibold text-slate-500">
@@ -2123,6 +4315,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   const active = item.task_id === selectedTaskId;
                   const checked = selectedTaskIdSet.has(item.task_id);
                   const path = item.input_ref.project_path || item.input_ref.report_path || '-';
+                  const rowRuntimeSummary = taskRuntimeSummaries[item.task_id];
+                  const rowRuntimeLoading = Boolean(taskRuntimeLoadingIds[item.task_id]);
+                  const rowProviderSnapshotMap = buildProviderSnapshotMap(rowRuntimeSummary?.providerSnapshots);
+                  const rowProviderKeys = rowRuntimeSummary?.providerKeys || [];
+                  const rowModel = rowRuntimeSummary?.taskModel || rowRuntimeSummary?.model || '';
                   const rowAuditedResult = taskAuditedResultSummaries[item.task_id];
                   const rowAuditedResultLoading = Boolean(taskAuditedResultLoadingIds[item.task_id]);
                   return (
@@ -2154,8 +4351,38 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
                             <span>{formatInputKind(item.input_ref.kind)}</span>
+                            <span>{formatPipelineMode(item.pipeline_mode)}</span>
                             <span>{item.current_stage ? `当前阶段 ${formatStageLabel(item.current_stage)}` : '等待调度'}</span>
                             <span>{formatDateTime(item.created_at)}</span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {rowRuntimeLoading ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                <Loader2 size={12} className="animate-spin" />
+                                加载执行配置
+                              </span>
+                            ) : rowRuntimeSummary ? (
+                              <>
+                                {rowRuntimeSummary.executorMode ? (
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    执行器 {formatExecutorMode(rowRuntimeSummary.executorMode)}
+                                  </span>
+                                ) : null}
+                                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                  Model {rowModel || '(default)'}
+                                </span>
+                                {rowProviderKeys.slice(0, 2).map((providerKey, index) => (
+                                  <span key={`${item.task_id}-${providerKey}-${index}`} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                    Provider {index + 1} · {displayProviderName(providerKey, rowProviderSnapshotMap)}
+                                  </span>
+                                ))}
+                                {rowProviderKeys.length > 2 ? (
+                                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                    +{rowProviderKeys.length - 2} Provider
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : null}
                           </div>
                           {isCompletedTaskStatus(item.status) ? (
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -2271,6 +4498,9 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
                     {formatInputKind(selectedTask.input_ref.kind)}
                   </span>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                    {formatPipelineMode(selectedTask.pipeline_mode)}
+                  </span>
                   {selectedTask.current_stage ? (
                     <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
                       当前阶段 {formatStageLabel(selectedTask.current_stage)}
@@ -2284,6 +4514,15 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
                     Model {currentModelName || '(default)'}
                   </span>
+                  {currentProviderKeys.map((providerKey, index) => {
+                    const snapshot = currentProviderSnapshotMap.get(providerKey);
+                    const displayName = String(snapshot?.display_name || providerKey).trim() || providerKey;
+                    return (
+                      <span key={`${providerKey}-${index}`} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                        Provider {index + 1} · {displayName}
+                      </span>
+                    );
+                  })}
                 </div>
               ) : null}
             </div>
@@ -2341,8 +4580,224 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   </div>
                 ) : null}
 
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Report Outputs</div>
+                      <h3 className="mt-1 text-sm font-black text-slate-950">按任务声明的报告输出</h3>
+                    </div>
+                    <div className="text-xs font-semibold text-slate-500">
+                      {currentReportOutputs.length > 0 ? `${currentReportOutputs.length} 个输出` : '当前尝试未声明输出'}
+                    </div>
+                  </div>
+                  {currentReportOutputs.length === 0 ? (
+                    <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                      当前尝试没有返回 report_outputs，后端会继续在普通产物列表中展示已有文件。
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                      {currentReportOutputs.map((item) => (
+                        <article key={item.output_id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-black text-slate-900">{item.title}</div>
+                              <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.path}</div>
+                            </div>
+                            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${item.exists ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                              {item.exists ? 'Ready' : (item.required ? 'Missing' : 'Optional')}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500">
+                            <span>节点 {formatStageLabel(item.node_id)}</span>
+                            <span>{formatReportFormat(item.format)}</span>
+                            <span>{item.size != null ? formatSize(item.size) : '-'}</span>
+                            {item.created_at ? <span>{formatDateTime(item.created_at)}</span> : null}
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {item.artifact_id ? (
+                              <button
+                                type="button"
+                                onClick={() => void handlePreviewReportOutput(item)}
+                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                              >
+                                预览
+                              </button>
+                            ) : null}
+                            {item.preview_url ? (
+                              <a
+                                href={item.preview_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                              >
+                                原始
+                              </a>
+                            ) : null}
+                            {item.download_url ? (
+                              <a
+                                href={item.download_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                              >
+                                下载
+                              </a>
+                            ) : null}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {selectedTask.pipeline_mode === 'custom_graph' ? (
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">AgentFlow Graph</div>
+                        <h3 className="mt-1 text-sm font-black text-slate-950">节点拓扑、状态与节点输出入口</h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+                        <span>{taskGraphNodeViews.length} 个节点</span>
+                        {graphManifestLoading ? <span>正在同步运行时图...</span> : null}
+                        {graphManifest?.pipeline?.working_dir ? <span className="font-mono">{shortPath(graphManifest.pipeline.working_dir)}</span> : null}
+                      </div>
+                    </div>
+
+                    {taskGraphNodeViews.length === 0 ? (
+                      <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-500">
+                        {graphManifestError || '当前任务还没有可视化的运行时节点信息。任务启动后会根据 AgentFlow pipeline 自动展示。'}
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                          <div className="h-[440px] bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.08),_transparent_40%),linear-gradient(180deg,_#f8fafc_0%,_#ffffff_100%)]">
+                            <ReactFlow
+                              nodes={taskGraphFlow.nodes}
+                              edges={taskGraphFlow.edges}
+                              nodeTypes={taskGraphNodeTypes}
+                              onNodeClick={(_, node) => focusStageArtifacts(node.id as StageName, 'events.jsonl')}
+                              fitView
+                              nodesDraggable={false}
+                              nodesConnectable={false}
+                              elementsSelectable
+                              panOnDrag
+                              zoomOnScroll
+                            >
+                              <Background color="#e2e8f0" gap={18} />
+                              <Controls showInteractive={false} />
+                            </ReactFlow>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                          {selectedGraphNode ? (
+                            <>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-black text-slate-950">{selectedGraphNode.label}</div>
+                                  <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{selectedGraphNode.id}</div>
+                                </div>
+                                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${graphNodeBadgeTone(selectedGraphNode.status)}`}>
+                                  {formatStageStatus(selectedGraphNode.status)}
+                                </span>
+                              </div>
+
+                              <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                  Agent
+                                  <div className="mt-1 break-all font-mono text-sm text-slate-900">{selectedGraphNode.agent || '-'}</div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                  Return Code
+                                  <div className="mt-1 break-all font-mono text-sm text-slate-900">{selectedGraphNode.returnCode ?? '-'}</div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                  Depends On
+                                  <div className="mt-1 break-all font-mono text-sm text-slate-900">{selectedGraphNode.dependsOn.length > 0 ? selectedGraphNode.dependsOn.join(', ') : '-'}</div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                  Model
+                                  <div className="mt-1 break-all font-mono text-sm text-slate-900">{selectedGraphNode.model || currentModelName || '(default)'}</div>
+                                </div>
+                              </div>
+
+                              {selectedGraphNode.message ? (
+                                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium leading-6 text-slate-700">
+                                  {selectedGraphNode.message}
+                                </div>
+                              ) : null}
+
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => focusStageArtifacts(selectedGraphNode.id, 'events.jsonl')}
+                                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                                >
+                                  打开 events.jsonl
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => focusStageArtifacts(selectedGraphNode.id, 'last-message.md')}
+                                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                                >
+                                  打开 last-message
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => focusStageArtifacts(selectedGraphNode.id, 'prompt.txt')}
+                                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                                >
+                                  打开 prompt
+                                </button>
+                              </div>
+
+                              <div className="mt-4 space-y-2">
+                                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Node Outputs</div>
+                                {selectedGraphNode.reports.length === 0 ? (
+                                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-500">
+                                    当前节点没有声明 report output。
+                                  </div>
+                                ) : (
+                                  selectedGraphNode.reports.map((item) => (
+                                    <div key={item.output_id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <div className="truncate text-sm font-bold text-slate-900">{item.title}</div>
+                                          <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.path}</div>
+                                        </div>
+                                        <span className={`rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${item.exists ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                                          {item.exists ? 'Ready' : 'Missing'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
+                              选择一个节点后，这里会显示节点状态、依赖和输出入口。
+                            </div>
+                          )}
+
+                          {graphManifestError && !selectedGraphNode ? (
+                            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs font-semibold text-amber-700">
+                              {graphManifestError}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
                 <div className="mt-6 grid gap-3 md:grid-cols-2">
-                  {STAGE_NAMES.map((stageName) => {
+                  {currentStageNames.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
+                      当前还没有可展示的阶段摘要。
+                    </div>
+                  ) : currentStageNames.map((stageName) => {
                     const stageRun = currentAttempt?.stage_runs.find((item) => item.stage_name === stageName) || null;
                     return (
                       <div key={stageName} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
@@ -2364,7 +4819,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           </div>
                           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                             会话文件
-                            <div className="mt-1 font-mono text-sm text-slate-900">{stageSessions[stageName].length}</div>
+                            <div className="mt-1 font-mono text-sm text-slate-900">{(stageSessions[stageName] || []).length}</div>
                           </div>
                         </div>
                       </div>
@@ -2376,18 +4831,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Session Explorer</div>
-                      <h3 className="mt-2 text-lg font-black text-slate-950">Audit / PoC 会话与日志</h3>
+                      <h3 className="mt-2 text-lg font-black text-slate-950">动态图阶段会话与日志</h3>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {STAGE_NAMES.map((stageName) => (
+                      {currentStageNames.map((stageName) => (
                         <button
                           key={stageName}
                           type="button"
-                          onClick={() => {
-                            setSelectedStage(stageName);
-                            const next = preferredSession(stageSessions[stageName]);
-                            if (next) setSelectedSessionPath(next.path);
-                          }}
+                          onClick={() => focusStageArtifacts(stageName)}
                           className={`rounded-2xl border px-4 py-2 text-sm font-bold transition ${selectedStage === stageName ? 'border-slate-900 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
                         >
                           {formatStageLabel(stageName)}
@@ -2395,6 +4846,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       ))}
                     </div>
                   </div>
+                  {currentStageNames.length === 0 ? (
+                    <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
+                      当前尝试还没有可枚举的阶段或节点，任务运行后会自动展示。
+                    </div>
+                  ) : null}
 
                   <div className="mt-4 grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
                     <div className="space-y-3">
@@ -2464,7 +4920,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               会话中有 {sessionWarnings.length} 行未能按 JSONL 解析，已作为原始输出保留。
                             </div>
                           ) : null}
-                          <AgentSessionViewer
+                          <TaskSessionViewer
                             sessionMeta={selectedSessionMeta}
                             sessionHeader={sessionHeader}
                             events={sessionEvents}
@@ -2743,10 +5199,14 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     ) : null}
 
                     <div className="mt-3 max-h-[410px] space-y-2 overflow-auto pr-1">
-                      {presetLoading ? (
+                      {projectListLoading ? (
                         <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">
                           <Loader2 size={16} className="animate-spin" />
                           正在加载项目列表...
+                        </div>
+                      ) : !serviceReady ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
+                          等待服务就绪后加载项目路径列表。
                         </div>
                       ) : projectInputItems.length > 0 && filteredProjectInputItems.length === 0 ? (
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-6 text-sm font-semibold text-slate-500">
@@ -2791,8 +5251,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {item.preset?.has_idl ? <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">IDL</span> : null}
                                 {item.preset?.has_on_remote_request_cpp ? <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-700">OnRemoteRequest</span> : null}
-                                {item.preset?.has_existing_audit_report ? <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700">已有 Audit</span> : null}
-                                {item.preset?.has_existing_poc_report ? <span className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-fuchsia-700">已有 PoC</span> : null}
                                 {item.source === 'custom' ? (
                                   <span
                                     role="button"
@@ -2833,32 +5291,422 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   </label>
 
                   <div className="grid gap-4 md:grid-cols-2">
+                    <div className="block">
+                      <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">Pipeline Mode</div>
+                      <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
+                        {formatPipelineMode(pipelineMode)}
+                      </div>
+                    </div>
+
                     <label className="block">
                       <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">执行器</div>
-                    <select
+                      <select
                         value={executorMode}
                         onChange={(event) => setExecutorMode(event.target.value as ExecutorMode)}
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                        disabled
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                       >
-                        {(capabilities?.executor_modes || ['codex_cli', 'opencode_cli']).filter((item) => item !== 'mock').map((item) => (
-                          <option key={item} value={item}>
-                            {formatExecutorMode(item)}
+                        <option value="agentflow_cli">{formatExecutorMode('agentflow_cli')}</option>
+                      </select>
+                      <div className="mt-2 text-xs font-medium text-slate-500">当前页面固定走 `custom_graph + agentflow_cli`。</div>
+                    </label>
+                  </div>
+
+                  <label className="block">
+                    <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">Model</div>
+                    <input
+                      value={modelName}
+                      onChange={(event) => setModelName(event.target.value)}
+                      placeholder="留空则使用 CLI / Provider 默认模型"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                    />
+                  </label>
+                  <div className="text-xs font-medium text-slate-500">{modelHintForExecutor(executorMode, providerFallbackModel || null)}</div>
+
+                  <div ref={graphDefinitionCardRef} className="rounded-lg border border-sky-200 bg-sky-50/80 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div className="text-xs font-black uppercase tracking-[0.18em] text-sky-700">图定义 / AgentFlow Graph</div>
+                        <div className="mt-1 text-xs font-medium leading-6 text-sky-800">
+                          这里就是实际输入区。可以直接粘贴 AgentFlow JSON，或者切到 `python_builder` 输入 Python 代码 / 入口路径。
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
+                          {customGraphNodeIds.length} Nodes
+                        </span>
+                        <span className="rounded-full border border-sky-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700">
+                          {reportOutputDrafts.length} Outputs
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <label className="block">
+                        <div className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-sky-600">Graph Source</div>
+                        <select
+                          value={graphSourceType}
+                          onChange={(event) => {
+                            const nextType = event.target.value as GraphSourceType;
+                            setGraphSourceType(nextType);
+                            if (nextType === 'python_builder' && builderSourceMode !== 'code' && !pythonBuilderEntry.trim()) {
+                              setBuilderSourceMode('code');
+                            }
+                          }}
+                          className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                        >
+                          <option value="inline_json">inline_json</option>
+                          <option value="python_builder">python_builder</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="mt-3 rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-medium leading-6 text-slate-600">
+                      <div>这里填写的是原始 AgentFlow 图定义。secflow 只会预渲染 `[[ ... ]]`，然后把剩余内容原样交给 AgentFlow。</div>
+                      <div className="mt-2">提交前由 secflow 渲染：`[[ task.repo_root ]]`、`[[ task.project_path ]]`、`[[ task.attempt_root ]]`、`[[ task.report_outputs["audit_report"].absolute_path ]]`。</div>
+                      <div className="mt-2">
+                        运行时由 AgentFlow 自己渲染：
+                        <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{'{{ nodes.audit.output }}'}</code>
+                        <code className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{'{{ item.output }}'}</code>
+                        <code className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{'{{ fanouts.audit.nodes }}'}</code>
+                      </div>
+                      <div className="mt-2 text-amber-700">如果图里还残留未渲染的 `[[ ... ]]`，校验和实际执行都会直接拦截，不会把它传给 AgentFlow。</div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {graphSourceType === 'inline_json' ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleValidateInlineGraph()}
+                          disabled={validatingGraph}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {validatingGraph ? '校验中...' : '校验 JSON'}
+                        </button>
+                      ) : null}
+                      {graphSourceType === 'python_builder' && builderSourceMode === 'code' ? (
+                        <button
+                          type="button"
+                          onClick={handleValidatePythonBuilderCode}
+                          disabled={validatingGraph}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {validatingGraph ? '校验中...' : '校验 Python'}
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => focusGraphEditor('inline_json')}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'inline_json' ? 'border-sky-300 bg-sky-100 text-sky-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
+                      >
+                        编辑 Graph JSON
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => focusGraphEditor('python_code')}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${graphSourceType === 'python_builder' && builderSourceMode === 'code' ? 'border-sky-300 bg-sky-100 text-sky-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'}`}
+                      >
+                        编辑 Python Code
+                      </button>
+                    </div>
+
+                    {graphSourceType === 'inline_json' ? (
+                      <label className="mt-3 block">
+                        <div className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-sky-600">AgentFlow Pipeline JSON</div>
+                        <textarea
+                          ref={inlineJsonInputRef}
+                          value={inlineJsonText}
+                          onChange={(event) => setInlineJsonText(event.target.value)}
+                          rows={16}
+                          className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2.5 font-mono text-xs text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                        />
+                      </label>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        {builderSourceMode === 'entry' ? (
+                          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-xs font-medium leading-6 text-amber-800">
+                            当前模板仍在使用遗留的 Python Entry 模式：`{pythonBuilderEntry || '(empty)'}`。创建时会优先使用可见的 Python Code；只有没有代码时才会退回到这个入口脚本。
+                          </div>
+                        ) : (
+                          <label className="block">
+                            <div className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-sky-600">Builder Code</div>
+                            <textarea
+                              ref={pythonBuilderCodeInputRef}
+                              value={pythonBuilderCode}
+                              onChange={(event) => setPythonBuilderCode(event.target.value)}
+                              rows={16}
+                              className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2.5 font-mono text-xs text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                            />
+                          </label>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                          <div>
+                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Template Storage</div>
+                            <div className="mt-1 text-xs font-medium text-slate-500">
+                              这里只保存模板名称和描述。AgentFlow JSON / Python 图定义请在上方“图定义 / AgentFlow Graph”区域填写，然后再保存当前模板。
+                            </div>
+                          </div>
+                          <div className="text-xs font-semibold text-slate-500">
+                            {templatesLoading ? '模板同步中...' : `${graphTemplates.length} 个服务端模板`}
+                          </div>
+                        </div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                          <input
+                            value={templateName}
+                            onChange={(event) => setTemplateName(event.target.value)}
+                            placeholder="模板名称，例如 4-stage-ipc-audit"
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          />
+                          <select
+                            value={selectedTemplateId}
+                            onChange={(event) => {
+                              const nextId = event.target.value;
+                              setSelectedTemplateId(nextId);
+                              const target = graphTemplates.find((item) => item.templateId === nextId) || null;
+                              if (target) {
+                                setTemplateName(target.name);
+                                setTemplateDescription(target.description || '');
+                              }
+                            }}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          >
+                            <option value="">选择已保存模板...</option>
+                            {graphTemplates.map((item) => (
+                              <option key={item.templateId} value={item.templateId}>
+                                {item.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <input
+                          value={templateDescription}
+                          onChange={(event) => setTemplateDescription(event.target.value)}
+                          placeholder="模板描述，可选，仅作为备注"
+                          className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                        />
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handleSaveTemplate}
+                            disabled={templatesLoading}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            保存当前模板
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleLoadTemplate}
+                            disabled={!selectedTemplateId || templatesLoading}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            加载模板
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteTemplate()}
+                            disabled={!selectedTemplateId || templatesLoading}
+                            className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            删除模板
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Report Outputs</div>
+                            <div className="mt-1 text-xs font-medium text-slate-500">
+                              这里定义任务结束后需要回收和渲染的报告文件。4 节点可以定义 4 份，5 节点可以定义 5 份。
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={handleResetReportOutputs}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100"
+                            >
+                              恢复默认
+                            </button>
+                            <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500">
+                              节点从图 JSON 或输出配置自动推导
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleAddReportOutput}
+                              className="rounded-lg bg-slate-950 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-slate-800"
+                            >
+                              新增输出
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-3">
+                          {reportOutputDrafts.length === 0 ? (
+                            <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                              当前没有自定义输出。提交时会按当前图节点生成默认输出。
+                            </div>
+                          ) : (
+                            reportOutputDrafts.map((item, index) => (
+                              <div key={item.key} className="rounded-lg border border-slate-200 bg-white p-3">
+                                <div className="grid gap-3 xl:grid-cols-[1fr_1fr_1fr]">
+                                  <label className="block">
+                                    <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Output ID</div>
+                                    <input value={item.outputId} onChange={(event) => handleUpdateReportOutput(item.key, 'outputId', event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                  </label>
+                                  <label className="block">
+                                    <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Node ID</div>
+                                    <input value={item.nodeId} onChange={(event) => handleUpdateReportOutput(item.key, 'nodeId', event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                  </label>
+                                  <label className="block">
+                                    <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Title</div>
+                                    <input value={item.title} onChange={(event) => handleUpdateReportOutput(item.key, 'title', event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                  </label>
+                                </div>
+                                <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_140px_120px_auto]">
+                                  <label className="block">
+                                    <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Path</div>
+                                    <input value={item.path} onChange={(event) => handleUpdateReportOutput(item.key, 'path', event.target.value)} placeholder="exports/audit-report.md" className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                  </label>
+                                  <label className="block">
+                                    <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Format</div>
+                                    <select value={item.format} onChange={(event) => handleUpdateReportOutput(item.key, 'format', event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100">
+                                      <option value="markdown">Markdown</option>
+                                      <option value="text">Text</option>
+                                      <option value="json">JSON</option>
+                                    </select>
+                                  </label>
+                                  <label className="block">
+                                    <div className="mb-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Order</div>
+                                    <input value={item.order} onChange={(event) => handleUpdateReportOutput(item.key, 'order', event.target.value)} className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100" />
+                                  </label>
+                                  <div className="flex items-end justify-between gap-3">
+                                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                                      <input type="checkbox" checked={item.required} onChange={(event) => handleUpdateReportOutput(item.key, 'required', event.target.checked)} className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-300" />
+                                      required
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveReportOutput(item.key)}
+                                      className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-100"
+                                    >
+                                      删除
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="mt-2 text-[11px] font-medium text-slate-500">
+                                  输出 #{index + 1} 会在任务结束时按该路径回收，并直接映射到前端报告卡片。
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">LLM Provider</div>
+                        <div className="mt-1 text-xs font-medium text-slate-500">
+                          每个任务最多绑定一个 Provider；不选时由后端走默认 Provider 或图内配置。
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRefreshProviders}
+                        disabled={providerPanelLoading || !serviceReady}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {providerPanelLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        刷新 Provider
+                      </button>
+                    </div>
+
+                    <div className="mt-3">
+                      <select
+                        value={selectedProviderKey}
+                        onChange={(event) => setSelectedProviderKey(event.target.value)}
+                        disabled={providerPanelLoading || providerOptions.length === 0}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        <option value="">{providerPanelLoading ? '正在加载 Provider...' : '选择 Provider...'}</option>
+                        {providerOptions.map((provider) => (
+                          <option key={provider.provider_key} value={provider.provider_key} disabled={!provider.enabled}>
+                            {provider.display_name || provider.provider_key} · {provider.provider_type} · {provider.model || 'no-model'}{provider.is_default ? ' · 默认' : ''}{!provider.enabled ? ' · 已禁用' : ''}
                           </option>
                         ))}
                       </select>
-                    </label>
+                    </div>
 
-                    <label className="block">
-                      <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">Model</div>
-                      <input
-                        value={modelName}
-                        onChange={(event) => setModelName(event.target.value)}
-                        placeholder="留空则使用 CLI 默认模型"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
-                      />
-                    </label>
+                    <div className="mt-2 text-xs font-medium text-slate-500">
+                      默认会回填服务默认 Provider。Model 留空时，后端会回退到当前所选 Provider 的模型。
+                    </div>
+                    {providerLoadError ? (
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                        Provider 列表加载失败：{providerLoadError}
+                      </div>
+                    ) : null}
+                    {providerPanelLoading ? (
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                        <Loader2 size={14} className="animate-spin" />
+                        正在同步 Provider 列表...
+                      </div>
+                    ) : null}
+
+                    <div className="mt-3 max-h-[260px] space-y-2 overflow-auto pr-1">
+                      {!serviceReady ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                          等待服务就绪后加载 Provider。
+                        </div>
+                      ) : !selectedProvider ? (
+                        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
+                          当前还没有选中 Provider。此时会由后端使用默认 Provider，或由 AgentFlow 图内节点自行决定。
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="truncate text-sm font-black text-slate-900">{selectedProvider.display_name || selectedProvider.provider_key}</span>
+                                {selectedProvider.is_default ? (
+                                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+                                    默认
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{selectedProvider.provider_key}</div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                <span>{selectedProvider.provider_type || '-'}</span>
+                                <span>{selectedProvider.model || 'no-model'}</span>
+                                <span>{selectedProvider.mapped_env_keys?.length || 0} env</span>
+                                <span>{selectedProvider.mapped_file_paths?.length || 0} file</span>
+                              </div>
+                            </div>
+                          </div>
+                          {(selectedProvider.mapped_env_keys?.length || 0) > 0 || (selectedProvider.mapped_file_paths?.length || 0) > 0 ? (
+                            <div className="mt-3 grid gap-2 md:grid-cols-2">
+                              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped Env Keys</div>
+                                <div className="mt-1 break-all text-xs font-semibold text-slate-600">
+                                  {selectedProvider.mapped_env_keys?.join(', ') || '-'}
+                                </div>
+                              </div>
+                              <div className="rounded-lg bg-slate-50 px-3 py-2">
+                                <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Mapped File Paths</div>
+                                <div className="mt-1 break-all text-xs font-semibold text-slate-600">
+                                  {selectedProvider.mapped_file_paths?.join(', ') || '-'}
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs font-medium text-slate-500">{modelHintForExecutor(executorMode)}</div>
                 </div>
 
                 <div className="space-y-4">
@@ -2868,8 +5716,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Create Summary</div>
                         <h3 className="mt-2 text-lg font-black text-slate-950">当前输入配置</h3>
                       </div>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(resolvePipelineMode(capabilities, selectedWorkspace))}`}>
-                        {selectedWorkspace?.supports_poc ? '默认 Audit + PoC' : '默认仅 Audit'}
+                      <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(pipelineMode)}`}>
+                        {formatPipelineMode(pipelineMode)}
                       </span>
                     </div>
                     <div className="mt-4 space-y-3 text-sm">
@@ -2895,17 +5743,74 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Pipeline</div>
+                        <div className="mt-2 font-semibold text-slate-800">{formatPipelineMode(pipelineMode)}</div>
+                        <div className="mt-1 text-xs font-medium text-slate-500">
+                          AgentFlow 自定义图，节点和报告数量由图与输出声明决定。
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">执行器</div>
                         <div className="mt-2 font-semibold text-slate-800">{formatExecutorMode(executorMode)}</div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Model</div>
-                        <div className="mt-2 break-all font-mono text-xs text-slate-700">{modelName.trim() || '(default)'}</div>
+                        <div className="mt-2 break-all font-mono text-xs text-slate-700">{modelName.trim() || providerFallbackModel || '(default)'}</div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Provider</div>
+                        <div className="mt-2 max-h-48 space-y-2 overflow-auto">
+                          {!selectedProvider ? (
+                            <div className="text-xs font-semibold text-slate-400">尚未选择 Provider</div>
+                          ) : (
+                            <div className="rounded-lg bg-slate-50 px-3 py-2">
+                              <div className="text-xs font-black text-slate-800">{selectedProvider.display_name || selectedProvider.provider_key}</div>
+                              <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{selectedProvider.provider_key}</div>
+                              <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                {selectedProvider.provider_type} · {selectedProvider.model || 'no-model'} · {selectedProvider.mapped_env_keys.length} env · {selectedProvider.mapped_file_paths.length} file
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">报告输出</div>
+                        <div className="mt-2 font-semibold text-slate-800">{reportOutputDrafts.length} 个</div>
+                        <div className="mt-2 max-h-40 space-y-2 overflow-auto">
+                          {reportOutputDrafts.length === 0 ? (
+                            <div className="text-xs font-semibold text-slate-400">未自定义，提交后按当前图节点生成默认输出。</div>
+                          ) : (
+                            reportOutputDrafts.map((item) => (
+                              <div key={item.key} className="rounded-lg bg-slate-50 px-3 py-2">
+                                <div className="text-xs font-black text-slate-800">{item.title || item.outputId || '(untitled)'}</div>
+                                <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.path || '-'}</div>
+                                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                                  {item.nodeId || '-'} · {formatReportFormat(item.format)} · {item.required ? 'required' : 'optional'}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Graph Source</div>
+                        <div className="mt-2 font-semibold text-slate-800">{graphSourceType === 'inline_json' ? 'Inline JSON' : `Python Builder · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}</div>
+                        <div className="mt-2 max-h-32 space-y-2 overflow-auto">
+                          {customGraphNodeIds.length === 0 ? (
+                            <div className="text-xs font-semibold text-slate-400">当前没有可推导的节点；可直接在图 JSON 中写 `nodes[].id`，或在 `report_outputs` 里填写 `node_id`。</div>
+                          ) : (
+                            customGraphNodeIds.map((nodeId) => (
+                              <div key={nodeId} className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-700">
+                                {nodeId}
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">说明</div>
                         <div className="mt-2 text-sm font-medium leading-6 text-slate-600">
-                          不展示扫描范围、目标类型和扫描策略。后端按工作区默认模式决定是否在 Audit 结束后继续执行 PoC；批量创建时每个路径对应一个独立任务。
+                          批量创建时每个路径对应一个独立任务。输入路径保持固定，执行图和输出报告都由本页配置驱动；前端只按 `report_outputs` 回收和展示文件。
                         </div>
                       </div>
                     </div>
@@ -2927,7 +5832,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
               <button
                 type="button"
                 onClick={handleCreateTask}
-                disabled={creating || !workspaceId || selectedProjectItems.length === 0}
+                disabled={creating || !workspaceId || selectedProjectItems.length === 0 || !supportsAgentflowExecutor}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}

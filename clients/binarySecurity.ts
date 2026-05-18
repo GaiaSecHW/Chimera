@@ -9,6 +9,23 @@ export interface BinarySecurityInputFile {
 }
 
 export type BinarySecurityTaskType = 'binary' | 'source';
+export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
+
+export interface BinarySecurityStageOption {
+  enabled: boolean;
+}
+
+export interface BinarySecurityTaskPolicy {
+  max_stage_parallelism?: number;
+  max_retries_per_item?: number;
+  continue_on_item_failure?: boolean;
+  partial_success_stage_advancement?: Record<string, boolean>;
+  stage_parallelism?: Record<string, number>;
+  stage_options?: Record<string, BinarySecurityStageOption>;
+  module_selection_mode?: BinarySecurityModuleSelectionMode;
+  module_risk_levels?: string[];
+  [key: string]: any;
+}
 
 export interface BinarySecurityTask {
   id: string;
@@ -17,6 +34,7 @@ export interface BinarySecurityTask {
   name: string;
   status: string;
   current_stage?: string | null;
+  pending_action?: 'continue' | 'retry' | string | null;
   last_error?: string | null;
   firmware_path: string;
   stage_sequence: string[];
@@ -34,7 +52,7 @@ export interface BinarySecurityTask {
   candidate_module_count: number;
   selected_module_count: number;
   selected_risk_levels: string[];
-  module_selection_mode: 'auto' | 'manual_confirm' | string;
+  module_selection_mode: BinarySecurityModuleSelectionMode;
   entry_count: number;
   vuln_result_count: number;
   firmware_item_count: number;
@@ -47,6 +65,10 @@ export interface BinarySecurityTask {
     retry_count: number;
     retry_supported: boolean;
     retry_reason?: string | null;
+    retry_failed_supported?: boolean;
+    retry_failed_reason?: string | null;
+    retry_full_supported?: boolean;
+    retry_full_reason?: string | null;
     total_items: number;
     success_items: number;
     failed_items: number;
@@ -60,6 +82,32 @@ export interface BinarySecurityTask {
   task_retry_reason?: string | null;
   task_continue_supported: boolean;
   task_continue_reason?: string | null;
+  task_retry_failed_items_supported?: boolean;
+  task_retry_failed_items_reason?: string | null;
+  manual_operation_state?: {
+    overall: 'ready' | 'blocked' | 'in_progress' | string;
+    summary: string;
+    blocking_code?: string | null;
+    blocking_reason?: string | null;
+    operation_in_progress: boolean;
+    operation_type?: string | null;
+    operation_owner?: string | null;
+    operation_expires_at?: string | null;
+    operation_heartbeat_at?: string | null;
+    can_cancel: boolean;
+    can_continue: boolean;
+    can_retry: boolean;
+    can_retry_failed_items?: boolean;
+    can_retry_stage: boolean;
+    can_retry_stage_failed_items?: boolean;
+    can_retry_stage_full?: boolean;
+    can_retry_archive: boolean;
+    can_retry_archive_failed_items?: boolean;
+    can_retry_archive_full?: boolean;
+    can_delete: boolean;
+    can_edit_policy: boolean;
+    can_confirm_modules: boolean;
+  };
 }
 
 export interface BinarySecurityProjectStats {
@@ -108,7 +156,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   output_root: string;
   workspace_root: string;
   fileserver_subproject_name?: string | null;
-  policy: Record<string, any>;
+  policy: BinarySecurityTaskPolicy;
   summary: Record<string, any>;
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;
@@ -144,7 +192,11 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     started_at?: string | null;
     completed_at?: string | null;
     updated_at?: string | null;
-    copy_stats?: {
+  retry_supported: boolean;
+  retry_reason?: string | null;
+  retry_failed_supported?: boolean;
+  retry_failed_reason?: string | null;
+  copy_stats?: {
       copied_files?: number;
       copied_dirs?: number;
       copied_symlinks?: number;
@@ -158,12 +210,43 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     };
   }>;
   overview_nodes: BinarySecurityOverviewNode[];
+  orchestration_observability?: BinarySecurityOrchestrationObservability;
+}
+
+export interface BinarySecurityOrchestrationObservability {
+  state_events?: {
+    status_counts?: Record<string, number>;
+    oldest_active_age_seconds?: number;
+    processing?: Array<Record<string, any>>;
+    dead_letters?: Array<Record<string, any>>;
+    recent?: Array<Record<string, any>>;
+  };
+  task_state_lock?: {
+    active?: boolean;
+    owner_id?: string | null;
+    operation?: string | null;
+    lease_expires_at?: string | null;
+    heartbeat_at?: string | null;
+  };
+  archive?: {
+    by_stage?: Record<string, Record<string, number>>;
+  };
+  reconcile?: {
+    latest_event_type?: string | null;
+    latest_event_at?: string | null;
+    latest_message?: string | null;
+  };
+  files?: {
+    summary_path?: string | null;
+    metadata_path?: string | null;
+  };
 }
 
 export interface BinarySecurityOverviewBusinessDetail {
   total_items: number;
   success_items: number;
   failed_items: number;
+  downstream_missing_items: number;
   skipped_items: number;
   running_items: number;
   cancelled_items: number;
@@ -201,13 +284,17 @@ export interface BinarySecurityOverviewNode {
   last_error?: string | null;
   retry_supported: boolean;
   retry_reason?: string | null;
+  retry_failed_supported?: boolean;
+  retry_failed_reason?: string | null;
+  retry_full_supported?: boolean;
+  retry_full_reason?: string | null;
   detail: BinarySecurityOverviewBusinessDetail | BinarySecurityOverviewArchiveDetail;
 }
 
 export interface BinarySecurityModuleSelection {
   task_id: string;
   status: string;
-  selection_mode: 'auto' | 'manual_confirm' | string;
+  selection_mode: BinarySecurityModuleSelectionMode;
   risk_levels: string[];
   requires_confirmation: boolean;
   system_analysis_modules: Array<Record<string, any>>;
@@ -244,6 +331,7 @@ export interface BinarySecurityProjectConfig {
     max_stage_parallelism: number;
     max_retries_per_item: number;
     continue_on_item_failure: boolean;
+    partial_success_stage_advancement: Record<string, boolean>;
     stage_parallelism: Record<string, number>;
     stage_options: Record<string, { enabled: boolean }>;
   };
@@ -260,6 +348,8 @@ export interface BinarySecurityActionResult {
   status: string;
   task_id: string;
   message: string;
+  accepted?: boolean;
+  action?: 'continue' | 'retry' | string;
   cancelled_downstream_count?: number;
   deleted_downstream_count?: number;
   deleted_event_count?: number;
@@ -295,6 +385,48 @@ export const binarySecurityApi = {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}`, {
       headers: getHeaders(),
       cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  getOrchestrationObservability: async (projectId: string, taskId: string): Promise<BinarySecurityOrchestrationObservability> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/orchestration-observability`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  updateTaskConcurrency: async (
+    projectId: string,
+    taskId: string,
+    payload: { stage_parallelism: Record<string, number> },
+  ): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/concurrency`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(resp);
+  },
+
+  updateTaskPolicy: async (
+    projectId: string,
+    taskId: string,
+    payload: {
+      stage_options?: Record<string, BinarySecurityStageOption>;
+      max_retries_per_item?: number;
+      continue_on_item_failure?: boolean;
+      partial_success_stage_advancement?: Record<string, boolean>;
+      stage_parallelism?: Record<string, number>;
+      module_selection_mode?: BinarySecurityModuleSelectionMode;
+      module_risk_levels?: string[];
+    },
+  ): Promise<BinarySecurityTaskDetail> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/policy`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(resp);
   },
@@ -353,6 +485,7 @@ export const binarySecurityApi = {
         max_stage_parallelism?: number;
         max_retries_per_item?: number;
         continue_on_item_failure?: boolean;
+        partial_success_stage_advancement?: Record<string, boolean>;
         stage_parallelism?: Record<string, number>;
         module_selection_mode?: 'auto' | 'manual_confirm';
         module_risk_levels?: string[];
@@ -400,7 +533,7 @@ export const binarySecurityApi = {
     return handleResponse(resp);
   },
 
-  retryTask: async (projectId: string, taskId: string) => {
+  retryTask: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/retry`, {
       method: 'POST',
       headers: getHeaders(),
@@ -418,6 +551,62 @@ export const binarySecurityApi = {
 
   retryStage: async (projectId: string, taskId: string, stageName: string) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveStage: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/archive/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveJob: async (projectId: string, taskId: string, archiveJobId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/archive-jobs/${archiveJobId}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryFailedItems: async (projectId: string, taskId: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/retry-failed-items`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryStageFailedItems: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry-failed-items`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryStageFull: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/retry-full`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveStageFailedItems: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/archive/retry-failed-items`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  retryArchiveStageFull: async (projectId: string, taskId: string, stageName: string): Promise<BinarySecurityActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stages/${stageName}/archive/retry-full`, {
       method: 'POST',
       headers: getHeaders(),
     });

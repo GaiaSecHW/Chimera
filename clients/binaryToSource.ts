@@ -8,6 +8,15 @@ export interface B2SElfTaskInput {
 }
 
 export type B2SRunMode = 'fast' | 'deep';
+export type B2SBudgetExhaustedAction = 'treat_as_passed' | 'treat_as_failed';
+
+export interface B2SServiceConfig {
+  project_id: string;
+  budget_exhausted_action: B2SBudgetExhaustedAction;
+  llm_provider_key?: string | null;
+  effective_llm_provider?: B2SLlmProviderSummary | null;
+  updated_at?: string | null;
+}
 
 export interface B2STaskCreatePayload {
   task_id?: string;
@@ -51,6 +60,7 @@ export interface B2STask {
   parent_task_display?: string | null;
   mode?: string | null;
   mode_label?: string | null;
+  input_filenames?: string[];
   name: string;
   status: string;
   total_items: number;
@@ -61,6 +71,10 @@ export interface B2STask {
   partial_items: number;
   failed_items: number;
   cancelled_items: number;
+  total_functions?: number | null;
+  completed_functions?: number | null;
+  failed_functions?: number | null;
+  uncompleted_functions?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -145,26 +159,68 @@ export interface B2STaskItemAdvanced {
   ida_files: B2SAdvancedFile[];
 }
 
+export interface B2SArtifact extends Omit<B2SAdvancedFile, 'content' | 'truncated'> {
+  id: string;
+  relative_path: string;
+  content_url: string;
+}
+
+export interface B2SArtifactsResponse {
+  task_id: string;
+  item_id: string;
+  output_dir: string;
+  work_dir?: string | null;
+  artifacts: B2SArtifact[];
+  counts: Record<string, number>;
+}
+
+export interface B2SArtifactContent {
+  artifact_id: string;
+  name: string;
+  path: string;
+  kind: string;
+  mime_type: string;
+  encoding: string;
+  size: number;
+  offset: number;
+  limit: number;
+  content: string;
+  truncated: boolean;
+  next_offset?: number | null;
+}
+
 export interface B2SReviewAnalyticsAttempt {
   attempt_no: number;
+  label?: string | null;
   verdict: string;
+  verdict_label?: string | null;
   total_functions: number;
   verified_functions: number;
   blocking_issues: number;
   warnings: number;
   semantic_score: number;
   confidence: number;
+  quality_score?: number;
+  issues_discovered?: number;
+  issues_resolved?: number;
+  issues_open_after_attempt?: number;
+  status_label?: string | null;
 }
 
 export interface B2SReviewAnalyticsIssue {
   id: string;
   label: string;
+  display_label?: string | null;
+  description?: string | null;
   function: string;
   category: string;
+  category_label?: string | null;
   severity: string;
+  severity_label?: string | null;
   introduced_attempt: number;
   resolved_attempt?: number | null;
   status: string;
+  status_label?: string | null;
 }
 
 export interface B2SReviewAnalyticsFunction {
@@ -182,55 +238,302 @@ export interface B2SReviewAnalyticsRadar {
   type_struct_fidelity: number;
 }
 
+export interface B2SReviewAnalyticsTrendPoint {
+  attempt_no: number;
+  label: string;
+  score: number;
+}
+
+export interface B2SReviewAnalyticsTrendSeries {
+  key: string;
+  label: string;
+  color_hint?: string | null;
+  points: B2SReviewAnalyticsTrendPoint[];
+}
+
+export interface B2SReviewAnalyticsTrend {
+  title: string;
+  conclusion: string;
+  tone: 'positive' | 'neutral' | 'warning' | string;
+  primary_metric: string;
+  first_score: number;
+  final_score: number;
+  delta: number;
+  series: B2SReviewAnalyticsTrendSeries[];
+}
+
+export interface B2SReviewAnalyticsDimension {
+  key: string;
+  label: string;
+  score: number;
+  initial_score: number;
+  delta: number;
+  delta_percent: number;
+  level: string;
+  level_label: string;
+  description: string;
+  formula?: string | null;
+  color_hint?: string | null;
+  points: B2SReviewAnalyticsTrendPoint[];
+  components: Record<string, number>;
+}
+
 export interface B2SReviewAnalytics {
   task_id: string;
   item_id: string;
+  status?: string;
+  meta?: {
+    schema_version: string;
+    scoring_version: string;
+    source: string;
+    data_quality: string;
+    generated_at?: string | null;
+  };
   summary: {
     attempts: number;
+    attempt_count?: number;
     final_verdict: string;
+    final_verdict_label?: string | null;
     final_confidence: number;
+    final_quality_score?: number;
+    final_quality_label?: string | null;
+    initial_quality_score?: number;
+    quality_delta?: number;
+    quality_delta_percent?: number;
+    issue_total?: number;
+    issue_resolved?: number;
+    issue_remaining?: number;
     issue_closure_rate: number;
     residual_risk: string;
-    mock: boolean;
+    residual_risk_label?: string | null;
   };
   attempts: B2SReviewAnalyticsAttempt[];
   issues: B2SReviewAnalyticsIssue[];
+  dimensions: B2SReviewAnalyticsDimension[];
+  trend?: B2SReviewAnalyticsTrend | null;
   function_matrix: B2SReviewAnalyticsFunction[];
   radar: B2SReviewAnalyticsRadar[];
+  trend_insight?: B2SReviewAnalyticsTrend | null;
 }
 
-export const MOCK_B2S_REVIEW_ANALYTICS: B2SReviewAnalytics = {
-  task_id: 'mock-task',
-  item_id: 'mock-item',
-  summary: { attempts: 3, final_verdict: 'PASS', final_confidence: 92, issue_closure_rate: 1, residual_risk: 'low', mock: true },
-  attempts: [
-    { attempt_no: 1, verdict: 'FAIL', total_functions: 10, verified_functions: 7, blocking_issues: 4, warnings: 0, semantic_score: 61, confidence: 58 },
-    { attempt_no: 2, verdict: 'FAIL', total_functions: 10, verified_functions: 9, blocking_issues: 1, warnings: 1, semantic_score: 82, confidence: 76 },
-    { attempt_no: 3, verdict: 'PASS', total_functions: 10, verified_functions: 10, blocking_issues: 0, warnings: 1, semantic_score: 96, confidence: 92 },
-  ],
-  issues: [
-    { id: 'I1', label: 'Length Logic', function: 'sub_880', category: 'Validation', severity: 'blocking', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved' },
-    { id: 'I2', label: 'Return Code', function: 'sub_880', category: 'Return', severity: 'blocking', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved' },
-    { id: 'I3', label: 'Extra Check', function: 'sub_880', category: 'Validation', severity: 'major', introduced_attempt: 1, resolved_attempt: 2, status: 'resolved' },
-    { id: 'I4', label: 'Semantic', function: 'sub_E74', category: 'Semantic', severity: 'major', introduced_attempt: 2, resolved_attempt: 3, status: 'resolved' },
-  ],
-  function_matrix: ['.init_proc', 'sub_880', 'start', 'sub_E74', 'sub_E90', 'sub_EC0', 'sub_F00', 'sub_F50', 'sub_F60', '.term_proc'].map((name) => ({
-    function: name,
-    attempts: [
-      { attempt_no: 1, risk: name === 'sub_880' ? 'critical' : 'passed', score: name === 'sub_880' ? 42 : 82 },
-      { attempt_no: 2, risk: name === 'sub_E74' ? 'warning' : 'passed', score: name === 'sub_E74' ? 78 : 91 },
-      { attempt_no: 3, risk: 'passed', score: 96 },
-    ],
-  })),
-  radar: [
-    { attempt_no: 1, completeness: 92, control_flow: 66, return_semantics: 52, input_validation: 44, call_fidelity: 84, type_struct_fidelity: 80 },
-    { attempt_no: 2, completeness: 96, control_flow: 88, return_semantics: 84, input_validation: 90, call_fidelity: 91, type_struct_fidelity: 88 },
-    { attempt_no: 3, completeness: 100, control_flow: 96, return_semantics: 97, input_validation: 97, call_fidelity: 96, type_struct_fidelity: 95 },
-  ],
-};
+export interface B2STaskConfigInputItem {
+  item_id: string;
+  sequence_no: number;
+  elf_path: string;
+  source_elf_path?: string | null;
+  output_dir: string;
+  output_subdir?: string | null;
+  file_list: string[];
+}
+
+export interface B2STaskConfigSnapshot {
+  name: string;
+  description?: string | null;
+  priority: number;
+  tags: string[];
+  task_origin_type?: string | null;
+  origin_label?: string | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: string | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  mode?: string | null;
+  mode_label?: string | null;
+  engine?: string | null;
+  llm_provider_key?: string | null;
+  llm_provider_display_name?: string | null;
+  llm_provider_type?: string | null;
+  llm_provider_model?: string | null;
+  concurrency?: number | null;
+  agent_run_timeout_seconds?: number | null;
+  agent_timeout_retry_enabled?: boolean | null;
+  agent_timeout_max_retries?: number | null;
+  budget_exhausted_action?: string | null;
+  input_count: number;
+  input_items: B2STaskConfigInputItem[];
+}
+
+export interface B2SAgentRuntimeEntry {
+  key: string;
+  label: string;
+  item_id?: string | null;
+  sequence_no?: number | null;
+  item_name?: string | null;
+  run_name?: string | null;
+  stage?: string | null;
+  agent?: string | null;
+  role?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
+  relative_path?: string | null;
+  full_path?: string | null;
+  updated_at?: string | null;
+  is_active: boolean;
+  size: number;
+}
+
+export interface B2SAgentRuntimeSummary {
+  total_sessions: number;
+  active_agent_count: number;
+  header_agent_count: number;
+  executor_agent_count: number;
+  validator_agent_count: number;
+  active_agents: B2SAgentRuntimeEntry[];
+}
+
+export interface B2STaskResultItemSummary {
+  item_id: string;
+  sequence_no: number;
+  item_name: string;
+  elf_path: string;
+  output_dir: string;
+  status: string;
+  result_file_count: number;
+  key_result_files: string[];
+  session_file_count: number;
+  review_round_count: number;
+  final_verdict?: string | null;
+  final_verdict_label?: string | null;
+}
+
+export interface B2STaskResultSummary {
+  task_id: string;
+  success_items: number;
+  partial_items: number;
+  failed_items: number;
+  cancelled_items: number;
+  result_file_count: number;
+  session_file_count: number;
+  review_round_count: number;
+  items: B2STaskResultItemSummary[];
+}
+
+export interface B2STaskObservabilityItem {
+  item_id: string;
+  sequence_no: number;
+  item_name: string;
+  status: string;
+  duration_ms?: number | null;
+  batch_count: number;
+  session_count: number;
+  attempt_count: number;
+  final_verdict?: string | null;
+  final_confidence: number;
+  final_quality_score: number;
+  issue_total: number;
+  issue_resolved: number;
+  issue_remaining: number;
+}
+
+export interface B2STaskObservability {
+  task_id: string;
+  total_duration_ms?: number | null;
+  avg_item_duration_ms?: number | null;
+  total_batches: number;
+  avg_batches_per_item: number;
+  total_sessions: number;
+  active_agent_count: number;
+  total_review_attempts: number;
+  avg_review_attempts: number;
+  passed_items: number;
+  not_passed_items: number;
+  issue_total: number;
+  issue_resolved: number;
+  issue_remaining: number;
+  issue_closure_rate: number;
+  completed_functions: number;
+  total_functions: number;
+  completed_bytes: number;
+  total_bytes: number;
+  avg_confidence: number;
+  avg_quality_score: number;
+  residual_risk_distribution: Record<string, number>;
+  items: B2STaskObservabilityItem[];
+}
+
+export interface B2SSessionNode {
+  node_id: string;
+  item_id: string;
+  sequence_no: number;
+  item_name: string;
+  run_name: string;
+  stage: string;
+  stage_order: number;
+  section?: string | null;
+  round?: string | null;
+  round_order?: number | null;
+  agent?: string | null;
+  role?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
+  relative_path: string;
+  full_path: string;
+  size: number;
+  updated_at?: string | null;
+  is_active: boolean;
+  kind: string;
+}
+
+export interface B2SSessionIndex {
+  task_id: string;
+  nodes: B2SSessionNode[];
+  warnings: string[];
+  generated_at?: string | null;
+}
+
+export interface B2SSessionFile {
+  task_id: string;
+  relative_path: string;
+  full_path: string;
+  size: number;
+  content: string;
+  truncated: boolean;
+  next_offset?: number | null;
+  offset: number;
+  limit: number;
+  mime_type: string;
+}
+
+export interface B2SRelationshipNode {
+  node_id: string;
+  node_type: string;
+  item_id?: string | null;
+  sequence_no?: number | null;
+  title: string;
+  subtitle?: string | null;
+  status?: string | null;
+  relative_path?: string | null;
+  full_path?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
+  group_key?: string | null;
+  is_active: boolean;
+}
+
+export interface B2SRelationshipEdge {
+  edge_id: string;
+  source_node_id: string;
+  target_node_id: string;
+  kind: string;
+  label?: string | null;
+}
+
+export interface B2STaskRelationship {
+  task_id: string;
+  nodes: B2SRelationshipNode[];
+  edges: B2SRelationshipEdge[];
+  warnings: string[];
+}
 
 export interface B2STaskDetail extends B2STask {
   overall_progress?: B2SOverallProgress;
+  task_config_snapshot?: B2STaskConfigSnapshot;
+  effective_llm_provider?: B2SLlmProviderSummary | null;
+  agent_runtime_summary?: B2SAgentRuntimeSummary | null;
+  result_summary?: B2STaskResultSummary | null;
+  observability_summary?: B2STaskObservability | null;
   items: Array<{
     id: string;
     sequence_no: number;
@@ -243,6 +546,8 @@ export interface B2STaskDetail extends B2STask {
     progress?: B2SProgress;
     failure_type?: string;
     error_reason?: string;
+    pi_job_id?: string | null;
+    pi_worker_url?: string | null;
     generated_files: string[];
     started_at?: string;
     finished_at?: string;
@@ -250,6 +555,22 @@ export interface B2STaskDetail extends B2STask {
 }
 
 export const binaryToSourceApi = {
+  getConfig: async (projectId: string): Promise<B2SServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  saveConfig: async (projectId: string, config: B2SServiceConfig): Promise<B2SServiceConfig> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ config }),
+    });
+    return handleResponse(resp);
+  },
+
   listTasks: async (projectId: string, status?: string): Promise<{ total: number; items: B2STask[] }> => {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`, {
@@ -321,19 +642,66 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  getTaskItemReviewAnalytics: async (projectId: string, taskId: string, itemId: string, mock = false): Promise<B2SReviewAnalytics> => {
-    if (mock) return { ...MOCK_B2S_REVIEW_ANALYTICS, task_id: taskId, item_id: itemId };
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/review-analytics?mock=false`, {
+  getTaskItemArtifacts: async (projectId: string, taskId: string, itemId: string): Promise<B2SArtifactsResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/artifacts`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);
   },
 
-  rerunTask: async (projectId: string, taskId: string, options?: { clean_output?: boolean; cancel_running?: boolean }) => {
+  getTaskItemArtifactContent: async (projectId: string, taskId: string, itemId: string, artifactId: string, offset = 0, limit = 512 * 1024): Promise<B2SArtifactContent> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/artifacts/${artifactId}/content?offset=${offset}&limit=${limit}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskItemReviewAnalytics: async (projectId: string, taskId: string, itemId: string): Promise<B2SReviewAnalytics> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/review-analytics`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskSessions: async (projectId: string, taskId: string): Promise<B2SSessionIndex> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/sessions`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskSessionFile: async (projectId: string, taskId: string, path: string, offset = 0, limit = 512 * 1024): Promise<B2SSessionFile> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/sessions/file?path=${encodeURIComponent(path)}&offset=${offset}&limit=${limit}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskRelationship: async (projectId: string, taskId: string): Promise<B2STaskRelationship> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/relationships`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskResult: async (projectId: string, taskId: string): Promise<B2STaskResultSummary> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/result`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskObservability: async (projectId: string, taskId: string): Promise<B2STaskObservability> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/observability`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  rerunTask: async (projectId: string, taskId: string) => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/rerun`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ clean_output: options?.clean_output ?? true, cancel_running: options?.cancel_running ?? true }),
     });
     return handleResponse(resp);
   },

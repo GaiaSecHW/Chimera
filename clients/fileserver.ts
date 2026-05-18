@@ -89,6 +89,41 @@ export interface FileWatchErrorMessage {
   ts?: string;
 }
 
+export interface ArchiveTaskCreateRequest {
+  project_id: string;
+  items: string[];
+  archive_name?: string;
+}
+
+export interface ArchiveTaskSubmitResponse {
+  task_id: string;
+  status: string;
+  accepted_at: string;
+  request_id?: string;
+  queue_class?: string;
+}
+
+export interface ArchiveTaskStatusResponse {
+  task_id: string;
+  task_type?: string;
+  project_id?: string;
+  status: string;
+  progress: number;
+  accepted_at: string;
+  finished_at?: string | null;
+  result?: {
+    project_id?: string;
+    mode?: 'project_filesystem' | 'vuln_project_path' | string;
+    items?: string[];
+    archive_name?: string;
+    download_path?: string;
+    archive_size?: number;
+    file_count?: number;
+    expires_at?: string;
+  } | null;
+  error?: string | null;
+}
+
 export type FileWatchMessage =
   | FileWatchSnapshotMessage
   | FileWatchDeltaMessage
@@ -239,6 +274,42 @@ export const fileserverApi = {
   fetchProjectFilesystemDownloadBlob: async (projectId: string, path: string): Promise<Blob> => {
     const query = new URLSearchParams({ project_id: projectId, path }).toString();
     const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/download?${query}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      await handleResponse(response);
+    }
+    return response.blob();
+  },
+
+  createProjectFilesystemArchiveTask: async (payload: ArchiveTaskCreateRequest): Promise<ArchiveTaskSubmitResponse> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/project-filesystem/archive-tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  createVulnProjectPathArchiveTask: async (payload: ArchiveTaskCreateRequest): Promise<ArchiveTaskSubmitResponse> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/vuln/project-path/archive-tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  listArchiveTasks: async (projectId: string, limit = 100): Promise<ArchiveTaskStatusResponse[]> => {
+    const query = new URLSearchParams({ project_id: projectId, limit: String(limit) }).toString();
+    const response = await fetch(`${API_BASE}/api/fileserver/archive-tasks?${query}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  fetchArchiveTaskDownloadBlob: async (taskId: string): Promise<Blob> => {
+    const response = await fetch(`${API_BASE}/api/fileserver/archive-tasks/${encodeURIComponent(taskId)}/download`, {
       headers: getHeaders(),
     });
     if (!response.ok) {

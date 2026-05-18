@@ -29,6 +29,7 @@ import {
 
 import { api } from '../../clients/api';
 import {
+  DataflowAgentStateDir,
   DataflowInputRef,
   DataflowProfileConfigPayload,
   DataflowScanProfile,
@@ -44,6 +45,7 @@ import {
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
+import { StaticPipelineFlow } from './StaticPipelineFlow';
 import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 
 const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
@@ -84,10 +86,42 @@ const TEMPLATE_OPTIONS = [
   { value: 'vuln_scan_default', label: '单阶段漏洞挖掘' },
   { value: 'full_pipeline', label: '完整分析流水线' },
 ];
+const DATAFLOW_VULN_FLOW = {
+  title: '数据流漏洞挖掘阶段推进关系',
+  subtitle: '展示漏洞挖掘微服务从 Profile 模板到结果评审与疑点上报的静态推进链路，帮助理解不同配置对扫描收敛的影响位置。',
+  lanes: [
+    {
+      label: '扫描执行链路',
+      steps: [
+        { id: 'dfv-profile', title: 'Profile / 模板装载', desc: '装载项目默认或显式指定 Profile，并解析模板、模型与运行参数。', badge: '1', tone: 'guard' as const },
+        { id: 'dfv-worker', title: 'Worker 挖掘', desc: '围绕数据流结果开展漏洞候选挖掘，输出 issue 与证据草稿。', badge: '2', tone: 'analysis' as const },
+        { id: 'dfv-global-review', title: '全局评审', desc: 'Advisor / Global Review 判断候选质量、收敛方向和是否继续下一轮。', badge: '3', tone: 'review' as const },
+        { id: 'dfv-result-review', title: '结果评审', desc: '对 issue 做并发结果复核，压缩误报并形成最终结论。', badge: '4', tone: 'review' as const },
+        { id: 'dfv-report', title: '报告输出与上报', desc: '生成 Run 结果、漏洞报告，并在开启时向漏洞引擎上报疑点。', badge: '5', tone: 'artifact' as const },
+      ],
+    },
+  ],
+  notes: [
+    {
+      title: '模板差异',
+      detail: '单阶段漏洞挖掘更聚焦直接 issue 产出；完整分析流水线会结合更多上下游结果与补充评审。',
+      tone: 'analysis' as const,
+    },
+    {
+      title: '评审与超时',
+      detail: 'review_profile、max_review_cycles、timeout_max_retries 和 result_review_concurrency 共同影响候选收敛速度、稳定性与误报控制。',
+      tone: 'review' as const,
+    },
+  ],
+};
 const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-cyan-600';
+const TASK_PURPOSE_META: Record<string, { label: string; className: string }> = {
+  normal: { label: '正常任务', className: 'border-slate-200 bg-slate-50 text-slate-700' },
+  evolution: { label: '进化任务', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+};
 
 const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
-  model: 'icsl/zai-org/GLM-5',
+  model: 'my_llm/MiniMax/MiniMax-M2.5',
   review_profile: 'balanced',
   max_review_cycles: 6,
   worker_timeout: 3600,
@@ -258,6 +292,21 @@ const taskRunDirectoryPath = (task: DataflowScanTask) => {
 };
 
 const taskDisplayStatus = (task: DataflowScanTask) => String(task.status || '');
+const taskPurposeMeta = (purpose?: string | null) => TASK_PURPOSE_META[String(purpose || 'normal').trim()] || TASK_PURPOSE_META.normal;
+const renderProjectScopedTemplate = (template: string, projectId: string) =>
+  String(template || '').replaceAll('{project_id}', projectId || '{project_id}');
+const agentStateDirList = (dirs?: Record<string, DataflowAgentStateDir> | null) =>
+  Object.values(dirs || {}).sort((left, right) => left.agent_id.localeCompare(right.agent_id));
+
+const vulnReportStatusLabel = (task: DataflowScanTask) => {
+  if (task.auto_report_vulnerabilities === false) return { label: '未开启', className: 'border-slate-200 bg-slate-50 text-slate-500' };
+  const status = String(task.vuln_report_status?.status || 'not_started');
+  if (status === 'reported') return { label: `已上报 ${task.vuln_report_status?.reported || 0}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' };
+  if (status === 'partial_failed') return { label: '部分失败', className: 'border-amber-200 bg-amber-50 text-amber-700' };
+  if (status === 'failed') return { label: '上报失败', className: 'border-rose-200 bg-rose-50 text-rose-700' };
+  if (status === 'empty') return { label: '无疑点', className: 'border-slate-200 bg-slate-50 text-slate-500' };
+  return { label: '待上报', className: 'border-cyan-200 bg-cyan-50 text-cyan-700' };
+};
 
 const normalizeRunStatus = (status?: string | null) => {
   const value = String(status || '').trim().toLowerCase();
@@ -353,6 +402,33 @@ const PageHeader: React.FC<{
   </section>
 );
 
+const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () => void; onReset: () => void }> = ({
+  saving,
+  disabled = false,
+  onSave,
+  onReset,
+}) => (
+  <div className="flex shrink-0 flex-wrap items-center gap-2">
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={saving}
+      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+    >
+      重置为默认
+    </button>
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving || disabled}
+      className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-xs font-black text-white shadow-sm hover:bg-cyan-800 disabled:opacity-50"
+    >
+      {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+      保存配置
+    </button>
+  </div>
+);
+
 interface CreateTaskState {
   title: string;
   profileId: string;
@@ -367,6 +443,7 @@ interface CreateTaskState {
   timeoutRetryIntervalSeconds: number;
   resultReviewConcurrency: number;
   runtimeOverridesText: string;
+  autoReportVulnerabilities: boolean;
 }
 
 const initialCreateTaskState = (): CreateTaskState => ({
@@ -383,6 +460,7 @@ const initialCreateTaskState = (): CreateTaskState => ({
   timeoutRetryIntervalSeconds: defaultConfigPayload().timeout_retry_interval_seconds ?? 30,
   resultReviewConcurrency: defaultConfigPayload().result_review_concurrency,
   runtimeOverridesText: '',
+  autoReportVulnerabilities: true,
 });
 
 const applyConfigPayloadToCreateTaskState = (
@@ -665,6 +743,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         data_flow: buildProjectFilesystemRef(createState.dataFlowPath),
         source_dir: buildProjectFilesystemRef(createState.sourcePath),
         ...(createState.workspacePath.trim() ? { workspace_dir: buildProjectFilesystemRef(createState.workspacePath) } : {}),
+        auto_report_vulnerabilities: createState.autoReportVulnerabilities,
         ...configOverrides,
         ...(Object.keys(runtimeOverrides).length ? { runtime_overrides: runtimeOverrides } : {}),
       };
@@ -764,7 +843,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             </div>
 
             <div className="overflow-auto">
-              <table className="w-full min-w-[1180px] text-left text-sm">
+              <table className="w-full min-w-[1280px] text-left text-sm">
                 <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
                   <tr>
                     <th className="px-4 py-3">任务 / Run</th>
@@ -773,6 +852,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     <th className="px-4 py-3">模型</th>
                     <th className="px-4 py-3">轮次</th>
                     <th className="px-4 py-3">结果</th>
+                    <th className="px-4 py-3">疑点上报</th>
                     <th className="px-4 py-3">开始时间</th>
                     <th className="px-4 py-3">耗时</th>
                     <th className="px-4 py-3 text-right">详情</th>
@@ -788,6 +868,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     const executionId = task.latest_execution_id || run.linked_execution_id || '';
                     const displayName = task.title || run.name || taskId || run.path || 'Run';
                     const runPath = taskRunDirectoryPath(task);
+                    const reportStatus = vulnReportStatusLabel(task);
+                    const purposeMeta = taskPurposeMeta(task.task_purpose);
                     const secondaryLine = hasRun
                       ? `任务 ${shortId(taskId, 18)} · Run ${shortId(run.name || '', 18)}`
                       : `任务 ${shortId(taskId, 18)} · 执行 ${shortId(executionId || '-', 18)}`;
@@ -804,7 +886,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               {hasRun ? <FolderOpen size={17} /> : <FileSearch size={17} />}
                             </div>
                             <div className="min-w-0">
-                              <div className="font-black text-slate-900">{shortId(displayName, 32)}</div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="font-black text-slate-900">{shortId(displayName, 32)}</div>
+                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black ${purposeMeta.className}`}>
+                                  {purposeMeta.label}
+                                </span>
+                              </div>
                               <div className="mt-1 truncate text-xs text-slate-500">{secondaryLine}</div>
                             </div>
                           </div>
@@ -841,6 +928,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <div className="mt-1 text-xs text-slate-500">Execution: {shortId(executionId || '-', 18)}</div>
                             </>
                           )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${reportStatus.className}`}>
+                            {reportStatus.label}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-500">
                           {runSummary.start_epoch ? formatEpochTime(runSummary.start_epoch) : formatDateTime(task.started_at || task.created_at)}
@@ -1328,6 +1420,26 @@ const CreateTaskDialog: React.FC<{
               </label>
             </div>
 
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={state.autoReportVulnerabilities}
+                  onChange={(event) => onChange({ ...state, autoReportVulnerabilities: event.target.checked })}
+                  className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-700 focus:ring-emerald-600"
+                />
+                <span>
+                  <span className="flex items-center gap-2 text-sm font-black text-emerald-950">
+                    <ShieldCheck size={16} />
+                    自动上报漏洞疑点
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-emerald-800">
+                    默认开启。任务成功后会将最终有效的 result_NNN.md 上报到当前项目的漏洞引擎，并记录原始任务 ID、执行 ID 和结果文件路径。
+                  </span>
+                </span>
+              </label>
+            </div>
+
             <div className="mt-4">
               <label>
                 <span className="text-xs font-black text-slate-600">运行时覆盖 JSON</span>
@@ -1444,6 +1556,25 @@ const profilePayloadFromForm = (projectId: string, form: ProfileFormState) => ({
   execution_timeout_seconds: form.executionTimeoutSeconds,
 });
 
+type ProfilePanelId = 'basic' | 'review' | 'runtime';
+
+const PROFILE_PANEL_FIELDS: Record<ProfilePanelId, Array<keyof ProfileFormState>> = {
+  basic: ['name', 'description', 'templateKind', 'enabled', 'isDefault'],
+  review: ['model', 'reviewProfile', 'maxReviewCycles', 'resultReviewConcurrency'],
+  runtime: ['runtimeOverridesText'],
+};
+
+const applyProfilePanel = (base: ProfileFormState, draft: ProfileFormState, panel: ProfilePanelId): ProfileFormState => {
+  const next = { ...base };
+  PROFILE_PANEL_FIELDS[panel].forEach((field) => {
+    next[field] = draft[field] as never;
+  });
+  return next;
+};
+
+const isProfilePanelDirty = (saved: ProfileFormState, draft: ProfileFormState, panel: ProfilePanelId) =>
+  PROFILE_PANEL_FIELDS[panel].some((field) => saved[field] !== draft[field]);
+
 export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: boolean }> = ({ projectId, embedded = false }) => {
   const executionApi = api.domains.execution.dataflowVulnScanner;
   const { notify, confirm, feedbackNodes } = useUiFeedback();
@@ -1455,6 +1586,7 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
   const [serviceConfig, setServiceConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPanel, setSavingPanel] = useState<ProfilePanelId | null>(null);
 
   const load = async () => {
     if (!projectId) return;
@@ -1504,8 +1636,9 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
   }, [selectedProfileId]);
 
   const selectedProfile = profiles.find((profile) => profile.profile_id === selectedProfileId);
+  const savedForm = selectedProfile ? formFromProfile(selectedProfile) : blankProfileForm();
 
-  const saveProfile = async () => {
+  const saveProfile = async (panel?: ProfilePanelId) => {
     if (!projectId) {
       notify('请先选择项目', 'warning');
       return;
@@ -1515,20 +1648,33 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       return;
     }
     setSaving(true);
+    if (panel) {
+      setSavingPanel(panel);
+    }
     try {
-      const payload = profilePayloadFromForm(projectId, form);
+      const payloadForm = panel ? applyProfilePanel(savedForm, form, panel) : form;
+      const payload = profilePayloadFromForm(projectId, payloadForm);
       const saved = form.profileId
         ? await executionApi.updateProfile(form.profileId, payload)
         : await executionApi.createProfile(payload);
-      notify('Profile 已保存', 'success');
+      const nextSavedForm = formFromProfile(saved);
+      const nextDraft = panel ? applyProfilePanel(form, nextSavedForm, panel) : nextSavedForm;
+      notify(panel ? '分组配置已保存' : 'Profile 已保存', 'success');
       setSelectedProfileId(saved.profile_id);
       await load();
       await loadVersions(saved.profile_id);
+      setForm(nextDraft);
     } catch (error: any) {
       notify(error?.message || '保存 Profile 失败', 'error');
     } finally {
       setSaving(false);
+      setSavingPanel(null);
     }
+  };
+
+  const resetProfilePanel = (panel: ProfilePanelId, label: string) => {
+    setForm((current) => applyProfilePanel(current, blankProfileForm(), panel));
+    notify(`${label}已重置为默认值（尚未保存）`, 'info');
   };
 
   const toggleProfile = async (profile: DataflowScanProfile) => {
@@ -1582,14 +1728,6 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
         <RefreshCw size={16} />
         刷新
       </button>
-      <button
-        onClick={() => void saveProfile()}
-        disabled={saving}
-        className="inline-flex items-center gap-2 rounded-lg bg-cyan-700 px-4 py-2 text-sm font-black text-white shadow-sm hover:bg-cyan-800 disabled:opacity-50"
-      >
-        {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-        保存
-      </button>
     </>
   );
 
@@ -1624,6 +1762,13 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             {configActions}
           </PageHeader>
         )}
+
+        <StaticPipelineFlow
+          title={DATAFLOW_VULN_FLOW.title}
+          subtitle={DATAFLOW_VULN_FLOW.subtitle}
+          lanes={DATAFLOW_VULN_FLOW.lanes}
+          notes={DATAFLOW_VULN_FLOW.notes}
+        />
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <MetricCard label="Profile 数" value={profiles.length} icon={<SlidersHorizontal size={17} />} />
@@ -1686,56 +1831,106 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
             ) : null}
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <div className="text-sm font-black text-slate-900">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
-              <div className="mt-1 text-xs text-slate-500">{form.profileId || '尚未保存'}</div>
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <div className="text-sm font-black text-slate-900">{form.profileId ? '编辑 Profile' : '新建 Profile'}</div>
+                <div className="mt-1 text-xs text-slate-500">{form.profileId || '尚未保存'}</div>
+              </div>
+              <div className="space-y-5 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">基础信息</div>
+                    <div className="mt-1 text-xs text-slate-500">名称、模板类型、描述和默认启用状态。</div>
+                  </div>
+                  <PanelActions
+                    saving={savingPanel === 'basic'}
+                    disabled={!isProfilePanelDirty(savedForm, form, 'basic')}
+                    onSave={() => { void saveProfile('basic'); }}
+                    onReset={() => resetProfilePanel('basic', '基础信息')}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Field label="名称">
+                    <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={FORM_INPUT_CLASS} />
+                  </Field>
+                  <Field label="模板类型">
+                    <select value={form.templateKind} onChange={(event) => setForm({ ...form, templateKind: event.target.value })} className={FORM_INPUT_CLASS}>
+                      {TEMPLATE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <Field label="描述">
+                  <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={`${FORM_INPUT_CLASS} min-h-[72px]`} />
+                </Field>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
+                    <input type="checkbox" checked={form.enabled} onChange={(event) => setForm({ ...form, enabled: event.target.checked })} />
+                    启用 Profile
+                  </label>
+                  <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
+                    <input type="checkbox" checked={form.isDefault} onChange={(event) => setForm({ ...form, isDefault: event.target.checked })} />
+                    设为项目默认
+                  </label>
+                </div>
+              </div>
             </div>
-            <div className="space-y-5 p-5">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Field label="名称">
-                  <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className={FORM_INPUT_CLASS} />
-                </Field>
-                <Field label="模板类型">
-                  <select value={form.templateKind} onChange={(event) => setForm({ ...form, templateKind: event.target.value })} className={FORM_INPUT_CLASS}>
-                    {TEMPLATE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </Field>
-                <Field label="模型">
-                  <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className={FORM_INPUT_CLASS} />
-                </Field>
-                <Field label="评审档位">
-                  <select value={form.reviewProfile} onChange={(event) => setForm({ ...form, reviewProfile: event.target.value })} className={FORM_INPUT_CLASS}>
-                    {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </Field>
-                <Field label="最大评审轮次">
-                  <NumberInput value={form.maxReviewCycles} onChange={(value) => setForm({ ...form, maxReviewCycles: value })} />
-                </Field>
-                <Field label="结果评审并发">
-                  <NumberInput value={form.resultReviewConcurrency} onChange={(value) => setForm({ ...form, resultReviewConcurrency: value })} />
+
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="space-y-5 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">挖掘与评审参数</div>
+                    <div className="mt-1 text-xs text-slate-500">模型、评审档位、评审轮次和结果评审并发。</div>
+                  </div>
+                  <PanelActions
+                    saving={savingPanel === 'review'}
+                    disabled={!isProfilePanelDirty(savedForm, form, 'review')}
+                    onSave={() => { void saveProfile('review'); }}
+                    onReset={() => resetProfilePanel('review', '挖掘与评审参数')}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Field label="模型">
+                    <input value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} className={FORM_INPUT_CLASS} />
+                  </Field>
+                  <Field label="评审档位">
+                    <select value={form.reviewProfile} onChange={(event) => setForm({ ...form, reviewProfile: event.target.value })} className={FORM_INPUT_CLASS}>
+                      {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="最大评审轮次">
+                    <NumberInput value={form.maxReviewCycles} onChange={(value) => setForm({ ...form, maxReviewCycles: value })} />
+                  </Field>
+                  <Field label="结果评审并发">
+                    <NumberInput value={form.resultReviewConcurrency} onChange={(value) => setForm({ ...form, resultReviewConcurrency: value })} />
+                  </Field>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="space-y-5 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">运行时覆盖</div>
+                    <div className="mt-1 text-xs text-slate-500">针对当前 Profile 的 `runtime_overrides` JSON。</div>
+                  </div>
+                  <PanelActions
+                    saving={savingPanel === 'runtime'}
+                    disabled={!isProfilePanelDirty(savedForm, form, 'runtime')}
+                    onSave={() => { void saveProfile('runtime'); }}
+                    onReset={() => resetProfilePanel('runtime', '运行时覆盖')}
+                  />
+                </div>
+                <Field label="runtime_overrides JSON">
+                  <textarea
+                    value={form.runtimeOverridesText}
+                    onChange={(event) => setForm({ ...form, runtimeOverridesText: event.target.value })}
+                    className={`${FORM_INPUT_CLASS} min-h-[180px] font-mono text-xs`}
+                  />
                 </Field>
               </div>
-              <Field label="描述">
-                <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className={`${FORM_INPUT_CLASS} min-h-[72px]`} />
-              </Field>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
-                  <input type="checkbox" checked={form.enabled} onChange={(event) => setForm({ ...form, enabled: event.target.checked })} />
-                  启用 Profile
-                </label>
-                <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-700">
-                  <input type="checkbox" checked={form.isDefault} onChange={(event) => setForm({ ...form, isDefault: event.target.checked })} />
-                  设为项目默认
-                </label>
-              </div>
-              <Field label="runtime_overrides JSON">
-                <textarea
-                  value={form.runtimeOverridesText}
-                  onChange={(event) => setForm({ ...form, runtimeOverridesText: event.target.value })}
-                  className={`${FORM_INPUT_CLASS} min-h-[180px] font-mono text-xs`}
-                />
-              </Field>
             </div>
           </div>
 
@@ -1759,6 +1954,37 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><ServerCog size={16} />Agent 默认存储目录</div>
+            {serviceConfig?.agent_storage?.agents?.length ? (
+              <div className="overflow-auto">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Agent</th>
+                      <th className="px-3 py-2">Root</th>
+                      <th className="px-3 py-2">Skills</th>
+                      <th className="px-3 py-2">Memory</th>
+                      <th className="px-3 py-2">来源</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serviceConfig.agent_storage.agents.map((item: any) => (
+                      <tr key={item.agent_id} className="border-t border-slate-100">
+                        <td className="px-3 py-2 font-mono text-xs font-bold text-slate-700">{item.agent_id}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{renderProjectScopedTemplate(item.root_dir_template, projectId)}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{renderProjectScopedTemplate(item.skills_dir_template, projectId)}</td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-slate-600">{renderProjectScopedTemplate(item.memory_dir_template, projectId)}</td>
+                        <td className="px-3 py-2 text-xs font-bold text-slate-500">{item.source || 'shared_default'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyPanel title="暂无 Agent 存储配置" description="当前服务有效配置未返回可展示的 Agent 默认目录。" icon={<ServerCog size={22} />} />
+            )}
+          </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><Settings size={16} />项目有效配置</div>
             <JsonBlock value={effectiveConfig || {}} />

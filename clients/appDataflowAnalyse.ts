@@ -1,5 +1,6 @@
 import { API_BASE, getHeaders, handleResponse, fetchWithRetry } from './base';
 import {
+  AppDfaSessionIndex,
   AppDfaServiceConfig,
   AppDfaSessionMeta,
   AppDfaSessionSnapshot,
@@ -31,11 +32,19 @@ export const appDataflowAnalyseApi = {
     page?: number;
     per_page?: number;
     status?: string;
+    mode?: 'manual' | 'binary' | 'source';
+    parent_task_id?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
   }): Promise<{ items: AppDfaTaskItem[]; total: number; page: number; per_page: number }> => {
     const query = new URLSearchParams({ project_id: params.project_id });
     if (params.page) query.append('page', String(params.page));
     if (params.per_page) query.append('per_page', String(params.per_page));
     if (params.status) query.append('status', params.status);
+    if (params.mode) query.append('mode', params.mode);
+    if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
+    if (params.sort_by) query.append('sort_by', params.sort_by);
+    if (params.sort_order) query.append('sort_order', params.sort_order);
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
   },
 
@@ -67,6 +76,9 @@ export const appDataflowAnalyseApi = {
 
   listTaskSessions: async (taskId: string): Promise<{ task_id: string; items: AppDfaSessionMeta[] }> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionIndex: async (taskId: string): Promise<AppDfaSessionIndex> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/index`, { headers: getHeaders() })),
 
   getTaskSessionFile: async (taskId: string, path: string): Promise<AppDfaSessionSnapshot> =>
     handleResponse(await fetch(

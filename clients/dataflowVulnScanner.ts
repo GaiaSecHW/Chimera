@@ -64,9 +64,23 @@ export interface DataflowInputRef {
   metadata?: Record<string, any>;
 }
 
+export interface DataflowAgentStateRootPayload {
+  root_dir: DataflowInputRef;
+}
+
+export interface DataflowAgentStateDir {
+  agent_id: string;
+  root_dir: string;
+  skills_dir: string;
+  memory_dir: string;
+  source: 'shared_default' | 'task_override';
+}
+
 export interface DataflowScanTask {
   task_id: string;
   project_id: string;
+  task_purpose?: 'normal' | 'evolution';
+  agent_state_dirs?: Record<string, DataflowAgentStateDir>;
   task_origin_type?: string | null;
   parent_project_id?: string | null;
   parent_task_id?: string | null;
@@ -95,6 +109,8 @@ export interface DataflowScanTask {
   run_path?: string | null;
   run?: Partial<DataflowRunSummary> | null;
   latest_run?: Partial<DataflowRunSummary> | null;
+  auto_report_vulnerabilities?: boolean;
+  vuln_report_status?: Record<string, any>;
 }
 
 export interface DataflowScanTaskDetail extends DataflowScanTask {
@@ -140,6 +156,18 @@ export interface DataflowEffectiveConfig {
 export interface DataflowServiceEffectiveConfig {
   service_name: string;
   api_prefix: string;
+  agent_storage?: {
+    mode?: string;
+    project_id_placeholder?: string;
+    shared_root_template?: string;
+    agents?: Array<{
+      agent_id: string;
+      root_dir_template: string;
+      skills_dir_template: string;
+      memory_dir_template: string;
+      source: 'shared_default';
+    }>;
+  };
   config: Record<string, any>;
 }
 
@@ -175,6 +203,8 @@ export interface DataflowCreateTaskPayload {
   artifact_refs?: DataflowArtifactRef[];
   priority?: number;
   runtime_overrides?: Record<string, any>;
+  task_purpose?: 'normal' | 'evolution';
+  agent_state_roots?: Record<string, DataflowAgentStateRootPayload>;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -182,6 +212,7 @@ export interface DataflowCreateTaskPayload {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+  auto_report_vulnerabilities?: boolean;
 }
 
 export interface DataflowProfilePayload {
@@ -254,6 +285,8 @@ export interface DataflowRunSummary {
   updated_at?: string | null;
   process_state?: DataflowRunProcessState;
   retry_command_display?: string | null;
+  linked_task_purpose?: 'normal' | 'evolution' | null;
+  linked_task_agent_state_dirs?: Record<string, DataflowAgentStateDir>;
 }
 
 export interface DataflowRunSession {
@@ -277,6 +310,33 @@ export interface DataflowRunSession {
   calls: Record<string, any>[];
 }
 
+export interface DataflowRunCheckpoint {
+  schema_version?: number;
+  timestamp?: string;
+  cycle?: number;
+  phase?: string;
+  step_key?: string;
+  node_id?: string;
+  node_kind?: string;
+  status?: string;
+  terminal_status?: boolean;
+  resume_policy?: string;
+  agent_id?: string;
+  session_id?: string;
+  detail?: string;
+  started_at?: string;
+  started_epoch?: number;
+  finished_at?: string;
+  finished_epoch?: number;
+  duration_ms?: number;
+  duration_seconds?: number;
+  elapsed_seconds?: number;
+  extra?: Record<string, any>;
+  path?: string;
+  mtime?: number;
+  [key: string]: any;
+}
+
 export interface DataflowRunDetail extends DataflowRunSummary {
   config: Record<string, any>;
   error?: string | null;
@@ -291,6 +351,9 @@ export interface DataflowRunDetail extends DataflowRunSummary {
   run_log: string;
   command?: string[];
   command_display?: string;
+  current_step?: DataflowRunCheckpoint;
+  step_history?: DataflowRunCheckpoint[];
+  cycle_timing?: Record<string, any>;
   raw: Record<string, any>;
 }
 
@@ -323,6 +386,28 @@ export interface DataflowRunMutationResponse {
   process_pid?: number | null;
   process_host?: string | null;
   process_signal?: string | null;
+  resume_preflight?: Record<string, any>;
+}
+
+export interface DataflowRunRetryPreview {
+  success: boolean;
+  run_id: string;
+  project_id: string;
+  can_retry: boolean;
+  reason?: string;
+  process_state?: DataflowRunProcessState;
+  resume_preflight?: Record<string, any>;
+}
+
+export interface DataflowVulnReportResponse {
+  status: string;
+  enabled: boolean;
+  total: number;
+  reported: number;
+  failed: number;
+  pending: number;
+  items: Record<string, any>[];
+  error?: string | null;
 }
 
 export interface DataflowRunRetryPayload {
@@ -442,6 +527,15 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
+  reportRunVulnerabilities: async (runId: string, resultFiles: string[]): Promise<DataflowVulnReportResponse> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/report-vulnerabilities`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ result_files: resultFiles }),
+    });
+    return handleResponse(response);
+  },
+
   getRunCycle: async (runId: string, cycle: number): Promise<DataflowRunCycle> => {
     const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/cycles/${cycle}`, { headers: getHeaders() });
     return handleResponse(response);
@@ -484,6 +578,15 @@ export const dataflowVulnScannerApi = {
     const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/cancel`, {
       method: 'POST',
       headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  previewRetryRun: async (runId: string, payload: DataflowRunRetryPayload = {}): Promise<DataflowRunRetryPreview> => {
+    const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}/retry/preview`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
     });
     return handleResponse(response);
   },

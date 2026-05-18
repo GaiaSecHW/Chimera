@@ -1,5 +1,6 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppSaSessionIndex,
   AppSaSessionMeta,
   AppSaSessionSnapshot,
   AppSaStagesJson,
@@ -71,6 +72,7 @@ export const appSystemAnalyseApi = {
     per_page?: number;
     status?: string;
     analysis_mode?: 'binary' | 'source' | '';
+    parent_task_id?: string;
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
   }): Promise<{ items: AppSaTaskItem[]; total: number; page: number; per_page: number }> => {
@@ -79,6 +81,7 @@ export const appSystemAnalyseApi = {
     if (params.per_page) query.append('per_page', String(params.per_page));
     if (params.status) query.append('status', params.status);
     if (params.analysis_mode) query.append('analysis_mode', params.analysis_mode);
+    if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
@@ -86,6 +89,13 @@ export const appSystemAnalyseApi = {
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
+  repairTaskOrigin: async (taskId: string, analysisMode: 'binary' | 'source'): Promise<AppSaTaskDetail> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/origin`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ analysis_mode: analysisMode }),
+    })),
 
   getTaskResult: async (taskId: string): Promise<AppSaTaskResult> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
@@ -95,6 +105,9 @@ export const appSystemAnalyseApi = {
 
   listTaskSessions: async (taskId: string): Promise<AppSaSessionMeta[]> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
+
+  getTaskSessionIndex: async (taskId: string): Promise<AppSaSessionIndex> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/index`, { headers: getHeaders() })),
 
   getTaskSessionFile: async (taskId: string, path: string): Promise<AppSaSessionSnapshot> => {
     const query = new URLSearchParams({ path }).toString();
