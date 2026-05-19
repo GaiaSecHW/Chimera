@@ -82,6 +82,19 @@ export interface B2STask {
   updated_at?: string;
 }
 
+export interface B2STaskBatchDeleteResult {
+  task_id: string;
+  status: string;
+  message?: string | null;
+}
+
+export interface B2STaskBatchDeleteResponse {
+  status: string;
+  deleted_count: number;
+  failed_count: number;
+  results: B2STaskBatchDeleteResult[];
+}
+
 export interface B2SProgress {
   phase?: string;
   raw_phase?: string;
@@ -635,6 +648,15 @@ export const binaryToSourceApi = {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  batchDeleteTasks: async (projectId: string, taskIds: string[]): Promise<B2STaskBatchDeleteResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/batch-delete`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ task_ids: taskIds }),
     });
     return handleResponse(resp);
   },

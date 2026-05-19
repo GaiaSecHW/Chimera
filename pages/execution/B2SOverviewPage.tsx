@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, RefreshCw, UploadCloud } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
 
 import { B2SElfTaskInput, B2SRunMode, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
@@ -7,6 +7,7 @@ import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
+import { showConfirm } from '../../components/DialogService';
 
 interface Props {
   projectId: string;
@@ -77,6 +78,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [expandedInputTaskIds, setExpandedInputTaskIds] = useState<string[]>([]);
   const [originFilter, setOriginFilter] = useState<'' | 'manual' | 'binary_security'>('');
   const [searchText, setSearchText] = useState('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [batchDeleting, setBatchDeleting] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -198,10 +201,18 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const pagedItems = useMemo(() => filteredItems.slice((page - 1) * perPage, page * perPage), [filteredItems, page, perPage]);
   const pageStart = total === 0 ? 0 : (page - 1) * perPage + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * perPage + pagedItems.length);
+  const pagedTaskIds = useMemo(() => pagedItems.map((task) => task.id), [pagedItems]);
+  const selectedTaskIdSet = useMemo(() => new Set(selectedTaskIds), [selectedTaskIds]);
+  const allPagedSelected = pagedTaskIds.length > 0 && pagedTaskIds.every((taskId) => selectedTaskIdSet.has(taskId));
 
   useEffect(() => {
     setPage(1);
   }, [statusFilter, parentTaskFilter, inputFileFilter, originFilter, searchText, perPage]);
+
+  useEffect(() => {
+    const visible = new Set(pagedTaskIds);
+    setSelectedTaskIds((current) => current.filter((taskId) => visible.has(taskId)));
+  }, [pagedTaskIds]);
 
   const toggleStatusFilter = (value?: string | null) => {
     const normalized = normalizeB2STaskStatus(value);
@@ -219,6 +230,49 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     const normalized = String(value || '').trim();
     if (!normalized) return;
     setInputFileFilter((current) => current === normalized ? '' : normalized);
+  };
+
+  const toggleTaskSelection = (taskId: string) => {
+    setSelectedTaskIds((current) => (
+      current.includes(taskId)
+        ? current.filter((value) => value !== taskId)
+        : current.concat(taskId)
+    ));
+  };
+
+  const toggleSelectCurrentPage = () => {
+    setSelectedTaskIds(allPagedSelected ? [] : pagedTaskIds);
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedTaskIds.length === 0 || batchDeleting) return;
+    const confirmed = await showConfirm({
+      title: '批量删除二进制逆向任务',
+      message: `将删除 ${selectedTaskIds.length} 个任务；运行中/排队中任务会先尝试取消上游 job，再删除记录和文件。此操作不可恢复。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setBatchDeleting(true);
+    setError(null);
+    setCreateResult('');
+    try {
+      const result = await executionApi.binaryToSource.batchDeleteTasks(projectId, selectedTaskIds);
+      const deletedIds = new Set((result.results || []).filter((item) => item.status === 'ok').map((item) => item.task_id));
+      setSelectedTaskIds((current) => current.filter((taskId) => !deletedIds.has(taskId)));
+      await load(false);
+      if ((result.failed_count || 0) > 0) {
+        const firstFailure = (result.results || []).find((item) => item.status !== 'ok');
+        setError(`批量删除完成，成功 ${result.deleted_count || 0} 个，失败 ${result.failed_count || 0} 个。${firstFailure?.message || ''}`);
+      } else {
+        setCreateResult(`已删除 ${result.deleted_count || 0} 个二进制逆向任务`);
+      }
+    } catch (e: any) {
+      setError(e?.message || '批量删除失败');
+    } finally {
+      setBatchDeleting(false);
+    }
   };
 
   const toggleExpandedInputFiles = (taskId: string) => {
@@ -561,14 +615,51 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                 </button>
               ) : null}
             </div>
+            {selectedTaskIds.length > 0 ? (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3">
+                <div className="text-xs font-bold text-rose-700">
+                  已选择 {selectedTaskIds.length} 个当前页任务
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTaskIds([])}
+                    disabled={batchDeleting}
+                    className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                  >
+                    取消选择
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleBatchDelete()}
+                    disabled={batchDeleting}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 disabled:opacity-50"
+                  >
+                    {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    {batchDeleting ? '删除中...' : '批量删除'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {pagedItems.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center text-xs text-slate-400">
                 当前筛选条件下没有匹配的任务。
               </div>
             ) : (
-              <ExecutionTable minWidth={1480}>
+              <ExecutionTable minWidth={1540}>
                 <ExecutionTableHead>
                   <tr>
+                    <ExecutionTableTh>
+                      <label className="inline-flex items-center gap-2 text-xs font-bold text-slate-500">
+                        <input
+                          type="checkbox"
+                          checked={allPagedSelected}
+                          onChange={toggleSelectCurrentPage}
+                          className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                        />
+                        选择
+                      </label>
+                    </ExecutionTableTh>
                     <ExecutionTableTh>
                       <div className="space-y-2">
                         <div>任务</div>
@@ -650,8 +741,19 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                       totalFunctions !== null && completedFunctions !== null ? Math.max(0, totalFunctions - completedFunctions) : null
                     );
                     const failedFunctions = safeCount(task.failed_functions);
+                    const taskSelected = selectedTaskIdSet.has(task.id);
                     return (
                       <tr key={task.id} className={executionTableRowClassName}>
+                      <ExecutionTableTd>
+                        <input
+                          type="checkbox"
+                          checked={taskSelected}
+                          onChange={() => toggleTaskSelection(task.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          className="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                          aria-label={`选择任务 ${task.name || task.id}`}
+                        />
+                      </ExecutionTableTd>
                       <ExecutionTableTd className="min-w-[300px]">
                         <div className="min-w-0">
                           <button
