@@ -210,6 +210,8 @@ type SystemAnalysisViewModel = {
   checkpointCards: Array<{ label: string; value: string; hint: string; tone: string }>;
   checkpointChart: Array<{ name: string; value: number; fill: string }>;
   concurrencyChart: Array<{ name: string; value: number; fill: string }>;
+  stagePressureCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  stagePressureRows: Array<{ stage: string; pressureScore: number; runningRuns: number; avgDurationSeconds: number | null; successRate: number | null; tone: string }>;
 };
 
 type DataflowVulnOverviewViewModel = {
@@ -237,6 +239,8 @@ type DataflowVulnAiViewModel = {
   tokenChart: Array<{ name: string; value: number; fill: string }>;
   reviewCards: Array<{ label: string; value: string; hint: string; tone: string }>;
 };
+
+type DataflowVulnSampleScope = 'focus' | 'cycle' | 'runtime' | 'ai' | 'plugin' | 'all';
 
 type BinarySecurityReducerSnapshot = {
   capturedAt: number;
@@ -365,6 +369,7 @@ const CHART_COLOR = '#0f766e';
 const AI_CHART_COLOR = '#7c3aed';
 const CHART_GRID = '#e2e8f0';
 const INITIAL_STATE: MetricsState = { loading: false, rawText: '', error: null, refreshedAt: null };
+const ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY = 'secflow:entryAnalysisStageFocus';
 
 const formatNumber = (value: number | null | undefined, digits = 0) => {
   if (value == null || !Number.isFinite(value)) return '-';
@@ -572,22 +577,36 @@ const buildServiceViewModel = (rawText: string, service: BinarySecurityMetricsSe
 
 const buildAggregateCoverageSummary = (rows: DisplayMetricRow[], serviceKey: BinarySecurityMetricsServiceKey): AggregateCoverageSummary | null => {
   if (serviceKey !== 'binary-security') return null;
+  const expectedRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_role_expected');
+  const coveredRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_role_covered');
   const attemptedRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_scrape_targets');
   const successRows = rows.filter((row) => row.name === 'secflow_binary_security_metrics_aggregate_scrape_success_targets');
-  if (!attemptedRows.length && !successRows.length) return null;
+  const useCanonicalRoleCoverage = expectedRows.length > 0 || coveredRows.length > 0;
+  if (!useCanonicalRoleCoverage && !attemptedRows.length && !successRows.length) return null;
   const roles = new Set<string>();
-  attemptedRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
-  successRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
+  if (useCanonicalRoleCoverage) {
+    expectedRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
+    coveredRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
+  } else {
+    attemptedRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
+    successRows.forEach((row) => roles.add(String(row.labels.role || 'unknown')));
+  }
   const attemptedByRole = Array.from(roles)
     .sort((left, right) => left.localeCompare(right, 'zh-CN'))
     .map((role) => ({
       role,
-      attempted: attemptedRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
-      successful: successRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
+      attempted: useCanonicalRoleCoverage
+        ? expectedRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0)
+        : attemptedRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
+      successful: useCanonicalRoleCoverage
+        ? coveredRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0)
+        : successRows.filter((row) => row.labels.role === role).reduce((sum, row) => sum + row.value, 0),
     }));
   const attempted = attemptedByRole.reduce((sum, item) => sum + item.attempted, 0);
   const successful = attemptedByRole.reduce((sum, item) => sum + item.successful, 0);
-  const partialRow = rows.find((row) => row.name === 'secflow_binary_security_metrics_aggregate_partial');
+  const partialRow =
+    rows.find((row) => row.name === 'secflow_binary_security_health_aggregate_partial') ||
+    rows.find((row) => row.name === 'secflow_binary_security_metrics_aggregate_partial');
   return {
     attempted,
     successful,
@@ -600,20 +619,41 @@ const buildBinarySecurityObservabilityViewModel = (
   rows: DisplayMetricRow[],
   aggregateCoverage: AggregateCoverageSummary | null,
 ): BinarySecurityObservabilityViewModel => {
-  const pendingDepth = metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'pending' });
+  const pendingDepth = firstMetricValue(rows, [
+    { name: 'secflow_binary_security_health_pending_event_depth' },
+    { name: 'secflow_binary_security_state_event_queue_depth', labels: { status: 'pending' } },
+  ]);
   const retryableDepth = metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'retryable' });
-  const deadLetterDepth = metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'dead_letter' });
-  const oldestPendingAge = metricValueByName(rows, 'secflow_binary_security_state_event_oldest_age_seconds', { status: 'pending' });
-  const reducerAvgDuration = histogramAverage(rows, 'secflow_binary_security_state_reducer_duration_seconds');
-  const eventAvgLag = histogramAverage(rows, 'secflow_binary_security_state_event_lag_seconds');
-  const lockWaitAvg = histogramAverage(rows, 'secflow_binary_security_task_state_lock_wait_seconds');
-  const lockHeldAvg = histogramAverage(rows, 'secflow_binary_security_task_state_lock_held_seconds');
+  const deadLetterDepth = firstMetricValue(rows, [
+    { name: 'secflow_binary_security_health_dead_letter_depth' },
+    { name: 'secflow_binary_security_state_event_queue_depth', labels: { status: 'dead_letter' } },
+  ]);
+  const oldestPendingAge = firstMetricValue(rows, [
+    { name: 'secflow_binary_security_health_oldest_pending_age_seconds' },
+    { name: 'secflow_binary_security_state_event_oldest_age_seconds', labels: { status: 'pending' } },
+  ]);
+  const reducerAvgDuration =
+    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_reducer_avg_duration_seconds' }]) ??
+    histogramAverage(rows, 'secflow_binary_security_state_reducer_duration_seconds');
+  const eventAvgLag =
+    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_event_avg_lag_seconds' }]) ??
+    histogramAverage(rows, 'secflow_binary_security_state_event_lag_seconds');
+  const lockWaitAvg =
+    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_lock_wait_avg_seconds' }]) ??
+    histogramAverage(rows, 'secflow_binary_security_task_state_lock_wait_seconds');
+  const lockHeldAvg =
+    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_lock_held_avg_seconds' }]) ??
+    histogramAverage(rows, 'secflow_binary_security_task_state_lock_held_seconds');
   const activeLocks = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_state_lock_active');
   const deadLettersTotal = sumMetric(rows, (row) => row.name === 'secflow_binary_security_state_dead_letters_total');
   const reducerRunFailed = sumMetric(rows, (row) => row.name === 'secflow_binary_security_state_reducer_runs_total' && row.labels.result === 'failed');
   const reducerRunLockBusy = sumMetric(rows, (row) => row.name === 'secflow_binary_security_state_reducer_runs_total' && row.labels.result === 'lock_busy');
-  const archiveQueued = sumMetric(rows, (row) => row.name === 'secflow_binary_security_archive_jobs_by_status' && row.labels.status === 'queued');
-  const archiveRunning = sumMetric(rows, (row) => row.name === 'secflow_binary_security_archive_jobs_by_status' && row.labels.status === 'running');
+  const archiveQueued =
+    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_archive_queued_jobs' }]) ??
+    sumMetric(rows, (row) => row.name === 'secflow_binary_security_archive_jobs_by_status' && row.labels.status === 'queued');
+  const archiveRunning =
+    firstMetricValue(rows, [{ name: 'secflow_binary_security_health_archive_running_jobs' }]) ??
+    sumMetric(rows, (row) => row.name === 'secflow_binary_security_archive_jobs_by_status' && row.labels.status === 'running');
   const runningWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'running');
   const pendingWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'pending');
   const dispatchWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'dispatch');
@@ -831,6 +871,14 @@ const metricValueByName = (rows: DisplayMetricRow[], name: string, labels: Recor
   return matches.reduce((total, row) => total + row.value, 0);
 };
 
+const firstMetricValue = (rows: DisplayMetricRow[], candidates: Array<{ name: string; labels?: Record<string, string> }>) => {
+  for (const candidate of candidates) {
+    const value = metricValueByName(rows, candidate.name, candidate.labels || {});
+    if (value != null) return value;
+  }
+  return null;
+};
+
 const averageFromSummary = (rows: DisplayMetricRow[], familyName: string, labels: Record<string, string> = {}) => {
   const matchesLabels = (row: DisplayMetricRow) => Object.entries(labels).every(([key, value]) => row.labels[key] === value);
   const sum = rows
@@ -842,6 +890,22 @@ const averageFromSummary = (rows: DisplayMetricRow[], familyName: string, labels
   return count > 0 ? sum / count : null;
 };
 
+const matchesDataflowVulnSampleScope = (row: DisplayMetricRow, scope: DataflowVulnSampleScope) => {
+  if (scope === 'all') return true;
+  if (scope === 'cycle') return row.name.includes('secflow_dataflow_cycle_') || row.name === 'secflow_dataflow_run_summary_total' || row.name === 'secflow_dataflow_run_status';
+  if (scope === 'runtime') return row.name.includes('secflow_dataflow_runtime_trace_') || row.name.includes('secflow_dataflow_token_usage_total');
+  if (scope === 'ai') return row.name.includes('secflow_dataflow_ai_');
+  if (scope === 'plugin') return row.name.includes('secflow_dataflow_plugin_');
+  return (
+    matchesDataflowVulnSampleScope(row, 'cycle') ||
+    matchesDataflowVulnSampleScope(row, 'runtime') ||
+    matchesDataflowVulnSampleScope(row, 'ai') ||
+    matchesDataflowVulnSampleScope(row, 'plugin') ||
+    row.name.includes('secflow_dataflow_execution_') ||
+    row.name.includes('secflow_dataflow_queue_depth')
+  );
+};
+
 const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisViewModel => {
   const running = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_running'));
   const pending = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_pending'));
@@ -849,7 +913,11 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
   const queueWaitAvg = averageFromSummary(rows, 'secflow_sa_queue_wait_seconds');
   const executionAvg = averageFromSummary(rows, 'secflow_sa_execution_seconds');
   const turnaroundAvg = averageFromSummary(rows, 'secflow_sa_turnaround_seconds');
-  const workers = valueOrZero(metricValueByName(rows, 'secflow_sa_workers'));
+  const workerCapacity = metricValueByName(rows, 'secflow_sa_worker_runtime', { kind: 'capacity' });
+  const workerRunning = metricValueByName(rows, 'secflow_sa_worker_runtime', { kind: 'running' });
+  const workerAvailableSlots = metricValueByName(rows, 'secflow_sa_worker_runtime', { kind: 'available_slots' });
+  const workerRuntimeUtilization = metricValueByName(rows, 'secflow_sa_worker_utilization_ratio');
+  const workers = valueOrZero(workerCapacity ?? metricValueByName(rows, 'secflow_sa_workers'));
   const judges = valueOrZero(metricValueByName(rows, 'secflow_sa_judges'));
   const sessions = valueOrZero(metricValueByName(rows, 'secflow_sa_sessions'));
   const retryTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_retry_total'));
@@ -964,12 +1032,34 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
   const costPerFinished = finished > 0 && tokenCostTotal != null ? tokenCostTotal / finished : null;
   const tokenPerFinished = finished > 0 ? (tokenInputTotal + tokenOutputTotal) / finished : null;
   const checkpointCoverage = checkpointAnyTasks > 0 ? (checkpointPartialTasks / checkpointAnyTasks) * 100 : null;
-  const workerUtilization = workers > 0 ? (running / workers) * 100 : null;
-  const concurrencySlack = workers > running ? workers - running : 0;
+  const effectiveRunning = valueOrZero(workerRunning ?? running);
+  const effectiveAvailableSlots = valueOrZero(workerAvailableSlots ?? (workers > effectiveRunning ? workers - effectiveRunning : 0));
+  const workerUtilization = workerRuntimeUtilization != null ? workerRuntimeUtilization * 100 : workers > 0 ? (effectiveRunning / workers) * 100 : null;
+  const concurrencySlack = effectiveAvailableSlots;
   const resumedTaskCompletionRate = checkpointAnyTasks > 0 ? (checkpointOverallDoneTasks / checkpointAnyTasks) * 100 : null;
   const stageCheckpointCoverage = checkpointStageRows.length
     ? checkpointStageRows.reduce((sum, row) => sum + row.value, 0) / checkpointStageRows.length
     : null;
+  const stagePressureRows = stageRows
+    .map((row) => {
+      const durationFactor = Math.min(10, (row.avgDurationSeconds || 0) / 60);
+      const runningFactor = row.runningRuns * 2;
+      const successPenalty = row.successRate == null ? 0 : Math.max(0, (100 - row.successRate) / 10);
+      const pressureScore = Number((durationFactor + runningFactor + successPenalty).toFixed(1));
+      const tone = pressureScore >= 8 ? 'text-rose-700' : pressureScore >= 4 ? 'text-amber-700' : 'text-emerald-700';
+      return {
+        stage: row.stage,
+        pressureScore,
+        runningRuns: row.runningRuns,
+        avgDurationSeconds: row.avgDurationSeconds,
+        successRate: row.successRate,
+        tone,
+      };
+    })
+    .sort((left, right) => right.pressureScore - left.pressureScore)
+    .slice(0, 5);
+  const stagePressureLeader = stagePressureRows[0] || null;
+  const hotStageCount = stagePressureRows.filter((row) => row.pressureScore >= 4).length;
 
   const riskAlerts: Array<{ label: string; text: string; tone: string }> = [];
   if (queuePressure) {
@@ -1007,7 +1097,7 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
       { label: '均排/均执', value: `${formatSeconds(queueWaitAvg)}/${formatSeconds(executionAvg)}`, tone: (queueWaitAvg || 0) > 300 || (executionAvg || 0) > 1800 ? 'text-amber-700' : 'text-slate-700' },
       { label: '首过/终过', value: `${firstRoundPassRate == null ? '-' : `${formatNumber(firstRoundPassRate * 100, 1)}%`}/${finalModulePassRate == null ? '-' : `${formatNumber(finalModulePassRate * 100, 1)}%`}`, tone: (finalModulePassRate || 0) < 0.8 ? 'text-amber-700' : 'text-emerald-700' },
       { label: '重试/超时', value: `${formatNumber(retryTotal)}/${formatNumber(timeoutTotal)}`, tone: timeoutTotal > 0 ? 'text-rose-700' : retryTotal > 0 ? 'text-amber-700' : 'text-slate-700' },
-      { label: '并发命中', value: workerUtilization == null ? '-' : `${formatNumber(workerUtilization, 1)}%`, tone: (workerUtilization || 0) < 60 && running > 0 ? 'text-amber-700' : 'text-indigo-700' },
+      { label: '并发命中', value: workerUtilization == null ? '-' : `${formatNumber(workerUtilization, 1)}%`, tone: (workerUtilization || 0) < 60 && effectiveRunning > 0 ? 'text-amber-700' : 'text-indigo-700' },
       { label: '续跑完成', value: resumedTaskCompletionRate == null ? '-' : `${formatNumber(resumedTaskCompletionRate, 1)}%`, tone: checkpointAnyTasks > 0 ? 'text-sky-700' : 'text-slate-500' },
     ],
     overviewCards: [
@@ -1015,12 +1105,13 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
       { label: '平均排队', value: formatSeconds(queueWaitAvg), hint: 'queue_wait_seconds', tone: (queueWaitAvg || 0) > 300 ? 'text-amber-700' : 'text-slate-900' },
       { label: '平均执行', value: formatSeconds(executionAvg), hint: 'execution_seconds', tone: (executionAvg || 0) > 1800 ? 'text-amber-700' : 'text-slate-900' },
       { label: '平均周转', value: formatSeconds(turnaroundAvg), hint: 'turnaround_seconds', tone: (turnaroundAvg || 0) > 2400 ? 'text-rose-700' : 'text-slate-900' },
-      { label: 'Worker/Judge', value: `${formatNumber(workers)} / ${formatNumber(judges)}`, hint: `sessions ${formatNumber(sessions)}`, tone: 'text-indigo-700' },
+      { label: 'Worker/Judge', value: `${formatNumber(workers)} / ${formatNumber(judges)}`, hint: `running ${formatNumber(effectiveRunning)} · sessions ${formatNumber(sessions)}`, tone: 'text-indigo-700' },
       { label: '模块完成', value: moduleTotal > 0 ? `${formatNumber(moduleCompletedTotal)} / ${formatNumber(moduleTotal)}` : '-', hint: `failed ${formatNumber(moduleFailedTotal)}`, tone: moduleFailedTotal > 0 ? 'text-amber-700' : 'text-emerald-700' },
       { label: '完成产能', value: tokenPerFinished == null ? '-' : `${formatNumber(tokenPerFinished, 0)} tok/task`, hint: '平均每个完成任务 token', tone: 'text-violet-700' },
     ],
     governanceCards: [
       { label: '待处理/Worker', value: pendingPerWorker == null ? '-' : formatNumber(pendingPerWorker, 2), hint: '背压强度', tone: (pendingPerWorker || 0) > 1 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '可用槽位', value: formatNumber(effectiveAvailableSlots), hint: `capacity ${formatNumber(workers)} - running ${formatNumber(effectiveRunning)}`, tone: effectiveAvailableSlots > 0 ? 'text-emerald-700' : 'text-amber-700' },
       { label: 'Session/活跃单元', value: sessionPerUnit == null ? '-' : formatNumber(sessionPerUnit, 2), hint: 'worker+judge 承载会话密度', tone: (sessionPerUnit || 0) > 3 ? 'text-indigo-700' : 'text-slate-900' },
       { label: '重试压力', value: retryPressure == null ? '-' : formatNumber(retryPressure, 2), hint: 'retry per finished task', tone: (retryPressure || 0) > 1 ? 'text-amber-700' : 'text-slate-900' },
       { label: 'Checkpoint 续跑面', value: checkpointCoverage == null ? '-' : `${formatNumber(checkpointCoverage, 1)}%`, hint: `${formatNumber(checkpointPartialTasks)}/${formatNumber(checkpointAnyTasks)} partial`, tone: (checkpointCoverage || 0) > 0 ? 'text-sky-700' : 'text-slate-900' },
@@ -1076,11 +1167,32 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
       { name: 's3 modules', value: checkpointS3Modules, fill: '#7c3aed' },
     ],
     concurrencyChart: [
-      { name: 'running', value: running, fill: '#14b8a6' },
+      { name: 'running', value: effectiveRunning, fill: '#14b8a6' },
       { name: 'capacity', value: workers, fill: '#0f766e' },
       { name: 'slack', value: concurrencySlack, fill: '#94a3b8' },
       { name: 'pending', value: pending, fill: '#f59e0b' },
     ],
+    stagePressureCards: [
+      {
+        label: '最高压力阶段',
+        value: stagePressureLeader ? stagePressureLeader.stage : '-',
+        hint: stagePressureLeader ? `score ${formatNumber(stagePressureLeader.pressureScore, 1)}` : '暂无阶段样本',
+        tone: stagePressureLeader?.tone || 'text-slate-500',
+      },
+      {
+        label: '热点阶段数',
+        value: formatNumber(hotStageCount),
+        hint: 'pressure score >= 4',
+        tone: hotStageCount > 0 ? 'text-amber-700' : 'text-emerald-700',
+      },
+      {
+        label: '最高运行堆积',
+        value: stagePressureLeader ? formatNumber(stagePressureLeader.runningRuns) : '-',
+        hint: 'top stage running runs',
+        tone: stagePressureLeader && stagePressureLeader.runningRuns > 0 ? 'text-rose-700' : 'text-slate-500',
+      },
+    ],
+    stagePressureRows,
   };
 };
 
@@ -1739,6 +1851,8 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
   const timeoutCount = metricValueByName(rows, 'secflow_dfa_cluster_timeout_count');
   const cancelCount = metricValueByName(rows, 'secflow_dfa_cluster_cancel_count');
   const configuredWorkers = metricValueByName(rows, 'secflow_dfa_cluster_workers', { state: 'configured' });
+  const observedActiveOwners = metricValueByName(rows, 'secflow_dfa_cluster_workers', { state: 'observed_active_owner' });
+  const observedHeartbeatOwners = metricValueByName(rows, 'secflow_dfa_cluster_workers', { state: 'observed_live_heartbeat_owner' });
   const workerSlotCapacity = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'capacity' });
   const workerSlotBusy = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'busy' });
   const workerSlotFree = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'free' });
@@ -1783,10 +1897,20 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
       { label: '有效租约', value: formatNumber(leased), hint: 'active leases', tone: (leased || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
       { label: '陈旧租约', value: formatNumber(staleLeases), hint: 'expired owned leases', tone: (staleLeases || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
       { label: '心跳正常/超时', value: `${formatNumber(heartbeatLive)} / ${formatNumber(heartbeatStale)}`, hint: `max age ${formatSeconds(heartbeatAgeMax)}`, tone: (heartbeatStale || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: 'Worker 配置容量', value: `${formatNumber(configuredWorkers)} x ${formatNumber(workerCapacityPerPod)}`, hint: `configured slots ${formatNumber(workerSlotCapacity)}`, tone: (workerSlotCapacity || 0) > 0 ? 'text-cyan-700' : 'text-slate-500' },
+      {
+        label: 'Worker 配置/观测',
+        value: `${formatNumber(configuredWorkers)} / ${formatNumber(observedActiveOwners)}`,
+        hint: `heartbeat owners ${formatNumber(observedHeartbeatOwners)} · per pod ${formatNumber(workerCapacityPerPod)}`,
+        tone: (observedActiveOwners || 0) > 0 ? 'text-cyan-700' : 'text-slate-500',
+      },
     ],
     loadCards: [
-      { label: 'Busy / Free Slots', value: `${formatNumber(workerSlotBusy)} / ${formatNumber(workerSlotFree)}`, hint: `configured capacity ${formatNumber(workerSlotCapacity)}`, tone: (workerSlotBusy || 0) > (workerSlotFree || 0) ? 'text-amber-700' : 'text-slate-900' },
+      {
+        label: 'Busy / Free Slots',
+        value: `${formatNumber(workerSlotBusy)} / ${formatNumber(workerSlotFree)}`,
+        hint: `configured capacity ${formatNumber(workerSlotCapacity)} · observed owners ${formatNumber(observedActiveOwners)}`,
+        tone: (workerSlotBusy || 0) > (workerSlotFree || 0) ? 'text-amber-700' : 'text-slate-900',
+      },
       { label: '平均排队', value: formatSeconds(avgQueueWait), hint: 'queue_wait_seconds', tone: (avgQueueWait || 0) > 120 ? 'text-rose-700' : 'text-slate-900' },
       { label: '平均执行', value: formatSeconds(avgExecution), hint: 'execution_seconds', tone: (avgExecution || 0) > 900 ? 'text-amber-700' : 'text-slate-900' },
       { label: '平均周转', value: formatSeconds(avgTurnaround), hint: 'turnaround_seconds', tone: (avgTurnaround || 0) > 1200 ? 'text-rose-700' : 'text-slate-900' },
@@ -2011,6 +2135,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [groupFilter, setGroupFilter] = useState<'all' | BinarySecurityMetricsGroup>('all');
+  const [dataflowVulnSampleScope, setDataflowVulnSampleScope] = useState<DataflowVulnSampleScope>('focus');
   const [aiSearchKeyword, setAiSearchKeyword] = useState('');
   const [aiRoleFilter, setAiRoleFilter] = useState<'all' | string>('all');
   const [selectedEntryStage, setSelectedEntryStage] = useState<'all' | 'R1' | 'R2' | 'R3' | 'R4'>('all');
@@ -2096,6 +2221,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   useEffect(() => {
     setSearchKeyword('');
     setGroupFilter('all');
+    setDataflowVulnSampleScope('focus');
     setAiSearchKeyword('');
     setAiRoleFilter('all');
     setSelectedEntryStage('all');
@@ -2164,11 +2290,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const filteredRows = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
     return viewModel.rows.filter((row) => {
+      if (activeServiceKey === 'dataflow-vuln' && !matchesDataflowVulnSampleScope(row, dataflowVulnSampleScope)) return false;
       if (groupFilter !== 'all' && row.group !== groupFilter) return false;
       if (!keyword) return true;
       return `${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
     });
-  }, [groupFilter, searchKeyword, viewModel.rows]);
+  }, [activeServiceKey, dataflowVulnSampleScope, groupFilter, searchKeyword, viewModel.rows]);
 
   const aiRows = useMemo(() => {
     const keyword = aiSearchKeyword.trim().toLowerCase();
@@ -2307,10 +2434,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Cluster Aggregate</div>
-                  <h2 className="mt-2 text-lg font-black tracking-tight text-slate-900">当前展示的是二进制安全编排器多实例聚合指标</h2>
+                  <h2 className="mt-2 text-lg font-black tracking-tight text-slate-900">当前展示的是二进制安全编排器聚合健康视图</h2>
                   <p className="mt-2 text-sm text-slate-600">
-                    已抓取 {aggregateCoverage.successful}/{aggregateCoverage.attempted} 个实例。
-                    {aggregateCoverage.partial ? ' 当前为部分聚合结果，个别 Pod scrape 失败时数值可能略有偏差。' : ' 当前结果已覆盖本次发现的全部实例。'}
+                    当前角色覆盖 {aggregateCoverage.successful}/{aggregateCoverage.attempted}。
+                    {aggregateCoverage.partial
+                      ? ' 当前为部分聚合结果，说明至少有一个预期角色没有成功提供聚合数据，数值可能偏低。'
+                      : ' 当前结果已覆盖本次预期角色，可以作为编排层健康判断的主视图。'}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -2319,7 +2448,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       key={item.role}
                       className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white px-3 py-1 text-xs font-bold text-slate-700"
                     >
-                      {item.role}: {formatNumber(item.successful, 0)}/{formatNumber(item.attempted, 0)}
+                      {item.role}: {formatNumber(item.successful, 0)}/{formatNumber(item.attempted, 0)} 已覆盖
                     </span>
                   ))}
                 </div>
@@ -2634,6 +2763,18 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-white"
                   >
                     清空阶段聚焦
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const focus = focusedEntryStageRow?.stage || selectedEntryStage;
+                      if (focus && focus !== 'all') sessionStorage.setItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY, String(focus));
+                      else sessionStorage.removeItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY);
+                      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-task' } }));
+                    }}
+                    className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 transition hover:bg-indigo-100"
+                  >
+                    前往入口分析任务页
                   </button>
                 </div>
               </div>
@@ -3034,6 +3175,67 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   </div>
                 </div>
               </div>
+
+              <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段关联</div>
+                    <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">并发拖慢嫌疑阶段</h3>
+                    <p className="mt-2 text-sm text-slate-500">
+                      用 `运行中轮次 + 平均时长 + 成功率惩罚` 组合成轻量 pressure score，优先找最可能影响并发命中率的阶段。
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {systemAnalysisViewModel.stagePressureCards.map((item) => (
+                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                  <div className="h-64 rounded-2xl border border-slate-200 bg-white p-3">
+                    {systemAnalysisViewModel.stagePressureRows.length ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={systemAnalysisViewModel.stagePressureRows} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                          <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="stage" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-12} textAnchor="end" height={58} />
+                          <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                          <Tooltip formatter={(value: number, key: string) => (key === 'avgDurationSeconds' ? formatSeconds(Number(value)) : formatMetricValue(Number(value)))} />
+                          <Bar dataKey="pressureScore" radius={[8, 8, 0, 0]}>
+                            {systemAnalysisViewModel.stagePressureRows.map((entry) => (
+                              <Cell key={entry.stage} fill={entry.pressureScore >= 8 ? '#ef4444' : entry.pressureScore >= 4 ? '#f59e0b' : '#10b981'} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <EmptyCard text="当前没有足够的阶段样本用于推导压力分。" />
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {systemAnalysisViewModel.stagePressureRows.length ? (
+                      systemAnalysisViewModel.stagePressureRows.map((item) => (
+                        <div key={item.stage} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-black text-slate-800">{item.stage}</div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              running {formatNumber(item.runningRuns)} · avg {formatSeconds(item.avgDurationSeconds)} · success {item.successRate == null ? '-' : `${formatNumber(item.successRate, 1)}%`}
+                            </div>
+                          </div>
+                          <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.pressureScore, 1)}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <EmptyCard text="当前没有可展示的阶段压力排行。" />
+                    )}
+                  </div>
+                </div>
+              </div>
             </section>
           ) : null}
 
@@ -3376,8 +3578,35 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">原始指标</div>
                 <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">Prometheus Samples</h2>
+                {activeServiceKey === 'dataflow-vuln' ? (
+                  <p className="mt-2 max-w-3xl text-sm text-slate-500">默认聚焦 cycle、runtime、AI、plugin 与 execution/queue 相关样本，避免全量 Prometheus 噪音淹没业务信号。</p>
+                ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
+                {activeServiceKey === 'dataflow-vuln'
+                  ? ([
+                      { key: 'focus', label: '业务聚焦' },
+                      { key: 'cycle', label: 'Cycle/Run' },
+                      { key: 'runtime', label: 'Runtime' },
+                      { key: 'ai', label: 'AI' },
+                      { key: 'plugin', label: 'Plugin' },
+                      { key: 'all', label: '全部样本' },
+                    ] as Array<{ key: DataflowVulnSampleScope; label: string }>).map((item) => {
+                      const active = dataflowVulnSampleScope === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setDataflowVulnSampleScope(item.key)}
+                          className={`rounded-full border px-3 py-1 text-xs font-black transition ${
+                            active ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })
+                  : null}
                 <div className="relative">
                   <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
                   <input value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} placeholder="搜索指标名 / labels / help" className="rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />

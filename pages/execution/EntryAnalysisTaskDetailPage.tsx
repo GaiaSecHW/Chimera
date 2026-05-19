@@ -413,6 +413,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const appApi = api.domains.execution.appEntryAnalyse;
   const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
+  const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
   const hasReturnContext = hasBinarySecurityReturnTarget(detail);
   const [result, setResult] = useState<AppEaTaskResult | null>(null);
@@ -453,6 +454,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [judgeSessionError, setJudgeSessionError] = useState<string | null>(null);
   const [judgeSessionLive, setJudgeSessionLive] = useState(false);
   const judgeSessionSocketRef = useRef<WebSocket | null>(null);
+  const [stageFocusHint, setStageFocusHint] = useState<'R1' | 'R2' | 'R3' | 'R4' | ''>('');
 
   const handleBack = () => {
     if (navigateBackByTaskOrigin(detail)) return;
@@ -543,6 +545,11 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   };
 
   useEffect(() => { void loadDetail(); }, [taskId]);
+  useEffect(() => {
+    const stored = sessionStorage.getItem(stageFocusStorageKey) || '';
+    const normalized = stored.trim().toUpperCase();
+    setStageFocusHint(['R1', 'R2', 'R3', 'R4'].includes(normalized) ? (normalized as 'R1' | 'R2' | 'R3' | 'R4') : '');
+  }, [stageFocusStorageKey, taskId]);
   useEffect(() => () => { closeSessionSocket(); closeJudgeSessionSocket(); }, []);
   useEffect(() => {
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
@@ -661,6 +668,18 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     sessions.forEach((session) => map.set(session.stage_group, [...(map.get(session.stage_group) || []), session]));
     return Array.from(map.entries());
   }, [sessions]);
+  useEffect(() => {
+    if (!stageFocusHint || sessions.length === 0) return;
+    const stageNeedle = stageFocusHint.toLowerCase();
+    const matched =
+      sessions.find((item) => String(item.stage_group || '').toLowerCase().includes(stageNeedle) && item.is_active) ||
+      sessions.find((item) => String(item.stage_group || '').toLowerCase().includes(stageNeedle)) ||
+      sessions.find((item) => String(item.relative_path || '').toLowerCase().includes(stageNeedle)) ||
+      null;
+    if (!matched) return;
+    setActiveTab('session');
+    setSelectedSessionPath(matched.relative_path);
+  }, [sessions, stageFocusHint]);
   const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
   const activeSessions = useMemo(() => sessions.filter((item) => item.is_active), [sessions]);
   const activeAgentSessionMeta = useMemo(
@@ -818,6 +837,16 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
         {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
       </section>
 
+      {stageFocusHint ? (
+        <section className="rounded-[2rem] border border-indigo-200 bg-indigo-50/80 px-5 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-700">Stage Focus</div>
+          <div className="mt-2 text-sm font-bold text-indigo-900">当前正按 {stageFocusHint} 阶段进行会话定位</div>
+          <div className="mt-1 text-xs leading-6 text-indigo-800">
+            系统已优先尝试把你带到该阶段的智能体会话。你也可以切到“智能体会话/智能体关系/观测指标”继续核查这个阶段。
+          </div>
+        </section>
+      ) : null}
+
       {loading && !detail ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm"><div className="flex items-center justify-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载中...</div></section> : null}
 
       {detail ? <>
@@ -912,7 +941,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             <div className="space-y-4"><AgentSessionWarningPanel warnings={sessionWarnings} /><AgentSessionViewer sessionMeta={selectedSession} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
           </section>
         ) : activeTab === 'relationship' ? (
-          <section className="space-y-4"><WarningListPanel title="索引生成提示" items={sessionIndex?.warnings?.slice(0, 5) || []} /><AgentSessionWarningPanel warnings={sessionWarnings} /><SessionRelationshipGraph index={sessionIndex} selectedPath={selectedSessionPath} onSelect={setSelectedSessionPath} sessionPreview={{ path: selectedSessionPath, sessionMeta: selectedSession, sessionHeader: sessionSnapshot?.session_meta, events: sessionEvents, loading: sessionLoading, live: sessionLive, error: sessionError }} /></section>
+          <section className="space-y-4"><WarningListPanel title="索引生成提示" items={sessionIndex?.warnings?.slice(0, 5) || []} /><AgentSessionWarningPanel warnings={sessionWarnings} /><SessionRelationshipGraph index={sessionIndex} selectedPath={selectedSessionPath} onSelect={setSelectedSessionPath} focusedStageKey={stageFocusHint ? stageFocusHint.toLowerCase() : null} sessionPreview={{ path: selectedSessionPath, sessionMeta: selectedSession, sessionHeader: sessionSnapshot?.session_meta, events: sessionEvents, loading: sessionLoading, live: sessionLive, error: sessionError }} /></section>
         ) : activeTab === 'result' ? (
           <section className="space-y-4"><div className="grid gap-4 xl:grid-cols-5"><MetricCard label="函数数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div><div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>{resultLoading ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">加载结果中...</section> : !result ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">暂无结果数据</section> : !result.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 shadow-sm text-center text-sm text-slate-500">任务完成后可查看结果，当前状态：{STATUS_LABEL[result.status] || result.status}</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_300px]"><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终结果'], ['functions', 'functions.list'], ['report', '运行报告'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}>{label}</button>)}</div></aside><main className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="border-b border-slate-200 pb-4 text-2xl font-black tracking-tight text-slate-900">{resultView === 'final' ? '最终结果' : resultView === 'functions' ? '函数列表' : resultView === 'report' ? '运行报告' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultContent ? resultView === 'json' ? <pre className="rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{resultContent}</pre> : <MarkdownContent content={markdownResultContent} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">函数列表</div><div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">{result.functions.length ? result.functions.map((fn) => <div key={fn} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">{fn}</div>) : <div className="rounded-xl border border-dashed border-slate-300 px-3 py-6 text-center text-xs text-slate-400">没有 functions.list 内容</div>}</div></aside></section>}</section>
         ) : (

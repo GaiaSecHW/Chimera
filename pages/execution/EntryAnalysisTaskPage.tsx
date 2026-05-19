@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
@@ -255,6 +255,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, directio
 export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appEntryAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
+  const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
   const autoRefreshStorageKey = `secflow:entryAnalysis:autoRefresh:${projectId || 'default'}`;
   const refreshIntervalStorageKey = `secflow:entryAnalysis:refreshInterval:${projectId || 'default'}`;
 
@@ -278,6 +279,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
+  const [stageFocusHint, setStageFocusHint] = useState('');
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -343,6 +345,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     sessionStorage.removeItem('secflow:entryAnalysisTaskId');
     if (onOpenTask) onOpenTask(storedTaskId);
   }, [onOpenTask]);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem(stageFocusStorageKey) || '';
+    const normalized = stored.trim().toUpperCase();
+    setStageFocusHint(['R1', 'R2', 'R3', 'R4'].includes(normalized) ? normalized : '');
+  }, [stageFocusStorageKey]);
 
   // ── Load task list ──────────────────────────────────────────────────────
 
@@ -724,6 +732,25 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const totalPages = Math.ceil(total / perPage);
   const allPageSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
   const hasSelection = selectedTaskIds.size > 0;
+  const recommendedTasks = useMemo(() => {
+    if (!stageFocusHint) return [];
+    const statusWeight = (status: AppEaTaskItem['status']) => {
+      if (status === 'running') return 5;
+      if (status === 'pending') return 4;
+      if (status === 'failed' || status === 'error') return 3;
+      if (status === 'cancelled') return 2;
+      return 1;
+    };
+    return [...tasks]
+      .sort((left, right) => {
+        const statusGap = statusWeight(right.status) - statusWeight(left.status);
+        if (statusGap !== 0) return statusGap;
+        const rightUpdated = new Date(right.updated_at || right.created_at).getTime() || 0;
+        const leftUpdated = new Date(left.updated_at || left.created_at).getTime() || 0;
+        return rightUpdated - leftUpdated;
+      })
+      .slice(0, 6);
+  }, [stageFocusHint, tasks]);
 
   const stageStatuses = detail
     ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
@@ -740,6 +767,15 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
+      {stageFocusHint ? (
+        <section className="rounded-[2rem] border border-indigo-200 bg-indigo-50/80 px-5 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-700">Stage Focus</div>
+          <div className="mt-2 text-sm font-bold text-indigo-900">当前从性能看板带入了 {stageFocusHint} 阶段线索</div>
+          <div className="mt-1 text-xs leading-6 text-indigo-800">
+            打开任务详情后，系统会优先尝试切到该阶段的智能体会话视角，帮助你直接查看对应阶段的 session 和日志。
+          </div>
+        </section>
+      ) : null}
       <FileServerPickerModal
         projectId={projectId}
         isOpen={pickerOpen}
@@ -976,6 +1012,63 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
           ))}
         </div>
       </section>
+
+      {stageFocusHint ? (
+        <section className="rounded-[2rem] border border-indigo-200 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_38%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-700">Stage Guided Tasks</div>
+              <h2 className="mt-2 text-lg font-black tracking-tight text-slate-900">{stageFocusHint} 阶段推荐任务</h2>
+              <div className="mt-1 max-w-3xl text-xs leading-6 text-slate-600">
+                当前列表接口没有直接返回“任务正处于哪个阶段”的结构化字段，所以这里使用启发式排序：
+                优先推荐运行中、等待中、最近更新的任务，帮助你更快进入最可能仍保留 {stageFocusHint} 阶段会话的任务详情。
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem(stageFocusStorageKey);
+                setStageFocusHint('');
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
+            >
+              清除阶段线索
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {recommendedTasks.length ? (
+              recommendedTasks.map((task) => (
+                <button
+                  key={task.task_id}
+                  type="button"
+                  onClick={() => handleSelectTask(task.task_id)}
+                  className="rounded-2xl border border-indigo-100 bg-white/85 px-4 py-4 text-left shadow-sm transition hover:border-indigo-300 hover:bg-white"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-black text-slate-900">{task.task_name}</div>
+                      <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{task.task_id}</div>
+                    </div>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLOR[task.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {STATUS_LABEL[task.status] ?? task.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-[11px] text-slate-500">
+                    <div>模块：<span className="font-semibold text-slate-700">{task.module_name || '-'}</span></div>
+                    <div>更新时间：<span className="font-semibold text-slate-700">{new Date(task.updated_at || task.created_at).toLocaleString('zh-CN')}</span></div>
+                    <div>输入路径：<span className="font-mono text-slate-600">{task.input_path}</span></div>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-8 text-center text-sm text-slate-500 md:col-span-2 xl:col-span-3">
+                当前页还没有可推荐的任务，请先刷新任务列表或切换筛选条件。
+              </div>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       {/* Task list */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
