@@ -1582,7 +1582,6 @@ function TaskDetailPanel({
               { id: 'metrics' as const, label: '观测' },
               { id: 'events' as const, label: '事件记录' },
               { id: 'session' as const, label: '智能体会话' },
-              { id: 'evolution' as const, label: '自进化' },
               { id: 'result' as const, label: '结果' },
             ].map((tab) => (
               <button

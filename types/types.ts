@@ -1875,6 +1875,7 @@ export type ViewType =
   | 'binary-module-security' | 'binary-module-security-detail'
   | 'mobile-security-ipc-vuln'
   | 'pentest-exec-dataflow-vuln' | 'pentest-exec-dataflow-vuln-task-list' | 'pentest-exec-dataflow-vuln-task-detail' | 'pentest-exec-dataflow-vuln-system-config'
+  | 'binary-evolution-center' | 'binary-evolution-dataflow-vuln' | 'binary-evolution-firmware-unpacker'
   | 'pentest-report'
   | 'security-assessment' | 'vuln-engine' | 'vuln-overview' | 'vuln-intake' | 'vuln-analysis' | 'vuln-analysis-detail' | 'vuln-verification' | 'vuln-verification-detail' | 'vuln-decision' | 'vuln-decision-detail' | 'vuln-queue' | 'vuln-services' | 'vuln-repro-config' | 'vuln-parameter-config'
   | 'sys-settings' | 'change-password'

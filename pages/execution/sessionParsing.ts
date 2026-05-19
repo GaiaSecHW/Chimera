@@ -363,6 +363,8 @@ const ROLE_LABELS: Record<string, string> = {
   cleaner: '清理器',
   'skill-author': '技能生成器',
   'skill-executor': '技能执行器',
+  'evolution-executor': '工具进化执行器',
+  evolver: '工具进化器',
 };
 
 export function phaseGroupLabel(phase: string | null, role: string): string {
@@ -376,6 +378,9 @@ export function phaseGroupLabel(phase: string | null, role: string): string {
     llm_review: 'LLM 评审',
     cleanup: '清理',
     llm_cleanup: 'LLM 清理',
+    evolution_execute: '工具进化执行',
+    tool_execute: '工具解包',
+    evolve: '工具进化',
   };
   return mapping[key] || key;
 }

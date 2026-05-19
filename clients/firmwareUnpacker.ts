@@ -282,6 +282,7 @@ export interface FirmwareEvolutionJob {
   task_output_path: string | null;
   round_count: number;
   rounds: FirmwareEvolutionRound[];
+  source_task?: FirmwareUnpackTask | null;
 }
 
 export interface FirmwareEvolutionJobList {
@@ -1284,6 +1285,7 @@ const normalizeEvolutionJob = (value: unknown): FirmwareEvolutionJob => {
     task_output_path: asNullableString(record.task_output_path),
     round_count: asNumber(record.round_count, 0),
     rounds: asArray(record.rounds).map(normalizeEvolutionRound),
+    source_task: record.source_task ? normalizeTask(record.source_task) : null,
   };
 };
 
@@ -1436,6 +1438,21 @@ export const firmwareUnpackerApi = {
     return normalizeEvolutionJobList(await handleResponse(r));
   },
 
+  /** GET /api/app/firmware-unpacker/projects/{project_id}/evolution-jobs */
+  listAllEvolutionJobs: async (query: { project_id?: string | null; status?: string; search?: string; limit?: number; offset?: number } = {}): Promise<FirmwareEvolutionJobList> => {
+    const p = new URLSearchParams();
+    if (query.status) p.set('status', query.status);
+    if (query.search) p.set('search', query.search);
+    if (query.limit != null) p.set('limit', String(query.limit));
+    if (query.offset != null) p.set('offset', String(query.offset));
+    const suffix = p.toString() ? `?${p.toString()}` : '';
+    const path = query.project_id
+      ? `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(query.project_id)}/evolution-jobs${suffix}`
+      : `${API_BASE}/api/app/firmware-unpacker/evolution-jobs${suffix}`;
+    const r = await fetch(path, { headers: getHeaders() });
+    return normalizeEvolutionJobList(await handleResponse(r));
+  },
+
   /** GET /api/app/firmware-unpacker/evolution-jobs/{id} */
   getEvolutionJob: async (jobId: string): Promise<FirmwareEvolutionJob> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}`, { headers: getHeaders() });
@@ -1465,6 +1482,33 @@ export const firmwareUnpackerApi = {
   confirmEvolutionReplacement: async (jobId: string): Promise<{ message: string; task_id?: string | null }> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/confirm-replacement`, {
       method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(r);
+  },
+
+  /** POST /api/app/firmware-unpacker/evolution-jobs/{id}/cancel */
+  cancelEvolutionJob: async (jobId: string): Promise<{ message: string; task_id?: string | null }> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/cancel`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(r);
+  },
+
+  /** POST /api/app/firmware-unpacker/evolution-jobs/{id}/retry */
+  retryEvolutionJob: async (jobId: string): Promise<{ message: string; task_id?: string | null }> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(r);
+  },
+
+  /** DELETE /api/app/firmware-unpacker/evolution-jobs/{id} */
+  deleteEvolutionJob: async (jobId: string): Promise<{ message: string; task_id?: string | null }> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/evolution-jobs/${jobId}`, {
+      method: 'DELETE',
       headers: getHeaders(),
     });
     return handleResponse(r);
