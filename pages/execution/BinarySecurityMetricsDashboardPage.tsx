@@ -100,15 +100,25 @@ type AiViewModel = {
 type B2SBusinessViewModel = {
   availableItems: number | null;
   missingItems: number | null;
+  coverageRate: number | null;
   headerAvgSeconds: number | null;
   bodyAvgSeconds: number | null;
   batchAvgSeconds: number | null;
+  runningHeaderAvgSeconds: number | null;
+  runningBodyAvgSeconds: number | null;
   functionThroughput: number | null;
+  weightedFunctionThroughput: number | null;
+  batchRetryRate: number | null;
+  batchValidationPassRate: number | null;
+  batchFailureRate: number | null;
+  avgAttemptsPerBatch: number | null;
   batchAttempts: number | null;
   batchValidation: number | null;
   artifactBytes: number | null;
   tokenTotal: number | null;
   costTotal: number | null;
+  latestSeenAt: number | null;
+  missingReasons: Array<{ reason: string; value: number }>;
 };
 
 type B2SCacheViewModel = {
@@ -119,6 +129,69 @@ type B2SCacheViewModel = {
   replacedTotal: number | null;
   entries: number | null;
   hitRate: number | null;
+};
+
+type FirmwareUnpackerHealthAlert = {
+  label: string;
+  text: string;
+  tone: string;
+};
+
+type FirmwareUnpackerViewModel = {
+  kpis: Array<{ label: string; value: string; hint: string; tone: string }>;
+  taskStatusChart: Array<{ name: string; value: number; fill: string }>;
+  queueChart: Array<{ name: string; value: number; fill: string }>;
+  workerChart: Array<{ name: string; value: number; fill: string }>;
+  httpTop: Array<{ name: string; value: number }>;
+  operations: Array<{ label: string; value: number | null; hint: string; tone: string }>;
+  aiSummary: Array<{ label: string; value: string; hint: string; tone: string }>;
+  alerts: FirmwareUnpackerHealthAlert[];
+};
+
+type EntryAnalysisViewModel = {
+  kpis: Array<{ label: string; value: string; hint: string; tone: string }>;
+  roleSummary: Array<{ label: string; value: string; hint: string; tone: string }>;
+  failureSummary: Array<{ label: string; value: number | null; hint: string; tone: string }>;
+  topModules: Array<{ name: string; value: number }>;
+};
+
+type SystemAnalysisStageRow = {
+  stage: string;
+  totalRuns: number;
+  successRuns: number;
+  failedRuns: number;
+  runningRuns: number;
+  avgDurationSeconds: number | null;
+  avgTokens: number | null;
+  avgCost: number | null;
+  avgRounds: number | null;
+  successRate: number | null;
+};
+
+type SystemAnalysisViewModel = {
+  overviewCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  governanceCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  qualityCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  costCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  stageRows: SystemAnalysisStageRow[];
+  failureCategories: Array<{ label: string; value: number; tone: string }>;
+  riskAlerts: Array<{ label: string; text: string; tone: string }>;
+};
+
+type DataflowVulnOverviewViewModel = {
+  topCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  cycleCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  plateauFlags: Array<{ label: string; active: boolean; hint: string }>;
+  runtimeModes: Array<{
+    mode: string;
+    calls: number | null;
+    attempts: number | null;
+    durationSeconds: number | null;
+    avgDurationSeconds: number | null;
+    timeoutFailures: number | null;
+    stdoutTruncated: number | null;
+    outputBytes: number | null;
+  }>;
 };
 
 type BinarySecurityReducerSnapshot = {
@@ -304,9 +377,16 @@ const isAiMetric = (metric: ParsedMetricSample) => {
   return /(token|cost|llm|model|prompt|judge|review|agent|session|worker|cycle|round|plugin|advisor|reflection|validator)/u.test(fingerprint);
 };
 
+const metricGroupingFingerprint = (metric: ParsedMetricSample) => {
+  const serviceNeutralName = metric.name.replace(/^firmware_unpacker_/u, '').replace(/^secflow_/u, '');
+  return `${serviceNeutralName} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
+};
+
+const isNoisyMetric = (metric: ParsedMetricSample | DisplayMetricRow) =>
+  /^python_/u.test(metric.name) || /^process_/u.test(metric.name) || /_created$/u.test(metric.name) || /_bucket$/u.test(metric.name);
+
 const detectGroup = (metric: ParsedMetricSample, service: BinarySecurityMetricsServiceDefinition): BinarySecurityMetricsGroup => {
-  const fingerprint = `${metric.name} ${Object.keys(metric.labels).join(' ')} ${Object.values(metric.labels).join(' ')}`.toLowerCase();
-  if (service.serviceSpecificKeywords.some((token) => fingerprint.includes(token))) return 'service-specific';
+  const fingerprint = metricGroupingFingerprint(metric);
   if (isAiMetric(metric)) return 'ai-agent';
   if (/(token|cost|llm|model|prompt|judge|review)/u.test(fingerprint)) return 'llm-token-cost';
   if (/(error|fail|retry|timeout|exception|cancel|abort)/u.test(fingerprint)) return 'error-retry-timeout';
@@ -314,6 +394,7 @@ const detectGroup = (metric: ParsedMetricSample, service: BinarySecurityMetricsS
   if (/(worker|scheduler|dispatcher|heartbeat|owner|runner|pod)/u.test(fingerprint)) return 'worker';
   if (/(duration|latency|elapsed|seconds|millisecond|runtime|processing_time)/u.test(fingerprint)) return 'duration';
   if (/(http|request|response|status|route|path|method)/u.test(fingerprint)) return 'http';
+  if (service.serviceSpecificKeywords.some((token) => fingerprint.includes(token))) return 'service-specific';
   return 'task';
 };
 
@@ -328,7 +409,7 @@ const metricDisplayName = (metric: ParsedMetricSample) => metric.name.replace(/^
 const scoreMetric = (metric: DisplayMetricRow, service: BinarySecurityMetricsServiceDefinition) => {
   const groupOrder = service.preferredGroups.indexOf(metric.group);
   const groupScore = groupOrder >= 0 ? service.preferredGroups.length - groupOrder : 0;
-  const suffixPenalty = /(_bucket|_created)$/u.test(metric.name) ? -3 : 0;
+  const suffixPenalty = isNoisyMetric(metric) ? -100 : 0;
   const labelBonus = Object.keys(metric.labels).length ? 1 : 0;
   const valueBonus = metric.value !== 0 ? 1 : 0;
   return groupScore * 10 + labelBonus + valueBonus + suffixPenalty;
@@ -373,7 +454,7 @@ const buildServiceViewModel = (rawText: string, service: BinarySecurityMetricsSe
       if (scoreGap !== 0) return scoreGap;
       return Math.abs(right.value) - Math.abs(left.value);
     })
-    .filter((row) => !/_bucket$/u.test(row.name))
+    .filter((row) => !isNoisyMetric(row))
     .slice(0, 8);
 
   const groupCounts = (Object.keys(GROUP_LABELS) as BinarySecurityMetricsGroup[]).map((group) => ({
@@ -511,6 +592,145 @@ const metricValueByName = (rows: DisplayMetricRow[], name: string, labels: Recor
   return matches.reduce((total, row) => total + row.value, 0);
 };
 
+const averageFromSummary = (rows: DisplayMetricRow[], familyName: string, labels: Record<string, string> = {}) => {
+  const matchesLabels = (row: DisplayMetricRow) => Object.entries(labels).every(([key, value]) => row.labels[key] === value);
+  const sum = rows
+    .filter((row) => row.familyName === familyName && row.name.endsWith('_sum') && matchesLabels(row))
+    .reduce((total, row) => total + row.value, 0);
+  const count = rows
+    .filter((row) => row.familyName === familyName && row.name.endsWith('_count') && matchesLabels(row))
+    .reduce((total, row) => total + row.value, 0);
+  return count > 0 ? sum / count : null;
+};
+
+const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisViewModel => {
+  const running = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_running'));
+  const pending = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_pending'));
+  const finished = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_finished'));
+  const queueWaitAvg = averageFromSummary(rows, 'secflow_sa_queue_wait_seconds');
+  const executionAvg = averageFromSummary(rows, 'secflow_sa_execution_seconds');
+  const turnaroundAvg = averageFromSummary(rows, 'secflow_sa_turnaround_seconds');
+  const workers = valueOrZero(metricValueByName(rows, 'secflow_sa_workers'));
+  const judges = valueOrZero(metricValueByName(rows, 'secflow_sa_judges'));
+  const sessions = valueOrZero(metricValueByName(rows, 'secflow_sa_sessions'));
+  const retryTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_retry_total'));
+  const timeoutTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_timeout_total'));
+  const cancelTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_cancel_total'));
+  const tokenInputTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_token_input_total'));
+  const tokenOutputTotal = valueOrZero(metricValueByName(rows, 'secflow_sa_token_output_total'));
+  const tokenCostTotal = metricValueByName(rows, 'secflow_sa_token_cost_total');
+  const tokenInputRunning = valueOrZero(metricValueByName(rows, 'secflow_sa_token_input_running'));
+  const tokenOutputRunning = valueOrZero(metricValueByName(rows, 'secflow_sa_token_output_running'));
+  const tokenCostRunning = metricValueByName(rows, 'secflow_sa_token_cost_running');
+
+  const failureCategories = rows
+    .filter((row) => row.name === 'secflow_sa_failure_category_total')
+    .sort((left, right) => right.value - left.value)
+    .map((row) => ({
+      label: row.labels.category || 'unknown',
+      value: row.value,
+      tone: row.labels.category === 'timeout' ? 'text-amber-700' : 'text-rose-700',
+    }));
+
+  const stageNames = Array.from(new Set(rows.filter((row) => row.name === 'secflow_sa_stage_rounds').map((row) => row.labels.stage || 'unknown'))).sort((left, right) =>
+    left.localeCompare(right, 'zh-CN'),
+  );
+  const terminalStatuses = new Set(['passed', 'success', 'failed', 'error', 'cancelled', 'timeout']);
+  const stageRows = stageNames.map((stage) => {
+    const stageEntries = rows.filter((row) => ['secflow_sa_stage_rounds', 'secflow_sa_stage_duration_seconds', 'secflow_sa_stage_token_total', 'secflow_sa_stage_cost_total'].includes(row.name) && row.labels.stage === stage);
+    const statusValues = Array.from(new Set(stageEntries.map((row) => row.labels.status || 'unknown')));
+    const totalRuns = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status })), 0);
+    const successRuns = ['passed', 'success', 'completed'].reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status })), 0);
+    const failedRuns = ['failed', 'error', 'timeout', 'cancelled'].reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status })), 0);
+    const runningRuns = statusValues
+      .filter((status) => !terminalStatuses.has(status))
+      .reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_rounds', { stage, status })), 0);
+    const totalDuration = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_duration_seconds', { stage, status })), 0);
+    const totalTokens = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_token_total', { stage, status })), 0);
+    const totalCost = statusValues.reduce((sum, status) => sum + valueOrZero(metricValueByName(rows, 'secflow_sa_stage_cost_total', { stage, status })), 0);
+    const avgDurationSeconds = totalRuns > 0 ? totalDuration / totalRuns : null;
+    const avgTokens = totalRuns > 0 ? totalTokens / totalRuns : null;
+    const avgCost = totalRuns > 0 ? totalCost / totalRuns : null;
+    const avgRounds = totalRuns > 0 ? totalRuns / Math.max(1, successRuns + failedRuns + runningRuns) : null;
+    return {
+      stage,
+      totalRuns,
+      successRuns,
+      failedRuns,
+      runningRuns,
+      avgDurationSeconds,
+      avgTokens,
+      avgCost,
+      avgRounds,
+      successRate: totalRuns > 0 ? (successRuns / totalRuns) * 100 : null,
+    };
+  });
+
+  const activeUnitTotal = workers + judges;
+  const sessionPerUnit = activeUnitTotal > 0 ? sessions / activeUnitTotal : null;
+  const pendingPerWorker = workers > 0 ? pending / workers : null;
+  const timeoutRate = finished > 0 ? (timeoutTotal / finished) * 100 : null;
+  const retryPressure = finished > 0 ? retryTotal / finished : null;
+  const queuePressure = pending > 0 && workers > 0 && pending > workers;
+  const costPerFinished = finished > 0 && tokenCostTotal != null ? tokenCostTotal / finished : null;
+  const tokenPerFinished = finished > 0 ? (tokenInputTotal + tokenOutputTotal) / finished : null;
+
+  const riskAlerts: Array<{ label: string; text: string; tone: string }> = [];
+  if (queuePressure) {
+    riskAlerts.push({
+      label: '排队堆积',
+      text: `pending=${formatNumber(pending)} 已高于 workers=${formatNumber(workers)}，当前存在明显的排队压力。`,
+      tone: 'border-amber-200 bg-amber-50 text-amber-800',
+    });
+  }
+  if ((timeoutRate || 0) >= 10) {
+    riskAlerts.push({
+      label: '超时偏高',
+      text: `timeout=${formatNumber(timeoutTotal)}，约占已结束任务的 ${formatNumber(timeoutRate, 1)}%。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if (!riskAlerts.length) {
+    riskAlerts.push({
+      label: '整体平稳',
+      text: '当前未发现明显的排队或超时放大信号，可以继续通过阶段健康表观察结构性问题。',
+      tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    });
+  }
+
+  return {
+    overviewCards: [
+      { label: '运行/排队', value: `${formatNumber(running)} / ${formatNumber(pending)}`, hint: `finished ${formatNumber(finished)}`, tone: running > 0 ? 'text-teal-700' : 'text-slate-900' },
+      { label: '平均排队', value: formatSeconds(queueWaitAvg), hint: 'queue_wait_seconds', tone: (queueWaitAvg || 0) > 300 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '平均执行', value: formatSeconds(executionAvg), hint: 'execution_seconds', tone: (executionAvg || 0) > 1800 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '平均周转', value: formatSeconds(turnaroundAvg), hint: 'turnaround_seconds', tone: (turnaroundAvg || 0) > 2400 ? 'text-rose-700' : 'text-slate-900' },
+      { label: 'Worker/Judge', value: `${formatNumber(workers)} / ${formatNumber(judges)}`, hint: `sessions ${formatNumber(sessions)}`, tone: 'text-indigo-700' },
+      { label: '完成产能', value: tokenPerFinished == null ? '-' : `${formatNumber(tokenPerFinished, 0)} tok/task`, hint: '平均每个完成任务 token', tone: 'text-violet-700' },
+    ],
+    governanceCards: [
+      { label: '待处理/Worker', value: pendingPerWorker == null ? '-' : formatNumber(pendingPerWorker, 2), hint: '背压强度', tone: (pendingPerWorker || 0) > 1 ? 'text-amber-700' : 'text-slate-900' },
+      { label: 'Session/活跃单元', value: sessionPerUnit == null ? '-' : formatNumber(sessionPerUnit, 2), hint: 'worker+judge 承载会话密度', tone: (sessionPerUnit || 0) > 3 ? 'text-indigo-700' : 'text-slate-900' },
+      { label: '重试压力', value: retryPressure == null ? '-' : formatNumber(retryPressure, 2), hint: 'retry per finished task', tone: (retryPressure || 0) > 1 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '取消任务', value: formatNumber(cancelTotal), hint: 'cancel_total', tone: cancelTotal > 0 ? 'text-slate-900' : 'text-emerald-700' },
+    ],
+    qualityCards: [
+      { label: '超时率', value: timeoutRate == null ? '-' : `${formatNumber(timeoutRate, 1)}%`, hint: `timeout ${formatNumber(timeoutTotal)}`, tone: (timeoutRate || 0) > 10 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: '失败分类数', value: formatNumber(failureCategories.length), hint: 'failure_category_total 类别数', tone: failureCategories.length > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: 'Top 失败原因', value: failureCategories[0] ? `${failureCategories[0].label} ${formatNumber(failureCategories[0].value)}` : '-', hint: '按 terminal task 聚合', tone: failureCategories[0] ? 'text-rose-700' : 'text-slate-900' },
+      { label: '阶段覆盖数', value: formatNumber(stageRows.length), hint: '已上报 stage 数量', tone: 'text-slate-900' },
+    ],
+    costCards: [
+      { label: '输入 Token', value: formatNumber(tokenInputTotal), hint: `running ${formatNumber(tokenInputRunning)}`, tone: 'text-violet-700' },
+      { label: '输出 Token', value: formatNumber(tokenOutputTotal), hint: `running ${formatNumber(tokenOutputRunning)}`, tone: 'text-violet-700' },
+      { label: '累计成本', value: formatMetricValue(tokenCostTotal ?? Number.NaN), hint: `running ${formatMetricValue(tokenCostRunning ?? Number.NaN)}`, tone: 'text-fuchsia-700' },
+      { label: '单任务成本', value: costPerFinished == null ? '-' : formatMetricValue(costPerFinished), hint: 'cost per finished task', tone: 'text-fuchsia-700' },
+    ],
+    stageRows,
+    failureCategories,
+    riskAlerts,
+  };
+};
+
 const buildBinarySecurityReducerSnapshot = (rows: DisplayMetricRow[]): BinarySecurityReducerSnapshot => ({
   capturedAt: Date.now(),
   pendingDepth: metricValueByName(rows, 'secflow_binary_security_state_event_queue_depth', { status: 'pending' }),
@@ -532,19 +752,46 @@ const buildBinarySecurityReducerSnapshot = (rows: DisplayMetricRow[]): BinarySec
   lockHeldAvgSeconds: histogramAverage(rows, 'secflow_binary_security_task_state_lock_held_seconds'),
 });
 
-const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewModel => ({
-  availableItems: metricValueByName(rows, 'secflow_binary_to_source_business_metric_available_items'),
-  missingItems: metricValueByName(rows, 'secflow_binary_to_source_business_metric_missing_items'),
-  headerAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_header_recovery_duration_seconds'),
-  bodyAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_body_recovery_duration_seconds'),
-  batchAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_batch_recovery_duration_seconds'),
-  functionThroughput: metricValueByName(rows, 'secflow_binary_to_source_function_throughput'),
-  batchAttempts: metricValueByName(rows, 'secflow_binary_to_source_batch_attempts_total'),
-  batchValidation: metricValueByName(rows, 'secflow_binary_to_source_batch_validation_total'),
-  artifactBytes: metricValueByName(rows, 'secflow_binary_to_source_artifact_bytes'),
-  tokenTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_usage_total'),
-  costTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_cost_total'),
-});
+const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewModel => {
+  const availableItems =
+    metricValueByName(rows, 'secflow_binary_to_source_runtime_metric_available_items') ??
+    metricValueByName(rows, 'secflow_binary_to_source_business_metric_available_items');
+  const legacyMissing = metricValueByName(rows, 'secflow_binary_to_source_business_metric_missing_items');
+  const missingReasons = rows
+    .filter((row) => row.name === 'secflow_binary_to_source_runtime_metric_missing_items' && row.labels.reason !== 'none')
+    .map((row) => ({ reason: row.labels.reason || 'unknown', value: row.value }))
+    .sort((left, right) => right.value - left.value);
+  const missingItems = missingReasons.length ? missingReasons.reduce((sum, item) => sum + item.value, 0) : legacyMissing;
+  const totalItems = (availableItems || 0) + (missingItems || 0);
+  const latestSeenSeconds = metricValueByName(rows, 'secflow_binary_to_source_latest_runtime_metric_seen_timestamp');
+  return {
+    availableItems,
+    missingItems,
+    coverageRate: totalItems > 0 ? ((availableItems || 0) / totalItems) * 100 : null,
+    headerAvgSeconds:
+      histogramAverage(rows, 'secflow_binary_to_source_completed_phase_duration_seconds', { phase: 'header_synthesis' }) ??
+      histogramAverage(rows, 'secflow_binary_to_source_header_recovery_duration_seconds'),
+    bodyAvgSeconds:
+      histogramAverage(rows, 'secflow_binary_to_source_completed_phase_duration_seconds', { phase: 'body_generation' }) ??
+      histogramAverage(rows, 'secflow_binary_to_source_body_recovery_duration_seconds'),
+    batchAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_batch_recovery_duration_seconds'),
+    runningHeaderAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_running_phase_duration_seconds', { phase: 'header_synthesis' }),
+    runningBodyAvgSeconds: histogramAverage(rows, 'secflow_binary_to_source_running_phase_duration_seconds', { phase: 'body_generation' }),
+    functionThroughput: metricValueByName(rows, 'secflow_binary_to_source_function_throughput'),
+    weightedFunctionThroughput: metricValueByName(rows, 'secflow_binary_to_source_weighted_function_throughput'),
+    batchRetryRate: metricValueByName(rows, 'secflow_binary_to_source_batch_retry_rate'),
+    batchValidationPassRate: metricValueByName(rows, 'secflow_binary_to_source_batch_validation_pass_rate'),
+    batchFailureRate: metricValueByName(rows, 'secflow_binary_to_source_batch_failure_rate'),
+    avgAttemptsPerBatch: metricValueByName(rows, 'secflow_binary_to_source_avg_attempts_per_batch'),
+    batchAttempts: metricValueByName(rows, 'secflow_binary_to_source_batch_attempts_total'),
+    batchValidation: metricValueByName(rows, 'secflow_binary_to_source_batch_validation_total'),
+    artifactBytes: metricValueByName(rows, 'secflow_binary_to_source_artifact_bytes'),
+    tokenTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_usage_total'),
+    costTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_cost_total'),
+    latestSeenAt: latestSeenSeconds && latestSeenSeconds > 0 ? latestSeenSeconds * 1000 : null,
+    missingReasons,
+  };
+};
 
 const buildB2SCacheViewModel = (rows: DisplayMetricRow[]): B2SCacheViewModel => {
   const requests = metricValueByName(rows, 'secflow_binary_to_source_cache_requests_total');
@@ -562,6 +809,223 @@ const buildB2SCacheViewModel = (rows: DisplayMetricRow[]): B2SCacheViewModel => 
     replacedTotal: replaced,
     entries,
     hitRate: denominator > 0 ? ((hits || 0) / denominator) * 100 : null,
+  };
+};
+
+const valueOrZero = (value: number | null | undefined) => (Number.isFinite(value || 0) ? value || 0 : 0);
+
+const firmwareMetric = (rows: DisplayMetricRow[], name: string, labels: Record<string, string> = {}) => metricValueByName(rows, name, labels);
+
+const buildFirmwareStatusChart = (
+  rows: DisplayMetricRow[],
+  metricName: string,
+  labelName: string,
+  labelMap: Record<string, string>,
+  colors: Record<string, string>,
+) =>
+  Object.entries(labelMap).map(([key, label]) => ({
+    name: label,
+    value: valueOrZero(firmwareMetric(rows, metricName, { [labelName]: key })),
+    fill: colors[key] || '#64748b',
+  }));
+
+const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpackerViewModel => {
+  const pending = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'pending' }));
+  const claimed = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'claimed' }));
+  const running = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'running' }));
+  const archiving = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'archiving' }));
+  const success = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'success' }));
+  const failed = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'failed' }));
+  const queuePending = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_queue_state', { state: 'pending' }));
+  const queueQueued = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_queue_state', { state: 'queued' }));
+  const queueRunning = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_queue_state', { state: 'running' }));
+  const queueLeased = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_queue_state', { state: 'leased' }));
+  const cleanupPending = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_queue_state', { state: 'cleanup_pending' }));
+  const workerTotal = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_workers_by_state', { state: 'total' }));
+  const workerAlive = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_workers_by_state', { state: 'alive' }));
+  const workerDead = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_workers_by_state', { state: 'dead' }));
+  const slotUsage = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_slot_usage', { kind: 'slot_usage' }));
+  const slotCapacity =
+    firmwareMetric(rows, 'firmware_unpacker_slot_usage', { kind: 'slot_capacity' }) ??
+    firmwareMetric(rows, 'firmware_unpacker_effective_max_concurrent') ??
+    null;
+  const executorCapacity = firmwareMetric(rows, 'firmware_unpacker_slot_usage', { kind: 'executor_capacity' });
+  const cleanupFailed = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_cleanup_jobs_by_status', { status: 'failed' }));
+  const cleanupSuccess = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_cleanup_jobs_by_status', { status: 'success' }));
+  const retryPreparing = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'retry_preparing' }));
+  const backpressure = firmwareMetric(rows, 'firmware_unpacker_dispatch_backpressure_total');
+  const claimedTotal = firmwareMetric(rows, 'firmware_unpacker_claimed_tasks_total');
+  const dbRetry = sumMetric(rows, (row) => row.name === 'firmware_unpacker_db_retry_total');
+  const taskErrors = sumMetric(rows, (row) => row.name === 'firmware_unpacker_task_errors_total');
+  const tokenTotal =
+    firmwareMetric(rows, 'firmware_unpacker_token_usage', { kind: 'total' }) ??
+    firmwareMetric(rows, 'firmware_unpacker_ai_token_usage_total', { type: 'total' });
+  const costTotal = firmwareMetric(rows, 'firmware_unpacker_cost_usage', { kind: 'total' }) ?? firmwareMetric(rows, 'firmware_unpacker_ai_token_cost_total');
+  const aiSessions = firmwareMetric(rows, 'firmware_unpacker_ai_session_total', { role: 'agent' });
+  const aiRounds = firmwareMetric(rows, 'firmware_unpacker_ai_round_total', { kind: 'round' });
+  const aiFailures = sumMetric(rows, (row) => row.name === 'firmware_unpacker_ai_failure_total' && row.labels.category !== 'unknown');
+  const slotUsageRate = slotCapacity && slotCapacity > 0 ? (slotUsage / slotCapacity) * 100 : null;
+
+  const alerts: FirmwareUnpackerHealthAlert[] = [];
+  if (cleanupFailed > 0) {
+    alerts.push({
+      label: '清理异常',
+      text: `存在 ${formatNumber(cleanupFailed)} 个失败的 workspace cleanup job，建议检查清理日志和目录权限。`,
+      tone: 'border-amber-200 bg-amber-50 text-amber-800',
+    });
+  }
+  if (workerDead > workerAlive && workerAlive > 0) {
+    alerts.push({
+      label: 'Worker 历史记录偏多',
+      text: `当前 alive=${formatNumber(workerAlive)}，dead=${formatNumber(workerDead)}；dead 可能包含历史心跳记录，请以 alive 和近期心跳判断当前能力。`,
+      tone: 'border-sky-200 bg-sky-50 text-sky-800',
+    });
+  }
+  if (queuePending + queueQueued > 0 && slotCapacity && slotUsage < slotCapacity) {
+    alerts.push({
+      label: '可能调度延迟',
+      text: `队列仍有 ${formatNumber(queuePending + queueQueued)} 个等待项，但并发槽未打满，需要关注 dispatcher/claim 状态。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if (!alerts.length && running + queuePending + queueQueued === 0) {
+    alerts.push({
+      label: '当前空闲',
+      text: '没有运行中或排队中的固件解包任务，调度队列处于空闲状态。',
+      tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    });
+  }
+
+  return {
+    kpis: [
+      { label: '运行中任务', value: formatNumber(running + archiving), hint: `running ${formatNumber(running)} / archiving ${formatNumber(archiving)}`, tone: running + archiving > 0 ? 'text-teal-700' : 'text-slate-900' },
+      { label: '排队/待领取', value: formatNumber(pending + claimed), hint: `pending ${formatNumber(pending)} / claimed ${formatNumber(claimed)}`, tone: pending + claimed > 0 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '成功/失败任务', value: `${formatNumber(success)} / ${formatNumber(failed)}`, hint: '历史任务终态分布', tone: failed > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: '活跃 Worker', value: `${formatNumber(workerAlive)} / ${formatNumber(workerTotal)}`, hint: `dead ${formatNumber(workerDead)}`, tone: workerAlive > 0 ? 'text-indigo-700' : 'text-rose-700' },
+      { label: '并发使用率', value: slotUsageRate == null ? '-' : `${formatNumber(slotUsageRate, 1)}%`, hint: `${formatNumber(slotUsage)} / ${formatNumber(slotCapacity)} slots`, tone: slotUsageRate && slotUsageRate > 85 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '清理失败数', value: formatNumber(cleanupFailed), hint: `cleanup success ${formatNumber(cleanupSuccess)}`, tone: cleanupFailed > 0 ? 'text-rose-700' : 'text-emerald-700' },
+    ],
+    taskStatusChart: buildFirmwareStatusChart(
+      rows,
+      'firmware_unpacker_tasks_by_status',
+      'status',
+      { pending: 'Pending', claimed: 'Claimed', running: 'Running', archiving: 'Archiving', success: 'Success', failed: 'Failed', cancelled: 'Cancelled' },
+      { pending: '#f59e0b', claimed: '#0ea5e9', running: '#14b8a6', archiving: '#6366f1', success: '#10b981', failed: '#ef4444', cancelled: '#64748b' },
+    ),
+    queueChart: [
+      { name: 'pending', value: queuePending, fill: '#f59e0b' },
+      { name: 'queued', value: queueQueued, fill: '#0ea5e9' },
+      { name: 'running', value: queueRunning, fill: '#14b8a6' },
+      { name: 'leased', value: queueLeased, fill: '#6366f1' },
+      { name: 'cleanup', value: cleanupPending, fill: '#a855f7' },
+    ],
+    workerChart: [
+      { name: 'alive', value: workerAlive, fill: '#10b981' },
+      { name: 'dead', value: workerDead, fill: '#f97316' },
+      { name: 'slot usage', value: slotUsage, fill: '#14b8a6' },
+      { name: 'slot capacity', value: valueOrZero(slotCapacity), fill: '#0f766e' },
+      { name: 'executor', value: valueOrZero(executorCapacity), fill: '#6366f1' },
+    ],
+    httpTop: rows
+      .filter((row) => row.name === 'firmware_unpacker_api_requests_total')
+      .sort((left, right) => right.value - left.value)
+      .slice(0, 6)
+      .map((row) => ({
+        name: `${row.labels.method || '-'} ${String(row.labels.path || '').replace('/api/app/firmware-unpacker/', '')}`,
+        value: row.value,
+      })),
+    operations: [
+      { label: '任务错误', value: taskErrors, hint: 'task_errors_total 聚合', tone: taskErrors > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: 'DB 重试', value: dbRetry, hint: 'transient database retries', tone: dbRetry > 0 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '调度反压', value: backpressure, hint: 'no free local execution slots', tone: (backpressure || 0) > 0 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '已领取任务', value: claimedTotal, hint: 'claimed_tasks_total', tone: 'text-slate-900' },
+      { label: '重试准备中', value: retryPreparing, hint: 'retry_preparing tasks', tone: retryPreparing > 0 ? 'text-amber-700' : 'text-slate-900' },
+    ],
+    aiSummary: [
+      { label: 'AI 会话', value: formatNumber(aiSessions), hint: 'ai_session_total', tone: (aiSessions || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
+      { label: 'AI 轮次', value: formatNumber(aiRounds), hint: 'ai_round_total', tone: (aiRounds || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
+      { label: 'Token 总量', value: formatNumber(tokenTotal), hint: 'token_usage total', tone: (tokenTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
+      { label: '成本', value: formatMetricValue(costTotal ?? Number.NaN), hint: 'cost_usage total', tone: (costTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
+      { label: 'AI 失败', value: formatNumber(aiFailures), hint: '排除 unknown 的 failure 聚合', tone: aiFailures > 0 ? 'text-rose-700' : 'text-emerald-700' },
+    ],
+    alerts,
+  };
+};
+
+const buildEntryAnalysisViewModel = (rows: DisplayMetricRow[]): EntryAnalysisViewModel => {
+  const pending = metricValueByName(rows, 'secflow_ea_tasks_pending');
+  const running = metricValueByName(rows, 'secflow_ea_tasks_running');
+  const finished = metricValueByName(rows, 'secflow_ea_tasks_finished');
+  const avgQueueWait = histogramAverage(rows, 'secflow_ea_queue_wait_seconds');
+  const avgExecution = histogramAverage(rows, 'secflow_ea_execution_seconds');
+  const avgTurnaround = histogramAverage(rows, 'secflow_ea_turnaround_seconds');
+  const avgRoundDuration = histogramAverage(rows, 'secflow_ea_round_duration_seconds');
+  const avgWorkerDuration = histogramAverage(rows, 'secflow_ea_worker_duration_seconds');
+  const avgJudgeDuration = histogramAverage(rows, 'secflow_ea_judge_duration_seconds');
+  const sessions = metricValueByName(rows, 'secflow_ea_sessions');
+  const workers = metricValueByName(rows, 'secflow_ea_workers');
+  const judges = metricValueByName(rows, 'secflow_ea_judges');
+  const retryTotal = metricValueByName(rows, 'secflow_ea_retry_total');
+  const timeoutTotal = metricValueByName(rows, 'secflow_ea_timeout_total');
+  const cancelTotal = metricValueByName(rows, 'secflow_ea_cancel_total');
+  const fileTotal = metricValueByName(rows, 'secflow_ea_file_total');
+  const tokenInputTotal = metricValueByName(rows, 'secflow_ea_token_input_total');
+  const tokenOutputTotal = metricValueByName(rows, 'secflow_ea_token_output_total');
+  const tokenCostTotal = metricValueByName(rows, 'secflow_ea_token_cost_total');
+  const tokenRunning = valueOrZero(metricValueByName(rows, 'secflow_ea_token_input_running')) + valueOrZero(metricValueByName(rows, 'secflow_ea_token_output_running'));
+  const schedulerRunning = metricValueByName(rows, 'secflow_ea_scheduler_running');
+  const workerServiceRunning = metricValueByName(rows, 'secflow_ea_worker_service_running');
+  const failureSummary = rows
+    .filter((row) => row.name === 'secflow_ea_failure_category_total')
+    .sort((left, right) => right.value - left.value)
+    .slice(0, 6)
+    .map((row) => ({
+      label: row.labels.category || 'unknown',
+      value: row.value,
+      hint: 'terminal failure category',
+      tone: row.labels.category === 'timeout' || row.labels.category === 'error' ? 'text-rose-700' : 'text-amber-700',
+    }));
+  const topModules = rows
+    .filter((row) => row.name === 'secflow_ea_module_total')
+    .sort((left, right) => right.value - left.value)
+    .slice(0, 6)
+    .map((row) => ({
+      name: row.labels.module || 'unknown',
+      value: row.value,
+    }));
+
+  return {
+    kpis: [
+      { label: '排队任务', value: formatNumber(pending), hint: '当前 pending 任务数', tone: (pending || 0) > 0 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '运行中任务', value: formatNumber(running), hint: '当前 running 任务数', tone: (running || 0) > 0 ? 'text-teal-700' : 'text-slate-900' },
+      { label: '平均排队时长', value: formatSeconds(avgQueueWait), hint: 'queue_wait_seconds 均值', tone: (avgQueueWait || 0) > 60 ? 'text-rose-700' : 'text-slate-900' },
+      { label: '平均执行时长', value: formatSeconds(avgExecution), hint: 'execution_seconds 均值', tone: (avgExecution || 0) > 300 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '平均端到端时长', value: formatSeconds(avgTurnaround), hint: 'turnaround_seconds 均值', tone: (avgTurnaround || 0) > 600 ? 'text-rose-700' : 'text-slate-900' },
+      { label: '平均轮次耗时', value: formatSeconds(avgRoundDuration), hint: 'round_duration_seconds 均值', tone: (avgRoundDuration || 0) > 180 ? 'text-amber-700' : 'text-slate-900' },
+    ],
+    roleSummary: [
+      { label: 'Worker 平均耗时', value: formatSeconds(avgWorkerDuration), hint: 'worker_duration_seconds 均值', tone: 'text-indigo-700' },
+      { label: 'Judge 平均耗时', value: formatSeconds(avgJudgeDuration), hint: 'judge_duration_seconds 均值', tone: 'text-fuchsia-700' },
+      { label: '会话文件数', value: formatNumber(sessions), hint: 'session gauge', tone: (sessions || 0) > 0 ? 'text-slate-900' : 'text-slate-500' },
+      { label: 'Worker / Judge', value: `${formatNumber(workers)} / ${formatNumber(judges)}`, hint: '当前聚合角色规模', tone: 'text-slate-900' },
+      { label: '运行中 Token', value: formatNumber(tokenRunning), hint: 'running input + output token snapshot', tone: tokenRunning > 0 ? 'text-violet-700' : 'text-slate-900' },
+      { label: '累计成本', value: formatMetricValue(tokenCostTotal ?? Number.NaN), hint: `input ${formatNumber(tokenInputTotal)} / output ${formatNumber(tokenOutputTotal)}`, tone: (tokenCostTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
+      { label: '处理文件估算', value: formatNumber(fileTotal), hint: 'worker files / shard 估算', tone: 'text-slate-900' },
+      {
+        label: '调度健康',
+        value: `${formatNumber(schedulerRunning)} / ${formatNumber(workerServiceRunning)}`,
+        hint: 'scheduler_running / worker_service_running',
+        tone: schedulerRunning && workerServiceRunning ? 'text-emerald-700' : 'text-rose-700',
+      },
+      { label: '终态任务', value: formatNumber(finished), hint: '当前聚合 finished 任务数', tone: (finished || 0) > 0 ? 'text-emerald-700' : 'text-slate-900' },
+    ],
+    failureSummary: [
+      { label: '重试次数', value: retryTotal, hint: '额外 round 聚合', tone: (retryTotal || 0) > 0 ? 'text-amber-700' : 'text-slate-900' },
+      { label: '超时次数', value: timeoutTotal, hint: 'timeout total', tone: (timeoutTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: '取消次数', value: cancelTotal, hint: 'cancel total', tone: (cancelTotal || 0) > 0 ? 'text-slate-700' : 'text-emerald-700' },
+      ...failureSummary,
+    ],
+    topModules,
   };
 };
 
@@ -868,6 +1332,18 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     () => (activeServiceKey === 'binary-to-source' ? buildB2SCacheViewModel(viewModel.rows) : null),
     [activeServiceKey, viewModel.rows],
   );
+  const systemAnalysisViewModel = useMemo(
+    () => (activeServiceKey === 'system-analysis' ? buildSystemAnalysisViewModel(viewModel.rows) : null),
+    [activeServiceKey, viewModel.rows],
+  );
+  const firmwareUnpackerViewModel = useMemo(
+    () => (activeServiceKey === 'firmware-unpacker' ? buildFirmwareUnpackerViewModel(viewModel.rows) : null),
+    [activeServiceKey, viewModel.rows],
+  );
+  const entryAnalysisViewModel = useMemo(
+    () => (activeServiceKey === 'entry-analysis' ? buildEntryAnalysisViewModel(viewModel.rows) : null),
+    [activeServiceKey, viewModel.rows],
+  );
   const reducerViewModel = useMemo(
     () =>
       activeServiceKey === 'binary-security'
@@ -1051,6 +1527,80 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
             ))}
           </section>
 
+          {entryAnalysisViewModel ? (
+            <section className="space-y-4 rounded-[2rem] border border-indigo-200 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-700">Entry Analysis Business</div>
+                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">入口分析业务聚合观测</h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    面向服务级聚合快照，重点看排队、执行、轮次、Worker/Judge 负载以及失败归因；这里不是单任务的 R1/R2/R3/R4 详情页，而是集群级健康视图。
+                  </p>
+                </div>
+                <span className="inline-flex rounded-full border border-indigo-200 bg-white/80 px-3 py-1 text-xs font-black text-indigo-800">
+                  retry {formatNumber(metricValueByName(viewModel.rows, 'secflow_ea_retry_total'))} / timeout {formatNumber(metricValueByName(viewModel.rows, 'secflow_ea_timeout_total'))}
+                </span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                {entryAnalysisViewModel.kpis.map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-indigo-100 bg-white/85 px-4 py-3 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色与吞吐</div>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Worker / Judge / Session 负载</h3>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {entryAnalysisViewModel.roleSummary.map((item) => (
+                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">失败与模块</div>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">异常归因 / Top Modules</h3>
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {entryAnalysisViewModel.failureSummary.map((item) => (
+                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                          <div className={`mt-2 text-lg font-black ${item.tone}`}>{formatMetricValue(item.value ?? Number.NaN)}</div>
+                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">模块热度</div>
+                      <div className="mt-3 space-y-2">
+                        {entryAnalysisViewModel.topModules.length ? (
+                          entryAnalysisViewModel.topModules.map((item) => (
+                            <div key={item.name} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                              <div className="min-w-0 truncate text-sm font-semibold text-slate-700">{item.name}</div>
+                              <div className="font-mono text-sm font-black text-indigo-700">{formatNumber(item.value)}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">当前没有模块级聚合指标。</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           {b2sBusinessViewModel ? (
             <section className="rounded-[2rem] border border-cyan-200 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.12),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#ecfeff_100%)] p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1061,30 +1611,74 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     来自 PI 任务内部埋点，不从日志反推；用于观察头文件还原、函数体还原、批次吞吐、Token/成本与产物规模。
                   </p>
                 </div>
-                <span className="inline-flex rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-black text-cyan-800">
-                  metrics {formatNumber(b2sBusinessViewModel.availableItems)} / missing {formatNumber(b2sBusinessViewModel.missingItems)}
-                </span>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-black text-cyan-800">
+                    覆盖率 {b2sBusinessViewModel.coverageRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`}
+                  </span>
+                  <span className="inline-flex rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-black text-cyan-800">
+                    最近样本 {formatTime(b2sBusinessViewModel.latestSeenAt)}
+                  </span>
+                </div>
               </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                {[
-                  { label: '头文件平均耗时', value: formatSeconds(b2sBusinessViewModel.headerAvgSeconds), hint: 'header_synthesis', tone: 'text-cyan-900' },
-                  { label: '函数体平均耗时', value: formatSeconds(b2sBusinessViewModel.bodyAvgSeconds), hint: 'body_generation', tone: 'text-cyan-900' },
-                  { label: '批次平均耗时', value: formatSeconds(b2sBusinessViewModel.batchAvgSeconds), hint: 'batch duration', tone: 'text-cyan-900' },
-                  { label: '函数吞吐', value: `${formatNumber(b2sBusinessViewModel.functionThroughput, 3)} /s`, hint: 'functions per second', tone: 'text-emerald-700' },
-                  { label: '产物规模', value: formatMetricValue(b2sBusinessViewModel.artifactBytes ?? Number.NaN), hint: 'artifact bytes', tone: 'text-slate-900' },
-                  { label: '批次尝试', value: formatNumber(b2sBusinessViewModel.batchAttempts), hint: 'attempt total', tone: 'text-slate-900' },
-                  { label: '校验样本', value: formatNumber(b2sBusinessViewModel.batchValidation), hint: 'validation total', tone: 'text-slate-900' },
-                  { label: 'Token 总量', value: formatNumber(b2sBusinessViewModel.tokenTotal), hint: 'runtime llm summary', tone: 'text-indigo-700' },
-                  { label: '成本', value: formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN), hint: 'runtime cost', tone: 'text-indigo-700' },
-                  { label: '缺失指标项', value: formatNumber(b2sBusinessViewModel.missingItems), hint: '老任务兼容', tone: (b2sBusinessViewModel.missingItems || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-                ].map((item) => (
-                  <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+              {(b2sBusinessViewModel.availableItems || 0) <= 0 ? (
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+                  <div className="text-sm font-black text-amber-900">暂无有效 runtime metrics 样本</div>
+                  <p className="mt-1 text-sm text-amber-800">
+                    当前 B2S 已看到 {formatNumber(b2sBusinessViewModel.missingItems)} 个缺失项。看板不会用缺失样本推导平均耗时，避免把旧任务或尚未上报的任务误读为 0。
+                  </p>
+                  {b2sBusinessViewModel.missingReasons.length ? (
+                    <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                      {b2sBusinessViewModel.missingReasons.map((item) => (
+                        <div key={item.reason} className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2">
+                          <div className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-600">{item.reason}</div>
+                          <div className="mt-1 text-lg font-black text-amber-900">{formatNumber(item.value)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <div className="mt-4 text-xs font-black uppercase tracking-[0.18em] text-cyan-700">任务历史聚合（终态样本）</div>
+                  <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    {[
+                      { label: '头文件平均耗时', value: formatSeconds(b2sBusinessViewModel.headerAvgSeconds), hint: 'terminal header_synthesis', tone: 'text-cyan-900' },
+                      { label: '函数体平均耗时', value: formatSeconds(b2sBusinessViewModel.bodyAvgSeconds), hint: 'terminal body_generation', tone: 'text-cyan-900' },
+                      { label: '批次平均耗时', value: formatSeconds(b2sBusinessViewModel.batchAvgSeconds), hint: 'batch duration', tone: 'text-cyan-900' },
+                      { label: '加权函数吞吐', value: `${formatNumber(b2sBusinessViewModel.weightedFunctionThroughput ?? b2sBusinessViewModel.functionThroughput, 3)} /s`, hint: 'completed functions / body seconds', tone: 'text-emerald-700' },
+                      { label: '覆盖率', value: b2sBusinessViewModel.coverageRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.coverageRate, 1)}%`, hint: `available ${formatNumber(b2sBusinessViewModel.availableItems)} / missing ${formatNumber(b2sBusinessViewModel.missingItems)}`, tone: (b2sBusinessViewModel.missingItems || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+                      { label: '批次重试率', value: b2sBusinessViewModel.batchRetryRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchRetryRate * 100, 1)}%`, hint: 'extra attempts / attempts', tone: (b2sBusinessViewModel.batchRetryRate || 0) > 0.1 ? 'text-amber-700' : 'text-emerald-700' },
+                      { label: '校验通过率', value: b2sBusinessViewModel.batchValidationPassRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchValidationPassRate * 100, 1)}%`, hint: 'passed batches / batches', tone: (b2sBusinessViewModel.batchValidationPassRate || 0) < 0.9 ? 'text-amber-700' : 'text-emerald-700' },
+                      { label: '失败批次占比', value: b2sBusinessViewModel.batchFailureRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchFailureRate * 100, 1)}%`, hint: 'failed batches / batches', tone: (b2sBusinessViewModel.batchFailureRate || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+                      { label: '平均 Attempts', value: formatNumber(b2sBusinessViewModel.avgAttemptsPerBatch, 2), hint: 'attempts per batch', tone: (b2sBusinessViewModel.avgAttemptsPerBatch || 0) > 1.2 ? 'text-amber-700' : 'text-slate-900' },
+                      { label: 'Token / 成本', value: `${formatNumber(b2sBusinessViewModel.tokenTotal)} / ${formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN)}`, hint: 'runtime llm summary', tone: 'text-indigo-700' },
+                    ].map((item) => (
+                      <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                  {b2sBusinessViewModel.runningHeaderAvgSeconds != null || b2sBusinessViewModel.runningBodyAvgSeconds != null ? (
+                    <>
+                      <div className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-700">运行中实时指标（不参与历史均值）</div>
+                      <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        {[
+                          { label: '运行中头文件耗时', value: formatSeconds(b2sBusinessViewModel.runningHeaderAvgSeconds), hint: 'running header_synthesis', tone: 'text-cyan-900' },
+                          { label: '运行中函数体耗时', value: formatSeconds(b2sBusinessViewModel.runningBodyAvgSeconds), hint: 'running body_generation', tone: 'text-cyan-900' },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/70 px-4 py-3">
+                            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                            <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                            <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+                </>
+              )}
             </section>
           ) : null}
 
@@ -1117,6 +1711,238 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
                   </div>
                 ))}
+              </div>
+            </section>
+          ) : null}
+
+          {systemAnalysisViewModel ? (
+            <section className="space-y-4 rounded-[2rem] border border-sky-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#f0f9ff_100%)] p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-700">System Analysis Observability</div>
+                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">系统分析专属观测</h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    以运行总览、阶段健康、AI 成本、并发治理和质量收益为主视图，优先回答“卡在哪、贵不贵、并发是否打满、失败是否集中”。
+                  </p>
+                </div>
+                <span className="inline-flex rounded-full border border-sky-200 bg-white/80 px-3 py-1 text-xs font-black text-sky-800">
+                  frontend phase 1
+                </span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                {systemAnalysisViewModel.overviewCards.map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-sky-100 bg-white/85 px-4 py-3 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+                <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">阶段健康</div>
+                      <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Stage 健康矩阵</h3>
+                    </div>
+                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
+                      runs / duration / token / cost
+                    </span>
+                  </div>
+                  <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-500">
+                        <tr>
+                          <th className="px-3 py-3">阶段</th>
+                          <th className="px-3 py-3">运行</th>
+                          <th className="px-3 py-3">成功率</th>
+                          <th className="px-3 py-3">均时</th>
+                          <th className="px-3 py-3">轮次</th>
+                          <th className="px-3 py-3">均 Token</th>
+                          <th className="px-3 py-3">均成本</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {systemAnalysisViewModel.stageRows.length ? (
+                          systemAnalysisViewModel.stageRows.map((row) => (
+                            <tr key={row.stage} className="hover:bg-slate-50">
+                              <td className="px-3 py-3 font-mono text-[11px] font-bold text-slate-800">{row.stage}</td>
+                              <td className="px-3 py-3 font-mono text-[11px] text-slate-700">
+                                {formatNumber(row.totalRuns)} / {formatNumber(row.successRuns)} / {formatNumber(row.failedRuns)}
+                                <div className="text-[10px] text-slate-400">all / ok / fail</div>
+                              </td>
+                              <td className={`px-3 py-3 font-mono text-[11px] font-bold ${(row.successRate || 0) < 70 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                                {row.successRate == null ? '-' : `${formatNumber(row.successRate, 1)}%`}
+                              </td>
+                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatSeconds(row.avgDurationSeconds)}</td>
+                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatNumber(row.avgRounds, 2)}</td>
+                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatNumber(row.avgTokens, 0)}</td>
+                              <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatMetricValue(row.avgCost ?? Number.NaN)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">
+                              当前还没有可聚合的阶段级指标。
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行风险</div>
+                    <div className="mt-3 grid gap-3">
+                      {systemAnalysisViewModel.riskAlerts.map((alert) => (
+                        <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+                          <div className="text-sm font-black">{alert.label}</div>
+                          <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">失败归因</div>
+                    <div className="mt-3 space-y-2">
+                      {systemAnalysisViewModel.failureCategories.length ? (
+                        systemAnalysisViewModel.failureCategories.slice(0, 6).map((item) => (
+                          <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                            <div className="text-xs font-black text-slate-700">{item.label}</div>
+                            <div className={`font-mono text-sm font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">暂无失败分类指标。</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-3">
+                {[
+                  { title: '并发治理', items: systemAnalysisViewModel.governanceCards },
+                  { title: 'AI 成本', items: systemAnalysisViewModel.costCards },
+                  { title: '质量收益', items: systemAnalysisViewModel.qualityCards },
+                ].map((block) => (
+                  <div key={block.title} className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{block.title}</div>
+                    <div className="mt-3 grid gap-2">
+                      {block.items.map((item) => (
+                        <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                          <div>
+                            <div className="text-xs font-black text-slate-700">{item.label}</div>
+                            <div className="text-[11px] text-slate-500">{item.hint}</div>
+                          </div>
+                          <div className={`font-mono text-sm font-black ${item.tone}`}>{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {firmwareUnpackerViewModel ? (
+            <section className="space-y-4 rounded-[2rem] border border-amber-200 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.12),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#fff7ed_100%)] p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-700">Firmware Unpacker Health</div>
+                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">固件解包运行健康</h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    优先展示任务状态、队列积压、Worker 在线能力、并发槽位和清理异常；原始 Prometheus 样本仍保留在下方用于排障。
+                  </p>
+                </div>
+                <span className="inline-flex rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-xs font-black text-amber-800">
+                  专属聚合视图
+                </span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                {firmwareUnpackerViewModel.kpis.map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-amber-100 bg-white/85 px-4 py-3 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div className={`mt-2 text-2xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-3">
+                {firmwareUnpackerViewModel.alerts.map((alert) => (
+                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+                    <div className="text-sm font-black">{alert.label}</div>
+                    <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                {[
+                  { title: '任务状态分布', data: firmwareUnpackerViewModel.taskStatusChart },
+                  { title: '队列状态', data: firmwareUnpackerViewModel.queueChart },
+                  { title: 'Worker 与并发槽位', data: firmwareUnpackerViewModel.workerChart },
+                  { title: 'HTTP 请求 Top 6', data: firmwareUnpackerViewModel.httpTop.map((item) => ({ ...item, fill: '#0f766e' })) },
+                ].map((chart) => (
+                  <div key={chart.title} className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{chart.title}</div>
+                    <div className="mt-3 h-64">
+                      {chart.data.some((item) => item.value > 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chart.data} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                            <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-12} textAnchor="end" height={58} />
+                            <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                            <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
+                            <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                              {chart.data.map((entry) => (
+                                <Cell key={`${chart.title}-${entry.name}`} fill={entry.fill || '#0f766e'} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <EmptyCard text="当前指标值均为 0" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                <div className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">异常 / 调度 / 清理</div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {firmwareUnpackerViewModel.operations.map((item) => (
+                      <div key={item.label} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="text-xs font-black text-slate-700">{item.label}</div>
+                        <div className={`mt-1 text-lg font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                        <div className="text-[11px] text-slate-500">{item.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-[1.6rem] border border-amber-100 bg-white/85 p-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">AI / Token / Cost</div>
+                  <div className="mt-3 grid gap-2">
+                    {firmwareUnpackerViewModel.aiSummary.map((item) => (
+                      <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div>
+                          <div className="text-xs font-black text-slate-700">{item.label}</div>
+                          <div className="text-[11px] text-slate-500">{item.hint}</div>
+                        </div>
+                        <div className={`font-mono text-sm font-black ${item.tone}`}>{item.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
           ) : null}

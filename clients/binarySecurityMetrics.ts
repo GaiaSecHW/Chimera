@@ -11,6 +11,10 @@ export type BinarySecurityMetricsServiceKey =
   | 'dataflow-vuln';
 
 export type BinarySecurityMetricsGroup =
+  | 'health'
+  | 'orchestration'
+  | 'reducer'
+  | 'lock'
   | 'http'
   | 'task'
   | 'queue'
@@ -19,7 +23,8 @@ export type BinarySecurityMetricsGroup =
   | 'error-retry-timeout'
   | 'llm-token-cost'
   | 'ai-agent'
-  | 'service-specific';
+  | 'service-specific'
+  | 'other';
 
 export type BinarySecurityMetricsSecondaryTab = 'observability' | 'reducer' | 'ai-zone';
 
@@ -105,7 +110,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     label: '二进制安全编排器',
     serviceName: 'secflow-app-binary-security',
     metricsPath: `${API_BASE}/api/app/binary-security/metrics/aggregate`,
-    preferredGroups: ['task', 'queue', 'worker', 'error-retry-timeout', 'duration', 'http', 'llm-token-cost', 'ai-agent', 'service-specific'],
+    preferredGroups: ['health', 'orchestration', 'reducer', 'lock', 'queue', 'worker', 'task', 'error-retry-timeout', 'duration', 'http', 'ai-agent', 'llm-token-cost', 'service-specific', 'other'],
     serviceSpecificKeywords: ['stage', 'dispatch', 'downstream', 'archive', 'module', 'state', 'reducer', 'lock', 'dead_letter'],
   },
   {
@@ -122,7 +127,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     serviceName: 'secflow-app-firmware-unpacker',
     metricsPath: `${API_BASE}/api/app/firmware-unpacker/metrics`,
     preferredGroups: ['task', 'duration', 'worker', 'error-retry-timeout', 'queue', 'http', 'llm-token-cost', 'ai-agent', 'service-specific'],
-    serviceSpecificKeywords: ['firmware', 'resource', 'evolution', 'skill', 'round'],
+    serviceSpecificKeywords: ['evolution', 'skill', 'cleanup', 'orphan', 'maintenance'],
   },
   {
     key: 'system-analysis',
@@ -146,7 +151,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     serviceName: 'secflow-app-entry-analyse',
     metricsPath: `${API_BASE}/api/app/entry-analyse/metrics`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'worker', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
-    serviceSpecificKeywords: ['session', 'round', 'review', 'judge', 'entry'],
+    serviceSpecificKeywords: ['entry', 'r1', 'r2', 'r3', 'r4', 'module'],
   },
   {
     key: 'dataflow-analysis',
