@@ -87,6 +87,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [concurrency, setConcurrency] = useState(4);
   const [runMode, setRunMode] = useState<B2SRunMode>('fast');
   const [llmProviderKey, setLlmProviderKey] = useState('');
+  const [reuseCache, setReuseCache] = useState(true);
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
   const [llmProvidersLoading, setLlmProvidersLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -322,6 +323,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     setConcurrency(4);
     setRunMode('fast');
     setLlmProviderKey('');
+    setReuseCache(true);
     setSelectedFiles([]);
     setSelectedServerFiles([]);
     setShowFilesystemPicker(false);
@@ -460,6 +462,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         llm_provider_key: llmProviderKey || undefined,
         concurrency: safeConcurrency,
         mode: runMode,
+        reuse_cache: reuseCache,
         elf_tasks: elfTasks,
       });
       setShowCreateDialog(false);
@@ -1002,6 +1005,25 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     ))}
                   </select>
                 </label>
+                <div className="rounded-3xl border border-emerald-200 bg-emerald-50/70 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">复用已有缓存</div>
+                      <div className="mt-1 text-xs font-semibold leading-5 text-slate-600">
+                        默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {runMode === 'deep' ? '深度模式' : '快速模式'} 下的缓存结果。
+                      </div>
+                    </div>
+                    <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-black text-emerald-700">
+                      <input
+                        type="checkbox"
+                        checked={reuseCache}
+                        onChange={(e) => setReuseCache(e.target.checked)}
+                        disabled={submitting}
+                      />
+                      {reuseCache ? '已开启' : '已关闭'}
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">

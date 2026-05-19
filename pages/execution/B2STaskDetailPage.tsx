@@ -769,6 +769,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               <MetricTile label="超时秒数" value={snapshot.agent_run_timeout_seconds || '-'} tone="amber" />
               <MetricTile label="超时重试" value={snapshot.agent_timeout_retry_enabled ? '开启' : '关闭'} tone="amber" />
               <MetricTile label="最大超时重试" value={snapshot.agent_timeout_max_retries || '-'} tone="amber" />
+              <MetricTile label="缓存策略" value={snapshot.reuse_cache === false ? '不复用并覆盖' : '复用已有缓存'} tone="emerald" />
             </div>
           </SectionCard>
         </div>

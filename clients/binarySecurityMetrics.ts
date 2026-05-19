@@ -138,7 +138,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     serviceName: 'secflow-app-binary-to-source',
     metricsPath: `${API_BASE}/api/app/binary-to-source/metrics`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'error-retry-timeout', 'http', 'worker', 'queue', 'service-specific'],
-    serviceSpecificKeywords: ['review', 'quality', 'attempt', 'artifact', 'function', 'business', 'header', 'body', 'batch', 'recovery', 'throughput'],
+    serviceSpecificKeywords: ['review', 'quality', 'attempt', 'artifact', 'function', 'business', 'header', 'body', 'batch', 'recovery', 'throughput', 'cache'],
   },
   {
     key: 'entry-analysis',

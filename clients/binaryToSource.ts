@@ -27,6 +27,7 @@ export interface B2STaskCreatePayload {
   llm_provider_key?: string;
   concurrency?: number;
   mode?: B2SRunMode;
+  reuse_cache?: boolean;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -366,6 +367,7 @@ export interface B2STaskConfigSnapshot {
   agent_run_timeout_seconds?: number | null;
   agent_timeout_retry_enabled?: boolean | null;
   agent_timeout_max_retries?: number | null;
+  reuse_cache?: boolean | null;
   budget_exhausted_action?: string | null;
   input_count: number;
   input_items: B2STaskConfigInputItem[];

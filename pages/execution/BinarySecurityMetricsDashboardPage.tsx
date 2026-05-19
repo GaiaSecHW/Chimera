@@ -111,6 +111,16 @@ type B2SBusinessViewModel = {
   costTotal: number | null;
 };
 
+type B2SCacheViewModel = {
+  requestsTotal: number | null;
+  hitsTotal: number | null;
+  missesTotal: number | null;
+  bypassedTotal: number | null;
+  replacedTotal: number | null;
+  entries: number | null;
+  hitRate: number | null;
+};
+
 type BinarySecurityReducerSnapshot = {
   capturedAt: number;
   pendingDepth: number | null;
@@ -536,6 +546,25 @@ const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewMod
   costTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_cost_total'),
 });
 
+const buildB2SCacheViewModel = (rows: DisplayMetricRow[]): B2SCacheViewModel => {
+  const requests = metricValueByName(rows, 'secflow_binary_to_source_cache_requests_total');
+  const hits = metricValueByName(rows, 'secflow_binary_to_source_cache_hits_total');
+  const misses = metricValueByName(rows, 'secflow_binary_to_source_cache_misses_total');
+  const bypassed = metricValueByName(rows, 'secflow_binary_to_source_cache_bypassed_total');
+  const replaced = metricValueByName(rows, 'secflow_binary_to_source_cache_replace_total');
+  const entries = metricValueByName(rows, 'secflow_binary_to_source_cache_entries');
+  const denominator = (hits || 0) + (misses || 0);
+  return {
+    requestsTotal: requests,
+    hitsTotal: hits,
+    missesTotal: misses,
+    bypassedTotal: bypassed,
+    replacedTotal: replaced,
+    entries,
+    hitRate: denominator > 0 ? ((hits || 0) / denominator) * 100 : null,
+  };
+};
+
 const dedupeReducerHistory = (history: BinarySecurityReducerSnapshot[]) => {
   const result: BinarySecurityReducerSnapshot[] = [];
   for (const item of history) {
@@ -835,6 +864,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     () => (activeServiceKey === 'binary-to-source' ? buildB2SBusinessViewModel(viewModel.rows) : null),
     [activeServiceKey, viewModel.rows],
   );
+  const b2sCacheViewModel = useMemo(
+    () => (activeServiceKey === 'binary-to-source' ? buildB2SCacheViewModel(viewModel.rows) : null),
+    [activeServiceKey, viewModel.rows],
+  );
   const reducerViewModel = useMemo(
     () =>
       activeServiceKey === 'binary-security'
@@ -1046,6 +1079,39 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   { label: '缺失指标项', value: formatNumber(b2sBusinessViewModel.missingItems), hint: '老任务兼容', tone: (b2sBusinessViewModel.missingItems || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {b2sCacheViewModel ? (
+            <section className="rounded-[2rem] border border-emerald-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(180deg,#ffffff_0%,#ecfdf5_100%)] p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">Binary To Source Cache</div>
+                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">二进制逆向缓存指标</h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    观察 ELF 级缓存请求、命中、绕过、覆盖和当前缓存条目数量，辅助判断相同输入是否被有效复用。
+                  </p>
+                </div>
+                <span className="inline-flex rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-xs font-black text-emerald-800">
+                  命中率 {b2sCacheViewModel.hitRate == null ? '-' : `${formatNumber(b2sCacheViewModel.hitRate, 1)}%`}
+                </span>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                {[
+                  { label: '缓存请求', value: formatNumber(b2sCacheViewModel.requestsTotal), hint: 'requests total', tone: 'text-slate-900' },
+                  { label: '缓存命中', value: formatNumber(b2sCacheViewModel.hitsTotal), hint: 'hits total', tone: 'text-emerald-700' },
+                  { label: '缓存未命中', value: formatNumber(b2sCacheViewModel.missesTotal), hint: 'misses total', tone: 'text-amber-700' },
+                  { label: '主动绕过', value: formatNumber(b2sCacheViewModel.bypassedTotal), hint: 'reuse_cache=false', tone: 'text-rose-700' },
+                  { label: '缓存覆盖', value: formatNumber(b2sCacheViewModel.replacedTotal), hint: 'replace total', tone: 'text-indigo-700' },
+                  { label: '当前条目', value: formatNumber(b2sCacheViewModel.entries), hint: 'ready cache entries', tone: 'text-slate-900' },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 shadow-sm">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
                     <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
                     <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
