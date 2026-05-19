@@ -134,6 +134,28 @@ function getEntryAnalysisRiskMatch(task: Pick<AppEaTaskItem, 'status'>, riskKey:
   return null;
 }
 
+function getEntryAnalysisRecommendationReason(
+  task: Pick<AppEaTaskItem, 'status' | 'updated_at' | 'created_at'>,
+  stageFocusHint: string,
+  riskPreset: { label: string; description: string; suggestedStatus: string; statusReason: string } | null,
+): string {
+  const updatedAt = new Date(task.updated_at || task.created_at).getTime() || 0;
+  const freshness = updatedAt > 0 ? `最近更新时间 ${new Date(updatedAt).toLocaleString('zh-CN')}` : '最近有更新';
+  if (riskPreset?.suggestedStatus === 'pending' && task.status === 'pending') {
+    return `因为当前在排查${riskPreset.label}，而这条任务处于等待中，最适合先看队列背压。${freshness}。`;
+  }
+  if (riskPreset?.suggestedStatus === 'failed' && (task.status === 'failed' || task.status === 'error')) {
+    return `因为当前在排查${riskPreset.label}，而这条任务已经失败，更容易直接定位异常样本。${freshness}。`;
+  }
+  if ((task.status === 'running' || task.status === 'pending') && stageFocusHint) {
+    return `因为当前带着 ${stageFocusHint} 阶段线索，这条任务仍在活跃或等待状态，更可能保留对应阶段的会话与日志。${freshness}。`;
+  }
+  if (task.status === 'running' || task.status === 'pending') {
+    return `因为这条任务仍处于活跃状态，更适合观察实时推进与当前会话。${freshness}。`;
+  }
+  return `因为这条任务在当前筛选下更新时间靠前，可作为最近样本继续排查。${freshness}。`;
+}
+
 const STAGE_STEPS = [
   { key: 'init',    label: '模块加载', desc: '扫描目标路径，加载模块文件', triggers: ['task_start', 'module_load', 'task_resume'], artifactSubpath: 'workspace' },
   { key: 'analyse', label: '入口分析', desc: 'Worker 逐一分析各入口点',    triggers: ['round_start', 'worker_start'],               artifactSubpath: 'workspace' },
@@ -839,9 +861,13 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         const leftUpdated = new Date(left.updated_at || left.created_at).getTime() || 0;
         return rightUpdated - leftUpdated;
       })
-      .slice(0, 6);
+      .slice(0, 6)
+      .map((task) => ({
+        task,
+        reason: getEntryAnalysisRecommendationReason(task, stageFocusHint, riskPreset),
+      }));
   }, [riskPreset, stageFocusHint, tasks]);
-  const recommendedTaskIds = useMemo(() => new Set(recommendedTasks.map((task) => task.task_id)), [recommendedTasks]);
+  const recommendedTaskIds = useMemo(() => new Set(recommendedTasks.map((item) => item.task.task_id)), [recommendedTasks]);
 
   const stageStatuses = detail
     ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
@@ -1179,7 +1205,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {recommendedTasks.length ? (
-              recommendedTasks.map((task) => (
+              recommendedTasks.map(({ task, reason }) => (
                 <button
                   key={task.task_id}
                   type="button"
@@ -1199,6 +1225,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     <div>模块：<span className="font-semibold text-slate-700">{task.module_name || '-'}</span></div>
                     <div>更新时间：<span className="font-semibold text-slate-700">{new Date(task.updated_at || task.created_at).toLocaleString('zh-CN')}</span></div>
                     <div>输入路径：<span className="font-mono text-slate-600">{task.input_path}</span></div>
+                  </div>
+                  <div className="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-[11px] leading-5 text-indigo-900">
+                    <span className="font-black">推荐依据：</span>{reason}
                   </div>
                 </button>
               ))
@@ -1421,6 +1450,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 const recommended = recommendedTaskIds.has(t.task_id);
                 const riskMatch = riskFocusHint ? getEntryAnalysisRiskMatch(t, riskFocusHint) : null;
                 const matchedRisk = Boolean(riskMatch?.matched);
+                const recommendationReason = recommended ? getEntryAnalysisRecommendationReason(t, stageFocusHint, riskPreset) : '';
                 const contextualRowClassName = selectedTaskIds.has(t.task_id)
                   ? 'bg-violet-50/60'
                   : recommended
@@ -1468,6 +1498,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                         </span>
                       ) : null}
                     </div>
+                    {recommended || matchedRisk ? (
+                      <div className="mt-2 text-[11px] leading-5 text-slate-500">
+                        {recommended ? recommendationReason : riskMatch?.label}
+                      </div>
+                    ) : null}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
                     <div className="text-sm font-semibold text-slate-700">{t.module_name || '-'}</div>

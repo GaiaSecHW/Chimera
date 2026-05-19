@@ -253,6 +253,32 @@ function getEntryAnalysisRiskPreset(riskKey: string): { label: string; descripti
   return null;
 }
 
+function getEntryAnalysisDetailRecommendationReason(params: {
+  stageFocusHint: 'R1' | 'R2' | 'R3' | 'R4' | '';
+  riskPreset: { label: string; description: string; statusReason: string } | null;
+  detailStatus?: string;
+  focusedSessionGroup: { activeCount: number; latestMtime: number; recommended: AppEaSessionMeta | null } | null;
+}): string[] {
+  const reasons: string[] = [];
+  if (params.stageFocusHint) {
+    reasons.push(`当前带着 ${params.stageFocusHint} 阶段线索进入详情页，系统会优先把会话、关系图和推荐分组聚焦到这一阶段。`);
+  }
+  if (params.riskPreset) {
+    reasons.push(`当前带着“${params.riskPreset.label}”风险意图进入详情页，所以会优先关注更符合该风险模式的状态、会话和长耗时信号。`);
+  }
+  if (params.detailStatus && ['running', 'pending'].includes(params.detailStatus)) {
+    reasons.push('这条任务当前仍处于活跃或等待状态，更适合继续观察实时推进、排队与会话追加内容。');
+  } else if (params.detailStatus && ['failed', 'error', 'cancelled'].includes(params.detailStatus)) {
+    reasons.push('这条任务已经进入异常或终止状态，更适合直接回看失败阶段、Judge 评审和最终未收敛的会话。');
+  }
+  if (params.focusedSessionGroup?.activeCount) {
+    reasons.push(`当前已命中一个更相关的会话分组，里面还有 ${params.focusedSessionGroup.activeCount} 个活跃会话，可直接下钻继续排查。`);
+  } else if (params.focusedSessionGroup?.recommended) {
+    reasons.push(`当前已命中推荐会话 ${params.focusedSessionGroup.recommended.display_name}，可直接查看最贴近线索的历史会话。`);
+  }
+  return reasons;
+}
+
 function parseParts(content: unknown): Array<Record<string, any>> {
   if (typeof content === 'string') return [{ type: 'text', text: content }];
   if (!Array.isArray(content)) return [];
@@ -446,6 +472,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const fileserverApi = api.domains.assets.fileserver;
   const { notify, feedbackNodes } = useUiFeedback();
   const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
+  const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
   const hasReturnContext = hasBinarySecurityReturnTarget(detail);
   const [result, setResult] = useState<AppEaTaskResult | null>(null);
@@ -487,6 +514,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [judgeSessionLive, setJudgeSessionLive] = useState(false);
   const judgeSessionSocketRef = useRef<WebSocket | null>(null);
   const [stageFocusHint, setStageFocusHint] = useState<'R1' | 'R2' | 'R3' | 'R4' | ''>('');
+  const [riskFocusHint, setRiskFocusHint] = useState('');
 
   const handleBack = () => {
     if (navigateBackByTaskOrigin(detail)) return;
@@ -582,6 +610,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     const normalized = stored.trim().toUpperCase();
     setStageFocusHint(['R1', 'R2', 'R3', 'R4'].includes(normalized) ? (normalized as 'R1' | 'R2' | 'R3' | 'R4') : '');
   }, [stageFocusStorageKey, taskId]);
+  useEffect(() => {
+    const stored = sessionStorage.getItem(riskFocusStorageKey) || '';
+    setRiskFocusHint(stored.trim());
+  }, [riskFocusStorageKey, taskId]);
   useEffect(() => () => { closeSessionSocket(); closeJudgeSessionSocket(); }, []);
   useEffect(() => {
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
@@ -742,6 +774,16 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     return scoredGroups[0] || null;
   }, [groupedSessions, stageFocusHint]);
   const normalizedStageFocusKey = stageFocusHint ? stageFocusHint.toLowerCase() : '';
+  const riskPreset = useMemo(() => getEntryAnalysisRiskPreset(riskFocusHint), [riskFocusHint]);
+  const recommendationReasons = useMemo(
+    () => getEntryAnalysisDetailRecommendationReason({
+      stageFocusHint,
+      riskPreset,
+      detailStatus: detail?.status,
+      focusedSessionGroup,
+    }),
+    [detail?.status, focusedSessionGroup, riskPreset, stageFocusHint],
+  );
   useEffect(() => {
     if (!stageFocusHint || sessions.length === 0) return;
     const stageNeedle = stageFocusHint.toLowerCase();
@@ -957,6 +999,42 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
               </div>
             </div>
           ) : null}
+        </section>
+      ) : null}
+      {riskPreset ? (
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50/80 px-5 py-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Risk Focus</div>
+              <div className="mt-2 text-sm font-bold text-amber-900">当前正按“{riskPreset.label}”风险意图排查该任务</div>
+              <div className="mt-1 text-xs leading-6 text-amber-800">
+                {riskPreset.description} {riskPreset.statusReason}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem(riskFocusStorageKey);
+                setRiskFocusHint('');
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
+            >
+              清除风险线索
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {recommendationReasons.length ? (
+        <section className="rounded-[2rem] border border-sky-200 bg-sky-50/80 px-5 py-4 shadow-sm">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-700">Why This Task</div>
+          <div className="mt-2 text-sm font-bold text-sky-900">当前任务被推荐到这里的主要依据</div>
+          <div className="mt-3 space-y-2">
+            {recommendationReasons.map((reason) => (
+              <div key={reason} className="rounded-xl border border-sky-100 bg-white/80 px-3 py-2 text-xs leading-6 text-slate-700">
+                {reason}
+              </div>
+            ))}
+          </div>
         </section>
       ) : null}
 
