@@ -18,6 +18,66 @@ export interface B2SServiceConfig {
   updated_at?: string | null;
 }
 
+export interface B2SCacheEntry {
+  cache_key: string;
+  status: string;
+  mode: string;
+  elf_basename?: string | null;
+  source_project_id?: string | null;
+  source_task_id?: string | null;
+  source_item_id?: string | null;
+  file_sha256: string;
+  file_size: number;
+  analysis_signature?: string | null;
+  hit_count: number;
+  last_hit_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  canonical_output_dir?: string | null;
+  canonical_input_path?: string | null;
+  cache_dir_exists: boolean;
+  ready_marker_exists: boolean;
+  manifest_exists: boolean;
+  output_dir_exists: boolean;
+}
+
+export interface B2SCacheSummary {
+  visible_entries: number;
+  current_project_entries: number;
+  fast_entries: number;
+  deep_entries: number;
+  total_hit_count: number;
+  latest_hit_at?: string | null;
+}
+
+export interface B2SCacheListResponse {
+  total: number;
+  items: B2SCacheEntry[];
+  summary: B2SCacheSummary;
+}
+
+export interface B2SCacheDetailResponse extends B2SCacheEntry {
+  generated_files: string[];
+  source_metadata: Record<string, any>;
+  manifest?: Record<string, any> | null;
+  manifest_parse_error?: string | null;
+  metadata: Record<string, any>;
+}
+
+export interface B2SCacheDeleteResponse {
+  status: string;
+  cache_key: string;
+  deleted: boolean;
+  message?: string | null;
+}
+
+export interface B2SCacheBatchDeleteResponse {
+  status: string;
+  deleted_count: number;
+  failed_count: number;
+  results: B2SCacheDeleteResponse[];
+}
+
 export interface B2STaskCreatePayload {
   task_id?: string;
   name: string;
@@ -94,6 +154,28 @@ export interface B2STaskBatchDeleteResponse {
   deleted_count: number;
   failed_count: number;
   results: B2STaskBatchDeleteResult[];
+}
+
+export interface B2SPiWorkerCapacity {
+  worker_id: string;
+  url: string;
+  healthy: boolean;
+  max_concurrent_jobs: number;
+  running_jobs: number;
+  queued_jobs: number;
+  available_slots: number;
+  source?: string;
+  error?: string | null;
+}
+
+export interface B2SPiClusterCapacity {
+  worker_count: number;
+  total_capacity: number;
+  running_jobs: number;
+  queued_jobs: number;
+  available_slots: number;
+  updated_at?: string | null;
+  workers: B2SPiWorkerCapacity[];
 }
 
 export interface B2SProgress {
@@ -590,9 +672,67 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
+  listCache: async (
+    projectId: string,
+    params: {
+      limit?: number;
+      offset?: number;
+      include_all_projects?: boolean;
+      mode?: string;
+      status?: string;
+      cache_key?: string;
+      elf_basename?: string;
+      source_task_id?: string;
+      source_item_id?: string;
+      has_hits?: string;
+    } = {},
+  ): Promise<B2SCacheListResponse> => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value == null || value === '') return;
+      search.set(key, String(value));
+    });
+    const suffix = search.toString() ? `?${search.toString()}` : '';
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/cache${suffix}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getCacheDetail: async (projectId: string, cacheKey: string): Promise<B2SCacheDetailResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/cache/${encodeURIComponent(cacheKey)}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  deleteCache: async (projectId: string, cacheKey: string): Promise<B2SCacheDeleteResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/cache/${encodeURIComponent(cacheKey)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  batchDeleteCache: async (projectId: string, cacheKeys: string[]): Promise<B2SCacheBatchDeleteResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/cache/batch-delete`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ cache_keys: cacheKeys }),
+    });
+    return handleResponse(resp);
+  },
+
   listTasks: async (projectId: string, status?: string): Promise<{ total: number; items: B2STask[] }> => {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getPiClusterCapacity: async (projectId: string): Promise<B2SPiClusterCapacity> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/pi-cluster`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);

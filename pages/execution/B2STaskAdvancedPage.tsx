@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { ArrowLeft, ChevronRight, Code2, FileText, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { api } from '../../clients/api';
 import { B2SAdvancedFile, B2SAdvancedRun, B2SArtifact, B2SReviewAnalytics, B2STaskDetail, B2STaskItemAdvanced } from '../../clients/binaryToSource';
+import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
+import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
 
@@ -51,6 +53,13 @@ const formatSize = (value?: number | null) => {
   if (value < 1024) return `${value} B`;
   if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
   return `${(value / 1024 / 1024).toFixed(2)} MB`;
+};
+
+const extractFsRelPath = (absolutePath: string, projectId: string): string | null => {
+  const prefix = `/data/files/${projectId}`;
+  if (!absolutePath.startsWith(prefix)) return null;
+  const rel = absolutePath.slice(prefix.length).replace(/\/+$/, '');
+  return rel.startsWith('/') ? rel : `/${rel}`;
 };
 
 
@@ -162,12 +171,16 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
   const [advanced, setAdvanced] = useState<B2STaskItemAdvanced | null>(null);
   const [artifacts, setArtifacts] = useState<B2SArtifact[]>([]);
   const [artifactContent, setArtifactContent] = useState<Record<string, string>>({});
+  const [sessionContentByPath, setSessionContentByPath] = useState<Record<string, string>>({});
   const [reviewAnalytics, setReviewAnalytics] = useState<B2SReviewAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [sessionRefreshing, setSessionRefreshing] = useState(false);
-  const [autoRefreshSession, setAutoRefreshSession] = useState(true);
+  const [sessionLive, setSessionLive] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedPath, setSelectedPath] = useState('');
+  const sessionSocketRef = useRef<WebSocket | null>(null);
+  const sessionLineCountRef = useRef(0);
 
   const load = async () => {
     if (!projectId || !taskId || !itemId) return;
@@ -184,6 +197,7 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
       setAdvanced(advancedDetail);
       setArtifacts(artifactsDetail.artifacts || []);
       setArtifactContent({});
+      setSessionContentByPath({});
       setReviewAnalytics(analyticsDetail);
     } catch (e: any) {
       setError(e?.message || '加载高级信息失败');
@@ -257,13 +271,36 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
     setSelectedPath((current) => current && files.some((entry) => entry.file.path === current) ? current : (files[0]?.file.path || ''));
   }, [files]);
 
+  const closeSessionSocket = () => {
+    if (!sessionSocketRef.current) return;
+    try {
+      if (sessionSocketRef.current.readyState === WebSocket.OPEN) {
+        sessionSocketRef.current.send(JSON.stringify({ action: 'close' }));
+      }
+    } catch {
+      // ignore close send errors
+    }
+    try {
+      sessionSocketRef.current.close();
+    } catch {
+      // ignore socket close errors
+    }
+    sessionSocketRef.current = null;
+    setSessionLive(false);
+  };
+
   const selectedBase = files.find((entry) => entry.file.path === selectedPath)?.file || null;
   const selectedArtifact = artifacts.find((artifact) => artifact.path === selectedPath);
-  const selected = selectedBase ? { ...selectedBase, content: selectedArtifact ? artifactContent[selectedArtifact.id] ?? selectedBase.content : selectedBase.content } : null;
+  const selected = selectedBase
+    ? {
+        ...selectedBase,
+        content: sessionContentByPath[selectedBase.path]
+          ?? (selectedArtifact ? artifactContent[selectedArtifact.id] ?? selectedBase.content : selectedBase.content),
+      }
+    : null;
   const isSelectedJsonlSession = !!selected && selected.kind === 'agent_session' && selected.name.toLowerCase().endsWith('.jsonl');
   const item = detail?.items.find((entry) => entry.id === itemId || String(entry.sequence_no) === itemId);
   const isTaskRunning = isB2SActiveStatus(detail?.status) || isB2SActiveStatus(item?.status) || !!(detail?.running_items || detail?.queued_items || detail?.pending_items);
-  const shouldAutoRefreshSession = isSelectedJsonlSession && autoRefreshSession;
   const selectedPreviewKey = selected ? `${selected.path}:${selected.size}:${selected.content?.length || 0}:${selected.content?.slice(-160) || ''}` : 'empty';
 
   useEffect(() => {
@@ -279,41 +316,115 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
     return () => { cancelled = true; };
   }, [projectId, taskId, itemId, selectedArtifact?.id, artifactContent]);
 
+  useEffect(() => () => {
+    closeSessionSocket();
+  }, []);
+
   useEffect(() => {
-    if (!projectId || !taskId || !itemId || !selectedPath || !shouldAutoRefreshSession) return;
-    let cancelled = false;
-    let inFlight = false;
-    const refreshSession = async () => {
-      if (inFlight) return;
-      inFlight = true;
-      setSessionRefreshing(true);
+    if (!isSelectedJsonlSession || !selected || !selected.path) {
+      closeSessionSocket();
+      setSessionRefreshing(false);
+      setSessionError(null);
+      return;
+    }
+    setSessionRefreshing(true);
+    setSessionError(null);
+    const initialContent = selected.content || '';
+    setSessionContentByPath((current) => ({ ...current, [selected.path]: initialContent }));
+    sessionLineCountRef.current = initialContent.split(/\r?\n/).filter(Boolean).length;
+
+    if (!isTaskRunning) {
+      setSessionRefreshing(false);
+      setSessionLive(false);
+      return;
+    }
+
+    const watchPath = extractFsRelPath(selected.path, projectId);
+    if (!watchPath) {
+      setSessionRefreshing(false);
+      setSessionLive(false);
+      setSessionError('当前会话路径不在 fileserver 项目目录下，无法实时监听');
+      return;
+    }
+
+    closeSessionSocket();
+    const socket = fileserverApi.openProjectFileWatchWebSocket(projectId, watchPath, {
+      path_mode: 'project_filesystem',
+      read_mode: 'line',
+      start_from: 'head',
+      start_line: sessionLineCountRef.current,
+    });
+    sessionSocketRef.current = socket;
+
+    socket.onopen = () => {
+      setSessionRefreshing(false);
+      setSessionLive(true);
+      setSessionError(null);
+    };
+    socket.onmessage = (event) => {
       try {
-        const [taskDetail, advancedDetail, artifactsDetail, analyticsDetail] = await Promise.all([
-          api.domains.execution.binaryToSource.getTask(projectId, taskId),
-          api.domains.execution.binaryToSource.getTaskItemAdvanced(projectId, taskId, itemId, false),
-          api.domains.execution.binaryToSource.getTaskItemArtifacts(projectId, taskId, itemId),
-          api.domains.execution.binaryToSource.getTaskItemReviewAnalytics(projectId, taskId, itemId),
-        ]);
-        if (!cancelled) {
-          setDetail(taskDetail);
-          setAdvanced(advancedDetail);
-          setArtifacts(artifactsDetail.artifacts || []);
-          setReviewAnalytics(analyticsDetail);
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'snapshot') {
+          setSessionRefreshing(false);
+          setSessionLive(true);
+          return;
         }
-      } catch {
-        // Keep the current view stable during background polling; manual refresh still surfaces errors.
-      } finally {
-        inFlight = false;
-        if (!cancelled) setSessionRefreshing(false);
+        if (message.type === 'delta') {
+          if (message.read_mode !== 'line') return;
+          const deltaLines = Array.isArray(message.lines) ? message.lines : [];
+          if (deltaLines.length === 0) return;
+          setSessionContentByPath((current) => {
+            const existing = current[selected.path] || '';
+            const prefix = existing && !existing.endsWith('\n') ? '\n' : '';
+            return { ...current, [selected.path]: `${existing}${prefix}${deltaLines.join('\n')}` };
+          });
+          parseAgentSessionJsonlDelta(deltaLines, (message.from_line ?? sessionLineCountRef.current) + 1);
+          sessionLineCountRef.current = message.to_line ?? (sessionLineCountRef.current + deltaLines.length);
+          return;
+        }
+        if (message.type === 'file_event') {
+          if (message.event === 'truncated' || message.event === 'renamed') {
+            setSessionLive(false);
+            setSessionError('会话文件已重置，请手动刷新以重新同步完整内容');
+            return;
+          }
+          if (message.event === 'deleted') {
+            setSessionLive(false);
+            setSessionError('会话文件已删除');
+            closeSessionSocket();
+          }
+          return;
+        }
+        if (message.type === 'error') {
+          setSessionLive(false);
+          setSessionError(message.message || '会话订阅失败');
+        }
+      } catch (e: any) {
+        setSessionLive(false);
+        setSessionError(e?.message || '解析会话增量消息失败');
       }
     };
-    void refreshSession();
-    const timer = window.setInterval(() => { void refreshSession(); }, 3000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
+    socket.onerror = () => {
+      setSessionRefreshing(false);
+      setSessionLive(false);
     };
-  }, [projectId, taskId, itemId, selectedPath, shouldAutoRefreshSession]);
+    socket.onclose = () => {
+      setSessionRefreshing(false);
+      setSessionLive(false);
+    };
+
+    return () => {
+      if (sessionSocketRef.current === socket) {
+        closeSessionSocket();
+      } else {
+        try {
+          socket.close();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [projectId, selected?.content, selected?.path, isSelectedJsonlSession, isTaskRunning]);
 
   const totalBatches = advanced?.runs.reduce((sum, run) => sum + run.batches.length, 0) || 0;
   const totalReviews = advanced?.runs.reduce((sum, run) => sum + run.batches.reduce((n, batch) => n + batch.reviews.length + batch.review_snapshots.length, 0), 0) || 0;
@@ -419,16 +530,19 @@ export const B2STaskAdvancedPage: React.FC<Props> = ({ projectId, taskId, itemId
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {isSelectedJsonlSession && (
-                    <button type="button" onClick={() => setAutoRefreshSession((value) => !value)} className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${shouldAutoRefreshSession ? 'bg-emerald-900/70 text-emerald-200' : 'bg-slate-800 text-slate-400'}`}>
-                      {sessionRefreshing ? '同步中' : autoRefreshSession ? (isTaskRunning ? '自动刷新 ON' : '继续刷新 ON') : '自动刷新 OFF'}
-                    </button>
+                    <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${sessionLive ? 'bg-emerald-900/70 text-emerald-200' : isTaskRunning ? 'bg-amber-900/70 text-amber-200' : 'bg-slate-800 text-slate-400'}`}>
+                      {sessionRefreshing ? '连接中' : sessionLive ? 'WebSocket 实时中' : isTaskRunning ? '等待实时连接' : '历史会话'}
+                    </span>
                   )}
                   <div className="rounded-full bg-slate-800 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">{selected ? fileKindLabel(selected) : '-'}</div>
                 </div>
               </div>
               <div className="h-[680px]">
                 {isSelectedJsonlSession && selected ? (
-                  <B2SSessionPreview key={selectedPreviewKey} name={selected.name} content={selected.content} />
+                  <div className="space-y-3 bg-slate-950 p-3">
+                    {sessionError ? <div className="rounded-xl border border-rose-800 bg-rose-950/40 px-3 py-2 text-xs text-rose-200">{sessionError}</div> : null}
+                    <B2SSessionPreview key={selectedPreviewKey} name={selected.name} content={selected.content} meta={{ live: sessionLive, relativePath: selected.path }} />
+                  </div>
                 ) : (
                   <Editor
                     height="100%"

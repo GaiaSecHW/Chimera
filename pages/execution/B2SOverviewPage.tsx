@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
 
-import { B2SElfTaskInput, B2SRunMode, B2SLlmProviderSummary, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SRunMode, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
@@ -66,6 +66,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const autoRefreshStorageKey = `secflow:b2s:autoRefresh:${projectId || 'default'}`;
   const refreshIntervalStorageKey = `secflow:b2s:refreshInterval:${projectId || 'default'}`;
   const [items, setItems] = useState<B2STask[]>([]);
+  const [piClusterCapacity, setPiClusterCapacity] = useState<B2SPiClusterCapacity | null>(null);
   const [activeTaskDetails, setActiveTaskDetails] = useState<Record<string, B2STaskDetail>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,9 +116,23 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     }
   }, [executionApi.binaryToSource, projectId]);
 
+  const loadPiClusterCapacity = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const snapshot = await executionApi.binaryToSource.getPiClusterCapacity(projectId);
+      setPiClusterCapacity(snapshot);
+    } catch {
+      setPiClusterCapacity(null);
+    }
+  }, [executionApi.binaryToSource, projectId]);
+
   useEffect(() => {
     void load(true);
   }, [load]);
+
+  useEffect(() => {
+    void loadPiClusterCapacity();
+  }, [loadPiClusterCapacity]);
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:b2sTaskId');
@@ -133,11 +148,6 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     setName(`b2s-${ts}`);
   }, [showCreateDialog, name]);
-
-  const hasActiveTasks = useMemo(
-    () => items.some((task) => !B2S_TERMINAL_STATUSES.has(task.status)),
-    [items]
-  );
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -162,13 +172,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   }, [refreshIntervalSec, refreshIntervalStorageKey]);
 
   useEffect(() => {
-    if (!projectId || !hasActiveTasks) return;
+    if (!projectId) return;
     const timer = window.setInterval(() => {
       if (!autoRefreshEnabled) return;
       void load(false);
+      void loadPiClusterCapacity();
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => window.clearInterval(timer);
-  }, [autoRefreshEnabled, hasActiveTasks, load, projectId, refreshIntervalSec]);
+  }, [autoRefreshEnabled, load, loadPiClusterCapacity, projectId, refreshIntervalSec]);
 
   const stats = useMemo(() => summarizeB2STasks(items), [items]);
   const statusOptions = useMemo(() => {
@@ -263,6 +274,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       const deletedIds = new Set((result.results || []).filter((item) => item.status === 'ok').map((item) => item.task_id));
       setSelectedTaskIds((current) => current.filter((taskId) => !deletedIds.has(taskId)));
       await load(false);
+      await loadPiClusterCapacity();
       if ((result.failed_count || 0) > 0) {
         const firstFailure = (result.results || []).find((item) => item.status !== 'ok');
         setError(`批量删除完成，成功 ${result.deleted_count || 0} 个，失败 ${result.failed_count || 0} 个。${firstFailure?.message || ''}`);
@@ -469,6 +481,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       resetCreateForm();
       setCreateResult(`创建成功: ${resp.task_id}`);
       await load(false);
+      await loadPiClusterCapacity();
     } catch (e: any) {
       setCreateError(e?.message || '创建失败');
     } finally {
@@ -499,7 +512,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </button>
             <button
               type="button"
-              onClick={() => void load(false)}
+              onClick={() => {
+                void load(false);
+                void loadPiClusterCapacity();
+              }}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
             >
               {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
@@ -522,6 +538,72 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
       <section className="rounded-[2rem] border border-slate-200 bg-slate-50/70 p-5 shadow-sm">
         <B2SStatsHeader stats={stats} title="当前项目逆向统计" />
+      </section>
+
+      <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
+            <p className="mt-1 text-sm text-slate-500">展示当前 PI RE Agent 集群的实时执行槽位、运行中的 job 数量和各 worker 健康度。</p>
+          </div>
+          <div className="text-xs text-slate-400">
+            最近同步 {formatDateTime(piClusterCapacity?.updated_at)}
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">总槽位</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{piClusterCapacity?.total_capacity ?? '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">运行中</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{piClusterCapacity?.running_jobs ?? '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700">空闲槽位</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{piClusterCapacity?.available_slots ?? '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-600">排队 Job</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{piClusterCapacity?.queued_jobs ?? '-'}</div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          {(piClusterCapacity?.workers || []).map((worker) => (
+            <div
+              key={worker.worker_id}
+              className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
+                worker.healthy
+                  ? 'border-slate-200 bg-slate-50'
+                  : 'border-rose-200 bg-rose-50'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-black text-slate-900">{worker.worker_id}</div>
+                <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  {worker.healthy ? 'healthy' : 'unhealthy'}
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-slate-600">
+                槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
+                {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
+              </div>
+              <div className="mt-1 text-xs text-slate-400">
+                来源 {worker.source || 'capacity'}
+              </div>
+              {worker.error ? (
+                <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
+              ) : null}
+            </div>
+          ))}
+          {piClusterCapacity && (piClusterCapacity.workers || []).length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+              当前未发现可用的 PI RE Agent worker。
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
@@ -574,11 +656,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </div>
             <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
               <span>自动刷新：{autoRefreshEnabled ? `开启（${Math.max(5, refreshIntervalSec)}s）` : '关闭'}</span>
-              {autoRefreshEnabled && !hasActiveTasks ? (
-                <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
-              ) : null}
-              {autoRefreshEnabled && hasActiveTasks ? (
-                <span className="text-cyan-600">检测到活跃任务，按设定间隔自动刷新</span>
+              {autoRefreshEnabled ? (
+                <span className="text-cyan-600">任务列表与执行槽位按设定间隔自动刷新</span>
               ) : null}
               <span>当前筛选结果：{total} 条</span>
               {statusFilter ? (

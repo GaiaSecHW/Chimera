@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   AlertTriangle,
@@ -31,6 +31,7 @@ import {
   B2SAgentRuntimeEntry,
   B2SArtifactsResponse,
   B2SReviewAnalytics,
+  B2SSessionFile,
   B2SSessionIndex,
   B2SSessionNode,
   B2STaskDetail,
@@ -39,6 +40,7 @@ import {
   B2STaskResultSummary,
 } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
+import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
 import {
   B2SPhaseBadge,
@@ -60,6 +62,7 @@ import {
   navigateBackToExecutionView,
   saveExecutionReturnContext,
 } from '../../utils/executionReturnContext';
+import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
 import { TaskOriginCard } from './taskOrigin';
 import { WarningListPanel } from './WarningListPanel';
 
@@ -155,6 +158,13 @@ const formatSessionUpdatedAt = (value?: string | null) => {
 
 const sessionGroupLabel = (group: string) => {
   return group === 'root' ? '根会话' : group;
+};
+
+const extractFsRelPath = (absolutePath: string, projectId: string): string | null => {
+  const prefix = `/data/files/${projectId}`;
+  if (!absolutePath.startsWith(prefix)) return null;
+  const rel = absolutePath.slice(prefix.length).replace(/\/+$/, '');
+  return rel.startsWith('/') ? rel : `/${rel}`;
 };
 
 const tabButtonTone = (active: boolean) => (
@@ -269,7 +279,8 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [selectedSessionPath, setSelectedSessionPath] = useState<string>('');
   const [selectedSessionContent, setSelectedSessionContent] = useState<string>('');
   const [selectedSessionLoading, setSelectedSessionLoading] = useState(false);
-  const [autoRefreshSession, setAutoRefreshSession] = useState(true);
+  const [sessionLive, setSessionLive] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [itemArtifacts, setItemArtifacts] = useState<B2SArtifactsResponse | null>(null);
   const [artifactContent, setArtifactContent] = useState('');
   const [artifactLoading, setArtifactLoading] = useState(false);
@@ -279,6 +290,8 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [cancelling, setCancelling] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const sessionSocketRef = useRef<WebSocket | null>(null);
+  const sessionLineCountRef = useRef(0);
 
   const selectedItem = useSelectedItem(detail, selectedItemId);
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
@@ -350,6 +363,63 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
   }, [executionApi, projectId, selectedSessionPath, taskId]);
 
+  const filteredSessionNodes = useMemo(() => {
+    const nodes = sessions?.nodes || [];
+    if (selectedItemId === '__all__') return nodes;
+    return nodes.filter((node) => node.item_id === selectedItemId);
+  }, [sessions, selectedItemId]);
+
+  const groupedSessionNodes = useMemo(() => {
+    const groups = new Map<string, B2SSessionNode[]>();
+    filteredSessionNodes.forEach((node) => {
+      const key = `#${node.sequence_no} ${node.item_name || '未知 Item'}`;
+      groups.set(key, [...(groups.get(key) || []), node]);
+    });
+    return Array.from(groups.entries());
+  }, [filteredSessionNodes]);
+
+  const selectedSessionNode = useMemo(
+    () => filteredSessionNodes.find((node) => node.relative_path === selectedSessionPath) || null,
+    [filteredSessionNodes, selectedSessionPath],
+  );
+
+  const closeSessionSocket = useCallback(() => {
+    if (!sessionSocketRef.current) return;
+    try {
+      if (sessionSocketRef.current.readyState === WebSocket.OPEN) {
+        sessionSocketRef.current.send(JSON.stringify({ action: 'close' }));
+      }
+    } catch {
+      // ignore close send errors
+    }
+    try {
+      sessionSocketRef.current.close();
+    } catch {
+      // ignore socket close errors
+    }
+    sessionSocketRef.current = null;
+    setSessionLive(false);
+  }, []);
+
+  const loadSessionFile = useCallback(async (path: string) => {
+    if (!projectId || !taskId || !path) return null;
+    setSelectedSessionLoading(true);
+    setSessionError(null);
+    try {
+      const payload: B2SSessionFile = await executionApi.getTaskSessionFile(projectId, taskId, path);
+      setSelectedSessionContent(payload.content || '');
+      sessionLineCountRef.current = (payload.content || '').split(/\r?\n/).filter(Boolean).length;
+      return payload;
+    } catch (e: any) {
+      setSelectedSessionContent('');
+      sessionLineCountRef.current = 0;
+      setSessionError(e?.message || '加载会话内容失败');
+      return null;
+    } finally {
+      setSelectedSessionLoading(false);
+    }
+  }, [executionApi, projectId, taskId]);
+
   const loadRelationship = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
     try {
@@ -364,6 +434,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   useEffect(() => {
     void loadDetail();
   }, [loadDetail]);
+
+  useEffect(() => () => {
+    closeSessionSocket();
+  }, [closeSessionSocket]);
 
   const isTaskRunning = !!detail && !B2S_TERMINAL_STATUSES.has(detail.status);
 
@@ -418,32 +492,107 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   }, [activeTab, isTaskRunning, loadDetail, loadObservability, loadRelationship, loadResult, loadSessions]);
 
   useEffect(() => {
-    if (activeTab !== 'session' || !selectedSessionPath) return;
-    let cancelled = false;
-    const loadSessionContent = async () => {
-      setSelectedSessionLoading(true);
+    if (activeTab !== 'session' || !selectedSessionPath) {
+      closeSessionSocket();
+      return;
+    }
+    void loadSessionFile(selectedSessionPath);
+  }, [activeTab, selectedSessionPath, loadSessionFile, closeSessionSocket]);
+
+  useEffect(() => {
+    if (activeTab !== 'session' || !selectedSessionPath || !isTaskRunning) {
+      closeSessionSocket();
+      return;
+    }
+    if (!selectedSessionNode?.full_path) {
+      setSessionLive(false);
+      setSessionError('当前会话缺少 full_path，无法建立实时监听');
+      return;
+    }
+    const watchPath = extractFsRelPath(selectedSessionNode.full_path, projectId);
+    if (!watchPath) {
+      setSessionLive(false);
+      setSessionError('当前会话路径不在 fileserver 项目目录下，无法实时监听');
+      return;
+    }
+
+    closeSessionSocket();
+    const socket = fileserverApi.openProjectFileWatchWebSocket(projectId, watchPath, {
+      path_mode: 'project_filesystem',
+      read_mode: 'line',
+      start_from: 'head',
+      start_line: sessionLineCountRef.current,
+    });
+    sessionSocketRef.current = socket;
+
+    socket.onopen = () => {
+      setSessionLive(true);
+      setSessionError(null);
+    };
+    socket.onmessage = (event) => {
       try {
-        const payload = await executionApi.getTaskSessionFile(projectId, taskId, selectedSessionPath);
-        if (!cancelled) setSelectedSessionContent(payload.content || '');
-      } catch (e: any) {
-        if (!cancelled) {
-          setSelectedSessionContent('');
-          setError(e?.message || '加载会话内容失败');
+        const message = JSON.parse(event.data) as FileWatchMessage;
+        if (message.type === 'snapshot') {
+          setSessionLive(true);
+          return;
         }
-      } finally {
-        if (!cancelled) setSelectedSessionLoading(false);
+        if (message.type === 'delta') {
+          if (message.read_mode !== 'line') return;
+          const deltaLines = Array.isArray(message.lines) ? message.lines : [];
+          if (deltaLines.length === 0) return;
+          setSelectedSessionContent((current) => {
+            const prefix = current && !current.endsWith('\n') ? '\n' : '';
+            return `${current || ''}${prefix}${deltaLines.join('\n')}`;
+          });
+          const parsed = parseAgentSessionJsonlDelta(deltaLines, (message.from_line ?? sessionLineCountRef.current) + 1);
+          if (parsed.sessionMeta?.id || parsed.sessionMeta?.cwd || parsed.sessionMeta?.timestamp) {
+            // keep parser side effects available for future viewer migration
+          }
+          sessionLineCountRef.current = message.to_line ?? (sessionLineCountRef.current + deltaLines.length);
+          return;
+        }
+        if (message.type === 'file_event') {
+          if (message.event === 'truncated' || message.event === 'renamed') {
+            setSessionLive(false);
+            setSessionError('会话文件已重置，正在重新加载');
+            void loadSessionFile(selectedSessionPath);
+            return;
+          }
+          if (message.event === 'deleted') {
+            setSessionLive(false);
+            setSessionError('会话文件已删除');
+            closeSessionSocket();
+          }
+          return;
+        }
+        if (message.type === 'error') {
+          setSessionLive(false);
+          setSessionError(message.message || '会话订阅失败');
+        }
+      } catch (e: any) {
+        setSessionLive(false);
+        setSessionError(e?.message || '解析会话增量消息失败');
       }
     };
-    void loadSessionContent();
-    if (isTaskRunning && autoRefreshSession) {
-      const timer = window.setInterval(() => { void loadSessionContent(); }, 3000);
-      return () => {
-        cancelled = true;
-        window.clearInterval(timer);
-      };
-    }
-    return () => { cancelled = true; };
-  }, [activeTab, selectedSessionPath, autoRefreshSession, isTaskRunning, projectId, taskId, executionApi]);
+    socket.onerror = () => {
+      setSessionLive(false);
+    };
+    socket.onclose = () => {
+      setSessionLive(false);
+    };
+
+    return () => {
+      if (sessionSocketRef.current === socket) {
+        closeSessionSocket();
+      } else {
+        try {
+          socket.close();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [activeTab, selectedSessionPath, selectedSessionNode?.full_path, isTaskRunning, projectId, loadSessionFile, closeSessionSocket]);
 
   useEffect(() => {
     if (!selectedItem || activeTab !== 'result') return;
@@ -564,23 +713,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const resultSummary = detail?.result_summary || result;
   const observabilitySummary = detail?.observability_summary || observability;
   const activeAgents = detail?.agent_runtime_summary?.active_agents || [];
-  const filteredSessionNodes = useMemo(() => {
-    const nodes = sessions?.nodes || [];
-    if (selectedItemId === '__all__') return nodes;
-    return nodes.filter((node) => node.item_id === selectedItemId);
-  }, [sessions, selectedItemId]);
-  const groupedSessionNodes = useMemo(() => {
-    const groups = new Map<string, B2SSessionNode[]>();
-    filteredSessionNodes.forEach((node) => {
-      const key = `#${node.sequence_no} ${node.item_name || '未知 Item'}`;
-      groups.set(key, [...(groups.get(key) || []), node]);
-    });
-    return Array.from(groups.entries());
-  }, [filteredSessionNodes]);
-  const selectedSessionNode = useMemo(
-    () => filteredSessionNodes.find((node) => node.relative_path === selectedSessionPath) || null,
-    [filteredSessionNodes, selectedSessionPath],
-  );
   const relationshipNodes = useMemo(() => {
     const nodes = relationship?.nodes || [];
     if (selectedItemId === '__all__') return nodes;
@@ -831,9 +963,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50" title="刷新会话">
             <RefreshCw size={14} />
           </button>
-          <button type="button" onClick={() => setAutoRefreshSession((value) => !value)} className={`rounded-xl px-3 py-2 text-xs font-black ${autoRefreshSession ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-            自动刷新 {autoRefreshSession ? 'ON' : 'OFF'}
-          </button>
+          <span className={`rounded-xl px-3 py-2 text-xs font-black ${sessionLive ? 'bg-emerald-50 text-emerald-700' : isTaskRunning ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+            {sessionLive ? 'WebSocket 实时中' : isTaskRunning ? '等待实时连接' : '历史会话'}
+          </span>
         </div>
       }
     >
@@ -854,9 +986,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               </button>
             </div>
 
-            {error && activeTab === 'session' ? (
+            {sessionError && activeTab === 'session' ? (
               <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
-                {error}
+                {sessionError}
               </div>
             ) : null}
 
@@ -937,7 +1069,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 sessionId: selectedSessionNode.node_id,
                 startedAt: selectedSessionNode.updated_at || null,
                 workingDir: selectedSessionNode.full_path || null,
-                live: selectedSessionNode.is_active,
+                live: sessionLive,
                 stats: [
                   `Item #${selectedSessionNode.sequence_no} ${selectedSessionNode.item_name}`,
                   selectedSessionNode.stage || '-',
