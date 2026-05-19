@@ -52,7 +52,14 @@ import {
 import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
-import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import {
+  hasBinarySecurityReturnTarget,
+  hasExecutionReturnContext,
+  navigateBackByTaskOrigin,
+  navigateBackToBinarySecurityTask,
+  navigateBackToExecutionView,
+  saveExecutionReturnContext,
+} from '../../utils/executionReturnContext';
 import { TaskOriginCard } from './taskOrigin';
 import { WarningListPanel } from './WarningListPanel';
 
@@ -274,9 +281,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [deleting, setDeleting] = useState(false);
 
   const selectedItem = useSelectedItem(detail, selectedItemId);
-  const hasReturnContext = hasBinarySecurityReturnTarget(detail);
+  const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
   const failedItems = detail?.items.filter((item) => item.status === 'failed') || [];
   const handleBack = () => {
+    if (navigateBackToExecutionView()) return;
     if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();
@@ -1012,7 +1020,14 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         title="结果摘要"
         description="任务级汇总和当前 item 的关键产物。"
         right={selectedItem && onOpenAdvanced ? (
-          <button type="button" onClick={() => onOpenAdvanced(selectedItem.id)} className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100">
+          <button
+            type="button"
+            onClick={() => {
+              saveExecutionReturnContext({ view: 'pentest-exec-b2s-detail', b2sTaskId: taskId });
+              onOpenAdvanced(selectedItem.id);
+            }}
+            className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
+          >
             查看高级视图
           </button>
         ) : null}

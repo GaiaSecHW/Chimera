@@ -24,7 +24,9 @@ import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import {
   hasBinarySecurityReturnTarget,
+  hasExecutionReturnContext,
   navigateBackByTaskOrigin,
+  navigateBackToExecutionView,
   navigateBackToBinarySecurityTask,
 } from '../../utils/executionReturnContext';
 import { AgentSessionViewer } from './AgentSessionViewer';
@@ -474,7 +476,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
   const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
-  const hasReturnContext = hasBinarySecurityReturnTarget(detail);
+  const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
   const [result, setResult] = useState<AppEaTaskResult | null>(null);
   const [evaluation, setEvaluation] = useState<AppEaTaskEvaluation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -517,6 +519,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [riskFocusHint, setRiskFocusHint] = useState('');
 
   const handleBack = () => {
+    if (navigateBackToExecutionView()) return;
     if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();

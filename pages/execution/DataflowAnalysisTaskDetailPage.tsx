@@ -21,7 +21,13 @@ import {
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
-import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
+import {
+  hasBinarySecurityReturnTarget,
+  hasExecutionReturnContext,
+  navigateBackByTaskOrigin,
+  navigateBackToExecutionView,
+  navigateBackToBinarySecurityTask,
+} from '../../utils/executionReturnContext';
 import { AgentSessionViewer } from './AgentSessionViewer';
 import { AgentSessionDialogHeader } from './AgentSessionDialogHeader';
 import { AgentSessionWarningPanel } from './AgentSessionWarningPanel';
@@ -319,6 +325,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
   const logRef = useRef<HTMLDivElement>(null);
 
   const handleBack = () => {
+    if (navigateBackToExecutionView()) return;
     if (navigateBackByTaskOrigin(detail)) return;
     if (navigateBackToBinarySecurityTask()) return;
     onBack();
@@ -540,7 +547,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
     () => evaluationRounds.find((item) => evaluationRoundKey(item) === selectedEvaluationRoundKey) || null,
     [evaluationRounds, selectedEvaluationRoundKey],
   );
-  const hasReturnContext = hasBinarySecurityReturnTarget(detail);
+  const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
 
   const cancelTask = async () => {
     if (!detail) return;

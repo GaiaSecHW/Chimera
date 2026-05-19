@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, ChevronDown, ChevronUp, Loader2, PlayCircle, X } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { clearExecutionReturnContext } from '../../utils/executionReturnContext';
 import { B2SElfTaskInput, B2STaskDetail } from '../../clients/binaryToSource';
 import { DataflowInputRef } from '../../clients/dataflowVulnScanner';
 import {
@@ -126,6 +127,7 @@ function dataflowVulnInputRef(projectId: string, path: string): DataflowInputRef
 
 function navigateTo(targetStage: TargetStage, id: string, navigate: ReturnType<typeof useNavigate>) {
   if (!id) return;
+  clearExecutionReturnContext();
   if (targetStage === 'system_analysis') {
     window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'system-analysis-detail', systemAnalysisTaskId: id } }));
     return;

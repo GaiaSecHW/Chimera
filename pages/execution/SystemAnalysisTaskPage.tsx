@@ -7,6 +7,7 @@ import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
+import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -653,7 +654,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                   <ExecutionTableTd className="min-w-[180px]">
                     <button
                       type="button"
-                      onClick={() => onOpenTask(t.task_id)}
+                      onClick={() => {
+                        saveExecutionReturnContext({ view: 'system-analysis-task' });
+                        onOpenTask(t.task_id);
+                      }}
                       className="text-left text-sm font-bold text-slate-900 hover:text-cyan-700"
                       title={`查看任务 ${t.task_name}`}
                     >

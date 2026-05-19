@@ -15,7 +15,7 @@ import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
 import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 import { AppDfaTaskDetail, AppEaTaskDetail, AppSaTaskDetail } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
-import { saveBinarySecurityReturnContext } from '../../utils/executionReturnContext';
+import { clearExecutionReturnContext, saveBinarySecurityReturnContext } from '../../utils/executionReturnContext';
 
 interface Props {
   projectId: string;
@@ -2013,6 +2013,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       taskId,
       taskType,
     });
+    clearExecutionReturnContext();
     if (item.stage_name === 'firmware_unpack') {
       sessionStorage.setItem('secflow:firmwareUnpackerTaskId', downstreamTaskId);
       window.dispatchEvent(new CustomEvent('secflow-navigate-view', {

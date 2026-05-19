@@ -8,6 +8,7 @@ import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd,
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard } from './taskOrigin';
+import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -526,6 +527,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       onOpenTask(taskId);
       return;
     }
+    saveExecutionReturnContext({ view: 'entry-analysis-task' });
     window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: taskId } }));
   };
 

@@ -70,6 +70,7 @@ import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
 import { VulnParameterConfigPage } from '../pages/vuln/VulnParameterConfigPage';
 import { B2SOverviewPage } from '../pages/execution/B2SOverviewPage';
 import { B2STaskAdvancedPage } from '../pages/execution/B2STaskAdvancedPage';
+import { saveExecutionReturnContext } from '../utils/executionReturnContext';
 import { B2STaskDetailPage } from '../pages/execution/B2STaskDetailPage';
 import { UserMgmtPage } from '../pages/platform/UserMgmtPage';
 import { RoleMgmtPage } from '../pages/platform/RoleMgmtPage';
@@ -237,6 +238,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <SystemAnalysisTaskPage
           projectId={ctx.selectedProjectId}
           onOpenTask={(taskId) => {
+            saveExecutionReturnContext({ view: 'system-analysis-task' });
             ctx.setActiveSystemAnalysisTaskId(taskId);
             ctx.setCurrentView('system-analysis-detail');
           }}
@@ -258,6 +260,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <DataflowAnalysisTaskPage
           projectId={ctx.selectedProjectId}
           onOpenTask={(taskId) => {
+            saveExecutionReturnContext({ view: 'dataflow-analysis-task' });
             ctx.setActiveDataflowAnalysisTaskId(taskId);
             ctx.setCurrentView('dataflow-analysis-detail');
           }}
@@ -344,6 +347,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <EntryAnalysisTaskPage
           projectId={ctx.selectedProjectId}
           onOpenTask={(id) => {
+            saveExecutionReturnContext({ view: 'entry-analysis-task' });
             ctx.setActiveEntryAnalysisTaskId(id);
             ctx.setCurrentView('entry-analysis-detail');
           }}
@@ -385,6 +389,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
         <B2SOverviewPage
           projectId={ctx.selectedProjectId}
           onOpenTask={(taskId) => {
+            saveExecutionReturnContext({ view: 'pentest-exec-b2s' });
             ctx.setActiveB2STaskId(taskId);
             ctx.setCurrentView('pentest-exec-b2s-detail');
           }}
@@ -397,6 +402,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           taskId={ctx.activeB2STaskId}
           onBack={() => ctx.setCurrentView('pentest-exec-b2s')}
           onOpenAdvanced={(itemId) => {
+            saveExecutionReturnContext({ view: 'pentest-exec-b2s-detail', b2sTaskId: ctx.activeB2STaskId });
             ctx.setActiveB2SItemId(itemId);
             ctx.setCurrentView('pentest-exec-b2s-advanced');
           }}
