@@ -349,15 +349,13 @@ export const kernelScanApi = {
     return handleResponse(response);
   },
 
-  connectRemoteAdbDevice: async (host: string): Promise<KernelScanAdbDevicesResponse> => {
-    const trimmedHost = host.trim();
+  connectRemoteAdbDevice: async (): Promise<KernelScanAdbDevicesResponse> => {
     const response = await fetch(`${PREFIX}/devices/adb/connect`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ ip: trimmedHost }),
     });
     const payload = await handleResponse(response);
-    return normalizeAdbDevicesResponse(payload, trimmedHost);
+    return normalizeAdbDevicesResponse(payload, '');
   },
 
   cancelTask: async (taskId: string): Promise<{ task_id: string; status: string }> => {

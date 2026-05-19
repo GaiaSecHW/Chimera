@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
         sourcemapIgnoreList: (sourcePath) => sourcePath.includes('node_modules'),
         proxy: {
           '/api/app/kernel-scan': {
-            target: 'http://127.0.0.1:18081',
+            target: 'http://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
           },

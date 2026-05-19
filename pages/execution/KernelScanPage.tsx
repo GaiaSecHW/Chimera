@@ -131,13 +131,13 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
   const [browseData, setBrowseData] = useState<KernelScanBrowseResponse | null>(null);
   const [browseLoading, setBrowseLoading] = useState(false);
 
-  const [adbHost, setAdbHost] = useState('');
   const [adbDevices, setAdbDevices] = useState<KernelScanAdbDevice[]>([]);
   const [adbDevicesRaw, setAdbDevicesRaw] = useState('');
   const [adbDevicesMessage, setAdbDevicesMessage] = useState('');
   const [adbDevicesError, setAdbDevicesError] = useState<string | null>(null);
   const [adbDevicesLoading, setAdbDevicesLoading] = useState(false);
   const [adbDevicesQueried, setAdbDevicesQueried] = useState(false);
+  const [adbConnected, setAdbConnected] = useState(false);
 
   const [taskWorkspaceRoot, setTaskWorkspaceRoot] = useState('');
   const [taskWorkspacePath, setTaskWorkspacePath] = useState('');
@@ -372,24 +372,30 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
   };
 
   const handleConnectRemoteAdbDevice = async () => {
-    const host = adbHost.trim();
-    if (!host) {
-      notify('请输入远程设备 IP', 'error');
-      return;
-    }
-
     setAdbDevicesLoading(true);
     setAdbDevicesError(null);
     setAdbDevicesMessage('');
     setAdbDevicesRaw('');
     setAdbDevicesQueried(true);
+    setAdbConnected(false);
     try {
-      const result = await executionApi.connectRemoteAdbDevice(host);
-      setAdbDevices(result.devices || []);
+      const result = await executionApi.connectRemoteAdbDevice();
+      const devices = result.devices || [];
+      const connectedDevices = devices.filter((device) => String(device.status || '').toLowerCase() === 'device');
+      setAdbDevices(connectedDevices);
       setAdbDevicesRaw(result.raw || '');
-      setAdbDevicesMessage(result.message || '');
+      setAdbConnected(connectedDevices.length > 0);
+      if (connectedDevices.length > 0) {
+        setAdbDevicesMessage(result.message || `设备连接成功：${connectedDevices.map((device) => device.serial).join(', ')}`);
+      } else {
+        const detected = devices.length > 0
+          ? `检测到设备但状态不可用：${devices.map((device) => `${device.serial} (${device.status || '-'})`).join('，')}`
+          : '未获取到可用设备 SN';
+        setAdbDevicesError(`${detected}。请确认远程 ADB server 已连接设备且状态为 device。`);
+      }
     } catch (error: any) {
       setAdbDevices([]);
+      setAdbConnected(false);
       setAdbDevicesError(error?.message || '连接远程 ADB 设备失败');
     } finally {
       setAdbDevicesLoading(false);
@@ -641,21 +647,12 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               <div className="min-w-0">
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Remote ADB</div>
                 <h2 className="mt-1 text-xl font-black text-slate-950">远程终端设备</h2>
+                <div className="mt-1 break-all font-mono text-[11px] font-semibold text-slate-500">
+                  转发设备端口：ssh -N -R 0.0.0.0:15037:127.0.0.1:5037 remote_user@IP
+                </div>
               </div>
             </div>
             <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
-              <input
-                value={adbHost}
-                onChange={(event) => setAdbHost(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    handleConnectRemoteAdbDevice();
-                  }
-                }}
-                placeholder="192.168.1.10 或 192.168.1.10:5555"
-                className="min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-mono text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 sm:w-80"
-              />
               <button
                 type="button"
                 onClick={handleConnectRemoteAdbDevice}
@@ -674,7 +671,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
             </div>
           ) : null}
           {adbDevicesMessage ? (
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">
+            <div className={`mt-4 rounded-lg border px-3 py-2 text-sm font-semibold ${adbConnected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
               {adbDevicesMessage}
             </div>
           ) : null}
@@ -718,12 +715,12 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
               </div>
             ) : (
               <div className="px-3 py-8 text-center text-sm font-semibold text-slate-400">
-                输入 IP 后连接
+                点击连接设备
               </div>
             )}
           </div>
 
-          {adbDevicesRaw && adbDevices.length === 0 ? (
+          {adbDevicesRaw ? (
             <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-relaxed text-slate-100">
 {adbDevicesRaw}
             </pre>
