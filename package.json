@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "smoke:dataflow-vuln-metrics": "node --experimental-strip-types scripts/dataflowVulnMetrics.smoke.ts",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:report": "playwright show-report"

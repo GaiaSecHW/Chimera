@@ -30,6 +30,15 @@ import {
   BinarySecurityMetricsServiceKey,
   getBinarySecurityMetricsService,
 } from '../../clients/binarySecurityMetrics';
+import {
+  DataflowVulnAiSection,
+  DataflowVulnObservabilitySection,
+  DataflowVulnSampleScopeFilter,
+  DataflowVulnSignalsSection,
+  HeadlineMetricCard,
+} from './binarySecurityMetricsDataflowVuln';
+import type { DataflowVulnAiViewModel, DataflowVulnOverviewViewModel, DataflowVulnSampleScope } from './binarySecurityMetricsDataflowVuln';
+import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, matchesDataflowVulnSampleScope } from './binarySecurityMetricsDataflowVulnBuilders';
 
 type MetricsState = {
   loading: boolean;
@@ -182,6 +191,7 @@ type DataflowAnalysisViewModel = {
   loadCards: Array<{ label: string; value: string; hint: string; tone: string }>;
   failureCategories: Array<{ label: string; value: number; tone: string }>;
   dispatchSummary: Array<{ label: string; value: number; tone: string }>;
+  alerts: Array<{ label: string; text: string; tone: string }>;
 };
 
 type SystemAnalysisStageRow = {
@@ -213,34 +223,6 @@ type SystemAnalysisViewModel = {
   stagePressureCards: Array<{ label: string; value: string; hint: string; tone: string }>;
   stagePressureRows: Array<{ stage: string; pressureScore: number; runningRuns: number; avgDurationSeconds: number | null; successRate: number | null; tone: string }>;
 };
-
-type DataflowVulnOverviewViewModel = {
-  topCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-  cycleCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-  plateauFlags: Array<{ label: string; active: boolean; hint: string }>;
-  chartData: Array<{ name: string; value: number; fill: string }>;
-  insightCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-  runtimeModes: Array<{
-    mode: string;
-    calls: number | null;
-    attempts: number | null;
-    durationSeconds: number | null;
-    avgDurationSeconds: number | null;
-    timeoutFailures: number | null;
-    stdoutTruncated: number | null;
-    outputBytes: number | null;
-  }>;
-};
-
-type DataflowVulnAiViewModel = {
-  topCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-  phaseCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-  roleChart: Array<{ name: string; value: number; fill: string }>;
-  tokenChart: Array<{ name: string; value: number; fill: string }>;
-  reviewCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-};
-
-type DataflowVulnSampleScope = 'focus' | 'cycle' | 'runtime' | 'ai' | 'plugin' | 'all';
 
 type BinarySecurityReducerSnapshot = {
   capturedAt: number;
@@ -370,6 +352,14 @@ const AI_CHART_COLOR = '#7c3aed';
 const CHART_GRID = '#e2e8f0';
 const INITIAL_STATE: MetricsState = { loading: false, rawText: '', error: null, refreshedAt: null };
 const ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY = 'secflow:entryAnalysisStageFocus';
+const ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY = 'secflow:entryAnalysisRiskFocus';
+
+function entryAnalysisRiskKeyFromLabel(label: string): string {
+  if (label === '排队堆积') return 'queue-pressure';
+  if (label === '超时偏高') return 'timeout-high';
+  if (label === '最终通过率偏低') return 'low-pass-rate';
+  return 'healthy';
+}
 
 const formatNumber = (value: number | null | undefined, digits = 0) => {
   if (value == null || !Number.isFinite(value)) return '-';
@@ -890,22 +880,6 @@ const averageFromSummary = (rows: DisplayMetricRow[], familyName: string, labels
   return count > 0 ? sum / count : null;
 };
 
-const matchesDataflowVulnSampleScope = (row: DisplayMetricRow, scope: DataflowVulnSampleScope) => {
-  if (scope === 'all') return true;
-  if (scope === 'cycle') return row.name.includes('secflow_dataflow_cycle_') || row.name === 'secflow_dataflow_run_summary_total' || row.name === 'secflow_dataflow_run_status';
-  if (scope === 'runtime') return row.name.includes('secflow_dataflow_runtime_trace_') || row.name.includes('secflow_dataflow_token_usage_total');
-  if (scope === 'ai') return row.name.includes('secflow_dataflow_ai_');
-  if (scope === 'plugin') return row.name.includes('secflow_dataflow_plugin_');
-  return (
-    matchesDataflowVulnSampleScope(row, 'cycle') ||
-    matchesDataflowVulnSampleScope(row, 'runtime') ||
-    matchesDataflowVulnSampleScope(row, 'ai') ||
-    matchesDataflowVulnSampleScope(row, 'plugin') ||
-    row.name.includes('secflow_dataflow_execution_') ||
-    row.name.includes('secflow_dataflow_queue_depth')
-  );
-};
-
 const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisViewModel => {
   const running = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_running'));
   const pending = valueOrZero(metricValueByName(rows, 'secflow_sa_tasks_pending'));
@@ -1193,206 +1167,6 @@ const buildSystemAnalysisViewModel = (rows: DisplayMetricRow[]): SystemAnalysisV
       },
     ],
     stagePressureRows,
-  };
-};
-
-const buildDataflowVulnOverviewViewModel = (rows: DisplayMetricRow[]): DataflowVulnOverviewViewModel => {
-  const runningRuns = metricValueByName(rows, 'secflow_dataflow_run_status', { status: 'running' });
-  const runQueueDepth = metricValueByName(rows, 'secflow_dataflow_queue_depth', { kind: 'run' });
-  const executionQueueDepth = metricValueByName(rows, 'secflow_dataflow_queue_depth', { kind: 'execution' });
-  const dispatchAvg = averageFromSummary(rows, 'secflow_dataflow_execution_dispatch_duration_seconds');
-  const processAvg = averageFromSummary(rows, 'secflow_dataflow_execution_process_duration_seconds');
-  const failedExecutions = metricValueByName(rows, 'secflow_dataflow_execution_status', { status: 'failed' });
-  const cancelledExecutions = metricValueByName(rows, 'secflow_dataflow_execution_status', { status: 'cancelled' });
-  const retryEvents = metricValueByName(rows, 'secflow_dataflow_execution_events_total', { event: 'retry' });
-  const aiFailures = metricValueByName(rows, 'secflow_dataflow_ai_failure_total', { category: 'runtime' });
-  const aiRetries = metricValueByName(rows, 'secflow_dataflow_ai_retry_total', { reason: 'retry' });
-  const resultCount = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'result_count' });
-  const passedCount = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'passed_count' });
-  const failedCount = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'failed_count' });
-  const cyclesUsed = metricValueByName(rows, 'secflow_dataflow_run_summary_total', { field: 'cycles_used' });
-  const runtimeTimeouts = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'timeout_failures');
-  const runtimeTruncations = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'stdout_truncated');
-  const runtimeOutputBytes = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'output_bytes');
-
-  const cycleField = (field: string) => metricValueByName(rows, 'secflow_dataflow_cycle_metrics', { field });
-  const plateauFlag = (flag: string) => metricValueByName(rows, 'secflow_dataflow_cycle_plateau_flags', { flag });
-  const runtimeField = (mode: string, field: string) => metricValueByName(rows, 'secflow_dataflow_runtime_trace_total', { mode, field });
-
-  const plateauHints: Record<string, string> = {
-    stagnant: '周期指标长时间不再推进',
-    switched_to_closure: '已从继续挖掘切到闭环收束',
-    abort: '本轮已触发终止',
-    progress_gate_active: '当前被进展门控限制',
-    no_effective_progress_failure: '因无有效进展导致失败',
-    summary_artifact_unchanged: '摘要产物未变化',
-    supporting_docs_unchanged: '支撑文档未变化',
-    summary_repair_deferred_abort: '摘要修复被延迟并终止',
-  };
-
-  const runtimeModes = Array.from(new Set(rows.filter((row) => row.name === 'secflow_dataflow_runtime_trace_total').map((row) => row.labels.mode || 'unknown')))
-    .sort((left, right) => left.localeCompare(right, 'zh-CN'))
-    .map((mode) => {
-      const calls = runtimeField(mode, 'calls');
-      const durationSeconds = runtimeField(mode, 'duration_seconds');
-      return {
-        mode,
-        calls,
-        attempts: runtimeField(mode, 'attempts'),
-        durationSeconds,
-        avgDurationSeconds: calls && calls > 0 && durationSeconds != null ? durationSeconds / calls : null,
-        timeoutFailures: runtimeField(mode, 'timeout_failures'),
-        stdoutTruncated: runtimeField(mode, 'stdout_truncated'),
-        outputBytes: runtimeField(mode, 'output_bytes'),
-      };
-    });
-  const activePlateauCount = Object.keys(plateauHints).filter((flag) => (plateauFlag(flag) || 0) > 0).length;
-
-  return {
-    topCards: [
-      { label: '运行中 Run', value: formatNumber(runningRuns), hint: 'run_status{status=running}', tone: (runningRuns || 0) > 0 ? 'text-teal-700' : 'text-slate-900' },
-      { label: 'Run 队列', value: formatNumber(runQueueDepth), hint: 'queue_depth{kind=run}', tone: (runQueueDepth || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: 'Execution 队列', value: formatNumber(executionQueueDepth), hint: 'queue_depth{kind=execution}', tone: (executionQueueDepth || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: '平均派发时延', value: formatSeconds(dispatchAvg), hint: 'execution_dispatch_duration_seconds', tone: (dispatchAvg || 0) > 30 ? 'text-amber-700' : 'text-slate-900' },
-      { label: '平均执行时长', value: formatSeconds(processAvg), hint: 'execution_process_duration_seconds', tone: (processAvg || 0) > 1800 ? 'text-rose-700' : 'text-slate-900' },
-      { label: '失败 Execution', value: formatNumber(failedExecutions), hint: 'execution_status{status=failed}', tone: (failedExecutions || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: '取消 Execution', value: formatNumber(cancelledExecutions), hint: 'execution_status{status=cancelled}', tone: (cancelledExecutions || 0) > 0 ? 'text-slate-700' : 'text-emerald-700' },
-      { label: '重试事件', value: formatNumber(retryEvents), hint: 'execution_events_total{event=retry}', tone: (retryEvents || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-    ],
-    cycleCards: [
-      { label: '最新漏洞数', value: formatNumber(cycleField('issue_count')), hint: 'cycle_metrics issue_count', tone: 'text-rose-700' },
-      { label: '当前失败项', value: formatNumber(cycleField('current_failed')), hint: 'cycle_metrics current_failed', tone: (cycleField('current_failed') || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: '历史已移除', value: formatNumber(cycleField('historical_removed')), hint: 'cycle_metrics historical_removed', tone: 'text-emerald-700' },
-      { label: '未评审新增', value: formatNumber(cycleField('unreviewed_new')), hint: 'cycle_metrics unreviewed_new', tone: (cycleField('unreviewed_new') || 0) > 0 ? 'text-amber-700' : 'text-slate-900' },
-      { label: '摘要规模', value: formatMetricValue(cycleField('summary_size') ?? Number.NaN), hint: 'cycle_metrics summary_size', tone: 'text-slate-900' },
-      { label: '支撑文档数', value: formatNumber(cycleField('supporting_docs_count')), hint: 'cycle_metrics supporting_docs_count', tone: 'text-indigo-700' },
-    ],
-    chartData: [
-      { name: '运行中 Run', value: valueOrZero(runningRuns), fill: '#0f766e' },
-      { name: '失败 Exec', value: valueOrZero(failedExecutions), fill: '#e11d48' },
-      { name: '取消 Exec', value: valueOrZero(cancelledExecutions), fill: '#64748b' },
-      { name: '重试事件', value: valueOrZero(retryEvents), fill: '#f59e0b' },
-      { name: '当前失败项', value: valueOrZero(cycleField('current_failed')), fill: '#fb7185' },
-      { name: '未评审新增', value: valueOrZero(cycleField('unreviewed_new')), fill: '#f97316' },
-      { name: 'AI 失败', value: valueOrZero(aiFailures), fill: '#7c3aed' },
-      { name: 'Trace 超时', value: valueOrZero(runtimeTimeouts), fill: '#2563eb' },
-    ],
-    insightCards: [
-      {
-        label: '结果通过率',
-        value: resultCount && resultCount > 0 && passedCount != null ? `${formatNumber((passedCount / resultCount) * 100, 1)}%` : '-',
-        hint: `passed ${formatNumber(passedCount)} / results ${formatNumber(resultCount)}`,
-        tone: resultCount && passedCount != null && resultCount > 0 && passedCount / resultCount < 0.7 ? 'text-amber-700' : 'text-emerald-700',
-      },
-      {
-        label: '结果失败数',
-        value: formatNumber(failedCount),
-        hint: 'run_summary_total failed_count',
-        tone: (failedCount || 0) > 0 ? 'text-rose-700' : 'text-emerald-700',
-      },
-      {
-        label: '平均每结果周期',
-        value: resultCount && resultCount > 0 && cyclesUsed != null ? formatNumber(cyclesUsed / resultCount, 2) : '-',
-        hint: `cycles_used ${formatNumber(cyclesUsed)} / result_count ${formatNumber(resultCount)}`,
-        tone: resultCount && cyclesUsed != null && resultCount > 0 && cyclesUsed / resultCount > 2 ? 'text-amber-700' : 'text-slate-900',
-      },
-      {
-        label: '平台期激活数',
-        value: formatNumber(activePlateauCount),
-        hint: 'active plateau flags',
-        tone: activePlateauCount > 0 ? 'text-rose-700' : 'text-emerald-700',
-      },
-      {
-        label: 'AI 重试/失败',
-        value: `${formatNumber(aiRetries)} / ${formatNumber(aiFailures)}`,
-        hint: 'ai_retry_total / ai_failure_total',
-        tone: (aiFailures || 0) > 0 ? 'text-rose-700' : (aiRetries || 0) > 0 ? 'text-amber-700' : 'text-emerald-700',
-      },
-      {
-        label: 'Trace 超时/截断',
-        value: `${formatNumber(runtimeTimeouts)} / ${formatNumber(runtimeTruncations)}`,
-        hint: 'runtime timeout_failures / stdout_truncated',
-        tone: (runtimeTimeouts || 0) > 0 || (runtimeTruncations || 0) > 0 ? 'text-amber-700' : 'text-emerald-700',
-      },
-      {
-        label: 'Trace 输出总量',
-        value: formatMetricValue(runtimeOutputBytes ?? Number.NaN),
-        hint: 'runtime_trace_total output_bytes',
-        tone: (runtimeOutputBytes || 0) > 0 ? 'text-slate-900' : 'text-slate-500',
-      },
-    ],
-    plateauFlags: Object.entries(plateauHints).map(([label, hint]) => ({
-      label,
-      active: (plateauFlag(label) || 0) > 0,
-      hint,
-    })),
-    runtimeModes,
-  };
-};
-
-const buildDataflowVulnAiViewModel = (rows: DisplayMetricRow[]): DataflowVulnAiViewModel => {
-  const roleValue = (role: string) => metricValueByName(rows, 'secflow_dataflow_ai_role_count', { role });
-  const tokenValue = (type: string) => metricValueByName(rows, 'secflow_dataflow_ai_token_usage_total', { type });
-  const cycleRounds = metricValueByName(rows, 'secflow_dataflow_ai_round_total', { kind: 'cycle' });
-  const reviewRounds = metricValueByName(rows, 'secflow_dataflow_ai_round_total', { kind: 'review' });
-  const retryTotal = metricValueByName(rows, 'secflow_dataflow_ai_retry_total', { reason: 'retry' });
-  const timeoutTotal = metricValueByName(rows, 'secflow_dataflow_ai_timeout_total', { scope: 'plugin' });
-  const failureTotal = metricValueByName(rows, 'secflow_dataflow_ai_failure_total', { category: 'runtime' });
-  const reviewPartial = metricValueByName(rows, 'secflow_dataflow_ai_review_total', { result: 'partial' });
-  const sessionTotal = metricValueByName(rows, 'secflow_dataflow_ai_session_total', { role: 'agent' });
-  const costTotal = metricValueByName(rows, 'secflow_dataflow_ai_token_cost_total');
-  const inputTokens = tokenValue('input');
-  const outputTokens = tokenValue('output');
-  const cacheReadTokens = tokenValue('cache_read');
-  const cacheWriteTokens = tokenValue('cache_write');
-  const totalTokens = tokenValue('total');
-  const runtimeCalls = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'calls');
-  const runtimeTimeouts = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'timeout_failures');
-  const runtimeApiFailures = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'api_failures');
-  const runtimePiFailures = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'pi_failures');
-  const runtimeDuration = sumMetric(rows, (row) => row.name === 'secflow_dataflow_runtime_trace_total' && row.labels.field === 'duration_seconds');
-  const pluginResults = rows
-    .filter((row) => row.name === 'secflow_dataflow_plugin_results_total')
-    .sort((left, right) => right.value - left.value)
-    .slice(0, 4);
-
-  return {
-    topCards: [
-      { label: 'Cycle 轮次', value: formatNumber(cycleRounds), hint: 'ai_round_total{kind=cycle}', tone: (cycleRounds || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },
-      { label: 'Review 轮次', value: formatNumber(reviewRounds), hint: 'ai_round_total{kind=review}', tone: (reviewRounds || 0) > 0 ? 'text-fuchsia-700' : 'text-slate-900' },
-      { label: 'AI 会话数', value: formatNumber(sessionTotal), hint: 'ai_session_total{role=agent}', tone: (sessionTotal || 0) > 0 ? 'text-sky-700' : 'text-slate-900' },
-      { label: '总 Token', value: formatNumber(totalTokens), hint: 'ai_token_usage_total{type=total}', tone: (totalTokens || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
-      { label: '累计成本', value: formatMetricValue(costTotal ?? Number.NaN), hint: 'ai_token_cost_total', tone: (costTotal || 0) > 0 ? 'text-violet-700' : 'text-slate-900' },
-      { label: 'AI 重试/失败', value: `${formatNumber(retryTotal)} / ${formatNumber(failureTotal)}`, hint: 'retry / runtime failure', tone: (failureTotal || 0) > 0 ? 'text-rose-700' : (retryTotal || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-    ],
-    phaseCards: [
-      { label: 'Plugin 超时', value: formatNumber(timeoutTotal), hint: 'ai_timeout_total{scope=plugin}', tone: (timeoutTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: 'Runtime 调用', value: formatNumber(runtimeCalls), hint: 'runtime_trace_total calls', tone: (runtimeCalls || 0) > 0 ? 'text-slate-900' : 'text-slate-500' },
-      { label: 'Runtime 超时', value: formatNumber(runtimeTimeouts), hint: 'runtime_trace_total timeout_failures', tone: (runtimeTimeouts || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-      { label: 'API / PI 失败', value: `${formatNumber(runtimeApiFailures)} / ${formatNumber(runtimePiFailures)}`, hint: 'runtime api_failures / pi_failures', tone: (runtimeApiFailures || 0) > 0 || (runtimePiFailures || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
-      { label: 'Runtime 总耗时', value: formatSeconds(runtimeDuration), hint: 'runtime_trace_total duration_seconds', tone: (runtimeDuration || 0) > 3600 ? 'text-amber-700' : 'text-slate-900' },
-      { label: 'Partial Review', value: formatNumber(reviewPartial), hint: 'ai_review_total{result=partial}', tone: (reviewPartial || 0) > 0 ? 'text-fuchsia-700' : 'text-slate-900' },
-    ],
-    roleChart: [
-      { name: 'agent', value: valueOrZero(roleValue('agent')), fill: '#7c3aed' },
-      { name: 'plugin', value: valueOrZero(roleValue('plugin')), fill: '#db2777' },
-    ].filter((item) => item.value > 0),
-    tokenChart: [
-      { name: 'input', value: valueOrZero(inputTokens), fill: '#7c3aed' },
-      { name: 'output', value: valueOrZero(outputTokens), fill: '#db2777' },
-      { name: 'cache_read', value: valueOrZero(cacheReadTokens), fill: '#0ea5e9' },
-      { name: 'cache_write', value: valueOrZero(cacheWriteTokens), fill: '#14b8a6' },
-    ].filter((item) => item.value > 0),
-    reviewCards: pluginResults.length
-      ? pluginResults.map((row) => ({
-          label: `${row.labels.plugin || 'plugin'} / ${row.labels.result || 'unknown'}`,
-          value: formatNumber(row.value),
-          hint: 'plugin_results_total',
-          tone: row.labels.result === 'success' ? 'text-emerald-700' : row.labels.result === 'partial' ? 'text-amber-700' : 'text-rose-700',
-        }))
-      : [
-          { label: 'Plugin 结果', value: '-', hint: '暂无 plugin_results_total', tone: 'text-slate-500' },
-        ],
   };
 };
 
@@ -1857,6 +1631,9 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
   const workerSlotBusy = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'busy' });
   const workerSlotFree = metricValueByName(rows, 'secflow_dfa_cluster_worker_slots', { kind: 'free' });
   const workerCapacityPerPod = metricValueByName(rows, 'secflow_dfa_cluster_worker_capacity_per_pod');
+  const slotUtilizationRatio = metricValueByName(rows, 'secflow_dfa_cluster_worker_slot_utilization_ratio');
+  const observedCoverageRatio = metricValueByName(rows, 'secflow_dfa_cluster_worker_observed_coverage_ratio');
+  const queuePressureRatio = metricValueByName(rows, 'secflow_dfa_cluster_queue_pressure_ratio');
   const rounds = metricValueByName(rows, 'secflow_dfa_cluster_rounds');
   const judges = metricValueByName(rows, 'secflow_dfa_cluster_judges');
   const functions = metricValueByName(rows, 'secflow_dfa_cluster_functions');
@@ -1889,6 +1666,50 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
       value: row.value,
       tone: row.labels.status === 'running' || row.labels.status === 'leased' ? 'text-teal-700' : 'text-slate-700',
     }));
+
+  const alerts: Array<{ label: string; text: string; tone: string }> = [];
+  if ((observedCoverageRatio || 0) > 0 && (observedCoverageRatio || 0) < 0.6) {
+    alerts.push({
+      label: '观测 Owner 偏少',
+      text: `configured workers=${formatNumber(configuredWorkers)}，但当前仅观测到 ${formatNumber(observedActiveOwners)} 个 active owner，heartbeat owners=${formatNumber(observedHeartbeatOwners)}。需要核对 worker 可用性、调度分布或 lease 回收情况。`,
+      tone: 'border-amber-200 bg-amber-50 text-amber-800',
+    });
+  }
+  if ((slotUtilizationRatio || 0) >= 0.85) {
+    alerts.push({
+      label: '执行槽位逼近打满',
+      text: `busy slots=${formatNumber(workerSlotBusy)} / capacity=${formatNumber(workerSlotCapacity)}，利用率约 ${formatNumber((slotUtilizationRatio || 0) * 100, 1)}%。继续进流时更容易放大排队时延。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if ((heartbeatStale || 0) > 0) {
+    alerts.push({
+      label: '存在心跳超时任务',
+      text: `heartbeat stale=${formatNumber(heartbeatStale)}，max age=${formatSeconds(heartbeatAgeMax)}。这通常意味着 owner 卡死、Pod 抖动或 lease 续约链路异常。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if ((queuePressureRatio || 0) >= 1 || ((pending || 0) > 0 && (workerSlotFree || 0) <= 0)) {
+    alerts.push({
+      label: '队列压力偏高',
+      text: `pending=${formatNumber(pending)}，free slots=${formatNumber(workerSlotFree)}，queue pressure 约 ${formatNumber((queuePressureRatio || 0) * 100, 1)}%。需要关注扩容、任务重量或租约释放速度。`,
+      tone: 'border-amber-200 bg-amber-50 text-amber-800',
+    });
+  }
+  if ((timeoutCount || 0) > 0 && ((timeoutCount || 0) >= 3 || (terminal || 0) > 0 && ((timeoutCount || 0) / (terminal || 1)) >= 0.2)) {
+    alerts.push({
+      label: '超时失败偏高',
+      text: `timeout=${formatNumber(timeoutCount)}，terminal=${formatNumber(terminal)}。建议继续拆分是 queue wait、execution duration 还是 lease/heartbeat 问题。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if (!alerts.length) {
+    alerts.push({
+      label: '聚合视图平稳',
+      text: '当前未见明显的容量打满、心跳超时或 owner 覆盖异常；可以继续结合 failure category 和 dispatch summary 做结构性观察。',
+      tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    });
+  }
 
   return {
     kpis: [
@@ -1924,6 +1745,7 @@ const buildDataflowAnalysisViewModel = (rows: DisplayMetricRow[]): DataflowAnaly
     ],
     failureCategories,
     dispatchSummary,
+    alerts,
   };
 };
 
@@ -2096,14 +1918,6 @@ const MetricCard: React.FC<{ label: string; value: number; icon: React.ReactNode
   </div>
 );
 
-const HeadlineMetricCard: React.FC<{ label: string; value: string; hint: string; tone: string }> = ({ label, value, hint, tone }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm">
-    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{label}</div>
-    <div className={`mt-2 text-2xl font-black ${tone}`}>{value}</div>
-    <div className="mt-1 text-xs text-slate-500">{hint}</div>
-  </div>
-);
-
 const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
   <div className="flex h-full min-h-[220px] items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-slate-50 px-6 text-center text-sm text-slate-500">
     {text}
@@ -2237,7 +2051,18 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   );
   const aiViewModel = useMemo(() => buildAiViewModel(viewModel.rows, activeService), [activeService, viewModel.rows]);
   const dataflowVulnAiViewModel = useMemo(
-    () => (activeServiceKey === 'dataflow-vuln' ? buildDataflowVulnAiViewModel(viewModel.rows) : null),
+    () =>
+      activeServiceKey === 'dataflow-vuln'
+        ? buildDataflowVulnAiViewModel(viewModel.rows, {
+            formatMetricValue,
+            formatNumber,
+            formatSeconds,
+            metricValueByName,
+            sumMetric,
+            valueOrZero,
+            averageFromSummary,
+          })
+        : null,
     [activeServiceKey, viewModel.rows],
   );
   const b2sBusinessViewModel = useMemo(
@@ -2253,7 +2078,18 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     [activeServiceKey, viewModel.rows],
   );
   const dataflowVulnOverviewViewModel = useMemo(
-    () => (activeServiceKey === 'dataflow-vuln' ? buildDataflowVulnOverviewViewModel(viewModel.rows) : null),
+    () =>
+      activeServiceKey === 'dataflow-vuln'
+        ? buildDataflowVulnOverviewViewModel(viewModel.rows, {
+            formatMetricValue,
+            formatNumber,
+            formatSeconds,
+            metricValueByName,
+            sumMetric,
+            valueOrZero,
+            averageFromSummary,
+          })
+        : null,
     [activeServiceKey, viewModel.rows],
   );
   const firmwareUnpackerViewModel = useMemo(
@@ -2541,6 +2377,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 ))}
               </div>
 
+              <div className="grid gap-3 xl:grid-cols-3">
+                {dataflowAnalysisViewModel.alerts.map((alert) => (
+                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+                    <div className="text-sm font-black">{alert.label}</div>
+                    <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                  </div>
+                ))}
+              </div>
+
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
                 <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">负载与成本</div>
@@ -2624,8 +2469,25 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <div className="grid gap-3 xl:grid-cols-3">
                 {entryAnalysisViewModel.riskAlerts.map((alert) => (
                   <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
-                    <div className="text-sm font-black">{alert.label}</div>
-                    <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-black">{alert.label}</div>
+                        <div className="mt-1 text-xs leading-5 opacity-85">{alert.text}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const focus = focusedEntryStageRow?.stage || selectedEntryStage;
+                          if (focus && focus !== 'all') sessionStorage.setItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY, String(focus));
+                          else sessionStorage.removeItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY);
+                          sessionStorage.setItem(ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY, entryAnalysisRiskKeyFromLabel(alert.label));
+                          window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-task' } }));
+                        }}
+                        className="rounded-xl border border-current/20 bg-white/70 px-3 py-2 text-[11px] font-black transition hover:bg-white"
+                      >
+                        带着风险排查
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2770,6 +2632,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       const focus = focusedEntryStageRow?.stage || selectedEntryStage;
                       if (focus && focus !== 'all') sessionStorage.setItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY, String(focus));
                       else sessionStorage.removeItem(ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY);
+                      sessionStorage.removeItem(ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY);
                       window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-task' } }));
                     }}
                     className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 transition hover:bg-indigo-100"
@@ -3236,113 +3099,44 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   </div>
                 </div>
               </div>
+
+              <div className="rounded-[1.6rem] border border-sky-100 bg-white/85 p-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">指标口径</div>
+                <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">系统分析观测说明</h3>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    {
+                      label: '并发利用率',
+                      text: '`worker_running / worker_capacity`；优先使用 runtime snapshot，而不是仅用任务状态近似。',
+                    },
+                    {
+                      label: '续跑完成率',
+                      text: '`checkpoint overall_done / any checkpoint task`；表示进入断点续跑语义的任务中，有多少最终完成。',
+                    },
+                    {
+                      label: '阶段健康矩阵',
+                      text: '`运行/成功率/均时/均轮次/均分/均成本` 都来自阶段级 metrics 聚合，不是前端从日志反推。',
+                    },
+                    {
+                      label: '阶段压力分',
+                      text: '由 `运行中轮次 + 平均时长 + 成功率惩罚` 组合得到，用于快速找出最可能拖慢并发的 stage。',
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                      <div className="text-xs font-black text-slate-800">{item.label}</div>
+                      <div className="mt-2 text-[11px] leading-5 text-slate-500">{item.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </section>
           ) : null}
 
           {dataflowVulnOverviewViewModel ? (
-            <section className="space-y-4 rounded-[2rem] border border-rose-200 bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.10),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#fff1f2_100%)] p-5 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="text-[11px] font-black uppercase tracking-[0.22em] text-rose-700">Dataflow Vuln Observability</div>
-                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">数据流漏洞挖掘专属观测</h2>
-                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
-                    这部分优先回答四个问题：当前 run 是否在推进、漏洞产出是否在收敛、是否进入平台期、运行时调用面是否在放大失败或输出截断。
-                  </p>
-                </div>
-                <span className="inline-flex rounded-full border border-rose-200 bg-white/80 px-3 py-1 text-xs font-black text-rose-800">
-                  dataflow-vuln MVP
-                </span>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-                <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">漏洞产出与评审收敛</div>
-                  <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Latest Cycle Snapshot</h3>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {dataflowVulnOverviewViewModel.cycleCards.map((item) => (
-                      <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-                        <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">平台期与闭环状态</div>
-                  <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Plateau / Closure Flags</h3>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    {dataflowVulnOverviewViewModel.plateauFlags.map((item) => (
-                      <div
-                        key={item.label}
-                        className={`rounded-2xl border px-4 py-3 shadow-sm ${
-                          item.active ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        }`}
-                      >
-                        <div className="text-sm font-black">{item.label}</div>
-                        <div className="mt-1 text-xs leading-5 opacity-85">{item.hint}</div>
-                        <div className="mt-2 text-[11px] font-black uppercase tracking-[0.16em]">{item.active ? 'Active' : 'Inactive'}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行时调用面</div>
-                    <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Runtime Trace By Mode</h3>
-                  </div>
-                  <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
-                    calls / attempts / duration / truncation
-                  </span>
-                </div>
-                <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
-                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-500">
-                      <tr>
-                        <th className="px-3 py-3">模式</th>
-                        <th className="px-3 py-3">调用</th>
-                        <th className="px-3 py-3">尝试</th>
-                        <th className="px-3 py-3">总耗时</th>
-                        <th className="px-3 py-3">均耗时/次</th>
-                        <th className="px-3 py-3">超时</th>
-                        <th className="px-3 py-3">stdout 截断</th>
-                        <th className="px-3 py-3">输出字节</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {dataflowVulnOverviewViewModel.runtimeModes.length ? (
-                        dataflowVulnOverviewViewModel.runtimeModes.map((row) => (
-                          <tr key={row.mode} className="hover:bg-slate-50">
-                            <td className="px-3 py-3 font-mono text-[11px] font-bold text-slate-800">{row.mode}</td>
-                            <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatNumber(row.calls)}</td>
-                            <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatNumber(row.attempts)}</td>
-                            <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatSeconds(row.durationSeconds)}</td>
-                            <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatSeconds(row.avgDurationSeconds)}</td>
-                            <td className={`px-3 py-3 font-mono text-[11px] font-bold ${(row.timeoutFailures || 0) > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-                              {formatNumber(row.timeoutFailures)}
-                            </td>
-                            <td className={`px-3 py-3 font-mono text-[11px] font-bold ${(row.stdoutTruncated || 0) > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
-                              {formatNumber(row.stdoutTruncated)}
-                            </td>
-                            <td className="px-3 py-3 font-mono text-[11px] text-slate-800">{formatMetricValue(row.outputBytes ?? Number.NaN)}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-500">
-                            当前还没有 runtime trace 聚合指标。
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
+            <DataflowVulnObservabilitySection
+              viewModel={dataflowVulnOverviewViewModel}
+              formatters={{ formatMetricValue, formatNumber, formatSeconds }}
+            />
           ) : null}
 
           {firmwareUnpackerViewModel ? (
@@ -3443,68 +3237,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
           ) : null}
 
           {binarySecurityObservabilityViewModel ? null : dataflowVulnOverviewViewModel ? (
-            <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]">
-              <div className="rounded-[2rem] border border-rose-200 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">热点指标</div>
-                    <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">数据流漏洞挖掘 Top Signals</h2>
-                  </div>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-bold text-rose-700">
-                    <BarChart3 size={12} />
-                    业务信号
-                  </span>
-                </div>
-                <div className="mt-4 h-72">
-                  {dataflowVulnOverviewViewModel.chartData.some((item) => item.value > 0) ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dataflowVulnOverviewViewModel.chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-                        <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} interval={0} angle={-16} textAnchor="end" height={68} />
-                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-                        <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
-                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                          {dataflowVulnOverviewViewModel.chartData.map((entry) => (
-                            <Cell key={`dfv-chart-${entry.name}`} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <EmptyCard text="当前还没有足够的业务信号样本" />
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-[2rem] border border-rose-200 bg-white p-5 shadow-sm">
-                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关键摘要</div>
-                <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">运行与收敛摘要</h2>
-                <div className="mt-4 space-y-3">
-                  {dataflowVulnOverviewViewModel.insightCards.map((item) => (
-                    <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-black text-slate-800">{item.label}</div>
-                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
-                        </div>
-                        <div className={`text-right text-lg font-black ${item.tone}`}>{item.value}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                  {dataflowVulnOverviewViewModel.runtimeModes.map((item) => (
-                    <div key={item.mode} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.mode}</div>
-                      <div className="mt-1 text-base font-black text-slate-800">
-                        {formatNumber(item.calls)} call / {formatSeconds(item.avgDurationSeconds)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
+            <DataflowVulnSignalsSection
+              viewModel={dataflowVulnOverviewViewModel}
+              formatters={{ formatMetricValue, formatNumber, formatSeconds }}
+            />
           ) : (
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
               <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
@@ -3583,30 +3319,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
-                {activeServiceKey === 'dataflow-vuln'
-                  ? ([
-                      { key: 'focus', label: '业务聚焦' },
-                      { key: 'cycle', label: 'Cycle/Run' },
-                      { key: 'runtime', label: 'Runtime' },
-                      { key: 'ai', label: 'AI' },
-                      { key: 'plugin', label: 'Plugin' },
-                      { key: 'all', label: '全部样本' },
-                    ] as Array<{ key: DataflowVulnSampleScope; label: string }>).map((item) => {
-                      const active = dataflowVulnSampleScope === item.key;
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() => setDataflowVulnSampleScope(item.key)}
-                          className={`rounded-full border px-3 py-1 text-xs font-black transition ${
-                            active ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      );
-                    })
-                  : null}
+                {activeServiceKey === 'dataflow-vuln' ? <DataflowVulnSampleScopeFilter activeScope={dataflowVulnSampleScope} onChange={setDataflowVulnSampleScope} /> : null}
                 <div className="relative">
                   <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
                   <input value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} placeholder="搜索指标名 / labels / help" className="rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
@@ -3886,93 +3599,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
           ) : (
             <>
               {dataflowVulnAiViewModel ? (
-                <>
-                  <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {dataflowVulnAiViewModel.topCards.map((item) => (
-                      <HeadlineMetricCard key={item.label} label={item.label} value={item.value} hint={item.hint} tone={item.tone} />
-                    ))}
-                  </section>
-
-                  <section className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                    <div className="rounded-[2rem] border border-fuchsia-200 bg-[radial-gradient(circle_at_top_left,_rgba(192,38,211,0.08),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#fdf4ff_100%)] p-5 shadow-sm">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-500">Cycle / Review / Runtime</div>
-                      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI 分层摘要</h3>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {dataflowVulnAiViewModel.phaseCards.map((item) => (
-                          <div key={item.label} className="rounded-2xl border border-fuchsia-100 bg-white/85 px-4 py-3 shadow-sm">
-                            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-                            <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                            <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[2rem] border border-fuchsia-200 bg-white p-5 shadow-sm">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Token / Cost</div>
-                      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Token 结构</h3>
-                      <div className="mt-4 h-72">
-                        {dataflowVulnAiViewModel.tokenChart.length ? (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={dataflowVulnAiViewModel.tokenChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-                              <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
-                              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
-                              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-                              <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
-                              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                                {dataflowVulnAiViewModel.tokenChart.map((entry) => (
-                                  <Cell key={`dfv-token-${entry.name}`} fill={entry.fill} />
-                                ))}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        ) : (
-                          <EmptyCard text="当前还没有 token 结构样本" />
-                        )}
-                      </div>
-                    </div>
-                  </section>
-
-                  <section className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                    <div className="rounded-[2rem] border border-fuchsia-200 bg-white p-5 shadow-sm">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色与插件</div>
-                      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">Agent / Plugin 活跃度</h3>
-                      <div className="mt-4 h-72">
-                        {dataflowVulnAiViewModel.roleChart.length ? (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={dataflowVulnAiViewModel.roleChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-                              <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
-                              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
-                              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-                              <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
-                              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                                {dataflowVulnAiViewModel.roleChart.map((entry) => (
-                                  <Cell key={`dfv-role-${entry.name}`} fill={entry.fill} />
-                                ))}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
-                        ) : (
-                          <EmptyCard text="当前还没有 agent/plugin 活跃度样本" />
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[2rem] border border-fuchsia-200 bg-white p-5 shadow-sm">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Plugin Review</div>
-                      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">插件结果摘要</h3>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {dataflowVulnAiViewModel.reviewCards.map((item) => (
-                          <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-                            <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-                            <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </section>
-                </>
+                <DataflowVulnAiSection
+                  viewModel={dataflowVulnAiViewModel}
+                  formatters={{ formatMetricValue, formatNumber, formatSeconds }}
+                />
               ) : (
                 <>
                   <section className="grid gap-4 xl:grid-cols-3">

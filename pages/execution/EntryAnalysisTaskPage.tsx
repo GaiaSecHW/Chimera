@@ -82,6 +82,58 @@ function getQuickFilterButtonClassName(active: boolean, baseClassName: string): 
   return `${baseClassName} transition-all ${active ? 'ring-2 ring-violet-200 ring-offset-1' : 'hover:opacity-80'}`;
 }
 
+function getEntryAnalysisRiskPreset(riskKey: string): { label: string; description: string; suggestedStatus: string; statusReason: string } | null {
+  if (riskKey === 'queue-pressure') {
+    return {
+      label: '排队堆积',
+      description: '优先看等待中任务，确认排队是否持续放大，以及是否存在长时间未被调度的任务。',
+      suggestedStatus: 'pending',
+      statusReason: '默认切到“等待中”以优先查看队列背压任务。',
+    };
+  }
+  if (riskKey === 'timeout-high') {
+    return {
+      label: '超时偏高',
+      description: '优先看失败任务，核查是否由长耗时、超时或重试放大导致任务提前结束。',
+      suggestedStatus: 'failed',
+      statusReason: '默认切到“失败”以更快定位超时异常样本。',
+    };
+  }
+  if (riskKey === 'low-pass-rate') {
+    return {
+      label: '最终通过率偏低',
+      description: '优先看失败任务，检查评审闭环、重试与重分类是否没有收敛。',
+      suggestedStatus: 'failed',
+      statusReason: '默认切到“失败”以优先查看最终未通过的任务。',
+    };
+  }
+  if (riskKey === 'healthy') {
+    return {
+      label: '整体平稳',
+      description: '优先看运行中任务，确认当前活跃样本在各阶段是否持续推进。',
+      suggestedStatus: 'running',
+      statusReason: '默认切到“分析中”以便抽样观察当前活跃任务。',
+    };
+  }
+  return null;
+}
+
+function getEntryAnalysisRiskMatch(task: Pick<AppEaTaskItem, 'status'>, riskKey: string): { matched: boolean; label: string } | null {
+  if (riskKey === 'queue-pressure') {
+    return { matched: task.status === 'pending', label: '命中排队排查' };
+  }
+  if (riskKey === 'timeout-high') {
+    return { matched: task.status === 'failed' || task.status === 'error', label: '命中超时排查' };
+  }
+  if (riskKey === 'low-pass-rate') {
+    return { matched: task.status === 'failed' || task.status === 'error', label: '命中低通过率排查' };
+  }
+  if (riskKey === 'healthy') {
+    return { matched: task.status === 'running' || task.status === 'pending', label: '命中活跃观测' };
+  }
+  return null;
+}
+
 const STAGE_STEPS = [
   { key: 'init',    label: '模块加载', desc: '扫描目标路径，加载模块文件', triggers: ['task_start', 'module_load', 'task_resume'], artifactSubpath: 'workspace' },
   { key: 'analyse', label: '入口分析', desc: 'Worker 逐一分析各入口点',    triggers: ['round_start', 'worker_start'],               artifactSubpath: 'workspace' },
@@ -256,6 +308,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const appApi = api.domains.execution.appEntryAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
   const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
+  const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
   const autoRefreshStorageKey = `secflow:entryAnalysis:autoRefresh:${projectId || 'default'}`;
   const refreshIntervalStorageKey = `secflow:entryAnalysis:refreshInterval:${projectId || 'default'}`;
 
@@ -280,6 +333,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
   const [stageFocusHint, setStageFocusHint] = useState('');
+  const [riskFocusHint, setRiskFocusHint] = useState('');
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -296,6 +350,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerTarget, setPickerTarget] = useState<'input' | 'source' | 'output'>('input');
   const logScrollRef = useRef<HTMLDivElement>(null);
+  const riskPresetAppliedRef = useRef('');
 
   const handleHeaderSort = (field: 'task' | 'module' | 'status' | 'origin' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -351,6 +406,26 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     const normalized = stored.trim().toUpperCase();
     setStageFocusHint(['R1', 'R2', 'R3', 'R4'].includes(normalized) ? normalized : '');
   }, [stageFocusStorageKey]);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem(riskFocusStorageKey) || '';
+    setRiskFocusHint(stored.trim());
+  }, [riskFocusStorageKey]);
+
+  useEffect(() => {
+    if (!riskFocusHint) {
+      riskPresetAppliedRef.current = '';
+      return;
+    }
+    if (riskPresetAppliedRef.current === riskFocusHint) return;
+    const preset = getEntryAnalysisRiskPreset(riskFocusHint);
+    if (!preset) return;
+    riskPresetAppliedRef.current = riskFocusHint;
+    setStatusFilter(preset.suggestedStatus);
+    setSortBy('updated_at');
+    setSortOrder('desc');
+    setPage(1);
+  }, [riskFocusHint]);
 
   // ── Load task list ──────────────────────────────────────────────────────
 
@@ -732,9 +807,24 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const totalPages = Math.ceil(total / perPage);
   const allPageSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
   const hasSelection = selectedTaskIds.size > 0;
+  const riskPreset = useMemo(() => getEntryAnalysisRiskPreset(riskFocusHint), [riskFocusHint]);
   const recommendedTasks = useMemo(() => {
-    if (!stageFocusHint) return [];
+    if (!stageFocusHint && !riskPreset) return [];
     const statusWeight = (status: AppEaTaskItem['status']) => {
+      if (riskPreset?.suggestedStatus === 'pending') {
+        if (status === 'pending') return 6;
+        if (status === 'running') return 5;
+        if (status === 'failed' || status === 'error') return 3;
+        if (status === 'cancelled') return 2;
+        return 1;
+      }
+      if (riskPreset?.suggestedStatus === 'failed') {
+        if (status === 'failed' || status === 'error') return 6;
+        if (status === 'running') return 4;
+        if (status === 'pending') return 3;
+        if (status === 'cancelled') return 2;
+        return 1;
+      }
       if (status === 'running') return 5;
       if (status === 'pending') return 4;
       if (status === 'failed' || status === 'error') return 3;
@@ -750,7 +840,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         return rightUpdated - leftUpdated;
       })
       .slice(0, 6);
-  }, [stageFocusHint, tasks]);
+  }, [riskPreset, stageFocusHint, tasks]);
+  const recommendedTaskIds = useMemo(() => new Set(recommendedTasks.map((task) => task.task_id)), [recommendedTasks]);
 
   const stageStatuses = detail
     ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
@@ -773,6 +864,41 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
           <div className="mt-2 text-sm font-bold text-indigo-900">当前从性能看板带入了 {stageFocusHint} 阶段线索</div>
           <div className="mt-1 text-xs leading-6 text-indigo-800">
             打开任务详情后，系统会优先尝试切到该阶段的智能体会话视角，帮助你直接查看对应阶段的 session 和日志。
+          </div>
+        </section>
+      ) : null}
+      {riskPreset ? (
+        <section className="rounded-[2rem] border border-amber-200 bg-amber-50/80 px-5 py-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-700">Risk Focus</div>
+              <div className="mt-2 text-sm font-bold text-amber-900">当前正按“{riskPreset.label}”风险意图排查任务</div>
+              <div className="mt-1 text-xs leading-6 text-amber-800">
+                {riskPreset.description} {riskPreset.statusReason}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter(riskPreset.suggestedStatus);
+                  setPage(1);
+                }}
+                className="rounded-xl border border-amber-200 bg-white px-3 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100"
+              >
+                应用推荐状态筛选
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.removeItem(riskFocusStorageKey);
+                  setRiskFocusHint('');
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
+              >
+                清除风险线索
+              </button>
+            </div>
           </div>
         </section>
       ) : null}
@@ -1013,27 +1139,42 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         </div>
       </section>
 
-      {stageFocusHint ? (
+      {stageFocusHint || riskPreset ? (
         <section className="rounded-[2rem] border border-indigo-200 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_38%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-700">Stage Guided Tasks</div>
-              <h2 className="mt-2 text-lg font-black tracking-tight text-slate-900">{stageFocusHint} 阶段推荐任务</h2>
+              <h2 className="mt-2 text-lg font-black tracking-tight text-slate-900">{stageFocusHint || '风险引导'} 推荐任务</h2>
               <div className="mt-1 max-w-3xl text-xs leading-6 text-slate-600">
                 当前列表接口没有直接返回“任务正处于哪个阶段”的结构化字段，所以这里使用启发式排序：
-                优先推荐运行中、等待中、最近更新的任务，帮助你更快进入最可能仍保留 {stageFocusHint} 阶段会话的任务详情。
+                优先推荐{riskPreset?.suggestedStatus === 'pending' ? '等待中' : riskPreset?.suggestedStatus === 'failed' ? '失败' : '运行中'}、最近更新的任务，
+                帮助你更快进入最可能仍保留 {stageFocusHint || '当前'} 线索的任务详情。
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                sessionStorage.removeItem(stageFocusStorageKey);
-                setStageFocusHint('');
-              }}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
-            >
-              清除阶段线索
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.removeItem(stageFocusStorageKey);
+                  setStageFocusHint('');
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
+              >
+                清除阶段线索
+              </button>
+              {riskPreset ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sessionStorage.removeItem(riskFocusStorageKey);
+                    setRiskFocusHint('');
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-50"
+                >
+                  清除风险线索
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1276,10 +1417,21 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </tr>
             </ExecutionTableHead>
             <tbody>
-              {tasks.map((t) => (
+              {tasks.map((t) => {
+                const recommended = recommendedTaskIds.has(t.task_id);
+                const riskMatch = riskFocusHint ? getEntryAnalysisRiskMatch(t, riskFocusHint) : null;
+                const matchedRisk = Boolean(riskMatch?.matched);
+                const contextualRowClassName = selectedTaskIds.has(t.task_id)
+                  ? 'bg-violet-50/60'
+                  : recommended
+                    ? 'bg-indigo-50/40'
+                    : matchedRisk
+                      ? 'bg-amber-50/40'
+                      : '';
+                return (
                 <tr
                   key={t.task_id}
-                  className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-violet-50/60' : ''}`.trim()}
+                  className={`${executionTableRowClassName} ${contextualRowClassName}`.trim()}
                 >
                   <ExecutionTableTd>
                     <input
@@ -1299,6 +1451,23 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     >
                       {t.task_name}
                     </button>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {recommended ? (
+                        <span className="rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-700">
+                          推荐任务
+                        </span>
+                      ) : null}
+                      {matchedRisk && riskMatch ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                          {riskMatch.label}
+                        </span>
+                      ) : null}
+                      {stageFocusHint ? (
+                        <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-black text-cyan-700">
+                          {stageFocusHint} 阶段线索
+                        </span>
+                      ) : null}
+                    </div>
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
                     <div className="text-sm font-semibold text-slate-700">{t.module_name || '-'}</div>
@@ -1362,7 +1531,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     </button>
                   </ExecutionTableTd>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </ExecutionTable>
         )}
