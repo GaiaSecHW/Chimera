@@ -157,7 +157,7 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     key: 'dataflow-analysis',
     label: '数据流分析',
     serviceName: 'secflow-app-dataflow-analyse',
-    metricsPath: `${API_BASE}/api/app/dataflow-analyse/metrics`,
+    metricsPath: `${API_BASE}/api/app/dataflow-analyse/metrics/aggregate`,
     preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'worker', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
     serviceSpecificKeywords: ['session', 'round', 'review', 'judge', 'trace', 'dataflow'],
   },
