@@ -87,6 +87,13 @@ function basename(path?: string | null): string {
   return normalized.split('/').filter(Boolean).pop() || normalized || 'item';
 }
 
+function dirname(path?: string | null): string {
+  const normalized = String(path || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length <= 1) return normalized.startsWith('/') ? '/' : '';
+  return `${normalized.startsWith('/') ? '/' : ''}${parts.slice(0, -1).join('/')}`;
+}
+
 function stripExt(name: string): string {
   return name.replace(/\.[^.]+$/, '') || name;
 }
@@ -220,12 +227,13 @@ function dataflowCandidates(result: AppDfaTaskResult | null): Candidate[] {
   const markdownFiles = files.filter((file) => /\.m(?:ark)?d$/i.test(file.name || file.relative_path));
   return markdownFiles.map((file) => {
     const path = joinPath(result?.output_root || '', file.relative_path);
+    const dataFlowDir = result?.output_root || dirname(path);
     return {
       key: file.relative_path,
       label: file.name || basename(file.relative_path),
       description: `${file.relative_path} · ${file.size || 0} bytes`,
-      disabledReason: !result?.output_root ? '缺少结果目录' : undefined,
-      payload: { file, dataFlowPath: path },
+      disabledReason: !dataFlowDir ? '缺少结果目录' : undefined,
+      payload: { file, dataFlowPath: path, dataFlowDir },
     };
   });
 }
@@ -396,7 +404,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             project_id: projectId,
             title: `${defaultPrefix}-${candidate.label}`,
             task_markdown: `基于数据流分析结果 ${candidate.label} 执行漏洞扫描。`,
-            data_flow: dataflowVulnInputRef(projectId, String(candidate.payload.dataFlowPath)),
+            data_flow: dataflowVulnInputRef(projectId, String(candidate.payload.dataFlowDir || dirname(String(candidate.payload.dataFlowPath)))),
             source_dir: dataflowVulnInputRef(projectId, dfaTask.input_path),
           });
           rows.push({ id: createdTask.task_id, label: createdTask.title || createdTask.task_id, targetStage: 'vuln_scan' });

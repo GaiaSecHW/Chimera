@@ -27,6 +27,7 @@ export interface B2STaskCreatePayload {
   llm_provider_key?: string;
   concurrency?: number;
   mode?: B2SRunMode;
+  reuse_cache?: boolean;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
@@ -80,6 +81,19 @@ export interface B2STask {
   run_duration_ms?: number | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface B2STaskBatchDeleteResult {
+  task_id: string;
+  status: string;
+  message?: string | null;
+}
+
+export interface B2STaskBatchDeleteResponse {
+  status: string;
+  deleted_count: number;
+  failed_count: number;
+  results: B2STaskBatchDeleteResult[];
 }
 
 export interface B2SProgress {
@@ -353,6 +367,7 @@ export interface B2STaskConfigSnapshot {
   agent_run_timeout_seconds?: number | null;
   agent_timeout_retry_enabled?: boolean | null;
   agent_timeout_max_retries?: number | null;
+  reuse_cache?: boolean | null;
   budget_exhausted_action?: string | null;
   input_count: number;
   input_items: B2STaskConfigInputItem[];
@@ -635,6 +650,15 @@ export const binaryToSourceApi = {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}`, {
       method: 'DELETE',
       headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  batchDeleteTasks: async (projectId: string, taskIds: string[]): Promise<B2STaskBatchDeleteResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/batch-delete`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ task_ids: taskIds }),
     });
     return handleResponse(resp);
   },

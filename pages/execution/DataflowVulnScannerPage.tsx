@@ -720,7 +720,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       return;
     }
     if (!createState.dataFlowPath.trim()) {
-      notify('请选择数据流文件路径', 'warning');
+      notify('请选择数据流目录路径', 'warning');
       return;
     }
     if (!createState.sourcePath.trim()) {
@@ -1241,16 +1241,16 @@ const CreateTaskDialog: React.FC<{
 }> = ({ projectId, state, profiles, profilesLoading, submitting, onChange, onClose, onSubmit }) => {
   const [pickerField, setPickerField] = useState<null | 'workspacePath' | 'dataFlowPath' | 'sourcePath'>(null);
 
-  const pickerMode = pickerField === 'dataFlowPath' ? 'file' : 'directory';
+  const pickerMode = 'directory';
   const pickerTitle = pickerField === 'workspacePath'
     ? '选择 Runs 根目录'
     : pickerField === 'dataFlowPath'
-      ? '选择数据流文件'
+      ? '选择数据流目录'
       : '选择代码目录';
   const pickerDescription = pickerField === 'workspacePath'
     ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择 run_vuln_scan.py 的 --runs-root。系统会在该目录下创建标准 Run 扫描目录。'
     : pickerField === 'dataFlowPath'
-      ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择数据流分析结果文件。'
+      ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择包含数据流分析结果文件的目录。'
       : '从数据流漏洞挖掘服务直接挂载的 /data 中选择要审计的代码目录。';
 
   return (
@@ -1337,15 +1337,15 @@ const CreateTaskDialog: React.FC<{
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                  <FileSearch size={16} />
-                  数据流文件
+                  <FolderOpen size={16} />
+                  数据流目录
                 </div>
-                <div className="mt-2 text-xs leading-5 text-slate-500">直接从项目文件资源中选择现有 `data_flow.md` 或其他分析结果文件。</div>
+                <div className="mt-2 text-xs leading-5 text-slate-500">直接从项目文件资源中选择包含 `data_flow.md` 或其他分析结果文件的目录。</div>
                 <div className="mt-3 flex gap-2">
                   <input
                     value={state.dataFlowPath}
                     onChange={(event) => onChange({ ...state, dataFlowPath: event.target.value })}
-                    placeholder="/case-a/data_flow.md"
+                    placeholder="/case-a/data_flow"
                     className={FORM_INPUT_CLASS}
                   />
                   <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">

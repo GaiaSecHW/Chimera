@@ -219,6 +219,7 @@ export const SessionRelationshipGraph: React.FC<{
   index: AppSaSessionIndex | null;
   selectedPath: string | null;
   onSelect: (path: string) => void;
+  focusedStageKey?: string | null;
   sessionPreview?: {
     path: string | null;
     sessionMeta?: any;
@@ -228,11 +229,16 @@ export const SessionRelationshipGraph: React.FC<{
     live?: boolean;
     error?: string | null;
   };
-}> = ({ index, selectedPath, onSelect, sessionPreview }) => {
+}> = ({ index, selectedPath, onSelect, focusedStageKey, sessionPreview }) => {
   const graph = useMemo(() => buildGraph(index), [index]);
+  const normalizedFocusedStageKey = String(focusedStageKey || '').trim().toLowerCase();
   const [expandedStageKey, setExpandedStageKey] = useState<string | null>(null);
   const [inspectedPath, setInspectedPath] = useState<string | null>(null);
-  const expandedStage = graph.orderedStages.find((stage) => stage.stageKey === expandedStageKey) || null;
+  const effectiveExpandedStageKey =
+    expandedStageKey ||
+    graph.orderedStages.find((stage) => stage.stageKey === normalizedFocusedStageKey)?.stageKey ||
+    null;
+  const expandedStage = graph.orderedStages.find((stage) => stage.stageKey === effectiveExpandedStageKey) || null;
   const inspectedNode = inspectedPath
     ? index?.nodes?.find((node) => node.relative_path === inspectedPath) || null
     : null;
@@ -303,7 +309,9 @@ export const SessionRelationshipGraph: React.FC<{
                 <button
                   type="button"
                   onClick={() => setExpandedStageKey(stage.stageKey)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-left transition hover:border-slate-300 hover:bg-slate-50"
+                  className={`w-full rounded-2xl border p-4 text-left transition hover:border-slate-300 hover:bg-slate-50 ${
+                    stage.stageKey === normalizedFocusedStageKey ? 'border-cyan-300 bg-cyan-50/70 shadow-sm' : 'border-slate-200 bg-slate-50/80'
+                  }`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
@@ -317,6 +325,11 @@ export const SessionRelationshipGraph: React.FC<{
                       <div className="mt-2 text-xs text-slate-500">
                         仅展示阶段摘要。点击后进入全屏视图查看智能体推进、并列 Judge / Sub Worker 关系。
                       </div>
+                      {stage.stageKey === normalizedFocusedStageKey ? (
+                        <div className="mt-2 inline-flex rounded-full border border-cyan-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-cyan-700">
+                          当前阶段聚焦
+                        </div>
+                      ) : null}
                     </div>
                     <span className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">
                       <Expand size={14} />
