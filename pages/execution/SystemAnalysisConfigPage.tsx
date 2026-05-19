@@ -165,6 +165,8 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   agent_timeout_seconds: 1800,
   pi_max_retries: -1,
   pi_retry_delay: 10,
+  model_stuck_timeout: 1800,
+  model_stuck_max_activations: 5,
   stages: {
     classify: { min_rounds: 2, max_rounds: 5, pass_mode: 'majority' },
     refine: { min_rounds: 2, max_rounds: 3, pass_mode: 'majority' },
@@ -289,6 +291,8 @@ const applySystemAnalysisPanel = (
         agent_timeout_seconds: source.agent_timeout_seconds,
         pi_max_retries: source.pi_max_retries,
         pi_retry_delay: source.pi_retry_delay,
+        model_stuck_timeout: source.model_stuck_timeout,
+        model_stuck_max_activations: source.model_stuck_max_activations,
         max_rounds_exceeded_action: source.max_rounds_exceeded_action,
       };
     case 'stages':
@@ -1066,6 +1070,14 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               <FieldRow label="pi_retry_delay（秒）" hint="进程崩溃后等待时间"
                 desc="pi 进程崩溃后重启前的等待时间（秒），给系统留出资源回收时间，避免崩溃-重启循环过于密集导致资源耗尽。">
                 <NumberInput value={config.pi_retry_delay} min={0} step={0.5} onChange={(v) => patch({ pi_retry_delay: v })} />
+              </FieldRow>
+              <FieldRow label="model_stuck_timeout（秒）" hint="单 pi 进程无 token 超时"
+                desc="单个 pi 进程在这么多秒内没有任何 token 输出（session 文件未发生变化），则被认定为后端模型卡死。系统会 kill 当前 pi 并重新拆起，继承 session 发送「继续」将模型唤醒。考虑模型排队延迟，默认 1800（30 分钟）。设为 0 禁用该机制。">
+                <NumberInput value={config.model_stuck_timeout ?? 1800} min={0} step={60} onChange={(v) => patch({ model_stuck_timeout: v })} />
+              </FieldRow>
+              <FieldRow label="model_stuck_max_activations" hint="激活次数上限"
+                desc="单个 pi 进程连续卡死时，最多发送这么多次「继续」激活指令；超过此次数后进行重启（依然继承 session 发送「继续」）并重置计数。默认 5 次。">
+                <NumberInput value={config.model_stuck_max_activations ?? 5} min={1} step={1} onChange={(v) => patch({ model_stuck_max_activations: v })} />
               </FieldRow>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4">

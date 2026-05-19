@@ -2105,6 +2105,8 @@ export interface SystemAnalysisServiceConfig {
   agent_timeout_seconds: number;
   pi_max_retries: number;
   pi_retry_delay: number;
+  model_stuck_timeout: number;
+  model_stuck_max_activations: number;
   stages: SystemAnalysisStagesConfig;
   workers: SystemAnalysisRoleConfig;
   judges: SystemAnalysisRoleConfig;
