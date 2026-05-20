@@ -1343,7 +1343,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       </SectionCard>
 
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
-        <MetricTile label="ELF 完成" value={`${overall?.completed_items || 0}/${overall?.total_items || detail?.total_items || 0}`} hint={`${detail?.running_items || 0} 个运行中`} tone="blue" icon={<Cpu size={18} />} />
+        <MetricTile label="ELF 完成" value={`${overall?.completed_items || 0}/${overall?.total_items || detail?.total_items || 0}`} hint={`${detail?.running_items || 0} 个运行中 · ${detail?.cancelling_items || 0} 个取消中`} tone="blue" icon={<Cpu size={18} />} />
         <MetricTile label="Batch 总数" value={observabilitySummary?.total_batches || 0} hint={`均值 ${observabilitySummary?.avg_batches_per_item || 0}`} tone="violet" icon={<Layers3 size={18} />} />
         <MetricTile label="评审轮次" value={observabilitySummary?.total_review_attempts || 0} hint={`均值 ${observabilitySummary?.avg_review_attempts || 0}`} tone="emerald" icon={<GitBranch size={18} />} />
         <MetricTile label="会话数" value={runtimeSummary?.total_sessions || resultSummary?.session_file_count || detail?.agent_runtime_summary?.total_sessions || 0} hint={`活跃 ${runtimeSummary?.active_sessions || detail?.agent_runtime_summary?.active_agent_count || 0}`} tone="slate" icon={<Bot size={18} />} />
@@ -2250,8 +2250,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     <div className="mt-2.5">
                       <B2SProgressBar value={primaryProgress} tone={B2S_TERMINAL_STATUSES.has(detail.status) ? 'emerald' : 'blue'} />
                     </div>
-                    <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-600">
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-600 md:grid-cols-4">
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">运行中：<span className="font-black text-slate-800">{detail.running_items}</span></div>
+                      <div className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-amber-800">取消中：<span className="font-black">{detail.cancelling_items || 0}</span></div>
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">ELF：<span className="font-black text-slate-800">{detail.total_items}</span></div>
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">会话：<span className="font-black text-slate-800">{runtimeSummary?.total_sessions || detail.agent_runtime_summary?.total_sessions || 0}</span></div>
                     </div>

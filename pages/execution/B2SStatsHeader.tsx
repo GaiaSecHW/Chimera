@@ -7,6 +7,7 @@ export interface B2SStats {
   pendingItems: number;
   queuedItems: number;
   runningItems: number;
+  cancellingItems: number;
   successItems: number;
   partialItems: number;
   failedItems: number;
@@ -19,6 +20,7 @@ export const emptyB2SStats = (): B2SStats => ({
   pendingItems: 0,
   queuedItems: 0,
   runningItems: 0,
+  cancellingItems: 0,
   successItems: 0,
   partialItems: 0,
   failedItems: 0,
@@ -33,6 +35,7 @@ export const summarizeB2STasks = (tasks: B2STask[]): B2SStats => {
       pendingItems: acc.pendingItems + (task.pending_items || 0),
       queuedItems: acc.queuedItems + (task.queued_items || 0),
       runningItems: acc.runningItems + (task.running_items || 0),
+      cancellingItems: acc.cancellingItems + (task.cancelling_items || 0),
       successItems: acc.successItems + (task.success_items || 0),
       partialItems: acc.partialItems + (task.partial_items || 0),
       failedItems: acc.failedItems + (task.failed_items || 0),
@@ -58,12 +61,13 @@ export const B2SStatsHeader: React.FC<Props> = ({ stats, title = '基础统计' 
   return (
     <div className="space-y-2">
       <div className="text-sm font-black text-slate-800">{title}</div>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5 xl:grid-cols-10">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-6 xl:grid-cols-11">
         <StatCard label="任务数" value={stats.taskCount} />
         <StatCard label="总ELF" value={stats.totalItems} />
         <StatCard label="待处理" value={stats.pendingItems} />
         <StatCard label="排队中" value={stats.queuedItems} />
         <StatCard label="运行中" value={stats.runningItems} />
+        <StatCard label="取消中" value={stats.cancellingItems} />
         <StatCard label="成功" value={stats.successItems} />
         <StatCard label="部分成功" value={stats.partialItems} />
         <StatCard label="失败" value={stats.failedItems} />

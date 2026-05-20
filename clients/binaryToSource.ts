@@ -128,6 +128,7 @@ export interface B2STask {
   pending_items: number;
   queued_items: number;
   running_items: number;
+  cancelling_items: number;
   success_items: number;
   partial_items: number;
   failed_items: number;

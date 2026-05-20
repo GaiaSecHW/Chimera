@@ -1111,7 +1111,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                           </div>
                           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
                             <span>ELF {detail?.overall_progress?.completed_items ?? task.success_items ?? 0}/{task.total_items || 0}</span>
-                            <span>已取消 {task.cancelled_items}</span>
+                            <span>取消中 {task.cancelling_items || 0} · 已取消 {task.cancelled_items}</span>
                           </div>
                         </ExecutionTableTd>
                         <ExecutionTableTd>
