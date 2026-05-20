@@ -93,9 +93,16 @@ const STAGE_STEPS = [
     artifactSubpath: 'run/entries',
   },
   {
+    key: 'cc',
+    label: 'CC 调用链分析',
+    desc: '纯静态：提取模块内调用关系，构建调用链 DB，更新入口置信度（无 LLM）',
+    triggers: ['callchain_start', 'callchain_done', 'callchain_failed'],
+    artifactSubpath: 'run/workspace/callchain',
+  },
+  {
     key: 'r4',
     label: 'R4 模块汇总',
-    desc: '模块级：跨文件调用链分析，保留真实最外层外部入口',
+    desc: '模块级：跨文件调用链辅助分析，保留真实最外层外部入口',
     triggers: ['r4_w_start', 'r4_w_done', 'r4_j_start', 'r4_j_done', 'r4_j_retry',
                // 兼容旧流程事件
                'round_end'],
@@ -169,13 +176,15 @@ interface StageStat {
   funcsDone?: number;     // 已完成函数数（R1: judge 通过; R2: 分析完毕）
   entriesFound?: number;  // 识别到的入口数（R3 候选 / R4 最终）
   attempts?: number;      // 执行轮次（R4 重试计数）
+  nodeCount?: number;     // CC: 调用链节点数
+  edgeCount?: number;     // CC: 调用边数
   startTs?: number;       // 阶段首次事件 Unix 时间戳（秒）
   lastTs?: number;        // 阶段最后活动 Unix 时间戳（秒）
 }
 
 /**
  * 从 stages_json.events 推导每个流水线阶段的统计数据。
- * 顺序与 STAGE_STEPS 对齐：[init, r1, r2, r3, r4, finish]。
+ * 顺序与 STAGE_STEPS 对齐：[init, r1, r2, r3, cc, r4, finish]。
  */
 function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
   const result: StageStat[] = STAGE_STEPS.map(() => ({}));
@@ -191,7 +200,10 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
   const r3FileEntries = new Map<string, number>(); // file_hash → latest entry_count
   let   r4EntryCount  = 0;
   let   r4Attempts    = 0;
+  let   ccNodes       = 0;
+  let   ccEdges       = 0;
 
+  // STAGE_STEPS indices: 0=init 1=r1 2=r2 3=r3 4=cc 5=r4 6=finish
   const touch = (idx: number, ts: number) => {
     if (ts <= 0) return;
     if (firstTs[idx] === undefined) firstTs[idx] = ts;
@@ -249,19 +261,27 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
         touch(3, ts);
         if (d.file_hash) r3FilesDone.add(String(d.file_hash));
         break;
+      // ── CC ────────────────────────────────────────────────────────────
+      case 'callchain_start':
+      case 'callchain_failed': touch(4, ts); break;
+      case 'callchain_done':
+        touch(4, ts);
+        ccNodes = Number(d.nodes) || ccNodes;
+        ccEdges = Number(d.edges) || ccEdges;
+        break;
       // ── R4 ────────────────────────────────────────────────────────────
       case 'r4_w_start':
-        touch(4, ts); r4Attempts += 1; break;
+        touch(5, ts); r4Attempts += 1; break;
       case 'r4_w_done':
-        touch(4, ts); r4EntryCount = Number(d.entry_count) || r4EntryCount; break;
+        touch(5, ts); r4EntryCount = Number(d.entry_count) || r4EntryCount; break;
       case 'r4_j_start':
       case 'r4_j_retry':
-      case 'r4_j_done':     touch(4, ts); break;
+      case 'r4_j_done':     touch(5, ts); break;
       // ── finish ────────────────────────────────────────────────────────
       case 'task_end':
       case 'functions_list_synced':
       case 'functions_list_error':
-      case 'functions_list_autofix': touch(5, ts); break;
+      case 'functions_list_autofix': touch(6, ts); break;
       default: break;
     }
   }
@@ -272,8 +292,9 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
   result[1] = { filesTotal: totalFiles || undefined, funcsDone: r1FuncsPassed.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
   result[2] = { filesTotal: totalFiles || undefined, filesDone: r2FilesPassed.size || undefined, funcsDone: r2FuncsDone.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
   result[3] = { filesTotal: totalFiles || undefined, filesDone: r3FilesDone.size || undefined, entriesFound: r3EntriesSum || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
-  result[4] = { entriesFound: r4EntryCount || undefined, attempts: r4Attempts || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
-  result[5] = { startTs: firstTs[5], lastTs: lastTs[5] };
+  result[4] = { nodeCount: ccNodes || undefined, edgeCount: ccEdges || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
+  result[5] = { entriesFound: r4EntryCount || undefined, attempts: r4Attempts || undefined, startTs: firstTs[5], lastTs: lastTs[5] };
+  result[6] = { startTs: firstTs[6], lastTs: lastTs[6] };
 
   return result;
 }
@@ -284,6 +305,7 @@ function stageLabel(stage: string | undefined): string {
     r1:     'R1 函数提取',
     r2:     'R2 函数分析',
     r3:     'R3 文件过滤',
+    cc:     'CC 调用链分析',
     r4:     'R4 模块汇总',
     finish: '生成结果',
     // 旧流程兼容
@@ -389,7 +411,7 @@ function getEntryAnalysisRiskPreset(riskKey: string): { label: string; descripti
 }
 
 function getEntryAnalysisDetailRecommendationReason(params: {
-  stageFocusHint: 'R1' | 'R2' | 'R3' | 'R4' | '';
+  stageFocusHint: 'R1' | 'R2' | 'R3' | 'R4' | 'CC' | '';
   riskPreset: { label: string; description: string; statusReason: string } | null;
   detailStatus?: string;
   focusedSessionGroup: { activeCount: number; latestMtime: number; recommended: AppEaSessionMeta | null } | null;
@@ -473,11 +495,17 @@ function parseSessionDelta(lines: string[], startLine: number): { events: AppEaS
 }
 
 function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): StepStatus[] {
+  // STAGE_STEPS indices: 0=init 1=r1 2=r2 3=r3 4=cc 5=r4 6=finish
+  const CC_INDEX = 4;
   const statuses: StepStatus[] = STAGE_STEPS.map(() => 'pending');
   if (taskStatus === 'pending') return statuses;
   if (taskStatus === 'passed') return STAGE_STEPS.map(() => 'completed');
   let last = -1;
+  let ccFailed = false;   // CC 失败是非致命的，需单独标记
+  let ccDone   = false;   // callchain_done 出现则 CC 已完成
   for (const evt of events) {
+    if (evt.type === 'callchain_failed') ccFailed = true;
+    if (evt.type === 'callchain_done')   ccDone   = true;
     STAGE_STEPS.forEach((step, index) => {
       if (step.triggers.includes(evt.type)) last = Math.max(last, index);
     });
@@ -487,8 +515,14 @@ function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): Step
     return statuses;
   }
   for (let i = 0; i < STAGE_STEPS.length; i += 1) {
-    if (i < last) statuses[i] = 'completed';
-    if (i === last) statuses[i] = ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'running';
+    if (i === CC_INDEX && ccFailed && !ccDone) {
+      // CC 失败且未恢复：展示为 failed，即使后续阶段已推进
+      statuses[i] = 'failed';
+    } else if (i < last) {
+      statuses[i] = 'completed';
+    } else if (i === last) {
+      statuses[i] = ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'running';
+    }
   }
   return statuses;
 }
@@ -527,6 +561,10 @@ function formatEvent(evt: AppEaStageEvent): string {
     case 'r3_j_start':          return `[${ts}] ▶ R3-J 评审: ${d.file ?? d.file_hash ?? ''}`;
     case 'r3_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R3-J 评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''}`;
     case 'r3_j_retry':          return `[${ts}] ↺ R3 重试: ${d.file ?? ''}`;
+    // ── CC 调用链分析 ──────────────────────────────────────────────────
+    case 'callchain_start':     return `[${ts}] ▶ CC 调用链静态分析开始（尝试 #${d.attempt ?? 1}）`;
+    case 'callchain_done':      return `[${ts}] ✓ CC 完成: ${d.nodes ?? 0} 节点, ${d.edges ?? 0} 边, ${d.r3_entries ?? 0} 候选入口 → 置信度已更新`;
+    case 'callchain_failed':    return `[${ts}] ⚠ CC 分析失败（非致命，R4 继续）: ${String(d.error ?? '').slice(0, 80)}`;
     // ── R4 模块汇总 ───────────────────────────────────────────────────
     case 'r4_w_start':          return `[${ts}] ▶ R4-W 模块汇总开始`;
     case 'r4_w_done':           return `[${ts}] ✓ R4-W 完成 最终入口=${d.entry_count ?? 0}`;
@@ -650,7 +688,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [judgeSessionError, setJudgeSessionError] = useState<string | null>(null);
   const [judgeSessionLive, setJudgeSessionLive] = useState(false);
   const judgeSessionSocketRef = useRef<WebSocket | null>(null);
-  const [stageFocusHint, setStageFocusHint] = useState<'R1' | 'R2' | 'R3' | 'R4' | ''>('');
+  const [stageFocusHint, setStageFocusHint] = useState<'R1' | 'R2' | 'R3' | 'R4' | 'CC' | ''>('');
   const [riskFocusHint, setRiskFocusHint] = useState('');
 
   const handleBack = () => {
@@ -746,7 +784,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   useEffect(() => {
     const stored = sessionStorage.getItem(stageFocusStorageKey) || '';
     const normalized = stored.trim().toUpperCase();
-    setStageFocusHint(['R1', 'R2', 'R3', 'R4'].includes(normalized) ? (normalized as 'R1' | 'R2' | 'R3' | 'R4') : '');
+    setStageFocusHint(['R1', 'R2', 'R3', 'R4', 'CC'].includes(normalized) ? (normalized as 'R1' | 'R2' | 'R3' | 'R4' | 'CC') : '');
   }, [stageFocusStorageKey, taskId]);
   useEffect(() => {
     const stored = sessionStorage.getItem(riskFocusStorageKey) || '';
@@ -1213,9 +1251,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 const hasStatChips = state !== 'pending' && (
                   stat.filesTotal != null || stat.filesDone != null ||
                   stat.funcsDone  != null || stat.entriesFound != null ||
+                  stat.nodeCount  != null || stat.edgeCount   != null ||
                   (stat.attempts != null && stat.attempts > 1)
                 );
-                return <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-white text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900">{step.label}</p>{stat.startTs && state !== 'pending' ? <span className="shrink-0 font-mono text-[11px] text-slate-400">{state === 'running' ? formatStageElapsed(stat.startTs, clockNow) : formatStageDuration(stat.startTs, stat.lastTs)}</span> : null}</div><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{hasStatChips ? <div className="mt-2 flex flex-wrap gap-1.5">{stat.filesTotal != null && stat.filesDone == null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesTotal} 文件</span> : stat.filesDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesDone}{stat.filesTotal != null ? `/${stat.filesTotal}` : ''} 文件</span> : null}{stat.funcsDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-600">ƒ {stat.funcsDone} 函数</span> : null}{stat.entriesFound != null ? <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">→ {stat.entriesFound} 入口</span> : null}{stat.attempts != null && stat.attempts > 1 ? <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">↺ {stat.attempts} 轮</span> : null}</div> : null}{artifactFsPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+                return <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-white text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900">{step.label}</p>{stat.startTs && state !== 'pending' ? <span className="shrink-0 font-mono text-[11px] text-slate-400">{state === 'running' ? formatStageElapsed(stat.startTs, clockNow) : formatStageDuration(stat.startTs, stat.lastTs)}</span> : null}</div><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{hasStatChips ? <div className="mt-2 flex flex-wrap gap-1.5">{stat.filesTotal != null && stat.filesDone == null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesTotal} 文件</span> : stat.filesDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesDone}{stat.filesTotal != null ? `/${stat.filesTotal}` : ''} 文件</span> : null}{stat.funcsDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-600">ƒ {stat.funcsDone} 函数</span> : null}{stat.entriesFound != null ? <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">→ {stat.entriesFound} 入口</span> : null}{stat.nodeCount != null ? <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">🔗 {stat.nodeCount} 节点</span> : null}{stat.edgeCount != null ? <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-600">→ {stat.edgeCount} 边</span> : null}{stat.attempts != null && stat.attempts > 1 ? <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">↺ {stat.attempts} 轮</span> : null}</div> : null}{artifactFsPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
               })}</div>
             </div>
           </section>
