@@ -96,7 +96,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
-  const [concurrency, setConcurrency] = useState(4);
+  const [concurrency, setConcurrency] = useState(8);
+  const [projectDefaultConcurrency, setProjectDefaultConcurrency] = useState(8);
   const [runMode, setRunMode] = useState<B2SRunMode>('fast');
   const [llmProviderKey, setLlmProviderKey] = useState('');
   const [reuseCache, setReuseCache] = useState(true);
@@ -351,7 +352,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   const resetCreateForm = () => {
     setName('');
-    setConcurrency(4);
+    setConcurrency(projectDefaultConcurrency);
     setRunMode('fast');
     setLlmProviderKey('');
     setReuseCache(true);
@@ -372,6 +373,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       ]);
       const providers = (data.items || []).filter((item) => item.enabled);
       const projectProviderKey = String(projectConfig?.llm_provider_key || '').trim();
+      const nextProjectDefaultConcurrency = Math.max(1, Math.min(16, Number(projectConfig?.concurrency) || 8));
+      setProjectDefaultConcurrency(nextProjectDefaultConcurrency);
+      setConcurrency(nextProjectDefaultConcurrency);
       setLlmProviders(providers);
       setLlmProviderKey((current) => current || projectProviderKey || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
     } catch (e: any) {
@@ -438,7 +442,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
     setSubmitting(true);
     try {
-      const safeConcurrency = Math.max(1, Math.min(16, Number.isFinite(concurrency) ? concurrency : 4));
+      const safeConcurrency = Math.max(1, Math.min(16, Number.isFinite(concurrency) ? concurrency : projectDefaultConcurrency));
 
       setUploadProgress('准备任务目录...');
       const { task_id: taskId } = await executionApi.binaryToSource.prepareTask(projectId);
@@ -1229,10 +1233,16 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     min={1}
                     max={16}
                     value={concurrency}
-                    onChange={(e) => setConcurrency(Number(e.target.value) || 4)}
+                    onChange={(e) => setConcurrency(Math.max(1, Math.min(16, Number(e.target.value) || projectDefaultConcurrency)))}
                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
                   />
-                  <span className="mt-2 block text-xs font-normal text-slate-500">控制 pi-re-agent 同时处理的 batch 数，建议 1-8。</span>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-normal text-slate-500">
+                    <span>默认取自 执行 → 参数配置，当前项目默认：{projectDefaultConcurrency}</span>
+                    {concurrency !== projectDefaultConcurrency ? (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-700">已覆盖项目默认</span>
+                    ) : null}
+                  </div>
+                  <span className="mt-2 block text-xs font-normal text-slate-500">这里的修改只影响本次创建任务；并发越高，batch 并行越强，也会更快消耗下游执行槽位。</span>
                 </label>
               </div>
 

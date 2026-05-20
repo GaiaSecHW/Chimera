@@ -19,6 +19,7 @@ type B2SInnerTab = 'runtime' | 'cache';
 const defaultConfig = (projectId: string): B2SServiceConfig => ({
   project_id: projectId,
   budget_exhausted_action: 'treat_as_passed',
+  concurrency: 8,
   llm_provider_key: null,
   effective_llm_provider: null,
 });
@@ -273,6 +274,16 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     );
   };
 
+  const saveConcurrencyConfig = async () => {
+    await persistConfig(
+      {
+        ...savedConfig,
+        concurrency: Math.max(1, Math.min(16, Number.isFinite(config.concurrency) ? config.concurrency : 8)),
+      },
+      '批次并发配置已保存',
+    );
+  };
+
   const resetProviderConfig = () => {
     setConfig((prev) => ({ ...prev, llm_provider_key: null }));
     notify('LLM / Agent 配置已重置为默认值（尚未保存）', 'info');
@@ -281,6 +292,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   const resetPolicy = () => {
     setConfig((prev) => ({ ...prev, budget_exhausted_action: defaultConfig(projectId).budget_exhausted_action }));
     notify('终态策略已重置为默认值（尚未保存）', 'info');
+  };
+
+  const resetConcurrencyConfig = () => {
+    setConfig((prev) => ({ ...prev, concurrency: defaultConfig(projectId).concurrency }));
+    notify('批次并发已重置为默认值（尚未保存）', 'info');
   };
 
   const resetCacheFilters = () => {
@@ -506,6 +522,25 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               </div>
               <p className="text-xs leading-5 text-slate-500">
                 任务创建时若未手工指定 `llm_provider_key`，默认取这里的项目级 Provider；若这里留空，则回退到配置中心默认 Provider。
+              </p>
+            </SectionCard>
+            <SectionCard
+              title="批次并发配置"
+              subtitle="配置项目级默认 batch 并发。保存后仅影响后续新建任务，不影响已创建、运行中或重试中的任务。"
+              actions={<PanelActions saving={saving} onSave={() => { void saveConcurrencyConfig(); }} onReset={resetConcurrencyConfig} />}
+            >
+              <FieldRow label="默认 batch 并发" hint="concurrency · 1-16">
+                <input
+                  type="number"
+                  min={1}
+                  max={16}
+                  value={config.concurrency}
+                  onChange={(e) => setConfig((prev) => ({ ...prev, concurrency: Math.max(1, Math.min(16, Number(e.target.value) || 8)) }))}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                />
+              </FieldRow>
+              <p className="text-xs leading-5 text-slate-500">
+                这里维护的是项目默认并发。新任务创建时会默认带出该值；如果用户在创建弹窗里手工修改，只影响本次任务。
               </p>
             </SectionCard>
             <SectionCard
