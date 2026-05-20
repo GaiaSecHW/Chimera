@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronRight, Copy, FileText, Folder, FolderOpen, Loader2, Plus, RefreshCw, Search, Shield, Smartphone, Trash2, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, ChevronRight, Copy, FileText, Folder, FolderOpen, Loader2, Plus, RefreshCw, RotateCcw, Search, Shield, Smartphone, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { KernelScanAdbDevice, KernelScanCategory, KernelScanBrowseResponse, KernelScanEntryResult, KernelScanFileEntry, KernelScanReadyState, KernelScanTaskDetail, KernelScanTaskSummary } from '../../clients/kernelScan';
 import { useUiFeedback } from '../../components/UiFeedback';
 
 const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'cancel_requested']);
+const RESTARTABLE_TASK_STATUSES = new Set(['succeeded', 'partial_success', 'failed', 'cancelled']);
 
 const TASK_STATUS_LABELS: Record<string, string> = {
   queued: '排队中',
@@ -110,6 +111,7 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
   const [selectedTask, setSelectedTask] = useState<KernelScanTaskDetail | null>(null);
   const [taskDetailLoading, setTaskDetailLoading] = useState(false);
   const [actingTask, setActingTask] = useState(false);
+  const [restartingTask, setRestartingTask] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
   const [entryResult, setEntryResult] = useState<KernelScanEntryResult | null>(null);
@@ -560,6 +562,28 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     }
   };
 
+  const handleRestartTask = async () => {
+    if (!selectedTask) return;
+    const confirmed = await confirm({
+      title: '重启任务',
+      message: `确认重启任务「${selectedTask.title}」吗？将复用原有配置重新执行，已有产物会被保留。`,
+      confirmText: '重启',
+      cancelText: '取消',
+    });
+    if (!confirmed) return;
+    setRestartingTask(true);
+    try {
+      await executionApi.restartTask(selectedTask.task_id);
+      notify('任务已重新排队', 'success');
+      await handleRefreshTasks();
+      await handleOpenTaskDetail(selectedTask.task_id);
+    } catch (error: any) {
+      notify(error?.message || '重启任务失败', 'error');
+    } finally {
+      setRestartingTask(false);
+    }
+  };
+
   const handleDeleteTaskById = async (task: KernelScanTaskSummary | KernelScanTaskDetail, event?: React.MouseEvent) => {
     event?.stopPropagation();
     event?.preventDefault();
@@ -720,11 +744,6 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
             )}
           </div>
 
-          {adbDevicesRaw ? (
-            <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-slate-200 bg-slate-950 p-3 font-mono text-xs leading-relaxed text-slate-100">
-{adbDevicesRaw}
-            </pre>
-          ) : null}
         </section>
       ) : null}
 
@@ -876,6 +895,17 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   >
                     {actingTask ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
                     取消任务
+                  </button>
+                ) : null}
+                {RESTARTABLE_TASK_STATUSES.has(String(selectedTask.status || '').toLowerCase()) ? (
+                  <button
+                    type="button"
+                    onClick={handleRestartTask}
+                    disabled={restartingTask}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {restartingTask ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
+                    重启任务
                   </button>
                 ) : null}
                 <button

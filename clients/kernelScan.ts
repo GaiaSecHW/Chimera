@@ -374,6 +374,14 @@ export const kernelScanApi = {
     return handleResponse(response);
   },
 
+  restartTask: async (taskId: string): Promise<{ task_id: string; attempt_id: string; status: string }> => {
+    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/restart`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   getTaskEvents: async (taskId: string): Promise<KernelScanEventPageResponse> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/events`, noStoreGetInit());
     return handleResponse(response);
