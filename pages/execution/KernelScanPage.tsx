@@ -7,6 +7,55 @@ import { useUiFeedback } from '../../components/UiFeedback';
 
 const ACTIVE_TASK_STATUSES = new Set(['queued', 'running', 'cancel_requested']);
 const RESTARTABLE_TASK_STATUSES = new Set(['succeeded', 'partial_success', 'failed', 'cancelled']);
+const TERMINAL_SUCCESS_STATUSES = new Set(['succeeded', 'partial_success']);
+
+interface EntryProgress {
+  percent: number | null;
+  current?: number;
+  total?: number;
+  label?: string;
+  updatedAt: number;
+}
+
+const PROJECT_TAG_RE = /^\[p:([^\]\s]+)\]\s*/;
+
+const parseTaskTitle = (rawTitle: string): { projectId: string | null; title: string } => {
+  const match = String(rawTitle || '').match(PROJECT_TAG_RE);
+  if (!match) return { projectId: null, title: String(rawTitle || '') };
+  return { projectId: match[1], title: String(rawTitle || '').replace(PROJECT_TAG_RE, '') };
+};
+
+const tagTaskTitle = (title: string, projectId?: string | null): string => {
+  const trimmed = String(title || '').trim();
+  if (!projectId) return trimmed;
+  return `[p:${projectId}] ${trimmed}`;
+};
+
+const parseEntryProgress = (content: string): EntryProgress | null => {
+  if (!content) return null;
+  const lines = content.split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    if (!line) continue;
+    const ratio = line.match(/(\d+)\s*\/\s*(\d+)/);
+    if (ratio) {
+      const current = Number(ratio[1]);
+      const total = Number(ratio[2]);
+      if (Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+        const percent = Math.max(0, Math.min(100, (current / total) * 100));
+        return { percent, current, total, label: line.trim().slice(-120), updatedAt: Date.now() };
+      }
+    }
+    const pct = line.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (pct) {
+      const percent = Math.max(0, Math.min(100, Number(pct[1])));
+      if (Number.isFinite(percent)) {
+        return { percent, label: line.trim().slice(-120), updatedAt: Date.now() };
+      }
+    }
+  }
+  return null;
+};
 
 const TASK_STATUS_LABELS: Record<string, string> = {
   queued: '排队中',
@@ -120,6 +169,10 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
   const tasksRefreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const tasksRefreshInFlight = useRef(false);
 
+  const [entryProgress, setEntryProgress] = useState<Record<string, EntryProgress>>({});
+  const entryProgressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const entryProgressInFlight = useRef<Set<string>>(new Set());
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
@@ -151,15 +204,25 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  const filteredTasks = tasks.filter((item) => {
+  const tasksForProject = tasks
+    .map((item) => {
+      const parsed = parseTaskTitle(item.title);
+      return { ...item, title: parsed.title, _rawTitle: item.title, _projectId: parsed.projectId };
+    })
+    .filter((item) => {
+      if (!projectId) return true;
+      return item._projectId === projectId;
+    });
+
+  const filteredTasks = tasksForProject.filter((item) => {
     const keyword = taskKeyword.trim().toLowerCase();
     if (!keyword) return true;
     return `${item.title} ${item.kernel_dir || ''} ${item.task_id}`.toLowerCase().includes(keyword);
   });
 
-  const activeTaskCount = tasks.filter((item) => ACTIVE_TASK_STATUSES.has(String(item.status || '').toLowerCase())).length;
-  const succeededTaskCount = tasks.filter((item) => String(item.status || '').toLowerCase() === 'succeeded').length;
-  const failedTaskCount = tasks.filter((item) => String(item.status || '').toLowerCase() === 'failed').length;
+  const activeTaskCount = tasksForProject.filter((item) => ACTIVE_TASK_STATUSES.has(String(item.status || '').toLowerCase())).length;
+  const succeededTaskCount = tasksForProject.filter((item) => String(item.status || '').toLowerCase() === 'succeeded').length;
+  const failedTaskCount = tasksForProject.filter((item) => String(item.status || '').toLowerCase() === 'failed').length;
   const isVulnScanDetail = activeTab === 'vuln_scan' && selectedTask?.pipeline_mode === 'audit_only';
   const isVulnVerifyDetail = activeTab === 'vuln_verify' && selectedTask?.pipeline_mode === 'poc_only';
   const showTaskWorkspaceFiles = isVulnScanDetail || isVulnVerifyDetail;
@@ -274,7 +337,8 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     resetTaskWorkspace();
     try {
       const detail = await executionApi.getTask(taskId);
-      setSelectedTask(detail);
+      const parsedDetailTitle = parseTaskTitle(detail.title);
+      setSelectedTask({ ...detail, title: parsedDetailTitle.title });
       if (activeTab !== 'vuln_verify') {
         fetchEntryResult(taskId);
         startEntryResultPolling(taskId, detail.status);
@@ -328,6 +392,66 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
   };
 
   useEffect(() => () => stopEntryResultPolling(), []);
+
+  const fetchEntryProgressForTask = async (taskId: string, status?: string | null) => {
+    const normalized = String(status || '').toLowerCase();
+    if (TERMINAL_SUCCESS_STATUSES.has(normalized)) {
+      setEntryProgress((prev) => ({
+        ...prev,
+        [taskId]: { percent: 100, label: '已完成', updatedAt: Date.now() },
+      }));
+      return;
+    }
+    if (entryProgressInFlight.current.has(taskId)) return;
+    entryProgressInFlight.current.add(taskId);
+    try {
+      const file = await executionApi.getWorkspaceFile(`/workspace/entry/${taskId}/entry.log`);
+      const parsed = parseEntryProgress(String(file?.content || ''));
+      if (parsed) {
+        setEntryProgress((prev) => ({ ...prev, [taskId]: parsed }));
+      } else {
+        setEntryProgress((prev) => {
+          if (prev[taskId]) return prev;
+          return { ...prev, [taskId]: { percent: null, updatedAt: Date.now() } };
+        });
+      }
+    } catch {
+      setEntryProgress((prev) => {
+        if (prev[taskId]) return prev;
+        return { ...prev, [taskId]: { percent: null, updatedAt: Date.now() } };
+      });
+    } finally {
+      entryProgressInFlight.current.delete(taskId);
+    }
+  };
+
+  useEffect(() => {
+    if (entryProgressTimer.current) {
+      clearInterval(entryProgressTimer.current);
+      entryProgressTimer.current = null;
+    }
+    if (activeTab !== 'attack_entry' || tasks.length === 0) return;
+
+    const refresh = () => {
+      tasks.forEach((task) => {
+        const status = String(task.status || '').toLowerCase();
+        if (ACTIVE_TASK_STATUSES.has(status) || TERMINAL_SUCCESS_STATUSES.has(status) || !entryProgress[task.task_id]) {
+          fetchEntryProgressForTask(task.task_id, task.status);
+        }
+      });
+    };
+
+    refresh();
+    entryProgressTimer.current = setInterval(refresh, 5000);
+
+    return () => {
+      if (entryProgressTimer.current) {
+        clearInterval(entryProgressTimer.current);
+        entryProgressTimer.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, tasks]);
 
   const handleOpenPathPicker = async (target: PathPickerTarget = 'target_dir') => {
     setPathPickerTarget(target);
@@ -515,7 +639,8 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
     try {
       const parallelValue = Number(createParallelCount) || 1;
       const pipelineMode = executionApi.categoryToPipeline(activeTab);
-      const title = activeTab === 'vuln_verify' ? buildVulnVerifyTaskTitle() : createTitle.trim();
+      const rawTitle = activeTab === 'vuln_verify' ? buildVulnVerifyTaskTitle() : createTitle.trim();
+      const title = tagTaskTitle(rawTitle, projectId);
       await executionApi.createTask({
         title,
         pipeline_mode: pipelineMode,
@@ -852,6 +977,55 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                       <span>{formatDateTime(item.created_at)}</span>
                     </div>
                     <div className="mt-2 font-mono text-[11px] text-slate-400">{item.task_id}</div>
+                    {activeTab === 'attack_entry' ? (() => {
+                      const progress = entryProgress[item.task_id];
+                      const status = String(item.status || '').toLowerCase();
+                      const isQueued = status === 'queued';
+                      const isRunning = status === 'running' || status === 'cancel_requested';
+                      const isSucceeded = TERMINAL_SUCCESS_STATUSES.has(status);
+                      const isFailed = status === 'failed';
+                      const isCancelled = status === 'cancelled';
+
+                      const pct = isSucceeded ? 100 : progress?.percent;
+                      const hasPct = typeof pct === 'number' && Number.isFinite(pct);
+                      const display = hasPct ? Math.round(pct as number) : null;
+
+                      let barClass = 'bg-sky-500';
+                      let hint = '';
+                      let indeterminate = false;
+                      if (isSucceeded) { barClass = 'bg-emerald-500'; hint = '已完成'; }
+                      else if (isFailed) { barClass = 'bg-rose-500'; hint = hasPct ? '已失败' : '失败'; }
+                      else if (isCancelled) { barClass = 'bg-slate-400'; hint = '已取消'; }
+                      else if (isQueued) { barClass = 'bg-violet-400'; hint = '排队中'; }
+                      else if (isRunning && !hasPct) { indeterminate = true; hint = '正在启动…'; }
+
+                      const widthPercent = isSucceeded
+                        ? 100
+                        : hasPct
+                          ? (display as number)
+                          : 0;
+
+                      return (
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                            <span>扫描进度{hint ? ` · ${hint}` : ''}</span>
+                            <span className="font-mono text-slate-700">
+                              {display !== null ? `${display}%` : '—'}
+                              {progress?.current != null && progress?.total != null ? ` (${progress.current}/${progress.total})` : ''}
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className={`h-full ${barClass} transition-all ${indeterminate ? 'animate-pulse' : ''}`}
+                              style={{ width: `${widthPercent}%` }}
+                            />
+                          </div>
+                          {progress?.label && !isQueued ? (
+                            <div className="mt-1 truncate font-mono text-[10px] text-slate-400" title={progress.label}>{progress.label}</div>
+                          ) : null}
+                        </div>
+                      );
+                    })() : null}
                   </div>
                 );
               })
@@ -1349,14 +1523,31 @@ export const KernelScanPage: React.FC<{ projectId: string }> = ({ projectId }) =
                   {pathPickerMode === 'file' ? '进入目录后点击文件旁的"选择"' : '点击目录名进入，点击"选择"确认路径'}
                 </span>
                 {pathPickerMode === 'dir' ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPathPicker(false)}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPath(browsePath)}
+                      className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
+                    >
+                      选择当前目录
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => handleSelectPath(browsePath)}
-                    className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
+                    onClick={() => setShowPathPicker(false)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
                   >
-                    选择当前目录
+                    取消
                   </button>
-                ) : null}
+                )}
               </div>
             </div>
           </div>

@@ -5596,8 +5596,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         Outputs: '输出摘要',
         'Outputs / Results': '漏洞结果',
         'Outputs / Supporting Docs': '支撑文档',
+        'Outputs / Removed Results': '撤回结果',
+        'Outputs / Final Output': '最终产物',
         Meta: '运行元数据',
         'Meta / Result Manifests': '结果清单',
+        'Meta / Checkpoints': '执行检查点',
         'Meta / Reflections': '反思记录',
         'Meta / Review Summaries': '评审汇总',
         'Meta / Cycle Metrics': '轮次指标',
@@ -5679,7 +5682,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           icon: 'D',
           label: 'Docs',
           hint: '支撑文档',
-          match: (file: any) => String(file.path || '').startsWith('supporting_docs/'),
+          match: (file: any) => String(file.path || '').startsWith('supporting_docs/')
+            || String(file.path || '').startsWith('final_output/supporting_docs/'),
         },
         {
           key: 'coverage',
@@ -5694,6 +5698,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           label: 'Manifest',
           hint: '结果清单',
           match: (file: any) => String(file.path || '').endsWith('results_manifest.json'),
+        },
+        {
+          key: 'vuln-list',
+          icon: 'V',
+          label: 'Vuln List',
+          hint: '漏洞状态列表',
+          match: (file: any) => String(file.path || '').endsWith('vulnerability_list.json'),
         },
         {
           key: 'log',

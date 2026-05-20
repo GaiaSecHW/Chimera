@@ -520,33 +520,33 @@ PoC report language: 简体中文. Do not translate code blocks, paths, identifi
 Container PoC runtime rules:
 - You are already inside the secflow-app-ipc-audit container.
 - Do not start an additional service/OHEMU Docker container. Do not call ohemu-container.sh, docker run, docker exec, or docker compose.
-- Use the in-container QEMU helper: /usr/local/bin/ipc-audit-qemu
-- The helper sources OpenHarmony QEMU scripts from: /workspace/openharmony_6_1/vendor/edu/docker/src
-- OpenHarmony workspace root: /workspace/openharmony_6_1
-- Prepared qcow2 root: /workspace/openharmony_6_1/vendor/edu/docker/volumes/qcow2_cache
-- Default boot dir: /workspace/openharmony_6_1/vendor/edu/docker/volumes/qcow2_cache/arm64/boot
-- QEMU runtime/state root: /var/lib/secflow-ipc-audit/ohemu
-- Per-task overlay disk root: /var/lib/secflow-ipc-audit/ohemu/runtime/instances/ipc-audit-task
-- Default QEMU arch/network: arm64/bridge
-- Default HDC endpoint in this container: 127.0.0.1:55555
-- HDC binary: /workspace/openharmony_6_1/vendor/edu/docker/src/hdc
-- Preferred instance name for this task: ipc-audit-task
+- Use the in-container QEMU helper: [[ task.poc_runtime.helper_bin ]]
+- The helper sources OpenHarmony QEMU scripts from: [[ task.poc_runtime.ohemu_src ]]
+- OpenHarmony workspace root: [[ task.poc_runtime.workspace_root ]]
+- Prepared qcow2 root: [[ task.poc_runtime.qcow2_root ]]
+- Default boot dir: [[ task.poc_runtime.boot_dir ]]
+- QEMU runtime/state root: [[ task.poc_runtime.runtime_root ]]
+- Per-task overlay disk root: [[ task.poc_runtime.overlay_root ]]
+- Default QEMU arch/network: [[ task.poc_runtime.arch ]]/[[ task.poc_runtime.network_mode ]]
+- Default HDC endpoint in this container: [[ task.poc_runtime.hdc_bind ]]:[[ task.poc_runtime.hdc_port ]]
+- HDC binary: [[ task.poc_runtime.hdc_bin ]]
+- Preferred instance name for this task: [[ task.poc_runtime.instance_name ]]
 
 Use these commands when runtime testing is needed:
-  /usr/local/bin/ipc-audit-qemu list
-  /usr/local/bin/ipc-audit-qemu ensure ipc-audit-task
-  /workspace/openharmony_6_1/vendor/edu/docker/src/hdc tconn 127.0.0.1:<HDC_PORT_FROM_HELPER_LIST>
-  /workspace/openharmony_6_1/vendor/edu/docker/src/hdc list targets
+  [[ task.poc_runtime.helper_bin ]] list
+  [[ task.poc_runtime.helper_bin ]] ensure [[ task.poc_runtime.instance_name ]]
+  [[ task.poc_runtime.hdc_bin ]] tconn [[ task.poc_runtime.hdc_bind ]]:<HDC_PORT_FROM_HELPER_LIST>
+  [[ task.poc_runtime.hdc_bin ]] list targets
 
 Network rules:
-- In bridge mode, the guest normally receives a 192.168.111.x address and /usr/local/bin/ipc-audit-qemu starts socat to forward 127.0.0.1:<HDC_PORT> to <GUEST_IP>:55555.
+- In bridge mode, the guest normally receives a 192.168.111.x address and [[ task.poc_runtime.helper_bin ]] starts socat to forward [[ task.poc_runtime.hdc_bind ]]:<HDC_PORT> to <GUEST_IP>:55555.
 - Prefer the HDC endpoint printed by the helper or recorded in the runtime/state/*.env file; do not guess the IP/port.
 - The helper waits for the helper-reported HDC endpoint to become Connected before returning, unless OHEMU_WAIT_FOR_HDC_READY=0 is explicitly set.
 - If bridge setup is unavailable, usermode may show a 20.20.20.x guest IP and QEMU hostfwd may listen before hdcd is ready; still use the helper-reported HDC endpoint and wait for Connected.
 
 Disk safety rules:
-- QEMU must run only with per-task overlay qcow2 files under /var/lib/secflow-ipc-audit/ohemu/runtime/instances/ipc-audit-task.
-- The prepared base qcow2 files under /workspace/openharmony_6_1/vendor/edu/docker/volumes/qcow2_cache/arm64/base are backing files only; do not write to them.
+- QEMU must run only with per-task overlay qcow2 files under [[ task.poc_runtime.overlay_root ]].
+- The prepared base qcow2 files under [[ task.poc_runtime.qcow2_root ]]/[[ task.poc_runtime.arch ]]/base are backing files only; do not write to them.
 - Do not run QEMU directly on OpenHarmony out/*/images/*.img, prepared base qcow2 files, or any shared qcow2 cache file.
 - If overlay creation fails or no per-task overlay exists, classify runtime verification as BLOCKED_ENV instead of running on the shared images.
 
@@ -1759,17 +1759,17 @@ const modelHintForExecutor = (mode?: string | null, providerModel?: string | nul
   if (mode === 'agentflow_cli') {
     return providerModel
       ? `可留空，AgentFlow 节点会优先复用当前 Provider 的模型 ${providerModel}；图内如有更细粒度配置，以图定义为准。`
-      : '可留空，AgentFlow 节点会优先复用当前 Provider 的模型；图内如有更细粒度配置，以图定义为准。';
+      : '可留空；若未选择 Provider，secflow 不会注入任何 provider/model，节点将直接使用 CLI 自带默认模型或图内配置。';
   }
   if (mode === 'opencode_cli') {
     return providerModel
       ? `可留空，自动使用当前 Provider 的模型 ${providerModel}；手填时建议使用 provider/model 形式。`
-      : '可留空，自动使用当前 Provider 的模型；手填时建议使用 provider/model 形式。';
+      : '可留空；若未选择 Provider，则不注入配置，直接使用 OpenCode 自带默认模型。';
   }
   if (mode === 'codex_cli') {
     return providerModel
       ? `可留空，自动使用当前 Provider 的模型 ${providerModel}。`
-      : '可留空，自动使用当前 Provider 的模型。';
+      : '可留空；若未选择 Provider，则不注入配置，直接使用 CLI 默认模型。';
   }
   return 'Mock 执行器不会真正调用模型，填写后仅记录到任务配置。';
 };
@@ -2164,7 +2164,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [refreshJob, setRefreshJob] = useState<IpcAuditCatalogRefreshJob | null>(null);
   const [refreshingCatalog, setRefreshingCatalog] = useState(false);
   const [providerOptions, setProviderOptions] = useState<IpcAuditProviderSummary[]>([]);
-  const [defaultProviderKey, setDefaultProviderKey] = useState('');
   const [providersLoading, setProvidersLoading] = useState(false);
   const [providerLoadError, setProviderLoadError] = useState<string | null>(null);
   const [selectedProviderKey, setSelectedProviderKey] = useState('');
@@ -2255,16 +2254,11 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const providerFallbackModel = selectedProvider?.model || '';
   const applyProviderList = (providerResponse: IpcAuditProviderList) => {
     const items = Array.isArray(providerResponse.items) ? providerResponse.items : [];
-    const normalizedDefaultProviderKey = String(providerResponse.default_provider_key || '').trim()
-      || items.find((item) => item.is_default)?.provider_key
-      || items[0]?.provider_key
-      || '';
     setProviderOptions(items);
-    setDefaultProviderKey(normalizedDefaultProviderKey);
     setSelectedProviderKey((current) => (
       current && items.some((item) => item.provider_key === current && item.enabled !== false)
         ? current
-        : normalizedDefaultProviderKey
+        : ''
     ));
   };
   const projectInputItemMap = new Map<string, ProjectInputItem>();
@@ -2457,7 +2451,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setWorkspaceId('');
           setPresetProjects([]);
           setProviderOptions([]);
-          setDefaultProviderKey('');
           setProviderLoadError(null);
           setSelectedProviderKey('');
           setTasks([]);
@@ -2475,7 +2468,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
           setWorkspaceId('');
           setPresetProjects([]);
           setProviderOptions([]);
-          setDefaultProviderKey('');
           setProviderLoadError(null);
           setSelectedProviderKey('');
           setTasks([]);
@@ -2527,7 +2519,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       } catch (error) {
         if (cancelled) return;
         setProviderOptions([]);
-        setDefaultProviderKey('');
         setSelectedProviderKey('');
         setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
       } finally {
@@ -2556,16 +2547,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       return;
     }
     const availableKeys = new Set(providerOptions.filter((item) => item.enabled !== false).map((item) => item.provider_key));
-    const fallbackKey = (
-      (defaultProviderKey && availableKeys.has(defaultProviderKey) ? defaultProviderKey : '')
-      || providerOptions.find((item) => item.is_default && item.enabled !== false)?.provider_key
-      || providerOptions.find((item) => item.enabled !== false)?.provider_key
-      || providerOptions.find((item) => item.is_default)?.provider_key
-      || providerOptions[0]?.provider_key
-      || ''
-    );
-    setSelectedProviderKey((current) => (current && availableKeys.has(current) ? current : fallbackKey));
-  }, [providerOptions, defaultProviderKey]);
+    setSelectedProviderKey((current) => (current && availableKeys.has(current) ? current : ''));
+  }, [providerOptions]);
 
   useEffect(() => {
     setSelectedProjectPaths([]);
@@ -3324,7 +3307,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       notify(`已同步 ${Array.isArray(providerResponse.items) ? providerResponse.items.length : 0} 个 Provider`, 'success');
     } catch (error) {
       setProviderOptions([]);
-      setDefaultProviderKey('');
       setSelectedProviderKey('');
       setProviderLoadError(getErrorMessage(error, '加载 Provider 列表失败'));
       notify(`Provider 列表加载失败：${getErrorMessage(error, '未知错误')}`, 'error');
@@ -5363,7 +5345,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
 
                     <div className="mt-3 rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-medium leading-6 text-slate-600">
                       <div>这里填写的是原始 AgentFlow 图定义。secflow 只会预渲染 `[[ ... ]]`，然后把剩余内容原样交给 AgentFlow。</div>
-                      <div className="mt-2">提交前由 secflow 渲染：`[[ task.repo_root ]]`、`[[ task.project_path ]]`、`[[ task.attempt_root ]]`、`[[ task.report_outputs["audit_report"].absolute_path ]]`。</div>
+                      <div className="mt-2">提交前由 secflow 渲染：`[[ task.repo_root ]]`、`[[ task.project_path ]]`、`[[ task.attempt_root ]]`、`[[ task.report_outputs["audit_report"].absolute_path ]]`、`[[ task.poc_runtime.hdc_bin ]]`、`[[ task.poc_runtime.helper_bin ]]`。</div>
                       <div className="mt-2">
                         运行时由 AgentFlow 自己渲染：
                         <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-700">{'{{ nodes.audit.output }}'}</code>
@@ -5612,7 +5594,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                       <div>
                         <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">LLM Provider</div>
                         <div className="mt-1 text-xs font-medium text-slate-500">
-                          每个任务最多绑定一个 Provider；不选时由后端走默认 Provider 或图内配置。
+                          每个任务最多绑定一个 Provider；不选时 secflow 不会注入任何 Provider 环境变量、配置文件或模型。
                         </div>
                       </div>
                       <button
@@ -5643,7 +5625,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     </div>
 
                     <div className="mt-2 text-xs font-medium text-slate-500">
-                      默认会回填服务默认 Provider。Model 留空时，后端会回退到当前所选 Provider 的模型。
+                      这里不会自动回填默认 Provider。只有显式选中后才会注入 Provider；Model 留空时，仅在已选 Provider 的情况下才回退到该 Provider 的模型。
                     </div>
                     {providerLoadError ? (
                       <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
@@ -5664,7 +5646,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         </div>
                       ) : !selectedProvider ? (
                         <div className="rounded-lg border border-dashed border-slate-200 bg-white px-4 py-4 text-sm font-semibold text-slate-500">
-                          当前还没有选中 Provider。此时会由后端使用默认 Provider，或由 AgentFlow 图内节点自行决定。
+                          当前未选择 Provider。secflow 不会注入任何 provider env/file/model，AgentFlow 或 OpenCode 将按自身默认行为执行。
                         </div>
                       ) : (
                         <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
