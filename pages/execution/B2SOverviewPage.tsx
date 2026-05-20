@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, Trash2, UploadCloud, X } from 'lucide-react';
 
-import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SRunMode, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
@@ -60,6 +60,15 @@ const formatDurationMs = (durationMs?: number | null) => {
   return minuteRest ? `${hours}h ${minuteRest}m` : `${hours}h`;
 };
 
+const formatPiJobStage = (job: B2SPiWorkerActiveJob) => {
+  const parts = [
+    job.phase ? `阶段 ${job.phase}` : '',
+    job.current_batch != null ? `批次 ${job.current_batch}` : '',
+    job.current_attempt != null ? `尝试 ${job.current_attempt}` : '',
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : '阶段信息暂缺';
+};
+
 export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const assetApi = api.domains.assets;
@@ -80,6 +89,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [originFilter, setOriginFilter] = useState<'' | 'manual' | 'binary_security'>('');
   const [searchText, setSearchText] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
+  const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
@@ -254,6 +265,14 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   const toggleSelectCurrentPage = () => {
     setSelectedTaskIds(allPagedSelected ? [] : pagedTaskIds);
+  };
+
+  const toggleSlotWorkerExpanded = (workerId: string) => {
+    setExpandedSlotWorkerIds((current) => (
+      current.includes(workerId)
+        ? current.filter((value) => value !== workerId)
+        : current.concat(workerId)
+    ));
   };
 
   const handleBatchDelete = async () => {
@@ -546,8 +565,17 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
             <p className="mt-1 text-sm text-slate-500">展示当前 PI RE Agent 集群的实时执行槽位、运行中的 job 数量和各 worker 健康度。</p>
           </div>
-          <div className="text-xs text-slate-400">
-            最近同步 {formatDateTime(piClusterCapacity?.updated_at)}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-xs text-slate-400">
+              最近同步 {formatDateTime(piClusterCapacity?.updated_at)}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSlotDetailModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+            >
+              查看详情
+            </button>
           </div>
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
@@ -605,6 +633,181 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
           ) : null}
         </div>
       </section>
+
+      {showSlotDetailModal ? (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
+          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_30px_100px_rgba(15,23,42,0.35)]" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
+                <p className="mt-2 text-sm text-slate-500">按 worker 展示当前正在执行的逆向任务；点击每个 worker 头部展开或收起详细信息。</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right text-xs text-slate-400">
+                  <div>最近同步</div>
+                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(piClusterCapacity?.updated_at)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSlotDetailModal(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  aria-label="关闭执行槽位详情"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[75vh] overflow-auto px-6 py-5">
+              {(piClusterCapacity?.workers || []).length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                  当前未发现可用的 PI RE Agent worker。
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(piClusterCapacity?.workers || []).map((worker) => {
+                    const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
+                    const activeJobs = worker.active_jobs || [];
+                    const hasDetailError = !!worker.error && worker.healthy;
+                    return (
+                      <section
+                        key={worker.worker_id}
+                        className={`overflow-hidden rounded-[1.5rem] border ${
+                          worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-black text-slate-900">{worker.worker_id}</div>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                              }`}>
+                                {worker.healthy ? 'healthy' : 'unhealthy'}
+                              </span>
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                活动任务 {activeJobs.length}
+                              </span>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                              <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                              <span>空闲 {worker.available_slots}</span>
+                              <span>来源 {worker.source || 'capacity'}</span>
+                            </div>
+                          </div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                            {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </div>
+                        </button>
+                        {expanded ? (
+                          <div className="border-t border-slate-100 px-5 py-4">
+                            {!worker.healthy ? (
+                              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                                Worker 当前不可用。{worker.error ? `原因：${worker.error}` : ''}
+                              </div>
+                            ) : hasDetailError ? (
+                              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                明细拉取失败。{worker.error}
+                              </div>
+                            ) : activeJobs.length === 0 ? (
+                              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+                                当前无运行中逆向任务。
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {activeJobs.map((job) => (
+                                  <div
+                                    key={`${worker.worker_id}:${job.pi_job_id}`}
+                                    className={`rounded-2xl border px-4 py-4 ${
+                                      job.mapped
+                                        ? 'border-slate-200 bg-slate-50/70'
+                                        : 'border-amber-200 bg-amber-50/80'
+                                    }`}
+                                  >
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <div className="truncate text-sm font-black text-slate-900" title={job.elf_name || job.elf_path || job.pi_job_id}>
+                                            {job.elf_name || job.elf_path || job.pi_job_id}
+                                          </div>
+                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                            job.mapped ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'
+                                          }`}>
+                                            {job.mapped ? '已关联任务' : '未关联任务'}
+                                          </span>
+                                        </div>
+                                        <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.elf_path || '-'}</div>
+                                      </div>
+                                      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-500">
+                                        <div className="font-semibold text-slate-700">pi job</div>
+                                        <div className="mt-1 font-mono">{job.pi_job_id}</div>
+                                      </div>
+                                    </div>
+                                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">归属任务</div>
+                                        {job.mapped && job.task_id ? (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setShowSlotDetailModal(false);
+                                                onOpenTask(job.task_id as string);
+                                              }}
+                                              className="mt-2 text-left text-sm font-bold text-cyan-700 hover:text-cyan-800"
+                                            >
+                                              {job.task_name || job.task_id}
+                                            </button>
+                                            <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.task_id}</div>
+                                          </>
+                                        ) : (
+                                          <div className="mt-2 text-sm font-semibold text-amber-800">未关联 B2S 任务</div>
+                                        )}
+                                      </div>
+                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">总任务 ID</div>
+                                        <div className="mt-2 break-all font-mono text-sm text-slate-700">{job.parent_task_id || '-'}</div>
+                                      </div>
+                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">执行位置</div>
+                                        <div className="mt-2 text-sm font-semibold text-slate-700">{formatPiJobStage(job)}</div>
+                                        <div className="mt-1 text-[11px] text-slate-500">{job.current_function || '当前函数信息暂缺'}</div>
+                                      </div>
+                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">开始时间</div>
+                                        <div className="mt-2 text-sm font-semibold text-slate-700">{formatDateTime(job.started_at)}</div>
+                                      </div>
+                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">最近更新时间</div>
+                                        <div className="mt-2 text-sm font-semibold text-slate-700">{formatDateTime(job.updated_at)}</div>
+                                      </div>
+                                      <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">任务项</div>
+                                        <div className="mt-2 text-sm font-semibold text-slate-700">
+                                          {job.sequence_no != null ? `#${job.sequence_no}` : '-'}
+                                        </div>
+                                        <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{job.item_id || '-'}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-4">

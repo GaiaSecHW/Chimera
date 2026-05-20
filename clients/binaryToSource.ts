@@ -175,6 +175,29 @@ export interface B2SPiWorkerCapacity {
   available_slots: number;
   source?: string;
   error?: string | null;
+  active_jobs?: B2SPiWorkerActiveJob[];
+}
+
+export interface B2SPiWorkerActiveJob {
+  pi_job_id: string;
+  status: string;
+  phase?: string | null;
+  worker_id?: string | null;
+  elf_path?: string | null;
+  elf_name?: string | null;
+  task_id?: string | null;
+  task_name?: string | null;
+  task_origin_type?: string | null;
+  parent_task_id?: string | null;
+  sequence_no?: number | null;
+  item_id?: string | null;
+  current_batch?: number | null;
+  current_attempt?: number | null;
+  current_function?: string | null;
+  started_at?: string | null;
+  updated_at?: string | null;
+  mapped: boolean;
+  mapping_reason: string;
 }
 
 export interface B2SPiClusterCapacity {
