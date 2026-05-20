@@ -77,6 +77,7 @@ const STAGE_STEPS = [
     label: 'R2 函数分析',
     desc: '函数级并行：逐函数判断是否含外部输入（被动参数 / 主动拉取）',
     triggers: ['r2_w_start', 'r2_w_done', 'r2_j_start', 'r2_j_done', 'r2_j_retry',
+               'r2_j_func_start', 'r2_j_func_done',
                // 兼容旧流程事件
                'round_start', 'worker_start', 'master_worker_start'],
     artifactSubpath: 'run/analysis',
@@ -143,6 +144,137 @@ function formatMs(value: unknown): string {
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   return `${minutes}m${seconds % 60}s`;
+}
+
+/** 阶段耗时：两个 Unix 时间戳（秒）之差 */
+function formatStageDuration(startTs?: number, endTs?: number): string {
+  if (!startTs || !endTs || endTs <= startTs) return '';
+  const secs = Math.max(0, Math.round(endTs - startTs));
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs / 60)}m${secs % 60}s`;
+}
+
+/** 阶段进行中：从 startTs 到 nowSecs 的已用时 */
+function formatStageElapsed(startTs?: number, nowSecs = Math.floor(Date.now() / 1000)): string {
+  if (!startTs) return '';
+  const secs = Math.max(0, nowSecs - startTs);
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs / 60)}m${secs % 60}s`;
+}
+
+interface StageStat {
+  filesTotal?: number;    // 模块总文件数
+  filesDone?: number;     // 本阶段已完成文件数
+  funcsDone?: number;     // 已完成函数数（R1: judge 通过; R2: 分析完毕）
+  entriesFound?: number;  // 识别到的入口数（R3 候选 / R4 最终）
+  attempts?: number;      // 执行轮次（R4 重试计数）
+  startTs?: number;       // 阶段首次事件 Unix 时间戳（秒）
+  lastTs?: number;        // 阶段最后活动 Unix 时间戳（秒）
+}
+
+/**
+ * 从 stages_json.events 推导每个流水线阶段的统计数据。
+ * 顺序与 STAGE_STEPS 对齐：[init, r1, r2, r3, r4, finish]。
+ */
+function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
+  const result: StageStat[] = STAGE_STEPS.map(() => ({}));
+
+  let totalFiles = 0;
+  const firstTs: Array<number | undefined> = STAGE_STEPS.map(() => undefined);
+  const lastTs:  Array<number | undefined> = STAGE_STEPS.map(() => undefined);
+
+  const r1FuncsPassed = new Set<string>();
+  const r2FuncsDone   = new Set<string>();
+  const r2FilesPassed = new Set<string>();
+  const r3FilesDone   = new Set<string>();
+  const r3FileEntries = new Map<string, number>(); // file_hash → latest entry_count
+  let   r4EntryCount  = 0;
+  let   r4Attempts    = 0;
+
+  const touch = (idx: number, ts: number) => {
+    if (ts <= 0) return;
+    if (firstTs[idx] === undefined) firstTs[idx] = ts;
+    if (lastTs[idx] === undefined || ts > (lastTs[idx] as number)) lastTs[idx] = ts;
+  };
+
+  for (const evt of events) {
+    const ts = evt.ts || 0;
+    const d  = evt.data || {};
+    switch (evt.type) {
+      // ── init ──────────────────────────────────────────────────────────
+      case 'pipeline_start': totalFiles = Number(d.file_count) || totalFiles; touch(0, ts); break;
+      case 'task_start':
+      case 'task_resume':
+      case 'module_load':
+      case 'module_found':  touch(0, ts); break;
+      case 'module_ready':  totalFiles = Number(d.count) || totalFiles; touch(0, ts); break;
+      // ── R1 ────────────────────────────────────────────────────────────
+      case 'r1_static_extract':
+      case 'r1_w_agent_start':
+      case 'r1_j_start':
+      case 'r1_static_done':
+      case 'r1_w_agent_done':
+      case 'r1_j_retry':    touch(1, ts); break;
+      case 'r1_j_done':
+        touch(1, ts);
+        if (d.passed && d.func_hash) r1FuncsPassed.add(String(d.func_hash));
+        break;
+      // ── R2 ────────────────────────────────────────────────────────────
+      case 'r2_w_start':
+      case 'r2_j_start':
+      case 'r2_j_retry':
+      case 'r2_j_func_start': touch(2, ts); break;
+      case 'r2_w_done':
+        touch(2, ts);
+        if (d.func_hash) r2FuncsDone.add(String(d.func_hash));
+        break;
+      case 'r2_j_done':
+        touch(2, ts);
+        if (d.passed && d.file_hash) r2FilesPassed.add(String(d.file_hash));
+        break;
+      case 'r2_j_func_done':
+        touch(2, ts);
+        if (d.passed && d.func_hash) r2FuncsDone.add(String(d.func_hash));
+        break;
+      // ── R3 ────────────────────────────────────────────────────────────
+      case 'r3_w_start':
+      case 'r3_j_start':
+      case 'r3_j_retry':    touch(3, ts); break;
+      case 'r3_w_done':
+        touch(3, ts);
+        if (d.file_hash != null) r3FileEntries.set(String(d.file_hash), Number(d.entry_count) || 0);
+        break;
+      case 'r3_j_done':
+        touch(3, ts);
+        if (d.file_hash) r3FilesDone.add(String(d.file_hash));
+        break;
+      // ── R4 ────────────────────────────────────────────────────────────
+      case 'r4_w_start':
+        touch(4, ts); r4Attempts += 1; break;
+      case 'r4_w_done':
+        touch(4, ts); r4EntryCount = Number(d.entry_count) || r4EntryCount; break;
+      case 'r4_j_start':
+      case 'r4_j_retry':
+      case 'r4_j_done':     touch(4, ts); break;
+      // ── finish ────────────────────────────────────────────────────────
+      case 'task_end':
+      case 'functions_list_synced':
+      case 'functions_list_error':
+      case 'functions_list_autofix': touch(5, ts); break;
+      default: break;
+    }
+  }
+
+  const r3EntriesSum = Array.from(r3FileEntries.values()).reduce((a, b) => a + b, 0);
+
+  result[0] = { filesTotal: totalFiles || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
+  result[1] = { filesTotal: totalFiles || undefined, funcsDone: r1FuncsPassed.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
+  result[2] = { filesTotal: totalFiles || undefined, filesDone: r2FilesPassed.size || undefined, funcsDone: r2FuncsDone.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
+  result[3] = { filesTotal: totalFiles || undefined, filesDone: r3FilesDone.size || undefined, entriesFound: r3EntriesSum || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
+  result[4] = { entriesFound: r4EntryCount || undefined, attempts: r4Attempts || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
+  result[5] = { startTs: firstTs[5], lastTs: lastTs[5] };
+
+  return result;
 }
 
 function stageLabel(stage: string | undefined): string {
@@ -386,6 +518,8 @@ function formatEvent(evt: AppEaStageEvent): string {
     case 'r2_j_start':          return `[${ts}] ▶ R2-J 评审文件: ${d.file ?? d.file_hash ?? ''}`;
     case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 文件评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''} 问题函数=${d.failed_count ?? 0}`;
     case 'r2_j_retry':          return `[${ts}] ↺ R2 重试函数列表: ${d.file ?? ''} (${d.retry_count ?? '?'} 个)`;
+    case 'r2_j_func_start':     return `[${ts}] ▶ R2-J 函数评审: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r2_j_func_done':      return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 函数评审 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.summary ? ` — ${String(d.summary).slice(0, 80)}` : ''}`;
     // ── R3 文件过滤 ───────────────────────────────────────────────────
     case 'r3_w_start':          return `[${ts}] ▶ R3-W 文件过滤: ${d.file ?? d.file_hash ?? ''}`;
     case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.file ?? ''} 保留入口=${d.entry_count ?? 0}`;
@@ -729,6 +863,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
 
   const events = detail?.stages_json?.events || [];
   const statusSteps = detail ? deriveStepStatuses(detail.status, events) : STAGE_STEPS.map((): StepStatus => 'pending');
+  const stageStats = useMemo(() => deriveStageStats(events), [events]);
   const logLines = events.map(formatEvent);
   const groupedSessions = useMemo(() => {
     const map = new Map<string, AppEaSessionMeta[]>();
@@ -1071,9 +1206,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
               <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
               <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
                 const state = statusSteps[index];
+                const stat  = stageStats[index];
                 const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : '';
                 const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
-                return <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-white text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold text-slate-900">{step.label}</p><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{artifactFsPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
+                const hasStatChips = state !== 'pending' && (
+                  stat.filesTotal != null || stat.filesDone != null ||
+                  stat.funcsDone  != null || stat.entriesFound != null ||
+                  (stat.attempts != null && stat.attempts > 1)
+                );
+                return <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-white text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900">{step.label}</p>{stat.startTs && state !== 'pending' ? <span className="shrink-0 font-mono text-[11px] text-slate-400">{state === 'running' ? formatStageElapsed(stat.startTs, clockNow) : formatStageDuration(stat.startTs, stat.lastTs)}</span> : null}</div><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{hasStatChips ? <div className="mt-2 flex flex-wrap gap-1.5">{stat.filesTotal != null && stat.filesDone == null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesTotal} 文件</span> : stat.filesDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesDone}{stat.filesTotal != null ? `/${stat.filesTotal}` : ''} 文件</span> : null}{stat.funcsDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-600">ƒ {stat.funcsDone} 函数</span> : null}{stat.entriesFound != null ? <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">→ {stat.entriesFound} 入口</span> : null}{stat.attempts != null && stat.attempts > 1 ? <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">↺ {stat.attempts} 轮</span> : null}</div> : null}{artifactFsPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
               })}</div>
             </div>
           </section>
