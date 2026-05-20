@@ -28,8 +28,12 @@ import {
 } from 'lucide-react';
 
 import {
+  B2SAgentSessionRuntimeEntry,
+  B2SAgentSessionRuntimeResponse,
   B2SAgentRuntimeEntry,
   B2SArtifactsResponse,
+  B2SBatchObservabilityRow,
+  B2SBatchObservabilitySummary,
   B2SReviewAnalytics,
   B2SSessionFile,
   B2SSessionIndex,
@@ -57,6 +61,8 @@ import {
 } from './b2sPresentation';
 import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
+import { B2SBatchObservabilityTable, B2SBatchTableRowAction } from './b2s-observability/B2SBatchObservabilityTable';
+import { B2SBatchSummaryCards, buildBatchSummaryCardItems } from './b2s-observability/B2SBatchSummaryCards';
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
 import { AgentSessionViewer } from './AgentSessionViewer';
 import { AgentSessionWarningPanel } from './AgentSessionWarningPanel';
@@ -82,6 +88,9 @@ interface Props {
 type B2SItem = B2STaskDetail['items'][number];
 type DetailTab = 'overview' | 'run-config' | 'timeline' | 'session' | 'relationship' | 'result' | 'evaluation';
 type ItemFilter = '__all__' | string;
+type BatchStatusFilter = '__all__' | 'running' | 'failed' | 'passed' | 'partial' | 'pending' | 'unknown';
+type BatchScopeFilter = 'all' | 'running' | 'failed' | 'current-item';
+type BatchSortKey = 'sequence' | 'batch' | 'attempts' | 'duration';
 
 const PHASE_ORDER = ['queued', 'ida', 'batching', 'header', 'body', 'merge', 'completed'];
 const PHASE_LABELS: Record<string, string> = {
@@ -92,6 +101,19 @@ const PHASE_LABELS: Record<string, string> = {
   body: '函数体还原',
   merge: '合并输出',
   completed: '完成',
+};
+
+const EMPTY_BATCH_SUMMARY: B2SBatchObservabilitySummary = {
+  total_batches: 0,
+  running_batches: 0,
+  passed_batches: 0,
+  failed_batches: 0,
+  partial_batches: 0,
+  pending_batches: 0,
+  unknown_batches: 0,
+  avg_attempts_per_batch: 0,
+  total_review_rounds: 0,
+  active_batch_count: 0,
 };
 
 const fileNameOf = (path?: string | null) => {
@@ -128,6 +150,25 @@ const formatDuration = (start?: string | null, end?: string | null, nowMs: numbe
 const compactText = (value?: string | null, fallback = '-') => {
   const normalized = String(value || '').replace(/\s+/g, ' ').trim();
   return normalized || fallback;
+};
+
+const summarizeBatchRows = (rows: B2SBatchObservabilityRow[]): B2SBatchObservabilitySummary => {
+  if (rows.length === 0) return { ...EMPTY_BATCH_SUMMARY };
+  const counts = { ...EMPTY_BATCH_SUMMARY };
+  counts.total_batches = rows.length;
+  rows.forEach((row) => {
+    const normalized = String(row.status || '').toLowerCase();
+    if (normalized === 'running') counts.running_batches += 1;
+    else if (normalized === 'passed') counts.passed_batches += 1;
+    else if (normalized === 'failed') counts.failed_batches += 1;
+    else if (normalized === 'partial') counts.partial_batches += 1;
+    else if (normalized === 'pending') counts.pending_batches += 1;
+    else counts.unknown_batches += 1;
+    counts.total_review_rounds += row.review_count || 0;
+  });
+  counts.active_batch_count = counts.running_batches;
+  counts.avg_attempts_per_batch = Number((rows.reduce((sum, row) => sum + (row.attempt_count || 0), 0) / rows.length).toFixed(2));
+  return counts;
 };
 
 const failureSuggestion = (item: B2SItem) => {
@@ -169,6 +210,75 @@ const sessionGroupLabel = (group: string) => {
 const buildB2SSessionDisplayName = (node: B2SSessionNode | null) => {
   if (!node) return '';
   return node.agent || node.role || fileNameOf(node.relative_path);
+};
+
+const buildFallbackRuntimeEntries = (agents: B2SAgentRuntimeEntry[]): B2SAgentSessionRuntimeEntry[] => {
+  return agents.map((agent) => ({
+    session_id: agent.key,
+    node_id: null,
+    item_id: agent.item_id,
+    sequence_no: agent.sequence_no,
+    item_name: agent.item_name,
+    run_name: agent.run_name,
+    agent: agent.agent,
+    role: agent.role,
+    stage: agent.stage,
+    batch_no: agent.batch_no,
+    attempt_no: agent.attempt_no,
+    status: 'streaming',
+    status_title: '执行中',
+    status_reason: '由旧版运行摘要推导，后端未返回结构化会话运行态。',
+    is_current: true,
+    is_active: !!agent.is_active,
+    is_orphan: false,
+    is_stale: false,
+    current_function: null,
+    pi_job_id: null,
+    pi_worker_url: null,
+    relative_path: agent.relative_path,
+    full_path: agent.full_path,
+    size: agent.size,
+    updated_at: agent.updated_at,
+    last_event_at: agent.updated_at,
+    file_ref: agent.relative_path ? {
+      path: agent.relative_path,
+      node_id: null,
+      can_open: true,
+      read_api: null,
+    } : null,
+    evidence: [],
+  }));
+};
+
+const runtimeStatusTone = (entry: B2SAgentSessionRuntimeEntry | null, selected = false) => {
+  if (!entry) {
+    return selected
+      ? 'border-slate-500 bg-slate-800 text-slate-100'
+      : 'border-slate-200 bg-white text-slate-500';
+  }
+  if (entry.status === 'failed' || entry.status === 'cancelled') {
+    return selected
+      ? 'border-rose-300 bg-rose-100 text-rose-800'
+      : 'border-rose-200 bg-rose-50 text-rose-700';
+  }
+  if (entry.is_stale) {
+    return selected
+      ? 'border-amber-300 bg-amber-100 text-amber-800'
+      : 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+  if (entry.is_orphan) {
+    return selected
+      ? 'border-slate-300 bg-slate-100 text-slate-800'
+      : 'border-slate-200 bg-slate-100 text-slate-700';
+  }
+  if (entry.is_active) {
+    return selected
+      ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  }
+  return selected
+    ? 'border-slate-500 bg-slate-800 text-slate-100'
+    : 'border-slate-200 bg-white text-slate-500';
 };
 
 const buildB2SSessionMeta = (
@@ -408,6 +518,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [clockNow, setClockNow] = useState(Date.now());
   const [selectedItemId, setSelectedItemId] = useState<ItemFilter>('__all__');
+  const [batchStatusFilter, setBatchStatusFilter] = useState<BatchStatusFilter>('__all__');
+  const [batchScopeFilter, setBatchScopeFilter] = useState<BatchScopeFilter>('all');
+  const [batchSortKey, setBatchSortKey] = useState<BatchSortKey>('sequence');
   const [timeline, setTimeline] = useState<B2STaskEvent[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineClearing, setTimelineClearing] = useState(false);
@@ -419,6 +532,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [result, setResult] = useState<B2STaskResultSummary | null>(null);
   const [observability, setObservability] = useState<B2STaskObservability | null>(null);
   const [sessions, setSessions] = useState<B2SSessionIndex | null>(null);
+  const [sessionRuntime, setSessionRuntime] = useState<B2SAgentSessionRuntimeResponse | null>(null);
   const [relationship, setRelationship] = useState<B2STaskRelationship | null>(null);
   const [selectedSessionNodeId, setSelectedSessionNodeId] = useState<string>('');
   const [pendingSessionTarget, setPendingSessionTarget] = useState<{ itemId?: string | null; relativePath?: string | null; fullPath?: string | null } | null>(null);
@@ -439,6 +553,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [deleting, setDeleting] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
   const sessionLineCountRef = useRef(0);
+  const itemBatchSectionRef = useRef<HTMLDivElement | null>(null);
 
   const selectedItem = useSelectedItem(detail, selectedItemId);
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
@@ -525,6 +640,18 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
   }, [executionApi, projectId, selectedSessionNodeId, taskId]);
 
+  const loadSessionRuntime = useCallback(async (options?: { silent?: boolean }) => {
+    if (!projectId || !taskId) return;
+    try {
+      const payload = await executionApi.getTaskAgentSessionsRuntime(projectId, taskId);
+      setSessionRuntime(payload);
+    } catch (e: any) {
+      if (!options?.silent) {
+        setError(e?.message || '加载智能体会话运行态失败');
+      }
+    }
+  }, [executionApi, projectId, taskId]);
+
   const filteredSessionNodes = useMemo(() => {
     const nodes = sessions?.nodes || [];
     if (selectedItemId === '__all__') return nodes;
@@ -547,6 +674,27 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     return Array.from(groups.values()).sort((left, right) => left.sequenceNo - right.sequenceNo);
   }, [sessions]);
 
+  const runtimeEntries = useMemo(() => {
+    if (sessionRuntime?.sessions?.length) return sessionRuntime.sessions;
+    return buildFallbackRuntimeEntries(detail?.agent_runtime_summary?.active_agents || []);
+  }, [detail?.agent_runtime_summary?.active_agents, sessionRuntime?.sessions]);
+
+  const runtimeEntryByNodeId = useMemo(() => {
+    const mapping = new Map<string, B2SAgentSessionRuntimeEntry>();
+    runtimeEntries.forEach((entry) => {
+      if (entry.node_id) mapping.set(entry.node_id, entry);
+    });
+    return mapping;
+  }, [runtimeEntries]);
+
+  const filteredRuntimeOnlyEntries = useMemo(() => {
+    const nodeIds = new Set((sessions?.nodes || []).map((node) => node.node_id));
+    return runtimeEntries.filter((entry) => !entry.node_id || !nodeIds.has(entry.node_id)).filter((entry) => {
+      if (selectedItemId === '__all__') return true;
+      return entry.item_id === selectedItemId;
+    });
+  }, [runtimeEntries, selectedItemId, sessions?.nodes]);
+
   const groupedSessionNodes = useMemo(() => {
     const groups = new Map<string, B2SSessionNode[]>();
     filteredSessionNodes.forEach((node) => {
@@ -560,6 +708,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     () => filteredSessionNodes.find((node) => node.node_id === selectedSessionNodeId) || null,
     [filteredSessionNodes, selectedSessionNodeId],
   );
+  const selectedSessionRuntimeEntry = useMemo(() => {
+    if (!selectedSessionNode) return null;
+    return runtimeEntryByNodeId.get(selectedSessionNode.node_id) || null;
+  }, [runtimeEntryByNodeId, selectedSessionNode]);
   const selectedSessionMeta = useMemo(
     () => buildB2SSessionMeta(selectedSessionNode, sessionSnapshot, sessionWarnings),
     [selectedSessionNode, sessionSnapshot, sessionWarnings],
@@ -692,14 +844,18 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     if (activeTab === 'evaluation' && !observability) void loadObservability();
     if (activeTab === 'timeline' && timeline.length === 0) void loadTimeline();
     if (activeTab === 'session' && !sessions) void loadSessions();
+    if ((activeTab === 'overview' || activeTab === 'session') && !sessionRuntime) void loadSessionRuntime();
     if (activeTab === 'relationship' && !relationship) void loadRelationship();
-  }, [activeTab, loadObservability, loadRelationship, loadResult, loadSessions, loadTimeline, observability, relationship, result, sessions, timeline.length]);
+  }, [activeTab, loadObservability, loadRelationship, loadResult, loadSessionRuntime, loadSessions, loadTimeline, observability, relationship, result, sessionRuntime, sessions, timeline.length]);
 
   useEffect(() => {
     if (!isTaskRunning) return undefined;
 
     if (activeTab === 'overview') {
-      const timer = window.setInterval(() => { void loadDetail({ silent: true }); }, 5000);
+      const timer = window.setInterval(() => {
+        void loadDetail({ silent: true });
+        void loadSessionRuntime({ silent: true });
+      }, 5000);
       return () => window.clearInterval(timer);
     }
 
@@ -728,7 +884,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
 
     if (activeTab === 'session') {
-      const timer = window.setInterval(() => { void loadSessions({ silent: true }); }, 5000);
+      const timer = window.setInterval(() => {
+        void loadSessions({ silent: true });
+        void loadSessionRuntime({ silent: true });
+      }, 5000);
       return () => window.clearInterval(timer);
     }
 
@@ -738,7 +897,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
 
     return undefined;
-  }, [activeTab, isTaskRunning, loadDetail, loadObservability, loadRelationship, loadResult, loadSessions, loadTimeline]);
+  }, [activeTab, isTaskRunning, loadDetail, loadObservability, loadRelationship, loadResult, loadSessionRuntime, loadSessions, loadTimeline]);
 
   useEffect(() => {
     if (activeTab !== 'session' || !selectedSessionNode) {
@@ -1029,7 +1188,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const progressSummaryLabel = formatB2SOverallProgressSummary(overall);
   const resultSummary = detail?.result_summary || result;
   const observabilitySummary = detail?.observability_summary || observability;
-  const activeAgents = detail?.agent_runtime_summary?.active_agents || [];
+  const runtimeSummary = sessionRuntime?.summary || detail?.agent_session_runtime_summary || null;
+  const activeAgentSessions = sessionRuntime?.sessions?.length
+    ? sessionRuntime.sessions.filter((entry) => entry.is_active || entry.is_current || entry.is_orphan).slice(0, 24)
+    : buildFallbackRuntimeEntries(detail?.agent_runtime_summary?.active_agents || []);
   const relationshipNodes = useMemo(() => {
     const nodes = relationship?.nodes || [];
     if (selectedItemId === '__all__') return nodes;
@@ -1041,6 +1203,37 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   }, [relationship?.edges, relationshipNodes]);
   const selectedArtifact = itemArtifacts?.artifacts.find((artifact) => artifact.id === selectedArtifactId) || null;
   const selectedItemResultSummary = resultSummary?.items.find((item) => item.item_id === selectedItem?.id) || null;
+  const taskBatchSummary = observabilitySummary?.batch_summary || EMPTY_BATCH_SUMMARY;
+  const taskBatchRows = observabilitySummary?.batches || [];
+  const batchItemOptions = useMemo(() => {
+    return Array.from(new Map(taskBatchRows.map((row) => [row.item_id, { item_id: row.item_id, sequence_no: row.sequence_no, item_name: row.item_name }])).values())
+      .sort((left, right) => left.sequence_no - right.sequence_no);
+  }, [taskBatchRows]);
+  const filteredTaskBatchRows = useMemo(() => {
+    const sorted = taskBatchRows.filter((row) => {
+      if (batchScopeFilter === 'running' && row.status !== 'running') return false;
+      if (batchScopeFilter === 'failed' && row.status !== 'failed') return false;
+      if (batchScopeFilter === 'current-item' && selectedItemId !== '__all__' && row.item_id !== selectedItemId) return false;
+      if (batchScopeFilter === 'current-item' && selectedItemId === '__all__') return false;
+      if (batchStatusFilter !== '__all__' && row.status !== batchStatusFilter) return false;
+      return true;
+    }).slice();
+    sorted.sort((left, right) => {
+      if (batchSortKey === 'batch') return left.batch_no - right.batch_no || left.sequence_no - right.sequence_no;
+      if (batchSortKey === 'attempts') return (right.attempt_count || 0) - (left.attempt_count || 0) || left.sequence_no - right.sequence_no;
+      if (batchSortKey === 'duration') return (right.duration_ms || 0) - (left.duration_ms || 0) || left.sequence_no - right.sequence_no;
+      return left.sequence_no - right.sequence_no || left.batch_no - right.batch_no;
+    });
+    return sorted;
+  }, [batchScopeFilter, batchSortKey, batchStatusFilter, selectedItemId, taskBatchRows]);
+  const currentItemBatchRows = useMemo(() => {
+    if (!selectedItem) return [];
+    return taskBatchRows
+      .filter((row) => row.item_id === selectedItem.id)
+      .slice()
+      .sort((left, right) => left.batch_no - right.batch_no);
+  }, [selectedItem, taskBatchRows]);
+  const currentItemBatchSummary = useMemo(() => summarizeBatchRows(currentItemBatchRows), [currentItemBatchRows]);
 
   const summaryLine = observabilitySummary
     ? `${observabilitySummary.total_review_attempts}/${observabilitySummary.avg_quality_score || 0}/${observabilitySummary.issue_remaining}`
@@ -1055,6 +1248,23 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         clockNow,
       )
     : '-';
+
+  const handleBatchRowAction = (action: B2SBatchTableRowAction) => {
+    if (action.type === 'open-advanced') {
+      if (onOpenAdvanced) onOpenAdvanced(action.row.item_id);
+      return;
+    }
+    if (action.row.item_id !== selectedItemId) {
+      setSelectedItemId(action.row.item_id);
+    }
+    if (action.type === 'open-session') {
+      setActiveTab('session');
+      return;
+    }
+    window.setTimeout(() => {
+      itemBatchSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 40);
+  };
 
   if (!taskId) {
     return <div className="px-6 pb-8 pt-6 text-sm text-slate-500">未指定任务，请返回列表重新选择。</div>;
@@ -1091,19 +1301,20 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       <SectionCard
         title="当前运行智能体"
         description="展示当前任务里的活跃 agent，会话点击后直接弹出实时对话。"
-        right={<div className="text-xs font-black text-slate-500">Header/Executor/Validator {detail?.agent_runtime_summary?.header_agent_count || 0}/{detail?.agent_runtime_summary?.executor_agent_count || 0}/{detail?.agent_runtime_summary?.validator_agent_count || 0}</div>}
+        right={<div className="text-xs font-black text-slate-500">活跃/失活/孤立 {runtimeSummary?.active_sessions || 0}/{runtimeSummary?.stale_sessions || 0}/{runtimeSummary?.orphan_sessions || 0}</div>}
       >
-        {activeAgents.length === 0 ? (
+        {activeAgentSessions.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">当前没有运行中的智能体。快速模式或已完成任务可能不会保留活跃会话。</div>
         ) : (
           <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-            {activeAgents.map((agent) => (
+            {activeAgentSessions.map((agent) => (
               <button
-                key={agent.key}
+                key={agent.session_id}
                 type="button"
                 onClick={() => {
                   focusSession({
                     itemId: agent.item_id,
+                    nodeId: agent.node_id,
                     relativePath: agent.relative_path,
                     fullPath: agent.full_path,
                   });
@@ -1112,14 +1323,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-black text-slate-900">{agent.label}</div>
+                    <div className="truncate text-sm font-black text-slate-900">{agent.agent || agent.role || 'agent session'}</div>
                     <div className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">{agent.item_name} · {agent.stage || '-'} · {agent.run_name || '-'}</div>
                   </div>
-                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black text-blue-700">{agent.role || 'session'}</span>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-black ${agent.is_stale ? 'bg-amber-50 text-amber-700' : agent.is_orphan ? 'bg-slate-100 text-slate-700' : agent.status === 'failed' || agent.status === 'cancelled' ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'}`}>{agent.status_title}</span>
                 </div>
+                <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-slate-500" title={agent.status_reason}>{agent.status_reason}</div>
                 <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-semibold text-slate-600">
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5">{agent.role || 'session'}</span>
                   {agent.batch_no ? <span className="rounded-full bg-slate-100 px-2 py-0.5">Batch {agent.batch_no}</span> : null}
                   {agent.attempt_no ? <span className="rounded-full bg-slate-100 px-2 py-0.5">第 {agent.attempt_no} 轮</span> : null}
+                  {agent.current_function ? <span className="rounded-full bg-slate-100 px-2 py-0.5">{agent.current_function}</span> : null}
                   <span className="rounded-full bg-slate-100 px-2 py-0.5">{agent.updated_at ? formatDateTime(agent.updated_at) : '实时'}</span>
                 </div>
               </button>
@@ -1132,7 +1346,8 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         <MetricTile label="ELF 完成" value={`${overall?.completed_items || 0}/${overall?.total_items || detail?.total_items || 0}`} hint={`${detail?.running_items || 0} 个运行中`} tone="blue" icon={<Cpu size={18} />} />
         <MetricTile label="Batch 总数" value={observabilitySummary?.total_batches || 0} hint={`均值 ${observabilitySummary?.avg_batches_per_item || 0}`} tone="violet" icon={<Layers3 size={18} />} />
         <MetricTile label="评审轮次" value={observabilitySummary?.total_review_attempts || 0} hint={`均值 ${observabilitySummary?.avg_review_attempts || 0}`} tone="emerald" icon={<GitBranch size={18} />} />
-        <MetricTile label="会话数" value={resultSummary?.session_file_count || detail?.agent_runtime_summary?.total_sessions || 0} hint={`活跃 ${detail?.agent_runtime_summary?.active_agent_count || 0}`} tone="slate" icon={<Bot size={18} />} />
+        <MetricTile label="会话数" value={runtimeSummary?.total_sessions || resultSummary?.session_file_count || detail?.agent_runtime_summary?.total_sessions || 0} hint={`活跃 ${runtimeSummary?.active_sessions || detail?.agent_runtime_summary?.active_agent_count || 0}`} tone="slate" icon={<Bot size={18} />} />
+        <MetricTile label="异常会话" value={`${runtimeSummary?.stale_sessions || 0}/${runtimeSummary?.orphan_sessions || 0}`} hint="失活 / 孤立" tone="amber" icon={<AlertTriangle size={18} />} />
         <MetricTile label="结果文件" value={resultSummary?.result_file_count || 0} hint="任务级汇总" tone="emerald" icon={<Code2 size={18} />} />
         <MetricTile label="任务耗时" value={taskDuration} hint={B2S_TERMINAL_STATUSES.has(detail?.status || '') ? '已结束' : '实时计时中'} tone="slate" icon={<Clock3 size={18} />} />
       </div>
@@ -1467,7 +1682,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       title="智能体会话"
       description="参考系统分析任务详情页的查看方式，按 ELF Item 与会话索引统一预览 B2S 智能体会话。"
       right={
-        <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50" title="刷新会话">
+        <button type="button" onClick={() => { void loadSessions(); void loadSessionRuntime({ silent: true }); }} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50" title="刷新会话">
           <RefreshCw size={14} />
         </button>
       }
@@ -1481,13 +1696,21 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">ELF 会话分区</div>
                 <div className="mt-1 text-xs text-slate-500">
-                  {sessions.nodes.length} 个会话文件，按 ELF Item 区分；任务取消后会话会以历史文件形式保留在这里。
+                  {sessions.nodes.length} 个会话文件，运行态统计 {runtimeSummary?.total_sessions || runtimeEntries.length} 个会话；任务取消后会话会以历史文件形式保留在这里。
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
                 当前筛选 <span className="font-black text-slate-900">{selectedItemId === '__all__' ? '全部 ELF' : `1 个 ELF`}</span>
               </div>
             </div>
+            {runtimeSummary ? (
+              <div className="mt-3 grid gap-2 md:grid-cols-4">
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">总会话 <span className="font-black text-slate-900">{runtimeSummary.total_sessions}</span></div>
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">活跃 <span className="font-black text-slate-900">{runtimeSummary.active_sessions}</span></div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">失活 <span className="font-black text-amber-900">{runtimeSummary.stale_sessions}</span></div>
+                <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">孤立 <span className="font-black text-slate-900">{runtimeSummary.orphan_sessions}</span></div>
+              </div>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -1546,6 +1769,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
               items={sessions.warnings?.slice(0, 5) || []}
               className="mt-4 text-xs"
             />
+            <WarningListPanel
+              title="运行态提示"
+              items={runtimeSummary?.warnings?.slice(0, 5) || []}
+              className="mt-4 text-xs"
+            />
 
             <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">
               {groupedSessionNodes.map(([group, nodes]) => (
@@ -1556,6 +1784,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   <div className="space-y-2">
                     {nodes.map((node) => {
                       const selected = node.node_id === selectedSessionNodeId;
+                      const runtimeEntry = runtimeEntryByNodeId.get(node.node_id) || null;
                       return (
                         <button
                           key={node.node_id}
@@ -1573,25 +1802,23 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                               <div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
                                 {node.relative_path}
                               </div>
+                              {runtimeEntry?.status_reason ? (
+                                <div className={`mt-1 line-clamp-2 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                                  {runtimeEntry.status_reason}
+                                </div>
+                              ) : null}
                             </div>
-                            <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${
-                              node.is_active
-                                ? selected
-                                  ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
-                                  : 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                                : selected
-                                  ? 'border-slate-500 bg-slate-800 text-slate-100'
-                                  : 'border-slate-200 bg-white text-slate-500'
-                            }`}>
-                              {node.is_active ? '活跃' : '历史'}
+                            <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${runtimeStatusTone(runtimeEntry, selected)}`}>
+                              {runtimeEntry?.status_title || (node.is_active ? '活跃' : '历史')}
                             </span>
                           </div>
                           <div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
                             <span>事件 {selected ? (selectedSessionNodeId === node.node_id ? sessionEvents.length : '-') : '-'}</span>
                             <span>更新时间 {formatSessionUpdatedAt(node.updated_at)}</span>
+                            {runtimeEntry?.current_function ? <span>函数 {runtimeEntry.current_function}</span> : null}
                           </div>
                           <div className={`mt-2 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
-                            {[node.stage || '-', node.run_name || '-', node.role || 'session'].join(' · ')}
+                            {[node.stage || '-', node.run_name || '-', runtimeEntry?.role || node.role || 'session'].join(' · ')}
                           </div>
                         </button>
                       );
@@ -1599,11 +1826,54 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   </div>
                 </div>
               ))}
+              {filteredRuntimeOnlyEntries.length > 0 ? (
+                <div>
+                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    无文件会话
+                  </div>
+                  <div className="space-y-2">
+                    {filteredRuntimeOnlyEntries.map((entry) => (
+                      <div key={entry.session_id} className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-left">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-black text-slate-900">{entry.agent || entry.role || 'agent session'}</div>
+                            <div className="mt-1 text-[11px] text-slate-500">{entry.item_name} · {entry.stage || '-'} · {entry.run_name || 'virtual'}</div>
+                            <div className="mt-1 line-clamp-2 text-[11px] text-slate-500">{entry.status_reason}</div>
+                          </div>
+                          <span className={`inline-flex shrink-0 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${runtimeStatusTone(entry, false)}`}>
+                            {entry.status_title}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </aside>
 
           <div className="space-y-4">
             <AgentSessionWarningPanel warnings={sessionWarnings} />
+            {selectedSessionRuntimeEntry ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">当前会话状态</div>
+                    <div className="mt-1 text-sm font-black text-slate-900">{selectedSessionRuntimeEntry.status_title}</div>
+                    <div className="mt-1 text-xs text-slate-500">{selectedSessionRuntimeEntry.status_reason}</div>
+                  </div>
+                  <div className={`rounded-full border px-2.5 py-1 text-[10px] font-black ${runtimeStatusTone(selectedSessionRuntimeEntry, false)}`}>
+                    {selectedSessionRuntimeEntry.status}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
+                  {selectedSessionRuntimeEntry.batch_no ? <span className="rounded-full bg-white px-2 py-1">Batch {selectedSessionRuntimeEntry.batch_no}</span> : null}
+                  {selectedSessionRuntimeEntry.attempt_no ? <span className="rounded-full bg-white px-2 py-1">Attempt {selectedSessionRuntimeEntry.attempt_no}</span> : null}
+                  {selectedSessionRuntimeEntry.current_function ? <span className="rounded-full bg-white px-2 py-1">{selectedSessionRuntimeEntry.current_function}</span> : null}
+                  {selectedSessionRuntimeEntry.pi_job_id ? <span className="rounded-full bg-white px-2 py-1">Job {selectedSessionRuntimeEntry.pi_job_id}</span> : null}
+                </div>
+              </div>
+            ) : null}
             <AgentSessionViewer
               sessionMeta={selectedSessionMeta}
               sessionHeader={sessionSnapshot?.session_meta}
@@ -1828,13 +2098,92 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         )}
       </SectionCard>
 
+      <SectionCard
+        title="任务级 Batch 总览"
+        description="汇总当前任务下全部 item 的 batch 结果、运行状态和统计信息。"
+        right={observabilitySummary?.batches?.length ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={selectedItemId} onChange={(event) => setSelectedItemId(event.target.value as ItemFilter)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+              <option value="__all__">全部 Item</option>
+              {batchItemOptions.map((option) => (
+                <option key={option.item_id} value={option.item_id}>#{option.sequence_no} {option.item_name}</option>
+              ))}
+            </select>
+            <select value={batchScopeFilter} onChange={(event) => setBatchScopeFilter(event.target.value as BatchScopeFilter)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+              <option value="all">全部</option>
+              <option value="running">仅运行中</option>
+              <option value="failed">仅失败</option>
+              <option value="current-item">仅当前 Item</option>
+            </select>
+            <select value={batchStatusFilter} onChange={(event) => setBatchStatusFilter(event.target.value as BatchStatusFilter)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+              <option value="__all__">全部状态</option>
+              <option value="running">运行中</option>
+              <option value="failed">失败</option>
+              <option value="passed">已通过</option>
+              <option value="partial">部分完成</option>
+              <option value="pending">待执行</option>
+              <option value="unknown">未知</option>
+            </select>
+            <select value={batchSortKey} onChange={(event) => setBatchSortKey(event.target.value as BatchSortKey)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+              <option value="sequence">按 Item/Batch</option>
+              <option value="batch">按 Batch</option>
+              <option value="attempts">按 Attempt</option>
+              <option value="duration">按耗时</option>
+            </select>
+          </div>
+        ) : undefined}
+      >
+        {!observabilitySummary ? (
+          <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 batch 总表中...</div>
+        ) : !observabilitySummary.batches?.length ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务没有可观测 batch 结果。</div>
+        ) : (
+          <div className="space-y-3">
+            <B2SBatchSummaryCards items={buildBatchSummaryCardItems(taskBatchSummary)} />
+            <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">当前筛选 {filteredTaskBatchRows.length}/{taskBatchRows.length}</span>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">Item {batchItemOptions.length}</span>
+              {selectedItemId !== '__all__' ? <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">当前 Item 已锁定</span> : null}
+            </div>
+            <B2SBatchObservabilityTable
+              rows={filteredTaskBatchRows}
+              showItemColumn
+              emptyText="当前筛选条件下没有 batch。"
+              onRowAction={handleBatchRowAction}
+            />
+          </div>
+        )}
+      </SectionCard>
+
       {selectedItem ? (
-        <SectionCard title={`Item 观测明细 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description="直接复用现有评审效果面板。">
-          {itemAnalytics ? <ReviewEffectivenessPanel analytics={itemAnalytics} /> : <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 item 观测中...</div>}
-        </SectionCard>
+        <div ref={itemBatchSectionRef} className="space-y-4">
+          <SectionCard title={`当前 Item Batch 明细 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description="聚焦当前选中 item 的 batch 运行、评审和产物状态。">
+            {!observabilitySummary ? (
+              <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 item batch 中...</div>
+            ) : !taskBatchRows.length ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务没有可观测 batch 结果。</div>
+            ) : currentItemBatchRows.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前 item 尚未生成 batch。</div>
+            ) : (
+              <div className="space-y-3">
+                <B2SBatchSummaryCards items={buildBatchSummaryCardItems(currentItemBatchSummary)} />
+                <B2SBatchObservabilityTable
+                  rows={currentItemBatchRows}
+                  showArtifactColumn
+                  emptyText="当前 item 尚未生成 batch。"
+                  onRowAction={handleBatchRowAction}
+                />
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard title={`Item 观测明细 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description="直接复用现有评审效果面板。">
+            {itemAnalytics ? <ReviewEffectivenessPanel analytics={itemAnalytics} /> : <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 item 观测中...</div>}
+          </SectionCard>
+        </div>
       ) : (
-        <SectionCard title="按 Item 查看观测" description="切换到具体 item 后可查看完整评审效果面板。">
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前处于任务级汇总视角。切换到具体 item 后可查看该 item 的逐轮评审指标、维度评分与问题收敛情况。</div>
+        <SectionCard title="当前 Item Batch 明细" description="切换到具体 item 后可查看完整 batch 明细与评审面板。">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">切换到具体 ELF Item 查看 batch 明细。</div>
         </SectionCard>
       )}
     </div>
@@ -1904,7 +2253,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                     <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-600">
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">运行中：<span className="font-black text-slate-800">{detail.running_items}</span></div>
                       <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">ELF：<span className="font-black text-slate-800">{detail.total_items}</span></div>
-                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">会话：<span className="font-black text-slate-800">{detail.agent_runtime_summary?.total_sessions || 0}</span></div>
+                      <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">会话：<span className="font-black text-slate-800">{runtimeSummary?.total_sessions || detail.agent_runtime_summary?.total_sessions || 0}</span></div>
                     </div>
                   </div>
                 </div>

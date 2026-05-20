@@ -560,6 +560,44 @@ export interface B2STaskObservabilityItem {
   issue_remaining: number;
 }
 
+export interface B2SBatchObservabilityRow {
+  item_id: string;
+  sequence_no: number;
+  item_name: string;
+  batch_no: number;
+  status: string;
+  status_label: string;
+  function_count: number;
+  total_size_bytes: number;
+  attempt_count: number;
+  current_attempt_no?: number | null;
+  current_function?: string | null;
+  review_count: number;
+  session_count: number;
+  has_source_output: boolean;
+  has_disasm_context: boolean;
+  latest_verdict?: string | null;
+  latest_verdict_label?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  duration_ms?: number | null;
+  last_event_at?: string | null;
+  warnings: string[];
+}
+
+export interface B2SBatchObservabilitySummary {
+  total_batches: number;
+  running_batches: number;
+  passed_batches: number;
+  failed_batches: number;
+  partial_batches: number;
+  pending_batches: number;
+  unknown_batches: number;
+  avg_attempts_per_batch: number;
+  total_review_rounds: number;
+  active_batch_count: number;
+}
+
 export interface B2STaskObservability {
   task_id: string;
   total_duration_ms?: number | null;
@@ -584,6 +622,8 @@ export interface B2STaskObservability {
   avg_quality_score: number;
   residual_risk_distribution: Record<string, number>;
   business_runtime_metrics?: Record<string, unknown> | null;
+  batch_summary?: B2SBatchObservabilitySummary | null;
+  batches?: B2SBatchObservabilityRow[] | null;
   items: B2STaskObservabilityItem[];
 }
 
@@ -666,6 +706,72 @@ export interface B2SSessionFile {
   mime_type: string;
 }
 
+export interface B2SAgentSessionEvidence {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface B2SAgentSessionFileRef {
+  path?: string | null;
+  node_id?: string | null;
+  can_open: boolean;
+  read_api?: string | null;
+}
+
+export interface B2SAgentSessionRuntimeEntry {
+  session_id: string;
+  node_id?: string | null;
+  item_id?: string | null;
+  sequence_no?: number | null;
+  item_name?: string | null;
+  run_name?: string | null;
+  agent?: string | null;
+  role?: string | null;
+  stage?: string | null;
+  batch_no?: number | null;
+  attempt_no?: number | null;
+  status: string;
+  status_title: string;
+  status_reason: string;
+  is_current: boolean;
+  is_active: boolean;
+  is_orphan: boolean;
+  is_stale: boolean;
+  current_function?: string | null;
+  pi_job_id?: string | null;
+  pi_worker_url?: string | null;
+  relative_path?: string | null;
+  full_path?: string | null;
+  size: number;
+  updated_at?: string | null;
+  last_event_at?: string | null;
+  file_ref?: B2SAgentSessionFileRef | null;
+  evidence: B2SAgentSessionEvidence[];
+}
+
+export interface B2SAgentSessionRuntimeSummary {
+  task_id: string;
+  generated_at?: string | null;
+  total_sessions: number;
+  active_sessions: number;
+  sessions_by_status: Record<string, number>;
+  sessions_by_agent: Record<string, number>;
+  sessions_by_role: Record<string, number>;
+  sessions_by_stage: Record<string, number>;
+  orphan_sessions: number;
+  stale_sessions: number;
+  warnings: string[];
+}
+
+export interface B2SAgentSessionRuntimeResponse {
+  task_id: string;
+  generated_at?: string | null;
+  summary: B2SAgentSessionRuntimeSummary;
+  sessions: B2SAgentSessionRuntimeEntry[];
+  warnings: string[];
+}
+
 export interface B2SRelationshipNode {
   node_id: string;
   node_type: string;
@@ -702,6 +808,7 @@ export interface B2STaskDetail extends B2STask {
   task_config_snapshot?: B2STaskConfigSnapshot;
   effective_llm_provider?: B2SLlmProviderSummary | null;
   agent_runtime_summary?: B2SAgentRuntimeSummary | null;
+  agent_session_runtime_summary?: B2SAgentSessionRuntimeSummary | null;
   result_summary?: B2STaskResultSummary | null;
   observability_summary?: B2STaskObservability | null;
   event_summary?: B2STaskEventSummary | null;
@@ -927,6 +1034,13 @@ export const binaryToSourceApi = {
 
   getTaskSessions: async (projectId: string, taskId: string): Promise<B2SSessionIndex> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/sessions`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskAgentSessionsRuntime: async (projectId: string, taskId: string): Promise<B2SAgentSessionRuntimeResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/agent-sessions/runtime`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);
