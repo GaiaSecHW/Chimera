@@ -34,6 +34,7 @@ import {
   B2SSessionFile,
   B2SSessionIndex,
   B2SSessionNode,
+  B2STaskEvent,
   B2STaskDetail,
   B2STaskObservability,
   B2STaskRelationship,
@@ -47,6 +48,8 @@ import {
   B2SProgressBar,
   B2SStatusBadge,
   B2S_TERMINAL_STATUSES,
+  formatB2SOverallProgressBasis,
+  formatB2SOverallProgressSummary,
   formatBytes,
   formatDateTime,
   pct,
@@ -74,7 +77,7 @@ interface Props {
 }
 
 type B2SItem = B2STaskDetail['items'][number];
-type DetailTab = 'overview' | 'run-config' | 'session' | 'relationship' | 'result' | 'evaluation';
+type DetailTab = 'overview' | 'run-config' | 'timeline' | 'session' | 'relationship' | 'result' | 'evaluation';
 type ItemFilter = '__all__' | string;
 
 const PHASE_ORDER = ['queued', 'ida', 'batching', 'header', 'body', 'merge', 'completed'];
@@ -172,6 +175,54 @@ const tabButtonTone = (active: boolean) => (
     ? 'border-slate-900 bg-slate-900 text-white shadow-[0_10px_28px_rgba(15,23,42,0.18)]'
     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
 );
+
+const timelineLevelTone = (level?: string | null) => {
+  const normalized = String(level || '').toLowerCase();
+  if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'warning' || normalized === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
+};
+
+const formatTimelineEventTypeLabel = (eventType?: string | null) => {
+  const normalized = String(eventType || '').trim();
+  if (!normalized) return '-';
+  const map: Record<string, string> = {
+    task_created: '任务创建',
+    task_status_changed: '任务状态变更',
+    task_cancel_requested: '任务取消请求',
+    task_retry_requested: '任务重试请求',
+    task_rerun_requested: '任务重跑请求',
+    item_registered: '任务项登记',
+    item_queue_prepared: '进入派发队列',
+    dispatch_requested: '请求派发',
+    item_dispatched: '派发成功',
+    dispatch_failed: '派发失败',
+    dispatch_conflicted: '派发冲突',
+    pi_job_bound: '绑定 Pi Job',
+    worker_assigned: '分配 Worker',
+    item_status_changed: '任务项状态变更',
+    phase_changed: '阶段切换',
+    batch_started: 'Batch 开始',
+    batch_attempt_started: 'Batch Attempt 开始',
+    function_progress: '函数推进',
+    batch_completed: 'Batch 完成',
+    progress_snapshot_synced: '进度快照同步',
+    runtime_metrics_updated: '运行指标更新',
+    runtime_metrics_missing: '运行指标缺失',
+    missing_job_requeued: '丢失任务重排',
+    pi_recovery_observed: '恢复动作',
+    pi_recovery_warning: '恢复告警',
+    pi_job_conflict_observed: '冲突任务',
+    sync_observation_failed: '同步失败',
+    job_completed: '任务完成',
+    job_failed: '任务失败',
+    job_cancelled: '任务取消',
+    output_cleaned: '输出清理',
+    item_requeued: '任务项重排',
+  };
+  return map[normalized] || normalized.replace(/_/g, ' ');
+};
 
 const tileTone = (tone: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet' = 'slate') => {
   const map = {
@@ -272,11 +323,20 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [clockNow, setClockNow] = useState(Date.now());
   const [selectedItemId, setSelectedItemId] = useState<ItemFilter>('__all__');
+  const [timeline, setTimeline] = useState<B2STaskEvent[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineClearing, setTimelineClearing] = useState(false);
+  const [deletingTimelineEventId, setDeletingTimelineEventId] = useState<string>('');
+  const [expandedTimelineEventId, setExpandedTimelineEventId] = useState<string>('');
+  const [timelinePhaseFilter, setTimelinePhaseFilter] = useState<string>('__all__');
+  const [timelineEventTypeFilter, setTimelineEventTypeFilter] = useState<string>('__all__');
+  const [timelineLevelFilter, setTimelineLevelFilter] = useState<string>('__all__');
   const [result, setResult] = useState<B2STaskResultSummary | null>(null);
   const [observability, setObservability] = useState<B2STaskObservability | null>(null);
   const [sessions, setSessions] = useState<B2SSessionIndex | null>(null);
   const [relationship, setRelationship] = useState<B2STaskRelationship | null>(null);
-  const [selectedSessionPath, setSelectedSessionPath] = useState<string>('');
+  const [selectedSessionNodeId, setSelectedSessionNodeId] = useState<string>('');
+  const [pendingSessionTarget, setPendingSessionTarget] = useState<{ itemId?: string | null; relativePath?: string | null; fullPath?: string | null } | null>(null);
   const [selectedSessionContent, setSelectedSessionContent] = useState<string>('');
   const [selectedSessionLoading, setSelectedSessionLoading] = useState(false);
   const [sessionLive, setSessionLive] = useState(false);
@@ -350,18 +410,33 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
   }, [executionApi, projectId, taskId]);
 
+  const loadTimeline = useCallback(async (options?: { silent?: boolean }) => {
+    if (!projectId || !taskId) return;
+    if (!options?.silent) setTimelineLoading(true);
+    try {
+      const payload = await executionApi.getTaskTimeline(projectId, taskId);
+      setTimeline(payload.events || []);
+    } catch (e: any) {
+      if (!options?.silent) {
+        setError(e?.message || '加载事件时间线失败');
+      }
+    } finally {
+      if (!options?.silent) setTimelineLoading(false);
+    }
+  }, [executionApi, projectId, taskId]);
+
   const loadSessions = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
     try {
       const payload = await executionApi.getTaskSessions(projectId, taskId);
       setSessions(payload);
-      if (!selectedSessionPath && payload.nodes[0]) setSelectedSessionPath(payload.nodes[0].relative_path);
+      if (!selectedSessionNodeId && payload.nodes[0]) setSelectedSessionNodeId(payload.nodes[0].node_id);
     } catch (e: any) {
       if (!options?.silent) {
         setError(e?.message || '加载智能体会话失败');
       }
     }
-  }, [executionApi, projectId, selectedSessionPath, taskId]);
+  }, [executionApi, projectId, selectedSessionNodeId, taskId]);
 
   const filteredSessionNodes = useMemo(() => {
     const nodes = sessions?.nodes || [];
@@ -379,9 +454,57 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   }, [filteredSessionNodes]);
 
   const selectedSessionNode = useMemo(
-    () => filteredSessionNodes.find((node) => node.relative_path === selectedSessionPath) || null,
-    [filteredSessionNodes, selectedSessionPath],
+    () => filteredSessionNodes.find((node) => node.node_id === selectedSessionNodeId) || null,
+    [filteredSessionNodes, selectedSessionNodeId],
   );
+
+  const focusSession = useCallback((target: { itemId?: string | null; nodeId?: string | null; relativePath?: string | null; fullPath?: string | null }) => {
+    setActiveTab('session');
+    setSelectedItemId(target.itemId || '__all__');
+    const allNodes = sessions?.nodes || [];
+    const matched = (target.nodeId
+      ? allNodes.find((node) => node.node_id === target.nodeId)
+      : allNodes.find((node) => {
+          if (target.itemId && node.item_id !== target.itemId) return false;
+          if (target.fullPath && node.full_path === target.fullPath) return true;
+          return !!target.relativePath && node.relative_path === target.relativePath;
+        })) || null;
+    if (matched) {
+      setSelectedSessionNodeId(matched.node_id);
+      setPendingSessionTarget(null);
+      return;
+    }
+    if (target.relativePath || target.fullPath) {
+      setPendingSessionTarget({
+        itemId: target.itemId,
+        relativePath: target.relativePath,
+        fullPath: target.fullPath,
+      });
+    }
+  }, [sessions]);
+
+  useEffect(() => {
+    if (filteredSessionNodes.length === 0) {
+      if (selectedSessionNodeId) setSelectedSessionNodeId('');
+      return;
+    }
+    if (!selectedSessionNodeId || !filteredSessionNodes.some((node) => node.node_id === selectedSessionNodeId)) {
+      setSelectedSessionNodeId(filteredSessionNodes[0].node_id);
+    }
+  }, [filteredSessionNodes, selectedSessionNodeId]);
+
+  useEffect(() => {
+    if (!pendingSessionTarget) return;
+    const allNodes = sessions?.nodes || [];
+    const matched = allNodes.find((node) => {
+      if (pendingSessionTarget.itemId && node.item_id !== pendingSessionTarget.itemId) return false;
+      if (pendingSessionTarget.fullPath && node.full_path === pendingSessionTarget.fullPath) return true;
+      return !!pendingSessionTarget.relativePath && node.relative_path === pendingSessionTarget.relativePath;
+    });
+    if (!matched) return;
+    setSelectedSessionNodeId(matched.node_id);
+    setPendingSessionTarget(null);
+  }, [pendingSessionTarget, sessions]);
 
   const closeSessionSocket = useCallback(() => {
     if (!sessionSocketRef.current) return;
@@ -401,12 +524,15 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     setSessionLive(false);
   }, []);
 
-  const loadSessionFile = useCallback(async (path: string) => {
-    if (!projectId || !taskId || !path) return null;
+  const loadSessionFile = useCallback(async (node: B2SSessionNode | null) => {
+    if (!projectId || !taskId || !node?.relative_path) return null;
     setSelectedSessionLoading(true);
     setSessionError(null);
     try {
-      const payload: B2SSessionFile = await executionApi.getTaskSessionFile(projectId, taskId, path);
+      const payload: B2SSessionFile = await executionApi.getTaskSessionFile(projectId, taskId, node.relative_path, {
+        itemId: node.item_id,
+        nodeId: node.node_id,
+      });
       setSelectedSessionContent(payload.content || '');
       sessionLineCountRef.current = (payload.content || '').split(/\r?\n/).filter(Boolean).length;
       return payload;
@@ -450,9 +576,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   useEffect(() => {
     if (activeTab === 'result' && !result) void loadResult();
     if (activeTab === 'evaluation' && !observability) void loadObservability();
+    if (activeTab === 'timeline' && timeline.length === 0) void loadTimeline();
     if (activeTab === 'session' && !sessions) void loadSessions();
     if (activeTab === 'relationship' && !relationship) void loadRelationship();
-  }, [activeTab, loadObservability, loadRelationship, loadResult, loadSessions, observability, relationship, result, sessions]);
+  }, [activeTab, loadObservability, loadRelationship, loadResult, loadSessions, loadTimeline, observability, relationship, result, sessions, timeline.length]);
 
   useEffect(() => {
     if (!isTaskRunning) return undefined;
@@ -478,6 +605,14 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       return () => window.clearInterval(timer);
     }
 
+    if (activeTab === 'timeline') {
+      const timer = window.setInterval(() => {
+        void loadDetail({ silent: true });
+        void loadTimeline({ silent: true });
+      }, 5000);
+      return () => window.clearInterval(timer);
+    }
+
     if (activeTab === 'session') {
       const timer = window.setInterval(() => { void loadSessions({ silent: true }); }, 5000);
       return () => window.clearInterval(timer);
@@ -489,18 +624,18 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
 
     return undefined;
-  }, [activeTab, isTaskRunning, loadDetail, loadObservability, loadRelationship, loadResult, loadSessions]);
+  }, [activeTab, isTaskRunning, loadDetail, loadObservability, loadRelationship, loadResult, loadSessions, loadTimeline]);
 
   useEffect(() => {
-    if (activeTab !== 'session' || !selectedSessionPath) {
+    if (activeTab !== 'session' || !selectedSessionNode) {
       closeSessionSocket();
       return;
     }
-    void loadSessionFile(selectedSessionPath);
-  }, [activeTab, selectedSessionPath, loadSessionFile, closeSessionSocket]);
+    void loadSessionFile(selectedSessionNode);
+  }, [activeTab, selectedSessionNode, loadSessionFile, closeSessionSocket]);
 
   useEffect(() => {
-    if (activeTab !== 'session' || !selectedSessionPath || !isTaskRunning) {
+    if (activeTab !== 'session' || !selectedSessionNode || !isTaskRunning) {
       closeSessionSocket();
       return;
     }
@@ -555,7 +690,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           if (message.event === 'truncated' || message.event === 'renamed') {
             setSessionLive(false);
             setSessionError('会话文件已重置，正在重新加载');
-            void loadSessionFile(selectedSessionPath);
+            void loadSessionFile(selectedSessionNode);
             return;
           }
           if (message.event === 'deleted') {
@@ -592,7 +727,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         }
       }
     };
-  }, [activeTab, selectedSessionPath, selectedSessionNode?.full_path, isTaskRunning, projectId, loadSessionFile, closeSessionSocket]);
+  }, [activeTab, selectedSessionNode, isTaskRunning, projectId, loadSessionFile, closeSessionSocket]);
 
   useEffect(() => {
     if (!selectedItem || activeTab !== 'result') return;
@@ -626,6 +761,10 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     void loadAnalytics();
     return () => { cancelled = true; };
   }, [selectedItem?.id, activeTab, projectId, taskId]);
+
+  useEffect(() => {
+    setExpandedTimelineEventId('');
+  }, [taskId, selectedItemId, timelinePhaseFilter, timelineEventTypeFilter, timelineLevelFilter]);
 
   useEffect(() => {
     if (!selectedItem || !itemArtifacts || !selectedArtifactId) return;
@@ -708,8 +847,64 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     }
   };
 
+  const clearTimeline = async () => {
+    const confirmed = await showConfirm({
+      title: '清空事件时间线',
+      message: '将删除当前任务的全部时间线事件。该操作不影响任务状态、产物和会话文件，删除后不可恢复。',
+      confirmText: '确认清空',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setTimelineClearing(true);
+    try {
+      await executionApi.clearTaskTimeline(projectId, taskId);
+      setTimeline([]);
+      setExpandedTimelineEventId('');
+    } catch (e: any) {
+      setError(e?.message || '清空事件时间线失败');
+    } finally {
+      setTimelineClearing(false);
+    }
+  };
+
+  const deleteTimelineEvent = async (eventId: string) => {
+    const confirmed = await showConfirm({
+      title: '删除事件',
+      message: '该操作只删除当前事件记录，不影响任务执行状态与产物，删除后不可恢复。',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeletingTimelineEventId(eventId);
+    try {
+      await executionApi.deleteTaskTimelineEvent(projectId, taskId, eventId);
+      setTimeline((current) => current.filter((event) => event.id !== eventId));
+      setExpandedTimelineEventId((current) => (current === eventId ? '' : current));
+    } catch (e: any) {
+      setError(e?.message || '删除事件失败');
+    } finally {
+      setDeletingTimelineEventId('');
+    }
+  };
+
+  const timelinePhaseOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.phase || '').trim()).filter(Boolean))), [timeline]);
+  const timelineEventTypeOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.event_type || '').trim()).filter(Boolean))), [timeline]);
+  const timelineLevelOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.level || '').trim()).filter(Boolean))), [timeline]);
+  const filteredTimeline = useMemo(() => {
+    return timeline.filter((event) => {
+      if (selectedItemId !== '__all__' && event.item_id !== selectedItemId) return false;
+      if (timelinePhaseFilter !== '__all__' && (event.phase || '__none__') !== timelinePhaseFilter) return false;
+      if (timelineEventTypeFilter !== '__all__' && (event.event_type || '__none__') !== timelineEventTypeFilter) return false;
+      if (timelineLevelFilter !== '__all__' && (event.level || '__none__') !== timelineLevelFilter) return false;
+      return true;
+    });
+  }, [selectedItemId, timeline, timelineEventTypeFilter, timelineLevelFilter, timelinePhaseFilter]);
   const overall = detail?.overall_progress;
   const primaryProgress = overall?.percent ?? 0;
+  const progressBasisLabel = formatB2SOverallProgressBasis(overall?.percent_basis);
+  const progressSummaryLabel = formatB2SOverallProgressSummary(overall);
   const resultSummary = detail?.result_summary || result;
   const observabilitySummary = detail?.observability_summary || observability;
   const activeAgents = detail?.agent_runtime_summary?.active_agents || [];
@@ -748,7 +943,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       <SectionCard
         title="阶段进度"
         description="按 B2S 语义展示任务的当前推进位置。"
-        right={<div className="text-xs font-black text-slate-500">当前主进度 {pct(primaryProgress).toFixed(1)}%</div>}
+        right={<div className="text-xs font-black text-slate-500">任务进度 {progressSummaryLabel}</div>}
       >
         <div className="grid gap-2 lg:grid-cols-7">
           {PHASE_ORDER.map((phase, index) => {
@@ -785,9 +980,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 key={agent.key}
                 type="button"
                 onClick={() => {
-                  setActiveTab('session');
-                  setSelectedItemId(agent.item_id || '__all__');
-                  if (agent.relative_path) setSelectedSessionPath(agent.relative_path);
+                  focusSession({
+                    itemId: agent.item_id,
+                    relativePath: agent.relative_path,
+                    fullPath: agent.full_path,
+                  });
                 }}
                 className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50"
               >
@@ -866,6 +1063,111 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         </div>
       </SectionCard>
     </div>
+  );
+
+  const renderTimeline = () => (
+    <SectionCard
+      title="事件时间线"
+      description="按时间查看任务编排事件与 pi-re-agent 执行推进事件。"
+      right={(
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void loadTimeline()}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
+          >
+            <RefreshCw size={14} />
+            刷新
+          </button>
+          <button
+            type="button"
+            onClick={() => void clearTimeline()}
+            disabled={timelineClearing || timelineLoading || timeline.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-black text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {timelineClearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+            清空
+          </button>
+        </div>
+      )}
+    >
+      <div className="space-y-4">
+        <div className="grid gap-2.5 md:grid-cols-4">
+          <MetricTile label="事件总数" value={detail?.event_summary?.total_events || timeline.length} tone="blue" icon={<Clock3 size={18} />} />
+          <MetricTile label="最新事件" value={formatTimelineEventTypeLabel(detail?.event_summary?.latest_event_type)} hint={detail?.event_summary?.latest_event_at ? formatDateTime(detail.event_summary.latest_event_at) : '-'} tone="slate" icon={<RefreshCw size={18} />} />
+          <MetricTile label="最近 Batch" value={detail?.event_summary?.last_batch_id ?? '-'} hint={detail?.event_summary?.current_attempt != null ? `Attempt ${detail.event_summary.current_attempt}` : '-'} tone="violet" icon={<Layers3 size={18} />} />
+          <MetricTile label="当前函数" value={detail?.event_summary?.current_function || '-'} tone="emerald" icon={<Code2 size={18} />} />
+        </div>
+        <div className="grid gap-2 md:grid-cols-4">
+          <select value={timelinePhaseFilter} onChange={(event) => setTimelinePhaseFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400">
+            <option value="__all__">全部阶段</option>
+            {timelinePhaseOptions.map((value) => <option key={value} value={value}>{PHASE_LABELS[value] || value}</option>)}
+          </select>
+          <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400">
+            <option value="__all__">全部事件</option>
+            {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
+          </select>
+          <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-slate-400">
+            <option value="__all__">全部级别</option>
+            {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-600">
+            当前显示 <span className="font-black text-slate-900">{filteredTimeline.length}</span> / {timeline.length}
+          </div>
+        </div>
+        {timelineLoading ? (
+          <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载事件时间线中...</div>
+        ) : filteredTimeline.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前筛选条件下没有事件记录。</div>
+        ) : (
+          <div className="space-y-2">
+            {filteredTimeline.map((event) => {
+              const expanded = expandedTimelineEventId === event.id;
+              const payloadText = event.payload && Object.keys(event.payload).length ? JSON.stringify(event.payload, null, 2) : '';
+              return (
+                <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                  <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedTimelineEventId((current) => (current === event.id ? '' : event.id))}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span>
+                        <span className="inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-black text-slate-700">{event.source === 'pi_re_agent' ? 'PI' : 'B2S'}</span>
+                        {event.phase ? <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-black text-blue-700">{PHASE_LABELS[event.phase] || event.phase}</span> : null}
+                        {event.batch_id != null ? <span className="inline-flex rounded-full border border-violet-100 bg-violet-50 px-2 py-0.5 text-[11px] font-black text-violet-700">Batch {event.batch_id}</span> : null}
+                        {event.attempt != null ? <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700">Attempt {event.attempt}</span> : null}
+                        {event.function_name ? <span className="inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">{event.function_name}</span> : null}
+                      </div>
+                      <div className="mt-2 text-sm font-black text-slate-900">{event.message}</div>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-500">
+                        <span>{formatDateTime(event.created_at)}</span>
+                        <span>{formatTimelineEventTypeLabel(event.event_type)}</span>
+                        <span>{event.sequence_no != null ? `Item #${event.sequence_no}` : event.item_id || '-'}</span>
+                        <span>{event.pi_job_id || '-'}</span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteTimelineEvent(event.id)}
+                      disabled={deletingTimelineEventId === event.id || timelineClearing}
+                      className="inline-flex items-center gap-1.5 self-start rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingTimelineEventId === event.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      删除
+                    </button>
+                  </div>
+                  {expanded && payloadText ? (
+                    <pre className="mt-3 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-5 text-slate-100">{payloadText}</pre>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </SectionCard>
   );
 
   const renderConfig = () => {
@@ -1006,12 +1308,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   </div>
                   <div className="space-y-2">
                     {nodes.map((node) => {
-                      const selected = node.relative_path === selectedSessionPath;
+                      const selected = node.node_id === selectedSessionNodeId;
                       return (
                         <button
                           key={node.node_id}
                           type="button"
-                          onClick={() => setSelectedSessionPath(node.relative_path)}
+                          onClick={() => setSelectedSessionNodeId(node.node_id)}
                           className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                             selected
                               ? 'border-slate-900 bg-slate-900 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]'
@@ -1059,7 +1361,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
           <div className="space-y-4">
             <B2SSessionPreview
-              name={fileNameOf(selectedSessionPath)}
+              name={fileNameOf(selectedSessionNode?.relative_path)}
               content={selectedSessionContent}
               loading={selectedSessionLoading}
               emptyHint="请选择左侧会话"
@@ -1120,9 +1422,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                         type="button"
                         onClick={() => {
                           if (node.relative_path) {
-                            setActiveTab('session');
-                            setSelectedItemId(node.item_id || '__all__');
-                            setSelectedSessionPath(node.relative_path);
+                            focusSession({
+                              itemId: node.item_id,
+                              relativePath: node.relative_path,
+                              fullPath: node.full_path,
+                            });
                           }
                         }}
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-left hover:border-slate-300 hover:bg-slate-50"
@@ -1354,10 +1658,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   <div className="mt-2.5 rounded-[1.25rem] border border-white/80 bg-white/75 p-2.5 shadow-sm backdrop-blur">
                     <div className="flex items-end justify-between gap-3">
                       <div>
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">总体进度</div>
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">任务进度</div>
                         <div className="mt-0.5 text-[1.6rem] font-black tracking-tight text-slate-950">{pct(primaryProgress).toFixed(1)}%</div>
+                        <div className="mt-1 text-[11px] font-semibold text-slate-500">{progressBasisLabel} · ELF 完成 {overall?.completed_items || 0}/{overall?.total_items || detail.total_items || 0}</div>
                       </div>
-                      <div className="text-right text-[11px] font-bold text-slate-500">任务视图</div>
+                      <div className="text-right text-[11px] font-bold text-slate-500">{progressBasisLabel}</div>
                     </div>
                     <div className="mt-2.5">
                       <B2SProgressBar value={primaryProgress} tone={B2S_TERMINAL_STATUSES.has(detail.status) ? 'emerald' : 'blue'} />
@@ -1399,6 +1704,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                   {[
                     { id: 'overview' as DetailTab, label: '总览', icon: <Gauge size={14} /> },
                     { id: 'run-config' as DetailTab, label: '任务配置', icon: <Settings2 size={14} /> },
+                    { id: 'timeline' as DetailTab, label: '事件时间线', icon: <Clock3 size={14} /> },
                     { id: 'session' as DetailTab, label: '智能体会话', icon: <Bot size={14} /> },
                     { id: 'relationship' as DetailTab, label: '智能体关系', icon: <Waypoints size={14} /> },
                     { id: 'result' as DetailTab, label: '结果', icon: <FileJson2 size={14} /> },
@@ -1424,10 +1730,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
       {detail ? (
         activeTab === 'overview' ? renderOverview()
           : activeTab === 'run-config' ? renderConfig()
-            : activeTab === 'session' ? renderSessions()
-              : activeTab === 'relationship' ? renderRelationship()
-                : activeTab === 'result' ? renderResult()
-                  : renderObservability()
+            : activeTab === 'timeline' ? renderTimeline()
+              : activeTab === 'session' ? renderSessions()
+                : activeTab === 'relationship' ? renderRelationship()
+                  : activeTab === 'result' ? renderResult()
+                    : renderObservability()
       ) : null}
 
       {previewDialog ? (

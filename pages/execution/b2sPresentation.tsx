@@ -1,4 +1,5 @@
 import React from 'react';
+import { B2SOverallProgress } from '../../clients/binaryToSource';
 
 export const B2S_TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled', 'partial', 'success']);
 
@@ -59,6 +60,27 @@ export const formatDateTime = (value?: string | null) => {
 };
 
 export const pct = (value?: number | null) => Math.max(0, Math.min(100, Number(value || 0)));
+
+export const formatB2SOverallProgressBasis = (basis?: string | null) => {
+  switch (String(basis || '').trim().toLowerCase()) {
+    case 'functions':
+      return '按函数';
+    case 'batches':
+      return '按批次';
+    case 'bytes':
+      return '按字节';
+    case 'items':
+      return '按 ELF';
+    default:
+      return '按任务';
+  }
+};
+
+export const formatB2SOverallProgressSummary = (overall?: B2SOverallProgress | null) => {
+  const value = pct(overall?.percent);
+  const basisLabel = formatB2SOverallProgressBasis(overall?.percent_basis);
+  return `${value.toFixed(1)}% · ${basisLabel}`;
+};
 
 export const B2SStatusBadge: React.FC<{ status?: string; className?: string }> = ({ status, className = '' }) => (
   <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ${STATUS_STYLES[status || ''] || 'bg-slate-100 text-slate-700 ring-slate-200'} ${className}`.trim()}>

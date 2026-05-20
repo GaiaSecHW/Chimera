@@ -147,13 +147,22 @@ export interface B2STaskBatchDeleteResult {
   task_id: string;
   status: string;
   message?: string | null;
+  deleted_event_count?: number;
 }
 
 export interface B2STaskBatchDeleteResponse {
   status: string;
   deleted_count: number;
   failed_count: number;
+  deleted_event_count?: number;
   results: B2STaskBatchDeleteResult[];
+}
+
+export interface B2SActionResult {
+  status: string;
+  task_id?: string | null;
+  message?: string | null;
+  deleted_event_count?: number;
 }
 
 export interface B2SPiWorkerCapacity {
@@ -207,6 +216,7 @@ export interface B2SOverallProgress {
   total_batches?: number;
   completed_batches?: number;
   percent?: number;
+  percent_basis?: string | null;
   phase_summary?: Record<string, number>;
 }
 
@@ -554,6 +564,40 @@ export interface B2STaskObservability {
   items: B2STaskObservabilityItem[];
 }
 
+export interface B2STaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  item_id?: string | null;
+  sequence_no?: number | null;
+  pi_job_id?: string | null;
+  source: string;
+  level: string;
+  event_type: string;
+  phase?: string | null;
+  batch_id?: number | null;
+  attempt?: number | null;
+  function_name?: string | null;
+  status?: string | null;
+  message: string;
+  payload: Record<string, any>;
+  created_at: string;
+}
+
+export interface B2STaskEventSummary {
+  total_events: number;
+  latest_event_type?: string | null;
+  latest_event_at?: string | null;
+  last_batch_id?: number | null;
+  current_function?: string | null;
+  current_attempt?: number | null;
+}
+
+export interface B2STaskTimeline {
+  task_id: string;
+  events: B2STaskEvent[];
+}
+
 export interface B2SSessionNode {
   node_id: string;
   item_id: string;
@@ -586,6 +630,8 @@ export interface B2SSessionIndex {
 
 export interface B2SSessionFile {
   task_id: string;
+  node_id?: string | null;
+  item_id?: string | null;
   relative_path: string;
   full_path: string;
   size: number;
@@ -635,6 +681,7 @@ export interface B2STaskDetail extends B2STask {
   agent_runtime_summary?: B2SAgentRuntimeSummary | null;
   result_summary?: B2STaskResultSummary | null;
   observability_summary?: B2STaskObservability | null;
+  event_summary?: B2STaskEventSummary | null;
   items: Array<{
     id: string;
     sequence_no: number;
@@ -745,6 +792,30 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
+  getTaskTimeline: async (projectId: string, taskId: string): Promise<B2STaskTimeline> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/timeline`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  clearTaskTimeline: async (projectId: string, taskId: string): Promise<B2SActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/timeline`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  deleteTaskTimelineEvent: async (projectId: string, taskId: string, eventId: string): Promise<B2SActionResult> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/timeline/${eventId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
   listLlmProviders: async (projectId: string): Promise<{ items: B2SLlmProviderSummary[]; total: number; default_provider_key?: string | null }> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/llm-providers`, {
       headers: getHeaders(),
@@ -769,7 +840,7 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  terminateTask: async (projectId: string, taskId: string) => {
+  terminateTask: async (projectId: string, taskId: string): Promise<B2SActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/terminate`, {
       method: 'POST',
       headers: getHeaders(),
@@ -777,7 +848,7 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  retryTask: async (projectId: string, taskId: string, itemIds?: string[]) => {
+  retryTask: async (projectId: string, taskId: string, itemIds?: string[]): Promise<B2SActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/retry`, {
       method: 'POST',
       headers: getHeaders(),
@@ -786,7 +857,7 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  deleteTask: async (projectId: string, taskId: string) => {
+  deleteTask: async (projectId: string, taskId: string): Promise<B2SActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}`, {
       method: 'DELETE',
       headers: getHeaders(),
@@ -838,8 +909,22 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  getTaskSessionFile: async (projectId: string, taskId: string, path: string, offset = 0, limit = 512 * 1024): Promise<B2SSessionFile> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/sessions/file?path=${encodeURIComponent(path)}&offset=${offset}&limit=${limit}`, {
+  getTaskSessionFile: async (
+    projectId: string,
+    taskId: string,
+    path: string,
+    options: { itemId?: string | null; nodeId?: string | null; offset?: number; limit?: number } = {},
+  ): Promise<B2SSessionFile> => {
+    const offset = options.offset ?? 0;
+    const limit = options.limit ?? 512 * 1024;
+    const search = new URLSearchParams({
+      path,
+      offset: String(offset),
+      limit: String(limit),
+    });
+    if (options.itemId) search.set('item_id', options.itemId);
+    if (options.nodeId) search.set('node_id', options.nodeId);
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/sessions/file?${search.toString()}`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);
@@ -866,7 +951,7 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  rerunTask: async (projectId: string, taskId: string) => {
+  rerunTask: async (projectId: string, taskId: string): Promise<B2SActionResult> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/rerun`, {
       method: 'POST',
       headers: getHeaders(),

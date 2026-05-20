@@ -6,7 +6,7 @@ import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
-import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
+import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SOverallProgressBasis, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 import { showConfirm } from '../../components/DialogService';
 
 interface Props {
@@ -32,7 +32,7 @@ const formatBytes = (value: number): string => {
 const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
   const total = task.total_items || 0;
   if (detail?.overall_progress?.percent !== undefined && detail.overall_progress.percent !== null) {
-    return `${pct(detail.overall_progress.percent).toFixed(1)}%`;
+    return `${pct(detail.overall_progress.percent).toFixed(1)}% · ${formatB2SOverallProgressBasis(detail.overall_progress.percent_basis)}`;
   }
   if (total <= 0) return '-';
   return `${task.success_items || 0}/${total}`;
@@ -812,6 +812,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     const inputsExpanded = expandedInputTaskIds.includes(task.id);
                     const visibleInputFilenames = inputsExpanded ? inputFilenames : inputFilenames.slice(0, 3);
                     const progressValue = detail?.overall_progress?.percent ?? (task.total_items ? ((task.success_items + task.partial_items) / task.total_items) * 100 : 0);
+                    const progressBasisLabel = formatB2SOverallProgressBasis(detail?.overall_progress?.percent_basis);
                     const parentTaskId = String(task.parent_task_id || '').trim();
                     const sourceLabel = String(task.task_origin_type || 'manual').trim() === 'binary_security'
                       ? (String(task.origin_label || '').trim() || '二进制安全任务')
@@ -903,10 +904,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <ExecutionTableTd className="min-w-[220px]">
                           <div className="flex items-center justify-between gap-2 text-xs">
                             <span className="font-semibold text-slate-700">{buildProgressLabel(task, detail)}</span>
-                            <span className="text-slate-400">{pct(progressValue).toFixed(1)}%</span>
+                            <span className="text-slate-400">{progressBasisLabel}</span>
                           </div>
                           <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                            <span>待处理 {task.pending_items}</span>
+                            <span>ELF {detail?.overall_progress?.completed_items ?? task.success_items ?? 0}/{task.total_items || 0}</span>
                             <span>已取消 {task.cancelled_items}</span>
                           </div>
                         </ExecutionTableTd>
