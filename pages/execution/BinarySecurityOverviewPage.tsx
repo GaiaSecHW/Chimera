@@ -906,6 +906,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       ) : null}
                     </div>
                     <div className="mt-3 break-all rounded-xl bg-white px-3 py-2 font-mono text-xs text-slate-500">{item.firmware_path}</div>
+                    {item.abnormal_reason_title ? (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        <span className="font-black">{item.abnormal_reason_title}</span>
+                        {item.abnormal_reason_code ? <span className="ml-2 text-xs uppercase tracking-[0.12em] text-amber-700">{item.abnormal_reason_code}</span> : null}
+                      </div>
+                    ) : null}
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-600 xl:grid-cols-6">
                       <div>当前阶段：<span className="font-bold text-slate-900">{formatStageLabel(item.current_stage)}</span></div>
                       <div>{isSourceTask ? '源码文件' : isBinaryModuleTask ? 'ELF 数' : '固件数'}：<span className="font-bold text-slate-900">{item.firmware_item_count}</span></div>

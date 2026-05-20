@@ -54,6 +54,7 @@ import { SessionRelationshipGraph } from './SessionRelationshipGraph';
 import { buildCloneFormFromTask, SystemAnalysisTaskFormModal } from './SystemAnalysisTaskFormModal';
 import { SystemAnalysisTaskConfigPanel } from './TaskConfigPanels';
 import { WarningListPanel } from './WarningListPanel';
+import { AbnormalReasonCard } from './AbnormalReasonCard';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -1879,6 +1880,8 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                   </div>
                 )}
               </section>
+
+              {detail.abnormal_reason ? <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} /> : null}
 
               {detail.error ? (
                 <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">

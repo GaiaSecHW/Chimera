@@ -27,6 +27,39 @@ export interface BinarySecurityTaskPolicy {
   [key: string]: any;
 }
 
+export interface BinarySecurityAbnormalEvidence {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface BinarySecurityAbnormalReason {
+  is_abnormal: boolean;
+  category: string;
+  code: string;
+  title: string;
+  message: string;
+  terminal: boolean;
+  source_layer: string;
+  status: string;
+  service: string;
+  stage_name?: string | null;
+  item_key?: string | null;
+  downstream_task_id?: string | null;
+  downstream_service?: string | null;
+  first_seen_at?: string | null;
+  last_seen_at?: string | null;
+  evidence: BinarySecurityAbnormalEvidence[];
+  recommended_action?: string | null;
+  related_event_ids: string[];
+}
+
+export interface BinarySecurityAbnormalReasonEventSummary {
+  event_id: string;
+  created_at: string;
+  reason: BinarySecurityAbnormalReason;
+}
+
 export interface BinarySecurityTask {
   id: string;
   project_id: string;
@@ -77,6 +110,7 @@ export interface BinarySecurityTask {
     started_at?: string | null;
     finished_at?: string | null;
     last_error?: string | null;
+    abnormal_reason?: BinarySecurityAbnormalReason | null;
   }>;
   task_retry_supported: boolean;
   task_retry_reason?: string | null;
@@ -84,6 +118,10 @@ export interface BinarySecurityTask {
   task_continue_reason?: string | null;
   task_retry_failed_items_supported?: boolean;
   task_retry_failed_items_reason?: string | null;
+  abnormal_reason_title?: string | null;
+  abnormal_reason_code?: string | null;
+  abnormal_reason_category?: string | null;
+  abnormal_reason?: BinarySecurityAbnormalReason | null;
   manual_operation_state?: {
     overall: 'ready' | 'blocked' | 'in_progress' | string;
     summary: string;
@@ -174,6 +212,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     output_ref: Record<string, any>;
     result: Record<string, any>;
     error_message?: string | null;
+    abnormal_reason?: BinarySecurityAbnormalReason | null;
     started_at?: string | null;
     finished_at?: string | null;
   }>;
@@ -187,16 +226,17 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     archive_status: string;
     archive_root?: string | null;
     error_message?: string | null;
+    abnormal_reason?: BinarySecurityAbnormalReason | null;
     attempts: number;
     created_at?: string | null;
     started_at?: string | null;
     completed_at?: string | null;
     updated_at?: string | null;
-  retry_supported: boolean;
-  retry_reason?: string | null;
-  retry_failed_supported?: boolean;
-  retry_failed_reason?: string | null;
-  copy_stats?: {
+    retry_supported: boolean;
+    retry_reason?: string | null;
+    retry_failed_supported?: boolean;
+    retry_failed_reason?: string | null;
+    copy_stats?: {
       copied_files?: number;
       copied_dirs?: number;
       copied_symlinks?: number;
@@ -211,6 +251,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   }>;
   overview_nodes: BinarySecurityOverviewNode[];
   orchestration_observability?: BinarySecurityOrchestrationObservability;
+  abnormal_reason_history?: BinarySecurityAbnormalReasonEventSummary[];
 }
 
 export interface BinarySecurityOrchestrationObservability {
@@ -282,6 +323,7 @@ export interface BinarySecurityOverviewNode {
   finished_at?: string | null;
   updated_at?: string | null;
   last_error?: string | null;
+  abnormal_reason?: BinarySecurityAbnormalReason | null;
   retry_supported: boolean;
   retry_reason?: string | null;
   retry_failed_supported?: boolean;

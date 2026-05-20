@@ -3,6 +3,8 @@ import { ArrowLeft, Info, Loader2, RefreshCw, SlidersHorizontal, Trash2 } from '
 import { useNavigate } from 'react-router-dom';
 
 import {
+  BinarySecurityAbnormalReason,
+  BinarySecurityAbnormalReasonEventSummary,
   BinarySecurityModuleSelection,
   BinarySecurityOverviewNode,
   BinarySecurityTaskDetail,
@@ -723,6 +725,22 @@ type TaskStatusReason = {
   evidence: Array<{ label: string; value: string }>;
 };
 
+const abnormalReasonTone = (reason?: BinarySecurityAbnormalReason | null) => {
+  switch (reason?.category) {
+    case 'cancel':
+      return 'muted' as const;
+    case 'archive':
+      return 'warn' as const;
+    case 'downstream':
+      return 'error' as const;
+    case 'runtime':
+    case 'orchestration':
+      return reason?.status === 'partial_success' ? 'warn' as const : 'error' as const;
+    default:
+      return reason?.status === 'partial_success' ? 'warn' as const : 'info' as const;
+  }
+};
+
 const reasonToneClass = (tone: TaskStatusReason['tone']) => {
   switch (tone) {
     case 'ok':
@@ -748,6 +766,17 @@ const firstText = (...values: Array<unknown>): string | null => {
 const summarizeCount = (count: number, unit = '项') => `${count.toLocaleString()} ${unit}`;
 
 function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusReason {
+  if (detail.abnormal_reason) {
+    return {
+      tone: abnormalReasonTone(detail.abnormal_reason),
+      title: detail.abnormal_reason.title,
+      description: detail.abnormal_reason.message,
+      evidence: (detail.abnormal_reason.evidence || []).slice(0, 4).map((item) => ({
+        label: item.label,
+        value: item.value,
+      })),
+    };
+  }
   const stageSummaries = detail.stage_summaries || [];
   const stageItems = detail.stage_items || [];
   const archiveJobs = detail.archive_jobs || [];
@@ -963,6 +992,54 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
       { label: '当前阶段', value: currentStageLabel },
     ],
   };
+}
+
+function AbnormalReasonCard({
+  reason,
+  history,
+}: {
+  reason: BinarySecurityAbnormalReason;
+  history?: BinarySecurityAbnormalReasonEventSummary[];
+}) {
+  const tone = abnormalReasonTone(reason);
+  return (
+    <div className={`rounded-2xl border px-3 py-3 ${reasonToneClass(tone)}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] opacity-60">异常原因</div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <div className="text-sm font-black">{reason.title}</div>
+            <span className="rounded-full border border-current/15 bg-white/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em]">
+              {reason.code}
+            </span>
+          </div>
+          <div className="mt-1 text-xs leading-5 opacity-85">{reason.message}</div>
+          {reason.recommended_action ? (
+            <div className="mt-2 rounded-xl border border-current/10 bg-white/60 px-2.5 py-2 text-xs">
+              建议动作：{reason.recommended_action}
+            </div>
+          ) : null}
+        </div>
+        <div className="grid min-w-[220px] grid-cols-1 gap-2 sm:grid-cols-2">
+          {(reason.evidence || []).slice(0, 4).map((item) => (
+            <div key={`${item.key}-${item.value}`} className="min-w-0 rounded-xl border border-current/10 bg-white/55 px-2.5 py-2 text-xs">
+              <div className="font-bold opacity-55">{item.label}</div>
+              <div className="mt-1 break-words font-black">{item.value || '-'}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {history && history.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+          {history.slice(0, 3).map((item) => (
+            <span key={item.event_id} className="rounded-full border border-current/10 bg-white/60 px-2.5 py-1 font-semibold">
+              {item.reason.code} · {fmt(item.created_at)}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function TaskStatusReasonCard({ reason }: { reason: TaskStatusReason }) {
@@ -2407,7 +2484,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     正在准备重试。后台正在按当前选择的重试类型清理阶段、归档和下游任务，完成后会自动重新排队。
                   </div>
                 ) : null}
-                {taskStatusReason ? (
+                {detail.abnormal_reason ? (
+                  <div className="mt-4">
+                    <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} />
+                  </div>
+                ) : taskStatusReason ? (
                   <div className="mt-4">
                     <TaskStatusReasonCard reason={taskStatusReason} />
                   </div>
@@ -2834,6 +2915,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               : 'w-full p-4'
                         } ${stageNodeTone(stage.status, selectedStage === stage.stage_name && selectedNodeKind === stage.kind)}`}
                       >
+                        {stage.abnormal_reason ? (
+                          <div className="mb-2">
+                            <span className="inline-flex max-w-full rounded-full border border-current/15 bg-white/60 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em]">
+                              <span className="truncate">{stage.abnormal_reason.code}</span>
+                            </span>
+                          </div>
+                        ) : null}
                         {stage.kind === 'archive' ? (
                           <>
                             <div className="flex items-center justify-between gap-2">
@@ -2950,8 +3038,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             </div>
 
 	            {selectedNodeKind === 'business' && selectedBusinessStageNode ? (
+                <>
 	              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <div className="text-xs font-bold text-slate-400">阶段状态</div>
                   <div className="mt-1">
                     <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(selectedBusinessStageNode.status)}`}>
@@ -2978,6 +3067,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   </div>
                 </div>
 	              </div>
+                  {selectedBusinessStageNode.abnormal_reason ? (
+                    <div className="mt-4">
+                      <AbnormalReasonCard reason={selectedBusinessStageNode.abnormal_reason} />
+                    </div>
+                  ) : null}
+                </>
 	            ) : null}
 
 	            <div className="mt-5 space-y-3">
@@ -3137,6 +3232,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                               ) : null}
                             </div>
                           ) : null}
+                        </div>
+                      ) : null}
+                      {job.abnormal_reason ? (
+                        <div className="mt-3">
+                          <AbnormalReasonCard reason={job.abnormal_reason} />
                         </div>
                       ) : null}
                       {job.error_message ? (
@@ -3427,6 +3527,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                           ) : null}
                                         </aside>
                                         <div>
+                                          {item.abnormal_reason ? (
+                                            <div className="mb-4">
+                                              <AbnormalReasonCard reason={item.abnormal_reason} />
+                                            </div>
+                                          ) : null}
                                           {item.error_message ? (
                                             <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
                                               {item.error_message}
@@ -3618,15 +3723,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <tbody className="divide-y divide-slate-100 bg-white">
                         {pagedTimelineItems.map((event) => {
                           const expanded = expandedEventKey === event._key;
+                          const isAbnormalReasonEvent = event.event_type === 'abnormal_reason_recorded';
                           return (
                             <React.Fragment key={event._key}>
-                              <tr className="align-middle hover:bg-slate-50/80">
+                              <tr className={`align-middle hover:bg-slate-50/80 ${isAbnormalReasonEvent ? 'bg-amber-50/40' : ''}`}>
                                 <td className="px-3 py-2 font-mono text-[11px] font-bold text-slate-400">#{event._index}</td>
                                 <td className="whitespace-nowrap px-3 py-2 font-mono text-[11px] font-semibold text-slate-600">
                                   {fmt(event.created_at)}
                                 </td>
                                 <td className="px-3 py-2">
-                                  <span className="inline-flex max-w-[160px] items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-black text-sky-700">
+                                  <span className={`inline-flex max-w-[160px] items-center rounded-full border px-2 py-0.5 text-[11px] font-black ${
+                                    isAbnormalReasonEvent
+                                      ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                      : 'border-sky-200 bg-sky-50 text-sky-700'
+                                  }`}>
                                     <span className="truncate">{event._eventLabel}</span>
                                   </span>
                                 </td>

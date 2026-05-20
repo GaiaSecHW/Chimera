@@ -40,6 +40,7 @@ import {
   B2STaskRelationship,
   B2STaskResultSummary,
 } from '../../clients/binaryToSource';
+import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot } from '../../types/types';
 import { api } from '../../clients/api';
 import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
 import { showConfirm } from '../../components/DialogService';
@@ -57,6 +58,8 @@ import {
 import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
+import { AgentSessionViewer } from './AgentSessionViewer';
+import { AgentSessionWarningPanel } from './AgentSessionWarningPanel';
 import {
   hasBinarySecurityReturnTarget,
   hasExecutionReturnContext,
@@ -65,7 +68,7 @@ import {
   navigateBackToExecutionView,
   saveExecutionReturnContext,
 } from '../../utils/executionReturnContext';
-import { parseAgentSessionJsonlDelta } from './agentSessionParsing';
+import { buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
 import { TaskOriginCard } from './taskOrigin';
 import { WarningListPanel } from './WarningListPanel';
 
@@ -163,6 +166,34 @@ const sessionGroupLabel = (group: string) => {
   return group === 'root' ? '根会话' : group;
 };
 
+const buildB2SSessionDisplayName = (node: B2SSessionNode | null) => {
+  if (!node) return '';
+  return node.agent || node.role || fileNameOf(node.relative_path);
+};
+
+const buildB2SSessionMeta = (
+  node: B2SSessionNode | null,
+  snapshot: AppSaSessionSnapshot | null,
+  warnings: string[],
+): AppSaSessionMeta | null => {
+  if (!node) return null;
+  const updatedAtMs = node.updated_at ? Date.parse(node.updated_at) : 0;
+  return {
+    session_id: node.node_id,
+    session_name: buildB2SSessionDisplayName(node),
+    relative_path: node.relative_path,
+    stage_group: `#${node.sequence_no} ${node.item_name || '未知 Item'}`,
+    role_name: node.role || 'session',
+    size: node.size || 0,
+    mtime: Number.isFinite(updatedAtMs) ? updatedAtMs / 1000 : 0,
+    event_count: snapshot?.events.length || 0,
+    line_count: snapshot?.line_count || 0,
+    is_active: node.is_active,
+    display_name: buildB2SSessionDisplayName(node),
+    warnings,
+  };
+};
+
 const extractFsRelPath = (absolutePath: string, projectId: string): string | null => {
   const prefix = `/data/files/${projectId}`;
   if (!absolutePath.startsWith(prefix)) return null;
@@ -224,6 +255,36 @@ const formatTimelineEventTypeLabel = (eventType?: string | null) => {
   return map[normalized] || normalized.replace(/_/g, ' ');
 };
 
+const formatTimelineSourceLabel = (source?: string | null) => {
+  const normalized = String(source || '').trim();
+  if (!normalized) return '-';
+  if (normalized === 'pi_re_agent') return 'PI Re Agent';
+  if (normalized === 'task_service') return 'B2S Task Service';
+  return normalized.replace(/_/g, ' ');
+};
+
+const formatTimelinePayloadValue = (value: any): string => {
+  if (value == null) return '-';
+  if (typeof value === 'string') return value || '-';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) {
+    return value.length ? value.map((entry) => formatTimelinePayloadValue(entry)).join(', ') : '-';
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const timelinePayloadRows = (payload: Record<string, any>) => {
+  const entries = Object.entries(payload || {});
+  if (entries.length === 0) return [];
+  return entries
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => ({ key, label: key.replace(/_/g, ' '), value: formatTimelinePayloadValue(value) }));
+};
+
 const tileTone = (tone: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet' = 'slate') => {
   const map = {
     slate: 'border-slate-200 bg-slate-50/90 text-slate-900',
@@ -267,6 +328,30 @@ const SectionCard: React.FC<{ title: string; description?: string; children: Rea
     <div className="mt-3">{children}</div>
   </section>
 );
+
+const TimelinePayloadBlock: React.FC<{ payload: Record<string, any> }> = ({ payload }) => {
+  const rows = timelinePayloadRows(payload);
+  if (rows.length === 0) return null;
+  return (
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">事件细节</div>
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+        {rows.slice(0, 12).map((row) => (
+          <div key={row.key} className="min-w-0 rounded-lg border border-white bg-white px-3 py-2 text-xs">
+            <div className="font-bold capitalize text-slate-400">{row.label}</div>
+            <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
+          </div>
+        ))}
+      </div>
+      <details>
+        <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">查看原始 JSON</summary>
+        <pre className="mt-2 max-h-64 overflow-auto rounded-lg bg-slate-950 p-3 text-[11px] leading-5 text-slate-100">
+          {JSON.stringify(payload, null, 2)}
+        </pre>
+      </details>
+    </div>
+  );
+};
 
 const FilePreviewDialog: React.FC<{
   title: string;
@@ -337,7 +422,9 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [relationship, setRelationship] = useState<B2STaskRelationship | null>(null);
   const [selectedSessionNodeId, setSelectedSessionNodeId] = useState<string>('');
   const [pendingSessionTarget, setPendingSessionTarget] = useState<{ itemId?: string | null; relativePath?: string | null; fullPath?: string | null } | null>(null);
-  const [selectedSessionContent, setSelectedSessionContent] = useState<string>('');
+  const [sessionSnapshot, setSessionSnapshot] = useState<AppSaSessionSnapshot | null>(null);
+  const [sessionEvents, setSessionEvents] = useState<AppSaSessionEvent[]>([]);
+  const [sessionWarnings, setSessionWarnings] = useState<string[]>([]);
   const [selectedSessionLoading, setSelectedSessionLoading] = useState(false);
   const [sessionLive, setSessionLive] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -443,6 +530,22 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     if (selectedItemId === '__all__') return nodes;
     return nodes.filter((node) => node.item_id === selectedItemId);
   }, [sessions, selectedItemId]);
+  const sessionItemGroups = useMemo(() => {
+    const groups = new Map<string, { itemId: string; sequenceNo: number; itemName: string; count: number; activeCount: number }>();
+    (sessions?.nodes || []).forEach((node) => {
+      const current = groups.get(node.item_id) || {
+        itemId: node.item_id,
+        sequenceNo: node.sequence_no,
+        itemName: node.item_name || fileNameOf(node.relative_path),
+        count: 0,
+        activeCount: 0,
+      };
+      current.count += 1;
+      if (node.is_active) current.activeCount += 1;
+      groups.set(node.item_id, current);
+    });
+    return Array.from(groups.values()).sort((left, right) => left.sequenceNo - right.sequenceNo);
+  }, [sessions]);
 
   const groupedSessionNodes = useMemo(() => {
     const groups = new Map<string, B2SSessionNode[]>();
@@ -457,6 +560,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     () => filteredSessionNodes.find((node) => node.node_id === selectedSessionNodeId) || null,
     [filteredSessionNodes, selectedSessionNodeId],
   );
+  const selectedSessionMeta = useMemo(
+    () => buildB2SSessionMeta(selectedSessionNode, sessionSnapshot, sessionWarnings),
+    [selectedSessionNode, sessionSnapshot, sessionWarnings],
+  );
+  const selectedSessionLoadKey = selectedSessionNode ? `${selectedSessionNode.node_id}:${selectedSessionNode.relative_path || ''}` : '';
+  const selectedSessionWatchKey = selectedSessionNode ? `${selectedSessionNode.node_id}:${selectedSessionNode.full_path || ''}` : '';
 
   const focusSession = useCallback((target: { itemId?: string | null; nodeId?: string | null; relativePath?: string | null; fullPath?: string | null }) => {
     setActiveTab('session');
@@ -533,11 +642,16 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         itemId: node.item_id,
         nodeId: node.node_id,
       });
-      setSelectedSessionContent(payload.content || '');
-      sessionLineCountRef.current = (payload.content || '').split(/\r?\n/).filter(Boolean).length;
+      const snapshot = buildSessionSnapshotFromText(node.relative_path, payload.content || '');
+      setSessionSnapshot(snapshot);
+      setSessionEvents(snapshot.events);
+      setSessionWarnings(snapshot.warnings);
+      sessionLineCountRef.current = snapshot.line_count;
       return payload;
     } catch (e: any) {
-      setSelectedSessionContent('');
+      setSessionSnapshot(null);
+      setSessionEvents([]);
+      setSessionWarnings([]);
       sessionLineCountRef.current = 0;
       setSessionError(e?.message || '加载会话内容失败');
       return null;
@@ -629,10 +743,14 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   useEffect(() => {
     if (activeTab !== 'session' || !selectedSessionNode) {
       closeSessionSocket();
+      setSessionSnapshot(null);
+      setSessionEvents([]);
+      setSessionWarnings([]);
+      setSessionError(null);
       return;
     }
     void loadSessionFile(selectedSessionNode);
-  }, [activeTab, selectedSessionNode, loadSessionFile, closeSessionSocket]);
+  }, [activeTab, selectedSessionLoadKey, loadSessionFile, closeSessionSocket]);
 
   useEffect(() => {
     if (activeTab !== 'session' || !selectedSessionNode || !isTaskRunning) {
@@ -675,14 +793,18 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           if (message.read_mode !== 'line') return;
           const deltaLines = Array.isArray(message.lines) ? message.lines : [];
           if (deltaLines.length === 0) return;
-          setSelectedSessionContent((current) => {
-            const prefix = current && !current.endsWith('\n') ? '\n' : '';
-            return `${current || ''}${prefix}${deltaLines.join('\n')}`;
-          });
-          const parsed = parseAgentSessionJsonlDelta(deltaLines, (message.from_line ?? sessionLineCountRef.current) + 1);
-          if (parsed.sessionMeta?.id || parsed.sessionMeta?.cwd || parsed.sessionMeta?.timestamp) {
-            // keep parser side effects available for future viewer migration
+          const parsed = parseSessionJsonlDelta(deltaLines, (message.from_line ?? sessionLineCountRef.current) + 1);
+          if (parsed.events.length > 0) {
+            setSessionEvents((current) => current.concat(parsed.events));
           }
+          if (parsed.warnings.length > 0) {
+            setSessionWarnings((current) => Array.from(new Set(current.concat(parsed.warnings))));
+          }
+          setSessionSnapshot((current) => current ? {
+            ...current,
+            session_meta: parsed.sessionMeta ? { ...(current.session_meta || {}), ...parsed.sessionMeta } : current.session_meta,
+            line_count: message.to_line ?? current.line_count,
+          } : current);
           sessionLineCountRef.current = message.to_line ?? (sessionLineCountRef.current + deltaLines.length);
           return;
         }
@@ -727,7 +849,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         }
       }
     };
-  }, [activeTab, selectedSessionNode, isTaskRunning, projectId, loadSessionFile, closeSessionSocket]);
+  }, [activeTab, selectedSessionWatchKey, isTaskRunning, projectId, loadSessionFile, closeSessionSocket]);
 
   useEffect(() => {
     if (!selectedItem || activeTab !== 'result') return;
@@ -1120,50 +1242,134 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         ) : filteredTimeline.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前筛选条件下没有事件记录。</div>
         ) : (
-          <div className="space-y-2">
-            {filteredTimeline.map((event) => {
-              const expanded = expandedTimelineEventId === event.id;
-              const payloadText = event.payload && Object.keys(event.payload).length ? JSON.stringify(event.payload, null, 2) : '';
-              return (
-                <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
-                  <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setExpandedTimelineEventId((current) => (current === event.id ? '' : event.id))}
-                      className="min-w-0 flex-1 text-left"
-                    >
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span>
-                        <span className="inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-black text-slate-700">{event.source === 'pi_re_agent' ? 'PI' : 'B2S'}</span>
-                        {event.phase ? <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-black text-blue-700">{PHASE_LABELS[event.phase] || event.phase}</span> : null}
-                        {event.batch_id != null ? <span className="inline-flex rounded-full border border-violet-100 bg-violet-50 px-2 py-0.5 text-[11px] font-black text-violet-700">Batch {event.batch_id}</span> : null}
-                        {event.attempt != null ? <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700">Attempt {event.attempt}</span> : null}
-                        {event.function_name ? <span className="inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700">{event.function_name}</span> : null}
-                      </div>
-                      <div className="mt-2 text-sm font-black text-slate-900">{event.message}</div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-slate-500">
-                        <span>{formatDateTime(event.created_at)}</span>
-                        <span>{formatTimelineEventTypeLabel(event.event_type)}</span>
-                        <span>{event.sequence_no != null ? `Item #${event.sequence_no}` : event.item_id || '-'}</span>
-                        <span>{event.pi_job_id || '-'}</span>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void deleteTimelineEvent(event.id)}
-                      disabled={deletingTimelineEventId === event.id || timelineClearing}
-                      className="inline-flex items-center gap-1.5 self-start rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {deletingTimelineEventId === event.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                      删除
-                    </button>
-                  </div>
-                  {expanded && payloadText ? (
-                    <pre className="mt-3 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-5 text-slate-100">{payloadText}</pre>
-                  ) : null}
-                </div>
-              );
-            })}
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-[1180px] w-full divide-y divide-slate-100 text-left text-xs">
+                <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                  <tr>
+                    <th className="w-16 px-3 py-2">#</th>
+                    <th className="w-44 px-3 py-2">时间</th>
+                    <th className="w-40 px-3 py-2">事件</th>
+                    <th className="w-28 px-3 py-2">阶段</th>
+                    <th className="w-24 px-3 py-2">级别</th>
+                    <th className="px-3 py-2">摘要</th>
+                    <th className="w-28 px-3 py-2">Batch</th>
+                    <th className="w-28 px-3 py-2">Attempt</th>
+                    <th className="w-44 px-3 py-2">函数</th>
+                    <th className="w-36 px-3 py-2">来源</th>
+                    <th className="w-32 px-3 py-2">Item</th>
+                    <th className="w-44 px-3 py-2">Pi Job</th>
+                    <th className="w-36 px-3 py-2 text-right">操作</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {filteredTimeline.map((event, index) => {
+                    const expanded = expandedTimelineEventId === event.id;
+                    const hasPayload = !!(event.payload && Object.keys(event.payload).length);
+                    return (
+                      <React.Fragment key={event.id}>
+                        <tr className="align-top hover:bg-slate-50/80">
+                          <td className="px-3 py-2.5 font-mono text-[11px] font-bold text-slate-400">#{index + 1}</td>
+                          <td className="whitespace-nowrap px-3 py-2.5 font-mono text-[11px] font-semibold text-slate-600">
+                            {formatDateTime(event.created_at)}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex max-w-[140px] rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-black text-sky-700">
+                              <span className="truncate">{formatTimelineEventTypeLabel(event.event_type)}</span>
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {event.phase ? (
+                              <span className="inline-flex max-w-[110px] rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-black text-blue-700">
+                                <span className="truncate">{PHASE_LABELS[event.phase] || event.phase}</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>
+                              {event.level || 'info'}
+                            </span>
+                          </td>
+                          <td className="max-w-[360px] px-3 py-2.5">
+                            <div className="truncate text-sm font-black text-slate-900" title={event.message}>
+                              {event.message}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] font-semibold text-slate-600">
+                            {event.batch_id != null ? (
+                              <span className="rounded-full bg-violet-50 px-2 py-0.5 font-black text-violet-700">Batch {event.batch_id}</span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] font-semibold text-slate-600">
+                            {event.attempt != null ? (
+                              <span className="rounded-full bg-amber-50 px-2 py-0.5 font-black text-amber-700">Attempt {event.attempt}</span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
+                            <div className="truncate font-mono" title={event.function_name || '-'}>
+                              {event.function_name || '-'}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
+                            <div className="truncate font-semibold text-slate-700" title={formatTimelineSourceLabel(event.source)}>
+                              {formatTimelineSourceLabel(event.source)}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
+                            <div className="truncate font-mono" title={event.sequence_no != null ? `Item #${event.sequence_no}` : event.item_id || '-'}>
+                              {event.sequence_no != null ? `Item #${event.sequence_no}` : event.item_id || '-'}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-[11px] text-slate-600">
+                            <div className="truncate font-mono" title={event.pi_job_id || '-'}>
+                              {event.pi_job_id || '-'}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedTimelineEventId((current) => (current === event.id ? '' : event.id))}
+                                className="text-[11px] font-black text-slate-500 transition hover:text-slate-900"
+                              >
+                                {expanded ? '收起' : hasPayload ? '查看' : '详情'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void deleteTimelineEvent(event.id)}
+                                disabled={deletingTimelineEventId === event.id || timelineClearing}
+                                className="text-[11px] font-black text-rose-600 transition hover:text-rose-800 disabled:opacity-40"
+                              >
+                                {deletingTimelineEventId === event.id ? '删除中' : '删除'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {expanded ? (
+                          <tr className="bg-slate-50/60">
+                            <td colSpan={14} className="px-3 py-3">
+                              {hasPayload ? (
+                                <TimelinePayloadBlock payload={event.payload} />
+                              ) : (
+                                <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-sm text-slate-400">
+                                  当前事件没有额外 payload 细节。
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -1259,23 +1465,70 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const renderSessions = () => (
     <SectionCard
       title="智能体会话"
-      description="参考系统分析任务详情页的查看方式，按会话索引 + 右侧统一预览展示 B2S 智能体会话。"
+      description="参考系统分析任务详情页的查看方式，按 ELF Item 与会话索引统一预览 B2S 智能体会话。"
       right={
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50" title="刷新会话">
-            <RefreshCw size={14} />
-          </button>
-          <span className={`rounded-xl px-3 py-2 text-xs font-black ${sessionLive ? 'bg-emerald-50 text-emerald-700' : isTaskRunning ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-            {sessionLive ? 'WebSocket 实时中' : isTaskRunning ? '等待实时连接' : '历史会话'}
-          </span>
-        </div>
+        <button type="button" onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50" title="刷新会话">
+          <RefreshCw size={14} />
+        </button>
       }
     >
       {!sessions ? (
         <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载会话索引中...</div>
-      ) : filteredSessionNodes.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务未生成智能体会话。快速模式或尚未进入深度阶段时会出现这个状态。</div>
       ) : (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">ELF 会话分区</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {sessions.nodes.length} 个会话文件，按 ELF Item 区分；任务取消后会话会以历史文件形式保留在这里。
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+                当前筛选 <span className="font-black text-slate-900">{selectedItemId === '__all__' ? '全部 ELF' : `1 个 ELF`}</span>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedItemId('__all__')}
+                className={`rounded-xl border px-3 py-2 text-xs font-black transition ${
+                  selectedItemId === '__all__'
+                    ? 'border-slate-900 bg-slate-900 text-white'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                全部 ELF
+              </button>
+              {sessionItemGroups.map((group) => (
+                <button
+                  key={group.itemId}
+                  type="button"
+                  onClick={() => setSelectedItemId(group.itemId)}
+                  className={`rounded-xl border px-3 py-2 text-left text-xs transition ${
+                    selectedItemId === group.itemId
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="font-black">{`#${group.sequenceNo} ${group.itemName}`}</div>
+                  <div className={`mt-1 font-semibold ${selectedItemId === group.itemId ? 'text-slate-300' : 'text-slate-500'}`}>
+                    会话 {group.count} · 活跃 {group.activeCount}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filteredSessionNodes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+              {sessions.nodes.length === 0
+                ? '当前任务未生成智能体会话。快速模式或尚未进入深度阶段时会出现这个状态。'
+                : selectedItemId === '__all__'
+                  ? '当前任务未生成智能体会话。'
+                  : '当前选中的 ELF Item 下没有会话文件。可以切换到“全部 ELF”或其他 ELF 查看历史会话。'}
+            </div>
+          ) : (
         <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
@@ -1287,12 +1540,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                 <RefreshCw size={14} className={selectedSessionLoading ? 'animate-spin' : ''} />
               </button>
             </div>
-
-            {sessionError && activeTab === 'session' ? (
-              <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
-                {sessionError}
-              </div>
-            ) : null}
 
             <WarningListPanel
               title="索引生成提示"
@@ -1340,15 +1587,11 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
                             </span>
                           </div>
                           <div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
-                            <span>{node.stage || '-'}</span>
-                            <span>{node.run_name || '-'}</span>
+                            <span>事件 {selected ? (selectedSessionNodeId === node.node_id ? sessionEvents.length : '-') : '-'}</span>
                             <span>更新时间 {formatSessionUpdatedAt(node.updated_at)}</span>
                           </div>
-                          <div className={`mt-2 flex flex-wrap gap-1.5 text-[10px] font-bold ${selected ? 'text-slate-200' : 'text-slate-600'}`}>
-                            {node.batch_no ? <span>Batch {node.batch_no}</span> : null}
-                            {node.attempt_no ? <span>第 {node.attempt_no} 轮</span> : null}
-                            {node.role ? <span>{node.role}</span> : null}
-                            {node.section ? <span>{node.section}</span> : null}
+                          <div className={`mt-2 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>
+                            {[node.stage || '-', node.run_name || '-', node.role || 'session'].join(' · ')}
                           </div>
                         </button>
                       );
@@ -1360,28 +1603,19 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
           </aside>
 
           <div className="space-y-4">
-            <B2SSessionPreview
-              name={fileNameOf(selectedSessionNode?.relative_path)}
-              content={selectedSessionContent}
+            <AgentSessionWarningPanel warnings={sessionWarnings} />
+            <AgentSessionViewer
+              sessionMeta={selectedSessionMeta}
+              sessionHeader={sessionSnapshot?.session_meta}
+              events={sessionEvents}
               loading={selectedSessionLoading}
-              emptyHint="请选择左侧会话"
-              meta={selectedSessionNode ? {
-                displayName: selectedSessionNode.agent || selectedSessionNode.role || fileNameOf(selectedSessionNode.relative_path),
-                relativePath: selectedSessionNode.relative_path,
-                sessionId: selectedSessionNode.node_id,
-                startedAt: selectedSessionNode.updated_at || null,
-                workingDir: selectedSessionNode.full_path || null,
-                live: sessionLive,
-                stats: [
-                  `Item #${selectedSessionNode.sequence_no} ${selectedSessionNode.item_name}`,
-                  selectedSessionNode.stage || '-',
-                  selectedSessionNode.run_name || '-',
-                  selectedSessionNode.role || 'session',
-                ],
-              } : undefined}
+              live={sessionLive}
+              error={sessionError}
             />
           </div>
         </section>
+          )}
+        </div>
       )}
     </SectionCard>
   );

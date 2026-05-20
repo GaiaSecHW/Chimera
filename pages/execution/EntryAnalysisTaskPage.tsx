@@ -1505,6 +1505,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                         {recommended ? recommendationReason : riskMatch?.label}
                       </div>
                     ) : null}
+                    {t.abnormal_reason_title && ['failed', 'error', 'cancelled'].includes(t.status) ? (
+                      <div className="mt-2 text-[11px] leading-5 text-red-600">
+                        <span className="font-bold">{t.abnormal_reason_title}</span>
+                        {t.abnormal_reason_code ? <span className="ml-2 font-mono uppercase tracking-[0.12em] text-red-500">{t.abnormal_reason_code}</span> : null}
+                      </div>
+                    ) : null}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
                     <div className="text-sm font-semibold text-slate-700">{t.module_name || '-'}</div>

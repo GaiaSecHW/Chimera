@@ -663,6 +663,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
                     >
                       {t.task_name}
                     </button>
+                    {t.abnormal_reason_title && ['failed', 'error', 'cancelled'].includes(t.status) ? (
+                      <div className="mt-1 text-xs text-red-600">
+                        <span className="font-bold">{t.abnormal_reason_title}</span>
+                        {t.abnormal_reason_code ? <span className="ml-2 font-mono uppercase tracking-[0.12em] text-red-500">{t.abnormal_reason_code}</span> : null}
+                      </div>
+                    ) : null}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap">
                     <button

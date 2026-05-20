@@ -2378,6 +2378,39 @@ export interface AgentIngressRouteInfo {
 
 // ─── App System Analyse types ────────────────────────────────────────────────
 
+export interface ExecutionAbnormalReasonEvidence {
+  key?: string | null;
+  label?: string | null;
+  value?: string | null;
+}
+
+export interface ExecutionAbnormalReason {
+  is_abnormal?: boolean;
+  category?: string | null;
+  code?: string | null;
+  title?: string | null;
+  message?: string | null;
+  terminal?: boolean;
+  source_layer?: string | null;
+  status?: string | null;
+  service?: string | null;
+  stage_name?: string | null;
+  item_key?: string | null;
+  downstream_task_id?: string | null;
+  downstream_service?: string | null;
+  first_seen_at?: string | null;
+  last_seen_at?: string | null;
+  evidence?: ExecutionAbnormalReasonEvidence[] | null;
+  recommended_action?: string | null;
+  related_event_ids?: string[] | null;
+}
+
+export interface ExecutionAbnormalReasonEventSummary {
+  event_id?: string | null;
+  created_at?: string | number | null;
+  reason?: ExecutionAbnormalReason | null;
+}
+
 export interface AppSaTaskItem {
   task_id: string;
   project_id: string;
@@ -2398,6 +2431,10 @@ export interface AppSaTaskItem {
   output_path?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   error?: string | null;
+  abnormal_reason_title?: string | null;
+  abnormal_reason_code?: string | null;
+  abnormal_reason_category?: string | null;
+  abnormal_reason?: ExecutionAbnormalReason | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -2444,6 +2481,7 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
   effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project' } | null;
+  abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 
 export interface AppSaTaskResultSummary {
@@ -2709,6 +2747,10 @@ export interface AppEaTaskItem {
   output_path?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   error?: string | null;
+  abnormal_reason_title?: string | null;
+  abnormal_reason_code?: string | null;
+  abnormal_reason_category?: string | null;
+  abnormal_reason?: ExecutionAbnormalReason | null;
   created_by?: string | null;
   created_at: string;
   updated_at: string;
@@ -2733,6 +2775,7 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   result_json?: Record<string, any> | null;
   stages_json?: AppEaStagesJson | null;
   task_config_json?: Record<string, any> | null;
+  abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 
 export interface AppEaTaskResultSummary {
@@ -2909,6 +2952,10 @@ export interface AppDfaTaskItem {
   prompt_template_id?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   error?: string | null;
+  abnormal_reason_title?: string | null;
+  abnormal_reason_code?: string | null;
+  abnormal_reason_category?: string | null;
+  abnormal_reason?: ExecutionAbnormalReason | null;
   stages_json?: AppDfaStagesJson | null;
   task_config_json?: Record<string, any> | null;
   created_by?: string | null;
@@ -2921,6 +2968,7 @@ export interface AppDfaTaskItem {
 export interface AppDfaTaskDetail extends AppDfaTaskItem {
   prompt_content: string;
   result_json?: Record<string, any> | null;
+  abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 
 export interface AppDfaTaskCreateRequest {

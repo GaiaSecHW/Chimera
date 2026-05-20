@@ -37,6 +37,7 @@ import { DataflowAnalysisTaskConfigPanel } from './TaskConfigPanels';
 import { TaskOriginCard } from './taskOrigin';
 import { WarningListPanel } from './WarningListPanel';
 import { buildSessionSnapshotFromText, parseSessionJsonlDelta } from './sessionParsing';
+import { AbnormalReasonCard } from './AbnormalReasonCard';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -697,6 +698,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                 </div>
               )}
             </section>
+            {detail.abnormal_reason ? <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} /> : null}
             {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"><h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
             {detail.prompt_content ? <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-slate-700 hover:bg-slate-50">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre></details></section> : null}
           </section>
