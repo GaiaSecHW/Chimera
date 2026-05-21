@@ -222,6 +222,26 @@ export interface FirmwareEvolutionSubmitResult {
   max_rounds: number;
 }
 
+export interface FirmwareRuntimeFileItem {
+  path: string;
+  kind: string;
+  size_bytes: number;
+  modified_at: string | null;
+}
+
+export interface FirmwareRuntimeFileList {
+  root: string;
+  total: number;
+  truncated: boolean;
+  items: FirmwareRuntimeFileItem[];
+}
+
+export interface FirmwareRuntimeFilePreview {
+  blob: Blob;
+  contentType: string;
+  truncated: boolean;
+}
+
 export interface FirmwareEvolutionRound {
   id: string;
   job_id: string;
@@ -1220,6 +1240,27 @@ const normalizeEvolutionSubmitResult = (value: unknown): FirmwareEvolutionSubmit
   };
 };
 
+const normalizeRuntimeFileItem = (value: unknown): FirmwareRuntimeFileItem => {
+  const record = asRecord(value);
+  return {
+    path: asString(record.path),
+    kind: asString(record.kind, 'file'),
+    size_bytes: asNumber(record.size_bytes, 0),
+    modified_at: asNullableString(record.modified_at),
+  };
+};
+
+const normalizeRuntimeFileList = (value: unknown): FirmwareRuntimeFileList => {
+  const record = asRecord(value);
+  const items = asArray(record.items).map(normalizeRuntimeFileItem);
+  return {
+    root: asString(record.root, '/data/secflow-app-firmware-unpacker'),
+    total: asNumber(record.total, items.length),
+    truncated: asBoolean(record.truncated),
+    items,
+  };
+};
+
 const normalizeEvolutionRound = (value: unknown): FirmwareEvolutionRound => {
   const record = asRecord(value);
   return {
@@ -1451,6 +1492,33 @@ export const firmwareUnpackerApi = {
       : `${API_BASE}/api/app/firmware-unpacker/evolution-jobs${suffix}`;
     const r = await fetch(path, { headers: getHeaders() });
     return normalizeEvolutionJobList(await handleResponse(r));
+  },
+
+  /** GET /api/app/firmware-unpacker/runtime-files */
+  listRuntimeFiles: async (projectId?: string | null, limit = 2000): Promise<FirmwareRuntimeFileList> => {
+    const query = new URLSearchParams({ limit: String(limit) });
+    const path = projectId
+      ? `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(projectId)}/runtime-files?${query.toString()}`
+      : `${API_BASE}/api/app/firmware-unpacker/runtime-files?${query.toString()}`;
+    const r = await fetch(path, { headers: getHeaders() });
+    return normalizeRuntimeFileList(await handleResponse(r));
+  },
+
+  fetchRuntimeFilePreviewBlob: async (path: string, projectId?: string | null, maxBytes = 262144): Promise<FirmwareRuntimeFilePreview> => {
+    const query = new URLSearchParams({ path, max_bytes: String(maxBytes) });
+    const target = projectId
+      ? `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(projectId)}/runtime-files/content?${query.toString()}`
+      : `${API_BASE}/api/app/firmware-unpacker/runtime-files/content?${query.toString()}`;
+    const response = await fetch(target, { headers: getHeaders() });
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new Error(text || `HTTP ${response.status}`);
+    }
+    return {
+      blob: await response.blob(),
+      contentType: response.headers.get('content-type') || '',
+      truncated: String(response.headers.get('X-Runtime-Preview-Truncated') || '').toLowerCase() === 'true',
+    };
   },
 
   /** GET /api/app/firmware-unpacker/evolution-jobs/{id} */

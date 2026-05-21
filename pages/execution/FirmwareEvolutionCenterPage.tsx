@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, BarChart3, CheckCircle2, Clock, Loader2, Package, Play, RefreshCw, RotateCcw, Search, Sparkles, Square, Terminal, Trash2, X, XCircle } from 'lucide-react';
+import { AlertCircle, BarChart3, CheckCircle2, ChevronDown, ChevronRight, Clock, FileText, Folder, Loader2, Package, Play, RefreshCw, RotateCcw, Search, Sparkles, Square, Terminal, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
 import { FileWatchMessage } from '../../clients/fileserver';
 import {
   FirmwareEvolutionJob,
+  FirmwareRuntimeFileList,
   FirmwareEvolutionSessionIndex,
   FirmwareSessionIndexItem,
   FirmwareTaskEvent,
   FirmwareTaskLog,
+  FirmwareRuntimeFilePreview,
   FirmwareUnpackTask,
 } from '../../clients/firmwareUnpacker';
 import { showConfirm } from '../../components/DialogService';
@@ -56,6 +58,124 @@ function basename(path: string | null | undefined) {
   if (!normalized) return '-';
   const parts = normalized.split('/');
   return parts[parts.length - 1] || normalized;
+}
+
+function formatBytes(value?: number | null) {
+  const bytes = Number(value ?? 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let size = bytes;
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index += 1;
+  }
+  const digits = size >= 10 || index === 0 ? 0 : 1;
+  return `${size.toFixed(digits)} ${units[index]}`;
+}
+
+type RuntimeTreeNode = {
+  name: string;
+  path: string;
+  kind: string;
+  sizeBytes: number;
+  modifiedAt: string | null;
+  children: RuntimeTreeNode[];
+};
+
+function inferRuntimePreviewMode(path: string, contentType: string) {
+  const loweredPath = String(path || '').toLowerCase();
+  const loweredType = String(contentType || '').toLowerCase();
+  if (
+    loweredType.startsWith('text/') ||
+    loweredType.includes('json') ||
+    loweredType.includes('xml') ||
+    loweredType.includes('javascript') ||
+    loweredType.includes('yaml') ||
+    loweredPath.endsWith('.md') ||
+    loweredPath.endsWith('.txt') ||
+    loweredPath.endsWith('.log') ||
+    loweredPath.endsWith('.json') ||
+    loweredPath.endsWith('.yaml') ||
+    loweredPath.endsWith('.yml') ||
+    loweredPath.endsWith('.py') ||
+    loweredPath.endsWith('.sh') ||
+    loweredPath.endsWith('.conf') ||
+    loweredPath.endsWith('.ini')
+  ) {
+    return 'text';
+  }
+  return 'binary';
+}
+
+function toHexView(bytes: Uint8Array) {
+  const lines: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += 16) {
+    const chunk = bytes.slice(offset, offset + 16);
+    const hex = Array.from(chunk).map((value) => value.toString(16).padStart(2, '0')).join(' ');
+    const ascii = Array.from(chunk).map((value) => (value >= 32 && value <= 126 ? String.fromCharCode(value) : '.')).join('');
+    lines.push(`${offset.toString(16).padStart(8, '0')}  ${hex.padEnd(16 * 3 - 1, ' ')}  ${ascii}`);
+  }
+  return lines.join('\n');
+}
+
+function buildRuntimeTree(items: FirmwareRuntimeFileList['items']): RuntimeTreeNode[] {
+  const root: RuntimeTreeNode[] = [];
+  const nodeMap = new Map<string, RuntimeTreeNode>();
+  const ensureDirectory = (path: string) => {
+    const normalized = String(path || '').replace(/^\/+|\/+$/g, '');
+    if (!normalized) return null;
+    const existing = nodeMap.get(normalized);
+    if (existing) return existing;
+    const parts = normalized.split('/');
+    const name = parts[parts.length - 1] || normalized;
+    const node: RuntimeTreeNode = { name, path: normalized, kind: 'dir', sizeBytes: 0, modifiedAt: null, children: [] };
+    nodeMap.set(normalized, node);
+    const parentPath = parts.slice(0, -1).join('/');
+    const parent = parentPath ? ensureDirectory(parentPath) : null;
+    if (parent) parent.children.push(node);
+    else root.push(node);
+    return node;
+  };
+
+  items.forEach((item) => {
+    const normalized = String(item.path || '').replace(/^\/+|\/+$/g, '');
+    if (!normalized) return;
+    const parts = normalized.split('/');
+    const name = parts[parts.length - 1] || normalized;
+    if (item.kind === 'dir') {
+      const dir = ensureDirectory(normalized);
+      if (dir) {
+        dir.sizeBytes = item.size_bytes;
+        dir.modifiedAt = item.modified_at;
+      }
+      return;
+    }
+    const parentPath = parts.slice(0, -1).join('/');
+    const parent = parentPath ? ensureDirectory(parentPath) : null;
+    const node: RuntimeTreeNode = {
+      name,
+      path: normalized,
+      kind: item.kind,
+      sizeBytes: item.size_bytes,
+      modifiedAt: item.modified_at,
+      children: [],
+    };
+    nodeMap.set(normalized, node);
+    if (parent) parent.children.push(node);
+    else root.push(node);
+  });
+
+  const sortNodes = (nodes: RuntimeTreeNode[]) => {
+    nodes.sort((left, right) => {
+      const leftOrder = left.kind === 'dir' ? 0 : 1;
+      const rightOrder = right.kind === 'dir' ? 0 : 1;
+      return leftOrder - rightOrder || left.name.localeCompare(right.name, 'zh-CN');
+    });
+    nodes.forEach((node) => sortNodes(node.children));
+  };
+  sortNodes(root);
+  return root;
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
@@ -342,6 +462,21 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const { notify, feedbackNodes } = useUiFeedback();
   const fileserverApi = api.domains.assets.fileserver;
   const [jobs, setJobs] = useState<FirmwareEvolutionJob[]>([]);
+  const [runtimeFiles, setRuntimeFiles] = useState<FirmwareRuntimeFileList | null>(null);
+  const [runtimeFilesLoading, setRuntimeFilesLoading] = useState(false);
+  const [runtimeFilesError, setRuntimeFilesError] = useState('');
+  const [runtimeExpandedPaths, setRuntimeExpandedPaths] = useState<Set<string>>(new Set());
+  const [runtimeSelectedPath, setRuntimeSelectedPath] = useState<string>('');
+  const [runtimePreviewLoading, setRuntimePreviewLoading] = useState(false);
+  const [runtimePreviewError, setRuntimePreviewError] = useState('');
+  const [runtimePreviewText, setRuntimePreviewText] = useState('');
+  const [runtimePreviewHex, setRuntimePreviewHex] = useState('');
+  const [runtimePreviewMeta, setRuntimePreviewMeta] = useState<{ contentType: string; truncated: boolean; mode: 'text' | 'binary' | ''; size: number }>({
+    contentType: '',
+    truncated: false,
+    mode: '',
+    size: 0,
+  });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
@@ -380,6 +515,11 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const [logPayload, setLogPayload] = useState<FirmwareTaskLog | null>(null);
   const [replacing, setReplacing] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
+  const notifyRef = useRef(notify);
+
+  useEffect(() => {
+    notifyRef.current = notify;
+  }, [notify]);
 
   const hasRunning = useMemo(() => jobs.some((job) => !isTerminal(job.status)), [jobs]);
   const stats = useMemo(() => ({
@@ -390,6 +530,12 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   }), [jobs, total]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showingDetail = Boolean(activeJobId);
+  const runtimeItems = runtimeFiles?.items || [];
+  const runtimeTree = useMemo(() => buildRuntimeTree(runtimeItems), [runtimeItems]);
+  const selectedRuntimeItem = useMemo(
+    () => runtimeItems.find((item) => item.path === runtimeSelectedPath) || null,
+    [runtimeItems, runtimeSelectedPath],
+  );
   const canConfirmReplacement = Boolean(
     activeJob
     && activeJob.status === 'success'
@@ -450,6 +596,35 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       if (!options?.silent) setLoading(false);
     }
   }, [filterSearch, filterStatus, page, pageSize, projectId]);
+
+  const loadRuntimeFiles = useCallback(async () => {
+    if (!projectId) return;
+    setRuntimeFilesLoading(true);
+    setRuntimeFilesError('');
+    try {
+      const payload = await fwApi.listRuntimeFiles(projectId, 2000);
+      setRuntimeFiles(payload);
+      setRuntimeExpandedPaths((current) => {
+        if (current.size > 0) return current;
+        const initial = new Set<string>();
+        payload.items
+          .filter((item) => item.kind === 'dir')
+          .slice(0, 12)
+          .forEach((item) => {
+            const parent = String(item.path || '').split('/').slice(0, -1).join('/');
+            if (!parent || !parent.includes('/')) initial.add(String(item.path || ''));
+          });
+        return initial;
+      });
+      setRuntimeSelectedPath((current) => current || payload.items.find((item) => item.kind !== 'dir')?.path || payload.items[0]?.path || '');
+    } catch (e: any) {
+      const message = e?.message || '加载运行时文件失败';
+      setRuntimeFilesError(message);
+      notifyRef.current(`加载运行时文件失败: ${message}`, 'error');
+    } finally {
+      setRuntimeFilesLoading(false);
+    }
+  }, [projectId]);
 
   const refreshJobDetail = useCallback(async (jobId: string, options?: { silent?: boolean }) => {
     if (!jobId) return;
@@ -548,9 +723,102 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     }
   }, [activeJob?.project_id, fileserverApi, projectId, sessionRoot]);
 
+  const renderRuntimeTree = useCallback((nodes: RuntimeTreeNode[], depth = 0): React.ReactNode => nodes.map((node) => {
+    const expanded = runtimeExpandedPaths.has(node.path);
+    const selected = runtimeSelectedPath === node.path;
+    const isDirectory = node.kind === 'dir';
+    return (
+      <div key={`${node.kind}:${node.path}`}>
+        <button
+          type="button"
+          onClick={() => {
+            if (isDirectory) {
+              setRuntimeExpandedPaths((current) => {
+                const next = new Set(current);
+                if (next.has(node.path)) next.delete(node.path);
+                else next.add(node.path);
+                return next;
+              });
+            }
+            setRuntimeSelectedPath(node.path);
+          }}
+          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs transition ${selected ? 'bg-sky-50 text-sky-700' : 'text-slate-700 hover:bg-slate-50'}`}
+          style={{ paddingLeft: `${12 + depth * 16}px` }}
+        >
+          {isDirectory ? (
+            expanded ? <ChevronDown size={14} className="shrink-0 text-slate-400" /> : <ChevronRight size={14} className="shrink-0 text-slate-400" />
+          ) : (
+            <span className="w-[14px] shrink-0" />
+          )}
+          {isDirectory ? <Folder size={14} className="shrink-0 text-amber-600" /> : <FileText size={14} className="shrink-0 text-slate-500" />}
+          <span className="min-w-0 flex-1 truncate font-mono">{node.name}</span>
+          {!isDirectory ? <span className="shrink-0 text-[10px] text-slate-400">{formatBytes(node.sizeBytes)}</span> : null}
+        </button>
+        {isDirectory && expanded && node.children.length > 0 ? (
+          <div>{renderRuntimeTree(node.children, depth + 1)}</div>
+        ) : null}
+      </div>
+    );
+  }), [runtimeExpandedPaths, runtimeSelectedPath]);
+
   useEffect(() => {
     void fetchJobs(true);
   }, [projectId]);
+
+  useEffect(() => {
+    void loadRuntimeFiles();
+  }, [loadRuntimeFiles]);
+
+  useEffect(() => {
+    const selected = selectedRuntimeItem;
+    if (!selected || selected.kind === 'dir') {
+      setRuntimePreviewLoading(false);
+      setRuntimePreviewError('');
+      setRuntimePreviewText('');
+      setRuntimePreviewHex('');
+      setRuntimePreviewMeta({ contentType: '', truncated: false, mode: '', size: selected?.size_bytes || 0 });
+      return;
+    }
+    let cancelled = false;
+    const loadPreview = async () => {
+      setRuntimePreviewLoading(true);
+      setRuntimePreviewError('');
+      try {
+        const payload: FirmwareRuntimeFilePreview = await fwApi.fetchRuntimeFilePreviewBlob(selected.path, projectId, 262144);
+        if (cancelled) return;
+        const mode = inferRuntimePreviewMode(selected.path, payload.contentType);
+        if (mode === 'text') {
+          const text = await payload.blob.text();
+          if (cancelled) return;
+          setRuntimePreviewText(text);
+          setRuntimePreviewHex('');
+        } else {
+          const bytes = new Uint8Array(await payload.blob.arrayBuffer());
+          if (cancelled) return;
+          setRuntimePreviewText('');
+          setRuntimePreviewHex(toHexView(bytes));
+        }
+        setRuntimePreviewMeta({
+          contentType: payload.contentType,
+          truncated: payload.truncated,
+          mode,
+          size: selected.size_bytes,
+        });
+      } catch (e: any) {
+        if (cancelled) return;
+        setRuntimePreviewError(e?.message || '加载文件预览失败');
+        setRuntimePreviewText('');
+        setRuntimePreviewHex('');
+        setRuntimePreviewMeta({ contentType: '', truncated: false, mode: '', size: selected.size_bytes });
+      } finally {
+        if (!cancelled) setRuntimePreviewLoading(false);
+      }
+    };
+    void loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, runtimeSelectedPath, selectedRuntimeItem?.kind, selectedRuntimeItem?.modified_at, selectedRuntimeItem?.size_bytes]);
 
   useEffect(() => {
     void fetchJobs(true);
@@ -1161,6 +1429,74 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             <StatCard label="运行中" value={stats.running} tone="border-blue-200 bg-blue-50 text-blue-700" />
             <StatCard label="成功" value={stats.success} tone="border-emerald-200 bg-emerald-50 text-emerald-700" />
             <StatCard label="失败/取消" value={stats.failed} tone="border-red-200 bg-red-50 text-red-700" />
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Runtime Explorer</div>
+                <h3 className="mt-1 text-sm font-bold text-slate-800">运行时文件</h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  当前展示 <span className="font-mono">{runtimeFiles?.root || '/data/secflow-app-firmware-unpacker'}</span> 下的文件与目录。
+                </p>
+              </div>
+              <button onClick={() => void loadRuntimeFiles()} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                <RefreshCw size={12} className={runtimeFilesLoading ? 'animate-spin' : ''} />
+                刷新文件
+              </button>
+            </div>
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <span>总项数：{runtimeFiles?.total ?? '-'}</span>
+              {runtimeFiles?.truncated ? <span className="text-amber-700">结果已截断，当前最多展示 2000 项</span> : null}
+            </div>
+            {runtimeFilesError ? <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{runtimeFilesError}</div> : null}
+            {runtimeFilesLoading && !runtimeFiles ? (
+              <div className="flex items-center gap-2 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载中...</div>
+            ) : !runtimeFiles || runtimeFiles.items.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-10 text-center text-sm text-slate-500">
+                {runtimeFilesLoading ? '加载中...' : '当前目录下暂无可展示文件'}
+              </div>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-slate-500">文件树</div>
+                  <div className="max-h-[36rem] overflow-auto p-2">
+                    {runtimeTree.length === 0 ? (
+                      <div className="px-3 py-8 text-center text-sm text-slate-400">暂无可展示节点</div>
+                    ) : (
+                      <div className="space-y-1">{renderRuntimeTree(runtimeTree)}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">文件预览</div>
+                    <div className="mt-1 break-all font-mono text-[11px] text-slate-700">{runtimeSelectedPath || '-'}</div>
+                    {runtimeSelectedPath ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                        <span>{runtimePreviewMeta.mode === 'binary' ? '二进制' : runtimePreviewMeta.mode === 'text' ? '文本' : '目录'}</span>
+                        <span>{formatBytes(runtimePreviewMeta.size)}</span>
+                        <span>{runtimePreviewMeta.contentType || '-'}</span>
+                        {runtimePreviewMeta.truncated ? <span className="text-amber-700">预览已截断</span> : null}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="max-h-[36rem] overflow-auto bg-white">
+                    {runtimePreviewLoading ? (
+                      <div className="flex items-center gap-2 px-4 py-10 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />加载预览中...</div>
+                    ) : runtimePreviewError ? (
+                      <div className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{runtimePreviewError}</div>
+                    ) : !runtimeSelectedPath ? (
+                      <div className="px-4 py-10 text-center text-sm text-slate-400">请选择左侧文件</div>
+                    ) : runtimePreviewMeta.mode === '' ? (
+                      <div className="px-4 py-10 text-center text-sm text-slate-400">当前选择为目录，请展开或选择文件</div>
+                    ) : (
+                      <pre className="min-h-[28rem] whitespace-pre-wrap break-words px-4 py-4 font-mono text-[12px] leading-6 text-slate-800">{runtimePreviewMeta.mode === 'text' ? runtimePreviewText : runtimePreviewHex}</pre>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

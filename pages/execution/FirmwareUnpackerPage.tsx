@@ -128,6 +128,74 @@ function formatPhaseDuration(seconds: number | null | undefined) {
   return `（${formatSeconds(seconds)}）`;
 }
 
+type ProgressPhase = FirmwareTaskProgress['phases'][number];
+
+function buildPlaceholderPhase(key: string, label: string): ProgressPhase {
+  return {
+    key,
+    label,
+    status: 'not_executed',
+    detail: '未执行',
+    updated_at: null,
+    current_round: null,
+    total_rounds: null,
+    duration_seconds: null,
+  };
+}
+
+function normalizeProgressPhases(progress: FirmwareTaskProgress | null): ProgressPhase[] {
+  if (!progress) return [];
+  const byKey = new Map(progress.phases.map((phase) => [phase.key, phase]));
+  const phaseKeys = progress.phases.map((phase) => phase.key);
+  const roundKeys = phaseKeys
+    .map((key) => {
+      const matched = key.match(/^(llm_unpack|recursive_expand_llm|llm_review)_round_(\d+)$/);
+      return matched ? Number(matched[2]) : null;
+    })
+    .filter((value): value is number => value != null);
+  const hasRoundPhases = roundKeys.length > 0 || typeof progress.current_round === 'number';
+  const maxRound = hasRoundPhases ? Math.max(1, progress.current_round || 1, ...roundKeys) : 0;
+  const toolReviewPhase = byKey.get('llm_review_tool');
+
+  const expected: Array<{ key: string; label: string }> = [
+    { key: 'preprocess', label: '预处理' },
+    { key: 'tool_match', label: '工具匹配执行' },
+    { key: 'recursive_expand_tool', label: '递归解包（工具后）' },
+  ];
+
+  if (hasRoundPhases) {
+    if (toolReviewPhase) {
+      expected.push({ key: 'llm_review_tool', label: toolReviewPhase.label || 'LLM 评审（工具阶段）' });
+    }
+    for (let round = 1; round <= maxRound; round += 1) {
+      expected.push({ key: `llm_unpack_round_${round}`, label: `LLM 解包（第${round}轮）` });
+      expected.push({ key: `recursive_expand_llm_round_${round}`, label: `递归解包（第${round}轮后）` });
+      expected.push({ key: `llm_review_round_${round}`, label: `LLM 评审（第${round}轮）` });
+    }
+  } else {
+    expected.push({ key: 'llm_unpack', label: 'LLM 解包' });
+    expected.push({ key: 'recursive_expand_llm', label: '递归解包（LLM后）' });
+    expected.push(
+      toolReviewPhase
+        ? { key: 'llm_review_tool', label: toolReviewPhase.label || 'LLM 评审（工具阶段）' }
+        : { key: 'llm_review', label: 'LLM 评审' },
+    );
+  }
+  expected.push({ key: 'llm_cleanup', label: 'LLM 清理' });
+
+  return expected.map(({ key, label }) => {
+    const existing = byKey.get(key);
+    if (existing) return existing;
+    const phase = buildPlaceholderPhase(key, label);
+    if (key.startsWith('llm_') || key.startsWith('recursive_expand_llm_round_')) {
+      phase.total_rounds = progress.total_rounds ?? null;
+      const matched = key.match(/_round_(\d+)$/);
+      if (matched) phase.current_round = Number(matched[1]);
+    }
+    return phase;
+  });
+}
+
 function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
   if (used == null || limit == null || limit <= 0) return '-';
   const percent = Math.max(0, (used / limit) * 100);
@@ -822,6 +890,15 @@ function TaskDetailPanel({
   refreshRequest?: number;
 }) {
   const fileserverApi = api.domains.assets.fileserver;
+  const normalizedProgressPhases = useMemo(() => normalizeProgressPhases(progress), [progress]);
+  const progressDurationSeconds = useMemo(() => {
+    const values = normalizedProgressPhases
+      .filter((phase) => !['pending', 'not_executed'].includes(String(phase.status || '')))
+      .map((phase) => phase.duration_seconds)
+      .filter((value): value is number => value != null && Number.isFinite(value));
+    if (!values.length) return null;
+    return values.reduce((sum, value) => sum + value, 0);
+  }, [normalizedProgressPhases]);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [activeResultDoc, setActiveResultDoc] = useState<'summary' | 'reason'>('summary');
   const [timeline, setTimeline] = useState<FirmwareTaskEvent[]>([]);
@@ -1612,7 +1689,7 @@ function TaskDetailPanel({
                 ['创建时间', fmtTime(task.created_at)],
                 ['开始时间', fmtTime(task.started_at)],
                 ['完成时间', fmtTime(task.completed_at)],
-                ['耗时', fmtDuration(task.started_at, task.completed_at)],
+                ['耗时', progressDurationSeconds != null ? formatSeconds(progressDurationSeconds) : fmtDuration(task.started_at, task.completed_at)],
                 ['AI 轮次', task.rounds ?? '-'],
               ].map(([label, value], index) => (
                 <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -1639,7 +1716,7 @@ function TaskDetailPanel({
                   )}
                   <div className="overflow-x-auto pb-1">
                     <div className="relative flex min-w-[720px] items-start gap-0">
-                      {progress.phases.map((phase, index) => {
+                      {normalizedProgressPhases.map((phase, index) => {
                         const isCompleted = phase.status === 'success';
                         const isRunning = phase.status === 'running';
                         const isFailed = phase.status === 'failed';
@@ -1665,7 +1742,7 @@ function TaskDetailPanel({
 
                         return (
                           <div key={phase.key} className="relative flex-1">
-                            {index < progress.phases.length - 1 ? (
+                            {index < normalizedProgressPhases.length - 1 ? (
                               <div className={`absolute left-1/2 top-4 h-0.5 w-full ${lineClass}`} />
                             ) : null}
                             <div className="relative z-10 flex flex-col items-center px-2 text-center">
