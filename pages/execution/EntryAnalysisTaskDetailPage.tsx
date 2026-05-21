@@ -293,19 +293,14 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
 
 function stageLabel(stage: string | undefined): string {
   const labels: Record<string, string> = {
-    init:     '模块加载',
-    r1a:      'R1a 覆盖率验证',
-    r1b:      'R1b 准确性校正',
-    r2:       'R2 外部输入分析',
-    r3:       'R3 入口过滤',
-    cc:       'CC 调用链分析',
-    r4:       'R4 跨文件分析',
+    extract:  '函数读取',
+    coverage: '覆盖率验证',
+    pipeline: '函数流水线',
     report:   '报告生成',
-    // 旧流程兼容
-    r1:      'R1 函数提取',
-    finish:  '生成结果',
-    analyse: '入口分析',
-    judge:   '裁判综合',
+    init: '模块加载', r1a: 'R1a 覆盖率', r1b: 'R1b 准确性',
+    r2: 'R2 外部输入', r3: 'R3 过滤', cc: 'CC 调用链',
+    r4: 'R4 跨文件', r1: 'R1 函数提取', finish: '生成结果',
+    analyse: '入口分析', judge: '裁判综合',
   };
   return labels[stage || ''] || stage || '-';
 }
@@ -582,6 +577,169 @@ function formatEvent(evt: AppEaStageEvent): string {
     default:                    return `[${ts}] ${evt.type}: ${String(d.text ?? d.output ?? JSON.stringify(d)).replace(/\n+/g, ' ').slice(0, 150)}`;
   }
 }
+
+// ─── 函数级进度追踪 ──────────────────────────────────────────────────────────
+
+type FuncStage = 'pending' | 'running' | 'passed' | 'failed' | 'skip' | 'keep' | 'remove';
+
+interface FuncProgress {
+  func_hash: string;
+  name: string;
+  file?: string;
+  r1b:   FuncStage;   // 函数准确性校正
+  r2:    FuncStage;   // 外部输入分析
+  r2j:   FuncStage;   // 外部输入验证
+  r3:    FuncStage;   // 入口过滤（文件级，用 passed=keep / skip=filtered）
+  r4:    FuncStage;   // 跨文件分析（keep/remove）
+  rep:   FuncStage;   // 单函数报告
+  has_external_input?: boolean;
+  entry_role?: string;
+  is_entry: boolean;  // R4 keep 或 R3 keep 且 R4 未运行
+  lastTs?: number;
+}
+
+function deriveFuncProgress(events: AppEaStageEvent[]): {
+  funcs: FuncProgress[];
+  totalFuncCount: number;
+} {
+  const map = new Map<string, FuncProgress>();
+  let totalFuncCount = 0;
+  // 从 r1_static_done 统计总函数数（跨文件累加）
+  for (const evt of events) {
+    if (evt.type === 'r1_static_done') {
+      totalFuncCount += Number((evt.data || {}).count) || 0;
+    }
+  }
+
+  const getOrCreate = (fh: string, name?: string, file?: string): FuncProgress => {
+    if (!map.has(fh)) {
+      map.set(fh, {
+        func_hash: fh, name: name || fh.slice(0, 8),
+        file, r1b: 'pending', r2: 'pending', r2j: 'pending',
+        r3: 'pending', r4: 'pending', rep: 'pending',
+        is_entry: false,
+      });
+    }
+    const f = map.get(fh)!;
+    if (name && f.name === f.func_hash.slice(0, 8)) f.name = name;
+    if (file && !f.file) f.file = file;
+    return f;
+  };
+
+  // R3 file → funcs mapping: when r3_j_done is passed, all funcs in that file that
+  // had has_external_input=true and not explicitly filtered are considered r3=passed
+  const fileHasExternalFuncs = new Map<string, Set<string>>(); // file_hash -> func_hashes
+
+  for (const evt of events) {
+    const ts = evt.ts || 0;
+    const d  = evt.data || {};
+    const fh = String(d.func_hash || '');
+    const fn = String(d.function  || d.func_hash || '');
+    const fi = String(d.file      || '');
+
+    switch (evt.type) {
+      case 'r1_j_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = 'running'; f.lastTs = ts; } break;
+      case 'r1_j_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
+      case 'r2_w_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2 = 'running'; f.lastTs = ts; } break;
+      case 'r2_w_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          f.r2 = 'passed';
+          f.has_external_input = Boolean(d.has_external_input);
+          if (!f.has_external_input) { f.r2 = 'skip'; f.r2j = 'skip'; f.r3 = 'skip'; f.r4 = 'skip'; }
+          else {
+            if (d.entry_role) f.entry_role = String(d.entry_role);
+            // track for R3
+            const fileH = String(d.file_hash || '');
+            if (fileH) { if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set()); fileHasExternalFuncs.get(fileH)!.add(fh); }
+          }
+          f.lastTs = ts;
+        } break;
+      case 'r2_j_func_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = 'running'; f.lastTs = ts; } break;
+      case 'r2_j_func_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
+      case 'r3_w_start':
+        // mark all external funcs in this file as r3=running
+        { const fileH = String(d.file_hash || ''); if (fileH && fileHasExternalFuncs.has(fileH)) { for (const funcH of fileHasExternalFuncs.get(fileH)!) { const f = map.get(funcH); if (f && f.r3 === 'pending') f.r3 = 'running'; } } }
+        break;
+      case 'r3_w_done':
+        // file R3 worker done: entry_count tells how many kept
+        break;
+      case 'r3_j_done':
+        { const fileH = String(d.file_hash || '');
+          if (fileH && fileHasExternalFuncs.has(fileH)) {
+            for (const funcH of fileHasExternalFuncs.get(fileH)!) {
+              const f = map.get(funcH);
+              if (f && (f.r3 === 'running' || f.r3 === 'pending')) {
+                // We can't determine per-func R3 result from file-level events alone
+                // Mark as passed (conservative; actual filter info comes from r4_w_done)
+                f.r3 = d.passed ? 'passed' : 'failed';
+              }
+            }
+          }
+        } break;
+      case 'r4_w_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r4 = 'running'; f.lastTs = ts; } break;
+      case 'r4_w_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          const dec = String(d.decision || 'keep').toLowerCase();
+          f.r4 = dec === 'remove' ? 'remove' : 'keep';
+          f.is_entry = f.r4 === 'keep';
+          f.lastTs = ts;
+        } break;
+      case 'report_w_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; } break;
+      case 'report_j_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
+      default: break;
+    }
+  }
+
+  // Post-process: funcs that passed R3 but have no R4 result yet => is_entry=true tentatively
+  for (const f of map.values()) {
+    if (f.r4 === 'pending' && f.r3 === 'passed' && f.has_external_input) {
+      f.is_entry = true;  // tentative until R4 decides
+    }
+  }
+
+  const funcs = Array.from(map.values());
+  // Sort: entries first, then by lastTs desc
+  funcs.sort((a, b) => {
+    if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
+    return (b.lastTs || 0) - (a.lastTs || 0);
+  });
+
+  return { funcs, totalFuncCount };
+}
+
+// ─── 函数级阶段小图标 ────────────────────────────────────────────────────────
+
+function FuncStageDot({ state, label }: { state: FuncStage; label: string }) {
+  const cls =
+    state === 'passed' || state === 'keep' ? 'bg-emerald-500 text-white' :
+    state === 'running'   ? 'bg-blue-500 text-white animate-pulse' :
+    state === 'failed'    ? 'bg-red-500 text-white' :
+    state === 'remove'    ? 'bg-orange-400 text-white' :
+    state === 'skip'      ? 'bg-slate-200 text-slate-400' :
+    'bg-slate-100 text-slate-400';
+  const icon =
+    state === 'passed' || state === 'keep' ? '✓' :
+    state === 'running' ? '…' :
+    state === 'failed'  ? '✗' :
+    state === 'remove'  ? '✗' :
+    state === 'skip'    ? '—' : '·';
+  return (
+    <span title={`${label}: ${state}`} className={`inline-flex h-4 w-4 items-center justify-center rounded text-[9px] font-black ${cls}`}>
+      {icon}
+    </span>
+  );
+}
+
 
 function normalizeSessionDisplayPath(path: string): string {
   return path.replace(/^.*\/run\/sessions\//, '').replace(/^\/+/, '');
@@ -897,6 +1055,14 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const events = detail?.stages_json?.events || [];
   const statusSteps = detail ? deriveStepStatuses(detail.status, events) : STAGE_STEPS.map((): StepStatus => 'pending');
   const stageStats = useMemo(() => deriveStageStats(events), [events]);
+  const { funcs: funcProgress, totalFuncCount } = useMemo(() => deriveFuncProgress(events), [events]);
+  const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
+  const [funcPage, setFuncPage] = useState(0);
+  const [funcEntryOnly, setFuncEntryOnly] = useState(false);
+  // 过滤后的列表
+  const funcFiltered = funcEntryOnly ? funcProgress.filter((f) => f.is_entry) : funcProgress;
+  const funcPageCount = Math.ceil(funcFiltered.length / funcPageSize);
+  const funcPageSlice = funcFiltered.slice(funcPage * funcPageSize, (funcPage + 1) * funcPageSize);
   const logLines = events.map(formatEvent);
   const groupedSessions = useMemo(() => {
     const map = new Map<string, AppEaSessionMeta[]>();
@@ -1222,11 +1388,12 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           {/* ─ 统计条 */}
           {(() => {
             const totalFiles = stageStats[0]?.filesTotal ?? stageStats[1]?.filesTotal ?? 0;
-            const r1aDone    = stageStats[1]?.filesDone ?? 0;
-            const r2Funcs    = stageStats[3]?.funcsDone ?? stageStats[2]?.funcsDone ?? 0;
-            const r3Entries  = stageStats[4]?.entriesFound ?? 0;
-            const r4Entries  = stageStats[6]?.entriesFound ?? r3Entries;
-            const ccNodes    = stageStats[5]?.nodeCount ?? 0;
+            const totalFuncs = totalFuncCount || (stageStats[2]?.funcsDone ?? 0) || funcProgress.length;
+            const r1aDone    = stageStats[1]?.filesDone ?? stageStats[0]?.filesDone ?? 0;
+            const r2Funcs    = stageStats[2]?.funcsDone ?? 0;
+            const r3Entries  = stageStats[2]?.entriesFound ?? 0;
+            const r4Entries  = stageStats[3]?.entriesFound ?? r3Entries;
+            const ccNodes    = stageStats[2]?.nodeCount ?? 0;
             const activeStageIdx = statusSteps.reduce((last: number, s: StepStatus, i: number) => (s === 'running' || s === 'completed') ? i : last, -1);
             const activeStage = activeStageIdx >= 0 ? STAGE_STEPS[activeStageIdx]?.label : '等待中';
             return (
@@ -1235,9 +1402,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">流水线统计</div>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">当前阶段：{activeStage}</span>
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6">
+                <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
                   {([
                     { label: '总文件数',     value: totalFiles || '-', border: 'border-slate-200', bg: 'bg-slate-50',     text: 'text-slate-900' },
+                    { label: '总函数数',     value: totalFuncs || '-',  border: 'border-slate-200', bg: 'bg-slate-50/80',   text: 'text-slate-700' },
                     { label: 'R1a完成文件',  value: r1aDone || '-',    border: 'border-sky-100',   bg: 'bg-sky-50',       text: 'text-sky-700' },
                     { label: '分析完成函数', value: r2Funcs || '-',    border: 'border-indigo-100',bg: 'bg-indigo-50',    text: 'text-indigo-700' },
                     { label: 'R3候选入口',   value: r3Entries || '-',  border: 'border-teal-100',  bg: 'bg-teal-50',      text: 'text-teal-700' },
@@ -1320,7 +1488,106 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
               </div>
             </div>
           </section>
-          {/* ─ 当前运行智能体（全宽） */}
+          {/* ─ 函数级进度表（翻页）*/}
+          {funcProgress.length > 0 ? (
+            <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">各函数流水线进度</h2>
+                  <p className="mt-1 text-xs text-slate-400">
+                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。阶段：R1b · R2 · R2J · R3 · R4 · Rpt
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button onClick={() => { setFuncEntryOnly((v) => !v); setFuncPage(0); }}
+                    className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcEntryOnly ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                    {funcEntryOnly ? '✓ 仅入口' : '仅入口'}
+                  </button>
+                  <span className="text-[11px] text-slate-300">|</span>
+                  <span className="text-[11px] text-slate-500">每页</span>
+                  {([50, 100, 200] as const).map((n) => (
+                    <button key={n} onClick={() => { setFuncPageSize(n); setFuncPage(0); }}
+                      className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcPageSize === n ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+                      {n}
+                    </button>
+                  ))}
+                  <span className="ml-1 text-[11px] text-slate-400">{funcPage + 1}/{Math.max(1, funcPageCount)} 页·{funcFiltered.length} 个</span>
+                  <button disabled={funcPage === 0} onClick={() => setFuncPage((p) => p - 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">‹</button>
+                  <button disabled={funcPage >= funcPageCount - 1} onClick={() => setFuncPage((p) => p + 1)} className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">›</button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[680px] text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                      <th className="px-4 py-2.5 text-left">函数名</th>
+                      <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
+                      <th className="px-2 py-2.5 text-center">R1b</th>
+                      <th className="px-2 py-2.5 text-center">R2</th>
+                      <th className="px-2 py-2.5 text-center">R2J</th>
+                      <th className="px-2 py-2.5 text-center">R3</th>
+                      <th className="px-2 py-2.5 text-center">R4</th>
+                      <th className="px-2 py-2.5 text-center">Rpt</th>
+                      <th className="px-4 py-2.5 text-left">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {funcPageSlice.map((f) => (
+                      <tr key={f.func_hash} className={`transition ${f.is_entry ? 'bg-emerald-50/40 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}>
+                        <td className="px-4 py-2 font-mono">
+                          <span className="truncate max-w-[220px] block font-semibold text-slate-800" title={f.name}>{f.name}</span>
+                          {f.entry_role ? <span className="mt-0.5 block text-[9px] text-slate-400">{f.entry_role}</span> : null}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {f.is_entry
+                            ? <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">✓ 入口</span>
+                            : f.r4 === 'remove'
+                              ? <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[9px] font-semibold text-orange-600">✗ 已过滤</span>
+                              : f.r2 === 'skip'
+                                ? <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-400">— 无输入</span>
+                                : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未知</span>
+                          }
+                        </td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r1b} label="R1b" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2}  label="R2" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2J" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3}  label="R3" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="Rpt" /></td>
+                        <td className="px-4 py-2 text-slate-500">
+                          {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
+                          : f.r4 === 'remove' ? <span className="text-orange-600">跨文件过滤</span>
+                          : f.r3 === 'passed' ? <span className="text-sky-700">R3 候选</span>
+                          : f.r3 === 'failed' ? <span className="text-slate-400">R3 过滤</span>
+                          : f.r2 === 'skip'   ? <span className="text-slate-300">无外部输入</span>
+                          : f.r2 === 'running' || f.r2j === 'running' ? <span className="text-blue-600 animate-pulse">分析中…</span>
+                          : f.r1b === 'running' ? <span className="text-indigo-600 animate-pulse">提取中…</span>
+                          : <span className="text-slate-300">等待中</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {funcPageCount > 1 ? (
+                <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-5 py-3">
+                  <button disabled={funcPage === 0} onClick={() => setFuncPage(0)}
+                    className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">«</button>
+                  <button disabled={funcPage === 0} onClick={() => setFuncPage((p) => p - 1)}
+                    className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">‹</button>
+                  <span className="text-[11px] text-slate-500">
+                    {funcPage + 1} / {funcPageCount}（共 {funcProgress.length} 个函数）
+                  </span>
+                  <button disabled={funcPage >= funcPageCount - 1} onClick={() => setFuncPage((p) => p + 1)}
+                    className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">›</button>
+                  <button disabled={funcPage >= funcPageCount - 1} onClick={() => setFuncPage(funcPageCount - 1)}
+                    className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">»</button>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+                    {/* ─ 当前运行智能体（全宽） */}
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
               <div>
