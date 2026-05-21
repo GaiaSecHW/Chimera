@@ -72,7 +72,8 @@ const STAGE_STEPS = [
     key: 'coverage',
     label: '覆盖率验证',
     desc: 'LLM 验证提取列表完整性，补漏函数，写入 funcDB',
-    triggers: ['r1_w_agent_start', 'r1_w_agent_done'],
+    triggers: ['r1_w_agent_start', 'r1_w_agent_done',
+               'r1_j_start', 'r1_j_done'],
     artifactSubpath: 'run/workspace/r1-functions',
   },
   {
@@ -80,7 +81,6 @@ const STAGE_STEPS = [
     label: '函数流水线',
     desc: '函数级并行：准确性验证 → 外部输入分析 → 入口过滤 → 调用链 → 跨文件分析',
     triggers: [
-      'r1_j_start', 'r1_j_done',
       'r2_w_start', 'r2_w_done', 'r2_j_func_start', 'r2_j_func_done',
       'r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done',
       'callchain_start', 'callchain_done', 'callchain_failed',
@@ -178,7 +178,8 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
   const lastTs:  Array<number | undefined> = STAGE_STEPS.map(() => undefined);
 
   const extractedFiles = new Set<string>();
-  const coverageFiles  = new Set<string>();
+  const coverageFiles  = new Set<string>();  // r1_w_agent_done
+  const coverageJDone   = new Set<string>();  // r1_j_done (真正完成 R1a)
   const r2FuncsDone    = new Set<string>();
   const r3FilesDone    = new Set<string>();
   const r3FileEntries  = new Map<string, number>();
@@ -206,12 +207,16 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
         break;
       // 1: coverage
       case 'r1_w_agent_start': touch(1, ts); break;
+      case 'r1_j_start': touch(1, ts); break;
+      case 'r1_j_done':
+        touch(1, ts);
+        if (d.file_hash) coverageJDone.add(String(d.file_hash));
+        break;
       case 'r1_w_agent_done':
         touch(1, ts);
         if (d.file_hash) coverageFiles.add(String(d.file_hash));
         break;
       // 2: pipeline
-      case 'r1_j_start': case 'r1_j_done': touch(2, ts); break;
       case 'r2_w_start': case 'r2_j_func_start': touch(2, ts); break;
       case 'r2_w_done':
         touch(2, ts);
@@ -254,7 +259,7 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
 
   const r3EntriesSum = Array.from(r3FileEntries.values()).reduce((a2, b2) => a2 + b2, 0);
   result[0] = { filesTotal: totalFiles || undefined, filesDone: extractedFiles.size || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
-  result[1] = { filesTotal: totalFiles || undefined, filesDone: coverageFiles.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
+  result[1] = { filesTotal: totalFiles || undefined, filesDone: coverageJDone.size || coverageFiles.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
   result[2] = {
     funcsDone:    r2FuncsDone.size || undefined,
     filesDone:    r3FilesDone.size || undefined,
