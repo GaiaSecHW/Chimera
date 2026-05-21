@@ -60,55 +60,35 @@ const STATUS_COLOR: Record<string, string> = {
 
 const STAGE_STEPS = [
   {
-    key: 'init',
-    label: '模块加载',
-    desc: '扫描模块文件，建立软链接工作目录',
-    triggers: ['task_start', 'module_load', 'module_found', 'module_ready', 'task_resume', 'pipeline_start'],
-    artifactSubpath: 'run',
-  },
-  {
-    key: 'r1a',
-    label: 'R1a 覆盖率验证',
-    desc: '文件级并行：ctags 静态提取 + LLM 验证函数列表是否完整',
-    triggers: ['r1_static_extract', 'r1_static_done', 'r1_w_agent_start', 'r1_w_agent_done'],
+    key: 'extract',
+    label: '函数读取',
+    desc: '静态扫描源文件（ctags + 宏扫描），写入函数数据库',
+    triggers: ['task_start', 'module_load', 'module_found', 'module_ready',
+               'task_resume', 'pipeline_start',
+               'r1_static_extract', 'r1_static_done'],
     artifactSubpath: 'run/workspace/r1-functions',
   },
   {
-    key: 'r1b',
-    label: 'R1b 准确性校正',
-    desc: '函数级并行：逐函数用 bash sed 验证行号 / 签名 / 限定名准确性',
-    triggers: ['r1_j_start', 'r1_j_done', 'r1_j_retry'],
+    key: 'coverage',
+    label: '覆盖率验证',
+    desc: 'LLM 验证提取列表完整性，补漏函数，写入 funcDB',
+    triggers: ['r1_w_agent_start', 'r1_w_agent_done'],
     artifactSubpath: 'run/workspace/r1-functions',
   },
   {
-    key: 'r2',
-    label: 'R2 外部输入分析',
-    desc: '函数级并行：逐函数判断是否含外部输入（被动参数 / 主动拉取），输出污点',
-    triggers: ['r2_w_start', 'r2_w_done', 'r2_j_func_start', 'r2_j_func_done',
-               'round_start', 'worker_start', 'master_worker_start'],
-    artifactSubpath: 'run/workspace/r1-functions',
-  },
-  {
-    key: 'r3',
-    label: 'R3 入口过滤',
-    desc: '文件级并行：筛选最外层真实外部入口，默认过滤非入口函数',
-    triggers: ['r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done', 'r3_j_retry',
-               'judge_start', 'judge_eval', 'judge_end'],
+    key: 'pipeline',
+    label: '函数流水线',
+    desc: '函数级并行：准确性验证 → 外部输入分析 → 入口过滤 → 调用链 → 跨文件分析',
+    triggers: [
+      'r1_j_start', 'r1_j_done',
+      'r2_w_start', 'r2_w_done', 'r2_j_func_start', 'r2_j_func_done',
+      'r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done',
+      'callchain_start', 'callchain_done', 'callchain_failed',
+      'r4_w_start', 'r4_w_done', 'r4_j_start', 'r4_j_done',
+      'round_start', 'worker_start', 'master_worker_start',
+      'judge_start', 'judge_eval', 'judge_end', 'round_end',
+    ],
     artifactSubpath: 'run/workspace/r3-entries',
-  },
-  {
-    key: 'cc',
-    label: 'CC 调用链',
-    desc: '纯静态：提取模块内调用关系，构建调用链 DB，更新置信度（无 LLM）',
-    triggers: ['callchain_start', 'callchain_done', 'callchain_failed'],
-    artifactSubpath: 'run/workspace/callchain',
-  },
-  {
-    key: 'r4',
-    label: 'R4 跨文件分析',
-    desc: '函数级并行：每个 R3 候选入口独立分析跨文件冗余调用关系',
-    triggers: ['r4_w_start', 'r4_w_done', 'r4_j_start', 'r4_j_done', 'round_end'],
-    artifactSubpath: 'run/workspace/r4-module',
   },
   {
     key: 'report',
@@ -188,24 +168,22 @@ interface StageStat {
 /**
 /**
  * 从 stages_json.events 推导每个流水线阶段的统计数据。
- * 顺序与 STAGE_STEPS 对齐：[init, r1a, r1b, r2, r3, cc, r4, report]。
+ * 顺序与 STAGE_STEPS 对齐：[extract, coverage, pipeline, report]。
  */
 function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
-  // 8 个阶段: 0=init 1=r1a 2=r1b 3=r2 4=r3 5=cc 6=r4 7=report
+  // 4 个阶段: 0=extract 1=coverage 2=pipeline 3=report
   const result: StageStat[] = STAGE_STEPS.map(() => ({}));
   let totalFiles = 0;
   const firstTs: Array<number | undefined> = STAGE_STEPS.map(() => undefined);
   const lastTs:  Array<number | undefined> = STAGE_STEPS.map(() => undefined);
 
-  const r1aFilesDone   = new Set<string>();
-  const r1bFuncsPassed = new Set<string>();
+  const extractedFiles = new Set<string>();
+  const coverageFiles  = new Set<string>();
   const r2FuncsDone    = new Set<string>();
   const r3FilesDone    = new Set<string>();
   const r3FileEntries  = new Map<string, number>();
   let r4EntryCount = 0;
-  let r4Attempts   = 0;
-  let ccNodes      = 0;
-  let ccEdges      = 0;
+  let ccNodes = 0, ccEdges = 0;
 
   const touch = (idx: number, ts: number) => {
     if (ts <= 0) return;
@@ -217,79 +195,78 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
     const ts = evt.ts || 0;
     const d  = evt.data || {};
     switch (evt.type) {
+      // 0: extract
       case 'pipeline_start': totalFiles = Number(d.file_count) || totalFiles; touch(0, ts); break;
       case 'task_start': case 'task_resume': case 'module_load': case 'module_found': touch(0, ts); break;
       case 'module_ready': totalFiles = Number(d.count) || totalFiles; touch(0, ts); break;
-      // R1a
-      case 'r1_static_extract': case 'r1_w_agent_start': case 'r1_static_done': touch(1, ts); break;
+      case 'r1_static_extract': touch(0, ts); break;
+      case 'r1_static_done':
+        touch(0, ts);
+        if (d.file_hash) extractedFiles.add(String(d.file_hash));
+        break;
+      // 1: coverage
+      case 'r1_w_agent_start': touch(1, ts); break;
       case 'r1_w_agent_done':
         touch(1, ts);
-        if (d.file_hash) r1aFilesDone.add(String(d.file_hash));
+        if (d.file_hash) coverageFiles.add(String(d.file_hash));
         break;
-      // R1b
-      case 'r1_j_start': case 'r1_j_retry': touch(2, ts); break;
-      case 'r1_j_done':
-        touch(2, ts);
-        if (d.passed && d.func_hash) r1bFuncsPassed.add(String(d.func_hash));
-        break;
-      // R2
-      case 'r2_w_start': case 'r2_j_func_start': touch(3, ts); break;
+      // 2: pipeline
+      case 'r1_j_start': case 'r1_j_done': touch(2, ts); break;
+      case 'r2_w_start': case 'r2_j_func_start': touch(2, ts); break;
       case 'r2_w_done':
-        touch(3, ts);
+        touch(2, ts);
         if (d.func_hash) r2FuncsDone.add(String(d.func_hash));
         break;
       case 'r2_j_func_done':
-        touch(3, ts);
+        touch(2, ts);
         if (d.passed && d.func_hash) r2FuncsDone.add(String(d.func_hash));
         break;
-      // R3
-      case 'r3_w_start': case 'r3_j_start': case 'r3_j_retry': touch(4, ts); break;
+      case 'r3_w_start': case 'r3_j_start': touch(2, ts); break;
       case 'r3_w_done':
-        touch(4, ts);
+        touch(2, ts);
         if (d.file_hash != null) r3FileEntries.set(String(d.file_hash), Number(d.entry_count) || 0);
         break;
       case 'r3_j_done':
-        touch(4, ts);
+        touch(2, ts);
         if (d.file_hash) r3FilesDone.add(String(d.file_hash));
         break;
-      // CC
-      case 'callchain_start': case 'callchain_failed': touch(5, ts); break;
+      case 'callchain_start': case 'callchain_failed': touch(2, ts); break;
       case 'callchain_done':
-        touch(5, ts);
+        touch(2, ts);
         ccNodes = Number(d.nodes) || ccNodes;
         ccEdges = Number(d.edges) || ccEdges;
         break;
-      // R4
-      case 'r4_w_start': touch(6, ts); r4Attempts += 1; break;
+      case 'r4_w_start': case 'r4_j_start': case 'r4_j_done': touch(2, ts); break;
       case 'r4_w_done':
-        touch(6, ts);
+        touch(2, ts);
         r4EntryCount = Number(d.entry_count) || r4EntryCount;
         break;
-      case 'r4_j_start': case 'r4_j_done': touch(6, ts); break;
-      // Report
-      case 'report_draft_done': case 'report_w_start': case 'report_j_start': case 'report_j_done': touch(7, ts); break;
-      case 'task_end': case 'functions_list_synced': case 'functions_list_error': case 'functions_list_autofix': touch(7, ts); break;
-      // 旧流程兼容
-      case 'round_start': case 'worker_start': touch(3, ts); break;
-      case 'judge_start': case 'judge_eval': case 'judge_end': touch(4, ts); break;
-      case 'round_end': touch(6, ts); break;
+      case 'round_start': case 'worker_start': touch(2, ts); break;
+      case 'judge_start': case 'judge_eval': case 'judge_end': case 'round_end': touch(2, ts); break;
+      // 3: report
+      case 'report_draft_done': case 'report_w_start': case 'report_j_start':
+      case 'report_j_done': touch(3, ts); break;
+      case 'task_end': case 'functions_list_synced': case 'functions_list_error':
+      case 'functions_list_autofix': touch(3, ts); break;
       default: break;
     }
   }
 
-  const r3EntriesSum = Array.from(r3FileEntries.values()).reduce((a, b) => a + b, 0);
-
-  result[0] = { filesTotal: totalFiles || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
-  result[1] = { filesTotal: totalFiles || undefined, filesDone: r1aFilesDone.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
-  result[2] = { funcsDone: r1bFuncsPassed.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
-  result[3] = { funcsDone: r2FuncsDone.size || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
-  result[4] = { filesTotal: totalFiles || undefined, filesDone: r3FilesDone.size || undefined, entriesFound: r3EntriesSum || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
-  result[5] = { nodeCount: ccNodes || undefined, edgeCount: ccEdges || undefined, startTs: firstTs[5], lastTs: lastTs[5] };
-  result[6] = { entriesFound: r4EntryCount || undefined, attempts: r4Attempts || undefined, startTs: firstTs[6], lastTs: lastTs[6] };
-  result[7] = { entriesFound: r4EntryCount || undefined, startTs: firstTs[7], lastTs: lastTs[7] };
-
+  const r3EntriesSum = Array.from(r3FileEntries.values()).reduce((a2, b2) => a2 + b2, 0);
+  result[0] = { filesTotal: totalFiles || undefined, filesDone: extractedFiles.size || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
+  result[1] = { filesTotal: totalFiles || undefined, filesDone: coverageFiles.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
+  result[2] = {
+    funcsDone:    r2FuncsDone.size || undefined,
+    filesDone:    r3FilesDone.size || undefined,
+    entriesFound: r4EntryCount || r3EntriesSum || undefined,
+    nodeCount:    ccNodes || undefined,
+    edgeCount:    ccEdges || undefined,
+    startTs: firstTs[2], lastTs: lastTs[2],
+  };
+  result[3] = { entriesFound: r4EntryCount || r3EntriesSum || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
   return result;
 }
+
 
 function stageLabel(stage: string | undefined): string {
   const labels: Record<string, string> = {
@@ -485,14 +462,12 @@ function parseSessionDelta(lines: string[], startLine: number): { events: AppEaS
 }
 
 function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): StepStatus[] {
-  // 8 个阶段: 0=init 1=r1a 2=r1b 3=r2 4=r3 5=cc 6=r4 7=report
-  const CC_INDEX = 5;
+  // 4 个阶段: 0=extract 1=coverage 2=pipeline 3=report
   const statuses: StepStatus[] = STAGE_STEPS.map((): StepStatus => 'pending');
   if (taskStatus === 'pending') return statuses;
   if (taskStatus === 'passed') return STAGE_STEPS.map((): StepStatus => 'completed');
   let last = -1;
-  let ccFailed = false;
-  let ccDone   = false;
+  let ccFailed = false, ccDone = false;
   for (const evt of events) {
     if (evt.type === 'callchain_failed') ccFailed = true;
     if (evt.type === 'callchain_done')   ccDone   = true;
@@ -501,11 +476,12 @@ function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): Step
     });
   }
   if (last < 0) {
-    statuses[0] = taskStatus === 'running' ? 'running' : ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'pending';
+    statuses[0] = taskStatus === 'running' ? 'running'
+      : ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'pending';
     return statuses;
   }
   for (let i = 0; i < STAGE_STEPS.length; i += 1) {
-    if (i === CC_INDEX && ccFailed && !ccDone) {
+    if (i === 2 && ccFailed && !ccDone && last <= 2) {
       statuses[i] = 'failed';
     } else if (i < last) {
       statuses[i] = 'completed';
