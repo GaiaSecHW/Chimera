@@ -2910,6 +2910,10 @@ export interface EntryAnalysisServiceConfig {
   output_dir: string;
   archive_dir: string;
   result_dir: string;
+  // 精简模式（与完整模式配置并列，互不影响）
+  lean_mode: boolean;
+  lean_file_max_rounds: number;
+  lean_module_max_rounds: number;
   updated_at?: string | null;
 }
 

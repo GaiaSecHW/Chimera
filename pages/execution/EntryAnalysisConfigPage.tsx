@@ -75,6 +75,9 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   r4_final_max_rounds: -1,
   report_func_max_rounds: -1,
   report_final_max_rounds: -1,
+  lean_mode: false,
+  lean_file_max_rounds: -1,
+  lean_module_max_rounds: -1,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -218,6 +221,9 @@ const applyEntryPanel = (
         r4_final_max_rounds: source.r4_final_max_rounds,
         report_func_max_rounds: source.report_func_max_rounds,
         report_final_max_rounds: source.report_final_max_rounds,
+        lean_mode: source.lean_mode,
+        lean_file_max_rounds: source.lean_file_max_rounds,
+        lean_module_max_rounds: source.lean_module_max_rounds,
       };
     case 'retry':
       return {
@@ -432,8 +438,60 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             </div>
 
             {/* 各阶段轮次独立配置 */}
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
-              <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">各阶段最大轮次（-1=无限，0=跳过）</div>
+            {/* 精简模式配置（独立区块，橙色边框，与完整模式配置并列） */}
+            <div className={`rounded-xl border-2 px-4 py-4 transition-colors ${
+              config.lean_mode ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-50'
+            }`}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-sm font-black text-slate-900">
+                    精简模式 <span className="font-mono text-xs font-normal text-slate-500">Lean Mode</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    跳过 R1b 行号校正、调用链建图、per-function R2/R3 精细分析。
+                    Worker 编写 Python 分析脚本批量处理整个文件，Judge 先审脚本再审结果。
+                    速度提升约 5-10×，允许一定漏报误报，适合快速筛查。
+                  </p>
+                </div>
+                <label className="inline-flex cursor-pointer items-center gap-3 shrink-0 ml-4">
+                  <div className="relative">
+                    <input type="checkbox" className="peer sr-only"
+                      checked={config.lean_mode}
+                      onChange={(e) => patch({ lean_mode: e.target.checked })} />
+                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-amber-500 transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                  </div>
+                  <span className={`text-sm font-semibold ${
+                    config.lean_mode ? 'text-amber-700' : 'text-slate-500'
+                  }`}>
+                    {config.lean_mode ? '精简模式' : '完整模式'}
+                  </span>
+                </label>
+              </div>
+              {config.lean_mode && (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <FieldRow label="lean_file_max_rounds" hint="文件级 W+J 最大轮次，-1=无限">
+                    <NumberInput value={config.lean_file_max_rounds} min={-1}
+                      onChange={(v) => patch({ lean_file_max_rounds: v })} />
+                  </FieldRow>
+                  <FieldRow label="lean_module_max_rounds" hint="模块级 W+J 最大轮次，-1=无限">
+                    <NumberInput value={config.lean_module_max_rounds} min={-1}
+                      onChange={(v) => patch({ lean_module_max_rounds: v })} />
+                  </FieldRow>
+                </div>
+              )}
+            </div>
+
+            {/* 各阶段最大轮次（精简模式下置灰提示，完整模式下正常编辑） */}
+            <div className={`mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 ${
+              config.lean_mode ? 'opacity-40 pointer-events-none' : ''
+            }`}>
+              <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                各阶段最大轮次（-1=无限，0=跳过）
+                {config.lean_mode && (
+                  <span className="ml-2 normal-case font-medium text-amber-600">精简模式下以下阶段均跳过</span>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <FieldRow label="R1a 覆盖率" hint="覆盖率 W+J">
                   <NumberInput value={config.r1a_max_rounds} min={-1} onChange={(v) => patch({ r1a_max_rounds: v })} />
