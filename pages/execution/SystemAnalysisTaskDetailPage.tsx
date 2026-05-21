@@ -204,9 +204,8 @@ function formatEventLog(evt: AppSaStageEvent): string {
   const d = evt.data ?? {};
   switch (evt.type) {
     case 'task_start': return `[${ts}] 任务开始`;
-    case 'heartbeat': return '';  // 心跳事件不展示
     case 'stage': {
-      // 心跳事件（heartbeat > 0）不展示——它们是定期“仼d在运行”信号，不是展示层事件
+      // 心跳事件不展示——它们是定期“仼d在运行”信号，不是展示层事件
       if (d.heartbeat) return '';
       const s = d.stage;
       const mod = d.module ? ` · ${d.module}` : (d.modules?.length ? ` · [${(d.modules as string[]).join(', ')}]` : '');

@@ -63,56 +63,59 @@ const STAGE_STEPS = [
     key: 'init',
     label: '模块加载',
     desc: '扫描模块文件，建立软链接工作目录',
-    triggers: ['task_start', 'module_load', 'module_found', 'module_ready', 'task_resume'],
+    triggers: ['task_start', 'module_load', 'module_found', 'module_ready', 'task_resume', 'pipeline_start'],
     artifactSubpath: 'run',
   },
   {
-    key: 'r1',
-    label: 'R1 函数提取',
-    desc: '文件级并行：静态工具 + LLM 验证，逐函数提取定义与函数体',
-    triggers: ['r1_static_extract', 'r1_static_done', 'r1_w_agent_start', 'r1_w_agent_done', 'r1_j_start', 'r1_j_done', 'r1_j_retry'],
-    artifactSubpath: 'run/functions',
+    key: 'r1a',
+    label: 'R1a 覆盖率验证',
+    desc: '文件级并行：ctags 静态提取 + LLM 验证函数列表是否完整',
+    triggers: ['r1_static_extract', 'r1_static_done', 'r1_w_agent_start', 'r1_w_agent_done'],
+    artifactSubpath: 'run/workspace/r1-functions',
+  },
+  {
+    key: 'r1b',
+    label: 'R1b 准确性校正',
+    desc: '函数级并行：逐函数用 bash sed 验证行号 / 签名 / 限定名准确性',
+    triggers: ['r1_j_start', 'r1_j_done', 'r1_j_retry'],
+    artifactSubpath: 'run/workspace/r1-functions',
   },
   {
     key: 'r2',
-    label: 'R2 函数分析',
-    desc: '函数级并行：逐函数判断是否含外部输入（被动参数 / 主动拉取）',
-    triggers: ['r2_w_start', 'r2_w_done', 'r2_j_start', 'r2_j_done', 'r2_j_retry',
-               'r2_j_func_start', 'r2_j_func_done',
-               // 兼容旧流程事件
+    label: 'R2 外部输入分析',
+    desc: '函数级并行：逐函数判断是否含外部输入（被动参数 / 主动拉取），输出污点',
+    triggers: ['r2_w_start', 'r2_w_done', 'r2_j_func_start', 'r2_j_func_done',
                'round_start', 'worker_start', 'master_worker_start'],
-    artifactSubpath: 'run/analysis',
+    artifactSubpath: 'run/workspace/r1-functions',
   },
   {
     key: 'r3',
-    label: 'R3 文件过滤',
-    desc: '文件级并行：筛选文件内最外层真实外部数据入口',
+    label: 'R3 入口过滤',
+    desc: '文件级并行：筛选最外层真实外部入口，默认过滤非入口函数',
     triggers: ['r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done', 'r3_j_retry',
-               // 兼容旧流程事件
                'judge_start', 'judge_eval', 'judge_end'],
-    artifactSubpath: 'run/entries',
+    artifactSubpath: 'run/workspace/r3-entries',
   },
   {
     key: 'cc',
-    label: 'CC 调用链分析',
-    desc: '纯静态：提取模块内调用关系，构建调用链 DB，更新入口置信度（无 LLM）',
+    label: 'CC 调用链',
+    desc: '纯静态：提取模块内调用关系，构建调用链 DB，更新置信度（无 LLM）',
     triggers: ['callchain_start', 'callchain_done', 'callchain_failed'],
     artifactSubpath: 'run/workspace/callchain',
   },
   {
     key: 'r4',
-    label: 'R4 模块汇总',
-    desc: '模块级：跨文件调用链辅助分析，保留真实最外层外部入口',
-    triggers: ['r4_w_start', 'r4_w_done', 'r4_j_start', 'r4_j_done', 'r4_j_retry',
-               // 兼容旧流程事件
-               'round_end'],
-    artifactSubpath: 'run',
+    label: 'R4 跨文件分析',
+    desc: '函数级并行：每个 R3 候选入口独立分析跨文件冗余调用关系',
+    triggers: ['r4_w_start', 'r4_w_done', 'r4_j_start', 'r4_j_done', 'round_end'],
+    artifactSubpath: 'run/workspace/r4-module',
   },
   {
-    key: 'finish',
-    label: '生成结果',
-    desc: '输出 final_report.md 与 functions.list（JSON 格式）',
-    triggers: ['task_end', 'functions_list_synced', 'functions_list_error'],
+    key: 'report',
+    label: '报告生成',
+    desc: '每函数并行生成独立报告 + 最终汇总，输出 functions.list 与 final_report.md',
+    triggers: ['report_draft_done', 'report_w_start', 'report_j_start', 'report_j_done',
+               'task_end', 'functions_list_synced', 'functions_list_error'],
     artifactSubpath: 'output',
   },
 ];
@@ -173,37 +176,37 @@ function formatStageElapsed(startTs?: number, nowSecs = Math.floor(Date.now() / 
 interface StageStat {
   filesTotal?: number;    // 模块总文件数
   filesDone?: number;     // 本阶段已完成文件数
-  funcsDone?: number;     // 已完成函数数（R1: judge 通过; R2: 分析完毕）
-  entriesFound?: number;  // 识别到的入口数（R3 候选 / R4 最终）
-  attempts?: number;      // 执行轮次（R4 重试计数）
+  funcsDone?: number;     // 已完成函数数
+  entriesFound?: number;  // 识别到的入口数
+  attempts?: number;      // 执行轮次
   nodeCount?: number;     // CC: 调用链节点数
   edgeCount?: number;     // CC: 调用边数
-  startTs?: number;       // 阶段首次事件 Unix 时间戳（秒）
-  lastTs?: number;        // 阶段最后活动 Unix 时间戳（秒）
+  startTs?: number;
+  lastTs?: number;
 }
 
 /**
+/**
  * 从 stages_json.events 推导每个流水线阶段的统计数据。
- * 顺序与 STAGE_STEPS 对齐：[init, r1, r2, r3, cc, r4, finish]。
+ * 顺序与 STAGE_STEPS 对齐：[init, r1a, r1b, r2, r3, cc, r4, report]。
  */
 function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
+  // 8 个阶段: 0=init 1=r1a 2=r1b 3=r2 4=r3 5=cc 6=r4 7=report
   const result: StageStat[] = STAGE_STEPS.map(() => ({}));
-
   let totalFiles = 0;
   const firstTs: Array<number | undefined> = STAGE_STEPS.map(() => undefined);
   const lastTs:  Array<number | undefined> = STAGE_STEPS.map(() => undefined);
 
-  const r1FuncsPassed = new Set<string>();
-  const r2FuncsDone   = new Set<string>();
-  const r2FilesPassed = new Set<string>();
-  const r3FilesDone   = new Set<string>();
-  const r3FileEntries = new Map<string, number>(); // file_hash → latest entry_count
-  let   r4EntryCount  = 0;
-  let   r4Attempts    = 0;
-  let   ccNodes       = 0;
-  let   ccEdges       = 0;
+  const r1aFilesDone   = new Set<string>();
+  const r1bFuncsPassed = new Set<string>();
+  const r2FuncsDone    = new Set<string>();
+  const r3FilesDone    = new Set<string>();
+  const r3FileEntries  = new Map<string, number>();
+  let r4EntryCount = 0;
+  let r4Attempts   = 0;
+  let ccNodes      = 0;
+  let ccEdges      = 0;
 
-  // STAGE_STEPS indices: 0=init 1=r1 2=r2 3=r3 4=cc 5=r4 6=finish
   const touch = (idx: number, ts: number) => {
     if (ts <= 0) return;
     if (firstTs[idx] === undefined) firstTs[idx] = ts;
@@ -214,74 +217,62 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
     const ts = evt.ts || 0;
     const d  = evt.data || {};
     switch (evt.type) {
-      // ── init ──────────────────────────────────────────────────────────
       case 'pipeline_start': totalFiles = Number(d.file_count) || totalFiles; touch(0, ts); break;
-      case 'task_start':
-      case 'task_resume':
-      case 'module_load':
-      case 'module_found':  touch(0, ts); break;
-      case 'module_ready':  totalFiles = Number(d.count) || totalFiles; touch(0, ts); break;
-      // ── R1 ────────────────────────────────────────────────────────────
-      case 'r1_static_extract':
-      case 'r1_w_agent_start':
-      case 'r1_j_start':
-      case 'r1_static_done':
+      case 'task_start': case 'task_resume': case 'module_load': case 'module_found': touch(0, ts); break;
+      case 'module_ready': totalFiles = Number(d.count) || totalFiles; touch(0, ts); break;
+      // R1a
+      case 'r1_static_extract': case 'r1_w_agent_start': case 'r1_static_done': touch(1, ts); break;
       case 'r1_w_agent_done':
-      case 'r1_j_retry':    touch(1, ts); break;
-      case 'r1_j_done':
         touch(1, ts);
-        if (d.passed && d.func_hash) r1FuncsPassed.add(String(d.func_hash));
+        if (d.file_hash) r1aFilesDone.add(String(d.file_hash));
         break;
-      // ── R2 ────────────────────────────────────────────────────────────
-      case 'r2_w_start':
-      case 'r2_j_start':
-      case 'r2_j_retry':
-      case 'r2_j_func_start': touch(2, ts); break;
-      case 'r2_w_done':
+      // R1b
+      case 'r1_j_start': case 'r1_j_retry': touch(2, ts); break;
+      case 'r1_j_done':
         touch(2, ts);
+        if (d.passed && d.func_hash) r1bFuncsPassed.add(String(d.func_hash));
+        break;
+      // R2
+      case 'r2_w_start': case 'r2_j_func_start': touch(3, ts); break;
+      case 'r2_w_done':
+        touch(3, ts);
         if (d.func_hash) r2FuncsDone.add(String(d.func_hash));
         break;
-      case 'r2_j_done':
-        touch(2, ts);
-        if (d.passed && d.file_hash) r2FilesPassed.add(String(d.file_hash));
-        break;
       case 'r2_j_func_done':
-        touch(2, ts);
+        touch(3, ts);
         if (d.passed && d.func_hash) r2FuncsDone.add(String(d.func_hash));
         break;
-      // ── R3 ────────────────────────────────────────────────────────────
-      case 'r3_w_start':
-      case 'r3_j_start':
-      case 'r3_j_retry':    touch(3, ts); break;
+      // R3
+      case 'r3_w_start': case 'r3_j_start': case 'r3_j_retry': touch(4, ts); break;
       case 'r3_w_done':
-        touch(3, ts);
+        touch(4, ts);
         if (d.file_hash != null) r3FileEntries.set(String(d.file_hash), Number(d.entry_count) || 0);
         break;
       case 'r3_j_done':
-        touch(3, ts);
+        touch(4, ts);
         if (d.file_hash) r3FilesDone.add(String(d.file_hash));
         break;
-      // ── CC ────────────────────────────────────────────────────────────
-      case 'callchain_start':
-      case 'callchain_failed': touch(4, ts); break;
+      // CC
+      case 'callchain_start': case 'callchain_failed': touch(5, ts); break;
       case 'callchain_done':
-        touch(4, ts);
+        touch(5, ts);
         ccNodes = Number(d.nodes) || ccNodes;
         ccEdges = Number(d.edges) || ccEdges;
         break;
-      // ── R4 ────────────────────────────────────────────────────────────
-      case 'r4_w_start':
-        touch(5, ts); r4Attempts += 1; break;
+      // R4
+      case 'r4_w_start': touch(6, ts); r4Attempts += 1; break;
       case 'r4_w_done':
-        touch(5, ts); r4EntryCount = Number(d.entry_count) || r4EntryCount; break;
-      case 'r4_j_start':
-      case 'r4_j_retry':
-      case 'r4_j_done':     touch(5, ts); break;
-      // ── finish ────────────────────────────────────────────────────────
-      case 'task_end':
-      case 'functions_list_synced':
-      case 'functions_list_error':
-      case 'functions_list_autofix': touch(6, ts); break;
+        touch(6, ts);
+        r4EntryCount = Number(d.entry_count) || r4EntryCount;
+        break;
+      case 'r4_j_start': case 'r4_j_done': touch(6, ts); break;
+      // Report
+      case 'report_draft_done': case 'report_w_start': case 'report_j_start': case 'report_j_done': touch(7, ts); break;
+      case 'task_end': case 'functions_list_synced': case 'functions_list_error': case 'functions_list_autofix': touch(7, ts); break;
+      // 旧流程兼容
+      case 'round_start': case 'worker_start': touch(3, ts); break;
+      case 'judge_start': case 'judge_eval': case 'judge_end': touch(4, ts); break;
+      case 'round_end': touch(6, ts); break;
       default: break;
     }
   }
@@ -289,26 +280,30 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
   const r3EntriesSum = Array.from(r3FileEntries.values()).reduce((a, b) => a + b, 0);
 
   result[0] = { filesTotal: totalFiles || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
-  result[1] = { filesTotal: totalFiles || undefined, funcsDone: r1FuncsPassed.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
-  result[2] = { filesTotal: totalFiles || undefined, filesDone: r2FilesPassed.size || undefined, funcsDone: r2FuncsDone.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
-  result[3] = { filesTotal: totalFiles || undefined, filesDone: r3FilesDone.size || undefined, entriesFound: r3EntriesSum || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
-  result[4] = { nodeCount: ccNodes || undefined, edgeCount: ccEdges || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
-  result[5] = { entriesFound: r4EntryCount || undefined, attempts: r4Attempts || undefined, startTs: firstTs[5], lastTs: lastTs[5] };
-  result[6] = { startTs: firstTs[6], lastTs: lastTs[6] };
+  result[1] = { filesTotal: totalFiles || undefined, filesDone: r1aFilesDone.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
+  result[2] = { funcsDone: r1bFuncsPassed.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
+  result[3] = { funcsDone: r2FuncsDone.size || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
+  result[4] = { filesTotal: totalFiles || undefined, filesDone: r3FilesDone.size || undefined, entriesFound: r3EntriesSum || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
+  result[5] = { nodeCount: ccNodes || undefined, edgeCount: ccEdges || undefined, startTs: firstTs[5], lastTs: lastTs[5] };
+  result[6] = { entriesFound: r4EntryCount || undefined, attempts: r4Attempts || undefined, startTs: firstTs[6], lastTs: lastTs[6] };
+  result[7] = { entriesFound: r4EntryCount || undefined, startTs: firstTs[7], lastTs: lastTs[7] };
 
   return result;
 }
 
 function stageLabel(stage: string | undefined): string {
   const labels: Record<string, string> = {
-    init:   '模块加载',
-    r1:     'R1 函数提取',
-    r2:     'R2 函数分析',
-    r3:     'R3 文件过滤',
-    cc:     'CC 调用链分析',
-    r4:     'R4 模块汇总',
-    finish: '生成结果',
+    init:     '模块加载',
+    r1a:      'R1a 覆盖率验证',
+    r1b:      'R1b 准确性校正',
+    r2:       'R2 外部输入分析',
+    r3:       'R3 入口过滤',
+    cc:       'CC 调用链分析',
+    r4:       'R4 跨文件分析',
+    report:   '报告生成',
     // 旧流程兼容
+    r1:      'R1 函数提取',
+    finish:  '生成结果',
     analyse: '入口分析',
     judge:   '裁判综合',
   };
@@ -495,14 +490,14 @@ function parseSessionDelta(lines: string[], startLine: number): { events: AppEaS
 }
 
 function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): StepStatus[] {
-  // STAGE_STEPS indices: 0=init 1=r1 2=r2 3=r3 4=cc 5=r4 6=finish
-  const CC_INDEX = 4;
-  const statuses: StepStatus[] = STAGE_STEPS.map(() => 'pending');
+  // 8 个阶段: 0=init 1=r1a 2=r1b 3=r2 4=r3 5=cc 6=r4 7=report
+  const CC_INDEX = 5;
+  const statuses: StepStatus[] = STAGE_STEPS.map((): StepStatus => 'pending');
   if (taskStatus === 'pending') return statuses;
-  if (taskStatus === 'passed') return STAGE_STEPS.map(() => 'completed');
+  if (taskStatus === 'passed') return STAGE_STEPS.map((): StepStatus => 'completed');
   let last = -1;
-  let ccFailed = false;   // CC 失败是非致命的，需单独标记
-  let ccDone   = false;   // callchain_done 出现则 CC 已完成
+  let ccFailed = false;
+  let ccDone   = false;
   for (const evt of events) {
     if (evt.type === 'callchain_failed') ccFailed = true;
     if (evt.type === 'callchain_done')   ccDone   = true;
@@ -516,7 +511,6 @@ function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): Step
   }
   for (let i = 0; i < STAGE_STEPS.length; i += 1) {
     if (i === CC_INDEX && ccFailed && !ccDone) {
-      // CC 失败且未恢复：展示为 failed，即使后续阶段已推进
       statuses[i] = 'failed';
     } else if (i < last) {
       statuses[i] = 'completed';
@@ -1225,82 +1219,142 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
         </section>
 
         {activeTab === 'overview' ? <>
-          <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
-              <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-                <InfoRow label="任务 ID" value={<span className="font-mono">{detail.task_id}</span>} />
-                <InfoRow label="创建时间" value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
-                <InfoRow label="模块目录" value={<span className="font-mono">{detail.input_path}</span>} />
-                <InfoRow label="开始时间" value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
-                <InfoRow label="源码目录" value={detail.source_path ? <span className="font-mono">{detail.source_path}</span> : '-'} />
-                <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
-                <InfoRow label="分析模块" value={detail.module_name || '-'} />
-                <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
-                <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono">{detail.output_path}</span> : '-'} />
-                <InfoRow label="描述" value={detail.task_description || '-'} />
-              </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">阶段进度</h2>
-              <div className="mt-4 space-y-3">{STAGE_STEPS.map((step, index) => {
-                const state = statusSteps[index];
-                const stat  = stageStats[index];
-                const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : '';
-                const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
-                const hasStatChips = state !== 'pending' && (
-                  stat.filesTotal != null || stat.filesDone != null ||
-                  stat.funcsDone  != null || stat.entriesFound != null ||
-                  stat.nodeCount  != null || stat.edgeCount   != null ||
-                  (stat.attempts != null && stat.attempts > 1)
-                );
-                return <div key={step.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3"><div className="flex items-start gap-3"><div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${state === 'completed' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : state === 'running' ? 'border-blue-500 bg-blue-50 text-blue-600' : state === 'failed' ? 'border-red-400 bg-red-50 text-red-600' : 'border-slate-200 bg-white text-slate-400'}`}>{state === 'completed' ? <CheckCircle2 size={16} /> : state === 'running' ? <Loader2 size={14} className="animate-spin" /> : state === 'failed' ? <XCircle size={16} /> : index + 1}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-slate-900">{step.label}</p>{stat.startTs && state !== 'pending' ? <span className="shrink-0 font-mono text-[11px] text-slate-400">{state === 'running' ? formatStageElapsed(stat.startTs, clockNow) : formatStageDuration(stat.startTs, stat.lastTs)}</span> : null}</div><p className="mt-1 text-xs text-slate-500">{step.desc}</p>{hasStatChips ? <div className="mt-2 flex flex-wrap gap-1.5">{stat.filesTotal != null && stat.filesDone == null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesTotal} 文件</span> : stat.filesDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">📄 {stat.filesDone}{stat.filesTotal != null ? `/${stat.filesTotal}` : ''} 文件</span> : null}{stat.funcsDone != null ? <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-600">ƒ {stat.funcsDone} 函数</span> : null}{stat.entriesFound != null ? <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">→ {stat.entriesFound} 入口</span> : null}{stat.nodeCount != null ? <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700">🔗 {stat.nodeCount} 节点</span> : null}{stat.edgeCount != null ? <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-600">→ {stat.edgeCount} 边</span> : null}{stat.attempts != null && stat.attempts > 1 ? <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600">↺ {stat.attempts} 轮</span> : null}</div> : null}{artifactFsPath && state !== 'pending' ? <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"><FolderOpen size={11} />打开阶段输出</button> : null}</div></div></div>;
-              })}</div>
-            </div>
-          </section>
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
-                <p className="mt-1 text-xs text-slate-400">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
-              </div>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
-                {activeSessions.length} 个活跃会话
-              </span>
-            </div>
-            {sessionsLoading && sessions.length === 0 ? (
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                <Loader2 size={15} className="animate-spin" />
-                加载智能体状态中...
-              </div>
-            ) : activeSessions.length > 0 ? (
-              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                <div className="divide-y divide-slate-200 bg-white">
-                  {activeSessions.map((session) => (
-                    <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-slate-50">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
-                          <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
-                          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
-                            <span>分组 {session.stage_group || '-'}</span>
-                            <span>事件 {session.event_count}</span>
-                            <span>更新时间 {formatSessionMtime(session.mtime)}</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>
-                            {sessionRoleLabel(session.role_name)}
-                          </span>
-                          <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
-                        </div>
-                      </div>
-                    </button>
+          {/* ─ 统计条 */}
+          {(() => {
+            const totalFiles = stageStats[0]?.filesTotal ?? stageStats[1]?.filesTotal ?? 0;
+            const r1aDone    = stageStats[1]?.filesDone ?? 0;
+            const r2Funcs    = stageStats[3]?.funcsDone ?? stageStats[2]?.funcsDone ?? 0;
+            const r3Entries  = stageStats[4]?.entriesFound ?? 0;
+            const r4Entries  = stageStats[6]?.entriesFound ?? r3Entries;
+            const ccNodes    = stageStats[5]?.nodeCount ?? 0;
+            const activeStageIdx = statusSteps.reduce((last: number, s: StepStatus, i: number) => (s === 'running' || s === 'completed') ? i : last, -1);
+            const activeStage = activeStageIdx >= 0 ? STAGE_STEPS[activeStageIdx]?.label : '等待中';
+            return (
+              <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">流水线统计</div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">当前阶段：{activeStage}</span>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6">
+                  {([
+                    { label: '总文件数',     value: totalFiles || '-', border: 'border-slate-200', bg: 'bg-slate-50',     text: 'text-slate-900' },
+                    { label: 'R1a完成文件',  value: r1aDone || '-',    border: 'border-sky-100',   bg: 'bg-sky-50',       text: 'text-sky-700' },
+                    { label: '分析完成函数', value: r2Funcs || '-',    border: 'border-indigo-100',bg: 'bg-indigo-50',    text: 'text-indigo-700' },
+                    { label: 'R3候选入口',   value: r3Entries || '-',  border: 'border-teal-100',  bg: 'bg-teal-50',      text: 'text-teal-700' },
+                    { label: '最终入口数',   value: r4Entries || '-',  border: 'border-emerald-100',bg: 'bg-emerald-50',  text: 'text-emerald-700' },
+                    { label: '调用链节点',   value: ccNodes || '-',    border: 'border-violet-100',bg: 'bg-violet-50',    text: 'text-violet-700' },
+                  ] as Array<{label:string;value:string|number;border:string;bg:string;text:string}>).map(({ label, value, border, bg, text }) => (
+                    <div key={label} className={`rounded-xl border px-3 py-3 text-center ${border} ${bg}`}>
+                      <div className={`text-2xl font-black ${text}`}>{value}</div>
+                      <div className="mt-1 text-[10px] font-semibold text-slate-500">{label}</div>
+                    </div>
                   ))}
                 </div>
+              </section>
+            );
+          })()}
+          {/* ─ 任务概览 */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">任务概览</h2>
+            <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
+              <InfoRow label="任务 ID"   value={<span className="font-mono">{detail.task_id}</span>} />
+              <InfoRow label="创建时间"  value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
+              <InfoRow label="模块目录"  value={<span className="font-mono">{detail.input_path}</span>} />
+              <InfoRow label="开始时间"  value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
+              <InfoRow label="源码目录"  value={detail.source_path ? <span className="font-mono">{detail.source_path}</span> : '-'} />
+              <InfoRow label="耗时"      value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
+              <InfoRow label="分析模块"  value={detail.module_name || '-'} />
+              <InfoRow label="完成时间"  value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
+              <InfoRow label="输出路径"  value={detail.output_path ? <span className="font-mono">{detail.output_path}</span> : '-'} />
+            </div>
+          </section>
+          {/* ─ 流水线阶段进度（全宽水平卡片流） */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">流水线阶段进度</h2>
+            <p className="mt-1 text-xs text-slate-400">
+              各函数独立进度：函数覆盖率提取 → 函数正确性分析 → 是否外部入口分析 → 入口过滤 → 调用链分析 → 跨文件分析 → 报告生成
+            </p>
+            <div className="mt-5 overflow-x-auto pb-2">
+              <div className="flex min-w-max items-stretch gap-2">
+                {STAGE_STEPS.map((step, index) => {
+                  const state = statusSteps[index];
+                  const stat  = stageStats[index];
+                  const borderColor = state === 'completed' ? 'border-emerald-400' : state === 'running' ? 'border-blue-400' : state === 'failed' ? 'border-red-400' : 'border-slate-200';
+                  const bgColor     = state === 'completed' ? 'bg-emerald-50'      : state === 'running' ? 'bg-blue-50'      : state === 'failed' ? 'bg-red-50'      : 'bg-slate-50';
+                  const dotColor    = state === 'completed' ? 'bg-emerald-500 text-white' : state === 'running' ? 'bg-blue-500 text-white' : state === 'failed' ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-500';
+                  const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : '';
+                  const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
+                  return (
+                    <div key={step.key} className={`w-[152px] shrink-0 rounded-xl border-2 px-3 py-3 ${borderColor} ${bgColor}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${dotColor}`}>
+                          {state === 'completed' ? '✓' : state === 'running' ? <Loader2 size={10} className="animate-spin" /> : state === 'failed' ? '✗' : index + 1}
+                        </div>
+                        <p className="text-xs font-black text-slate-900 leading-tight">{step.label}</p>
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-snug min-h-[30px]">{step.desc}</p>
+                      {stat.startTs && state !== 'pending' ? (
+                        <p className="mt-1 font-mono text-[10px] text-slate-400">
+                          {state === 'running' ? formatStageElapsed(stat.startTs, clockNow) : formatStageDuration(stat.startTs, stat.lastTs)}
+                        </p>
+                      ) : null}
+                      {state !== 'pending' ? (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {stat.filesDone != null && <span className="rounded bg-white/90 border border-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-600">{stat.filesDone}{stat.filesTotal ? `/${stat.filesTotal}` : ''} 文件</span>}
+                          {stat.filesTotal != null && stat.filesDone == null && <span className="rounded bg-white/90 border border-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-600">{stat.filesTotal} 文件</span>}
+                          {stat.funcsDone != null && <span className="rounded bg-indigo-100 px-1 py-0.5 text-[9px] font-bold text-indigo-700">{stat.funcsDone} 函数</span>}
+                          {stat.entriesFound != null && <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-700">{stat.entriesFound} 入口</span>}
+                          {stat.nodeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">{stat.nodeCount} 节点</span>}
+                          {stat.edgeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-600">{stat.edgeCount} 边</span>}
+                          {stat.attempts != null && stat.attempts > 1 && <span className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-700">↺{stat.attempts}</span>}
+                        </div>
+                      ) : null}
+                      {artifactFsPath && state !== 'pending' ? (
+                        <button onClick={() => openInFileExplorer(artifactFsPath)} className="mt-1.5 inline-flex items-center gap-0.5 text-[9px] font-semibold text-violet-600 hover:underline">
+                          <FolderOpen size={9} />查看输出
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+          {/* ─ 当前运行智能体（全宽） */}
+          <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
+                <p className="mt-1 text-xs text-slate-400">各函数/文件独立并行运行的智能体会话，点击查看实时 session。</p>
+              </div>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
+            </div>
+            {sessionsLoading && sessions.length === 0 ? (
+              <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div>
+            ) : activeSessions.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {activeSessions.map((session) => (
+                  <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-5 py-4 text-left transition hover:bg-slate-50">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
+                        <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
+                        <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-slate-500">
+                          <span>分组 {session.stage_group || '-'}</span>
+                          <span>事件 {session.event_count}</span>
+                          <span>更新 {formatSessionMtime(session.mtime)}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>{sessionRoleLabel(session.role_name)}</span>
+                        <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             ) : (
-              <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+              <div className="px-5 py-10 text-center text-sm text-slate-500">
                 {detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前没有检测到活跃智能体会话。' : '任务已结束，当前没有活跃智能体。'}
               </div>
             )}
@@ -1309,7 +1363,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"><h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><button onClick={() => setLogsExpanded((v) => !v)} className="flex w-full items-center justify-between gap-3 text-left"><div><h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">分析日志</h2><p className="mt-1 text-xs text-slate-400">{logLines.length} 条事件</p></div>{logsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>{logsExpanded ? logLines.length === 0 ? <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-xs text-slate-400">暂无阶段事件</div> : <div ref={logRef} className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-xs leading-relaxed text-slate-300">{logLines.map((line, index) => <div key={index} className={line.includes('✗') ? 'text-red-400' : line.includes('▶') ? 'text-violet-300' : line.includes('✓') ? 'text-emerald-400' : line.includes('│') ? 'text-slate-400 text-[11px]' : 'text-slate-300'}>{line}</div>)}</div> : null}</section>
           {detail.prompt_content ? <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-slate-700 hover:bg-slate-50">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre></details></section> : null}
-        </> : activeTab === 'task-config' ? (
+        </>
+ : activeTab === 'task-config' ? (
           <EntryAnalysisTaskConfigPanel detail={detail} />
         ) : activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">

@@ -2894,6 +2894,17 @@ export interface EntryAnalysisServiceConfig {
   pi_retry_delay: number;
   worker_parallel: boolean;
   worker_parallelism: number;
+  // 流水线并行度
+  pipeline_parallelism: number;
+  // 各阶段独立轮次配置（-1=无限，0=跳过，正整数=上限）
+  r1a_max_rounds: number;
+  r1b_max_rounds: number;
+  r2_max_rounds: number;
+  r3_max_rounds: number;
+  r4_func_max_rounds: number;
+  r4_final_max_rounds: number;
+  report_func_max_rounds: number;
+  report_final_max_rounds: number;
   workers: EntryAnalysisRoleConfig;
   judges: EntryAnalysisRoleConfig;
   output_dir: string;

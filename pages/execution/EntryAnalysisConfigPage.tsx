@@ -66,6 +66,15 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   pi_retry_delay: 5,
   worker_parallel: false,
   worker_parallelism: 128,
+  pipeline_parallelism: 64,
+  r1a_max_rounds: -1,
+  r1b_max_rounds: -1,
+  r2_max_rounds: -1,
+  r3_max_rounds: -1,
+  r4_func_max_rounds: -1,
+  r4_final_max_rounds: -1,
+  report_func_max_rounds: -1,
+  report_final_max_rounds: -1,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -200,6 +209,15 @@ const applyEntryPanel = (
         max_concurrent_tasks: source.max_concurrent_tasks,
         worker_parallel: source.worker_parallel,
         worker_parallelism: source.worker_parallelism,
+        pipeline_parallelism: source.pipeline_parallelism,
+        r1a_max_rounds: source.r1a_max_rounds,
+        r1b_max_rounds: source.r1b_max_rounds,
+        r2_max_rounds: source.r2_max_rounds,
+        r3_max_rounds: source.r3_max_rounds,
+        r4_func_max_rounds: source.r4_func_max_rounds,
+        r4_final_max_rounds: source.r4_final_max_rounds,
+        report_func_max_rounds: source.report_func_max_rounds,
+        report_final_max_rounds: source.report_final_max_rounds,
       };
     case 'retry':
       return {
@@ -408,6 +426,41 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
               <FieldRow label="任务内并发上限" hint="单个任务内部 Worker 最大并发">
                 <NumberInput value={config.worker_parallelism} min={1} max={256} onChange={(v) => patch({ worker_parallelism: Math.max(1, Math.min(256, Math.trunc(v || 1))) })} />
               </FieldRow>
+              <FieldRow label="pipeline_parallelism" hint="全局 pi 进程信号量（建议 32-128）">
+                <NumberInput value={config.pipeline_parallelism} min={1} max={512} onChange={(v) => patch({ pipeline_parallelism: Math.max(1, Math.min(512, Math.trunc(v || 64))) })} />
+              </FieldRow>
+            </div>
+
+            {/* 各阶段轮次独立配置 */}
+            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">各阶段最大轮次（-1=无限，0=跳过）</div>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <FieldRow label="R1a 覆盖率" hint="覆盖率 W+J">
+                  <NumberInput value={config.r1a_max_rounds} min={-1} onChange={(v) => patch({ r1a_max_rounds: v })} />
+                </FieldRow>
+                <FieldRow label="R1b 准确性" hint="行号准确 W+J">
+                  <NumberInput value={config.r1b_max_rounds} min={-1} onChange={(v) => patch({ r1b_max_rounds: v })} />
+                </FieldRow>
+                <FieldRow label="R2 外部输入" hint="污点分析 W+J">
+                  <NumberInput value={config.r2_max_rounds} min={-1} onChange={(v) => patch({ r2_max_rounds: v })} />
+                </FieldRow>
+                <FieldRow label="R3 入口过滤" hint="过滤 W+J">
+                  <NumberInput value={config.r3_max_rounds} min={-1} onChange={(v) => patch({ r3_max_rounds: v })} />
+                </FieldRow>
+                <FieldRow label="R4 函数分析" hint="per-func 跨文件">
+                  <NumberInput value={config.r4_func_max_rounds} min={-1} onChange={(v) => patch({ r4_func_max_rounds: v })} />
+                </FieldRow>
+                <FieldRow label="R4 汇总 Judge" hint="最终验证">
+                  <NumberInput value={config.r4_final_max_rounds} min={-1} onChange={(v) => patch({ r4_final_max_rounds: v })} />
+                </FieldRow>
+                <FieldRow label="Report 函数" hint="per-func 报告 W+J">
+                  <NumberInput value={config.report_func_max_rounds} min={-1} onChange={(v) => patch({ report_func_max_rounds: v })} />
+                </FieldRow>
+                <FieldRow label="Report 最终" hint="汇总报告 W+J">
+                  <NumberInput value={config.report_final_max_rounds} min={-1} onChange={(v) => patch({ report_final_max_rounds: v })} />
+                </FieldRow>
+              </div>
+              <p className="mt-2 text-xs text-slate-400">各阶段独立控制：-1=无限重试直到 Judge 通过，0=跳过该阶段，N=最多 N 轮后强制通过</p>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4">
               <FieldRow label="max_rounds_exceeded_action" hint="单个入口分析任务达到最大轮次且评审仍未通过时的处理策略">
