@@ -84,7 +84,7 @@ const STAGE_STEPS = [
       'r2_w_start', 'r2_w_done', 'r2_j_func_start', 'r2_j_func_done',
       'r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done',
       'callchain_start', 'callchain_done', 'callchain_failed',
-      'r4_w_start', 'r4_w_done', 'r4_j_start', 'r4_j_done',
+      'r4_j_start', 'r4_j_done',
       'round_start', 'worker_start', 'master_worker_start',
       'judge_start', 'judge_eval', 'judge_end', 'round_end',
     ],
@@ -658,8 +658,8 @@ function deriveFuncProgress(events: AppEaStageEvent[]): {
             }
           }
         } break;
+      // v4: r4_w 事件已删除，保留 case 供旧数据兼容
       case 'r4_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r4 = 'running'; f.lastTs = ts; } break;
       case 'r4_w_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
