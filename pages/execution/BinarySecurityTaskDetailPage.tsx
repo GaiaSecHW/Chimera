@@ -361,6 +361,16 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   downstream_status_sync_requested: '同步下游状态',
   downstream_status_sync_skipped: '跳过状态同步',
   downstream_status_synced: '下游状态已同步',
+  downstream_transport_deferred: '下游异常已延后处理',
+  downstream_retry_accepted: '下游重试已受理',
+  downstream_retry_attached: '接管运行中下游任务',
+  downstream_retry_terminal_reused: '复用终态下游结果',
+  downstream_retry_target_missing: '下游重试目标不存在',
+  downstream_retry_rejected: '下游重试被拒绝',
+  downstream_retry_failed: '下游重试失败',
+  downstream_cancel_succeeded: '下游子任务已取消',
+  downstream_delete_succeeded: '下游子任务已删除',
+  stage_waiting_downstream_progress: '等待下游继续推进',
   downstream_marked_stale: '下游结果过期',
   task_cancelled: '任务取消',
   task_delete_requested: '删除请求',
@@ -625,6 +635,13 @@ const timelineDetailRows = (payload: Record<string, any> | null) => {
     downstream_task_id: '下游任务 ID',
     downstream_status: '下游状态',
     mapped_status: '映射状态',
+    status_raw: '原始状态',
+    http_status: 'HTTP 状态码',
+    error_type: '错误类型',
+    state_applied: '是否写回状态',
+    deferred_mode: '延后模式',
+    operation: '操作类型',
+    outcome: '处置结果',
     selected_module_keys: '已选模块',
     stage_name: '阶段',
     item_id: '子任务 ID',
@@ -642,7 +659,7 @@ const timelineDetailRows = (payload: Record<string, any> | null) => {
   const priority = [
     'target_stage', 'last_success_stage', 'cleared_stages', 'retry_semantics',
     'archive_job_id', 'archive_status', 'downstream_service', 'downstream_task_id',
-    'downstream_status', 'mapped_status', 'selected_module_keys', 'stage_name',
+    'downstream_status', 'status_raw', 'mapped_status', 'http_status', 'error_type', 'state_applied', 'deferred_mode', 'operation', 'outcome', 'selected_module_keys', 'stage_name',
     'item_id', 'item_key', 'force', 'uploaded_files', 'archive_count', 'extracted_file_count', 'error',
   ];
   const orderedKeys = [
@@ -2024,7 +2041,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       _key: event.id || `${event.event_type || 'event'}-${event.created_at || index}-${index}`,
       _index: index + 1,
       _eventLabel: formatTimelineEventTypeLabel(event.event_type),
-      _sourceLabel: event.item_key || event.item_id || '-',
+      _sourceLabel: event.item_key || event.item_id || event.payload?.item_key || event.payload?.downstream_task_id || '-',
     }));
   }, [timeline]);
   const timelineTotalPages = useMemo(
