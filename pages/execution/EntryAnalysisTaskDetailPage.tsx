@@ -72,21 +72,19 @@ const STAGE_STEPS = [
     key: 'coverage',
     label: '覆盖率验证',
     desc: 'LLM 验证提取列表完整性，补漏函数，写入 funcDB',
-    triggers: ['r1_w_agent_start', 'r1_w_agent_done'],
+    triggers: ['r1_w_start', 'r1_w_done'],
     artifactSubpath: 'run/workspace/r1-functions',
   },
   {
     key: 'pipeline',
     label: '函数流水线',
-    desc: '函数级并行：准确性验证 → 外部输入分析 → 入口过滤 → 调用链 → 跨文件分析',
+    desc: '函数级并行：准确性验证(R2) → 外部输入分析(R3) → 调用链分析(R4)',
     triggers: [
-      'r1_j_start', 'r1_j_done',
-      'r2_w_start', 'r2_w_done', 'r2_j_func_start', 'r2_j_func_done',
+      'r2_j_start', 'r2_j_done',
       'r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done',
       'callchain_start', 'callchain_done', 'callchain_failed',
-      'r4_j_start', 'r4_j_done',
-      'round_start', 'worker_start', 'master_worker_start',
-      'judge_start', 'judge_eval', 'judge_end', 'round_end',
+      'r4_w_start', 'r4_w_done',
+      'r6_j_start', 'r6_j_done',
     ],
     artifactSubpath: 'run/workspace/r3-entries',
   },
@@ -94,7 +92,7 @@ const STAGE_STEPS = [
     key: 'report',
     label: '报告生成',
     desc: '每函数并行生成独立报告 + 最终汇总，输出 functions.list 与 final_report.md',
-    triggers: ['report_draft_done', 'report_w_start', 'report_j_start', 'report_j_done',
+    triggers: ['r5_done', 'r5_w_start', 'r5_j_start', 'r5_j_done',
                'task_end', 'functions_list_synced', 'functions_list_error'],
     artifactSubpath: 'output',
   },
@@ -177,12 +175,12 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
   const firstTs: Array<number | undefined> = STAGE_STEPS.map(() => undefined);
   const lastTs:  Array<number | undefined> = STAGE_STEPS.map(() => undefined);
 
-  const extractedFiles = new Set<string>();
-  const coverageFiles  = new Set<string>();
-  const r2FuncsDone    = new Set<string>();
-  const r3FilesDone    = new Set<string>();
-  const r3FileEntries  = new Map<string, number>();
-  let r4EntryCount = 0;
+  const extractedFiles  = new Set<string>();  // r1_static_done
+  const coverageFiles   = new Set<string>();  // r1_w_done (R1 覆盖率验证完成文件)
+  const r2JFuncsDone    = new Set<string>();  // r2_j_done (R2 准确性验证完成函数)
+  const r3FuncsDone     = new Set<string>();  // r3_w_done (R3 入口分析完成函数)
+  const r4FuncsDone     = new Set<string>();  // r4_w_done (R4 调用链分析完成函数)
+  let entriesFound = 0;
   let ccNodes = 0, ccEdges = 0;
 
   const touch = (idx: number, ts: number) => {
@@ -205,65 +203,63 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
         if (d.file_hash) extractedFiles.add(String(d.file_hash));
         break;
       // 1: coverage
-      case 'r1_w_agent_start': touch(1, ts); break;
-      case 'r1_w_agent_done':
+      case 'r1_w_start': touch(1, ts); break;
+      case 'r1_w_done':
         touch(1, ts);
         if (d.file_hash) coverageFiles.add(String(d.file_hash));
         break;
       // 2: pipeline
-      case 'r1_j_start': case 'r1_j_done': touch(2, ts); break;
-      case 'r2_w_start': case 'r2_j_func_start': touch(2, ts); break;
-      case 'r2_w_done':
+      // R2: function accuracy judge
+      case 'r2_j_start': touch(2, ts); break;
+      case 'r2_j_done':
         touch(2, ts);
-        if (d.func_hash) r2FuncsDone.add(String(d.func_hash));
+        if (d.func_hash) r2JFuncsDone.add(String(d.func_hash));
         break;
-      case 'r2_j_func_done':
-        touch(2, ts);
-        if (d.passed && d.func_hash) r2FuncsDone.add(String(d.func_hash));
-        break;
+      // R3: entry analysis (W+J)
       case 'r3_w_start': case 'r3_j_start': touch(2, ts); break;
       case 'r3_w_done':
         touch(2, ts);
-        if (d.file_hash != null) r3FileEntries.set(String(d.file_hash), Number(d.entry_count) || 0);
+        if (d.func_hash) r3FuncsDone.add(String(d.func_hash));
         break;
-      case 'r3_j_done':
-        touch(2, ts);
-        if (d.file_hash) r3FilesDone.add(String(d.file_hash));
-        break;
+      case 'r3_j_done': touch(2, ts); break;
+      // CC
       case 'callchain_start': case 'callchain_failed': touch(2, ts); break;
       case 'callchain_done':
         touch(2, ts);
         ccNodes = Number(d.nodes) || ccNodes;
         ccEdges = Number(d.edges) || ccEdges;
         break;
-      case 'r4_w_start': case 'r4_j_start': case 'r4_j_done': touch(2, ts); break;
+      // R4: call chain analysis
+      case 'r4_w_start': touch(2, ts); break;
       case 'r4_w_done':
         touch(2, ts);
-        r4EntryCount = Number(d.entry_count) || r4EntryCount;
+        if (d.func_hash) r4FuncsDone.add(String(d.func_hash));
         break;
-      case 'round_start': case 'worker_start': touch(2, ts); break;
-      case 'judge_start': case 'judge_eval': case 'judge_end': case 'round_end': touch(2, ts); break;
+      // R6-J: final quality judge
+      case 'r6_j_start': touch(2, ts); break;
+      case 'r6_j_done':
+        touch(2, ts);
+        if (typeof d.entry_count === 'number') entriesFound = d.entry_count;
+        break;
       // 3: report
-      case 'report_draft_done': case 'report_w_start': case 'report_j_start':
-      case 'report_j_done': touch(3, ts); break;
+      case 'r5_done': case 'r5_w_start': case 'r5_j_start':
+      case 'r5_j_done': touch(3, ts); break;
       case 'task_end': case 'functions_list_synced': case 'functions_list_error':
       case 'functions_list_autofix': touch(3, ts); break;
       default: break;
     }
   }
 
-  const r3EntriesSum = Array.from(r3FileEntries.values()).reduce((a2, b2) => a2 + b2, 0);
   result[0] = { filesTotal: totalFiles || undefined, filesDone: extractedFiles.size || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
   result[1] = { filesTotal: totalFiles || undefined, filesDone: coverageFiles.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
   result[2] = {
-    funcsDone:    r2FuncsDone.size || undefined,
-    filesDone:    r3FilesDone.size || undefined,
-    entriesFound: r4EntryCount || r3EntriesSum || undefined,
+    funcsDone:    r4FuncsDone.size || r3FuncsDone.size || r2JFuncsDone.size || undefined,
+    entriesFound: entriesFound || undefined,
     nodeCount:    ccNodes || undefined,
     edgeCount:    ccEdges || undefined,
     startTs: firstTs[2], lastTs: lastTs[2],
   };
-  result[3] = { entriesFound: r4EntryCount || r3EntriesSum || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
+  result[3] = { entriesFound: entriesFound || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
   return result;
 }
 
@@ -507,35 +503,31 @@ function formatEvent(evt: AppEaStageEvent): string {
     // ── R1 函数提取 ───────────────────────────────────────────────────
     case 'r1_static_extract':   return `[${ts}] │ R1 静态提取: ${d.file ?? ''}（${d.file_hash ?? ''}）`;
     case 'r1_static_done':      return `[${ts}] │ R1 静态完成: ${d.file ?? ''} → ${d.count ?? 0} 个函数`;
-    case 'r1_w_agent_start':    return `[${ts}] ▶ R1-W 启动: ${d.file ?? ''}${d.is_retry ? '（重试）' : ''}`;
-    case 'r1_w_agent_done':     return `[${ts}] ✓ R1-W 完成: ${d.file ?? ''} in=${d.tokens_in ?? 0} out=${d.tokens_out ?? 0}${d.error ? ` ✗${d.error.slice(0, 60)}` : ''}`;
-    case 'r1_j_start':          return `[${ts}] ▶ R1-J 评审函数: ${d.func_hash ?? d.function ?? ''}`;
-    case 'r1_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R1-J 函数评审 ${d.passed ? '通过' : '未通过'}: ${d.func_hash ?? d.function ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
-    case 'r1_j_retry':          return `[${ts}] ↺ R1 重试函数: ${d.func_hash ?? ''} (第${d.attempt ?? '?'}次)`;
-    // ── R2 函数分析 ───────────────────────────────────────────────────
-    case 'r2_w_start':          return `[${ts}] ▶ R2-W 分析: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r2_w_done':           return `[${ts}] ✓ R2-W 完成: ${d.function ?? d.func_hash ?? ''} has_input=${d.has_external_input ?? ''}`;
-    case 'r2_j_start':          return `[${ts}] ▶ R2-J 评审文件: ${d.file ?? d.file_hash ?? ''}`;
-    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 文件评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''} 问题函数=${d.failed_count ?? 0}`;
-    case 'r2_j_retry':          return `[${ts}] ↺ R2 重试函数列表: ${d.file ?? ''} (${d.retry_count ?? '?'} 个)`;
-    case 'r2_j_func_start':     return `[${ts}] ▶ R2-J 函数评审: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r2_j_func_done':      return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 函数评审 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.summary ? ` — ${String(d.summary).slice(0, 80)}` : ''}`;
-    // ── R3 文件过滤 ───────────────────────────────────────────────────
-    case 'r3_w_start':          return `[${ts}] ▶ R3-W 文件过滤: ${d.file ?? d.file_hash ?? ''}`;
-    case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.file ?? ''} 保留入口=${d.entry_count ?? 0}`;
-    case 'r3_j_start':          return `[${ts}] ▶ R3-J 评审: ${d.file ?? d.file_hash ?? ''}`;
-    case 'r3_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R3-J 评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''}`;
-    case 'r3_j_retry':          return `[${ts}] ↺ R3 重试: ${d.file ?? ''}`;
-    // ── CC 调用链分析 ──────────────────────────────────────────────────
-    case 'callchain_start':     return `[${ts}] ▶ CC 调用链静态分析开始（尝试 #${d.attempt ?? 1}）`;
-    case 'callchain_done':      return `[${ts}] ✓ CC 完成: ${d.nodes ?? 0} 节点, ${d.edges ?? 0} 边, ${d.r3_entries ?? 0} 候选入口 → 置信度已更新`;
-    case 'callchain_failed':    return `[${ts}] ⚠ CC 分析失败（非致命，R4 继续）: ${String(d.error ?? '').slice(0, 80)}`;
-    // ── R4 模块汇总 ───────────────────────────────────────────────────
-    case 'r4_w_start':          return `[${ts}] ▶ R4-W 模块汇总开始`;
-    case 'r4_w_done':           return `[${ts}] ✓ R4-W 完成 最终入口=${d.entry_count ?? 0}`;
-    case 'r4_j_start':          return `[${ts}] ▶ R4-J 最终评审`;
-    case 'r4_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R4-J 最终评审 ${d.passed ? '通过' : '未通过'}`;
-    case 'r4_j_retry':          return `[${ts}] ↺ R4 重试 (第${d.attempt ?? '?'}次)`;
+    case 'r1_w_start':    return `[${ts}] ▶ R1-W 启动: ${d.file ?? ''}${d.is_retry ? '（重试）' : ''}`;
+    case 'r1_w_done':     return `[${ts}] ✓ R1-W 完成: ${d.file ?? ''} in=${d.tokens_in ?? 0} out=${d.tokens_out ?? 0}${d.error ? ` ✗${d.error.slice(0, 60)}` : ''}`;
+    case 'r1_j_start':          return `[${ts}] ▶ R1-J 覆盖率评审: ${d.file ?? d.file_hash ?? ''}（第${d.attempt ?? 1}次）`;
+    case 'r1_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R1-J 覆盖率评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    case 'r1_j_retry':          return `[${ts}] ↺ R1 重试: ${d.file ?? ''} (第${d.attempt ?? '?'}次)`;
+    // ── R2 准确性验证 ─────────────────────────────────────────────────
+    case 'r2_j_start':          return `[${ts}] ▶ R2-J 准确性评审: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 准确性评审 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    // ── R3 入口分析 ───────────────────────────────────────────────────
+    case 'r3_w_start':          return `[${ts}] ▶ R3-W 入口分析: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.function ?? d.func_hash ?? ''} has_input=${d.has_external_input ?? ''}`;
+    case 'r3_j_start':          return `[${ts}] ▶ R3-J 入口评审: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r3_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R3-J 入口评审 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.summary ? ` — ${String(d.summary).slice(0, 80)}` : ''}`;
+    case 'r3_j_retry':          return `[${ts}] ↺ R3 重试: ${d.function ?? ''} (${d.retry_count ?? '?'}次)`;
+    // ── CC 调用链静态建图 ─────────────────────────────────────────────
+    case 'callchain_start':     return `[${ts}] ▶ CC 调用链静态建图开始`;
+    case 'callchain_done':      return `[${ts}] ✓ CC 完成: ${d.nodes ?? 0} 节点, ${d.edges ?? 0} 边`;
+    case 'callchain_failed':    return `[${ts}] ⚠ CC 建图失败（非致命）: ${String(d.error ?? '').slice(0, 80)}`;
+    // ── R4 调用链入口分析 ─────────────────────────────────────────────
+    case 'r4_w_start':          return `[${ts}] ▶ R4-W 调用链分析: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r4_w_done':           return `[${ts}] ✓ R4-W 完成: ${d.function ?? d.func_hash ?? ''} decision=${d.decision ?? ''}`;
+    case 'r4_j_retry':          return `[${ts}] ↺ R4 重试: ${d.function ?? ''} (第${d.attempt ?? '?'}次)`;
+    // ── R6-J 最终质量验证 ─────────────────────────────────────────────
+    case 'r6_j_start':          return `[${ts}] ▶ R6-J 最终质量验证（第${d.attempt ?? 1}次）`;
+    case 'r6_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R6-J 最终质量验证 ${d.passed ? '通过' : '未通过'}`;
     // ── 输出产物 ──────────────────────────────────────────────────────
     case 'functions_list_synced':   return `[${ts}] ✓ functions.list 生成: ${d.functions_count ?? 0} 条`;
     case 'functions_list_error':    return `[${ts}] ✗ functions.list 错误: ${String(d.error ?? '').slice(0, 80)}`;
@@ -602,7 +594,7 @@ function deriveFuncProgress(events: AppEaStageEvent[]): {
     return f;
   };
 
-  // R3 file → funcs mapping: when r3_j_done is passed, all funcs in that file that
+  // R3 file → funcs mapping: when r6_j_done is passed, all funcs in that file that
   // had has_external_input=true and not explicitly filtered are considered r3=passed
   const fileHasExternalFuncs = new Map<string, Set<string>>(); // file_hash -> func_hashes
 
@@ -618,9 +610,9 @@ function deriveFuncProgress(events: AppEaStageEvent[]): {
         if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = 'running'; f.lastTs = ts; } break;
       case 'r1_j_done':
         if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
-      case 'r2_w_start':
+      case 'r4_w_start':
         if (fh) { const f = getOrCreate(fh, fn, fi); f.r2 = 'running'; f.lastTs = ts; } break;
-      case 'r2_w_done':
+      case 'r4_w_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
           f.r2 = 'passed';
@@ -634,18 +626,18 @@ function deriveFuncProgress(events: AppEaStageEvent[]): {
           }
           f.lastTs = ts;
         } break;
-      case 'r2_j_func_start':
+      case 'r6_j_start':
         if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = 'running'; f.lastTs = ts; } break;
-      case 'r2_j_func_done':
+      case 'r6_j_done':
         if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
-      case 'r3_w_start':
+      case 'r4_w_start':
         // mark all external funcs in this file as r3=running
         { const fileH = String(d.file_hash || ''); if (fileH && fileHasExternalFuncs.has(fileH)) { for (const funcH of fileHasExternalFuncs.get(fileH)!) { const f = map.get(funcH); if (f && f.r3 === 'pending') f.r3 = 'running'; } } }
         break;
-      case 'r3_w_done':
+      case 'r4_w_done':
         // file R3 worker done: entry_count tells how many kept
         break;
-      case 'r3_j_done':
+      case 'r6_j_done':
         { const fileH = String(d.file_hash || '');
           if (fileH && fileHasExternalFuncs.has(fileH)) {
             for (const funcH of fileHasExternalFuncs.get(fileH)!) {
@@ -668,9 +660,9 @@ function deriveFuncProgress(events: AppEaStageEvent[]): {
           f.is_entry = f.r4 === 'keep';
           f.lastTs = ts;
         } break;
-      case 'report_w_start':
+      case 'r5_w_start':
         if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; } break;
-      case 'report_j_done':
+      case 'r5_j_done':
         if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
       default: break;
     }
