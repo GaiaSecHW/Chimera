@@ -242,7 +242,11 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
         if (typeof d.entry_count === 'number') entriesFound = d.entry_count;
         break;
       // 3: report
-      case 'r5_done': case 'r5_w_start': case 'r5_j_start':
+      case 'r5_done':
+        touch(3, ts);
+        if (typeof d.entry_count === 'number') entriesFound = d.entry_count;
+        break;
+      case 'r5_w_start': case 'r5_j_start':
       case 'r5_j_done': touch(3, ts); break;
       case 'task_end': case 'functions_list_synced': case 'functions_list_error':
       case 'functions_list_autofix': touch(3, ts); break;
