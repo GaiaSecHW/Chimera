@@ -75,6 +75,7 @@ const fmtSize = (value: number) => {
 const fmtSpeed = (value: number) => `${fmtSize(value)}/s`;
 const num = (value?: number | null) => Number.isFinite(value || 0) ? Number(value || 0) : 0;
 const percent = (part: number, total: number) => total > 0 ? Math.round((part / total) * 100) : 0;
+const STAGE_ITEMS_PER_PAGE = 100;
 
 const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'firmware_unpack', label: '固件解包最大并行数' },
@@ -414,13 +415,27 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       try {
         const detail = await executionApi.binarySecurity.getTask(projectId, taskIds[0]);
         const taskIdsByStage = new Map<string, string[]>();
-        (detail.stage_items || []).forEach((item) => {
-          const downstreamTaskId = item.downstream_task_id?.trim();
-          if (!downstreamTaskId) return;
-          const current = taskIdsByStage.get(item.stage_name) || [];
-          if (!current.includes(downstreamTaskId)) current.push(downstreamTaskId);
-          taskIdsByStage.set(item.stage_name, current);
-        });
+        for (const stageName of (detail.stage_sequence || stages)) {
+          let page = 1;
+          while (true) {
+            const payload = await executionApi.binarySecurity.getTaskStageItems(projectId, taskIds[0], {
+              stage_name: stageName,
+              page,
+              per_page: STAGE_ITEMS_PER_PAGE,
+            });
+            (payload.items || []).forEach((item) => {
+              const downstreamTaskId = item.downstream_task_id?.trim();
+              if (!downstreamTaskId) return;
+              const current = taskIdsByStage.get(item.stage_name) || [];
+              if (!current.includes(downstreamTaskId)) current.push(downstreamTaskId);
+              taskIdsByStage.set(item.stage_name, current);
+            });
+            if ((payload.page || page) * (payload.per_page || STAGE_ITEMS_PER_PAGE) >= (payload.total || 0)) {
+              break;
+            }
+            page += 1;
+          }
+        }
         const stageLines = (detail.stage_sequence || stages).map((stageName) => {
           const ids = taskIdsByStage.get(stageName) || [];
           return `${formatStageLabel(stageName)}：${ids.length > 0 ? ids.join(', ') : '无子任务'}`;

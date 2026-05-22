@@ -198,6 +198,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   summary: Record<string, any>;
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;
+  stage_items_total?: number;
+  stage_items_truncated?: boolean;
   stage_items: Array<{
     id: string;
     stage_name: string;
@@ -252,6 +254,15 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   overview_nodes: BinarySecurityOverviewNode[];
   orchestration_observability?: BinarySecurityOrchestrationObservability;
   abnormal_reason_history?: BinarySecurityAbnormalReasonEventSummary[];
+}
+
+export interface BinarySecurityStageItemPage {
+  task_id: string;
+  stage_name: string;
+  total: number;
+  page: number;
+  per_page: number;
+  items: BinarySecurityTaskDetail['stage_items'];
 }
 
 export interface BinarySecurityOrchestrationObservability {
@@ -425,6 +436,23 @@ export const binarySecurityApi = {
 
   getTask: async (projectId: string, taskId: string): Promise<BinarySecurityTaskDetail> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskStageItems: async (
+    projectId: string,
+    taskId: string,
+    params: { stage_name: string; page?: number; per_page?: number },
+  ): Promise<BinarySecurityStageItemPage> => {
+    const query = new URLSearchParams({
+      stage_name: params.stage_name,
+      page: String(params.page ?? 1),
+      per_page: String(params.per_page ?? 100),
+    });
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stage-items?${query.toString()}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

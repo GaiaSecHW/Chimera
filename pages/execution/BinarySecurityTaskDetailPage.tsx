@@ -7,6 +7,7 @@ import {
   BinarySecurityAbnormalReasonEventSummary,
   BinarySecurityModuleSelection,
   BinarySecurityOverviewNode,
+  BinarySecurityStageItemPage,
   BinarySecurityTaskDetail,
   BinarySecurityTaskPolicy,
   BinarySecurityTaskType,
@@ -61,6 +62,7 @@ const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
 ) as Record<string, boolean>;
+const STAGE_ITEMS_PER_PAGE = 100;
 
 const STAGE_LABELS: Record<string, string> = {
   firmware_unpack: '固件解包',
@@ -1236,6 +1238,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineClearing, setTimelineClearing] = useState(false);
   const [artifactsLoading, setArtifactsLoading] = useState(false);
+  const [stageItemsPage, setStageItemsPage] = useState<BinarySecurityStageItemPage | null>(null);
+  const [stageItemsPageLoading, setStageItemsPageLoading] = useState(false);
+  const [stageItemsPageError, setStageItemsPageError] = useState<string | null>(null);
+  const [stageItemsCurrentPage, setStageItemsCurrentPage] = useState(1);
   const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
@@ -1632,7 +1638,33 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   useEffect(() => {
     if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
-    const stageItems = detail.stage_items.filter((item) => item.stage_name === selectedStage);
+    let cancelled = false;
+    setStageItemsPageLoading(true);
+    setStageItemsPageError(null);
+    void api.binarySecurity.getTaskStageItems(projectId, taskId, {
+      stage_name: selectedStage,
+      page: stageItemsCurrentPage,
+      per_page: STAGE_ITEMS_PER_PAGE,
+    }).then((payload) => {
+      if (cancelled) return;
+      setStageItemsPage(payload);
+    }).catch((fetchError: any) => {
+      if (cancelled) return;
+      setStageItemsPageError(fetchError?.message || '加载阶段子任务失败');
+    }).finally(() => {
+      if (cancelled) return;
+      setStageItemsPageLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, taskId]);
+
+  useEffect(() => {
+    if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
+    const stageItems = selectedNodeKind === 'business' && stageItemsPage?.stage_name === selectedStage
+      ? (stageItemsPage.items || [])
+      : detail.stage_items.filter((item) => item.stage_name === selectedStage);
     const fetchableItems = stageItems.filter((item) => item.downstream_task_id);
     if (fetchableItems.length === 0) {
       setDownstreamByItemId({});
@@ -1692,7 +1724,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => {
       cancelled = true;
     };
-  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage]);
+  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage, stageItemsPage]);
 
   useEffect(() => {
     const node = stageFlowRef.current;
@@ -2009,8 +2041,11 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const filteredStageItems = useMemo(() => {
     if (!detail) return [];
+    if (selectedNodeKind === 'business' && stageItemsPage?.stage_name === selectedStage) {
+      return stageItemsPage.items || [];
+    }
     return detail.stage_items.filter((item) => item.stage_name === selectedStage);
-  }, [detail, selectedStage]);
+  }, [detail, selectedNodeKind, selectedStage, stageItemsPage]);
   const stageStatusOptions = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of filteredStageItems) {
@@ -2024,6 +2059,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (stageStatusFilter === 'all') return filteredStageItems;
     return filteredStageItems.filter((item) => item.status === stageStatusFilter);
   }, [filteredStageItems, stageStatusFilter]);
+  const stageItemsTotal = selectedNodeKind === 'business' && stageItemsPage?.stage_name === selectedStage
+    ? Number(stageItemsPage.total || 0)
+    : filteredStageItems.length;
+  const stageItemsTotalPages = Math.max(1, Math.ceil(stageItemsTotal / STAGE_ITEMS_PER_PAGE));
   const isSystemAnalysisStageTable = selectedStage === 'system_analysis';
   const isEntryAnalysisStageTable = selectedStage === 'entry_analysis';
   const selectedVisibleStageItems = useMemo(
@@ -2065,6 +2104,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setExpandedStageItemId(null);
     setSelectedStageItemIds([]);
     setStageStatusFilter('all');
+    setStageItemsCurrentPage(1);
   }, [selectedStage, selectedNodeKind, taskId]);
 
   useEffect(() => {
@@ -3371,6 +3411,36 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                  </button>
 	                </div>
 	              </div>
+                <div className="flex flex-col gap-3 rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="text-sm text-slate-500">
+                    阶段子任务分页：
+                    <span className="ml-2 font-bold text-slate-900">第 {stageItemsCurrentPage} / {stageItemsTotalPages} 页</span>
+                    <span className="ml-2 text-slate-400">共 {stageItemsTotal} 条，每页 {STAGE_ITEMS_PER_PAGE} 条</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={stageItemsPageLoading || stageItemsCurrentPage <= 1}
+                      onClick={() => setStageItemsCurrentPage((current) => Math.max(1, current - 1))}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50"
+                    >
+                      上一页
+                    </button>
+                    <button
+                      type="button"
+                      disabled={stageItemsPageLoading || stageItemsCurrentPage >= stageItemsTotalPages}
+                      onClick={() => setStageItemsCurrentPage((current) => Math.min(stageItemsTotalPages, current + 1))}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 disabled:opacity-50"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+                {stageItemsPageError ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                    {stageItemsPageError}
+                  </div>
+                ) : null}
 	              {staleStages.has(selectedStage) ? (
 	                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
 	                  由于上游阶段 {STAGE_LABELS[detail.summary?.stale_from_stage || ''] || detail.summary?.stale_from_stage || '-'} 已重试，当前阶段结果基于旧上游产物。
