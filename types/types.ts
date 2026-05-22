@@ -2769,12 +2769,34 @@ export interface AppEaStagesJson {
   final?: boolean;
 }
 
+export interface AppEaFunctionCatalogItem {
+  func_hash: string;
+  file_hash?: string;
+  file?: string;
+  original_path?: string;
+  name: string;
+  signature?: string;
+  start_line?: number;
+  end_line?: number;
+  r1b_state?: string;
+  r2_state?: string;
+  r2j_state?: string;
+  r3_state?: string;
+  r4_state?: string;
+  rep_state?: string;
+  has_external_input?: boolean | null;
+  entry_role?: string;
+  r4_decision?: string;
+  is_entry?: boolean;
+}
+
 export interface AppEaTaskDetail extends AppEaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
   result_json?: Record<string, any> | null;
   stages_json?: AppEaStagesJson | null;
   task_config_json?: Record<string, any> | null;
+  function_catalog?: AppEaFunctionCatalogItem[] | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 

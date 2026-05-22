@@ -19,6 +19,7 @@ import {
   AppEaTaskDetail,
   AppEaTaskEvaluation,
   AppEaTaskResult,
+  AppEaFunctionCatalogItem,
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -570,24 +571,39 @@ interface FuncProgress {
   lastTs?: number;
 }
 
-function deriveFuncProgress(events: AppEaStageEvent[]): {
+function deriveFuncProgress(
+  events: AppEaStageEvent[],
+  functionCatalog?: AppEaFunctionCatalogItem[] | null,
+): {
   funcs: FuncProgress[];
   totalFuncCount: number;
 } {
   const map = new Map<string, FuncProgress>();
   let totalFuncCount = 0;
-  // 从 r1_static_done 统计总函数数（跨文件累加）
   for (const evt of events) {
-    if (evt.type === 'r1_static_done') {
-      totalFuncCount += Number((evt.data || {}).count) || 0;
-    }
+    if (evt.type === 'r1_static_done') totalFuncCount += Number((evt.data || {}).count) || 0;
   }
+
+  const toStage = (s?: string | null): FuncStage => {
+    switch (String(s || 'pending')) {
+      case 'running': return 'running';
+      case 'passed': return 'passed';
+      case 'failed': return 'failed';
+      case 'skip': return 'skip';
+      case 'keep': return 'keep';
+      case 'remove':
+      case 'filter': return 'remove';
+      default: return 'pending';
+    }
+  };
 
   const getOrCreate = (fh: string, name?: string, file?: string): FuncProgress => {
     if (!map.has(fh)) {
       map.set(fh, {
-        func_hash: fh, name: name || fh.slice(0, 8),
-        file, r1b: 'pending', r2: 'pending', r2j: 'pending',
+        func_hash: fh,
+        name: name || fh.slice(0, 8),
+        file,
+        r1b: 'pending', r2: 'pending', r2j: 'pending',
         r3: 'pending', r4: 'pending', rep: 'pending',
         is_entry: false,
       });
@@ -598,94 +614,123 @@ function deriveFuncProgress(events: AppEaStageEvent[]): {
     return f;
   };
 
-  // R3 file → funcs mapping: when r6_j_done is passed, all funcs in that file that
-  // had has_external_input=true and not explicitly filtered are considered r3=passed
-  const fileHasExternalFuncs = new Map<string, Set<string>>(); // file_hash -> func_hashes
+  // 先用 function_catalog 初始化所有函数，保证 R2 开始前就有函数表
+  for (const item of functionCatalog || []) {
+    const fh = String(item.func_hash || '');
+    if (!fh) continue;
+    const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
+    f.r1b = toStage(item.r1b_state);
+    f.r2 = toStage(item.r2_state);
+    f.r2j = toStage(item.r2j_state);
+    f.r3 = toStage(item.r3_state);
+    f.r4 = String(item.r4_decision || '').toLowerCase() === 'keep' ? 'keep'
+      : String(item.r4_decision || '').toLowerCase() === 'remove' || String(item.r4_decision || '').toLowerCase() === 'filter' ? 'remove'
+      : toStage(item.r4_state);
+    f.rep = toStage(item.rep_state);
+    f.has_external_input = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
+    if (item.entry_role) f.entry_role = String(item.entry_role);
+    f.is_entry = Boolean(item.is_entry) || f.r4 === 'keep';
+  }
+  if (!totalFuncCount) totalFuncCount = (functionCatalog || []).length;
+
+  const fileHasExternalFuncs = new Map<string, Set<string>>();
+  for (const item of functionCatalog || []) {
+    const fileH = String(item.file_hash || '');
+    const funcH = String(item.func_hash || '');
+    if (fileH && funcH && item.has_external_input) {
+      if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
+      fileHasExternalFuncs.get(fileH)!.add(funcH);
+    }
+  }
 
   for (const evt of events) {
     const ts = evt.ts || 0;
-    const d  = evt.data || {};
+    const d = evt.data || {};
     const fh = String(d.func_hash || '');
-    const fn = String(d.function  || d.func_hash || '');
-    const fi = String(d.file      || '');
+    const fn = String(d.function || d.func_hash || '');
+    const fi = String(d.file || '');
 
     switch (evt.type) {
-      case 'r1_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = 'running'; f.lastTs = ts; } break;
-      case 'r1_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
-      case 'r4_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2 = 'running'; f.lastTs = ts; } break;
-      case 'r4_w_done':
+      // R1b（当前后端事件名：r2_j_*）
+      case 'r2_j_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = 'running'; f.lastTs = ts; }
+        break;
+      case 'r2_j_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        break;
+
+      // R2（当前后端事件名：r3_w_*）
+      case 'r3_w_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2 = 'running'; f.lastTs = ts; }
+        break;
+      case 'r3_w_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
           f.r2 = 'passed';
           f.has_external_input = Boolean(d.has_external_input);
-          if (!f.has_external_input) { f.r2 = 'skip'; f.r2j = 'skip'; f.r3 = 'skip'; f.r4 = 'skip'; }
-          else {
-            if (d.entry_role) f.entry_role = String(d.entry_role);
-            // track for R3
-            const fileH = String(d.file_hash || '');
-            if (fileH) { if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set()); fileHasExternalFuncs.get(fileH)!.add(fh); }
+          if (!f.has_external_input) {
+            f.r2 = 'skip'; f.r2j = 'skip'; f.r3 = 'skip'; f.r4 = 'skip';
+          } else if (d.entry_role) {
+            f.entry_role = String(d.entry_role);
+          }
+          const fileH = String(d.file_hash || '');
+          if (fileH && f.has_external_input) {
+            if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
+            fileHasExternalFuncs.get(fileH)!.add(fh);
           }
           f.lastTs = ts;
-        } break;
-      case 'r6_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = 'running'; f.lastTs = ts; } break;
-      case 'r6_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
-      case 'r4_w_start':
-        // mark all external funcs in this file as r3=running
-        { const fileH = String(d.file_hash || ''); if (fileH && fileHasExternalFuncs.has(fileH)) { for (const funcH of fileHasExternalFuncs.get(fileH)!) { const f = map.get(funcH); if (f && f.r3 === 'pending') f.r3 = 'running'; } } }
+        }
         break;
-      case 'r4_w_done':
-        // file R3 worker done: entry_count tells how many kept
+
+      // R2J（当前后端事件名：r3_j_*）
+      case 'r3_j_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = 'running'; f.lastTs = ts; }
         break;
-      case 'r6_j_done':
-        { const fileH = String(d.file_hash || '');
-          if (fileH && fileHasExternalFuncs.has(fileH)) {
-            for (const funcH of fileHasExternalFuncs.get(fileH)!) {
-              const f = map.get(funcH);
-              if (f && (f.r3 === 'running' || f.r3 === 'pending')) {
-                // We can't determine per-func R3 result from file-level events alone
-                // Mark as passed (conservative; actual filter info comes from r4_w_done)
-                f.r3 = d.passed ? 'passed' : 'failed';
-              }
-            }
-          }
-        } break;
-      // v4: r4_w 事件已删除，保留 case 供旧数据兼容
+      case 'r3_j_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        break;
+
+      // R4（当前后端事件名：r4_w_*）
       case 'r4_w_start':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          if (f.r3 === 'pending' && f.has_external_input) f.r3 = 'passed';
+          f.r4 = 'running';
+          f.lastTs = ts;
+        }
+        break;
       case 'r4_w_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
+          if (f.r3 === 'pending' && f.has_external_input) f.r3 = 'passed';
           const dec = String(d.decision || 'keep').toLowerCase();
-          f.r4 = dec === 'remove' ? 'remove' : 'keep';
+          f.r4 = dec === 'remove' || dec === 'filter' ? 'remove' : 'keep';
           f.is_entry = f.r4 === 'keep';
           f.lastTs = ts;
-        } break;
+        }
+        break;
+
+      // 单函数报告 R5
       case 'r5_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; } break;
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; }
+        break;
       case 'r5_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = d.passed ? 'passed' : 'failed'; f.lastTs = ts; } break;
-      default: break;
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        break;
+      default:
+        break;
     }
   }
 
-  // Post-process: funcs that passed R3 but have no R4 result yet => is_entry=true tentatively
   for (const f of map.values()) {
-    if (f.r4 === 'pending' && f.r3 === 'passed' && f.has_external_input) {
-      f.is_entry = true;  // tentative until R4 decides
-    }
+    if (f.r4 === 'pending' && f.r3 === 'passed' && f.has_external_input) f.is_entry = true;
   }
 
   const funcs = Array.from(map.values());
-  // Sort: entries first, then by lastTs desc
   funcs.sort((a, b) => {
     if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
     return (b.lastTs || 0) - (a.lastTs || 0);
   });
-
   return { funcs, totalFuncCount };
 }
 
@@ -1027,7 +1072,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const events = detail?.stages_json?.events || [];
   const statusSteps = detail ? deriveStepStatuses(detail.status, events) : STAGE_STEPS.map((): StepStatus => 'pending');
   const stageStats = useMemo(() => deriveStageStats(events), [events]);
-  const { funcs: funcProgress, totalFuncCount } = useMemo(() => deriveFuncProgress(events), [events]);
+  const { funcs: funcProgress, totalFuncCount } = useMemo(
+    () => deriveFuncProgress(events, detail?.function_catalog || []),
+    [events, detail?.function_catalog],
+  );
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
   const [funcEntryOnly, setFuncEntryOnly] = useState(false);
