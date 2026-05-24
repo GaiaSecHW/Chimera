@@ -36,10 +36,15 @@ const DEFAULT_BINARY_SECURITY_PROJECT_CONFIG = {
   max_stage_parallelism: 4,
   max_retries_per_item: 2,
   continue_on_item_failure: true,
+  pipeline_mode: 'barrier' as const,
   partial_success_stage_advancement: DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   stage_parallelism: {} as Record<string, number>,
   stage_options: {} as Record<string, { enabled: boolean }>,
 };
+const PIPELINE_MODE_OPTIONS = [
+  { value: 'barrier', label: '广度优先（Barrier）', description: '阶段栅栏模式，上一阶段聚合完成后再推进下一阶段。' },
+  { value: 'mixed_streaming', label: '深度优化（Mixed Streaming）', description: '入口完成后可直接推进数据流分析和漏洞挖掘。' },
+] as const;
 
 const DEFAULT_BINARY_EVOLUTION_CONFIG = {
   max_concurrent_tasks: 2,
@@ -137,6 +142,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const [dispatchTimeoutSeconds, setDispatchTimeoutSeconds] = useState(60);
   const [maxRetriesPerItem, setMaxRetriesPerItem] = useState(2);
   const [continueOnItemFailure, setContinueOnItemFailure] = useState(true);
+  const [pipelineMode, setPipelineMode] = useState<'barrier' | 'mixed_streaming'>('barrier');
   const [partialSuccessStageAdvancement, setPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
     DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   );
@@ -170,6 +176,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       setDispatchTimeoutSeconds(serviceConfig.dispatch_timeout_seconds);
       setMaxRetriesPerItem(projectConfig.max_retries_per_item);
       setContinueOnItemFailure(projectConfig.continue_on_item_failure);
+      setPipelineMode(projectConfig.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier');
       setPartialSuccessStageAdvancement({
         ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
         ...(projectConfig.partial_success_stage_advancement || {}),
@@ -208,6 +215,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const syncProjectDraft = (projectConfig: Record<string, any>) => {
     setMaxRetriesPerItem(projectConfig.max_retries_per_item);
     setContinueOnItemFailure(projectConfig.continue_on_item_failure);
+    setPipelineMode(projectConfig.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier');
     setPartialSuccessStageAdvancement({
       ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
       ...(projectConfig.partial_success_stage_advancement || {}),
@@ -255,6 +263,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         max_stage_parallelism: Math.max(...Object.values(normalizedStageParallelism)),
         max_retries_per_item: Math.max(0, Math.min(20, Number(maxRetriesPerItem) || 0)),
         continue_on_item_failure: continueOnItemFailure,
+        pipeline_mode: pipelineMode,
         partial_success_stage_advancement: Object.fromEntries(
           PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [
             field.key,
@@ -563,9 +572,9 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                     />
                   </div>
                 ))}
-                <div>
-                  <div className="mb-2 text-sm font-bold text-slate-700">子任务默认重试次数</div>
-                  <input
+                  <div>
+                    <div className="mb-2 text-sm font-bold text-slate-700">子任务默认重试次数</div>
+                    <input
                     type="number"
                     min={0}
                     max={20}
@@ -574,6 +583,26 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
                     onChange={(e) => setMaxRetriesPerItem(Number(e.target.value || 0))}
                     className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
                   />
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="mb-2 text-sm font-bold text-slate-700">新任务默认推进模式</div>
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {PIPELINE_MODE_OPTIONS.map((option) => (
+                    <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                      <input
+                        type="radio"
+                        name="pipelineMode"
+                        checked={pipelineMode === option.value}
+                        onChange={() => setPipelineMode(option.value)}
+                        disabled={loading || saving}
+                      />
+                      <span>
+                        <span className="block font-semibold">{option.label}</span>
+                        <span className="mt-1 block text-xs text-slate-500">{option.description}</span>
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </div>
               <label className="mt-4 flex items-center gap-3 text-sm font-semibold text-slate-700">

@@ -30,6 +30,7 @@ import {
   BinarySecurityMetricsServiceKey,
   getBinarySecurityMetricsService,
 } from '../../clients/binarySecurityMetrics';
+import { AppDfaClusterCapacity, EntryAnalyseSlotClusterSummary } from '../../types/types';
 import {
   DataflowVulnAiSection,
   DataflowVulnObservabilitySection,
@@ -43,6 +44,20 @@ import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, match
 type MetricsState = {
   loading: boolean;
   rawText: string;
+  error: string | null;
+  refreshedAt: number | null;
+};
+
+type DfaWorkerDetailState = {
+  loading: boolean;
+  data: AppDfaClusterCapacity | null;
+  error: string | null;
+  refreshedAt: number | null;
+};
+
+type EntryWorkerDetailState = {
+  loading: boolean;
+  data: EntryAnalyseSlotClusterSummary | null;
   error: string | null;
   refreshedAt: number | null;
 };
@@ -1924,6 +1939,20 @@ const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
+const INITIAL_DFA_WORKER_DETAIL_STATE: DfaWorkerDetailState = {
+  loading: false,
+  data: null,
+  error: null,
+  refreshedAt: null,
+};
+
+const INITIAL_ENTRY_WORKER_DETAIL_STATE: EntryWorkerDetailState = {
+  loading: false,
+  data: null,
+  error: null,
+  refreshedAt: null,
+};
+
 const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
   <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{title}</div>
@@ -1944,6 +1973,8 @@ const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]
 
 export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionMetricsApi = api.domains.execution.metrics;
+  const dataflowAnalysisApi = api.domains.execution.appDataflowAnalyse;
+  const entryAnalysisApi = api.domains.execution.appEntryAnalyse;
   const [activeServiceKey, setActiveServiceKey] = useState<BinarySecurityMetricsServiceKey>(BINARY_SECURITY_METRICS_SERVICES[0].key);
   const [activeSecondaryTab, setActiveSecondaryTab] = useState<BinarySecurityMetricsSecondaryTab>('observability');
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -1953,6 +1984,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [aiSearchKeyword, setAiSearchKeyword] = useState('');
   const [aiRoleFilter, setAiRoleFilter] = useState<'all' | string>('all');
   const [selectedEntryStage, setSelectedEntryStage] = useState<'all' | 'R1' | 'R2' | 'R3' | 'R4'>('all');
+  const [selectedDfaWorkerFilter, setSelectedDfaWorkerFilter] = useState<string>('');
   const [reducerHistoryByService, setReducerHistoryByService] = useState<Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, []])) as Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>,
   );
@@ -1960,6 +1992,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [stateByService, setStateByService] = useState<Record<BinarySecurityMetricsServiceKey, MetricsState>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, INITIAL_STATE])) as Record<BinarySecurityMetricsServiceKey, MetricsState>,
   );
+  const [dfaWorkerDetailState, setDfaWorkerDetailState] = useState<DfaWorkerDetailState>(INITIAL_DFA_WORKER_DETAIL_STATE);
+  const [entryWorkerDetailState, setEntryWorkerDetailState] = useState<EntryWorkerDetailState>(INITIAL_ENTRY_WORKER_DETAIL_STATE);
 
   const activeService = useMemo(
     () => BINARY_SECURITY_METRICS_SERVICES.find((service) => service.key === activeServiceKey) || BINARY_SECURITY_METRICS_SERVICES[0],
@@ -1971,17 +2005,83 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       ...current,
       [serviceKey]: { ...current[serviceKey], loading: true, error: null },
     }));
+    if (serviceKey === 'dataflow-analysis') {
+      setDfaWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
+    }
+    if (serviceKey === 'entry-analysis') {
+      setEntryWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
+    }
     try {
-      const rawText = await executionMetricsApi.getServiceMetrics(serviceKey);
+      const [rawText, dfaWorkerData, entryWorkerData] = await Promise.all([
+        executionMetricsApi.getServiceMetrics(serviceKey),
+        serviceKey === 'dataflow-analysis' && projectId
+          ? dataflowAnalysisApi.getWorkerClusterCapacity(projectId)
+          : Promise.resolve(null),
+        serviceKey === 'entry-analysis' && projectId
+          ? entryAnalysisApi.getSlotCluster(projectId)
+          : Promise.resolve(null),
+      ]);
       setStateByService((current) => ({
         ...current,
         [serviceKey]: { loading: false, rawText, error: null, refreshedAt: Date.now() },
       }));
+      if (serviceKey === 'dataflow-analysis') {
+        setDfaWorkerDetailState({
+          loading: false,
+          data: dfaWorkerData,
+          error: null,
+          refreshedAt: Date.now(),
+        });
+      }
+      if (serviceKey === 'entry-analysis') {
+        setEntryWorkerDetailState({
+          loading: false,
+          data: entryWorkerData,
+          error: null,
+          refreshedAt: Date.now(),
+        });
+      }
     } catch (error: any) {
       setStateByService((current) => ({
         ...current,
         [serviceKey]: { ...current[serviceKey], loading: false, error: error?.message || '指标抓取失败', refreshedAt: Date.now() },
       }));
+      if (serviceKey === 'dataflow-analysis') {
+        try {
+          const data = projectId ? await dataflowAnalysisApi.getWorkerClusterCapacity(projectId) : null;
+          setDfaWorkerDetailState({
+            loading: false,
+            data,
+            error: error?.message || '指标抓取失败',
+            refreshedAt: Date.now(),
+          });
+        } catch (detailError: any) {
+          setDfaWorkerDetailState({
+            loading: false,
+            data: null,
+            error: detailError?.message || error?.message || 'Worker 明细抓取失败',
+            refreshedAt: Date.now(),
+          });
+        }
+      }
+      if (serviceKey === 'entry-analysis') {
+        try {
+          const data = projectId ? await entryAnalysisApi.getSlotCluster(projectId) : null;
+          setEntryWorkerDetailState({
+            loading: false,
+            data,
+            error: error?.message || '指标抓取失败',
+            refreshedAt: Date.now(),
+          });
+        } catch (detailError: any) {
+          setEntryWorkerDetailState({
+            loading: false,
+            data: null,
+            error: detailError?.message || error?.message || 'Worker 明细抓取失败',
+            refreshedAt: Date.now(),
+          });
+        }
+      }
     }
   };
 
@@ -2128,10 +2228,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     return viewModel.rows.filter((row) => {
       if (activeServiceKey === 'dataflow-vuln' && !matchesDataflowVulnSampleScope(row, dataflowVulnSampleScope)) return false;
       if (groupFilter !== 'all' && row.group !== groupFilter) return false;
+      if (activeServiceKey === 'dataflow-analysis' && selectedDfaWorkerFilter) {
+        const workerId = row.labels.worker_id || '';
+        const hostName = row.labels.host_name || '';
+        if (workerId !== selectedDfaWorkerFilter && hostName !== selectedDfaWorkerFilter) return false;
+      }
       if (!keyword) return true;
       return `${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
     });
-  }, [activeServiceKey, dataflowVulnSampleScope, groupFilter, searchKeyword, viewModel.rows]);
+  }, [activeServiceKey, dataflowVulnSampleScope, groupFilter, searchKeyword, selectedDfaWorkerFilter, viewModel.rows]);
 
   const aiRows = useMemo(() => {
     const keyword = aiSearchKeyword.trim().toLowerCase();
@@ -2438,6 +2543,130 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   </div>
                 </div>
               </div>
+
+              <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Worker Detail</div>
+                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">执行槽位明细</h3>
+                    <p className="mt-2 max-w-3xl text-sm text-slate-500">
+                      直接复用 DFA worker cluster capacity 接口，和任务列表页保持同一口径，用于核对聚合指标背后的具体 owner / task 归属。
+                    </p>
+                  </div>
+                  <div className="text-right text-xs text-slate-400">
+                    <div>最近刷新</div>
+                    <div className="mt-1 font-semibold text-slate-500">{formatTime(dfaWorkerDetailState.refreshedAt)}</div>
+                  </div>
+                </div>
+                {selectedDfaWorkerFilter ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs text-cyan-800">
+                    <span className="font-bold">已联动筛选 Worker：</span>
+                    <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedDfaWorkerFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDfaWorkerFilter('')}
+                      className="rounded-full border border-cyan-200 bg-white px-2 py-1 font-semibold text-cyan-700 hover:bg-cyan-100"
+                    >
+                      清除筛选
+                    </button>
+                  </div>
+                ) : null}
+                {dfaWorkerDetailState.loading ? (
+                  <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+                    <Loader2 size={16} className="animate-spin" />
+                    正在读取 worker 明细...
+                  </div>
+                ) : dfaWorkerDetailState.error && !dfaWorkerDetailState.data ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                    暂无 worker 明细：{dfaWorkerDetailState.error}
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-4 grid gap-3 md:grid-cols-4">
+                      {[
+                        { label: 'Worker 数', value: dfaWorkerDetailState.data?.worker_count ?? '-', hint: '当前项目可见 owner 数' },
+                        { label: '总槽位', value: dfaWorkerDetailState.data?.total_capacity ?? '-', hint: 'worker max_concurrent_jobs 汇总' },
+                        { label: '运行中', value: dfaWorkerDetailState.data?.running_jobs ?? '-', hint: 'active running jobs' },
+                        { label: '空闲 / 排队', value: `${dfaWorkerDetailState.data?.available_slots ?? '-'} / ${dfaWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
+                      ].map((item) => (
+                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                          <div className="mt-2 text-lg font-black text-slate-900">{item.value}</div>
+                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {(dfaWorkerDetailState.data?.workers || []).length ? (
+                        dfaWorkerDetailState.data?.workers.map((worker) => (
+                          <div
+                            key={worker.worker_id}
+                            onClick={() => setSelectedDfaWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
+                            className={`rounded-2xl border px-4 py-4 ${
+                              worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/80'
+                            } ${selectedDfaWorkerFilter === worker.worker_id ? 'ring-2 ring-cyan-300 ring-offset-1' : 'cursor-pointer hover:border-cyan-200'}`}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {worker.healthy ? 'healthy' : 'unhealthy'}
+                                  </span>
+                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                    活动任务 {worker.active_jobs.length}
+                                  </span>
+                                </div>
+                                <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.worker_id}</div>
+                                <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                                  <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                                  <span>空闲 {worker.available_slots}</span>
+                                  <span>来源 {worker.source || 'lease_registry'}</span>
+                                  <span>心跳 {worker.last_heartbeat_at ? formatTime(new Date(worker.last_heartbeat_at).getTime()) : '-'}</span>
+                                </div>
+                                <div className="mt-2 text-[11px] text-cyan-700">点击可联动过滤下方 Prometheus Samples</div>
+                                {worker.error ? <div className="mt-2 text-xs text-rose-600">{worker.error}</div> : null}
+                              </div>
+                            </div>
+                            <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                              {worker.active_jobs.length ? (
+                                worker.active_jobs.map((job) => (
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_name}>{job.task_name}</div>
+                                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{job.status}</span>
+                                    </div>
+                                    <div className="mt-2 space-y-1 text-xs text-slate-500">
+                                      <div className="font-mono break-all">task_id: {job.task_id}</div>
+                                      <div className="truncate" title={job.input_path}>input: {job.input_path}</div>
+                                      <div>dispatch: {job.dispatch_status || '-'}</div>
+                                      <div>lease: {job.execution_lease_until ? formatTime(new Date(job.execution_lease_until).getTime()) : '-'}</div>
+                                      <div>heartbeat: {job.execution_heartbeat_at ? formatTime(new Date(job.execution_heartbeat_at).getTime()) : '-'}</div>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500 lg:col-span-2">
+                                  当前无活跃任务。
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500">
+                          当前未发现可用的 DFA worker 明细。
+                        </div>
+                      )}
+                    </div>
+                    {dfaWorkerDetailState.error ? (
+                      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        聚合指标已更新，但 worker 明细抓取有告警：{dfaWorkerDetailState.error}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
             </section>
           ) : null}
 
@@ -2537,6 +2766,114 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="rounded-[1.6rem] border border-indigo-100 bg-white/90 p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Worker Detail</div>
+                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">执行槽位明细</h3>
+                    <p className="mt-2 max-w-3xl text-sm text-slate-500">
+                      直接复用入口分析任务页的槽位聚合接口，和任务页保持同一口径，用于从性能看板快速下钻到具体 worker / owner / active task。
+                    </p>
+                  </div>
+                  <div className="text-right text-xs text-slate-400">
+                    <div>最近刷新</div>
+                    <div className="mt-1 font-semibold text-slate-500">{formatTime(entryWorkerDetailState.refreshedAt)}</div>
+                  </div>
+                </div>
+                {entryWorkerDetailState.loading ? (
+                  <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+                    <Loader2 size={16} className="animate-spin" />
+                    正在读取 worker 明细...
+                  </div>
+                ) : entryWorkerDetailState.error && !entryWorkerDetailState.data ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                    暂无 worker 明细：{entryWorkerDetailState.error}
+                  </div>
+                ) : (
+                  <>
+                    <div className="mt-4 grid gap-3 md:grid-cols-4">
+                      {[
+                        { label: 'Worker 数', value: entryWorkerDetailState.data?.worker_count ?? '-', hint: '完整集群可见 worker 数' },
+                        { label: '总槽位', value: entryWorkerDetailState.data?.total_capacity ?? '-', hint: 'worker max_concurrent_jobs 汇总' },
+                        { label: '运行中', value: entryWorkerDetailState.data?.running_jobs ?? '-', hint: 'active running jobs' },
+                        { label: '空闲 / 排队', value: `${entryWorkerDetailState.data?.available_slots ?? '-'} / ${entryWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
+                      ].map((item) => (
+                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                          <div className="mt-2 text-lg font-black text-slate-900">{item.value}</div>
+                          <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {(entryWorkerDetailState.data?.workers || []).length ? (
+                        entryWorkerDetailState.data?.workers.map((worker) => (
+                          <div
+                            key={worker.worker_id}
+                            className={`rounded-2xl border px-4 py-4 ${
+                              worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/80'
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="text-sm font-black text-slate-900">{worker.pod_name || worker.worker_id}</div>
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                    {worker.healthy ? 'healthy' : worker.source === 'stale_owner' ? 'stale owner' : 'unhealthy'}
+                                  </span>
+                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                    活动任务 {worker.active_tasks.length}
+                                  </span>
+                                </div>
+                                <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.url || worker.pod_ip || worker.worker_id}</div>
+                                <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                                  <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                                  <span>空闲 {worker.available_slots}</span>
+                                  <span>来源 {worker.source || 'worker_registry'}</span>
+                                  <span>心跳 {worker.last_heartbeat_at ? formatTime(new Date(worker.last_heartbeat_at).getTime()) : '-'}</span>
+                                </div>
+                                {worker.error ? <div className="mt-2 text-xs text-rose-600">{worker.error}</div> : null}
+                              </div>
+                            </div>
+                            <div className="mt-3 grid gap-2 lg:grid-cols-2">
+                              {worker.active_tasks.length ? (
+                                worker.active_tasks.map((job) => (
+                                  <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_id}>{job.task_id}</div>
+                                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{job.status}</span>
+                                    </div>
+                                    <div className="mt-2 space-y-1 text-xs text-slate-500">
+                                      <div className="font-mono break-all">task_id: {job.task_id}</div>
+                                      <div className="truncate" title={job.entry_id || '-'}>entry: {job.entry_id || '-'}</div>
+                                      <div>owner: {worker.pod_name || worker.worker_id}</div>
+                                      <div>lease: {job.lease_expires_at ? formatTime(new Date(job.lease_expires_at).getTime()) : '-'}</div>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500 lg:col-span-2">
+                                  当前无活跃任务。
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500">
+                          当前未发现可用的入口分析 worker 明细。
+                        </div>
+                      )}
+                    </div>
+                    {entryWorkerDetailState.error ? (
+                      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        聚合指标已更新，但 worker 明细抓取有告警：{entryWorkerDetailState.error}
+                      </div>
+                    ) : null}
+                  </>
+                )}
               </div>
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">

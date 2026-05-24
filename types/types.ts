@@ -2746,6 +2746,9 @@ export interface AppEaTaskItem {
   module_name?: string | null;
   output_path?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
+  owner_pod?: string | null;
+  lease_expires_at?: string | null;
+  cancel_requested?: boolean;
   error?: string | null;
   abnormal_reason_title?: string | null;
   abnormal_reason_code?: string | null;
@@ -2756,6 +2759,46 @@ export interface AppEaTaskItem {
   updated_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+}
+
+export interface EntryAnalyseActiveTaskRef {
+  task_id: string;
+  entry_id?: string | null;
+  status: string;
+  lease_expires_at?: string | null;
+}
+
+export interface EntryAnalyseWorkerSlot {
+  worker_id: string;
+  url?: string | null;
+  pod_name: string;
+  pod_ip?: string | null;
+  healthy: boolean;
+  max_concurrent_tasks: number;
+  max_concurrent_jobs: number;
+  running_tasks: number;
+  running_jobs: number;
+  queued_jobs: number;
+  available_slots: number;
+  last_heartbeat_at?: string | null;
+  source: string;
+  error?: string | null;
+  active_tasks: EntryAnalyseActiveTaskRef[];
+  active_jobs?: Array<Record<string, any>>;
+}
+
+export interface EntryAnalyseSlotClusterSummary {
+  worker_count: number;
+  healthy_workers: number;
+  stale_workers: number;
+  total_capacity: number;
+  busy_slots: number;
+  running_jobs: number;
+  available_slots: number;
+  queued_tasks: number;
+  queued_jobs: number;
+  updated_at?: string | null;
+  workers: EntryAnalyseWorkerSlot[];
 }
 
 export interface AppEaStageEvent {
@@ -3000,6 +3043,53 @@ export interface AppDfaTaskItem {
   updated_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+  execution_owner_id?: string | null;
+  execution_lease_until?: string | null;
+  execution_heartbeat_at?: string | null;
+  execution_epoch?: number | null;
+  control_version?: number | null;
+  dispatch_status?: string | null;
+}
+
+export interface AppDfaWorkerActiveJob {
+  task_id: string;
+  task_name: string;
+  status: string;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | 'binary_module' | null;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  input_path: string;
+  started_at?: string | null;
+  updated_at?: string | null;
+  dispatch_status?: string | null;
+  execution_owner_id?: string | null;
+  execution_lease_until?: string | null;
+  execution_heartbeat_at?: string | null;
+  mapped: boolean;
+  mapping_reason: string;
+}
+
+export interface AppDfaWorkerCapacity {
+  worker_id: string;
+  host_name: string;
+  healthy: boolean;
+  max_concurrent_jobs: number;
+  running_jobs: number;
+  available_slots: number;
+  source: string;
+  last_heartbeat_at?: string | null;
+  active_jobs: AppDfaWorkerActiveJob[];
+  error?: string | null;
+}
+
+export interface AppDfaClusterCapacity {
+  worker_count: number;
+  total_capacity: number;
+  running_jobs: number;
+  queued_jobs: number;
+  available_slots: number;
+  updated_at?: string | null;
+  workers: AppDfaWorkerCapacity[];
 }
 
 export interface AppDfaTaskDetail extends AppDfaTaskItem {

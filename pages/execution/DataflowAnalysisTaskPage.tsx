@@ -1,9 +1,9 @@
 /* @refresh reset */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, List, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem } from '../../types/types';
+import { AppDfaClusterCapacity, AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem, AppDfaWorkerActiveJob } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -48,6 +48,12 @@ function formatTsDuration(startTs: number | null, endTs: number | null): string 
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m}m${s}s`;
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return '-';
+  const timestamp = new Date(value);
+  return Number.isFinite(timestamp.getTime()) ? timestamp.toLocaleString('zh-CN') : value;
 }
 
 // ── DFA Stage Steps ───────────────────────────────────────────────────────────
@@ -427,6 +433,104 @@ function getQuickFilterButtonClassName(active: boolean, baseClassName: string): 
   return `${baseClassName} transition-all ${active ? 'ring-2 ring-violet-200 ring-offset-1' : 'hover:opacity-80'}`;
 }
 
+type ExecutionSlotState = 'running' | 'pending' | 'expired' | 'released' | 'idle';
+
+function formatRatioPercent(value?: number | null): string {
+  if (!Number.isFinite(value)) return '-';
+  return `${Math.round(Number(value) * 100)}%`;
+}
+
+function parseOwnerHost(ownerId?: string | null): string {
+  const normalized = String(ownerId || '').trim();
+  if (!normalized) return '';
+  const separator = normalized.indexOf(':');
+  return separator >= 0 ? normalized.slice(0, separator) : normalized;
+}
+
+function isLeaseExpired(leaseUntil?: string | null): boolean {
+  if (!leaseUntil) return false;
+  const timestamp = new Date(leaseUntil).getTime();
+  return Number.isFinite(timestamp) && timestamp < Date.now();
+}
+
+function getExecutionSlotView(task: AppDfaTaskItem): {
+  state: ExecutionSlotState;
+  label: string;
+  ownerLabel: string;
+  ownerFull: string;
+  detail: string[];
+  className: string;
+} {
+  const status = String(task.status || '').trim();
+  const ownerFull = String(task.execution_owner_id || '').trim();
+  const ownerLabel = parseOwnerHost(ownerFull);
+  const dispatchStatus = String(task.dispatch_status || '').trim();
+  const heartbeat = task.execution_heartbeat_at ? `心跳 ${new Date(task.execution_heartbeat_at).toLocaleString('zh-CN')}` : '';
+  const lease = task.execution_lease_until ? `租约至 ${new Date(task.execution_lease_until).toLocaleString('zh-CN')}` : '';
+  const terminal = ['passed', 'failed', 'error', 'cancelled'].includes(status);
+
+  if (terminal) {
+    return {
+      state: 'released',
+      label: '已释放',
+      ownerLabel: '',
+      ownerFull,
+      detail: [dispatchStatus || 'terminal'].filter(Boolean),
+      className: 'border-slate-200 bg-slate-50 text-slate-600',
+    };
+  }
+  if (status === 'running' && ownerFull && isLeaseExpired(task.execution_lease_until)) {
+    return {
+      state: 'expired',
+      label: '状态过期',
+      ownerLabel: ownerLabel || ownerFull,
+      ownerFull,
+      detail: [dispatchStatus, lease || heartbeat].filter(Boolean).slice(0, 2),
+      className: 'border-orange-200 bg-orange-50 text-orange-700',
+    };
+  }
+  if (status === 'running' && ownerFull) {
+    return {
+      state: 'running',
+      label: '运行中',
+      ownerLabel: ownerLabel || ownerFull,
+      ownerFull,
+      detail: [dispatchStatus, heartbeat || lease].filter(Boolean).slice(0, 2),
+      className: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+    };
+  }
+  if (status === 'pending') {
+    const queued = dispatchStatus === 'queued' || dispatchStatus === 'dispatching';
+    return {
+      state: 'pending',
+      label: queued ? '排队中' : '未占用槽位',
+      ownerLabel: '',
+      ownerFull,
+      detail: [dispatchStatus || 'pending'].filter(Boolean),
+      className: 'border-amber-200 bg-amber-50 text-amber-700',
+    };
+  }
+  return {
+    state: 'idle',
+    label: '未占用槽位',
+    ownerLabel: ownerLabel || '',
+    ownerFull,
+    detail: [dispatchStatus].filter(Boolean),
+    className: 'border-slate-200 bg-white text-slate-600',
+  };
+}
+
+function getWorkerJobMode(job: Pick<AppDfaWorkerActiveJob, 'task_origin_type' | 'parent_task_type'>): 'manual' | 'binary' | 'source' {
+  if (String(job.task_origin_type || '').trim() !== 'binary_security') return 'manual';
+  return String(job.parent_task_type || '').trim() === 'source' ? 'source' : 'binary';
+}
+
+function getWorkerJobModeLabel(job: Pick<AppDfaWorkerActiveJob, 'task_origin_type' | 'parent_task_type'>): string {
+  const mode = getWorkerJobMode(job);
+  if (mode === 'manual') return '手动';
+  return mode === 'source' ? '源码模式' : '二进制模式';
+}
+
 export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appDataflowAnalyse;
   const { notify, feedbackNodes } = useUiFeedback();
@@ -453,6 +557,11 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
+  const [slotSummary, setSlotSummary] = useState<AppDfaClusterCapacity | null>(null);
+  const [slotSummaryLoading, setSlotSummaryLoading] = useState(false);
+  const [slotSummaryError, setSlotSummaryError] = useState('');
+  const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
+  const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -537,7 +646,34 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     }
   }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
-  useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  const loadSlotSummary = useCallback(async () => {
+    if (!projectId) return;
+    setSlotSummaryLoading(true);
+    setSlotSummaryError('');
+    try {
+      const payload = await appApi.getWorkerClusterCapacity(projectId);
+      setSlotSummary(payload);
+      setExpandedSlotWorkerIds((current) => {
+        const availableIds = new Set((payload.workers || []).map((worker) => worker.worker_id));
+        const retained = current.filter((workerId) => availableIds.has(workerId));
+        return retained.length > 0 ? retained : (payload.workers || []).slice(0, 1).map((worker) => worker.worker_id);
+      });
+    } catch (err: any) {
+      setSlotSummary(null);
+      setSlotSummaryError(err?.message || '读取槽位摘要失败');
+    } finally {
+      setSlotSummaryLoading(false);
+    }
+  }, [appApi, projectId]);
+
+  const loadAll = useCallback(async (p = page) => {
+    await Promise.all([
+      loadTasks(p),
+      loadSlotSummary(),
+    ]);
+  }, [loadTasks, loadSlotSummary, page]);
+
+  useEffect(() => { void loadAll(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -608,7 +744,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     if (!autoRefreshEnabled) return;
     if (!hasActiveTasks) return;
     const timer = setInterval(() => {
-      void loadTasks(page);
+      void loadAll(page);
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -917,6 +1053,51 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const dfaTree = detail ? buildDfaTree(events, detail.status) : null;
 
   const logLines = events.map(formatEventLog).filter(Boolean);
+  const toggleSlotWorkerExpanded = (workerId: string) => {
+    setExpandedSlotWorkerIds((current) => (
+      current.includes(workerId)
+        ? current.filter((item) => item !== workerId)
+        : [...current, workerId]
+    ));
+  };
+  const slotCards = useMemo(() => [
+    {
+      label: '总槽位',
+      value: slotSummary?.total_capacity ?? '-',
+      hint: slotSummary?.updated_at ? `更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}` : '当前项目可见 worker 的总执行槽位',
+      border: 'border-slate-200',
+      bg: 'bg-slate-50',
+      text: 'text-slate-800',
+    },
+    {
+      label: '忙槽位',
+      value: slotSummary?.running_jobs ?? '-',
+      hint: `利用率 ${formatRatioPercent(
+        slotSummary && slotSummary.total_capacity > 0
+          ? slotSummary.running_jobs / slotSummary.total_capacity
+          : null
+      )}`,
+      border: 'border-cyan-200',
+      bg: 'bg-cyan-50',
+      text: 'text-cyan-700',
+    },
+    {
+      label: '空闲槽位',
+      value: slotSummary?.available_slots ?? '-',
+      hint: '当前未被任务占用的执行容量',
+      border: 'border-emerald-200',
+      bg: 'bg-emerald-50',
+      text: 'text-emerald-700',
+    },
+    {
+      label: '排队任务',
+      value: slotSummary?.queued_jobs ?? '-',
+      hint: `在线 Worker ${slotSummary?.worker_count ?? 0}`,
+      border: 'border-amber-200',
+      bg: 'bg-amber-50',
+      text: 'text-amber-700',
+    },
+  ], [slotSummary]);
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -1170,7 +1351,222 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             </div>
           ))}
         </div>
+        <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
+              <p className="mt-1 text-sm text-slate-500">展示当前数据流分析 worker 的执行槽位、活跃任务和心跳情况。</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-xs text-slate-400">
+                最近同步 {formatDateTime(slotSummary?.updated_at)}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSlotDetailModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              >
+                查看详情
+              </button>
+              {slotSummaryLoading ? (
+                <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <Loader2 size={13} className="animate-spin" />
+                  刷新槽位数据中
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            {slotCards.map((card) => (
+              <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
+                <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
+                <div className="mt-2 text-2xl font-black text-slate-900">{card.value}</div>
+                <div className="mt-1 text-[11px] text-slate-500">{card.hint}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {(slotSummary?.workers || []).map((worker) => (
+              <div
+                key={worker.worker_id}
+                className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
+                  worker.healthy
+                    ? 'border-slate-200 bg-slate-50'
+                    : 'border-rose-200 bg-rose-50'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-black text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
+                  <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                  }`}>
+                    {worker.healthy ? 'healthy' : 'unhealthy'}
+                  </div>
+                </div>
+                <div className="mt-1 truncate text-[11px] text-slate-400" title={worker.worker_id}>{worker.worker_id}</div>
+                <div className="mt-2 text-xs text-slate-600">
+                  槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
+                  {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
+                </div>
+                <div className="mt-1 text-xs text-slate-400">
+                  来源 {worker.source || 'lease_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
+                </div>
+                {worker.error ? (
+                  <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
+                ) : null}
+              </div>
+            ))}
+            {slotSummary && (slotSummary.workers || []).length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                当前未发现可用的数据流分析 worker。
+              </div>
+            ) : null}
+          </div>
+          {slotSummaryError ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+              暂无槽位数据：{slotSummaryError}
+            </div>
+          ) : null}
+        </div>
       </section>
+
+      {showSlotDetailModal ? (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
+          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_30px_100px_rgba(15,23,42,0.35)]" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
+                <p className="mt-2 text-sm text-slate-500">按 worker 展示当前执行中的数据流分析任务与租约心跳状态。</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right text-xs text-slate-400">
+                  <div>最近同步</div>
+                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(slotSummary?.updated_at)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSlotDetailModal(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  aria-label="关闭执行槽位详情"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[75vh] overflow-auto px-6 py-5">
+              {(slotSummary?.workers || []).length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                  当前未发现可用的数据流分析 worker。
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(slotSummary?.workers || []).map((worker) => {
+                    const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
+                    const activeJobs = worker.active_jobs || [];
+                    return (
+                      <section
+                        key={worker.worker_id}
+                        className={`overflow-hidden rounded-[1.5rem] border ${
+                          worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                              }`}>
+                                {worker.healthy ? 'healthy' : 'unhealthy'}
+                              </span>
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                活动任务 {activeJobs.length}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-[11px] text-slate-400">{worker.worker_id}</div>
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                              <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                              <span>空闲 {worker.available_slots}</span>
+                              <span>来源 {worker.source || 'lease_registry'}</span>
+                              <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
+                            </div>
+                          </div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                            {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} className="rotate-90" />}
+                          </div>
+                        </button>
+                        {expanded ? (
+                          <div className="border-t border-slate-100 px-5 py-4">
+                            {!worker.healthy ? (
+                              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                                Worker 当前不可用。{worker.error ? `原因：${worker.error}` : ''}
+                              </div>
+                            ) : activeJobs.length === 0 ? (
+                              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+                                当前无活跃数据流分析任务。
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {activeJobs.map((job) => (
+                                  <div
+                                    key={`${worker.worker_id}:${job.task_id}`}
+                                    className={`rounded-2xl border px-4 py-4 ${
+                                      job.mapped
+                                        ? 'border-slate-200 bg-slate-50/70'
+                                        : 'border-amber-200 bg-amber-50/80'
+                                    }`}
+                                  >
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <div className="truncate text-sm font-black text-slate-900" title={job.task_name}>
+                                            {job.task_name}
+                                          </div>
+                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLOR[job.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                                            {STATUS_LABEL[job.status] ?? job.status}
+                                          </span>
+                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${getTaskModeBadgeClassName(job as Pick<AppDfaTaskItem, 'task_origin_type' | 'parent_task_type'>)}`}>
+                                            {getWorkerJobModeLabel(job)}
+                                          </span>
+                                        </div>
+                                        <div className="mt-2 grid gap-2 text-xs text-slate-500 md:grid-cols-2">
+                                          <div className="truncate" title={job.task_id}>任务 ID: {job.task_id}</div>
+                                          <div className="truncate" title={job.parent_task_id || '-'}>主任务: {job.parent_task_id || '-'}</div>
+                                          <div className="truncate" title={job.input_path}>输入路径: {job.input_path}</div>
+                                          <div>调度状态: {job.dispatch_status || '-'}</div>
+                                          <div>开始时间: {formatDateTime(job.started_at)}</div>
+                                          <div>最近更新: {formatDateTime(job.updated_at)}</div>
+                                          <div>租约: {formatDateTime(job.execution_lease_until)}</div>
+                                          <div>心跳: {formatDateTime(job.execution_heartbeat_at)}</div>
+                                        </div>
+                                      </div>
+                                      <div className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
+                                        job.mapped ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'
+                                      }`}>
+                                        {job.mapped ? '已映射到当前 Worker' : '映射异常'}
+                                        <div className="mt-1 max-w-[220px] break-words text-[11px] font-normal">{job.mapping_reason}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* ── Task list ───────────────────────────────────────────────────────── */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -1258,7 +1654,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             >
               {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
-            <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+            <button onClick={() => void loadAll(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
             <button
@@ -1364,6 +1760,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   direction={sortOrder}
                   onClick={() => handleHeaderSort('status')}
                 />
+                <ExecutionTableTh>执行槽位</ExecutionTableTh>
                 <ExecutionTableTh>源码路径</ExecutionTableTh>
                 <ExecutionTableTh>来源</ExecutionTableTh>
                 <SortableHeader
@@ -1382,7 +1779,9 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               </tr>
             </ExecutionTableHead>
             <tbody>
-              {tasks.map((t) => (
+              {tasks.map((t) => {
+                const slotView = getExecutionSlotView(t);
+                return (
                 <tr
                   key={t.task_id}
                   className={`${executionTableRowClassName} ${selectedTaskIds.has(t.task_id) ? 'bg-violet-50/60' : ''}`.trim()}
@@ -1438,6 +1837,21 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       {STATUS_LABEL[t.status] ?? t.status}
                     </button>
                   </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[200px]">
+                    <div className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${slotView.className}`}>
+                      {slotView.label}
+                    </div>
+                    <div className="mt-1 space-y-0.5 text-xs">
+                      {slotView.ownerLabel ? (
+                        <div className="font-semibold text-slate-700" title={slotView.ownerFull}>
+                          占用 Pod: {slotView.ownerLabel}
+                        </div>
+                      ) : null}
+                      {slotView.detail.map((line) => (
+                        <div key={line} className="text-slate-500">{line}</div>
+                      ))}
+                    </div>
+                  </ExecutionTableTd>
                   <ExecutionTableTd className="max-w-[320px]">
                     <div className="truncate font-mono text-xs text-slate-500" title={t.input_path}>{t.input_path}</div>
                   </ExecutionTableTd>
@@ -1474,7 +1888,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     </button>
                   </ExecutionTableTd>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </ExecutionTable>
         )}

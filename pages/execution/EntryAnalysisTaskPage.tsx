@@ -1,8 +1,8 @@
 ﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppEaStageEvent, AppEaTaskDetail, AppEaTaskItem } from '../../types/types';
+import { AppEaStageEvent, AppEaTaskDetail, AppEaTaskItem, EntryAnalyseSlotClusterSummary } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -28,6 +28,15 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
+const SLOT_TASK_STATUS_LABEL: Record<string, string> = {
+  running: '运行中',
+  pending: '等待中',
+  cancelled: '已取消',
+  failed: '失败',
+  error: '错误',
+  passed: '通过',
+};
+
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
   if (!startedAt) return '-';
   const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
@@ -48,6 +57,22 @@ function formatTsDuration(startTs: number | null, endTs: number | null): string 
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return `${m}m${s}s`;
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return '-';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString('zh-CN');
+}
+
+function formatSlotStage(task: { entry_id?: string | null; status?: string | null }): string {
+  const parts = [
+    '阶段 entry_analysis',
+    task.entry_id ? `入口 ${task.entry_id}` : '',
+    task.status ? `状态 ${SLOT_TASK_STATUS_LABEL[task.status] || task.status}` : '',
+  ].filter(Boolean);
+  return parts.join(' · ');
 }
 
 function extractFsRelPath(outputPath: string, projectId: string): string | null {
@@ -357,6 +382,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
   const [stageFocusHint, setStageFocusHint] = useState('');
   const [riskFocusHint, setRiskFocusHint] = useState('');
+  const [slotCluster, setSlotCluster] = useState<EntryAnalyseSlotClusterSummary | null>(null);
+  const [slotClusterError, setSlotClusterError] = useState('');
+  const [slotDetailOpen, setSlotDetailOpen] = useState(false);
+  const [expandedWorkerIds, setExpandedWorkerIds] = useState<string[]>([]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -475,7 +504,20 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     }
   }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
+  const loadSlotCluster = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const snapshot = await appApi.getSlotCluster(projectId);
+      setSlotCluster(snapshot);
+      setSlotClusterError('');
+    } catch (err: any) {
+      setSlotCluster(null);
+      setSlotClusterError(err?.message || '槽位信息加载失败');
+    }
+  }, [appApi, projectId]);
+
   useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadSlotCluster(); }, [loadSlotCluster]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -545,11 +587,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     if (!hasActiveTasks && !hasActiveDetail) return;
     const timer = setInterval(() => {
       void loadTasks(page);
+      void loadSlotCluster();
       if (selectedTaskId && modalOpen) void loadDetail(selectedTaskId);
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, hasActiveDetail, projectId, page, selectedTaskId, modalOpen]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, hasActiveDetail, projectId, page, selectedTaskId, modalOpen, loadSlotCluster]);
 
   // Auto-scroll logs to bottom when new events arrive
   useEffect(() => {
@@ -882,10 +925,115 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const fileProgress = detail ? computeFileProgress(detail.stages_json?.events ?? []) : null;
 
   const logLines = detail?.stages_json?.events?.map(formatEventLog) ?? [];
+  const slotSummaryCards = slotCluster ? [
+    { label: '总槽位', value: slotCluster.total_capacity, className: 'bg-slate-50 border-slate-200 text-slate-800' },
+    { label: '占用槽位', value: slotCluster.busy_slots, className: 'bg-blue-50 border-blue-200 text-blue-700' },
+    { label: '空闲槽位', value: slotCluster.available_slots, className: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
+    { label: '排队任务', value: slotCluster.queued_tasks, className: 'bg-amber-50 border-amber-200 text-amber-700' },
+  ] : [];
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
+      {slotDetailOpen && slotCluster ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSlotDetailOpen(false)} />
+          <div className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Slot Detail</div>
+                <h2 className="mt-1 text-lg font-black text-slate-900">执行槽位明细</h2>
+              </div>
+              <button onClick={() => setSlotDetailOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
+            </div>
+            <div className="space-y-4 overflow-y-auto px-6 py-5">
+              {slotCluster.workers.map((worker) => {
+                const expanded = expandedWorkerIds.includes(worker.worker_id);
+                return (
+                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/50'}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-black text-slate-900">{worker.pod_name}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                            {worker.healthy ? 'Healthy' : worker.source === 'stale_owner' ? 'Stale Owner' : 'Stale'}
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                            活动任务 {worker.active_tasks.length}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {worker.pod_ip || '-'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
+                        </div>
+                        {worker.error ? <div className="mt-1 text-xs text-rose-600">{worker.error}</div> : null}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                        <span className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
+                        <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
+                        <span className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-slate-500">来源 {worker.source || 'capacity'}</span>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedWorkerIds((current) => current.includes(worker.worker_id) ? current.filter((item) => item !== worker.worker_id) : [...current, worker.worker_id])}
+                          className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 hover:bg-slate-50"
+                        >
+                          {expanded ? '收起任务' : `展开任务（${worker.active_tasks.length}）`}
+                        </button>
+                      </div>
+                    </div>
+                    {expanded ? (
+                      worker.active_tasks.length > 0 ? (
+                        <div className="mt-4 space-y-2">
+                          {worker.active_tasks.map((task) => (
+                            <div key={`${worker.worker_id}:${task.task_id}`} className={`rounded-2xl border px-4 py-4 text-xs ${worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-amber-200 bg-amber-50/80'}`}>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <button type="button" onClick={() => handleSelectTask(task.task_id)} className="font-mono font-semibold text-violet-700 hover:text-violet-900">
+                                      {task.task_id}
+                                    </button>
+                                    <span className={`rounded-full px-2 py-0.5 font-semibold ${worker.healthy ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'}`}>
+                                      已关联任务
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 break-all text-[11px] text-slate-500">{formatSlotStage(task)}</div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-500">
+                                  <div className="font-semibold text-slate-700">owner pod</div>
+                                  <div className="mt-1 font-mono">{worker.pod_name}</div>
+                                </div>
+                              </div>
+                              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">归属任务</div>
+                                  <div className="mt-2 font-mono text-[11px] font-semibold text-slate-700">{task.task_id}</div>
+                                  <div className="mt-1 text-[11px] text-slate-500">入口 {task.entry_id || '-'}</div>
+                                </div>
+                                <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">运行状态</div>
+                                  <div className="mt-2 text-[11px] font-semibold text-slate-700">{SLOT_TASK_STATUS_LABEL[task.status] || task.status}</div>
+                                  <div className="mt-1 text-[11px] text-slate-500">租约到期 {formatDateTime(task.lease_expires_at)}</div>
+                                </div>
+                                <div className="rounded-xl border border-white/80 bg-white px-3 py-3">
+                                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">槽位映射</div>
+                                  <div className="mt-2 text-[11px] font-semibold text-slate-700">{worker.source || 'worker_registry'}</div>
+                                  <div className="mt-1 text-[11px] text-slate-500">{worker.url || worker.pod_ip || worker.pod_name}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-xl border border-dashed border-slate-200 px-3 py-4 text-xs text-slate-400">当前槽位无运行任务</div>
+                      )
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
       {stageFocusHint ? (
         <section className="rounded-[2rem] border border-indigo-200 bg-indigo-50/80 px-5 py-4 shadow-sm">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-indigo-700">Stage Focus</div>
@@ -1167,6 +1315,73 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         </div>
       </section>
 
+      <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
+            <p className="mt-2 text-sm text-slate-500">展示入口分析 Worker Pod 的真实槽位占用、空闲容量与失联 Owner。</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={() => void loadSlotCluster()} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+              <RefreshCw size={14} />
+            </button>
+            {slotCluster ? (
+              <button
+                type="button"
+                onClick={() => setSlotDetailOpen(true)}
+                className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
+              >
+                查看 Worker 明细
+              </button>
+            ) : null}
+          </div>
+        </div>
+        {slotCluster ? (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {slotSummaryCards.map((item) => (
+                <div key={item.label} className={`min-w-[96px] rounded-xl border px-3 py-3 ${item.className}`}>
+                  <p className="text-lg font-black">{item.value}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">{item.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">Worker {slotCluster.worker_count}</span>
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Healthy {slotCluster.healthy_workers}</span>
+              <span className={`rounded-full px-3 py-1 text-xs ${slotCluster.stale_workers > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>Stale {slotCluster.stale_workers}</span>
+              <span className="text-xs text-slate-400">更新时间：{formatDateTime(slotCluster.updated_at)}</span>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {slotCluster.workers.slice(0, 6).map((worker) => (
+                <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/70'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-black text-slate-900">{worker.pod_name}</div>
+                      <div className="mt-1 truncate text-[11px] text-slate-500">{worker.url || worker.pod_ip || '-'}</div>
+                    </div>
+                    {!worker.healthy ? <AlertTriangle size={16} className="shrink-0 text-rose-500" /> : null}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                    <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                    <span className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
+                    <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
+                  </div>
+                  <div className="mt-3 text-[11px] text-slate-500">心跳：{formatDateTime(worker.last_heartbeat_at)}</div>
+                  <div className="mt-1 text-[11px] text-slate-400">来源：{worker.source || 'worker_registry'} · 活动任务 {worker.active_tasks.length}</div>
+                  {worker.error ? <div className="mt-1 text-[11px] text-rose-600">{worker.error}</div> : null}
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+            {slotClusterError || '暂无可用槽位信息'}
+          </div>
+        )}
+      </section>
+
       {stageFocusHint || riskPreset ? (
         <section className="rounded-[2rem] border border-indigo-200 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.10),_transparent_38%),linear-gradient(180deg,#ffffff_0%,#eef2ff_100%)] p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1328,7 +1543,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             >
               {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
-            <button onClick={() => void loadTasks(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+            <button onClick={() => { void loadTasks(page); void loadSlotCluster(); }} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
             <button
@@ -1406,7 +1621,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         ) : tasks.length === 0 ? (
           <div className="py-10 text-center text-sm text-slate-400">暂无任务，点击右上角「新建任务」创建</div>
         ) : (
-          <ExecutionTable minWidth={1200}>
+          <ExecutionTable minWidth={1560}>
             <ExecutionTableHead>
               <tr>
                 <ExecutionTableTh className="w-12">
@@ -1432,6 +1647,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   onClick={() => handleHeaderSort('status')}
                 />
                 <ExecutionTableTh>来源</ExecutionTableTh>
+                <ExecutionTableTh>执行槽位</ExecutionTableTh>
+                <ExecutionTableTh>租约到期</ExecutionTableTh>
+                <ExecutionTableTh>取消状态</ExecutionTableTh>
                 <SortableHeader
                   label="创建时间"
                   active={sortBy === 'created_at'}
@@ -1554,6 +1772,30 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       >
                         <span className="truncate" title={t.parent_task_id}>{t.parent_task_id}</span>
                       </button>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="min-w-[160px]">
+                    {t.owner_pod ? (
+                      <div className="space-y-1">
+                        <div className="font-mono text-xs font-semibold text-slate-700">{t.owner_pod}</div>
+                        {slotCluster?.workers.some((worker) => worker.pod_name === t.owner_pod && !worker.healthy) ? (
+                          <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                            stale owner
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">未分配</span>
+                    )}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {formatDateTime(t.lease_expires_at)}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap">
+                    {t.cancel_requested ? (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">取消中</span>
                     ) : (
                       <span className="text-xs text-slate-400">-</span>
                     )}

@@ -8,6 +8,7 @@ import {
   AppEaTaskEvaluation,
   AppEaTaskItem,
   AppEaTaskResult,
+  EntryAnalyseSlotClusterSummary,
   EntryAnalysisModelsConfig,
   EntryAnalysisPromptTemplate,
   EntryAnalysisServiceConfig,
@@ -67,6 +68,9 @@ export const appEntryAnalyseApi = {
     if (params.sort_order) query.append('sort_order', params.sort_order);
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
   },
+
+  getSlotCluster: async (projectId: string): Promise<EntryAnalyseSlotClusterSummary> =>
+    handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/slot-cluster`, { headers: getHeaders() })),
 
   getTask: async (taskId: string): Promise<AppEaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),

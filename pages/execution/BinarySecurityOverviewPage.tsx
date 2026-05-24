@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
 
-import { BinarySecurityInputFile, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
+import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
@@ -91,6 +91,14 @@ const MODULE_SELECTION_OPTIONS = [
   { value: 'auto', label: '按风险自动推进' },
   { value: 'manual_confirm', label: '系统分析后人工确认' },
 ] as const;
+const PIPELINE_MODE_OPTIONS: Array<{
+  value: BinarySecurityPipelineMode;
+  label: string;
+  description: string;
+}> = [
+  { value: 'barrier', label: '广度优先（Barrier）', description: '按阶段聚合推进，上一阶段完成后再开始下一阶段。' },
+  { value: 'mixed_streaming', label: '深度优化（Mixed Streaming）', description: '入口分析完成后，立即推进对应的数据流分析和漏洞挖掘。' },
+];
 const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
   { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
@@ -303,6 +311,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     stageParallelism: { ...DEFAULT_STAGE_PARALLELISM },
     maxRetries: 2,
     continueOnFailure: true,
+    pipelineMode: 'barrier' as BinarySecurityPipelineMode,
     partialSuccessStageAdvancement: { ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT },
   }), []);
   const [items, setItems] = useState<BinarySecurityTask[]>([]);
@@ -331,11 +340,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [defaultStageParallelism, setDefaultStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
   const [defaultMaxRetries, setDefaultMaxRetries] = useState(2);
   const [defaultContinueOnFailure, setDefaultContinueOnFailure] = useState(true);
+  const [defaultPipelineMode, setDefaultPipelineMode] = useState<BinarySecurityPipelineMode>('barrier');
   const [defaultPartialSuccessStageAdvancement, setDefaultPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
     DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   );
   const [maxRetries, setMaxRetries] = useState(2);
   const [continueOnFailure, setContinueOnFailure] = useState(true);
+  const [pipelineMode, setPipelineMode] = useState<BinarySecurityPipelineMode>('barrier');
   const [partialSuccessStageAdvancement, setPartialSuccessStageAdvancement] = useState<Record<string, boolean>>(
     DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   );
@@ -522,11 +533,13 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     stageParallelism: Record<string, number>;
     maxRetries: number;
     continueOnFailure: boolean;
+    pipelineMode: BinarySecurityPipelineMode;
     partialSuccessStageAdvancement: Record<string, boolean>;
   }) => {
     setDefaultStageParallelism({ ...defaults.stageParallelism });
     setDefaultMaxRetries(defaults.maxRetries);
     setDefaultContinueOnFailure(defaults.continueOnFailure);
+    setDefaultPipelineMode(defaults.pipelineMode);
     setDefaultPartialSuccessStageAdvancement({ ...defaults.partialSuccessStageAdvancement });
   };
 
@@ -534,6 +547,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     stageParallelism: defaultStageParallelism,
     maxRetries: defaultMaxRetries,
     continueOnFailure: defaultContinueOnFailure,
+    pipelineMode: defaultPipelineMode,
     partialSuccessStageAdvancement: defaultPartialSuccessStageAdvancement,
   }) => {
     setName('');
@@ -544,6 +558,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setUploadSpeed({});
     setMaxRetries(defaults.maxRetries);
     setContinueOnFailure(defaults.continueOnFailure);
+    setPipelineMode(defaults.pipelineMode);
     setPartialSuccessStageAdvancement({
       ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
       ...defaults.partialSuccessStageAdvancement,
@@ -568,6 +583,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       },
       maxRetries: projectConfig.config.max_retries_per_item ?? 2,
       continueOnFailure: projectConfig.config.continue_on_item_failure ?? true,
+      pipelineMode: projectConfig.config.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier',
       partialSuccessStageAdvancement: {
         ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
         ...(projectConfig.config.partial_success_stage_advancement || {}),
@@ -683,6 +699,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         policy_overrides: {
           max_retries_per_item: maxRetries,
           continue_on_item_failure: continueOnFailure,
+          pipeline_mode: pipelineMode,
           partial_success_stage_advancement: Object.fromEntries(
             PARTIAL_SUCCESS_ADVANCEMENT_FIELDS
               .filter((field) => stages.includes(field.key))
@@ -1110,6 +1127,29 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                   </div>
                 </div>
               ) : null}
+
+              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                <div>
+                  <div className="text-sm font-black text-slate-900">推进模式</div>
+                  <div className="mt-1 text-sm text-slate-500">支持为当前任务单独选择广度优先或深度优化模式；默认值来自参数配置页。</div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                    {PIPELINE_MODE_OPTIONS.map((option) => (
+                      <label key={option.value} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                        <input
+                          type="radio"
+                          name="taskPipelineMode"
+                          checked={pipelineMode === option.value}
+                          onChange={() => setPipelineMode(option.value)}
+                        />
+                        <span>
+                          <span className="block font-semibold">{option.label}</span>
+                          <span className="mt-1 block text-xs text-slate-500">{option.description}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
               <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="text-sm font-black text-slate-900">阶段并发配置</div>

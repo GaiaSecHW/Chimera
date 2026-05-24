@@ -31,6 +31,30 @@ const openBinarySecurityDetail = async (page: Page, taskId: string) => {
   }, { taskId });
 };
 
+const openBinarySecurityOverview = async (page: Page) => {
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new CustomEvent('secflow-navigate-view', {
+        detail: { view: 'binary-security' },
+      }),
+    );
+  });
+};
+
+const openBinarySecurityConfig = async (page: Page) => {
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new CustomEvent('secflow-navigate-view', {
+        detail: { view: 'binary-security-config' },
+      }),
+    );
+  });
+};
+
 test.describe('Binary security online smoke', () => {
   test('should expose binary-security APIs and render source task detail page', async ({ page, request }) => {
     const token = await loginByApi(request, baseURL);
@@ -85,5 +109,52 @@ test.describe('Binary security online smoke', () => {
 
     expect(configResp.payload?.config?.pipeline_mode, 'online project config should expose pipeline_mode after rollout').toBeTruthy();
     expect(stageItemsResp.status, 'online stage-items endpoint should be available after rollout').toBe(200);
+  });
+
+  test('should apply project default pipeline mode to create dialog', async ({ page, request }) => {
+    const token = await loginByApi(request, baseURL);
+    const configUrl = `${baseURL}/api/app/binary-security/projects/${E2E_PROJECT_ID}/config`;
+
+    const originalConfigResp = await fetchJson(page, configUrl, token);
+    expect(originalConfigResp.status).toBe(200);
+    expect(originalConfigResp.payload?.config).toBeTruthy();
+    const originalConfig = originalConfigResp.payload.config;
+
+    const updateConfig = async (pipelineMode: 'barrier' | 'mixed_streaming') => {
+      const response = await page.request.put(configUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        failOnStatusCode: false,
+        data: {
+          ...originalConfig,
+          pipeline_mode: pipelineMode,
+        },
+      });
+      expect(response.status()).toBe(200);
+    };
+
+    try {
+      await updateConfig('mixed_streaming');
+      await bootstrapSession(page, token);
+
+      await openBinarySecurityConfig(page);
+      await expect(page.getByRole('heading', { name: '参数配置' })).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText('新任务默认推进模式')).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByLabel('深度优化（Mixed Streaming）')).toBeChecked({ timeout: 60_000 });
+
+      await openBinarySecurityOverview(page);
+      await expect(page.getByRole('heading', { name: '二进制安全' })).toBeVisible({ timeout: 60_000 });
+      await page.getByRole('button', { name: '创建任务' }).click();
+      await expect(page.getByRole('heading', { name: '创建二进制安全任务' })).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText('推进模式')).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByLabel('深度优化（Mixed Streaming）')).toBeChecked({ timeout: 60_000 });
+      await expect(page.getByLabel('广度优先（Barrier）')).not.toBeChecked();
+    } finally {
+      const response = await page.request.put(configUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+        failOnStatusCode: false,
+        data: originalConfig,
+      });
+      expect(response.status()).toBe(200);
+    }
   });
 });
