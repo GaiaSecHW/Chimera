@@ -3,6 +3,7 @@ import {
   AppSaSessionIndex,
   AppSaSessionMeta,
   AppSaSessionSnapshot,
+  AppSaClusterCapacity,
   AppSaStagesJson,
   AppSaTaskCreateRequest,
   AppSaTaskDetail,
@@ -86,6 +87,9 @@ export const appSystemAnalyseApi = {
     if (params.sort_order) query.append('sort_order', params.sort_order);
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
   },
+
+  getWorkerClusterCapacity: async (projectId: string): Promise<AppSaClusterCapacity> =>
+    handleResponse(await fetch(`${BASE}/workers/cluster-capacity?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),

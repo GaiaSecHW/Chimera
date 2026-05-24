@@ -2440,6 +2440,10 @@ export interface AppSaTaskItem {
   updated_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+  dispatcher_instance_id?: string | null;
+  dispatch_started_at?: string | null;
+  lease_epoch?: number | null;
+  lease_expires_at?: string | null;
 }
 
 export interface AppSaStageEvent {
@@ -2722,6 +2726,50 @@ export interface AppSaTaskCreateRequest {
   parent_stage_name?: string;
   parent_stage_item_id?: string;
   parent_stage_item_key?: string;
+}
+
+export interface AppSaWorkerActiveJob {
+  task_id: string;
+  task_name: string;
+  status: string;
+  analysis_mode?: 'binary' | 'source' | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | 'binary_module' | null;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  input_path: string;
+  started_at?: string | null;
+  updated_at?: string | null;
+  dispatch_started_at?: string | null;
+  execution_owner_id?: string | null;
+  execution_lease_until?: string | null;
+  lease_epoch?: number | null;
+  mapped: boolean;
+  mapping_reason: string;
+}
+
+export interface AppSaWorkerCapacity {
+  worker_id: string;
+  host_name: string;
+  healthy: boolean;
+  max_concurrent_jobs: number;
+  running_jobs: number;
+  available_slots: number;
+  source: string;
+  last_heartbeat_at?: string | null;
+  active_jobs: AppSaWorkerActiveJob[];
+  error?: string | null;
+}
+
+export interface AppSaClusterCapacity {
+  worker_count: number;
+  healthy_workers: number;
+  stale_workers: number;
+  total_capacity: number;
+  busy_slots: number;
+  available_slots: number;
+  queued_jobs: number;
+  updated_at?: string | null;
+  workers: AppSaWorkerCapacity[];
 }
 
 
@@ -3072,6 +3120,8 @@ export interface AppDfaWorkerActiveJob {
 export interface AppDfaWorkerCapacity {
   worker_id: string;
   host_name: string;
+  pod_name?: string | null;
+  pod_ip?: string | null;
   healthy: boolean;
   max_concurrent_jobs: number;
   running_jobs: number;
@@ -3084,6 +3134,8 @@ export interface AppDfaWorkerCapacity {
 
 export interface AppDfaClusterCapacity {
   worker_count: number;
+  healthy_workers?: number;
+  stale_workers?: number;
   total_capacity: number;
   running_jobs: number;
   queued_jobs: number;

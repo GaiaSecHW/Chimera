@@ -2759,6 +2759,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             onChange={(event) => updateStrategyStageEnabled(stageName, event.target.checked)}
                           />
                         </div>
+                        <div className="mt-4 grid gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-slate-400">开始时间</span>
+                            <span className="font-mono text-right text-slate-700">{fmt(summary?.started_at)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-slate-400">结束时间</span>
+                            <span className="font-mono text-right text-slate-700">{fmt(summary?.finished_at)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-slate-400">耗时</span>
+                            <span className="text-right font-black text-slate-900">{durationLabel(summary?.started_at, summary?.finished_at)}</span>
+                          </div>
+                        </div>
                         <div className="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
                           {stageMessage}
                         </div>

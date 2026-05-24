@@ -76,6 +76,7 @@ const fmtSpeed = (value: number) => `${fmtSize(value)}/s`;
 const num = (value?: number | null) => Number.isFinite(value || 0) ? Number(value || 0) : 0;
 const percent = (part: number, total: number) => total > 0 ? Math.round((part / total) * 100) : 0;
 const STAGE_ITEMS_PER_PAGE = 100;
+const DELETE_STAGE_ITEM_PREVIEW_LIMIT = 8;
 
 const STAGE_PARALLELISM_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'firmware_unpack', label: '固件解包最大并行数' },
@@ -196,6 +197,13 @@ const archiveResultLabel = (archive?: BinarySecurityProjectStageAggregate['archi
   const failedCount = num(archive?.failed_count);
   if (successCount === 0 && failedCount === 0) return '暂无结果';
   return `成功 ${successCount} · 失败 ${failedCount}`;
+};
+
+const formatDeleteStageTaskIds = (stageName: string, ids: string[]) => {
+  if (ids.length === 0) return `${formatStageLabel(stageName)}：无子任务`;
+  const visibleIds = ids.slice(0, DELETE_STAGE_ITEM_PREVIEW_LIMIT);
+  const hiddenCount = Math.max(0, ids.length - visibleIds.length);
+  return `${formatStageLabel(stageName)}：${visibleIds.join(', ')}${hiddenCount > 0 ? ` 等 ${hiddenCount} 个` : ''}`;
 };
 
 const manualOperationBadgeTone = (overall?: string) => {
@@ -449,7 +457,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         }
         const stageLines = (detail.stage_sequence || stages).map((stageName) => {
           const ids = taskIdsByStage.get(stageName) || [];
-          return `${formatStageLabel(stageName)}：${ids.length > 0 ? ids.join(', ') : '无子任务'}`;
+          return formatDeleteStageTaskIds(stageName, ids);
         });
         deleteMessage = [
           '删除会先取消并删除所有下游阶段任务，然后删除当前任务记录并清空任务目录。删除后不可恢复，是否继续？',

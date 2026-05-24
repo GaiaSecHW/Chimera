@@ -1409,7 +1409,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
                 </div>
                 <div className="mt-1 text-xs text-slate-400">
-                  来源 {worker.source || 'lease_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
+                  来源 {worker.source || 'worker_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
                 </div>
                 {worker.error ? (
                   <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
@@ -1492,7 +1492,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                             <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
                               <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                               <span>空闲 {worker.available_slots}</span>
-                              <span>来源 {worker.source || 'lease_registry'}</span>
+                              <span>来源 {worker.source || 'worker_registry'}</span>
                               <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
                             </div>
                           </div>
