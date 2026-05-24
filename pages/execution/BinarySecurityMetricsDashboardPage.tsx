@@ -1985,6 +1985,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [aiRoleFilter, setAiRoleFilter] = useState<'all' | string>('all');
   const [selectedEntryStage, setSelectedEntryStage] = useState<'all' | 'R1' | 'R2' | 'R3' | 'R4'>('all');
   const [selectedDfaWorkerFilter, setSelectedDfaWorkerFilter] = useState<string>('');
+  const [selectedEntryWorkerFilter, setSelectedEntryWorkerFilter] = useState<string>('');
   const [reducerHistoryByService, setReducerHistoryByService] = useState<Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, []])) as Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>,
   );
@@ -2233,10 +2234,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         const hostName = row.labels.host_name || '';
         if (workerId !== selectedDfaWorkerFilter && hostName !== selectedDfaWorkerFilter) return false;
       }
+      if (activeServiceKey === 'entry-analysis' && selectedEntryWorkerFilter) {
+        const workerId = row.labels.worker_id || row.labels.worker || '';
+        const hostName = row.labels.host_name || row.labels.host || row.labels.pod_name || '';
+        if (workerId !== selectedEntryWorkerFilter && hostName !== selectedEntryWorkerFilter) return false;
+      }
       if (!keyword) return true;
       return `${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
     });
-  }, [activeServiceKey, dataflowVulnSampleScope, groupFilter, searchKeyword, selectedDfaWorkerFilter, viewModel.rows]);
+  }, [activeServiceKey, dataflowVulnSampleScope, groupFilter, searchKeyword, selectedDfaWorkerFilter, selectedEntryWorkerFilter, viewModel.rows]);
 
   const aiRows = useMemo(() => {
     const keyword = aiSearchKeyword.trim().toLowerCase();
@@ -2782,6 +2788,19 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     <div className="mt-1 font-semibold text-slate-500">{formatTime(entryWorkerDetailState.refreshedAt)}</div>
                   </div>
                 </div>
+                {selectedEntryWorkerFilter ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs text-indigo-800">
+                    <span className="font-bold">已联动筛选 Worker：</span>
+                    <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedEntryWorkerFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEntryWorkerFilter('')}
+                      className="rounded-full border border-indigo-200 bg-white px-2 py-1 font-semibold text-indigo-700 hover:bg-indigo-100"
+                    >
+                      清除筛选
+                    </button>
+                  </div>
+                ) : null}
                 {entryWorkerDetailState.loading ? (
                   <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
                     <Loader2 size={16} className="animate-spin" />
@@ -2812,9 +2831,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                         entryWorkerDetailState.data?.workers.map((worker) => (
                           <div
                             key={worker.worker_id}
+                            onClick={() => setSelectedEntryWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
                             className={`rounded-2xl border px-4 py-4 ${
                               worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/80'
-                            }`}
+                            } ${selectedEntryWorkerFilter === worker.worker_id ? 'ring-2 ring-indigo-300 ring-offset-1' : 'cursor-pointer hover:border-indigo-200'}`}
                           >
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div className="min-w-0">
@@ -2834,6 +2854,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                   <span>来源 {worker.source || 'worker_registry'}</span>
                                   <span>心跳 {worker.last_heartbeat_at ? formatTime(new Date(worker.last_heartbeat_at).getTime()) : '-'}</span>
                                 </div>
+                                <div className="mt-2 text-[11px] text-indigo-700">点击可联动过滤下方 Prometheus Samples</div>
                                 {worker.error ? <div className="mt-2 text-xs text-rose-600">{worker.error}</div> : null}
                               </div>
                             </div>
@@ -3669,6 +3690,32 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 </select>
               </div>
             </div>
+            {activeServiceKey === 'dataflow-analysis' && selectedDfaWorkerFilter ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs text-cyan-800">
+                <span className="font-bold">当前按 DFA Worker 过滤：</span>
+                <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedDfaWorkerFilter}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDfaWorkerFilter('')}
+                  className="rounded-full border border-cyan-200 bg-white px-2 py-1 font-semibold text-cyan-700 hover:bg-cyan-100"
+                >
+                  清除筛选
+                </button>
+              </div>
+            ) : null}
+            {activeServiceKey === 'entry-analysis' && selectedEntryWorkerFilter ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs text-indigo-800">
+                <span className="font-bold">当前按 Entry Worker 过滤：</span>
+                <span className="rounded-full bg-white px-2 py-1 font-mono">{selectedEntryWorkerFilter}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEntryWorkerFilter('')}
+                  className="rounded-full border border-indigo-200 bg-white px-2 py-1 font-semibold text-indigo-700 hover:bg-indigo-100"
+                >
+                  清除筛选
+                </button>
+              </div>
+            ) : null}
 
             <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
               <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
