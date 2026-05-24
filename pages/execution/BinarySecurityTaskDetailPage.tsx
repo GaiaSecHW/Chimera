@@ -209,6 +209,23 @@ const formatBinarySecurityStatus = (status?: string | null) => {
   };
   return labels[normalized] || status || '-';
 };
+
+const formatStageItemSyncStatus = (status?: string | null) => {
+  switch (status) {
+    case 'synced':
+      return '已同步';
+    case 'skipped':
+      return '已跳过';
+    case 'transport_error':
+      return '同步失败';
+    case 'pending':
+      return '待同步';
+    case 'not_applicable':
+      return '不适用';
+    default:
+      return status ? status : '-';
+  }
+};
 const normalizeDownstreamDetailError = (error: any) => {
   const message = String(error?.message || error || '').toLowerCase();
   if (message.includes('not found') || message.includes('不存在') || message.includes('404')) {
@@ -2739,8 +2756,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     const summary = stageSummaryByName.get(stageName);
                     const summaryStatus = String(summary?.status || '');
                     const stageFinished = ['success', 'partial_success', 'failed', 'cancelled', 'skipped', 'downstream_missing'].includes(summaryStatus);
-                    const stageRunning = stageName === detail.current_stage && ['running', 'dispatching', 'pending_module_confirmation'].includes(detail.status);
-                    const stageMessage = stageRunning
+                    const stageActive = ['running', 'dispatching', 'queued', 'pending', 'waiting_confirmation'].includes(summaryStatus);
+                    const stageMessage = stageActive
                       ? '运行中，本次修改仅影响后续/下次'
                       : stageFinished
                         ? '已完成，不受本次修改影响'
@@ -3543,8 +3560,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <th className="w-44 px-3 py-3">开始时间</th>
                           <th className="w-44 px-3 py-3">结束时间</th>
                           <th className="w-28 px-3 py-3">耗时</th>
-                          <th className="min-w-[180px] px-3 py-3">下游服务</th>
-                          <th className="min-w-[220px] px-3 py-3">下游任务 ID</th>
+                          <th className="w-44 px-3 py-3">上次同步时间</th>
+                          <th className="w-28 px-3 py-3">同步状态</th>
                           <th className="w-52 px-3 py-3 text-right">操作</th>
                         </tr>
                       </thead>
@@ -3605,11 +3622,21 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.started_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.finished_at)}</td>
                                 <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.last_synced_at)}</td>
                                 <td className="px-3 py-3">
-                                  <div className="break-all font-mono text-[11px] text-slate-600">{item.downstream_service || '-'}</div>
-                                </td>
-                                <td className="px-3 py-3">
-                                  <div className="break-all font-mono text-[11px] text-slate-600">{item.downstream_task_id || '-'}</div>
+                                  <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(
+                                    item.sync_status === 'transport_error'
+                                      ? 'failed'
+                                      : item.sync_status === 'synced'
+                                        ? 'success'
+                                        : item.sync_status === 'skipped'
+                                          ? 'cancelled'
+                                          : item.sync_status === 'pending'
+                                            ? 'pending'
+                                            : 'queued'
+                                  )}`}>
+                                    {formatStageItemSyncStatus(item.sync_status)}
+                                  </span>
                                 </td>
                                 <td className="px-3 py-3">
                                   <div className="flex flex-wrap items-center justify-end gap-2">

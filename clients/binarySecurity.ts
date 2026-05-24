@@ -217,6 +217,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     result: Record<string, any>;
     error_message?: string | null;
     abnormal_reason?: BinarySecurityAbnormalReason | null;
+    sync_status?: string | null;
+    last_synced_at?: string | null;
     started_at?: string | null;
     finished_at?: string | null;
   }>;
