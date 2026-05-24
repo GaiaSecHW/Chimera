@@ -2485,6 +2485,10 @@ export interface AppSaTaskDetail extends AppSaTaskItem {
   effective_config_json?: { analyse_targets?: string[]; binary_arch?: string[]; security_focus_categories?: string[]; module_granularity?: string; filter_engine?: 'script' | 'agent'; enable_final_check?: boolean; continue_on_module_failure?: boolean } | null;
   /** 每个字段的来源："task" = 任务级覆盖，"project" = 项目默认 */
   effective_config_source?: { analyse_targets?: 'task' | 'project'; binary_arch?: 'task' | 'project'; security_focus_categories?: 'task' | 'project'; module_granularity?: 'task' | 'project'; filter_engine?: 'task' | 'project'; enable_final_check?: 'task' | 'project'; continue_on_module_failure?: 'task' | 'project' } | null;
+  task_root?: string | null;
+  run_root?: string | null;
+  workspace_root?: string | null;
+  output_root?: string | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 
@@ -2888,6 +2892,11 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   stages_json?: AppEaStagesJson | null;
   task_config_json?: Record<string, any> | null;
   function_catalog?: AppEaFunctionCatalogItem[] | null;
+  task_root?: string | null;
+  run_root?: string | null;
+  workspace_root?: string | null;
+  input_summary?: Record<string, any> | null;
+  output_summary?: Record<string, any> | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 
@@ -3147,6 +3156,11 @@ export interface AppDfaClusterCapacity {
 export interface AppDfaTaskDetail extends AppDfaTaskItem {
   prompt_content: string;
   result_json?: Record<string, any> | null;
+  task_root?: string | null;
+  run_root?: string | null;
+  workspace_root?: string | null;
+  input_summary?: Record<string, any> | null;
+  output_summary?: Record<string, any> | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 

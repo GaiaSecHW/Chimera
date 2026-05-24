@@ -1,10 +1,12 @@
 import React from 'react';
+import { ExternalLink } from 'lucide-react';
 
 import {
   AppDfaTaskDetail,
   AppEaTaskDetail,
   AppSaTaskDetail,
 } from '../../types/types';
+import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 
 const ANALYSE_TARGET_LABELS: Record<string, string> = {
   all: '全部文件',
@@ -99,6 +101,56 @@ function formatBool(value: unknown, trueLabel = '开启', falseLabel = '关闭')
   return value ? trueLabel : falseLabel;
 }
 
+function normalizeProjectFileExplorerPath(path: string, projectId?: string | null): string {
+  const normalizedPath = String(path || '').trim();
+  if (!normalizedPath) return '';
+  const normalizedProjectId = String(projectId || '').trim();
+  const projectRoot = normalizedProjectId ? `/data/files/${normalizedProjectId}` : '';
+  if (projectRoot && normalizedPath.startsWith(projectRoot)) {
+    const relativePath = normalizedPath.slice(projectRoot.length).replace(/\/+$/, '');
+    if (!relativePath) return '/';
+    return relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+  }
+  return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+}
+
+function buildProjectFileExplorerUrl(fsPath: string, projectId?: string | null): string {
+  return `#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`;
+}
+
+function safeJoinPath(basePath?: string | null, ...segments: Array<string | null | undefined>): string | null {
+  const base = String(basePath || '').trim().replace(/\/+$/, '');
+  if (!base) return null;
+  const suffix = segments
+    .map((segment) => String(segment || '').trim())
+    .filter(Boolean)
+    .map((segment) => segment.replace(/^\/+/, '').replace(/\/+$/, ''));
+  return [base, ...suffix].join('/');
+}
+
+const ProjectDirectoryValue: React.FC<{ path?: string | null; projectId?: string | null }> = ({ path, projectId }) => {
+  const normalizedPath = String(path || '').trim();
+  if (!normalizedPath) return <>-</>;
+  const explorerPath = normalizeProjectFileExplorerPath(normalizedPath, projectId);
+  const showRawPath = explorerPath !== normalizedPath;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0">
+        <div className="break-all font-mono text-xs">{explorerPath}</div>
+        {showRawPath ? <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{normalizedPath}</div> : null}
+      </div>
+      <button
+        type="button"
+        onClick={() => window.open(buildProjectFileExplorerUrl(normalizedPath, projectId), '_blank', 'noopener,noreferrer')}
+        className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50"
+      >
+        <ExternalLink size={11} />
+        项目文件
+      </button>
+    </div>
+  );
+};
+
 const JsonPreview: React.FC<{ value: unknown; emptyText?: string }> = ({ value, emptyText = '无 task_config_json 内容' }) => {
   const hasValue = value != null
     && ((Array.isArray(value) && value.length > 0)
@@ -115,28 +167,104 @@ const JsonPreview: React.FC<{ value: unknown; emptyText?: string }> = ({ value, 
   );
 };
 
+const taskOriginLabel = (detail: { origin_label?: string | null; task_origin_type?: string | null }) =>
+  detail.origin_label || detail.task_origin_type || '-';
+
+const TaskIdentitySection: React.FC<{
+  taskId: string;
+  projectId?: string | null;
+  taskOriginType?: string | null;
+  originLabel?: string | null;
+  parentTaskId?: string | null;
+  parentTaskType?: string | null;
+  parentStageName?: string | null;
+  extraRows?: Array<{ label: string; value: React.ReactNode }>;
+}> = ({ taskId, projectId, taskOriginType, originLabel, parentTaskId, parentTaskType, parentStageName, extraRows = [] }) => (
+  <SectionCard title="任务标识">
+    <div className="divide-y divide-slate-100">
+      <ConfigRow label="任务 ID"><span className="break-all font-mono text-xs">{taskId}</span></ConfigRow>
+      <Divider />
+      <ConfigRow label="项目 ID"><span className="break-all font-mono text-xs">{projectId || '-'}</span></ConfigRow>
+      <Divider />
+      <ConfigRow label="来源">{originLabel || taskOriginType || '-'}</ConfigRow>
+      <Divider />
+      <ConfigRow label="父任务"><span className="break-all font-mono text-xs">{parentTaskId || '-'}</span></ConfigRow>
+      <Divider />
+      <ConfigRow label="父任务类型">{parentTaskType || '-'}</ConfigRow>
+      <Divider />
+      <ConfigRow label="父阶段">{parentStageName || '-'}</ConfigRow>
+      {extraRows.map((row, index) => (
+        <React.Fragment key={`${row.label}-${index}`}>
+          <Divider />
+          <ConfigRow label={row.label}>{row.value}</ConfigRow>
+        </React.Fragment>
+      ))}
+    </div>
+  </SectionCard>
+);
+
+const PathSummarySection: React.FC<{
+  title: string;
+  projectId?: string | null;
+  rows: Array<{ label: string; path?: string | null; value?: React.ReactNode }>;
+}> = ({ title, projectId, rows }) => (
+  <SectionCard title={title}>
+    <div className="divide-y divide-slate-100">
+      {rows.map((row, index) => (
+        <React.Fragment key={`${row.label}-${index}`}>
+          <ConfigRow label={row.label}>
+            {row.value !== undefined ? row.value : <ProjectDirectoryValue path={row.path} projectId={projectId} />}
+          </ConfigRow>
+          {index < rows.length - 1 ? <Divider /> : null}
+        </React.Fragment>
+      ))}
+    </div>
+  </SectionCard>
+);
+
 export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }> = ({ detail }) => {
   const taskConfig = asRecord(detail.task_config_json);
-  const resolved = asRecord(taskConfig.resolved_config_snapshot);
+  const resolved = asRecord(taskConfig.resolved_config_snapshot || detail.effective_config_json);
   const hasResolved = Object.keys(resolved).length > 0;
   const overrideKeys = ['analyse_targets', 'binary_arch', 'security_focus_categories', 'module_granularity', 'filter_engine', 'enable_final_check', 'continue_on_module_failure']
     .filter((key) => taskConfig[key] !== undefined);
 
   return (
     <div className="space-y-4">
-      <SectionCard title="任务输入">
-        <div className="divide-y divide-slate-100">
-          <ConfigRow label="任务 ID"><span className="break-all font-mono text-xs">{detail.task_id}</span></ConfigRow>
-          <Divider />
-          <ConfigRow label="分析模式">{detail.analysis_mode_label || detail.analysis_mode || '-'}</ConfigRow>
-          <Divider />
-          <ConfigRow label="输入路径"><span className="break-all font-mono text-xs">{detail.input_path}</span></ConfigRow>
-          <Divider />
-          <ConfigRow label="输出路径">{detail.output_path ? <span className="break-all font-mono text-xs">{detail.output_path}</span> : '-'}</ConfigRow>
-          <Divider />
-          <ConfigRow label="Prompt 模板">{detail.prompt_template_id || '-'}</ConfigRow>
-        </div>
-      </SectionCard>
+      <TaskIdentitySection
+        taskId={detail.task_id}
+        projectId={detail.project_id}
+        taskOriginType={detail.task_origin_type}
+        originLabel={taskOriginLabel(detail)}
+        parentTaskId={detail.parent_task_id}
+        parentTaskType={detail.parent_task_type}
+        parentStageName={detail.parent_stage_name}
+        extraRows={[
+          { label: '分析模式', value: detail.analysis_mode_label || detail.analysis_mode || '-' },
+          { label: 'Prompt 模板', value: detail.prompt_template_id || '-' },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输入信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '输入路径', path: detail.input_path },
+          { label: '输出路径', path: detail.output_path },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输出信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
+          { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
+          { label: '工作目录', path: detail.workspace_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace` : null) },
+          { label: '输出目录', path: detail.output_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/output` : null) },
+          { label: '最终报告', path: detail.output_path ? `${detail.output_path}/${detail.task_id}/output/final_report.md` : null },
+        ]}
+      />
 
       <SectionCard title="任务级覆盖">
         {overrideKeys.length === 0 ? (
@@ -202,7 +330,7 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
               </>
             ) : null}
             {taskConfig.resume_workspace ? (
-              <ConfigRow label="复用工作区"><span className="break-all font-mono text-xs">{taskConfig.resume_workspace}</span></ConfigRow>
+              <ConfigRow label="复用工作区"><ProjectDirectoryValue path={taskConfig.resume_workspace} projectId={detail.project_id} /></ConfigRow>
             ) : null}
           </div>
         </SectionCard>
@@ -243,23 +371,50 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
 
 export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }> = ({ detail }) => {
   const taskConfig = asRecord(detail.task_config_json);
+  const outputSummary = asRecord(detail.output_summary);
+  const inputSummary = asRecord(detail.input_summary);
+  const filesListPath = String(inputSummary.files_list_path || '').trim()
+    || safeJoinPath(inputSummary.module_root || detail.input_path, 'files.list')
+    || null;
   return (
     <div className="space-y-4">
-      <SectionCard title="任务输入">
-        <div className="divide-y divide-slate-100">
-          <ConfigRow label="任务 ID"><span className="break-all font-mono text-xs">{detail.task_id}</span></ConfigRow>
-          <Divider />
-          <ConfigRow label="模块目录"><span className="break-all font-mono text-xs">{detail.input_path}</span></ConfigRow>
-          <Divider />
-          <ConfigRow label="分析模块">{detail.module_name || '-'}</ConfigRow>
-          <Divider />
-          <ConfigRow label="源码目录">{detail.source_path ? <span className="break-all font-mono text-xs">{detail.source_path}</span> : '-'}</ConfigRow>
-          <Divider />
-          <ConfigRow label="输出路径">{detail.output_path ? <span className="break-all font-mono text-xs">{detail.output_path}</span> : '-'}</ConfigRow>
-          <Divider />
-          <ConfigRow label="Prompt 模板">{detail.prompt_template_id || '-'}</ConfigRow>
-        </div>
-      </SectionCard>
+      <TaskIdentitySection
+        taskId={detail.task_id}
+        projectId={detail.project_id}
+        taskOriginType={detail.task_origin_type}
+        originLabel={taskOriginLabel(detail)}
+        parentTaskId={detail.parent_task_id}
+        parentTaskType={detail.parent_task_type}
+        parentStageName={detail.parent_stage_name}
+        extraRows={[
+          { label: '分析模块', value: detail.module_name || '-' },
+          { label: 'Prompt 模板', value: detail.prompt_template_id || '-' },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输入信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '模块目录', path: detail.input_path },
+          { label: '源码目录', path: detail.source_path },
+          { label: '模块文件清单', path: filesListPath },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输出信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
+          { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
+          { label: '工作目录', path: detail.workspace_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace` : null) },
+          { label: 'R1-functions', path: outputSummary.r1_functions_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r1-functions` : null) },
+          { label: 'R3-entries', path: outputSummary.r3_entries_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r3-entries` : null) },
+          { label: 'R4-module', path: outputSummary.r4_module_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r4-module` : null) },
+          { label: '报告目录', path: outputSummary.report_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/report` : null) },
+        ]}
+      />
 
       <SectionCard title="任务级配置">
         {Object.keys(taskConfig).length === 0 ? (
@@ -267,9 +422,23 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         ) : (
           <div className="divide-y divide-slate-100">
             {taskConfig.resume_task_id !== undefined ? (
-              <ConfigRow label="断点续跑来源任务"><span className="break-all font-mono text-xs">{taskConfig.resume_task_id || '-'}</span></ConfigRow>
+              <>
+                <ConfigRow label="断点续跑来源任务"><span className="break-all font-mono text-xs">{taskConfig.resume_task_id || '-'}</span></ConfigRow>
+                <Divider />
+              </>
+            ) : null}
+            {taskConfig.resume_stage !== undefined ? (
+              <>
+                <ConfigRow label="续跑阶段">{String(taskConfig.resume_stage || '-')}</ConfigRow>
+                <Divider />
+              </>
+            ) : null}
+            {taskConfig.resume_workspace !== undefined ? (
+              <ConfigRow label="复用工作区"><ProjectDirectoryValue path={taskConfig.resume_workspace} projectId={detail.project_id} /></ConfigRow>
             ) : (
-              <EmptyState text="当前任务的 task_config_json 中没有可识别的显式字段。" />
+              taskConfig.resume_task_id === undefined
+                ? <EmptyState text="当前任务的 task_config_json 中没有可识别的显式字段。" />
+                : null
             )}
           </div>
         )}
@@ -284,19 +453,46 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
 
 export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetail }> = ({ detail }) => {
   const taskConfig = asRecord(detail.task_config_json);
+  const inputSummary = asRecord(detail.input_summary);
+  const outputSummary = asRecord(detail.output_summary);
   return (
     <div className="space-y-4">
-      <SectionCard title="任务输入">
-        <div className="divide-y divide-slate-100">
-          <ConfigRow label="任务 ID"><span className="break-all font-mono text-xs">{detail.task_id}</span></ConfigRow>
-          <Divider />
-          <ConfigRow label="输入路径"><span className="break-all font-mono text-xs">{detail.input_path}</span></ConfigRow>
-          <Divider />
-          <ConfigRow label="输出路径">{detail.output_path ? <span className="break-all font-mono text-xs">{detail.output_path}</span> : '-'}</ConfigRow>
-          <Divider />
-          <ConfigRow label="Prompt 模板">{detail.prompt_template_id || '-'}</ConfigRow>
-        </div>
-      </SectionCard>
+      <TaskIdentitySection
+        taskId={detail.task_id}
+        projectId={detail.project_id}
+        taskOriginType={detail.task_origin_type}
+        originLabel={taskOriginLabel(detail)}
+        parentTaskId={detail.parent_task_id}
+        parentTaskType={detail.parent_task_type}
+        parentStageName={detail.parent_stage_name}
+        extraRows={[
+          { label: 'Prompt 模板', value: detail.prompt_template_id || '-' },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输入信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '输入路径', path: detail.input_path },
+          { label: '输入工作区', path: inputSummary.workspace_root || inputSummary.workspace_dir },
+          { label: '源码文件', value: taskConfig.source_file ? <span className="break-all font-mono text-xs">{taskConfig.source_file}</span> : '-' },
+          { label: '函数名', value: taskConfig.function_name || '-' },
+          { label: '行号提示', value: taskConfig.line_hint || '-' },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输出信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
+          { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
+          { label: '最新工作区', path: detail.workspace_root || outputSummary.latest_workspace_root },
+          { label: '结果文件', path: outputSummary.result_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/result.json` : null) },
+          { label: '数据流输出', path: outputSummary.dataflow_output_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/output/dataflow` : null) },
+        ]}
+      />
 
       <SectionCard title="任务级配置">
         {Object.keys(taskConfig).length === 0 ? (
@@ -327,6 +523,18 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
                 <Divider />
               </>
             ) : null}
+            {taskConfig.function_description !== undefined ? (
+              <>
+                <ConfigRow label="函数描述">{taskConfig.function_description || '-'}</ConfigRow>
+                <Divider />
+              </>
+            ) : null}
+            {taskConfig.entry_reason !== undefined ? (
+              <>
+                <ConfigRow label="入口原因">{taskConfig.entry_reason || '-'}</ConfigRow>
+                <Divider />
+              </>
+            ) : null}
             {taskConfig.start_stage !== undefined ? (
               <>
                 <ConfigRow label="起始阶段">{`Stage ${taskConfig.start_stage}`}</ConfigRow>
@@ -335,7 +543,7 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
             ) : null}
             {taskConfig.resume_workspace !== undefined ? (
               <>
-                <ConfigRow label="复用工作区"><span className="break-all font-mono text-xs">{taskConfig.resume_workspace || '-'}</span></ConfigRow>
+                <ConfigRow label="复用工作区"><ProjectDirectoryValue path={taskConfig.resume_workspace} projectId={detail.project_id} /></ConfigRow>
                 <Divider />
               </>
             ) : null}
@@ -348,6 +556,62 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
 
       <SectionCard title="原始任务配置 JSON">
         <JsonPreview value={detail.task_config_json} />
+      </SectionCard>
+
+      <SectionCard title="原始输入输出摘要">
+        <JsonPreview value={{ input_summary: detail.input_summary, output_summary: detail.output_summary }} emptyText="当前任务没有输入输出摘要。" />
+      </SectionCard>
+    </div>
+  );
+};
+
+export const FirmwareUnpackerTaskConfigPanel: React.FC<{ detail: FirmwareUnpackTask }> = ({ detail }) => {
+  const inputSummary = asRecord(detail.input_summary);
+  const outputSummary = asRecord(detail.output_summary);
+  return (
+    <div className="space-y-4">
+      <TaskIdentitySection
+        taskId={detail.id}
+        projectId={detail.project_id}
+        taskOriginType={detail.task_origin_type}
+        originLabel={taskOriginLabel(detail)}
+        parentTaskId={detail.parent_task_id}
+        parentTaskType={detail.parent_task_type}
+        parentStageName={detail.parent_stage_name}
+        extraRows={[
+          { label: '当前状态', value: detail.status || '-' },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输入信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '固件文件', path: detail.firmware_path },
+          { label: '输入目录', path: detail.input_path },
+          { label: '输入摘要固件路径', path: inputSummary.firmware_path },
+        ]}
+      />
+
+      <PathSummarySection
+        title="输出信息"
+        projectId={detail.project_id}
+        rows={[
+          { label: '任务目录', path: detail.task_root },
+          { label: '输出目录', path: detail.output_path },
+          { label: '运行目录', path: detail.run_path || detail.run_root },
+          { label: '工作目录', path: detail.workspace_root || outputSummary.workspace_root },
+          { label: '归档目录', path: detail.archive_root },
+          { label: '运行时目录', path: detail.runtime_root },
+        ]}
+      />
+
+      <SectionCard title="任务上下文">
+        <JsonPreview value={detail.task_metadata} emptyText="当前任务没有额外 task metadata。" />
+      </SectionCard>
+
+      <SectionCard title="原始输入输出摘要">
+        <JsonPreview value={{ input_summary: detail.input_summary, output_summary: detail.output_summary }} emptyText="当前任务没有输入输出摘要。" />
       </SectionCard>
     </div>
   );

@@ -245,6 +245,38 @@ export interface B2SOverallProgress {
   phase_summary?: Record<string, number>;
 }
 
+export interface B2SPhaseTiming {
+  phase: string;
+  phase_label: string;
+  current_items: number;
+  completed_items: number;
+  started_at?: string | null;
+  finished_at?: string | null;
+  duration_ms?: number | null;
+  is_active: boolean;
+  is_completed: boolean;
+}
+
+export interface B2SPhaseObservabilityMetric {
+  key: string;
+  label: string;
+  value: string;
+  tone: string;
+}
+
+export interface B2SItemPhaseObservability {
+  phase: string;
+  phase_label: string;
+  current_items: number;
+  completed_items: number;
+  started_at?: string | null;
+  finished_at?: string | null;
+  duration_ms?: number | null;
+  is_active: boolean;
+  is_completed: boolean;
+  metrics: B2SPhaseObservabilityMetric[];
+}
+
 export interface B2SAdvancedFile {
   name: string;
   path: string;
@@ -572,6 +604,7 @@ export interface B2STaskObservabilityItem {
   issue_total: number;
   issue_resolved: number;
   issue_remaining: number;
+  phase_observability?: B2SItemPhaseObservability[];
 }
 
 export interface B2SBatchObservabilityRow {
@@ -819,12 +852,12 @@ export interface B2STaskRelationship {
 
 export interface B2STaskDetail extends B2STask {
   overall_progress?: B2SOverallProgress;
+  phase_timings?: B2SPhaseTiming[];
   task_config_snapshot?: B2STaskConfigSnapshot;
   effective_llm_provider?: B2SLlmProviderSummary | null;
   agent_runtime_summary?: B2SAgentRuntimeSummary | null;
   agent_session_runtime_summary?: B2SAgentSessionRuntimeSummary | null;
   result_summary?: B2STaskResultSummary | null;
-  observability_summary?: B2STaskObservability | null;
   event_summary?: B2STaskEventSummary | null;
   items: Array<{
     id: string;
@@ -843,6 +876,7 @@ export interface B2STaskDetail extends B2STask {
     generated_files: string[];
     started_at?: string;
     finished_at?: string;
+    phase_observability?: B2SItemPhaseObservability[];
   }>;
 }
 
@@ -1097,6 +1131,13 @@ export const binaryToSourceApi = {
 
   getTaskObservability: async (projectId: string, taskId: string): Promise<B2STaskObservability> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/observability`, {
+      headers: getHeaders(),
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskItemObservability: async (projectId: string, taskId: string, itemId: string): Promise<B2STaskObservability> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/${taskId}/items/${itemId}/observability`, {
       headers: getHeaders(),
     });
     return handleResponse(resp);

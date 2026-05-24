@@ -83,8 +83,9 @@ function extractFsRelPath(outputPath: string, projectId: string): string | null 
 }
 
 function openInFileExplorer(fsPath: string) {
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: fsPath } }));
+  const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
+  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function getTaskMode(task: Pick<AppEaTaskItem, 'task_origin_type' | 'parent_task_type'>): 'manual' | 'binary' | 'source' {

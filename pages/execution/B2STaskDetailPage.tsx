@@ -60,9 +60,9 @@ import {
   pct,
 } from './b2sPresentation';
 import { DownstreamTaskCreator } from './DownstreamTaskCreator';
-import { ReviewEffectivenessPanel } from './b2s-advanced/ReviewEffectivenessPanel';
-import { B2SBatchObservabilityTable, B2SBatchTableRowAction } from './b2s-observability/B2SBatchObservabilityTable';
-import { B2SBatchSummaryCards, buildBatchSummaryCardItems } from './b2s-observability/B2SBatchSummaryCards';
+import { B2SBatchTableRowAction } from './b2s-observability/B2SBatchObservabilityTable';
+import { MetricTile, SectionCard } from './b2s-observability/B2SCommonCards';
+import { B2SItemObservabilityView } from './b2s-observability/B2SItemObservabilityView';
 import { B2SSessionPreview } from './b2s-detail/B2SSessionPreview';
 import { AgentSessionViewer } from './AgentSessionViewer';
 import { AgentSessionWarningPanel } from './AgentSessionWarningPanel';
@@ -89,7 +89,6 @@ type B2SItem = B2STaskDetail['items'][number];
 type DetailTab = 'overview' | 'run-config' | 'timeline' | 'session' | 'relationship' | 'result' | 'evaluation';
 type ItemFilter = '__all__' | string;
 type BatchStatusFilter = '__all__' | 'running' | 'failed' | 'passed' | 'partial' | 'pending' | 'unknown';
-type BatchScopeFilter = 'all' | 'running' | 'failed' | 'current-item';
 type BatchSortKey = 'sequence' | 'batch' | 'attempts' | 'duration';
 
 const PHASE_ORDER = ['queued', 'ida', 'batching', 'header', 'body', 'merge', 'completed'];
@@ -101,6 +100,16 @@ const PHASE_LABELS: Record<string, string> = {
   body: '函数体还原',
   merge: '合并输出',
   completed: '完成',
+};
+
+const PHASE_PANEL_DESCRIPTIONS: Record<string, string> = {
+  queued: '任务项进入调度队列后的等待与派发观测。',
+  ida: '二进制静态分析、反汇编与入口识别阶段观测。',
+  batching: '函数切分与 batch 规划阶段观测。',
+  header: '头文件与共享声明恢复阶段观测。',
+  body: '函数体还原阶段观测，按当前 ELF Item 的 batch 展示。',
+  merge: '源码合并、收口和最终输出阶段观测。',
+  completed: '最终完成态与结果收口摘要。',
 };
 
 const EMPTY_BATCH_SUMMARY: B2SBatchObservabilitySummary = {
@@ -169,6 +178,24 @@ const summarizeBatchRows = (rows: B2SBatchObservabilityRow[]): B2SBatchObservabi
   counts.active_batch_count = counts.running_batches;
   counts.avg_attempts_per_batch = Number((rows.reduce((sum, row) => sum + (row.attempt_count || 0), 0) / rows.length).toFixed(2));
   return counts;
+};
+
+const phaseProgressState = (item: B2SItem | null, phase: string) => {
+  if (!item) return { current: 0, passed: 0, isCurrent: false, isPassed: false };
+  if (phase === 'completed') {
+    const passed = B2S_TERMINAL_STATUSES.has(item.status) ? 1 : 0;
+    return { current: 0, passed, isCurrent: false, isPassed: passed === 1 };
+  }
+  const phaseIndex = PHASE_ORDER.indexOf(phase);
+  const currentIndex = PHASE_ORDER.indexOf(item.phase || '');
+  const isCurrent = item.status === 'running' && item.phase === phase;
+  const isPassed = phaseIndex >= 0 && currentIndex > phaseIndex;
+  return {
+    current: isCurrent ? 1 : 0,
+    passed: isPassed ? 1 : 0,
+    isCurrent,
+    isPassed,
+  };
 };
 
 const failureSuggestion = (item: B2SItem) => {
@@ -344,10 +371,11 @@ const formatTimelineEventTypeLabel = (eventType?: string | null) => {
     worker_assigned: '分配 Worker',
     item_status_changed: '任务项状态变更',
     phase_changed: '阶段切换',
-    batch_started: 'Batch 开始',
-    batch_attempt_started: 'Batch Attempt 开始',
-    function_progress: '函数推进',
-    batch_completed: 'Batch 完成',
+    body_batch_started: 'Batch 函数体开始',
+    body_batch_finished: 'Batch 函数体结束',
+    batch_attempt_started: 'Batch Attempt',
+    function_progress: '函数还原中',
+    batch_progress_updated: '累计批次进度',
     progress_snapshot_synced: '进度快照同步',
     runtime_metrics_updated: '运行指标更新',
     runtime_metrics_missing: '运行指标缺失',
@@ -394,50 +422,6 @@ const timelinePayloadRows = (payload: Record<string, any>) => {
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => ({ key, label: key.replace(/_/g, ' '), value: formatTimelinePayloadValue(value) }));
 };
-
-const tileTone = (tone: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet' = 'slate') => {
-  const map = {
-    slate: 'border-slate-200 bg-slate-50/90 text-slate-900',
-    blue: 'border-blue-100 bg-blue-50/90 text-blue-900',
-    emerald: 'border-emerald-100 bg-emerald-50/90 text-emerald-900',
-    rose: 'border-rose-100 bg-rose-50/90 text-rose-900',
-    amber: 'border-amber-100 bg-amber-50/90 text-amber-900',
-    violet: 'border-violet-100 bg-violet-50/90 text-violet-900',
-  } as const;
-  return map[tone];
-};
-
-const MetricTile: React.FC<{
-  label: string;
-  value: string | number;
-  hint?: string;
-  tone?: 'slate' | 'blue' | 'emerald' | 'rose' | 'amber' | 'violet';
-  icon?: React.ReactNode;
-}> = ({ label, value, hint, tone = 'slate', icon }) => (
-  <div className={`min-w-0 rounded-xl border px-3 py-2.5 ${tileTone(tone)}`}>
-    <div className="flex items-start justify-between gap-2">
-      <div className="min-w-0">
-        <div className="text-[10px] font-black uppercase tracking-[0.14em] opacity-60">{label}</div>
-        <div className="mt-0.5 break-words text-xl font-black tracking-tight">{value}</div>
-      </div>
-      {icon ? <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/70">{icon}</div> : null}
-    </div>
-    {hint ? <div className="mt-1 truncate text-[11px] font-semibold opacity-70" title={hint}>{hint}</div> : null}
-  </div>
-);
-
-const SectionCard: React.FC<{ title: string; description?: string; children: React.ReactNode; right?: React.ReactNode }> = ({ title, description, children, right }) => (
-  <section className="rounded-[1.25rem] border border-slate-200 bg-white p-4 shadow-sm">
-    <div className="flex flex-col gap-1.5 border-b border-slate-100 pb-3 md:flex-row md:items-end md:justify-between">
-      <div>
-        <h2 className="text-base font-black text-slate-900">{title}</h2>
-        {description ? <p className="mt-0.5 text-[11px] text-slate-500">{description}</p> : null}
-      </div>
-      {right}
-    </div>
-    <div className="mt-3">{children}</div>
-  </section>
-);
 
 const TimelinePayloadBlock: React.FC<{ payload: Record<string, any> }> = ({ payload }) => {
   const rows = timelinePayloadRows(payload);
@@ -519,7 +503,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [clockNow, setClockNow] = useState(Date.now());
   const [selectedItemId, setSelectedItemId] = useState<ItemFilter>('__all__');
   const [batchStatusFilter, setBatchStatusFilter] = useState<BatchStatusFilter>('__all__');
-  const [batchScopeFilter, setBatchScopeFilter] = useState<BatchScopeFilter>('all');
   const [batchSortKey, setBatchSortKey] = useState<BatchSortKey>('sequence');
   const [timeline, setTimeline] = useState<B2STaskEvent[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
@@ -553,7 +536,6 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const [deleting, setDeleting] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
   const sessionLineCountRef = useRef(0);
-  const itemBatchSectionRef = useRef<HTMLDivElement | null>(null);
 
   const selectedItem = useSelectedItem(detail, selectedItemId);
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
@@ -604,13 +586,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const loadObservability = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
     try {
-      setObservability(await executionApi.getTaskObservability(projectId, taskId));
+      if (!options?.silent) setObservability(null);
+      const payload = selectedItemId !== '__all__'
+        ? await executionApi.getTaskItemObservability(projectId, taskId, selectedItemId)
+        : await executionApi.getTaskObservability(projectId, taskId);
+      setObservability(payload);
     } catch (e: any) {
       if (!options?.silent) {
         setError(e?.message || '加载观测指标失败');
       }
     }
-  }, [executionApi, projectId, taskId]);
+  }, [executionApi, projectId, selectedItemId, taskId]);
 
   const loadTimeline = useCallback(async (options?: { silent?: boolean }) => {
     if (!projectId || !taskId) return;
@@ -847,6 +833,12 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
     if ((activeTab === 'overview' || activeTab === 'session') && !sessionRuntime) void loadSessionRuntime();
     if (activeTab === 'relationship' && !relationship) void loadRelationship();
   }, [activeTab, loadObservability, loadRelationship, loadResult, loadSessionRuntime, loadSessions, loadTimeline, observability, relationship, result, sessionRuntime, sessions, timeline.length]);
+
+  useEffect(() => {
+    if (activeTab !== 'evaluation') return;
+    setObservability(null);
+    void loadObservability({ silent: true });
+  }, [activeTab, loadObservability, selectedItemId]);
 
   useEffect(() => {
     if (!isTaskRunning) return undefined;
@@ -1187,7 +1179,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   const progressBasisLabel = formatB2SOverallProgressBasis(overall?.percent_basis);
   const progressSummaryLabel = formatB2SOverallProgressSummary(overall);
   const resultSummary = detail?.result_summary || result;
-  const observabilitySummary = detail?.observability_summary || observability;
+  const observabilitySummary = observability;
   const runtimeSummary = sessionRuntime?.summary || detail?.agent_session_runtime_summary || null;
   const activeAgentSessions = sessionRuntime?.sessions?.length
     ? sessionRuntime.sessions.filter((entry) => entry.is_active || entry.is_current || entry.is_orphan).slice(0, 24)
@@ -1203,37 +1195,26 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   }, [relationship?.edges, relationshipNodes]);
   const selectedArtifact = itemArtifacts?.artifacts.find((artifact) => artifact.id === selectedArtifactId) || null;
   const selectedItemResultSummary = resultSummary?.items.find((item) => item.item_id === selectedItem?.id) || null;
-  const taskBatchSummary = observabilitySummary?.batch_summary || EMPTY_BATCH_SUMMARY;
   const taskBatchRows = observabilitySummary?.batches || [];
-  const batchItemOptions = useMemo(() => {
-    return Array.from(new Map(taskBatchRows.map((row) => [row.item_id, { item_id: row.item_id, sequence_no: row.sequence_no, item_name: row.item_name }])).values())
-      .sort((left, right) => left.sequence_no - right.sequence_no);
-  }, [taskBatchRows]);
-  const filteredTaskBatchRows = useMemo(() => {
-    const sorted = taskBatchRows.filter((row) => {
-      if (batchScopeFilter === 'running' && row.status !== 'running') return false;
-      if (batchScopeFilter === 'failed' && row.status !== 'failed') return false;
-      if (batchScopeFilter === 'current-item' && selectedItemId !== '__all__' && row.item_id !== selectedItemId) return false;
-      if (batchScopeFilter === 'current-item' && selectedItemId === '__all__') return false;
-      if (batchStatusFilter !== '__all__' && row.status !== batchStatusFilter) return false;
-      return true;
-    }).slice();
-    sorted.sort((left, right) => {
-      if (batchSortKey === 'batch') return left.batch_no - right.batch_no || left.sequence_no - right.sequence_no;
-      if (batchSortKey === 'attempts') return (right.attempt_count || 0) - (left.attempt_count || 0) || left.sequence_no - right.sequence_no;
-      if (batchSortKey === 'duration') return (right.duration_ms || 0) - (left.duration_ms || 0) || left.sequence_no - right.sequence_no;
-      return left.sequence_no - right.sequence_no || left.batch_no - right.batch_no;
-    });
-    return sorted;
-  }, [batchScopeFilter, batchSortKey, batchStatusFilter, selectedItemId, taskBatchRows]);
   const currentItemBatchRows = useMemo(() => {
     if (!selectedItem) return [];
-    return taskBatchRows
+    const rows = taskBatchRows
       .filter((row) => row.item_id === selectedItem.id)
-      .slice()
-      .sort((left, right) => left.batch_no - right.batch_no);
-  }, [selectedItem, taskBatchRows]);
+      .filter((row) => batchStatusFilter === '__all__' || row.status === batchStatusFilter)
+      .slice();
+    rows.sort((left, right) => {
+      if (batchSortKey === 'batch') return left.batch_no - right.batch_no;
+      if (batchSortKey === 'attempts') return (right.attempt_count || 0) - (left.attempt_count || 0) || left.batch_no - right.batch_no;
+      if (batchSortKey === 'duration') return (right.duration_ms || 0) - (left.duration_ms || 0) || left.batch_no - right.batch_no;
+      return left.batch_no - right.batch_no;
+    });
+    return rows;
+  }, [batchSortKey, batchStatusFilter, selectedItem, taskBatchRows]);
   const currentItemBatchSummary = useMemo(() => summarizeBatchRows(currentItemBatchRows), [currentItemBatchRows]);
+  const selectedObservabilityItem = useMemo(() => {
+    if (!selectedItem || !observabilitySummary?.items?.length) return null;
+    return observabilitySummary.items.find((item) => item.item_id === selectedItem.id) || null;
+  }, [observabilitySummary?.items, selectedItem]);
 
   const summaryLine = observabilitySummary
     ? `${observabilitySummary.total_review_attempts}/${observabilitySummary.avg_quality_score || 0}/${observabilitySummary.issue_remaining}`
@@ -1248,22 +1229,17 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         clockNow,
       )
     : '-';
+  const phaseTimings = detail?.phase_timings || [];
 
   const handleBatchRowAction = (action: B2SBatchTableRowAction) => {
     if (action.type === 'open-advanced') {
       if (onOpenAdvanced) onOpenAdvanced(action.row.item_id);
       return;
     }
-    if (action.row.item_id !== selectedItemId) {
-      setSelectedItemId(action.row.item_id);
-    }
     if (action.type === 'open-session') {
       setActiveTab('session');
       return;
     }
-    window.setTimeout(() => {
-      itemBatchSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 40);
   };
 
   if (!taskId) {
@@ -1278,20 +1254,20 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         right={<div className="text-xs font-black text-slate-500">任务进度 {progressSummaryLabel}</div>}
       >
         <div className="grid gap-2 lg:grid-cols-7">
-          {PHASE_ORDER.map((phase, index) => {
-            const count = detail?.items.filter((item) => {
-              const currentIndex = Math.max(0, PHASE_ORDER.indexOf(item.phase || 'queued'));
-              return currentIndex === index;
-            }).length || 0;
-            const completed = detail?.items.filter((item) => {
-              const currentIndex = Math.max(0, PHASE_ORDER.indexOf(item.phase || 'queued'));
-              return currentIndex > index || item.status === 'success';
-            }).length || 0;
+          {PHASE_ORDER.map((phase) => {
+            const timing = phaseTimings.find((entry) => entry.phase === phase);
+            const count = timing?.current_items || 0;
+            const completed = timing?.completed_items || 0;
             return (
               <div key={phase} className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                 <div className={`h-1.5 rounded-full ${count ? 'bg-blue-500' : completed ? 'bg-emerald-400' : 'bg-slate-200'}`} />
-                <div className="mt-2 text-sm font-black text-slate-900">{PHASE_LABELS[phase]}</div>
+                <div className="mt-2 text-sm font-black text-slate-900">{timing?.phase_label || PHASE_LABELS[phase]}</div>
                 <div className="mt-0.5 text-[11px] font-semibold text-slate-500">当前 {count} · 已过 {completed}</div>
+                <div className="mt-1.5 space-y-0.5 text-[10px] font-semibold text-slate-500">
+                  <div>开始 {timing?.started_at ? formatDateTime(timing.started_at) : '-'}</div>
+                  <div>结束 {timing?.finished_at ? formatDateTime(timing.finished_at) : timing?.is_active ? '进行中' : '-'}</div>
+                  <div>耗时 {formatDurationMs(timing?.duration_ms)}</div>
+                </div>
               </div>
             );
           })}
@@ -1647,31 +1623,85 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
         </SectionCard>
 
         <SectionCard title="输入配置" description={`当前任务共包含 ${snapshot.input_count} 个 ELF 输入。`}>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50/90 text-left text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">序号</th>
-                  <th className="px-4 py-3">ELF</th>
-                  <th className="px-4 py-3">Output Subdir</th>
-                  <th className="px-4 py-3">函数白名单</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {snapshot.input_items.map((item) => (
-                  <tr key={item.item_id}>
-                    <td className="px-3 py-2.5 text-sm font-black text-slate-900">#{item.sequence_no}</td>
-                    <td className="px-3 py-2.5">
-                      <div className="text-sm font-semibold text-slate-900">{fileNameOf(item.source_elf_path || item.elf_path)}</div>
-                      <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500" title={item.source_elf_path || item.elf_path}>{item.source_elf_path || item.elf_path}</div>
-                    </td>
-                    <td className="px-3 py-2.5 text-sm text-slate-700">{item.output_subdir || '-'}</td>
-                    <td className="px-3 py-2.5 text-sm text-slate-700">{item.file_list.length ? `${item.file_list.length} 项` : '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-3">
+            {snapshot.input_items.map((item) => {
+              const taskRoot = item.output_dir.replace(/\/+$/, '');
+              const runRoot = `${taskRoot}/run`;
+              const idaRoot = `${taskRoot}/ida`;
+              const artifactsRoot = `${taskRoot}/artifacts`;
+              return (
+                <div key={item.item_id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">#{item.sequence_no} {fileNameOf(item.source_elf_path || item.elf_path)}</div>
+                      <div className="mt-1 break-all font-mono text-[11px] text-slate-500">{item.source_elf_path || item.elf_path}</div>
+                    </div>
+                    <div className="rounded-full bg-white px-3 py-1 text-[11px] font-black text-slate-700">
+                      {item.output_subdir || '默认输出目录'}
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输入</div>
+                      <div className="mt-2 space-y-2 text-sm text-slate-700">
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">ELF 输入</div>
+                          <div className="mt-1 break-all font-mono text-[11px]">{item.elf_path}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">源 ELF</div>
+                          <div className="mt-1 break-all font-mono text-[11px]">{item.source_elf_path || '-'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">函数白名单</div>
+                          <div className="mt-1 text-[11px]">{item.file_list.length ? `${item.file_list.length} 项` : '未指定'}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">输出</div>
+                      <div className="mt-2 space-y-2 text-sm text-slate-700">
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">Item 输出目录</div>
+                          <div className="mt-1 break-all font-mono text-[11px]">{item.output_dir}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">运行目录</div>
+                          <div className="mt-1 break-all font-mono text-[11px]">{runRoot}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-slate-500">IDA / 产物目录</div>
+                          <div className="mt-1 break-all font-mono text-[11px]">{idaRoot}</div>
+                          <div className="mt-1 break-all font-mono text-[11px]">{artifactsRoot}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {item.file_list.length ? (
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">函数白名单明细</div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {item.file_list.map((entry) => (
+                          <span key={entry} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                            {entry}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
+        </SectionCard>
+
+        <SectionCard title="原始冻结配置">
+          <details>
+            <summary className="cursor-pointer text-xs text-slate-500 hover:text-slate-700">展开查看冻结配置 JSON</summary>
+            <pre className="mt-3 max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-relaxed text-slate-100 whitespace-pre-wrap">
+              {JSON.stringify(snapshot, null, 2)}
+            </pre>
+          </details>
         </SectionCard>
       </div>
     );
@@ -2073,120 +2103,32 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
   );
 
   const renderObservability = () => (
-    <div className="space-y-4">
-      <SectionCard title="观测摘要" description="任务级聚合的运行效率、评审质量和过程质量。">
-        {!observabilitySummary ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载观测指标中...</div>
-        ) : (
-          <>
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-sm font-black text-slate-800">
-              轮次/均分/残留&nbsp;&nbsp;{summaryLine}
-            </div>
-            <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-              <MetricTile label="总耗时" value={formatDurationMs(observabilitySummary.total_duration_ms)} tone="slate" icon={<Clock3 size={18} />} />
-              <MetricTile label="Batch" value={`${observabilitySummary.total_batches}/${observabilitySummary.avg_batches_per_item}`} tone="violet" icon={<Layers3 size={18} />} />
-              <MetricTile label="评审" value={`${observabilitySummary.total_review_attempts}/${observabilitySummary.avg_review_attempts}`} tone="emerald" icon={<GitBranch size={18} />} />
-              <MetricTile label="问题" value={`${observabilitySummary.issue_total}/${observabilitySummary.issue_remaining}`} tone="amber" icon={<AlertTriangle size={18} />} />
-            </div>
-            <div className="mt-2.5 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-              <MetricTile label="函数完成率" value={`${observabilitySummary.completed_functions}/${observabilitySummary.total_functions}`} tone="blue" icon={<FileCode2 size={18} />} />
-              <MetricTile label="字节完成率" value={`${formatBytes(observabilitySummary.completed_bytes)}/${formatBytes(observabilitySummary.total_bytes)}`} tone="blue" icon={<FileText size={18} />} />
-              <MetricTile label="平均置信度" value={observabilitySummary.avg_confidence} tone="emerald" icon={<Gauge size={18} />} />
-              <MetricTile label="平均质量分" value={observabilitySummary.avg_quality_score} tone="emerald" icon={<Sparkles size={18} />} />
-            </div>
-          </>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="任务级 Batch 总览"
-        description="汇总当前任务下全部 item 的 batch 结果、运行状态和统计信息。"
-        right={observabilitySummary?.batches?.length ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <select value={selectedItemId} onChange={(event) => setSelectedItemId(event.target.value as ItemFilter)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
-              <option value="__all__">全部 Item</option>
-              {batchItemOptions.map((option) => (
-                <option key={option.item_id} value={option.item_id}>#{option.sequence_no} {option.item_name}</option>
-              ))}
-            </select>
-            <select value={batchScopeFilter} onChange={(event) => setBatchScopeFilter(event.target.value as BatchScopeFilter)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
-              <option value="all">全部</option>
-              <option value="running">仅运行中</option>
-              <option value="failed">仅失败</option>
-              <option value="current-item">仅当前 Item</option>
-            </select>
-            <select value={batchStatusFilter} onChange={(event) => setBatchStatusFilter(event.target.value as BatchStatusFilter)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
-              <option value="__all__">全部状态</option>
-              <option value="running">运行中</option>
-              <option value="failed">失败</option>
-              <option value="passed">已通过</option>
-              <option value="partial">部分完成</option>
-              <option value="pending">待执行</option>
-              <option value="unknown">未知</option>
-            </select>
-            <select value={batchSortKey} onChange={(event) => setBatchSortKey(event.target.value as BatchSortKey)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
-              <option value="sequence">按 Item/Batch</option>
-              <option value="batch">按 Batch</option>
-              <option value="attempts">按 Attempt</option>
-              <option value="duration">按耗时</option>
-            </select>
-          </div>
-        ) : undefined}
-      >
-        {!observabilitySummary ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 batch 总表中...</div>
-        ) : !observabilitySummary.batches?.length ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务没有可观测 batch 结果。</div>
-        ) : (
-          <div className="space-y-3">
-            <B2SBatchSummaryCards items={buildBatchSummaryCardItems(taskBatchSummary)} />
-            <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">当前筛选 {filteredTaskBatchRows.length}/{taskBatchRows.length}</span>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1">Item {batchItemOptions.length}</span>
-              {selectedItemId !== '__all__' ? <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">当前 Item 已锁定</span> : null}
-            </div>
-            <B2SBatchObservabilityTable
-              rows={filteredTaskBatchRows}
-              showItemColumn
-              emptyText="当前筛选条件下没有 batch。"
-              onRowAction={handleBatchRowAction}
-            />
-          </div>
-        )}
-      </SectionCard>
-
-      {selectedItem ? (
-        <div ref={itemBatchSectionRef} className="space-y-4">
-          <SectionCard title={`当前 Item Batch 明细 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description="聚焦当前选中 item 的 batch 运行、评审和产物状态。">
-            {!observabilitySummary ? (
-              <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 item batch 中...</div>
-            ) : !taskBatchRows.length ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前任务没有可观测 batch 结果。</div>
-            ) : currentItemBatchRows.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">当前 item 尚未生成 batch。</div>
-            ) : (
-              <div className="space-y-3">
-                <B2SBatchSummaryCards items={buildBatchSummaryCardItems(currentItemBatchSummary)} />
-                <B2SBatchObservabilityTable
-                  rows={currentItemBatchRows}
-                  showArtifactColumn
-                  emptyText="当前 item 尚未生成 batch。"
-                  onRowAction={handleBatchRowAction}
-                />
-              </div>
-            )}
-          </SectionCard>
-
-          <SectionCard title={`Item 观测明细 · #${selectedItem.sequence_no} ${fileNameOf(selectedItem.elf_path)}`} description="直接复用现有评审效果面板。">
-            {itemAnalytics ? <ReviewEffectivenessPanel analytics={itemAnalytics} /> : <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={16} className="animate-spin" />加载 item 观测中...</div>}
-          </SectionCard>
-        </div>
-      ) : (
-        <SectionCard title="当前 Item Batch 明细" description="切换到具体 item 后可查看完整 batch 明细与评审面板。">
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">切换到具体 ELF Item 查看 batch 明细。</div>
-        </SectionCard>
+    <B2SItemObservabilityView
+      selectedItem={selectedItem}
+      selectedObservabilityItem={selectedObservabilityItem}
+      observabilitySummary={observabilitySummary}
+      currentItemBatchRows={currentItemBatchRows}
+      currentItemBatchSummary={currentItemBatchSummary}
+      batchStatusFilter={batchStatusFilter}
+      batchSortKey={batchSortKey}
+      setBatchStatusFilter={setBatchStatusFilter}
+      setBatchSortKey={setBatchSortKey}
+      handleBatchRowAction={handleBatchRowAction}
+      itemAnalytics={itemAnalytics}
+      fileNameOf={fileNameOf}
+      formatDurationMs={formatDurationMs}
+      formatDateTime={formatDateTime}
+      formatDuration={formatDuration}
+      clockNow={clockNow}
+      summaryLine={summaryLine}
+      phaseOrder={PHASE_ORDER}
+      phaseLabels={PHASE_LABELS}
+      phaseDescriptions={PHASE_PANEL_DESCRIPTIONS}
+      metricTile={MetricTile}
+      sectionCard={({ title, description, children }) => (
+        <SectionCard title={title} description={description}>{children}</SectionCard>
       )}
-    </div>
+    />
   );
 
   return (

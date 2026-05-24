@@ -3555,6 +3555,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const agentStateDirs = data.linked_task_agent_state_dirs && typeof data.linked_task_agent_state_dirs === 'object'
         ? Object.values(data.linked_task_agent_state_dirs)
         : [];
+      const linkedTaskDetail = data.linked_task_detail && typeof data.linked_task_detail === 'object' ? data.linked_task_detail : null;
+      const inputSummary = linkedTaskDetail && typeof linkedTaskDetail.input_summary === 'object' ? linkedTaskDetail.input_summary : {};
+      const outputSummary = linkedTaskDetail && typeof linkedTaskDetail.output_summary === 'object' ? linkedTaskDetail.output_summary : {};
+      const effectiveConfigSummary = linkedTaskDetail && typeof linkedTaskDetail.effective_config_summary === 'object' ? linkedTaskDetail.effective_config_summary : {};
+      const runtimeOverrides = linkedTaskDetail && typeof linkedTaskDetail.runtime_overrides === 'object' ? linkedTaskDetail.runtime_overrides : {};
+      const artifactRefs = Array.isArray(linkedTaskDetail?.artifact_refs) ? linkedTaskDetail!.artifact_refs : [];
       const rows = [
         ['Run ID', data.run_id || '-'],
         ['Task ID', data.linked_task_id || '-'],
@@ -3628,6 +3634,59 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
               <div class="text-muted" style="margin-top:8px;font-size:12px">当前关联任务未返回 agent 状态目录信息。</div>
             `}
           </div>
+        ` : ''}
+        ${linked ? `
+          <details class="run-command-block">
+            <summary class="run-command-title" style="cursor:pointer">
+              <span>任务配置</span>
+              <span>${linkedTaskDetail ? '展开查看输入/输出/配置' : '展开查看运行侧摘要'}</span>
+            </summary>
+            <div style="margin-top:12px;display:grid;gap:14px">
+              <div>
+                <div class="text-muted" style="font-size:12px;font-weight:700;margin-bottom:6px">输入信息</div>
+                <div class="task-info-grid">
+                  ${[
+                    ['workspace_dir', JSON.stringify(inputSummary.workspace_dir || {})],
+                    ['data_flow', JSON.stringify(inputSummary.data_flow || {})],
+                    ['source_dir', JSON.stringify(inputSummary.source_dir || {})],
+                    ['output_dir', JSON.stringify(inputSummary.output_dir || {})],
+                    ['data_flow_dir', String(inputSummary.data_flow_dir || '-')],
+                    ['data_flow_files', Array.isArray(inputSummary.data_flow_files) ? String(inputSummary.data_flow_files.length) : '-'],
+                  ].map(([label, value]) => `
+                    <div class="task-info-row">
+                      <span class="task-info-label">${this.esc(label)}</span>
+                      <span class="task-info-value" style="white-space:pre-wrap;word-break:break-word">${this.esc(value)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              <div>
+                <div class="text-muted" style="font-size:12px;font-weight:700;margin-bottom:6px">输出信息</div>
+                <div class="task-info-grid">
+                  ${[
+                    ['task_root', String(linkedTaskDetail?.task_root || '-')],
+                    ['run_root', String(linkedTaskDetail?.run_root || outputSummary.run_root || '-')],
+                    ['workspace_root', String(linkedTaskDetail?.workspace_root || outputSummary.workspace_root || '-')],
+                    ['output_root', String(outputSummary.output_root || '-')],
+                    ['atomic_work_path', String(outputSummary.atomic_work_path || '-')],
+                  ].map(([label, value]) => `
+                    <div class="task-info-row">
+                      <span class="task-info-label">${this.esc(label)}</span>
+                      <span class="task-info-value" style="white-space:pre-wrap;word-break:break-word">${this.esc(value)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              <div>
+                <div class="text-muted" style="font-size:12px;font-weight:700;margin-bottom:6px">运行配置摘要</div>
+                <pre class="run-command-pre" style="margin-top:0">${this.esc(JSON.stringify({
+                  effective_config_summary: effectiveConfigSummary,
+                  runtime_overrides: runtimeOverrides,
+                  artifact_refs: artifactRefs,
+                }, null, 2))}</pre>
+              </div>
+            </div>
+          </details>
         ` : ''}
         ${commandDisplay ? `
           <div class="run-command-block">

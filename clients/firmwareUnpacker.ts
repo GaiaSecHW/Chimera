@@ -62,6 +62,16 @@ export interface FirmwareUnpackTask {
   latest_evolution_started_at: string | null;
   latest_evolution_completed_at: string | null;
   latest_evolution_final_skill_path: string | null;
+  input_path?: string | null;
+  run_path?: string | null;
+  task_root?: string | null;
+  run_root?: string | null;
+  workspace_root?: string | null;
+  archive_root?: string | null;
+  runtime_root?: string | null;
+  input_summary?: Record<string, any> | null;
+  output_summary?: Record<string, any> | null;
+  task_metadata?: Record<string, any> | null;
   created_at: string | null;
   started_at: string | null;
   completed_at: string | null;
@@ -685,6 +695,16 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
     latest_evolution_started_at: asNullableString(record.latest_evolution_started_at),
     latest_evolution_completed_at: asNullableString(record.latest_evolution_completed_at),
     latest_evolution_final_skill_path: asNullableString(record.latest_evolution_final_skill_path),
+    input_path: asNullableString(record.input_path),
+    run_path: asNullableString(record.run_path),
+    task_root: asNullableString(record.task_root),
+    run_root: asNullableString(record.run_root),
+    workspace_root: asNullableString(record.workspace_root),
+    archive_root: asNullableString(record.archive_root),
+    runtime_root: asNullableString(record.runtime_root),
+    input_summary: record.input_summary && typeof record.input_summary === 'object' ? asRecord(record.input_summary) : null,
+    output_summary: record.output_summary && typeof record.output_summary === 'object' ? asRecord(record.output_summary) : null,
+    task_metadata: record.task_metadata && typeof record.task_metadata === 'object' ? asRecord(record.task_metadata) : null,
     created_at: asNullableString(record.created_at),
     started_at: asNullableString(record.started_at),
     completed_at: asNullableString(record.completed_at),

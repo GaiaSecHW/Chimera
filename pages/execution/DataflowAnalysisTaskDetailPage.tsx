@@ -86,8 +86,9 @@ function normalizeJoinPath(basePath: string, relativePath: string): string {
 }
 
 function openInFileExplorer(fsPath: string) {
-  sessionStorage.setItem('secflow:fileExplorerNavigatePath', fsPath);
-  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: fsPath } }));
+  const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
+  sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
+  window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
 }
 
 function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {

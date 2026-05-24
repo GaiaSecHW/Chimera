@@ -119,6 +119,12 @@ export interface DataflowScanTaskDetail extends DataflowScanTask {
   artifact_refs: DataflowArtifactRef[];
   runtime_overrides: Record<string, any>;
   task_metadata?: Record<string, any>;
+  input_summary?: Record<string, any>;
+  output_summary?: Record<string, any>;
+  effective_config_summary?: Record<string, any>;
+  task_root?: string | null;
+  run_root?: string | null;
+  workspace_root?: string | null;
   attempts: DataflowScanTaskAttempt[];
 }
 
@@ -287,6 +293,7 @@ export interface DataflowRunSummary {
   retry_command_display?: string | null;
   linked_task_purpose?: 'normal' | 'evolution' | null;
   linked_task_agent_state_dirs?: Record<string, DataflowAgentStateDir>;
+  linked_task_detail?: DataflowScanTaskDetail | null;
 }
 
 export interface DataflowRunSession {
@@ -355,6 +362,7 @@ export interface DataflowRunDetail extends DataflowRunSummary {
   step_history?: DataflowRunCheckpoint[];
   cycle_timing?: Record<string, any>;
   raw: Record<string, any>;
+  linked_task_detail?: DataflowScanTaskDetail | null;
 }
 
 export interface DataflowRunCycle {

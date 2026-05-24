@@ -74,7 +74,7 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
               <th className="px-3 py-3 text-left">详情</th>
               {showItemColumn ? <th className="px-3 py-3 text-left">ELF Item</th> : null}
               <th className="px-3 py-3 text-left">Batch</th>
-              <th className="px-3 py-3 text-left">状态</th>
+              <th className="px-3 py-3 text-left">函数体阶段状态</th>
               <th className="px-3 py-3 text-left">当前 Attempt</th>
               <th className="px-3 py-3 text-left">函数数</th>
               <th className="px-3 py-3 text-left">代码字节</th>
@@ -82,7 +82,7 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
               <th className="px-3 py-3 text-left">Review</th>
               <th className="px-3 py-3 text-left">Session</th>
               <th className="px-3 py-3 text-left">结果</th>
-              <th className="px-3 py-3 text-left">耗时</th>
+              <th className="px-3 py-3 text-left">函数体耗时</th>
               <th className="px-3 py-3 text-left">最近更新</th>
               {showArtifactColumn ? <th className="px-3 py-3 text-left">产物</th> : null}
             </tr>
@@ -135,13 +135,14 @@ export const B2SBatchObservabilityTable: React.FC<Props> = ({
                         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
                           <div className="space-y-2">
                             <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
-                              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">批次细节</div>
+                              <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">函数体阶段细节</div>
                               <div className="mt-2 grid gap-2 text-xs text-slate-600 md:grid-cols-2">
                                 <div>最新 Verdict：<span className="font-bold text-slate-900">{row.latest_verdict_label || row.latest_verdict || '-'}</span></div>
-                                <div>Started：<span className="font-bold text-slate-900">{row.started_at ? formatDateTime(row.started_at) : '-'}</span></div>
-                                <div>Finished：<span className="font-bold text-slate-900">{row.finished_at ? formatDateTime(row.finished_at) : '-'}</span></div>
+                                <div>函数体开始：<span className="font-bold text-slate-900">{row.started_at ? formatDateTime(row.started_at) : '-'}</span></div>
+                                <div>函数体结束：<span className="font-bold text-slate-900">{row.finished_at ? formatDateTime(row.finished_at) : '-'}</span></div>
                                 <div>Attempt 总数：<span className="font-bold text-slate-900">{row.attempt_count}</span></div>
                               </div>
+                              <div className="mt-2 text-xs text-slate-500">该记录表示 batch 在函数体还原阶段的执行与结束状态。</div>
                             </div>
                             <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                               <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Warnings</div>

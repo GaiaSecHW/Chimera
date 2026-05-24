@@ -32,6 +32,7 @@ import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
 import { AgentSessionViewer } from './AgentSessionViewer';
 import { DownstreamTaskCreator } from './DownstreamTaskCreator';
 import { blobToText, buildFirmwareSessionMeta, buildSessionSnapshotFromText, FirmwareSessionIndexItem, normalizeFirmwareSessionIndex, parseSessionJsonlDelta } from './sessionParsing';
+import { FirmwareUnpackerTaskConfigPanel } from './TaskConfigPanels';
 
 interface Props {
   projectId: string;
@@ -66,7 +67,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const FILESERVER_CONTAINER_ROOT = '/data/files';
 const TASK_WORKSPACE_SEGMENT = 'app/secflow-app-firmware-unpacker';
-type DetailTab = 'overview' | 'metrics' | 'events' | 'session' | 'evolution' | 'result';
+type DetailTab = 'overview' | 'task-config' | 'metrics' | 'events' | 'session' | 'evolution' | 'result';
 
 function sameJsonValue(left: unknown, right: unknown) {
   try {
@@ -1656,6 +1657,7 @@ function TaskDetailPanel({
           <div className="flex flex-wrap items-center gap-2">
             {[
               { id: 'overview' as const, label: '总览' },
+              { id: 'task-config' as const, label: '任务配置' },
               { id: 'metrics' as const, label: '观测' },
               { id: 'events' as const, label: '事件记录' },
               { id: 'session' as const, label: '智能体会话' },
@@ -1829,6 +1831,10 @@ function TaskDetailPanel({
               </div>
             )}
           </>
+        ) : null}
+
+        {activeTab === 'task-config' ? (
+          <FirmwareUnpackerTaskConfigPanel detail={task} />
         ) : null}
 
         {activeTab === 'metrics' ? (
