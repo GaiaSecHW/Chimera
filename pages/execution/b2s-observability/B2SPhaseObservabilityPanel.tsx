@@ -31,6 +31,7 @@ interface Props {
   bodyEmptyText?: string;
   showBodyArtifacts?: boolean;
   onBatchRowAction?: (action: B2SBatchTableRowAction) => void;
+  formatDurationMs?: (value?: number | null) => string;
 }
 
 export const B2SPhaseObservabilityPanel: React.FC<Props> = ({
@@ -40,8 +41,10 @@ export const B2SPhaseObservabilityPanel: React.FC<Props> = ({
   bodyEmptyText = '当前阶段暂无可展示数据。',
   showBodyArtifacts = false,
   onBatchRowAction,
+  formatDurationMs,
 }) => {
   if (!phase) return null;
+  const renderDuration = formatDurationMs || ((value?: number | null) => (value == null ? '-' : String(value)));
   const isBody = phase.phase === 'body';
   return (
     <div className="space-y-3">
@@ -49,7 +52,7 @@ export const B2SPhaseObservabilityPanel: React.FC<Props> = ({
         { label: '当前', value: phase.current_items },
         { label: '已过', value: phase.completed_items },
         { label: '开始时间', value: phase.started_at || '-' },
-        { label: '耗时', value: phase.duration_ms ?? '-' },
+        { label: '耗时', value: renderDuration(phase.duration_ms) },
       ]} />
       {phase.metrics.length ? <B2SPhaseMetricGrid items={phase.metrics.map((metric) => ({ label: metric.label, value: metric.value, tone: (metric.tone as Tone) || 'slate' }))} /> : null}
       {isBody ? (

@@ -88,7 +88,7 @@ interface Props {
 type B2SItem = B2STaskDetail['items'][number];
 type DetailTab = 'overview' | 'run-config' | 'timeline' | 'session' | 'relationship' | 'result' | 'evaluation';
 type ItemFilter = '__all__' | string;
-type BatchStatusFilter = '__all__' | 'running' | 'failed' | 'passed' | 'partial' | 'pending' | 'unknown';
+type BatchStatusFilter = '__all__' | 'running' | 'failed' | 'passed' | 'partial' | 'pending' | 'not_started' | 'unknown';
 type BatchSortKey = 'sequence' | 'batch' | 'attempts' | 'duration';
 
 const PHASE_ORDER = ['queued', 'ida', 'batching', 'header', 'body', 'merge', 'completed'];
@@ -114,6 +114,8 @@ const PHASE_PANEL_DESCRIPTIONS: Record<string, string> = {
 
 const EMPTY_BATCH_SUMMARY: B2SBatchObservabilitySummary = {
   total_batches: 0,
+  planned_total_batches: 0,
+  materialized_total_batches: 0,
   running_batches: 0,
   passed_batches: 0,
   failed_batches: 0,
@@ -139,13 +141,9 @@ const parseBackendTimeMs = (value?: string | null) => {
 
 const formatDurationMs = (durationMs?: number | null) => {
   if (durationMs == null || Number.isNaN(durationMs) || durationMs < 0) return '-';
-  const seconds = Math.round(durationMs / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  if (minutes < 60) return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m`;
+  const seconds = durationMs / 1000;
+  const precision = Number.isInteger(seconds) ? 0 : seconds >= 10 ? 1 : 2;
+  return `${seconds.toFixed(precision)} 秒`;
 };
 
 const formatDuration = (start?: string | null, end?: string | null, nowMs: number = Date.now()) => {
@@ -165,13 +163,15 @@ const summarizeBatchRows = (rows: B2SBatchObservabilityRow[]): B2SBatchObservabi
   if (rows.length === 0) return { ...EMPTY_BATCH_SUMMARY };
   const counts = { ...EMPTY_BATCH_SUMMARY };
   counts.total_batches = rows.length;
+  counts.planned_total_batches = rows.length;
+  counts.materialized_total_batches = rows.length;
   rows.forEach((row) => {
     const normalized = String(row.status || '').toLowerCase();
     if (normalized === 'running') counts.running_batches += 1;
     else if (normalized === 'passed') counts.passed_batches += 1;
     else if (normalized === 'failed') counts.failed_batches += 1;
     else if (normalized === 'partial') counts.partial_batches += 1;
-    else if (normalized === 'pending') counts.pending_batches += 1;
+    else if (normalized === 'pending' || normalized === 'not_started') counts.pending_batches += 1;
     else counts.unknown_batches += 1;
     counts.total_review_rounds += row.review_count || 0;
   });
@@ -1320,7 +1320,7 @@ export const B2STaskDetailPage: React.FC<Props> = ({ projectId, taskId, onBack, 
 
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
         <MetricTile label="ELF 完成" value={`${overall?.completed_items || 0}/${overall?.total_items || detail?.total_items || 0}`} hint={`${detail?.running_items || 0} 个运行中 · ${detail?.cancelling_items || 0} 个取消中`} tone="blue" icon={<Cpu size={18} />} />
-        <MetricTile label="Batch 总数" value={observabilitySummary?.total_batches || 0} hint={`均值 ${observabilitySummary?.avg_batches_per_item || 0}`} tone="violet" icon={<Layers3 size={18} />} />
+        <MetricTile label="计划 Batch" value={observabilitySummary?.planned_total_batches || observabilitySummary?.total_batches || 0} hint={`已物化 ${observabilitySummary?.materialized_total_batches || 0} · 均值 ${observabilitySummary?.avg_batches_per_item || 0}`} tone="violet" icon={<Layers3 size={18} />} />
         <MetricTile label="评审轮次" value={observabilitySummary?.total_review_attempts || 0} hint={`均值 ${observabilitySummary?.avg_review_attempts || 0}`} tone="emerald" icon={<GitBranch size={18} />} />
         <MetricTile label="会话数" value={runtimeSummary?.total_sessions || resultSummary?.session_file_count || detail?.agent_runtime_summary?.total_sessions || 0} hint={`活跃 ${runtimeSummary?.active_sessions || detail?.agent_runtime_summary?.active_agent_count || 0}`} tone="slate" icon={<Bot size={18} />} />
         <MetricTile label="异常会话" value={`${runtimeSummary?.stale_sessions || 0}/${runtimeSummary?.orphan_sessions || 0}`} hint="失活 / 孤立" tone="amber" icon={<AlertTriangle size={18} />} />

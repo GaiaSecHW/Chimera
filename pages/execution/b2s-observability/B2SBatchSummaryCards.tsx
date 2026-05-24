@@ -25,6 +25,8 @@ const tileTone = (tone: Tone = 'slate') => {
 
 export const buildBatchSummaryCardItems = (summary: {
   total_batches: number;
+  planned_total_batches?: number;
+  materialized_total_batches?: number;
   running_batches: number;
   passed_batches: number;
   failed_batches: number;
@@ -32,7 +34,13 @@ export const buildBatchSummaryCardItems = (summary: {
   avg_attempts_per_batch: number;
   total_review_rounds?: number;
 }): B2SBatchSummaryValue[] => ([
-  { label: 'Batch 总数', value: summary.total_batches, tone: 'violet', icon: <Layers3 size={18} /> },
+  {
+    label: '计划 Batch',
+    value: summary.planned_total_batches ?? summary.total_batches,
+    hint: `已物化 ${summary.materialized_total_batches ?? summary.total_batches}`,
+    tone: 'violet',
+    icon: <Layers3 size={18} />,
+  },
   { label: '运行中', value: summary.running_batches, tone: 'blue', icon: <Activity size={18} /> },
   { label: '已通过', value: summary.passed_batches, tone: 'emerald', icon: <CheckCircle2 size={18} /> },
   { label: '失败', value: summary.failed_batches, tone: 'rose', icon: <XCircle size={18} /> },

@@ -634,6 +634,8 @@ export interface B2SBatchObservabilityRow {
 
 export interface B2SBatchObservabilitySummary {
   total_batches: number;
+  planned_total_batches: number;
+  materialized_total_batches: number;
   running_batches: number;
   passed_batches: number;
   failed_batches: number;
@@ -650,6 +652,8 @@ export interface B2STaskObservability {
   total_duration_ms?: number | null;
   avg_item_duration_ms?: number | null;
   total_batches: number;
+  planned_total_batches: number;
+  materialized_total_batches: number;
   avg_batches_per_item: number;
   total_sessions: number;
   active_agent_count: number;

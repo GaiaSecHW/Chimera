@@ -11,6 +11,7 @@ const statusTone = (status: string) => {
   if (normalized === 'failed') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (normalized === 'partial') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (normalized === 'pending') return 'border-slate-200 bg-slate-100 text-slate-700';
+  if (normalized === 'not_started') return 'border-slate-200 bg-white text-slate-500';
   return 'border-slate-200 bg-white text-slate-500';
 };
 
@@ -23,13 +24,9 @@ const verdictTone = (verdict?: string | null) => {
 
 const formatDurationMs = (durationMs?: number | null) => {
   if (durationMs == null || Number.isNaN(durationMs) || durationMs < 0) return '-';
-  const seconds = Math.round(durationMs / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  if (minutes < 60) return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ${minutes % 60}m`;
+  const seconds = durationMs / 1000;
+  const precision = Number.isInteger(seconds) ? 0 : seconds >= 10 ? 1 : 2;
+  return `${seconds.toFixed(precision)} 秒`;
 };
 
 export interface B2SBatchTableRowAction {
