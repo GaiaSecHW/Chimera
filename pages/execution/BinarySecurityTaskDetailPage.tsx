@@ -73,6 +73,18 @@ const STAGE_LABELS: Record<string, string> = {
   vuln_scan: '漏洞扫描',
 };
 
+const RESULT_KIND_LABELS: Record<string, string> = {
+  recovered_source: '恢复源码',
+  recovered_header: '恢复头文件',
+  entry_descriptor: '入口描述',
+  analysis_metadata: '分析元数据',
+  agent_session: '智能体会话',
+  review_record: '评审记录',
+  batch_intermediate: '批处理过程',
+  final_report: '最终报告',
+  other: '其他',
+};
+
 const DOWNSTREAM_DETAIL_SUPPORT: Record<string, { supported: boolean; reason?: string }> = {
   firmware_unpack: { supported: true },
   system_analysis: { supported: true },
@@ -2299,6 +2311,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               <tr>
                 {options?.selectable ? <th className="w-14 px-4 py-3">选择</th> : null}
                 <th className="min-w-[220px] px-4 py-3">模块</th>
+                <th className="w-32 px-4 py-3">主结果类型</th>
+                <th className="min-w-[220px] px-4 py-3">结果类型</th>
+                <th className="min-w-[220px] px-4 py-3">类型计数</th>
                 <th className="w-24 px-4 py-3">风险</th>
                 <th className="w-24 px-4 py-3">分数</th>
                 <th className="min-w-[240px] px-4 py-3">目录 / 报告</th>
@@ -2309,6 +2324,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               {rows.map((module, index) => {
                 const moduleKey = String(module.module_key || module.module_dir || `module-${index}`);
                 const checked = selectedModuleKeys.includes(moduleKey);
+                const primaryResultKind = String(module.primary_result_kind || '').trim();
+                const resultKinds = Array.isArray(module.result_kinds)
+                  ? module.result_kinds.map((kind: any) => String(kind || '').trim()).filter(Boolean)
+                  : [];
+                const artifactKindSummary = module.artifact_kind_summary && typeof module.artifact_kind_summary === 'object'
+                  ? Object.entries(module.artifact_kind_summary as Record<string, unknown>)
+                  : [];
                 return (
                   <tr key={moduleKey} className={checked ? 'bg-amber-50/50' : 'bg-white'}>
                     {options?.selectable ? (
@@ -2328,6 +2350,30 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     <td className="px-4 py-3 align-top">
                       <div className="font-bold text-slate-900">{module.module_name || moduleKey}</div>
                       <div className="mt-1 text-[11px] text-slate-500">{module.module_type || module.language || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 font-bold text-sky-700">
+                        {RESULT_KIND_LABELS[primaryResultKind] || primaryResultKind || '-'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex flex-wrap gap-1.5">
+                        {resultKinds.length ? resultKinds.map((kind) => (
+                          <span key={kind} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600">
+                            {RESULT_KIND_LABELS[kind] || kind}
+                          </span>
+                        )) : <span className="text-slate-400">-</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-top text-[11px] text-slate-600">
+                      <div className="space-y-1">
+                        {artifactKindSummary.length ? artifactKindSummary.map(([kind, value]) => (
+                          <div key={kind} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                            <span className="font-medium text-slate-500">{kind}</span>
+                            <span className="font-black text-slate-800">{String(value ?? 0)}</span>
+                          </div>
+                        )) : <span className="text-slate-400">-</span>}
+                      </div>
                     </td>
                     <td className="px-4 py-3 align-top">
                       <span className={`inline-flex rounded-full border px-2 py-1 font-bold ${statusTone(String(module.risk_level || 'pending'))}`}>
@@ -3926,6 +3972,54 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               {artifactsLoading ? (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
                   正在加载产物文件...
+                </div>
+              ) : (artifacts?.artifact_groups || []).length > 0 ? (
+                <div className="space-y-4">
+                  {(artifacts?.artifact_groups || []).map((group: any) => (
+                    <div key={group.module_key || group.artifact_index_path} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-black text-slate-900">{group.module_name || group.module_key || '-'}</div>
+                          <div className="mt-1 font-mono text-[11px] text-slate-500">{group.module_key || '-'}</div>
+                          <div className="mt-1 text-[11px] text-slate-500">{group.source_root || '-'}</div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-[11px] font-bold text-sky-700">
+                            {RESULT_KIND_LABELS[String(group.primary_result_kind || '')] || group.primary_result_kind || '-'}
+                          </span>
+                          {(group.result_kinds || []).map((kind: string) => (
+                            <span key={kind} className="inline-flex rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600">
+                              {RESULT_KIND_LABELS[kind] || kind}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-3 grid gap-3 xl:grid-cols-[280px_minmax(0,1fr)]">
+                        <div className="space-y-2">
+                          {Object.entries(group.artifact_kind_summary || {}).map(([kind, count]) => (
+                            <div key={kind} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+                              <span className="font-medium text-slate-500">{kind}</span>
+                              <span className="font-black text-slate-900">{String(count ?? 0)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-y-2">
+                          {(group.artifacts || []).map((file: any) => (
+                            <div key={`${group.module_key}-${file.relative_path}`} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                              <div className="break-all font-mono text-xs text-slate-700">{file.relative_path}</div>
+                              <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                                <span>kind={file.kind || '-'}</span>
+                                <span>size={Number(file.size || 0)}</span>
+                                <span>stage={file.stage || '-'}</span>
+                                {file.batch_no != null ? <span>batch={file.batch_no}</span> : null}
+                                {file.attempt_no != null ? <span>attempt={file.attempt_no}</span> : null}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (artifacts?.files || []).length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-400">

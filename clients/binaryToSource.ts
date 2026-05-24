@@ -306,6 +306,12 @@ export interface B2SArtifactsResponse {
   work_dir?: string | null;
   artifacts: B2SArtifact[];
   counts: Record<string, number>;
+  artifact_summary: Record<string, number>;
+  result_kind_summary: Record<string, number>;
+  result_kinds: string[];
+  primary_result_kind?: string | null;
+  artifact_index_path?: string | null;
+  result_summary_version: number;
 }
 
 export interface B2SArtifactContent {
@@ -529,6 +535,12 @@ export interface B2STaskResultItemSummary {
   key_result_files: string[];
   session_file_count: number;
   review_round_count: number;
+  artifact_summary: Record<string, number>;
+  result_kind_summary: Record<string, number>;
+  result_kinds: string[];
+  primary_result_kind?: string | null;
+  artifact_index_path?: string | null;
+  result_summary_version: number;
   final_verdict?: string | null;
   final_verdict_label?: string | null;
 }

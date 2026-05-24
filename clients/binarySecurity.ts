@@ -10,6 +10,7 @@ export interface BinarySecurityInputFile {
 
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
+export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
 
 export interface BinarySecurityStageOption {
   enabled: boolean;
@@ -19,6 +20,7 @@ export interface BinarySecurityTaskPolicy {
   max_stage_parallelism?: number;
   max_retries_per_item?: number;
   continue_on_item_failure?: boolean;
+  pipeline_mode?: BinarySecurityPipelineMode;
   partial_success_stage_advancement?: Record<string, boolean>;
   stage_parallelism?: Record<string, number>;
   stage_options?: Record<string, BinarySecurityStageOption>;
@@ -375,6 +377,31 @@ export interface BinarySecurityArtifacts {
   workspace_root: string;
   output_root: string;
   fileserver_path?: string | null;
+  grouped_by_index?: boolean;
+  artifact_groups?: Array<{
+    module_key: string;
+    module_name?: string | null;
+    source_root?: string | null;
+    primary_result_kind?: string | null;
+    result_kinds: string[];
+    artifact_kind_summary: Record<string, number>;
+    result_kind_summary: Record<string, number>;
+    artifact_index_path?: string | null;
+    result_summary_version: number;
+    artifacts: Array<{
+      relative_path: string;
+      kind: string;
+      size: number;
+      stage?: string | null;
+      section?: string | null;
+      batch_no?: number | null;
+      attempt_no?: number | null;
+    }>;
+  }>;
+  total?: number;
+  limit?: number;
+  offset?: number;
+  has_more?: boolean;
   files: Array<{ path: string; size: number }>;
 }
 
@@ -384,6 +411,7 @@ export interface BinarySecurityProjectConfig {
     max_stage_parallelism: number;
     max_retries_per_item: number;
     continue_on_item_failure: boolean;
+    pipeline_mode: BinarySecurityPipelineMode;
     partial_success_stage_advancement: Record<string, boolean>;
     stage_parallelism: Record<string, number>;
     stage_options: Record<string, { enabled: boolean }>;
@@ -556,6 +584,7 @@ export const binarySecurityApi = {
         max_stage_parallelism?: number;
         max_retries_per_item?: number;
         continue_on_item_failure?: boolean;
+        pipeline_mode?: BinarySecurityPipelineMode;
         partial_success_stage_advancement?: Record<string, boolean>;
         stage_parallelism?: Record<string, number>;
         module_selection_mode?: 'auto' | 'manual_confirm';
