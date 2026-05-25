@@ -3732,6 +3732,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          </th>
 	                          <th className="w-24 px-3 py-3">状态</th>
 	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
+	                          <th className="w-28 px-3 py-3">自动重试</th>
 	                          <th className="w-32 px-3 py-3">累计重跑</th>
                           {isSystemAnalysisStageTable ? (
                             <>
@@ -3794,7 +3795,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 font-bold text-slate-700">{item.rerun_count ?? item.retry_count ?? 0}</td>
+                                <td className="px-3 py-3 font-bold text-slate-700">{item.auto_retry_count ?? item.retry_count ?? 0}</td>
+                                <td className="px-3 py-3 font-bold text-slate-700">{item.rerun_count ?? 0}</td>
                                 {isSystemAnalysisStageTable ? (
                                   <>
                                     <td className="px-3 py-3 font-black text-slate-900">{riskCounts.high}</td>
