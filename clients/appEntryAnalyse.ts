@@ -7,6 +7,7 @@ import {
   AppEaTaskDetail,
   AppEaTaskEvaluation,
   AppEaTaskItem,
+  AppEaTaskLogsResponse,
   AppEaTaskResult,
   EntryAnalyseSlotClusterSummary,
   EntryAnalysisModelsConfig,
@@ -118,8 +119,10 @@ export const appEntryAnalyseApi = {
     if (!resp.ok) await handleResponse(resp);
   },
 
-  getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: import('../types/types').AppEaStagesJson }> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
+  getTaskLogs: async (taskId: string, since = 0): Promise<AppEaTaskLogsResponse> => {
+    const q = since > 0 ? `?since=${since}` : '';
+    return handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs${q}`, { headers: getHeaders() }));
+  },
 
   generatePrompt: async (inputPath: string): Promise<{ prompt: string }> =>
     handleResponse(await fetch(`${BASE}/generate-prompt`, {

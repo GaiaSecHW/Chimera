@@ -2859,9 +2859,25 @@ export interface AppEaStageEvent {
   data: Record<string, any>;
 }
 
+/** Full event stream – returned by GET /tasks/{id}/logs. */
 export interface AppEaStagesJson {
   events: AppEaStageEvent[];
   final?: boolean;
+}
+
+/** Lightweight summary embedded in GET /tasks/{id} (no events array). */
+export interface AppEaStagesJsonSummary {
+  event_count: number;
+  final?: boolean;
+}
+
+/** Response shape of GET /tasks/{id}/logs */
+export interface AppEaTaskLogsResponse {
+  task_id: string;
+  status: string;
+  total_event_count: number;
+  final: boolean;
+  events: AppEaStageEvent[];
 }
 
 export interface AppEaFunctionCatalogItem {
@@ -2889,7 +2905,7 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
   result_json?: Record<string, any> | null;
-  stages_json?: AppEaStagesJson | null;
+  stages_json?: AppEaStagesJsonSummary | null;
   task_config_json?: Record<string, any> | null;
   function_catalog?: AppEaFunctionCatalogItem[] | null;
   task_root?: string | null;

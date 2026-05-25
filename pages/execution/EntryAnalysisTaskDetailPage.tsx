@@ -16,6 +16,7 @@ import {
   AppEaSessionMeta,
   AppEaSessionSnapshot,
   AppEaStageEvent,
+  AppEaStagesJson,
   AppEaTaskDetail,
   AppEaTaskEvaluation,
   AppEaTaskResult,
@@ -819,6 +820,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
   const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
+  const [logs, setLogs] = useState<AppEaStagesJson>({ events: [] });
+  const logsEventCountRef = useRef<number>(0);
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
   const [result, setResult] = useState<AppEaTaskResult | null>(null);
   const [evaluation, setEvaluation] = useState<AppEaTaskEvaluation | null>(null);
@@ -874,6 +877,37 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     try { setDetail(await appApi.getTask(taskId)); }
     catch (err: any) { notify(`加载任务详情失败: ${err?.message || err}`, 'error'); }
     finally { setLoading(false); }
+  };
+
+  /** 增量拉取 stages events。incremental=true 时只拉新增事件，false 时全量重置。 */
+  const loadLogs = async (incremental: boolean) => {
+    if (!taskId) return;
+    try {
+      const since = incremental ? logsEventCountRef.current : 0;
+      const resp = await appApi.getTaskLogs(taskId, since);
+      // 兼容新旧两种响应格式
+      const respEvents: AppEaStageEvent[] = Array.isArray((resp as any).events)
+        ? (resp as any).events
+        : Array.isArray((resp as any).stages_json?.events)
+          ? (resp as any).stages_json.events
+          : [];
+      const respFinal: boolean = (resp as any).final ?? (resp as any).stages_json?.final ?? false;
+      const respTotal: number = typeof (resp as any).total_event_count === 'number'
+        ? (resp as any).total_event_count
+        : respEvents.length;
+
+      if (!incremental) {
+        setLogs({ events: respEvents, final: respFinal });
+        logsEventCountRef.current = respTotal;
+      } else if (respEvents.length > 0) {
+        setLogs((prev) => ({ events: [...prev.events, ...respEvents], final: respFinal }));
+        logsEventCountRef.current = respTotal;
+      } else {
+        setLogs((prev) => ({ ...prev, final: respFinal }));
+      }
+    } catch {
+      // 静默失败，不打断主流程
+    }
   };
 
   const loadResult = async () => {
@@ -950,7 +984,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     }
   };
 
-  useEffect(() => { void loadDetail(); }, [taskId]);
+  useEffect(() => { void loadDetail(); void loadLogs(false); }, [taskId]);
   useEffect(() => {
     const stored = sessionStorage.getItem(stageFocusStorageKey) || '';
     const normalized = stored.trim().toUpperCase();
@@ -966,6 +1000,12 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     const timer = window.setInterval(() => void loadDetail(), 5000);
     return () => window.clearInterval(timer);
   }, [detail?.status, taskId]);
+  // 独立轮询 logs：running/pending 时每 5s 增量拉取
+  useEffect(() => {
+    if (!detail || !['pending', 'running'].includes(detail.status)) return;
+    const timer = window.setInterval(() => void loadLogs(true), 5000);
+    return () => window.clearInterval(timer);
+  }, [detail?.status, taskId]);
   useEffect(() => {
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => setClockNow(Math.floor(Date.now() / 1000)), 1000);
@@ -973,7 +1013,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   }, [detail?.status]);
   useEffect(() => {
     if (logsExpanded && logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [detail?.stages_json?.events?.length, logsExpanded]);
+  }, [logs.events.length, logsExpanded]);
   useEffect(() => { if (activeTab === 'result') void loadResult(); }, [activeTab, taskId]);
   useEffect(() => { if (activeTab === 'evaluation') void loadEvaluation(); }, [activeTab, taskId]);
   useEffect(() => {
@@ -1058,19 +1098,34 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const handleRestart = async () => {
     if (!detail) return;
     setRestarting(true);
-    try { await appApi.restartTask(detail.task_id); notify('任务已重新启动', 'success'); await loadDetail(); if (activeTab === 'result') await loadResult(); }
+    try {
+      await appApi.restartTask(detail.task_id);
+      notify('任务已重新启动', 'success');
+      // 重启后清空旧 logs，等待新运行时全量重拉
+      setLogs({ events: [] });
+      logsEventCountRef.current = 0;
+      await loadDetail();
+      if (activeTab === 'result') await loadResult();
+    }
     catch (err: any) { notify(`重启失败: ${err?.message || err}`, 'error'); }
     finally { setRestarting(false); }
   };
   const handleResume = async () => {
     if (!detail) return;
     setResuming(true);
-    try { await appApi.resumeTask(detail.task_id); notify('已从断点继续', 'success'); await loadDetail(); if (activeTab === 'result') await loadResult(); }
+    try {
+      await appApi.resumeTask(detail.task_id);
+      notify('已从断点继续', 'success');
+      setLogs({ events: [] });
+      logsEventCountRef.current = 0;
+      await loadDetail();
+      if (activeTab === 'result') await loadResult();
+    }
     catch (err: any) { notify(`断点续跑失败: ${err?.message || err}`, 'error'); }
     finally { setResuming(false); }
   };
 
-  const events = detail?.stages_json?.events || [];
+  const events = logs.events;
   const statusSteps = detail ? deriveStepStatuses(detail.status, events) : STAGE_STEPS.map((): StepStatus => 'pending');
   const stageStats = useMemo(() => deriveStageStats(events), [events]);
   const { funcs: funcProgress, totalFuncCount } = useMemo(

@@ -2,7 +2,7 @@
 import { AlertTriangle, ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppEaStageEvent, AppEaTaskDetail, AppEaTaskItem, EntryAnalyseSlotClusterSummary } from '../../types/types';
+import { AppEaStageEvent, AppEaStagesJson, AppEaTaskDetail, AppEaTaskItem, EntryAnalyseSlotClusterSummary } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -394,6 +394,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
+  const [detailLogs, setDetailLogs] = useState<AppEaStagesJson>({ events: [] });
+  const detailLogsCountRef = useRef<number>(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [logsExpanded, setLogsExpanded] = useState(true);
 
@@ -565,6 +567,35 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     }
   };
 
+  const loadDetailLogs = async (taskId: string, incremental: boolean) => {
+    try {
+      const since = incremental ? detailLogsCountRef.current : 0;
+      const resp = await appApi.getTaskLogs(taskId, since);
+      // 兼容新旧两种响应格式
+      const respEvents: AppEaStageEvent[] = Array.isArray((resp as any).events)
+        ? (resp as any).events
+        : Array.isArray((resp as any).stages_json?.events)
+          ? (resp as any).stages_json.events
+          : [];
+      const respFinal: boolean = (resp as any).final ?? (resp as any).stages_json?.final ?? false;
+      const respTotal: number = typeof (resp as any).total_event_count === 'number'
+        ? (resp as any).total_event_count
+        : respEvents.length;
+
+      if (!incremental) {
+        setDetailLogs({ events: respEvents, final: respFinal });
+        detailLogsCountRef.current = respTotal;
+      } else if (respEvents.length > 0) {
+        setDetailLogs((prev) => ({ events: [...prev.events, ...respEvents], final: respFinal }));
+        detailLogsCountRef.current = respTotal;
+      } else {
+        setDetailLogs((prev) => ({ ...prev, final: respFinal }));
+      }
+    } catch {
+      // 静默失败
+    }
+  };
+
   const handleSelectTask = (taskId: string) => {
     if (onOpenTask) {
       onOpenTask(taskId);
@@ -589,7 +620,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     const timer = setInterval(() => {
       void loadTasks(page);
       void loadSlotCluster();
-      if (selectedTaskId && modalOpen) void loadDetail(selectedTaskId);
+      if (selectedTaskId && modalOpen) { void loadDetail(selectedTaskId); void loadDetailLogs(selectedTaskId, true); }
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -600,7 +631,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     if (logsExpanded && logScrollRef.current) {
       logScrollRef.current.scrollTop = logScrollRef.current.scrollHeight;
     }
-  }, [detail?.stages_json?.events?.length, logsExpanded]);
+  }, [detailLogs.events.length, logsExpanded]);
 
   const loadModulesForPath = async (basePath: string) => {
     if (!basePath.trim()) { setAvailableModules([]); return; }
@@ -844,7 +875,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       await appApi.restartTask(taskId);
       notify('任务已重新启动', 'success');
       await loadTasks(page);
-      if (selectedTaskId === taskId && modalOpen) void loadDetail(taskId);
+      if (selectedTaskId === taskId && modalOpen) {
+        setDetailLogs({ events: [] });
+        detailLogsCountRef.current = 0;
+        void loadDetail(taskId);
+      }
     } catch (err: any) {
       notify(`重启失败: ${err?.message || err}`, 'error');
     } finally {
@@ -858,7 +893,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       await appApi.resumeTask(taskId);
       notify('已从断点继续', 'success');
       await loadTasks(page);
-      if (selectedTaskId === taskId && modalOpen) void loadDetail(taskId);
+      if (selectedTaskId === taskId && modalOpen) { void loadDetail(taskId); }
     } catch (err: any) {
       notify(`断点续跑失败: ${err?.message || err}`, 'error');
     } finally {
@@ -870,6 +905,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     setModalOpen(false);
     setSelectedTaskId('');
     setDetail(null);
+    setDetailLogs({ events: [] });
+    detailLogsCountRef.current = 0;
   };
 
   const totalPages = Math.ceil(total / perPage);
@@ -916,16 +953,16 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const recommendedTaskIds = useMemo(() => new Set(recommendedTasks.map((item) => item.task.task_id)), [recommendedTasks]);
 
   const stageStatuses = detail
-    ? deriveStepStatuses(detail.status, detail.stages_json?.events ?? [])
+    ? deriveStepStatuses(detail.status, detailLogs.events)
     : STAGE_STEPS.map((): StepStatus => 'pending');
 
   const stageTimes = detail
-    ? computeStageTimes(detail.stages_json?.events ?? [])
+    ? computeStageTimes(detailLogs.events)
     : STAGE_STEPS.map(() => ({ startTs: null as number | null, endTs: null as number | null }));
 
-  const fileProgress = detail ? computeFileProgress(detail.stages_json?.events ?? []) : null;
+  const fileProgress = detail ? computeFileProgress(detailLogs.events) : null;
 
-  const logLines = detail?.stages_json?.events?.map(formatEventLog) ?? [];
+  const logLines = detailLogs.events.map(formatEventLog);
   const slotSummaryCards = slotCluster ? [
     { label: '总槽位', value: slotCluster.total_capacity, className: 'bg-slate-50 border-slate-200 text-slate-800' },
     { label: '占用槽位', value: slotCluster.busy_slots, className: 'bg-blue-50 border-blue-200 text-blue-700' },
