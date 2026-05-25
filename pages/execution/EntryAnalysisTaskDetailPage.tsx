@@ -60,45 +60,79 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
-const STAGE_STEPS = [
+// ─── 完整模式 STAGE_STEPS（5步）────────────────────────────────────────────
+const FULL_STAGE_STEPS = [
   {
-    key: 'extract',
-    label: '函数读取',
-    desc: '静态扫描源文件（ctags + 宏扫描），写入函数数据库',
-    triggers: ['task_start', 'module_load', 'module_found', 'module_ready',
-               'task_resume', 'pipeline_start',
-               'r1_static_extract', 'r1_static_done'],
+    key: 'r1',
+    label: 'R1 函数提取',
+    desc: '静态扫描 + LLM 覆盖率验证，写入函数数据库',
+    triggers: ['pipeline_start', 'r1_static_extract', 'r1_static_done',
+               'r1_w_start', 'r1_w_done', 'r1_j_start', 'r1_j_done', 'r1_retry_scheduled'],
     artifactSubpath: 'run/workspace/r1-functions',
   },
   {
-    key: 'coverage',
-    label: '覆盖率验证',
-    desc: 'LLM 验证提取列表完整性，补漏函数，写入 funcDB',
-    triggers: ['r1_w_start', 'r1_w_done'],
+    key: 'r2',
+    label: 'R2 准确性校正',
+    desc: '每函数边界准确性验证（W+J），修正起止行',
+    triggers: ['r2_w_start', 'r2_w_done', 'r2_j_start', 'r2_j_done'],
     artifactSubpath: 'run/workspace/r1-functions',
   },
   {
-    key: 'pipeline',
-    label: '函数流水线',
-    desc: '函数级并行：准确性验证(R2) → 外部输入分析(R3) → 调用链分析(R4)',
+    key: 'r3',
+    label: 'R3 外部输入分析',
+    desc: '每函数外部输入分析（W+J），确定 has_external_input',
+    triggers: ['r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done'],
+    artifactSubpath: 'run/workspace/r2-analysis',
+  },
+  {
+    key: 'r4',
+    label: 'CC + R4 入口决策',
+    desc: '调用链静态建图（CC）→ 每函数入口决策（R4-W）→ 最终质量验证（R4-J）',
     triggers: [
-      'r2_j_start', 'r2_j_done',
-      'r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done',
       'callchain_start', 'callchain_done', 'callchain_failed',
-      'r4_w_start', 'r4_w_done',
+      'r4_w_start', 'r4_w_done', 'r4_w_func_start', 'r4_w_func_done',
       'r6_j_start', 'r6_j_done',
     ],
     artifactSubpath: 'run/workspace/r3-entries',
   },
   {
-    key: 'report',
-    label: '报告生成',
-    desc: '每函数并行生成独立报告 + 最终汇总，输出 functions.list 与 final_report.md',
-    triggers: ['r5_done', 'r5_w_start', 'r5_j_start', 'r5_j_done',
+    key: 'r5',
+    label: 'R5 报告生成',
+    desc: '每入口函数生成报告 + 最终汇总，输出 functions.list',
+    triggers: ['r5_w_start', 'r5_done', 'r5_j_done',
                'task_end', 'functions_list_synced', 'functions_list_error'],
     artifactSubpath: 'output',
   },
 ];
+
+// ─── 精简模式 STAGE_STEPS（3步）────────────────────────────────────────────
+const LEAN_STAGE_STEPS = [
+  {
+    key: 'lean_file',
+    label: '文件级分析',
+    desc: '每文件：静态提取函数 → Worker 写脚本执行 → Judge 验证结果',
+    triggers: ['pipeline_start', 'lean_static_extract', 'lean_static_done',
+               'lean_w_start', 'lean_w_done', 'lean_j_start', 'lean_j_done'],
+    artifactSubpath: 'run/workspace/lean-r3',
+  },
+  {
+    key: 'lean_module',
+    label: '模块级合并',
+    desc: '汇总所有文件入口 → 模块级 Worker+Judge 去重精炼',
+    triggers: ['lean_module_w_start', 'lean_module_w_done',
+               'lean_module_j_start', 'lean_module_j_done'],
+    artifactSubpath: 'run/workspace/lean-r4',
+  },
+  {
+    key: 'lean_output',
+    label: '产物输出',
+    desc: '生成报告与 functions.list',
+    triggers: ['lean_report_start', 'lean_report_done',
+               'task_end', 'functions_list_synced', 'functions_list_error'],
+    artifactSubpath: 'output',
+  },
+];
+
 
 type DetailTab = 'overview' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
@@ -154,36 +188,33 @@ function formatStageElapsed(startTs?: number, nowSecs = Math.floor(Date.now() / 
 }
 
 interface StageStat {
-  filesTotal?: number;    // 模块总文件数
-  filesDone?: number;     // 本阶段已完成文件数
-  funcsDone?: number;     // 已完成函数数
-  entriesFound?: number;  // 识别到的入口数
-  attempts?: number;      // 执行轮次
-  nodeCount?: number;     // CC: 调用链节点数
-  edgeCount?: number;     // CC: 调用边数
+  filesTotal?: number;
+  filesDone?: number;
+  funcsDone?: number;
+  entriesFound?: number;
+  attempts?: number;
+  nodeCount?: number;
+  edgeCount?: number;
+  ccStatus?: 'pending'|'running'|'done'|'failed';
   startTs?: number;
   lastTs?: number;
 }
 
 /**
-/**
- * 从 stages_json.events 推导每个流水线阶段的统计数据。
- * 顺序与 STAGE_STEPS 对齐：[extract, coverage, pipeline, report]。
+ * 从 stages_json.events 推导完整模式各阶段统计。
  */
-function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
-  // 4 个阶段: 0=extract 1=coverage 2=pipeline 3=report
-  const result: StageStat[] = STAGE_STEPS.map(() => ({}));
+function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
+  const result: StageStat[] = FULL_STAGE_STEPS.map(() => ({}));
   let totalFiles = 0;
-  const firstTs: Array<number | undefined> = STAGE_STEPS.map(() => undefined);
-  const lastTs:  Array<number | undefined> = STAGE_STEPS.map(() => undefined);
+  const firstTs: Array<number | undefined> = FULL_STAGE_STEPS.map(() => undefined);
+  const lastTs:  Array<number | undefined> = FULL_STAGE_STEPS.map(() => undefined);
 
-  const extractedFiles  = new Set<string>();  // r1_static_done
-  const coverageFiles   = new Set<string>();  // r1_w_done (R1 覆盖率验证完成文件)
-  const r2JFuncsDone    = new Set<string>();  // r2_j_done (R2 准确性验证完成函数)
-  const r3FuncsDone     = new Set<string>();  // r3_w_done (R3 入口分析完成函数)
-  const r4FuncsDone     = new Set<string>();  // r4_w_done (R4 调用链分析完成函数)
+  const r1Files   = new Set<string>();
+  const r2Funcs   = new Set<string>();
+  const r3Funcs   = new Set<string>();
+  const r4Funcs   = new Set<string>();
+  let ccNodes = 0, ccEdges = 0, ccStatus: 'pending'|'running'|'done'|'failed' = 'pending';
   let entriesFound = 0;
-  let ccNodes = 0, ccEdges = 0;
 
   const touch = (idx: number, ts: number) => {
     if (ts <= 0) return;
@@ -195,78 +226,136 @@ function deriveStageStats(events: AppEaStageEvent[]): StageStat[] {
     const ts = evt.ts || 0;
     const d  = evt.data || {};
     switch (evt.type) {
-      // 0: extract
+      // R1
       case 'pipeline_start': totalFiles = Number(d.file_count) || totalFiles; touch(0, ts); break;
-      case 'task_start': case 'task_resume': case 'module_load': case 'module_found': touch(0, ts); break;
-      case 'module_ready': totalFiles = Number(d.count) || totalFiles; touch(0, ts); break;
-      case 'r1_static_extract': touch(0, ts); break;
-      case 'r1_static_done':
-        touch(0, ts);
-        if (d.file_hash) extractedFiles.add(String(d.file_hash));
-        break;
-      // 1: coverage
-      case 'r1_w_start': touch(1, ts); break;
-      case 'r1_w_done':
-        touch(1, ts);
-        if (d.file_hash) coverageFiles.add(String(d.file_hash));
-        break;
-      // 2: pipeline
-      // R2: function accuracy judge
-      case 'r2_j_start': touch(2, ts); break;
-      case 'r2_j_done':
-        touch(2, ts);
-        if (d.func_hash) r2JFuncsDone.add(String(d.func_hash));
-        break;
-      // R3: entry analysis (W+J)
+      case 'r1_static_extract': case 'r1_static_done': touch(0, ts); break;
+      case 'r1_w_start': case 'r1_j_start': case 'r1_retry_scheduled': touch(0, ts); break;
+      case 'r1_w_done': touch(0, ts); if (d.file_hash) r1Files.add(String(d.file_hash)); break;
+      case 'r1_j_done': touch(0, ts); break;
+      // R2
+      case 'r2_w_start': case 'r2_w_done': touch(1, ts);
+        if (evt.type === 'r2_w_done' && d.func_hash) r2Funcs.add(String(d.func_hash)); break;
+      case 'r2_j_start': touch(1, ts); break;
+      case 'r2_j_done': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash)); break;
+      // R3
       case 'r3_w_start': case 'r3_j_start': touch(2, ts); break;
-      case 'r3_w_done':
-        touch(2, ts);
-        if (d.func_hash) r3FuncsDone.add(String(d.func_hash));
-        break;
+      case 'r3_w_done': touch(2, ts); if (d.func_hash) r3Funcs.add(String(d.func_hash)); break;
       case 'r3_j_done': touch(2, ts); break;
-      // CC
-      case 'callchain_start': case 'callchain_failed': touch(2, ts); break;
+      // R4 (CC + decision + final-J)
+      case 'callchain_start': touch(3, ts); ccStatus = 'running'; break;
       case 'callchain_done':
-        touch(2, ts);
-        ccNodes = Number(d.nodes) || ccNodes;
-        ccEdges = Number(d.edges) || ccEdges;
-        break;
-      // R4: call chain analysis
-      case 'r4_w_start': touch(2, ts); break;
-      case 'r4_w_done':
-        touch(2, ts);
-        if (d.func_hash) r4FuncsDone.add(String(d.func_hash));
-        break;
-      // R6-J: final quality judge
-      case 'r6_j_start': touch(2, ts); break;
+        touch(3, ts); ccStatus = 'done';
+        ccNodes = Number(d.nodes) || ccNodes; ccEdges = Number(d.edges) || ccEdges; break;
+      case 'callchain_failed': touch(3, ts); ccStatus = 'failed'; break;
+      case 'r4_w_start': case 'r4_w_func_start': touch(3, ts); break;
+      case 'r4_w_done': touch(3, ts); break;
+      case 'r4_w_func_done': touch(3, ts);
+        if (d.func_hash && d.decision === 'keep') r4Funcs.add(String(d.func_hash)); break;
+      case 'r6_j_start': touch(3, ts); break;
       case 'r6_j_done':
-        touch(2, ts);
-        if (typeof d.entry_count === 'number') entriesFound = d.entry_count;
-        break;
-      // 3: report
-      case 'r5_done':
         touch(3, ts);
-        if (typeof d.entry_count === 'number') entriesFound = d.entry_count;
-        break;
-      case 'r5_w_start': case 'r5_j_start':
-      case 'r5_j_done': touch(3, ts); break;
+        if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
+      // R5
+      case 'r5_w_start': case 'r5_j_done': touch(4, ts); break;
+      case 'r5_done':
+        touch(4, ts);
+        if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
       case 'task_end': case 'functions_list_synced': case 'functions_list_error':
-      case 'functions_list_autofix': touch(3, ts); break;
+      case 'functions_list_autofix': touch(4, ts); break;
       default: break;
     }
   }
 
-  result[0] = { filesTotal: totalFiles || undefined, filesDone: extractedFiles.size || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
-  result[1] = { filesTotal: totalFiles || undefined, filesDone: coverageFiles.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
-  result[2] = {
-    funcsDone:    r4FuncsDone.size || r3FuncsDone.size || r2JFuncsDone.size || undefined,
+  result[0] = { filesTotal: totalFiles || undefined, filesDone: r1Files.size || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
+  result[1] = { funcsDone: r2Funcs.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
+  result[2] = { funcsDone: r3Funcs.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
+  result[3] = {
+    funcsDone:    r4Funcs.size || undefined,
     entriesFound: entriesFound || undefined,
     nodeCount:    ccNodes || undefined,
     edgeCount:    ccEdges || undefined,
-    startTs: firstTs[2], lastTs: lastTs[2],
+    ccStatus,
+    startTs: firstTs[3], lastTs: lastTs[3],
   };
-  result[3] = { entriesFound: entriesFound || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
+  result[4] = { entriesFound: entriesFound || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
   return result;
+}
+
+/** 精简模式各阶段统计 */
+interface LeanFileStat {
+  file: string;
+  file_hash: string;
+  func_count?: number;
+  static_done: boolean;
+  w_state: string;
+  w_attempts: number;
+  j_state: string;
+  j_attempts: number;
+  entries?: number;
+}
+
+function deriveLeanStageStats(events: AppEaStageEvent[]): { stats: StageStat[]; files: LeanFileStat[] } {
+  const stats: StageStat[] = LEAN_STAGE_STEPS.map(() => ({}));
+  const firstTs: Array<number | undefined> = LEAN_STAGE_STEPS.map(() => undefined);
+  const lastTs:  Array<number | undefined> = LEAN_STAGE_STEPS.map(() => undefined);
+  const fileMap = new Map<string, LeanFileStat>();
+  let totalFiles = 0;
+  let moduleEntries = 0;
+
+  const touch = (idx: number, ts: number) => {
+    if (ts <= 0) return;
+    if (firstTs[idx] === undefined) firstTs[idx] = ts;
+    if (lastTs[idx] === undefined || ts > (lastTs[idx] as number)) lastTs[idx] = ts;
+  };
+
+  for (const evt of events) {
+    const ts = evt.ts || 0;
+    const d  = evt.data || {};
+    const fh = String(d.file_hash || '');
+    const fname = String(d.file || fh);
+    switch (evt.type) {
+      case 'pipeline_start': totalFiles = Number(d.file_count) || totalFiles; touch(0, ts); break;
+      case 'lean_static_extract': touch(0, ts);
+        if (fh && !fileMap.has(fh)) fileMap.set(fh, { file: fname, file_hash: fh, static_done: false, w_state: 'pending', w_attempts: 0, j_state: 'pending', j_attempts: 0 }); break;
+      case 'lean_static_done': touch(0, ts);
+        if (fh) {
+          const f = fileMap.get(fh) || { file: fname, file_hash: fh, static_done: false, w_state: 'pending', w_attempts: 0, j_state: 'pending', j_attempts: 0 };
+          f.static_done = true; f.func_count = Number(d.func_count) || f.func_count;
+          fileMap.set(fh, f);
+        } break;
+      case 'lean_w_start': touch(0, ts);
+        if (fh) { const f = fileMap.get(fh); if (f) { f.w_state = 'running'; f.w_attempts = Number(d.attempt) || f.w_attempts; } } break;
+      case 'lean_w_done': touch(0, ts);
+        if (fh) { const f = fileMap.get(fh); if (f) f.w_state = 'passed'; } break;
+      case 'lean_j_start': touch(0, ts);
+        if (fh) { const f = fileMap.get(fh); if (f) { f.j_state = 'running'; f.j_attempts = Number(d.attempt) || f.j_attempts; } } break;
+      case 'lean_j_done': touch(0, ts);
+        if (fh) {
+          const f = fileMap.get(fh);
+          if (f) {
+            f.j_state = d.passed ? 'passed' : 'failed';
+            if (d.passed && typeof d.entries === 'number') f.entries = d.entries;
+          }
+        } break;
+      case 'lean_module_w_start': case 'lean_module_j_start': touch(1, ts); break;
+      case 'lean_module_w_done': case 'lean_module_j_done': touch(1, ts);
+        if (typeof d.entries === 'number') moduleEntries = d.entries; break;
+      case 'lean_report_start': touch(2, ts); break;
+      case 'lean_report_done': touch(2, ts); break;
+      case 'task_end': case 'functions_list_synced': case 'functions_list_error': touch(2, ts); break;
+      default: break;
+    }
+  }
+
+  const doneFiles = Array.from(fileMap.values()).filter((f) => f.j_state === 'passed').length;
+  const totalEntries = moduleEntries || Array.from(fileMap.values()).reduce((s, f) => s + (f.entries || 0), 0);
+  stats[0] = { filesTotal: totalFiles || fileMap.size || undefined, filesDone: doneFiles || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
+  stats[1] = { entriesFound: totalEntries || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
+  stats[2] = { entriesFound: totalEntries || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
+
+  const files = Array.from(fileMap.values());
+  files.sort((a, b) => a.file.localeCompare(b.file));
+  return { stats, files };
 }
 
 
@@ -464,17 +553,16 @@ function parseSessionDelta(lines: string[], startLine: number): { events: AppEaS
   return { events, warnings, sessionMeta };
 }
 
-function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): StepStatus[] {
-  // 4 个阶段: 0=extract 1=coverage 2=pipeline 3=report
-  const statuses: StepStatus[] = STAGE_STEPS.map((): StepStatus => 'pending');
+function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[], stageSteps: typeof FULL_STAGE_STEPS): StepStatus[] {
+  const statuses: StepStatus[] = stageSteps.map((): StepStatus => 'pending');
   if (taskStatus === 'pending') return statuses;
-  if (taskStatus === 'passed') return STAGE_STEPS.map((): StepStatus => 'completed');
+  if (taskStatus === 'passed') return stageSteps.map((): StepStatus => 'completed');
   let last = -1;
   let ccFailed = false, ccDone = false;
   for (const evt of events) {
     if (evt.type === 'callchain_failed') ccFailed = true;
     if (evt.type === 'callchain_done')   ccDone   = true;
-    STAGE_STEPS.forEach((step, index) => {
+    stageSteps.forEach((step, index) => {
       if (step.triggers.includes(evt.type)) last = Math.max(last, index);
     });
   }
@@ -483,8 +571,9 @@ function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[]): Step
       : ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'pending';
     return statuses;
   }
-  for (let i = 0; i < STAGE_STEPS.length; i += 1) {
-    if (i === 2 && ccFailed && !ccDone && last <= 2) {
+  for (let i = 0; i < stageSteps.length; i += 1) {
+    const isR4 = stageSteps[i].key === 'r4';
+    if (isR4 && ccFailed && !ccDone && last <= i) {
       statuses[i] = 'failed';
     } else if (i < last) {
       statuses[i] = 'completed';
@@ -514,31 +603,52 @@ function formatEvent(evt: AppEaStageEvent): string {
     case 'r1_w_done':     return `[${ts}] ✓ R1-W 完成: ${d.file ?? ''} in=${d.tokens_in ?? 0} out=${d.tokens_out ?? 0}${d.error ? ` ✗${d.error.slice(0, 60)}` : ''}`;
     case 'r1_j_start':          return `[${ts}] ▶ R1-J 覆盖率评审: ${d.file ?? d.file_hash ?? ''}（第${d.attempt ?? 1}次）`;
     case 'r1_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R1-J 覆盖率评审 ${d.passed ? '通过' : '未通过'}: ${d.file ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
-    case 'r1_j_retry':          return `[${ts}] ↺ R1 重试: ${d.file ?? ''} (第${d.attempt ?? '?'}次)`;
-    // ── R2 准确性验证 ─────────────────────────────────────────────────
-    case 'r2_j_start':          return `[${ts}] ▶ R2-J 准确性评审: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 准确性评审 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
-    // ── R3 入口分析 ───────────────────────────────────────────────────
-    case 'r3_w_start':          return `[${ts}] ▶ R3-W 入口分析: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r1_j_retry': case 'r1_retry_scheduled': return `[${ts}] ↺ R1 重试: ${d.file ?? ''} (第${d.attempt ?? '?'}次)`;
+    // ── R2 准确性校正 ─────────────────────────────────────────────────
+    case 'r2_w_start':          return `[${ts}] ▶ R2-W 启动: ${d.function ?? d.func_hash ?? ''}${Number(d.attempt) > 1 ? `(第${d.attempt}次)` : ''}`;
+    case 'r2_w_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-W 完成: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.error ? ` — ${d.error}` : ''}`;
+    case 'r2_j_start':          return `[${ts}] ▶ R2-J 准确性验证: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 准确性验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    // ── R3 外部输入分析 ───────────────────────────────────────────────
+    case 'r3_w_start':          return `[${ts}] ▶ R3-W 外部输入分析: ${d.function ?? d.func_hash ?? ''}`;
     case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.function ?? d.func_hash ?? ''} has_input=${d.has_external_input ?? ''}`;
-    case 'r3_j_start':          return `[${ts}] ▶ R3-J 入口评审: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r3_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R3-J 入口评审 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.summary ? ` — ${String(d.summary).slice(0, 80)}` : ''}`;
+    case 'r3_j_start':          return `[${ts}] ▶ R3-J 外部输入验证: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r3_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R3-J 外部输入验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.summary ? ` — ${String(d.summary).slice(0, 80)}` : ''}`;
     case 'r3_j_retry':          return `[${ts}] ↺ R3 重试: ${d.function ?? ''} (${d.retry_count ?? '?'}次)`;
     // ── CC 调用链静态建图 ─────────────────────────────────────────────
     case 'callchain_start':     return `[${ts}] ▶ CC 调用链静态建图开始`;
     case 'callchain_done':      return `[${ts}] ✓ CC 完成: ${d.nodes ?? 0} 节点, ${d.edges ?? 0} 边`;
     case 'callchain_failed':    return `[${ts}] ⚠ CC 建图失败（非致命）: ${String(d.error ?? '').slice(0, 80)}`;
-    // ── R4 调用链入口分析 ─────────────────────────────────────────────
-    case 'r4_w_start':          return `[${ts}] ▶ R4-W 调用链分析: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r4_w_done':           return `[${ts}] ✓ R4-W 完成: ${d.function ?? d.func_hash ?? ''} decision=${d.decision ?? ''}`;
+    // ── R4 入口决策 ──────────────────────────────────────────────────
+    case 'r4_w_start':          return `[${ts}] ▶ R4-W 文件级入口决策汇总: ${d.file ?? ''}`;
+    case 'r4_w_done':           return `[${ts}] ✓ R4-W 文件级汇总完成: ${d.file ?? ''} 入口数=${d.entry_count ?? ''}`;
+    case 'r4_w_func_start':     return `[${ts}] ▶ R4-W 入口决策: ${d.function ?? d.func_hash ?? ''}${Number(d.attempt) > 1 ? `(第${d.attempt}次)` : ''}`;
+    case 'r4_w_func_done':      return `[${ts}] ${d.decision === 'keep' ? '✓' : '✕'} R4-W 入口决策: ${d.function ?? d.func_hash ?? ''} 决策=${d.decision ?? ''}`;
     case 'r4_j_retry':          return `[${ts}] ↺ R4 重试: ${d.function ?? ''} (第${d.attempt ?? '?'}次)`;
-    // ── R6-J 最终质量验证 ─────────────────────────────────────────────
-    case 'r6_j_start':          return `[${ts}] ▶ R6-J 最终质量验证（第${d.attempt ?? 1}次）`;
-    case 'r6_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R6-J 最终质量验证 ${d.passed ? '通过' : '未通过'}`;
-    // ── 输出产物 ──────────────────────────────────────────────────────
+    // ── R4-J 最终质量验证 ─────────────────────────────────────────────
+    case 'r6_j_start':          return `[${ts}] ▶ R4-J 最终质量验证（第${d.attempt ?? 1}次）`;
+    case 'r6_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R4-J 最终质量验证 ${d.passed ? '通过' : '未通过'}`;
+    // ── R5 报告生成 ──────────────────────────────────────────────────
+    case 'r5_w_start':   return `[${ts}] ▶ R5-W 报告生成: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r5_j_done':    return `[${ts}] ${d.passed ? '✓' : '✗'} R5-J 报告验证: ${d.function ?? d.func_hash ?? ''}${d.passed ? '' : `—${String(d.feedback ?? '').slice(0,60)}`}`;
+    case 'r5_done':      return `[${ts}] ✓ R5 完成: ${d.entry_count ?? 0} 个入口`;
+    // ── 产物 ─────────────────────────────────────────────────────────
     case 'functions_list_synced':   return `[${ts}] ✓ functions.list 生成: ${d.functions_count ?? 0} 条`;
     case 'functions_list_error':    return `[${ts}] ✗ functions.list 错误: ${String(d.error ?? '').slice(0, 80)}`;
     case 'functions_list_autofix':  return `[${ts}] │ functions.list 自动修复 ${d.fixes?.length ?? 0} 处`;
+    // ── 精简模式事件 ──────────────────────────────────────────────────
+    case 'lean_static_extract': return `[${ts}] │ 精简-静态提取: ${d.file ?? ''}`;
+    case 'lean_static_done':    return `[${ts}] │ 精简-静态完成: ${d.file ?? ''} → ${d.func_count ?? 0} 个函数`;
+    case 'lean_w_start':        return `[${ts}] ▶ 精简-W 启动: ${d.file ?? ''}${d.is_retry ? '（重试）' : ''}(第${d.attempt ?? 1}次)`;
+    case 'lean_w_done':         return `[${ts}] ✓ 精简-W 完成: ${d.file ?? ''}`;
+    case 'lean_j_start':        return `[${ts}] ▶ 精简-J 验证: ${d.file ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'lean_j_done':         return `[${ts}] ${d.passed ? '✓' : '✗'} 精简-J 验证 ${d.passed ? `通过 ${d.entries ?? 0}个入口` : '未通过'}${d.feedback_preview ? `: ${String(d.feedback_preview).slice(0,80)}` : ''}`;
+    case 'lean_module_w_start': return `[${ts}] ▶ 精简-模块W: 汇总 ${d.r3_count ?? 0} 个文件(第${d.attempt ?? 1}次)`;
+    case 'lean_module_w_done':  return `[${ts}] ✓ 精简-模块W 完成: ${d.entries ?? ''}个候选入口`;
+    case 'lean_module_j_start': return `[${ts}] ▶ 精简-模块J 验证(第${d.attempt ?? 1}次)`;
+    case 'lean_module_j_done':  return `[${ts}] ${d.passed ? '✓' : '✗'} 精简-模块J ${d.passed ? `通过 ${d.entries ?? 0}个入口` : '未通过'}`;
+    case 'lean_report_start':   return `[${ts}] ▶ 精简-报告生成开始`;
+    case 'lean_report_done':    return `[${ts}] ${d.passed ? '✓' : '✗'} 精简-报告完成`;
     // ── 旧流程兼容（parallel worker / master 模式）────────────────────
     case 'round_start':         return `[${ts}] ▶ 第 ${d.round ?? ''} 轮开始`;
     case 'worker_start':        return `[${ts}] │ Worker ${d.worker_id ?? ''}: ${d.entry ?? ''}`;
@@ -561,15 +671,15 @@ interface FuncProgress {
   func_hash: string;
   name: string;
   file?: string;
-  r1b:   FuncStage;   // 函数准确性校正
-  r2:    FuncStage;   // 外部输入分析
-  r2j:   FuncStage;   // 外部输入验证
-  r3:    FuncStage;   // 入口过滤（文件级，用 passed=keep / skip=filtered）
-  r4:    FuncStage;   // 跨文件分析（keep/remove）
-  rep:   FuncStage;   // 单函数报告
+  r2w:   FuncStage;   // R2 准确性校正-W
+  r2j:   FuncStage;   // R2 准确性校正-J
+  r3w:   FuncStage;   // R3 外部输入分析-W
+  r3j:   FuncStage;   // R3 外部输入分析-J
+  r4:    FuncStage;   // R4 入口决策 (keep/filter)
+  rep:   FuncStage;   // R5 报告
   has_external_input?: boolean;
   entry_role?: string;
-  is_entry: boolean;  // R4 keep 或 R3 keep 且 R4 未运行
+  is_entry: boolean;
   lastTs?: number;
 }
 
@@ -605,8 +715,9 @@ function deriveFuncProgress(
         func_hash: fh,
         name: name || fh.slice(0, 8),
         file,
-        r1b: 'pending', r2: 'pending', r2j: 'pending',
-        r3: 'pending', r4: 'pending', rep: 'pending',
+        r2w: 'pending', r2j: 'pending',
+        r3w: 'pending', r3j: 'pending',
+        r4: 'pending', rep: 'pending',
         is_entry: false,
       });
     }
@@ -621,11 +732,11 @@ function deriveFuncProgress(
     const fh = String(item.func_hash || '');
     if (!fh) continue;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    f.r1b = toStage(item.r1b_state);
-    f.r2 = toStage(item.r2_state);
-    f.r2j = toStage(item.r2j_state);
-    f.r3 = toStage(item.r3_state);
-    f.r4 = String(item.r4_decision || '').toLowerCase() === 'keep' ? 'keep'
+    f.r2w = toStage(item.r1b_state);  // catalog: r1b_state = r2_w/j state
+    f.r2j = toStage(item.r1b_state);
+    f.r3w = toStage(item.r2_state);
+    f.r3j = toStage(item.r2j_state);
+    f.r4  = String(item.r4_decision || '').toLowerCase() === 'keep' ? 'keep'
       : String(item.r4_decision || '').toLowerCase() === 'remove' || String(item.r4_decision || '').toLowerCase() === 'filter' ? 'remove'
       : toStage(item.r4_state);
     f.rep = toStage(item.rep_state);
@@ -653,28 +764,32 @@ function deriveFuncProgress(
     const fi = String(d.file || '');
 
     switch (evt.type) {
-      // R1b（当前后端事件名：r2_j_*）
+      // R2-W
+      case 'r2_w_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2w = 'running'; f.lastTs = ts; }
+        break;
+      case 'r2_w_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2w = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        break;
+      // R2-J (backend event: r2_j_start/done)
       case 'r2_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = 'running'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = 'running'; f.lastTs = ts; }
         break;
       case 'r2_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r1b = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = d.passed ? 'passed' : 'failed'; if (f.r2w === 'pending') f.r2w = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
         break;
 
-      // R2（当前后端事件名：r3_w_*）
+      // R3-W (backend event: r3_w_start/done)
       case 'r3_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2 = 'running'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r3w = 'running'; f.lastTs = ts; }
         break;
       case 'r3_w_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          f.r2 = 'passed';
+          f.r3w = 'passed';
           f.has_external_input = Boolean(d.has_external_input);
-          if (!f.has_external_input) {
-            f.r2 = 'skip'; f.r2j = 'skip'; f.r3 = 'skip'; f.r4 = 'skip';
-          } else if (d.entry_role) {
-            f.entry_role = String(d.entry_role);
-          }
+          if (!f.has_external_input) { f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; }
+          else if (d.entry_role) { f.entry_role = String(d.entry_role); }
           const fileH = String(d.file_hash || '');
           if (fileH && f.has_external_input) {
             if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
@@ -684,35 +799,35 @@ function deriveFuncProgress(
         }
         break;
 
-      // R2J（当前后端事件名：r3_j_*）
+      // R3-J (backend event: r3_j_start/done)
       case 'r3_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = 'running'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = 'running'; f.lastTs = ts; }
         break;
       case 'r3_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r2j !== 'skip') f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
         break;
 
-      // R4（当前后端事件名：r4_w_*）
-      case 'r4_w_start':
-        if (fh) {
-          const f = getOrCreate(fh, fn, fi);
-          if (f.r3 === 'pending' && f.has_external_input) f.r3 = 'passed';
-          f.r4 = 'running';
-          f.lastTs = ts;
-        }
+      // R4-W func (backend event: r4_w_func_start/done)
+      case 'r4_w_func_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r4 = 'running'; f.lastTs = ts; }
         break;
-      case 'r4_w_done':
+      case 'r4_w_func_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          if (f.r3 === 'pending' && f.has_external_input) f.r3 = 'passed';
           const dec = String(d.decision || 'keep').toLowerCase();
-          f.r4 = dec === 'remove' || dec === 'filter' ? 'remove' : 'keep';
+          f.r4 = dec === 'filter' || dec === 'remove' ? 'remove' : 'keep';
           f.is_entry = f.r4 === 'keep';
           f.lastTs = ts;
         }
         break;
 
-      // 单函数报告 R5
+      // R4-W file-level aggregation (older event for file-level summary)
+      case 'r4_w_start':
+        break; // file-level, not func-level
+      case 'r4_w_done':
+        break; // file-level, not func-level
+
+      // R5 report
       case 'r5_w_start':
         if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; }
         break;
@@ -725,7 +840,7 @@ function deriveFuncProgress(
   }
 
   for (const f of map.values()) {
-    if (f.r4 === 'pending' && f.r3 === 'passed' && f.has_external_input) f.is_entry = true;
+    if (f.r4 === 'pending' && f.r3j === 'passed' && f.has_external_input) f.is_entry = true;
   }
 
   const funcs = Array.from(map.values());
@@ -1130,9 +1245,18 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     finally { setResuming(false); }
   };
 
+  const isLeanMode = Boolean(detail?.lean_mode);
   const events = logs.events;
-  const statusSteps = detail ? deriveStepStatuses(detail.status, events) : STAGE_STEPS.map((): StepStatus => 'pending');
-  const stageStats = useMemo(() => deriveStageStats(events), [events]);
+  const activeStageSteps = isLeanMode ? LEAN_STAGE_STEPS : FULL_STAGE_STEPS;
+  const statusSteps = detail ? deriveStepStatuses(detail.status, events, activeStageSteps) : activeStageSteps.map((): StepStatus => 'pending');
+  const stageStats = useMemo(() =>
+    isLeanMode ? deriveLeanStageStats(events).stats : deriveFullStageStats(events),
+    [events, isLeanMode],
+  );
+  const leanFileData = useMemo(() =>
+    isLeanMode ? deriveLeanStageStats(events).files : [],
+    [events, isLeanMode],
+  );
   const { funcs: funcProgress, totalFuncCount } = useMemo(
     () => deriveFuncProgress(events, detail?.function_catalog || []),
     [events, detail?.function_catalog],
@@ -1468,30 +1592,54 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
         {activeTab === 'overview' ? <>
           {/* ─ 统计条 */}
           {(() => {
-            const totalFiles = stageStats[0]?.filesTotal ?? stageStats[1]?.filesTotal ?? 0;
-            const totalFuncs = totalFuncCount || (stageStats[2]?.funcsDone ?? 0) || funcProgress.length;
-            const r1aDone    = stageStats[1]?.filesDone ?? stageStats[0]?.filesDone ?? 0;
-            const r2Funcs    = stageStats[2]?.funcsDone ?? 0;
-            const r3Entries  = stageStats[2]?.entriesFound ?? 0;
-            const r4Entries  = stageStats[3]?.entriesFound ?? r3Entries;
-            const ccNodes    = stageStats[2]?.nodeCount ?? 0;
+            const totalFiles = stageStats[0]?.filesTotal ?? 0;
             const activeStageIdx = statusSteps.reduce((last: number, s: StepStatus, i: number) => (s === 'running' || s === 'completed') ? i : last, -1);
-            const activeStage = activeStageIdx >= 0 ? STAGE_STEPS[activeStageIdx]?.label : '等待中';
+            const activeStage = activeStageIdx >= 0 ? activeStageSteps[activeStageIdx]?.label : '等待中';
+            if (isLeanMode) {
+              const finalEntries = stageStats[1]?.entriesFound ?? stageStats[2]?.entriesFound ?? 0;
+              const doneFiles = stageStats[0]?.filesDone ?? 0;
+              return (
+                <section className="rounded-2xl border border-violet-100 bg-violet-50/60 px-5 py-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-violet-600">精简模式 · 流水线统计</div>
+                    <span className="rounded-full border border-violet-200 bg-white px-3 py-1 text-[11px] font-bold text-violet-700">当前阶段：{activeStage}</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                    {([
+                      { label: '总文件数', value: totalFiles || '-', border: 'border-slate-200', bg: 'bg-white', text: 'text-slate-900' },
+                      { label: '已分析文件', value: doneFiles || '-', border: 'border-violet-100', bg: 'bg-violet-50', text: 'text-violet-700' },
+                      { label: '文件入口合计', value: finalEntries || '-', border: 'border-emerald-100', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+                    ] as Array<{label:string;value:string|number;border:string;bg:string;text:string}>).map(({ label, value, border, bg, text }) => (
+                      <div key={label} className={`rounded-xl border px-3 py-3 text-center ${border} ${bg}`}>
+                        <div className={`text-2xl font-black ${text}`}>{value}</div>
+                        <div className="mt-1 text-[10px] font-semibold text-slate-500">{label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            }
+            const totalFuncs = totalFuncCount || (stageStats[1]?.funcsDone ?? 0) || funcProgress.length;
+            const r1Done     = stageStats[0]?.filesDone ?? 0;
+            const r2Funcs    = stageStats[1]?.funcsDone ?? 0;
+            const r3Funcs    = stageStats[2]?.funcsDone ?? 0;
+            const r4Entries  = stageStats[3]?.entriesFound ?? stageStats[4]?.entriesFound ?? 0;
+            const ccNodes    = stageStats[3]?.nodeCount ?? 0;
             return (
               <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">流水线统计</div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">完整模式 · 流水线统计</div>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">当前阶段：{activeStage}</span>
                 </div>
-                <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+                <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                   {([
-                    { label: '总文件数',     value: totalFiles || '-', border: 'border-slate-200', bg: 'bg-slate-50',     text: 'text-slate-900' },
-                    { label: '总函数数',     value: totalFuncs || '-',  border: 'border-slate-200', bg: 'bg-slate-50/80',   text: 'text-slate-700' },
-                    { label: 'R1a完成文件',  value: r1aDone || '-',    border: 'border-sky-100',   bg: 'bg-sky-50',       text: 'text-sky-700' },
-                    { label: '分析完成函数', value: r2Funcs || '-',    border: 'border-indigo-100',bg: 'bg-indigo-50',    text: 'text-indigo-700' },
-                    { label: 'R3候选入口',   value: r3Entries || '-',  border: 'border-teal-100',  bg: 'bg-teal-50',      text: 'text-teal-700' },
-                    { label: '最终入口数',   value: r4Entries || '-',  border: 'border-emerald-100',bg: 'bg-emerald-50',  text: 'text-emerald-700' },
-                    { label: '调用链节点',   value: ccNodes || '-',    border: 'border-violet-100',bg: 'bg-violet-50',    text: 'text-violet-700' },
+                    { label: '总文件数',   value: totalFiles || '-', border: 'border-slate-200', bg: 'bg-slate-50',     text: 'text-slate-900' },
+                    { label: '总函数数',   value: totalFuncs || '-',  border: 'border-slate-200', bg: 'bg-slate-50/80',   text: 'text-slate-700' },
+                    { label: 'R1完成文件', value: r1Done || '-',    border: 'border-sky-100',   bg: 'bg-sky-50',       text: 'text-sky-700' },
+                    { label: 'R2完成函数', value: r2Funcs || '-',    border: 'border-indigo-100',bg: 'bg-indigo-50',    text: 'text-indigo-700' },
+                    { label: 'R3函数小计', value: r3Funcs || '-',    border: 'border-teal-100',  bg: 'bg-teal-50',      text: 'text-teal-700' },
+                    { label: '最终入口数', value: r4Entries || '-', border: 'border-emerald-100',bg: 'bg-emerald-50', text: 'text-emerald-700' },
+                    { label: 'CC节点数',   value: ccNodes || '-',    border: 'border-violet-100',bg: 'bg-violet-50',    text: 'text-violet-700' },
                   ] as Array<{label:string;value:string|number;border:string;bg:string;text:string}>).map(({ label, value, border, bg, text }) => (
                     <div key={label} className={`rounded-xl border px-3 py-3 text-center ${border} ${bg}`}>
                       <div className={`text-2xl font-black ${text}`}>{value}</div>
@@ -1519,13 +1667,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           </section>
           {/* ─ 流水线阶段进度（全宽水平卡片流） */}
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">流水线阶段进度</h2>
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">{isLeanMode ? '精简模式 · ' : ''}流水线阶段进度</h2>
             <p className="mt-1 text-xs text-slate-400">
-              各函数独立进度：函数覆盖率提取 → 函数正确性分析 → 是否外部入口分析 → 入口过滤 → 调用链分析 → 跨文件分析 → 报告生成
+              {isLeanMode
+                ? '文件并行：静态提取 → Worker写脚本执行 → Judge验证；模块级合并去重精炼；报告输出'
+                : 'R1提取 → R2准确性 → R3外部输入 → CC+R4入口决策 → R5报告'}
             </p>
             <div className="mt-5 overflow-x-auto pb-2">
               <div className="flex min-w-max items-stretch gap-2">
-                {STAGE_STEPS.map((step, index) => {
+                {activeStageSteps.map((step, index) => {
                   const state = statusSteps[index];
                   const stat  = stageStats[index];
                   const borderColor = state === 'completed' ? 'border-emerald-400' : state === 'running' ? 'border-blue-400' : state === 'failed' ? 'border-red-400' : 'border-slate-200';
@@ -1534,18 +1684,26 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   const artifactFull = detail.output_path ? `${detail.output_path}/${detail.task_id}/${step.artifactSubpath}` : '';
                   const artifactFsPath = artifactFull ? extractFsRelPath(artifactFull, projectId) : null;
                   return (
-                    <div key={step.key} className={`w-[152px] shrink-0 rounded-xl border-2 px-3 py-3 ${borderColor} ${bgColor}`}>
+                    <div key={step.key} className={`w-[160px] shrink-0 rounded-xl border-2 px-3 py-3 ${borderColor} ${bgColor}`}>
                       <div className="flex items-center gap-2 mb-2">
                         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${dotColor}`}>
                           {state === 'completed' ? '✓' : state === 'running' ? <Loader2 size={10} className="animate-spin" /> : state === 'failed' ? '✗' : index + 1}
                         </div>
                         <p className="text-xs font-black text-slate-900 leading-tight">{step.label}</p>
                       </div>
-                      <p className="text-[10px] text-slate-500 leading-snug min-h-[30px]">{step.desc}</p>
+                      <p className="text-[10px] text-slate-500 leading-snug min-h-[28px]">{step.desc}</p>
                       {stat.startTs && state !== 'pending' ? (
                         <p className="mt-1 font-mono text-[10px] text-slate-400">
                           {state === 'running' ? formatStageElapsed(stat.startTs, clockNow) : formatStageDuration(stat.startTs, stat.lastTs)}
                         </p>
+                      ) : null}
+                      {/* CC 内联小标签（仅 R4 阶段显示） */}
+                      {step.key === 'r4' && state !== 'pending' ? (
+                        <div className="mt-1">
+                          {stat.ccStatus === 'running' && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">● CC建图中</span>}
+                          {stat.ccStatus === 'done' && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">✓ CC {stat.nodeCount}节点</span>}
+                          {stat.ccStatus === 'failed' && <span className="rounded bg-orange-100 px-1 py-0.5 text-[9px] font-bold text-orange-700">⚠ CC失败</span>}
+                        </div>
                       ) : null}
                       {state !== 'pending' ? (
                         <div className="mt-2 flex flex-wrap gap-1">
@@ -1553,9 +1711,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                           {stat.filesTotal != null && stat.filesDone == null && <span className="rounded bg-white/90 border border-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-600">{stat.filesTotal} 文件</span>}
                           {stat.funcsDone != null && <span className="rounded bg-indigo-100 px-1 py-0.5 text-[9px] font-bold text-indigo-700">{stat.funcsDone} 函数</span>}
                           {stat.entriesFound != null && <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-700">{stat.entriesFound} 入口</span>}
-                          {stat.nodeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">{stat.nodeCount} 节点</span>}
-                          {stat.edgeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-600">{stat.edgeCount} 边</span>}
-                          {stat.attempts != null && stat.attempts > 1 && <span className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-700">↺{stat.attempts}</span>}
+                          {step.key !== 'r4' && stat.nodeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">{stat.nodeCount} 节点</span>}
                         </div>
                       ) : null}
                       {artifactFsPath && state !== 'pending' ? (
@@ -1569,14 +1725,53 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
               </div>
             </div>
           </section>
-          {/* ─ 函数级进度表（翻页）*/}
-          {funcProgress.length > 0 ? (
+          {/* ─ 精简模式：文件级列表 / 完整模式：函数级列表 */}
+          {isLeanMode && leanFileData.length > 0 ? (
+            <section className="rounded-2xl border border-violet-100 bg-white shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-violet-700">精简模式 · 文件分析进度</h2>
+                  <p className="mt-1 text-xs text-slate-400">共 {leanFileData.length} 个文件，已完成 {leanFileData.filter((f) => f.j_state === 'passed').length} 个</p>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+                      <th className="px-4 py-2.5 text-left">文件名</th>
+                      <th className="px-3 py-2.5 text-center">函数数</th>
+                      <th className="px-3 py-2.5 text-center">静态提取</th>
+                      <th className="px-3 py-2.5 text-center">Worker</th>
+                      <th className="px-3 py-2.5 text-center">Judge</th>
+                      <th className="px-3 py-2.5 text-center">入口数</th>
+                      <th className="px-3 py-2.5 text-center">重试</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {leanFileData.map((f) => (
+                      <tr key={f.file_hash} className={`transition ${f.j_state === 'passed' ? 'bg-emerald-50/30 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}>
+                        <td className="px-4 py-2 font-mono text-slate-800 max-w-[280px] truncate" title={f.file}>{f.file}</td>
+                        <td className="px-3 py-2 text-center text-slate-500">{f.func_count ?? '-'}</td>
+                        <td className="px-3 py-2 text-center"><FuncStageDot state={f.static_done ? 'passed' : 'pending'} label="静态" /></td>
+                        <td className="px-3 py-2 text-center"><FuncStageDot state={f.w_state as any} label="Worker" /></td>
+                        <td className="px-3 py-2 text-center"><FuncStageDot state={f.j_state as any} label="Judge" /></td>
+                        <td className="px-3 py-2 text-center">
+                          {f.entries != null ? <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-black text-emerald-700">{f.entries}</span> : <span className="text-slate-300">-</span>}
+                        </td>
+                        <td className="px-3 py-2 text-center text-slate-400 text-[10px]">{f.j_attempts > 1 ? `↺${f.j_attempts}` : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ) : !isLeanMode && funcProgress.length > 0 ? (
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
                 <div>
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">各函数流水线进度</h2>
                   <p className="mt-1 text-xs text-slate-400">
-                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。阶段：R1b · R2 · R2J · R3 · R4 · Rpt
+                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。阶段：R2-W · R2-J · R3-W · R3-J · R4 · R5
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1603,12 +1798,12 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       <th className="px-4 py-2.5 text-left">函数名</th>
                       <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
-                      <th className="px-2 py-2.5 text-center">R1b</th>
-                      <th className="px-2 py-2.5 text-center">R2</th>
-                      <th className="px-2 py-2.5 text-center">R2J</th>
-                      <th className="px-2 py-2.5 text-center">R3</th>
+                      <th className="px-2 py-2.5 text-center">R2-W</th>
+                      <th className="px-2 py-2.5 text-center">R2-J</th>
+                      <th className="px-2 py-2.5 text-center">R3-W</th>
+                      <th className="px-2 py-2.5 text-center">R3-J</th>
                       <th className="px-2 py-2.5 text-center">R4</th>
-                      <th className="px-2 py-2.5 text-center">Rpt</th>
+                      <th className="px-2 py-2.5 text-center">R5</th>
                       <th className="px-4 py-2.5 text-left">状态</th>
                     </tr>
                   </thead>
@@ -1624,25 +1819,26 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                             ? <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">✓ 入口</span>
                             : f.r4 === 'remove'
                               ? <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[9px] font-semibold text-orange-600">✗ 已过滤</span>
-                              : f.r2 === 'skip'
+                              : f.r3w === 'skip'
                                 ? <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-400">— 无输入</span>
                                 : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未知</span>
                           }
                         </td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r1b} label="R1b" /></td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2}  label="R2" /></td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2J" /></td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3}  label="R3" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2w} label="R2-W" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2-J" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3w} label="R3-W" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3j} label="R3-J" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="Rpt" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="R5" /></td>
                         <td className="px-4 py-2 text-slate-500">
                           {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
-                          : f.r4 === 'remove' ? <span className="text-orange-600">跨文件过滤</span>
-                          : f.r3 === 'passed' ? <span className="text-sky-700">R3 候选</span>
-                          : f.r3 === 'failed' ? <span className="text-slate-400">R3 过滤</span>
-                          : f.r2 === 'skip'   ? <span className="text-slate-300">无外部输入</span>
-                          : f.r2 === 'running' || f.r2j === 'running' ? <span className="text-blue-600 animate-pulse">分析中…</span>
-                          : f.r1b === 'running' ? <span className="text-indigo-600 animate-pulse">提取中…</span>
+                          : f.r4 === 'remove' ? <span className="text-orange-600">R4 过滤</span>
+                          : f.r3j === 'passed' ? <span className="text-sky-700">R3 候选</span>
+                          : f.r3j === 'failed' ? <span className="text-slate-400">R3 未通过</span>
+                          : f.r3w === 'skip'   ? <span className="text-slate-300">无外部输入</span>
+                          : f.r3w === 'running' || f.r3j === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
+                          : f.r2j === 'running' ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
+                          : f.r2w === 'running' ? <span className="text-sky-600 animate-pulse">R2校正中…</span>
                           : <span className="text-slate-300">等待中</span>}
                         </td>
                       </tr>
@@ -1668,7 +1864,6 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             </section>
           ) : null}
 
-                    {/* ─ 当前运行智能体（全宽） */}
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
               <div>

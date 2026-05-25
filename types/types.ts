@@ -2908,6 +2908,7 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   stages_json?: AppEaStagesJsonSummary | null;
   task_config_json?: Record<string, any> | null;
   function_catalog?: AppEaFunctionCatalogItem[] | null;
+  lean_mode?: boolean | null;
   task_root?: string | null;
   run_root?: string | null;
   workspace_root?: string | null;
