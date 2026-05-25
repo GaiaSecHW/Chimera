@@ -578,11 +578,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
           ? (resp as any).stages_json.events
           : [];
       const respFinal: boolean = (resp as any).final ?? (resp as any).stages_json?.final ?? false;
-      const respTotal: number = typeof (resp as any).total_event_count === 'number'
+      const hasNewFormat = typeof (resp as any).total_event_count === 'number';
+      const respTotal: number = hasNewFormat
         ? (resp as any).total_event_count
         : respEvents.length;
 
-      if (!incremental) {
+      if (!incremental || !hasNewFormat) {
         setDetailLogs({ events: respEvents, final: respFinal });
         detailLogsCountRef.current = respTotal;
       } else if (respEvents.length > 0) {

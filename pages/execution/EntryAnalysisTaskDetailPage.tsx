@@ -892,17 +892,22 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           ? (resp as any).stages_json.events
           : [];
       const respFinal: boolean = (resp as any).final ?? (resp as any).stages_json?.final ?? false;
-      const respTotal: number = typeof (resp as any).total_event_count === 'number'
+      // 旧接口无 total_event_count 字段，必须全量替换（否则增量追加会重复积累）
+      const hasNewFormat = typeof (resp as any).total_event_count === 'number';
+      const respTotal: number = hasNewFormat
         ? (resp as any).total_event_count
         : respEvents.length;
 
-      if (!incremental) {
+      if (!incremental || !hasNewFormat) {
+        // 全量替换：初始加载、任务重启、旧接口兼容场景
         setLogs({ events: respEvents, final: respFinal });
         logsEventCountRef.current = respTotal;
       } else if (respEvents.length > 0) {
+        // 追加增量（新接口，游标正确推进）
         setLogs((prev) => ({ events: [...prev.events, ...respEvents], final: respFinal }));
         logsEventCountRef.current = respTotal;
       } else {
+        // 无新事件，仅更新 final 标志
         setLogs((prev) => ({ ...prev, final: respFinal }));
       }
     } catch {
