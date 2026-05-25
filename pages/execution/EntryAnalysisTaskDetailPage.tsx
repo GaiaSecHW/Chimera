@@ -60,7 +60,7 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
-// ─── 完整模式 STAGE_STEPS（5步）────────────────────────────────────────────
+// ─── 完整模式 STAGE_STEPS（6步）────────────────────────────────────────────
 const FULL_STAGE_STEPS = [
   {
     key: 'r1',
@@ -80,16 +80,22 @@ const FULL_STAGE_STEPS = [
   {
     key: 'r3',
     label: 'R3 外部输入分析',
-    desc: '每函数外部输入分析（W+J），确定 has_external_input',
+    desc: '每函数外部输入分析（W+J），确定 has_external_input；与 CC 并行运行',
     triggers: ['r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done'],
     artifactSubpath: 'run/workspace/r2-analysis',
   },
   {
+    key: 'cc',
+    label: 'CC 调用链建图',
+    desc: '静态建全模块调用图（与 R3 并行），为 R4 入口决策提供 caller 上下文',
+    triggers: ['callchain_start', 'callchain_done', 'callchain_failed'],
+    artifactSubpath: 'run/workspace/callchain',
+  },
+  {
     key: 'r4',
-    label: 'CC + R4 入口决策',
-    desc: '调用链静态建图（CC）→ 每函数入口决策（R4-W）→ 最终质量验证（R4-J）',
+    label: 'R4 入口决策',
+    desc: '每函数入口决策 W（需 R3+CC）→ 最终质量验证 R4-J',
     triggers: [
-      'callchain_start', 'callchain_done', 'callchain_failed',
       'r4_w_start', 'r4_w_done', 'r4_w_func_start', 'r4_w_func_done',
       'r6_j_start', 'r6_j_done',
     ],
@@ -202,6 +208,7 @@ interface StageStat {
 
 /**
  * 从 stages_json.events 推导完整模式各阶段统计。
+ * 6 阶段: 0=R1 1=R2 2=R3 3=CC 4=R4 5=R5
  */
 function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
   const result: StageStat[] = FULL_STAGE_STEPS.map(() => ({}));
@@ -226,42 +233,43 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
     const ts = evt.ts || 0;
     const d  = evt.data || {};
     switch (evt.type) {
-      // R1
+      // R1 (idx=0)
       case 'pipeline_start': totalFiles = Number(d.file_count) || totalFiles; touch(0, ts); break;
       case 'r1_static_extract': case 'r1_static_done': touch(0, ts); break;
       case 'r1_w_start': case 'r1_j_start': case 'r1_retry_scheduled': touch(0, ts); break;
       case 'r1_w_done': touch(0, ts); if (d.file_hash) r1Files.add(String(d.file_hash)); break;
       case 'r1_j_done': touch(0, ts); break;
-      // R2
-      case 'r2_w_start': case 'r2_w_done': touch(1, ts);
-        if (evt.type === 'r2_w_done' && d.func_hash) r2Funcs.add(String(d.func_hash)); break;
+      // R2 (idx=1)
+      case 'r2_w_start': touch(1, ts); break;
+      case 'r2_w_done': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash)); break;
       case 'r2_j_start': touch(1, ts); break;
       case 'r2_j_done': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash)); break;
-      // R3
+      // R3 (idx=2) — 与 CC 并行
       case 'r3_w_start': case 'r3_j_start': touch(2, ts); break;
       case 'r3_w_done': touch(2, ts); if (d.func_hash) r3Funcs.add(String(d.func_hash)); break;
       case 'r3_j_done': touch(2, ts); break;
-      // R4 (CC + decision + final-J)
+      // CC (idx=3) — R4 前置，与 R3 并行
       case 'callchain_start': touch(3, ts); ccStatus = 'running'; break;
       case 'callchain_done':
         touch(3, ts); ccStatus = 'done';
         ccNodes = Number(d.nodes) || ccNodes; ccEdges = Number(d.edges) || ccEdges; break;
       case 'callchain_failed': touch(3, ts); ccStatus = 'failed'; break;
-      case 'r4_w_start': case 'r4_w_func_start': touch(3, ts); break;
-      case 'r4_w_done': touch(3, ts); break;
-      case 'r4_w_func_done': touch(3, ts);
+      // R4 (idx=4) — 需要 R3+CC 并行完成
+      case 'r4_w_start': case 'r4_w_func_start': touch(4, ts); break;
+      case 'r4_w_done': touch(4, ts); break;
+      case 'r4_w_func_done': touch(4, ts);
         if (d.func_hash && d.decision === 'keep') r4Funcs.add(String(d.func_hash)); break;
-      case 'r6_j_start': touch(3, ts); break;
+      case 'r6_j_start': touch(4, ts); break;
       case 'r6_j_done':
-        touch(3, ts);
-        if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
-      // R5
-      case 'r5_w_start': case 'r5_j_done': touch(4, ts); break;
-      case 'r5_done':
         touch(4, ts);
         if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
+      // R5 (idx=5)
+      case 'r5_w_start': case 'r5_j_done': touch(5, ts); break;
+      case 'r5_done':
+        touch(5, ts);
+        if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
       case 'task_end': case 'functions_list_synced': case 'functions_list_error':
-      case 'functions_list_autofix': touch(4, ts); break;
+      case 'functions_list_autofix': touch(5, ts); break;
       default: break;
     }
   }
@@ -270,14 +278,17 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
   result[1] = { funcsDone: r2Funcs.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
   result[2] = { funcsDone: r3Funcs.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
   result[3] = {
-    funcsDone:    r4Funcs.size || undefined,
-    entriesFound: entriesFound || undefined,
-    nodeCount:    ccNodes || undefined,
-    edgeCount:    ccEdges || undefined,
+    nodeCount: ccNodes || undefined,
+    edgeCount: ccEdges || undefined,
     ccStatus,
     startTs: firstTs[3], lastTs: lastTs[3],
   };
-  result[4] = { entriesFound: entriesFound || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
+  result[4] = {
+    funcsDone:    r4Funcs.size || undefined,
+    entriesFound: entriesFound || undefined,
+    startTs: firstTs[4], lastTs: lastTs[4],
+  };
+  result[5] = { entriesFound: entriesFound || undefined, startTs: firstTs[5], lastTs: lastTs[5] };
   return result;
 }
 
@@ -558,10 +569,11 @@ function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[], stage
   if (taskStatus === 'pending') return statuses;
   if (taskStatus === 'passed') return stageSteps.map((): StepStatus => 'completed');
   let last = -1;
-  let ccFailed = false, ccDone = false;
+  // CC 独立跟踪（非致命，失败不阻断 R4）
+  let ccDone = false, ccFailed = false;
   for (const evt of events) {
-    if (evt.type === 'callchain_failed') ccFailed = true;
     if (evt.type === 'callchain_done')   ccDone   = true;
+    if (evt.type === 'callchain_failed') ccFailed = true;
     stageSteps.forEach((step, index) => {
       if (step.triggers.includes(evt.type)) last = Math.max(last, index);
     });
@@ -572,8 +584,9 @@ function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[], stage
     return statuses;
   }
   for (let i = 0; i < stageSteps.length; i += 1) {
-    const isR4 = stageSteps[i].key === 'r4';
-    if (isR4 && ccFailed && !ccDone && last <= i) {
+    const isCCStage = stageSteps[i].key === 'cc';
+    if (isCCStage && ccFailed && !ccDone) {
+      // CC 建图失败（非致命）：标记 failed 但不阻断后续阶段
       statuses[i] = 'failed';
     } else if (i < last) {
       statuses[i] = 'completed';
@@ -1623,7 +1636,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             const r1Done     = stageStats[0]?.filesDone ?? 0;
             const r2Funcs    = stageStats[1]?.funcsDone ?? 0;
             const r3Funcs    = stageStats[2]?.funcsDone ?? 0;
-            const r4Entries  = stageStats[3]?.entriesFound ?? stageStats[4]?.entriesFound ?? 0;
+            const r4Entries  = stageStats[4]?.entriesFound ?? stageStats[5]?.entriesFound ?? 0;
             const ccNodes    = stageStats[3]?.nodeCount ?? 0;
             return (
               <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
@@ -1697,13 +1710,9 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                           {state === 'running' ? formatStageElapsed(stat.startTs, clockNow) : formatStageDuration(stat.startTs, stat.lastTs)}
                         </p>
                       ) : null}
-                      {/* CC 内联小标签（仅 R4 阶段显示） */}
-                      {step.key === 'r4' && state !== 'pending' ? (
-                        <div className="mt-1">
-                          {stat.ccStatus === 'running' && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">● CC建图中</span>}
-                          {stat.ccStatus === 'done' && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">✓ CC {stat.nodeCount}节点</span>}
-                          {stat.ccStatus === 'failed' && <span className="rounded bg-orange-100 px-1 py-0.5 text-[9px] font-bold text-orange-700">⚠ CC失败</span>}
-                        </div>
+                      {/* CC 阶段卡片：显示建图进度和并行说明 */}
+                      {step.key === 'cc' && state !== 'pending' ? (
+                        <div className="mt-1 text-[9px] text-violet-600">与 R3 并行 · R4 前置</div>
                       ) : null}
                       {state !== 'pending' ? (
                         <div className="mt-2 flex flex-wrap gap-1">
@@ -1711,7 +1720,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                           {stat.filesTotal != null && stat.filesDone == null && <span className="rounded bg-white/90 border border-slate-200 px-1 py-0.5 text-[9px] font-bold text-slate-600">{stat.filesTotal} 文件</span>}
                           {stat.funcsDone != null && <span className="rounded bg-indigo-100 px-1 py-0.5 text-[9px] font-bold text-indigo-700">{stat.funcsDone} 函数</span>}
                           {stat.entriesFound != null && <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-700">{stat.entriesFound} 入口</span>}
-                          {step.key !== 'r4' && stat.nodeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">{stat.nodeCount} 节点</span>}
+                          {stat.nodeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-700">{stat.nodeCount} 节点</span>}
+                          {stat.edgeCount != null && <span className="rounded bg-violet-100 px-1 py-0.5 text-[9px] font-bold text-violet-600">{stat.edgeCount} 边</span>}
                         </div>
                       ) : null}
                       {artifactFsPath && state !== 'pending' ? (
