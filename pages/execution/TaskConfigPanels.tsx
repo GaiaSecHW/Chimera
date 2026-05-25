@@ -11,7 +11,16 @@ import {
   BinarySecurityModuleContract,
 } from '../../clients/binarySecurity';
 import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
-import { asBinarySecurityContract, contractText } from '../../utils/binarySecurityContracts';
+import {
+  asBinarySecurityContract,
+  contractText,
+  dfaContractModuleInputPath,
+  dfaContractSourceRootPath,
+  entryContractDescriptorRoot,
+  entryContractFilesListPath,
+  entryContractModuleDir,
+  entryContractSourceRoot,
+} from '../../utils/binarySecurityContracts';
 
 const ANALYSE_TARGET_LABELS: Record<string, string> = {
   all: '全部文件',
@@ -121,16 +130,6 @@ function normalizeProjectFileExplorerPath(path: string, projectId?: string | nul
 
 function buildProjectFileExplorerUrl(fsPath: string, projectId?: string | null): string {
   return `#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`;
-}
-
-function safeJoinPath(basePath?: string | null, ...segments: Array<string | null | undefined>): string | null {
-  const base = String(basePath || '').trim().replace(/\/+$/, '');
-  if (!base) return null;
-  const suffix = segments
-    .map((segment) => String(segment || '').trim())
-    .filter(Boolean)
-    .map((segment) => segment.replace(/^\/+/, '').replace(/\/+$/, ''));
-  return [base, ...suffix].join('/');
 }
 
 const ProjectDirectoryValue: React.FC<{ path?: string | null; projectId?: string | null }> = ({ path, projectId }) => {
@@ -379,12 +378,11 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
   const outputSummary = asRecord(detail.output_summary);
   const inputSummary = asRecord(detail.input_summary);
   const inputContract = asBinarySecurityContract(taskConfig.input_contract);
-  const contractModuleDir = contractText(inputContract, 'module_dir', 'source_dir');
-  const contractDescriptorRoot = contractText(inputContract, 'descriptor_root', 'entry_descriptor_root');
-  const contractSourceRoot = contractText(inputContract, 'source_root', 'source_root_path', 'source_dir');
-  const filesListPath = contractText(inputContract, 'files_list_path', 'entry_files_list', 'files_list')
+  const contractModuleDir = entryContractModuleDir(inputContract);
+  const contractDescriptorRoot = entryContractDescriptorRoot(inputContract);
+  const contractSourceRoot = entryContractSourceRoot(inputContract);
+  const filesListPath = entryContractFilesListPath(inputContract)
     || String(inputSummary.files_list_path || '').trim()
-    || safeJoinPath(contractModuleDir || inputSummary.module_root || detail.input_path, 'files.list')
     || null;
   return (
     <div className="space-y-4">
@@ -406,9 +404,9 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         title="输入信息"
         projectId={detail.project_id}
         rows={[
-          { label: '模块目录', path: contractModuleDir || detail.input_path },
-          { label: '描述根目录', path: contractDescriptorRoot || detail.input_path },
-          { label: '源码目录', path: contractSourceRoot || detail.source_path },
+          { label: '模块目录', path: contractModuleDir || detail.input_path || null },
+          { label: '描述根目录', path: contractDescriptorRoot || null },
+          { label: '源码目录', path: contractSourceRoot || detail.source_path || null },
           { label: '模块文件清单', path: filesListPath },
         ]}
       />
@@ -466,8 +464,9 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
   const taskConfig = asRecord(detail.task_config_json);
   const inputSummary = asRecord(detail.input_summary);
   const outputSummary = asRecord(detail.output_summary);
-  const moduleInputPath = String((detail as any).module_input_path || inputSummary.module_input_path || detail.input_path || '').trim() || null;
-  const sourceRootPath = String((detail as any).source_root_path || inputSummary.source_root_path || detail.input_path || '').trim() || null;
+  const inputContract = asBinarySecurityContract(taskConfig.input_contract);
+  const moduleInputPath = dfaContractModuleInputPath(inputContract, inputSummary);
+  const sourceRootPath = dfaContractSourceRootPath(inputContract, inputSummary);
   return (
     <div className="space-y-4">
       <TaskIdentitySection

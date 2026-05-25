@@ -2895,7 +2895,9 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   task_root?: string | null;
   run_root?: string | null;
   workspace_root?: string | null;
-  input_summary?: Record<string, any> | null;
+  input_summary?: {
+    files_list_path?: string | null;
+  } | null;
   output_summary?: Record<string, any> | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
@@ -2956,6 +2958,7 @@ export interface AppEaTaskCreateRequest {
   input_path: string;                // SA输出目录
   module_name: string;               // 具体模块名
   source_path?: string;              // 源码根目录
+  input_contract?: Record<string, any>;
   output_path?: string;
   task_description?: string;
   prompt_template_id?: string;
@@ -3159,7 +3162,10 @@ export interface AppDfaTaskDetail extends AppDfaTaskItem {
   task_root?: string | null;
   run_root?: string | null;
   workspace_root?: string | null;
-  input_summary?: Record<string, any> | null;
+  input_summary?: {
+    module_input_path?: string | null;
+    source_root_path?: string | null;
+  } | null;
   output_summary?: Record<string, any> | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }

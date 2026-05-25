@@ -101,3 +101,43 @@ export function renderContractValue(value: string) {
     </div>
   );
 }
+
+export function entryContractFilesListPath(
+  contract: BinarySecurityContract | null | undefined,
+): string | null {
+  return contractText(contract, 'files_list_path', 'entry_files_list', 'files_list');
+}
+
+export function entryContractModuleDir(
+  contract: BinarySecurityContract | null | undefined,
+): string | null {
+  return contractText(contract, 'module_dir', 'source_dir');
+}
+
+export function entryContractDescriptorRoot(
+  contract: BinarySecurityContract | null | undefined,
+): string | null {
+  return contractText(contract, 'descriptor_root', 'entry_descriptor_root');
+}
+
+export function entryContractSourceRoot(
+  contract: BinarySecurityContract | null | undefined,
+): string | null {
+  return contractText(contract, 'source_root', 'source_root_path', 'source_dir');
+}
+
+export function dfaContractModuleInputPath(
+  contract: BinarySecurityContract | null | undefined,
+  inputSummary?: Record<string, unknown> | null,
+): string | null {
+  return contractText(contract, 'module_input_path', 'module_dir', 'descriptor_root', 'source_dir')
+    || legacyContractValue(inputSummary, 'module_input_path');
+}
+
+export function dfaContractSourceRootPath(
+  contract: BinarySecurityContract | null | undefined,
+  inputSummary?: Record<string, unknown> | null,
+): string | null {
+  return contractText(contract, 'source_root_path', 'source_root', 'source_dir')
+    || legacyContractValue(inputSummary, 'source_root_path');
+}

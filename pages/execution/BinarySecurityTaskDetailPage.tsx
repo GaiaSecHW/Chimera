@@ -282,7 +282,7 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
         { label: 'definition_file', value: stageItemContractValue(inputRef, 'definition_file') },
       ] : []),
       ...(isVulnScanStage ? [
-        { label: 'data_flow_root', value: stageItemContractValue(inputRef, 'data_flow_root', 'artifact_root', 'archive_root') },
+        { label: 'data_flow_root', value: stageItemContractValue(inputRef, 'data_flow_root') },
         { label: 'primary_report', value: stageItemContractValue(inputRef, 'primary_report_path', 'data_flow_file') },
         {
           label: 'data_flow_files',
@@ -302,7 +302,7 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
       { label: 'source_root', value: stageItemContractValue(resultRef, 'source_root', 'source_root_path', 'source_dir') || stageItemContractValue(outputRef, 'source_root', 'source_root_path', 'source_dir') },
       ...(isDataflowStage ? [
         { label: 'artifact_root', value: stageItemContractValue(resultRef, 'artifact_root') || stageItemContractValue(outputRef, 'artifact_root') },
-        { label: 'data_flow_root', value: stageItemContractValue(resultRef, 'data_flow_root', 'artifact_root', 'archive_root') || stageItemContractValue(outputRef, 'data_flow_root', 'artifact_root', 'archive_root') },
+        { label: 'data_flow_root', value: stageItemContractValue(resultRef, 'data_flow_root') || stageItemContractValue(outputRef, 'data_flow_root') },
         { label: 'primary_report', value: stageItemContractValue(resultRef, 'primary_report_path', 'data_flow_file') || stageItemContractValue(outputRef, 'primary_report_path', 'data_flow_file') },
         {
           label: 'data_flow_files',
