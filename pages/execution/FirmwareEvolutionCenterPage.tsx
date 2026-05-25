@@ -48,9 +48,22 @@ function fmtDuration(start: string | null | undefined, end: string | null | unde
   if (!start) return '-';
   const ms = (end ? new Date(end).getTime() : Date.now()) - new Date(start).getTime();
   const sec = Math.max(0, Math.round(ms / 1000));
+  return fmtSeconds(sec);
+}
+
+function fmtSeconds(value: number | null | undefined) {
+  const sec = Math.max(0, Math.round(Number(value ?? 0)));
   if (sec < 60) return `${sec}s`;
   if (sec < 3600) return `${Math.floor(sec / 60)}m${sec % 60}s`;
   return `${Math.floor(sec / 3600)}h${Math.floor((sec % 3600) / 60)}m`;
+}
+
+function fmtToken(value: number | null | undefined) {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num) || num <= 0) return '0';
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(num >= 10_000_000 ? 1 : 2)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(num >= 10_000 ? 1 : 2)}K`;
+  return String(Math.round(num));
 }
 
 function basename(path: string | null | undefined) {
@@ -266,6 +279,22 @@ function StatCard({ label, value, tone }: { label: string; value: React.ReactNod
   );
 }
 
+function getEvolutionRoundMetrics(round: FirmwareEvolutionJob['rounds'][number]) {
+  const metrics = round.metrics || {};
+  const executorTokens = round.evolution_executor_tokens || metrics.evolution_executor_tokens || {};
+  const reviewerTokens = round.reviewer_tokens || metrics.reviewer_tokens || {};
+  const totalTokens = round.total_tokens || metrics.total_tokens || {};
+  return {
+    toolDurationSeconds: Number(round.tool_unpack_duration_seconds ?? metrics.tool_unpack_duration_seconds ?? 0),
+    executorTokens,
+    reviewerTokens,
+    totalTokens,
+    totalTokenCount: Number(totalTokens.total ?? 0),
+    executorTokenCount: Number(executorTokens.total ?? 0),
+    reviewerTokenCount: Number(reviewerTokens.total ?? 0),
+  };
+}
+
 function buildEvolutionProgressPhases(job: FirmwareEvolutionJob) {
   const phases: Array<{
     key: string;
@@ -285,13 +314,20 @@ function buildEvolutionProgressPhases(job: FirmwareEvolutionJob) {
     const isCurrent = roundId === currentRound;
     const roundPassed = round?.status === 'review_passed';
     const roundFailed = round?.status === 'failed' || round?.status === 'tool_failed';
+    const roundRunning = round?.status === 'running';
 
     phases.push({
       key: `round_${roundId}_evolution_execute`,
       label: `第 ${roundId} 轮 · 工具进化执行`,
       detail: round?.tool_path_after || round?.tool_skill_path_after || (roundId === 1 && job.started_without_matched_skill ? '生成首个 working tool 并执行解包' : '执行或完善 working tool 后解包'),
       status: round
-        ? (roundFailed ? 'failed' : 'completed')
+        ? (
+            roundFailed
+              ? 'failed'
+              : (roundRunning && isCurrent && ['evolution_execute', 'tool_execute', 'evolve'].includes(currentStage) && !isTerminal(job.status))
+                ? 'running'
+                : 'completed'
+          )
         : isCurrent && ['evolution_execute', 'tool_execute', 'evolve'].includes(currentStage) && !isTerminal(job.status)
           ? 'running'
           : beforeCurrent
@@ -305,7 +341,17 @@ function buildEvolutionProgressPhases(job: FirmwareEvolutionJob) {
       label: `第 ${roundId} 轮 · 评审`,
       detail: round?.review_result ? round.review_result.slice(0, 120) : '评审解包完整性、工具可改进性和效率',
       status: round
-        ? (roundPassed ? 'completed' : roundFailed ? 'failed' : 'completed')
+        ? (
+            roundPassed
+              ? 'completed'
+              : roundFailed
+                ? 'failed'
+                : (roundRunning && isCurrent && currentStage === 'review' && !isTerminal(job.status))
+                  ? 'running'
+                  : (roundRunning && isCurrent && ['evolution_execute', 'tool_execute', 'evolve'].includes(currentStage) && !isTerminal(job.status))
+                    ? 'pending'
+                    : 'completed'
+          )
         : isCurrent && currentStage === 'review' && !isTerminal(job.status)
           ? 'running'
           : beforeCurrent
@@ -536,6 +582,10 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     () => runtimeItems.find((item) => item.path === runtimeSelectedPath) || null,
     [runtimeItems, runtimeSelectedPath],
   );
+  const runtimeRootPath = useMemo(() => {
+    const candidate = String(activeJob?.run_root || '').trim();
+    return candidate || null;
+  }, [activeJob?.run_root]);
   const canConfirmReplacement = Boolean(
     activeJob
     && activeJob.status === 'success'
@@ -602,7 +652,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     setRuntimeFilesLoading(true);
     setRuntimeFilesError('');
     try {
-      const payload = await fwApi.listRuntimeFiles(projectId, 2000);
+      const payload = await fwApi.listRuntimeFiles(projectId, 2000, runtimeRootPath);
       setRuntimeFiles(payload);
       setRuntimeExpandedPaths((current) => {
         if (current.size > 0) return current;
@@ -624,7 +674,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     } finally {
       setRuntimeFilesLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, runtimeRootPath]);
 
   const refreshJobDetail = useCallback(async (jobId: string, options?: { silent?: boolean }) => {
     if (!jobId) return;
@@ -784,7 +834,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       setRuntimePreviewLoading(true);
       setRuntimePreviewError('');
       try {
-        const payload: FirmwareRuntimeFilePreview = await fwApi.fetchRuntimeFilePreviewBlob(selected.path, projectId, 262144);
+        const payload: FirmwareRuntimeFilePreview = await fwApi.fetchRuntimeFilePreviewBlob(selected.path, projectId, 262144, runtimeRootPath);
         if (cancelled) return;
         const mode = inferRuntimePreviewMode(selected.path, payload.contentType);
         if (mode === 'text') {
@@ -818,7 +868,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     return () => {
       cancelled = true;
     };
-  }, [projectId, runtimeSelectedPath, selectedRuntimeItem?.kind, selectedRuntimeItem?.modified_at, selectedRuntimeItem?.size_bytes]);
+  }, [projectId, runtimeRootPath, runtimeSelectedPath, selectedRuntimeItem?.kind, selectedRuntimeItem?.modified_at, selectedRuntimeItem?.size_bytes]);
 
   useEffect(() => {
     void fetchJobs(true);
@@ -837,6 +887,14 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   useEffect(() => {
     if (!activeJobId) {
       setActiveJob(null);
+      setRuntimeFiles(null);
+      setRuntimeFilesError('');
+      setRuntimeSelectedPath('');
+      setRuntimeExpandedPaths(new Set());
+      setRuntimePreviewText('');
+      setRuntimePreviewHex('');
+      setRuntimePreviewError('');
+      setRuntimePreviewMeta({ contentType: '', truncated: false, mode: '', size: 0 });
       setEvents([]);
       setSessions(null);
       setSessionItems([]);
@@ -854,6 +912,17 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     // 只在切换详情任务时加载一次，避免 refreshJobDetail 引用变化导致详情页循环刷新。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeJobId, closeSessionSocket]);
+
+  useEffect(() => {
+    setRuntimeFiles(null);
+    setRuntimeFilesError('');
+    setRuntimeSelectedPath('');
+    setRuntimeExpandedPaths(new Set());
+    setRuntimePreviewText('');
+    setRuntimePreviewHex('');
+    setRuntimePreviewError('');
+    setRuntimePreviewMeta({ contentType: '', truncated: false, mode: '', size: 0 });
+  }, [runtimeRootPath]);
 
   useEffect(() => {
     if (!activeJobId || !activeJob || isTerminal(activeJob.status)) return;
@@ -1090,6 +1159,17 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       return <div className="rounded-2xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">加载进化任务详情中...</div>;
     }
     const progressPhases = buildEvolutionProgressPhases(activeJob);
+    const effectRows = activeJob.rounds.map((round) => ({ round, metrics: getEvolutionRoundMetrics(round) }));
+    const bestDuration = effectRows.reduce<number | null>((best, item) => {
+      const value = item.metrics.toolDurationSeconds;
+      if (!value) return best;
+      return best === null ? value : Math.min(best, value);
+    }, null);
+    const bestTokens = effectRows.reduce<number | null>((best, item) => {
+      const value = item.metrics.totalTokenCount;
+      if (!value) return best;
+      return best === null ? value : Math.min(best, value);
+    }, null);
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1167,6 +1247,62 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
                   );
                 })}
               </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Evolution Effect</div>
+                  <h3 className="mt-2 text-lg font-black text-slate-900">进化效果对比</h3>
+                  <p className="mt-1 text-xs text-slate-500">按轮次展示工具解包耗时和 token 消耗，用于判断工具是否更快、更省 token。</p>
+                </div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                  <BarChart3 size={12} />
+                  {effectRows.length} 轮
+                </span>
+              </div>
+              {effectRows.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">暂无进化效果数据</div>
+              ) : (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+                        <th className="px-3 py-2">轮次</th>
+                        <th className="px-3 py-2">状态</th>
+                        <th className="px-3 py-2">工具解包时间</th>
+                        <th className="px-3 py-2">总 token</th>
+                        <th className="px-3 py-2">进化器 token</th>
+                        <th className="px-3 py-2">评审器 token</th>
+                        <th className="px-3 py-2">工具变化</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {effectRows.map(({ round, metrics }) => {
+                        const durationIsBest = bestDuration !== null && metrics.toolDurationSeconds > 0 && metrics.toolDurationSeconds === bestDuration;
+                        const tokenIsBest = bestTokens !== null && metrics.totalTokenCount > 0 && metrics.totalTokenCount === bestTokens;
+                        return (
+                          <tr key={round.id} className="border-b border-slate-100 last:border-0">
+                            <td className="px-3 py-3 font-black text-slate-900">第 {round.round} 轮</td>
+                            <td className="px-3 py-3"><span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${roundStatusTone(round.status)}`}>{roundStatusLabel(round.status)}</span></td>
+                            <td className="px-3 py-3">
+                              <span className={durationIsBest ? 'font-black text-emerald-700' : 'font-semibold text-slate-700'}>{metrics.toolDurationSeconds ? fmtSeconds(metrics.toolDurationSeconds) : '-'}</span>
+                              {durationIsBest ? <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">最快</span> : null}
+                            </td>
+                            <td className="px-3 py-3">
+                              <span className={tokenIsBest ? 'font-black text-emerald-700' : 'font-semibold text-slate-700'}>{metrics.totalTokenCount ? fmtToken(metrics.totalTokenCount) : '-'}</span>
+                              {tokenIsBest ? <span className="ml-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">最省</span> : null}
+                            </td>
+                            <td className="px-3 py-3 text-slate-600">{fmtToken(metrics.executorTokenCount)}</td>
+                            <td className="px-3 py-3 text-slate-600">{fmtToken(metrics.reviewerTokenCount)}</td>
+                            <td className="px-3 py-3 text-slate-600">{round.tool_changed ? '已改进' : '未改动'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
