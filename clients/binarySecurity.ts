@@ -343,6 +343,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     parent_key?: string | null;
     status: string;
     retry_count: number;
+    rerun_count?: number;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
     input_ref: BinarySecurityStageItemInputContract;

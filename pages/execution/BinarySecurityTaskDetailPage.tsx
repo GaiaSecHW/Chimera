@@ -3055,7 +3055,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   ))}
                   <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <span className="block text-sm font-black text-slate-800">子任务重试次数</span>
-                    <span className="mt-1 block text-xs text-slate-500">范围 0-20</span>
+                    <span className="mt-1 block text-xs text-slate-500">单轮执行内的自动重试上限，范围 0-20</span>
                     <input
                       type="number"
                       min={0}
@@ -3069,6 +3069,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-slate-400"
                     />
                   </label>
+                </div>
+                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                  阶段子任务表中的“累计重跑”是该条目历史上被重新执行的累计次数；它不同于这里配置的“单轮自动重试上限”。
                 </div>
                 <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
                   <input
@@ -3729,7 +3732,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          </th>
 	                          <th className="w-24 px-3 py-3">状态</th>
 	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
-	                          <th className="w-24 px-3 py-3">重试</th>
+	                          <th className="w-32 px-3 py-3">累计重跑</th>
                           {isSystemAnalysisStageTable ? (
                             <>
                               <th className="w-28 px-3 py-3">高风险模块</th>
@@ -3791,7 +3794,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 font-bold text-slate-700">{item.retry_count || 0}</td>
+                                <td className="px-3 py-3 font-bold text-slate-700">{item.rerun_count ?? item.retry_count ?? 0}</td>
                                 {isSystemAnalysisStageTable ? (
                                   <>
                                     <td className="px-3 py-3 font-black text-slate-900">{riskCounts.high}</td>
