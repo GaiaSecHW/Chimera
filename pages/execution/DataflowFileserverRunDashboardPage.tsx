@@ -79,7 +79,7 @@ const DASHBOARD_HTML = `
         <div id="tabOverview" class="tab-content active">
           <div class="grid-2">
             <div class="card" id="scoreChart"></div>
-            <div class="card" id="issuesCard"></div>
+            <div class="card" id="vulnTrendCard"></div>
           </div>
           <div class="card" id="manifestCard"></div>
           <div class="card" id="cycleTimeline"></div>
@@ -895,18 +895,22 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
 .session-browser-shell {
   display: grid;
-  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .session-browser-nav,
 .session-viewer-pane {
+  min-width: 0;
   min-height: 520px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .session-browser-nav {
-  overflow: visible;
   border-radius: 24px;
 }
 
@@ -921,8 +925,9 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
 .session-nav-list {
   display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 10px;
-  max-height: 420px;
   overflow: auto;
   padding-right: 2px;
 }
@@ -1016,6 +1021,8 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 
 .session-message-list {
   display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 12px;
   max-height: calc(100vh - 330px);
   overflow: auto;
@@ -1457,13 +1464,6 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   white-space: nowrap;
 }
 
-.execution-step-pill.current {
-  border-color: #0891b2;
-  background: linear-gradient(180deg, #ecfeff 0%, #ffffff 100%);
-  color: #0e7490;
-  box-shadow: 0 0 0 4px rgba(8, 145, 178, 0.10);
-}
-
 .execution-step-pill.status-completed,
 .execution-step-pill.status-passed {
   background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 100%);
@@ -1483,6 +1483,83 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
   border-color: #fde68a;
   color: #b45309;
+}
+
+.execution-step-pill.current {
+  position: relative;
+  border-color: #0891b2;
+  background: linear-gradient(180deg, rgba(236, 254, 255, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+  color: #0e7490;
+  box-shadow:
+    0 0 0 1px rgba(8, 145, 178, 0.08),
+    0 12px 26px rgba(14, 165, 233, 0.08),
+    0 0 0 4px rgba(8, 145, 178, 0.10);
+}
+
+.execution-step-pill.current::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 18px 0 0 18px;
+  background: linear-gradient(180deg, #06b6d4 0%, #14b8a6 100%);
+}
+
+.execution-step-pill.current::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 20px;
+  border: 1px solid rgba(8, 145, 178, 0.16);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.execution-step-pill.current.live::after {
+  animation: executionCurrentRing 2.2s ease-out infinite;
+}
+
+.execution-step-pill.current .execution-step-dot {
+  box-shadow: 0 0 0 5px rgba(8, 145, 178, 0.12);
+}
+
+.execution-step-pill.current.live .execution-step-dot {
+  animation: executionCurrentDot 1.6s ease-in-out infinite;
+}
+
+.execution-step-pill.current .execution-step-label,
+.execution-step-pill.current .execution-step-duration {
+  color: #0e7490;
+}
+
+.execution-step-pill.current .execution-step-duration {
+  border-color: rgba(8, 145, 178, 0.18);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+@keyframes executionCurrentRing {
+  0% {
+    transform: scale(0.985);
+    opacity: 0.34;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.02);
+    opacity: 0;
+  }
+}
+
+@keyframes executionCurrentDot {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 5px rgba(8, 145, 178, 0.12);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 9px rgba(8, 145, 178, 0.05);
+  }
 }
 
 .execution-step-dot {
@@ -1725,6 +1802,13 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
 .modal-body {
   color: var(--text);
   line-height: 1.7;
+  overflow-x: hidden;
+}
+
+.modal-body .session-message-list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .modal-body pre {
@@ -3226,7 +3310,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const loadingCard = '<div class="card-title">加载中</div><div class="empty-state">正在解析该 Run 的详细信息...</div>';
       const emptyCard = '<div class="empty-state">正在加载...</div>';
       const scoreChart = this.$('scoreChart');
-      const issuesCard = this.$('issuesCard');
+      const vulnTrendCard = this.$('vulnTrendCard');
       const manifestCard = this.$('manifestCard');
       const cycleTimeline = this.$('cycleTimeline');
       const cyclesContainer = this.$('cyclesContainer');
@@ -3237,7 +3321,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const logContent = this.$('logContent');
       const taskInfoCard = this.$('taskInfoCard');
       if (scoreChart) scoreChart.innerHTML = loadingCard;
-      if (issuesCard) issuesCard.innerHTML = loadingCard;
+      if (vulnTrendCard) vulnTrendCard.innerHTML = loadingCard;
       if (manifestCard) manifestCard.innerHTML = loadingCard;
       if (cycleTimeline) cycleTimeline.innerHTML = loadingCard;
       if (cyclesContainer) cyclesContainer.innerHTML = emptyCard;
@@ -3265,11 +3349,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.showLoadingState(name);
       const errorCard = `<div class="card-title">加载失败</div><div class="empty-state text-error">${this.esc(message)}</div>`;
       const scoreChart = this.$('scoreChart');
-      const issuesCard = this.$('issuesCard');
+      const vulnTrendCard = this.$('vulnTrendCard');
       const manifestCard = this.$('manifestCard');
       const cycleTimeline = this.$('cycleTimeline');
       if (scoreChart) scoreChart.innerHTML = errorCard;
-      if (issuesCard) issuesCard.innerHTML = errorCard;
+      if (vulnTrendCard) vulnTrendCard.innerHTML = errorCard;
       if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及 Run 后端对 /data 的挂载和索引配置。</div>';
       if (cycleTimeline) cycleTimeline.innerHTML = '<div class="card-title">运行状态</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示轮次和结果信息。</div>';
     },
@@ -3284,12 +3368,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const runCache = this.getRunCache(name);
         runCache.overview = data;
-        runCache.sessionsLoaded = true;
         runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
-        runCache.filesLoaded = true;
+        runCache.sessionsLoaded = runCache.sessions.length > 0;
         runCache.files = Array.isArray(data.files) ? data.files : [];
-        if (!runCache.logLoaded) {
-          runCache.log = data.run_log || '';
+        runCache.filesLoaded = runCache.files.length > 0;
+        if (typeof data.run_log === 'string' && data.run_log) {
+          runCache.logLoaded = true;
+          runCache.log = data.run_log;
         }
         this.currentRunData = data;
         this.currentSummary = {
@@ -3330,7 +3415,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const detail = this.$('runDetail');
         if (welcome) welcome.style.display = 'none';
         if (detail) detail.style.display = 'block';
-        void this.preloadAllCycleDetails(name, data, forceActiveTabReload);
+        if (this.getActiveTab() === 'cycles') {
+          void this.preloadAllCycleDetails(name, data, forceActiveTabReload);
+        }
         this.refreshActiveTabContent(forceActiveTabReload);
       } catch (e: any) {
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
@@ -3717,23 +3804,27 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     renderOverview(data: DataflowFileserverRunOverview) {
       this.renderScoreChart(data.cycles || []);
-      this.renderIssuesCard(data.latest_issues || []);
-      this.renderManifestCard(data.manifests || {}, data.config || {});
+      this.renderVulnerabilityTrendCard(data.cycles || []);
+      this.renderManifestCard(data.manifests || {});
       this.renderCycleTimeline(data.cycles || []);
     },
 
-    renderManifestCard(manifests: Record<string, any>, config: Record<string, any>) {
+    renderManifestCard(manifests: Record<string, any>) {
       const el = this.$('manifestCard');
       if (!el) return;
       const m = manifests || {};
-      const advisors = (config?.global_review_advisors || []).map((a: any) => {
-        const fields = (a.score_fields || []).join(', ');
-        return `<div class="manifest-advisor"><span class="mono">${this.esc(a.instance_id)}</span><span>${this.esc(fields || '-')}</span></div>`;
-      }).join('');
+      const statusCounts = m.vulnerability_status_counts || {};
+      const totalDiscovered = Number(m.total_result_files ?? statusCounts.total ?? 0);
+      const activeCount = Number(m.active_result_count ?? 0);
+      const confirmedCount = Number(statusCounts.confirmed ?? 0);
+      const pendingReviewCount = Number(statusCounts.pending_review ?? 0);
+      const falsePositiveCount = Number(statusCounts.false_positive ?? 0);
+      const supplementalCount = Number(m.supplemental_result_count ?? 0);
+
       const manifestLinks = [
         ['result_relations_manifest', '结果关系'],
         ['results_manifest', '结果生命周期'],
-        ['coverage_ledger', '覆盖账本'],
+        ['vulnerability_list', '漏洞状态列表'],
       ].map(([key, label]) => {
         const item = m[key] || {};
         const cls = item.exists ? 'text-success' : 'text-muted';
@@ -3741,16 +3832,22 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           ? `<span class="action-link" data-action="open-file" data-run="${this.attr(this.currentRun)}" data-path="${this.attr(item.path)}">${label}</span>`
           : `<span class="${cls}">${label}: 缺失</span>`;
       }).join('');
+
+      const secondaryPills = [
+        `<span class="score-pill ${falsePositiveCount > 0 ? 'mid' : ''}">误报 ${falsePositiveCount}</span>`,
+        supplementalCount > 0 ? `<span class="score-pill">补充产物 ${supplementalCount}</span>` : '',
+      ].filter(Boolean).join('');
+
       el.innerHTML = `
-      <div class="card-title">框架产物一致性</div>
+      <div class="card-title">漏洞结果概况</div>
       <div class="manifest-grid">
-        <div><span class="metric-num">${m.taskable_result_count ?? 0}</span><span class="text-muted">taskable</span></div>
-        <div><span class="metric-num">${m.supplemental_result_count ?? 0}</span><span class="text-muted">supplement</span></div>
-        <div><span class="metric-num">${m.inactive_result_count ?? 0}</span><span class="text-muted">inactive</span></div>
-        <div><span class="metric-num">${(m.missing_referenced_results || []).length}</span><span class="text-muted">missing refs</span></div>
+        <div><span class="metric-num">${totalDiscovered}</span><span class="text-muted">累计发现</span></div>
+        <div><span class="metric-num">${activeCount}</span><span class="text-muted">当前有效</span></div>
+        <div><span class="metric-num">${confirmedCount}</span><span class="text-muted">已确认</span></div>
+        <div><span class="metric-num">${pendingReviewCount}</span><span class="text-muted">待评审</span></div>
       </div>
       <div class="manifest-links">${manifestLinks}</div>
-      ${advisors ? `<div class="manifest-advisors">${advisors}</div>` : ''}
+      ${secondaryPills ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${secondaryPills}</div>` : ''}
     `;
     },
 
@@ -3805,33 +3902,79 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       el.innerHTML = `<div class="card-title">分数趋势</div><div class="score-chart">${svg}</div><div style="margin-top:8px">${legend}</div>`;
     },
 
-    renderIssuesCard(issues: Record<string, any>[]) {
-      const el = this.$('issuesCard');
+    renderVulnerabilityTrendCard(cycles: Record<string, any>[]) {
+      const el = this.$('vulnTrendCard');
       if (!el) return;
-      if (!issues || !issues.length) {
-        el.innerHTML = '<div class="card-title">当前评审问题</div><div class="empty-state text-success">✅ 无未解决问题</div>';
+      if (!cycles.length) {
+        el.innerHTML = '<div class="card-title">漏洞发现总数趋势</div><div class="empty-state">暂无轮次数据</div>';
         return;
       }
-      el.innerHTML = `<div class="card-title">当前评审问题 (${issues.length})</div>` +
-        issues.map((b: any) => `
-        <div class="issue-item ${String(b.actionable_by || b.owner || '').toLowerCase() === 'framework' ? 'framework-issue' : ''}">
-          <div><span class="issue-id">${this.esc(b.id || '')}</span></div>
-          <div class="issue-detail">${this.esc(b.required_action || b.detail || b.description || '')}</div>
-          <div class="issue-meta">
-            target: ${this.esc(b.target || '')}
-            ${b.category ? ` · category: ${this.esc(b.category)}` : ''}
-            ${b.actionable_by || b.owner ? ` · owner: ${this.esc(b.actionable_by || b.owner)}` : ''}
-            ${b.advisor_id ? ` · advisor: ${this.esc(b.advisor_id)}` : ''}
-            ${b.severity ? ` · severity: ${this.esc(b.severity)}` : ''}
-          </div>
-        </div>
-      `).join('');
+
+      const normalized = [...cycles]
+        .map((cycle: any, index: number) => ({
+          cycle: Number(cycle?.cycle ?? index + 1),
+          newCount: Math.max(0, Number(cycle?.new_result_count ?? (Array.isArray(cycle?.new_results) ? cycle.new_results.length : 0))),
+        }))
+        .sort((a, b) => a.cycle - b.cycle);
+
+      let cumulative = 0;
+      const trend = normalized.map((item) => {
+        cumulative += item.newCount;
+        return { ...item, cumulative };
+      });
+
+      const maxValue = Math.max(...trend.map((item) => item.cumulative), 0);
+      const scaleMax = maxValue > 0 ? maxValue : 1;
+      const tickCount = maxValue > 0 ? Math.min(maxValue, 4) : 1;
+      const tickValues = [...new Set(Array.from({ length: tickCount + 1 }, (_, i) => Math.round((maxValue * i) / tickCount)))];
+      if (tickValues[0] !== 0) tickValues.unshift(0);
+      if (tickValues[tickValues.length - 1] !== maxValue) tickValues.push(maxValue);
+
+      const lineColor = '#f43f5e';
+      const W = 500, H = 220, PAD = 40, PADR = 20, PADT = 30, PADB = 30;
+      const chartW = W - PAD - PADR, chartH = H - PADT - PADB;
+      const n = trend.length;
+      const xStep = n > 1 ? chartW / (n - 1) : chartW;
+
+      let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px">`;
+      tickValues.forEach((tick) => {
+        const y = PADT + chartH * (1 - tick / scaleMax);
+        svg += `<line x1="${PAD}" y1="${y}" x2="${W-PADR}" y2="${y}" stroke="#3b4261" stroke-width="0.5"/>`;
+        svg += `<text x="${PAD-4}" y="${y+4}" text-anchor="end" fill="#565f89" font-size="10">${tick}</text>`;
+      });
+      trend.forEach((item, i) => {
+        const x = PAD + (n > 1 ? i * xStep : chartW / 2);
+        svg += `<text x="${x}" y="${H-6}" text-anchor="middle" fill="#565f89" font-size="10">C${item.cycle}</text>`;
+      });
+      const points = trend.map((item, i) => {
+        const x = PAD + (n > 1 ? i * xStep : chartW / 2);
+        const y = PADT + chartH * (1 - item.cumulative / scaleMax);
+        return { ...item, x, y };
+      });
+      svg += `<polyline points="${points.map((item) => `${item.x},${item.y}`).join(' ')}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round"/>`;
+      points.forEach((item) => {
+        svg += `<circle cx="${item.x}" cy="${item.y}" r="3" fill="${lineColor}"><title>累计 ${item.cumulative} · 本轮新增 ${item.newCount} (Cycle ${item.cycle})</title></circle>`;
+      });
+      svg += '</svg>';
+
+      const latest = trend[trend.length - 1] || { cumulative: 0, newCount: 0, cycle: 0 };
+      const activeCycles = trend.filter((item) => item.newCount > 0).length;
+      const summary = [
+        `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px"><span style="width:10px;height:3px;background:${lineColor};border-radius:2px;display:inline-block"></span>累计发现数</span>`,
+        `<span class="score-pill ${latest.cumulative > 0 ? 'high' : ''}">累计 ${latest.cumulative}</span>`,
+        `<span class="score-pill ${latest.newCount > 0 ? 'high' : ''}">本轮 +${latest.newCount}</span>`,
+        `<span class="score-pill">${activeCycles} 轮有新增</span>`,
+      ].join('');
+      const perCycle = trend.map((item) => `<span class="score-pill ${item.newCount > 0 ? 'high' : ''}" title="Cycle ${item.cycle} 新增 ${item.newCount}">C${item.cycle} +${item.newCount}</span>`).join('');
+
+      el.innerHTML = `<div class="card-title">漏洞发现总数趋势</div><div class="score-chart">${svg}</div><div style="margin-top:8px">${summary}</div>${perCycle ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${perCycle}</div>` : ''}`;
     },
+
 
     renderCycleTimeline(cycles: Record<string, any>[]) {
       const el = this.$('cycleTimeline');
       if (!el) return;
-      if (!cycles.length) { el.innerHTML = '<div class="card-title">评审轮次</div><div class="empty-state">暂无轮次数据</div>'; return; }
+      if (!cycles.length) { el.innerHTML = '<div class="card-title">评审轮次概况</div><div class="empty-state">暂无轮次数据</div>'; return; }
 
       const rows = cycles.map((c: any) => {
         const scorePills = Object.entries(c.scores || {}).map(([k, v]) => {
@@ -3839,17 +3982,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const cls = num >= 0.9 ? 'high' : num >= 0.7 ? 'mid' : 'low';
           return `<span class="score-pill ${cls}" title="${this.esc(k)}">${this.esc(k.substring(0, 18))}: ${num.toFixed(2)}</span>`;
         }).join('');
-        const scope = c.global_failure_scope ? `<span class="score-pill low" title="global_failure_scope">${this.esc(c.global_failure_scope)}</span>` : '';
+        const scope = c.global_failure_scope ? `<span class="score-pill low" title="当前卡点">卡点: ${this.esc(c.global_failure_scope)}</span>` : '';
         return `
         <div class="cycle-row">
-          <div class="cycle-num">Cycle ${c.cycle}</div>
+          <div class="cycle-num">第 ${c.cycle} 轮</div>
           <div class="cycle-outcome">${this.outcomeBadge(c.outcome)}</div>
           <div class="cycle-scores">${scorePills}${scope}</div>
-          <div class="cycle-issues">${c.issue_count ?? 0} issues</div>
+          <div class="cycle-issues">问题 ${c.issue_count ?? 0}</div>
         </div>`;
       }).join('');
 
-      el.innerHTML = `<div class="card-title">评审轮次概览</div>${rows}`;
+      el.innerHTML = `<div class="card-title">评审轮次概况</div>${rows}`;
     },
 
     renderCycles(data: DataflowFileserverRunOverview) {
@@ -4373,6 +4516,63 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       };
     },
 
+    executionTraceItemKey(item: Record<string, any>) {
+      const raw = item && typeof item.raw === 'object' ? item.raw : {};
+      const nodeId = String(raw.node_id || item.nodeId || '').trim();
+      if (nodeId) return `node:${nodeId}`;
+      const stepKey = String(raw.step_key || item.stepKey || '').trim();
+      const cycle = Number(item.cycle || raw.cycle || 0);
+      const phase = String(item.phase || raw.phase || '').trim();
+      const sessionId = String(item.sessionId || raw.session_id || '').trim();
+      const agentId = String(item.agentId || raw.agent_id || '').trim();
+      if (cycle > 0 || phase || sessionId || agentId || stepKey) {
+        return `trace:${cycle}:${phase}:${stepKey}:${sessionId}:${agentId}`;
+      }
+      const path = String(raw.path || raw.relative_path || item.path || '').trim();
+      if (path) return `path:${path}`;
+      return String(item.id || '').trim();
+    },
+
+    mergeExecutionTraceItems(existing: Record<string, any>, incoming: Record<string, any>) {
+      if (!existing) return incoming;
+      if (!incoming) return existing;
+      const existingTs = Number(existing.timestamp || 0);
+      const incomingTs = Number(incoming.timestamp || 0);
+      const existingStatus = String(existing.status || '').toLowerCase();
+      const incomingStatus = String(incoming.status || '').toLowerCase();
+      const activeStatuses = new Set(['pending', 'queued', 'started', 'running', 'retrying']);
+      const preferIncoming =
+        (activeStatuses.has(incomingStatus) && !activeStatuses.has(existingStatus))
+        || incomingTs > existingTs
+        || (incomingTs === existingTs && activeStatuses.has(incomingStatus));
+      const primary = preferIncoming ? incoming : existing;
+      const secondary = preferIncoming ? existing : incoming;
+      return {
+        ...secondary,
+        ...primary,
+        id: existing.id || incoming.id,
+        raw: primary.raw || secondary.raw || {},
+        timestamp: preferIncoming ? incoming.timestamp : existing.timestamp,
+        timestampLabel: preferIncoming ? incoming.timestampLabel : existing.timestampLabel,
+        timing: preferIncoming ? incoming.timing : existing.timing,
+      };
+    },
+
+    collapseExecutionTraceItems(items: Record<string, any>[]) {
+      const byKey = new Map<string, Record<string, any>>();
+      for (const item of items) {
+        if (!item) continue;
+        const key = this.executionTraceItemKey(item) || String(item.id || '');
+        const existing = byKey.get(key);
+        if (!existing) {
+          byKey.set(key, item);
+          continue;
+        }
+        byKey.set(key, this.mergeExecutionTraceItems(existing, item));
+      }
+      return Array.from(byKey.values());
+    },
+
     getSessionExecutionMeta(session: Record<string, any>) {
       const name = this.getSessionDisplayName(session);
       const text = [
@@ -4591,13 +4791,15 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       let checkpointItems = stepHistory.map((step: any, index: number) => this.getCheckpointExecutionMeta(step, index));
       if (currentStep) {
         const currentMeta = this.getCheckpointExecutionMeta(currentStep, checkpointItems.length);
-        const exists = checkpointItems.some((item: any) =>
-          item.raw?.path === currentMeta.raw?.path
-          && item.raw?.step_key === currentMeta.raw?.step_key
-          && item.status === currentMeta.status
-        );
-        if (!exists) checkpointItems.push(currentMeta);
+        const currentKey = this.executionTraceItemKey(currentMeta);
+        const currentIndex = checkpointItems.findIndex((item: any) => this.executionTraceItemKey(item) === currentKey);
+        if (currentIndex >= 0) {
+          checkpointItems[currentIndex] = this.mergeExecutionTraceItems(checkpointItems[currentIndex], currentMeta);
+        } else {
+          checkpointItems.push(currentMeta);
+        }
       }
+      checkpointItems = this.collapseExecutionTraceItems(checkpointItems);
       let sessionItems = jsonlSessions.map((session: any) => this.getSessionExecutionMeta(session));
       const callItems = callSessions.flatMap((session: any) => {
         const calls = Array.isArray(session.calls) ? session.calls : [];
@@ -4675,7 +4877,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const latestByTime = [...checkpointItems, ...callItems, ...sessionItems]
         .filter(Boolean)
         .sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0))[0] || null;
-      const currentBase = currentStep ? this.getCheckpointExecutionMeta(currentStep, checkpointItems.length + 1) : latestByTime;
+      const currentMetaForLookup = currentStep ? this.getCheckpointExecutionMeta(currentStep, checkpointItems.length + 1) : null;
+      const currentBase = currentMetaForLookup
+        ? checkpointItems.find((item: any) => this.executionTraceItemKey(item) === this.executionTraceItemKey(currentMetaForLookup))
+          || currentMetaForLookup
+        : latestByTime;
       const currentSessionId = String(currentBase?.sessionId || '').trim();
       const currentTurnFloor = currentSessionId ? Number(turnFloorBySession.get(currentSessionId) || 0) : 0;
       const current = currentBase
@@ -4760,11 +4966,12 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           const hiddenCount = Math.max(0, items.length - visibleItems.length);
           const pills = visibleItems.map((item: any) => {
             const isCurrent = current && item.id === current.id;
+            const isLiveCurrent = isCurrent && this.isRunActive();
             const statusClass = String(item.status || 'recorded').replace(/_/g, '-');
             const durationLabel = this.traceDurationLabel(item.timing);
             const title = [item.stepLabel, durationLabel, item.detail, item.timestampLabel].filter(Boolean).join(' · ');
             return `
-              <div class="execution-step-pill status-${this.attr(statusClass)} ${isCurrent ? 'current' : ''}" title="${this.attr(title)}">
+              <div class="execution-step-pill status-${this.attr(statusClass)} ${isCurrent ? 'current' : ''} ${isLiveCurrent ? 'live' : ''}" title="${this.attr(title)}">
                 <div class="execution-step-head">
                   <div class="execution-step-main">
                     <span class="execution-step-dot"></span>
@@ -6138,6 +6345,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.$all('.tab').forEach((t: HTMLElement) => t.classList.toggle('active', t.dataset.tab === tab));
       this.$all('.tab-content').forEach((t: HTMLElement) => t.classList.toggle('active', t.id === `tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
       if (tab !== 'sessions') this.closeSessionSocket();
+      if (tab === 'cycles' && this.currentRunData) void this.preloadAllCycleDetails(this.currentRunData.name, this.currentRunData, force);
       if (tab === 'sessions') this.loadSessions(force);
       if (tab === 'files') this.loadFiles(force);
       if (tab === 'log') this.loadLog(force);

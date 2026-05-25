@@ -240,6 +240,48 @@ const normalizeConfigPayload = (value?: Partial<DataflowProfileConfigPayload> | 
 const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const TASK_RUN_ROUTE_CACHE_PREFIX = 'secflow:dataflowVuln:taskRunRoute:';
+
+type CachedTaskRunRoute = {
+  taskId: string;
+  executionId: string;
+  run_id: string;
+  name: string;
+  root_path: string;
+  linked_task_id?: string | null;
+};
+
+const readCachedTaskRunRoute = (taskId: string, executionId = ''): CachedTaskRunRoute | null => {
+  if (!taskId) return null;
+  try {
+    const raw = window.sessionStorage.getItem(`${TASK_RUN_ROUTE_CACHE_PREFIX}${taskId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedTaskRunRoute;
+    if (!parsed || parsed.taskId !== taskId || !parsed.name || !parsed.root_path) return null;
+    if (executionId && parsed.executionId && parsed.executionId !== executionId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedTaskRunRoute = (
+  taskId: string,
+  executionId: string | null | undefined,
+  run: Pick<DataflowFileserverRunSummary, 'name' | 'run_id' | 'root_path'> & { linked_task_id?: string | null }
+) => {
+  if (!taskId || !run?.name || !run?.root_path) return;
+  try {
+    window.sessionStorage.setItem(`${TASK_RUN_ROUTE_CACHE_PREFIX}${taskId}`, JSON.stringify({
+      taskId,
+      executionId: executionId || '',
+      run_id: run.run_id || '',
+      name: run.name,
+      root_path: run.root_path,
+      linked_task_id: run.linked_task_id || null,
+    } satisfies CachedTaskRunRoute));
+  } catch {}
+};
 
 const buildRunDetailPath = (
   run: Pick<DataflowFileserverRunSummary, 'name' | 'run_id' | 'root_path'> & { linked_task_id?: string | null }
@@ -550,10 +592,33 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     options?: { retry?: number }
   ) => {
     let taskForResolve = task;
+    const maxAttempts = Math.max(options?.retry ?? 1, 1);
+    const cached = readCachedTaskRunRoute(task.task_id, task.latest_execution_id || '');
+    if (cached) {
+      navigate(buildRunDetailPath(cached));
+      return true;
+    }
+
+    if (task.latest_execution_id) {
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, task.latest_execution_id);
+          const target = runResolveToRouteTarget(resolved);
+          writeCachedTaskRunRoute(task.task_id, resolved.linked_execution_id || task.latest_execution_id, target);
+          navigate(buildRunDetailPath(target));
+          return true;
+        } catch {
+          // The Run index may appear just after task creation; retry briefly before falling back.
+        }
+        if (attempt + 1 < maxAttempts) await wait(500);
+      }
+    }
+
     try {
       const detail = await executionApi.getTask(task.task_id);
       const run = taskRunLocator(detail);
       if (run.name && run.root_path) {
+        writeCachedTaskRunRoute(task.task_id, detail.latest_execution_id, run as DataflowFileserverRunSummary);
         navigate(buildRunDetailPath(run as DataflowFileserverRunSummary), {
           state: {
             fileserverRunSummary: run,
@@ -566,11 +631,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       // Fall through to the resolver endpoint. This keeps old/pending task
       // links usable even if the task-detail fetch races with creation.
     }
-    const maxAttempts = Math.max(options?.retry ?? 1, 1);
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
         const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, taskForResolve.latest_execution_id);
-        navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)));
+        const target = runResolveToRouteTarget(resolved);
+        writeCachedTaskRunRoute(task.task_id, resolved.linked_execution_id || taskForResolve.latest_execution_id, target);
+        navigate(buildRunDetailPath(target));
         return true;
       } catch {
         // The Run index may appear just after task creation; retry briefly before falling back to the resolver route.
@@ -593,6 +659,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const openTaskRowDetail = async (task: DataflowScanTask) => {
     const run = taskRunLocator(task);
     if (run.name && run.root_path) {
+      writeCachedTaskRunRoute(task.task_id, task.latest_execution_id, run as DataflowFileserverRunSummary);
       openRunDetail(run as DataflowFileserverRunSummary);
       return;
     }
@@ -1042,15 +1109,37 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
 
   const resolveTaskRouteToRun = async (targetTaskId: string, preferredExecutionId = requestedExecutionId) => {
     if (!projectId || !targetTaskId) return;
+    const cached = readCachedTaskRunRoute(targetTaskId, preferredExecutionId || '');
+    if (cached) {
+      navigate(buildRunDetailPath(cached), { replace: true });
+      return;
+    }
     setDetailLoading(true);
     setLoadError('');
     try {
       let executionId = preferredExecutionId || '';
+
+      if (executionId) {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, executionId);
+            const target = runResolveToRouteTarget(resolved);
+            writeCachedTaskRunRoute(targetTaskId, resolved.linked_execution_id || executionId, target);
+            navigate(buildRunDetailPath(target), { replace: true });
+            return;
+          } catch (error: any) {
+            if (attempt >= 2) break;
+          }
+          await wait(300);
+        }
+      }
+
       try {
         const taskDetail = await executionApi.getTask(targetTaskId);
         setLinkedTaskDetail(taskDetail);
         const run = taskRunLocator(taskDetail);
         if (run.name && run.root_path) {
+          writeCachedTaskRunRoute(targetTaskId, taskDetail.latest_execution_id, run as DataflowFileserverRunSummary);
           navigate(buildRunDetailPath(run as DataflowFileserverRunSummary), {
             replace: true,
             state: {
@@ -1066,7 +1155,9 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
       for (let attempt = 0; attempt < 6; attempt += 1) {
         try {
           const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, executionId);
-          navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)), { replace: true });
+          const target = runResolveToRouteTarget(resolved);
+          writeCachedTaskRunRoute(targetTaskId, resolved.linked_execution_id || executionId, target);
+          navigate(buildRunDetailPath(target), { replace: true });
           return;
         } catch (error: any) {
           if (attempt >= 5) throw error;
