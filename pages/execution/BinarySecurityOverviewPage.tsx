@@ -12,6 +12,8 @@ interface Props {
   onOpenTask: (taskId: string) => void;
 }
 
+type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
+
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
 const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
@@ -116,6 +118,12 @@ const DEFAULT_STAGE_PARALLELISM = {
   dataflow_analysis: 4,
   vuln_scan: 4,
 };
+const CREATE_DIALOG_TABS: Array<{ key: CreateDialogTab; label: string; hint: string }> = [
+  { key: 'basic', label: '基础信息', hint: '名称、描述、模块名' },
+  { key: 'files', label: '输入文件', hint: '上传输入与进度' },
+  { key: 'strategy', label: '执行策略', hint: '推进与模块策略' },
+  { key: 'parallelism', label: '并发控制', hint: '阶段并发与重试' },
+];
 
 const emptyProjectStats = (): BinarySecurityProjectStats => ({
   total: 0,
@@ -338,6 +346,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [createError, setCreateError] = useState<string | null>(null);
   const [createResult, setCreateResult] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createDialogTab, setCreateDialogTab] = useState<CreateDialogTab>('basic');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [moduleName, setModuleName] = useState('');
@@ -534,6 +543,15 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     () => Object.values(uploadSpeed).reduce((max, current) => Math.max(max, current || 0), 0),
     [uploadSpeed],
   );
+  const createTabState = useMemo<Record<CreateDialogTab, 'ready' | 'pending'>>(() => ({
+    basic: name.trim() && (!isBinaryModuleTask || moduleName.trim()) ? 'ready' : 'pending',
+    files: files.length > 0 ? 'ready' : 'pending',
+    strategy: pipelineMode && (isBinaryModuleTask || moduleRiskLevels.length > 0) ? 'ready' : 'pending',
+    parallelism: maxRetries >= 0 && stages.every((stage) => Number(stageParallelism[stage] ?? 0) > 0) ? 'ready' : 'pending',
+  }), [files.length, isBinaryModuleTask, maxRetries, moduleName, moduleRiskLevels.length, name, pipelineMode, stageParallelism, stages]);
+  const currentCreateTabIndex = CREATE_DIALOG_TABS.findIndex((tab) => tab.key === createDialogTab);
+  const hasPrevCreateTab = currentCreateTabIndex > 0;
+  const hasNextCreateTab = currentCreateTabIndex >= 0 && currentCreateTabIndex < CREATE_DIALOG_TABS.length - 1;
   const selectedCount = selectedTaskIds.length;
   const allSelected = items.length > 0 && selectedCount === items.length;
 
@@ -558,6 +576,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     pipelineMode: defaultPipelineMode,
     partialSuccessStageAdvancement: defaultPartialSuccessStageAdvancement,
   }) => {
+    setCreateDialogTab('basic');
     setName('');
     setDescription('');
     setModuleName('');
@@ -1015,15 +1034,43 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               </button>
             </div>
             <div className="space-y-6 p-6">
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述（可选）" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-2">
+                <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+                  {CREATE_DIALOG_TABS.map((tab) => {
+                    const active = createDialogTab === tab.key;
+                    const ready = createTabState[tab.key] === 'ready';
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setCreateDialogTab(tab.key)}
+                        className={`rounded-[1.25rem] px-4 py-3 text-left transition ${active ? 'bg-white shadow-sm ring-1 ring-slate-200' : 'bg-transparent hover:bg-white/70'}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className={`text-sm font-black ${active ? 'text-slate-900' : 'text-slate-600'}`}>{tab.label}</div>
+                          <span className={`inline-flex h-2.5 w-2.5 rounded-full ${ready ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">{tab.hint}</div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              {isBinaryModuleTask ? (
-                <input value={moduleName} onChange={(e) => setModuleName(e.target.value)} placeholder="模块名" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+
+              {createDialogTab === 'basic' ? (
+                <>
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述（可选）" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  </div>
+                  {isBinaryModuleTask ? (
+                    <input value={moduleName} onChange={(e) => setModuleName(e.target.value)} placeholder="模块名" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                  ) : null}
+                </>
               ) : null}
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+              {createDialogTab === 'files' ? (
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-black text-slate-900">输入文件</div>
@@ -1088,9 +1135,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     );
                   })}
                 </div>
-              </div>
+                </div>
+              ) : null}
 
-              {!isBinaryModuleTask ? (
+              {createDialogTab === 'strategy' && !isBinaryModuleTask ? (
                 <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                     <div>
@@ -1136,7 +1184,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </div>
               ) : null}
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+              {createDialogTab === 'strategy' ? (
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                 <div>
                   <div className="text-sm font-black text-slate-900">推进模式</div>
                   <div className="mt-1 text-sm text-slate-500">支持为当前任务单独选择广度优先或深度优化模式；默认值来自参数配置页。</div>
@@ -1157,9 +1206,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     ))}
                   </div>
                 </div>
-              </div>
+                </div>
+              ) : null}
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+              {createDialogTab === 'parallelism' ? (
+                <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
                 <div className="text-sm font-black text-slate-900">阶段并发配置</div>
                 <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
                   {STAGE_PARALLELISM_FIELDS.filter((field) => stages.includes(field.key)).map((field) => (
@@ -1196,11 +1247,32 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                     </label>
                   ))}
                 </div>
-              </div>
+                </div>
+              ) : null}
 
               {createError && <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{createError}</div>}
 
               <div className="flex items-center justify-end gap-3">
+                {hasPrevCreateTab ? (
+                  <button
+                    type="button"
+                    onClick={() => setCreateDialogTab(CREATE_DIALOG_TABS[currentCreateTabIndex - 1].key)}
+                    disabled={submitting}
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+                  >
+                    上一步
+                  </button>
+                ) : null}
+                {hasNextCreateTab ? (
+                  <button
+                    type="button"
+                    onClick={() => setCreateDialogTab(CREATE_DIALOG_TABS[currentCreateTabIndex + 1].key)}
+                    disabled={submitting}
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700"
+                  >
+                    下一步
+                  </button>
+                ) : null}
                 <button type="button" onClick={closeCreateDialog} disabled={submitting} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700">
                   取消
                 </button>

@@ -23,6 +23,7 @@ import { showConfirm } from '../../components/DialogService';
 import {
   asBinarySecurityContract,
   contractText,
+  dfaInputContractRows,
   moduleArtifactKindSummary,
   moduleContractInputRows,
   moduleContractKey,
@@ -275,6 +276,9 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
       { label: 'files_list', value: stageItemContractValue(resultRef, 'files_list_path', 'entry_files_list', 'files_list') || stageItemContractValue(outputRef, 'files_list_path', 'entry_files_list', 'files_list') },
       { label: 'source_root', value: stageItemContractValue(resultRef, 'source_root', 'source_root_path', 'source_dir') || stageItemContractValue(outputRef, 'source_root', 'source_root_path', 'source_dir') },
       ...(isDataflowStage ? [
+        { label: 'module_input_path', value: stageItemContractValue(resultRef, 'module_input_path') || stageItemContractValue(outputRef, 'module_input_path') },
+        { label: 'source_root_path', value: stageItemContractValue(resultRef, 'source_root_path', 'source_root', 'source_dir') || stageItemContractValue(outputRef, 'source_root_path', 'source_root', 'source_dir') },
+        { label: 'source_file', value: stageItemContractValue(resultRef, 'source_file', 'definition_file', 'file_name') || stageItemContractValue(outputRef, 'source_file', 'definition_file', 'file_name') },
         { label: 'artifact_root', value: stageItemContractValue(resultRef, 'artifact_root') || stageItemContractValue(outputRef, 'artifact_root') },
         { label: 'data_flow_root', value: stageItemContractValue(resultRef, 'data_flow_root') || stageItemContractValue(outputRef, 'data_flow_root') },
         { label: 'primary_report', value: stageItemContractValue(resultRef, 'primary_report_path', 'data_flow_file') || stageItemContractValue(outputRef, 'primary_report_path', 'data_flow_file') },
@@ -305,6 +309,16 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
 }
 
 function stageItemInputContractRows(item: BinarySecurityTaskDetail['stage_items'][number]) {
+  const contract = asStageItemContract(item.input_ref);
+  if (item.stage_name === 'dataflow_analysis') {
+    const rows = dfaInputContractRows(contract, null);
+    if (rows.length > 0) {
+      return rows.map((row) => ({
+        label: row.semantic ? `${row.label} (${row.semantic})` : row.label,
+        value: row.value,
+      }));
+    }
+  }
   if (!item.input_ref || typeof item.input_ref !== 'object' || Array.isArray(item.input_ref)) {
     return [];
   }
@@ -441,10 +455,10 @@ const BLOCKING_ACTION_COPY: Record<
   }
 > = {
   retry: {
-    confirmTitle: '清空并从头开始',
+    confirmTitle: '严格清理后从头开始',
     confirmMessage: '该操作会清空并删除当前任务所有阶段的阶段任务、下游任务、编排记录和结果摘要，然后从第一阶段重新开始。该操作不会复用旧下游任务，是否确认继续？',
-    confirmText: '确认清空并从头开始',
-    progressTitle: '后台正在清空并从头开始',
+    confirmText: '确认严格清理后从头开始',
+    progressTitle: '后台正在严格清理并从头开始',
     progressMessage: '请求会立即受理，后台完成清理后自动切回待调度状态。',
   },
   retry_failed_items: {
@@ -1050,15 +1064,26 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
 
   if (detail.status === 'continue_preparing' || detail.status === 'retry_preparing') {
     const isRetryPreparing = detail.status === 'retry_preparing';
+    const cleanupSnapshot = detail.cleanup_snapshot || {};
+    const cleanupCounts = cleanupSnapshot.cleanup_counts || {};
+    const downstreamRefCount = Array.isArray(cleanupSnapshot.downstream_refs) ? cleanupSnapshot.downstream_refs.length : 0;
     return {
       tone: 'info',
-      title: isRetryPreparing ? '正在清空并从头开始' : '正在继续任务准备',
+      title: isRetryPreparing ? '正在严格清理并从头开始' : '正在继续任务准备',
       description: isRetryPreparing
-        ? '后台正在清理全部阶段结果、阶段子任务和下游任务，准备重新进入第一阶段队列。'
+        ? '后台正在先删除旧阶段子任务、下游任务、归档与历史状态残留；只有清理完成后才会重新进入第一阶段队列。'
         : '后台正在定位下一个可执行阶段，并清理当前阶段及后续阶段需要重建的结果。',
       evidence: [
         { label: '目标阶段', value: currentStageLabel },
         { label: '待处理动作', value: detail.pending_action || (isRetryPreparing ? 'retry' : 'continue') },
+        ...(isRetryPreparing
+          ? [
+              { label: '执行代次', value: `第 ${detail.execution_epoch} 轮` },
+              { label: '下游清理目标', value: String(downstreamRefCount) },
+              { label: '阶段子任务清理数', value: String(cleanupCounts.stage_items_deleted ?? '-') },
+              { label: '归档记录清理数', value: String(cleanupCounts.archive_jobs_deleted ?? '-') },
+            ]
+          : []),
       ],
     };
   }
@@ -1413,13 +1438,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const isPreparing = PREPARING_STATUSES.has(detail?.status || '');
   const manualOperationState = detail?.manual_operation_state;
   const taskRetrySupported = Boolean(manualOperationState?.can_retry ?? detail?.task_retry_supported);
-  const taskRetryReason = manualOperationState?.blocking_reason || detail?.task_retry_reason || '当前任务不可清空并从头开始';
+  const taskRetryReason = manualOperationState?.blocking_reason || detail?.task_retry_reason || '当前任务不可严格清理后从头开始';
   const taskRetryFailedItemsSupported = Boolean(manualOperationState?.can_retry_failed_items ?? detail?.task_retry_failed_items_supported);
   const taskRetryFailedItemsReason = manualOperationState?.blocking_reason || detail?.task_retry_failed_items_reason || '当前任务不可重试失败项';
   const taskCancelSupported = Boolean(manualOperationState?.can_cancel ?? canActOnTask);
   const taskDeleteSupported = Boolean(manualOperationState?.can_delete ?? canActOnTask);
   const moduleConfirmSupported = Boolean(manualOperationState?.can_confirm_modules ?? false);
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
+  const cleanupSnapshot = detail?.cleanup_snapshot || null;
+  const cleanupCounts = cleanupSnapshot?.cleanup_counts || {};
+  const cleanupDownstreamRefs = Array.isArray(cleanupSnapshot?.downstream_refs) ? cleanupSnapshot.downstream_refs : [];
   const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
   const strategyEditable = Boolean(manualOperationState?.can_edit_policy ?? (detail && !['dispatching', 'running', 'continue_preparing', 'retry_preparing'].includes(detail?.status || '')));
   const strategyBlockedReason = !detail
@@ -3089,6 +3117,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <div className="mt-1 font-black text-slate-900">{taskTypeLabel(taskType)}</div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">执行代次</div>
+                  <div className="mt-1 font-black text-slate-900">第 {detail.execution_epoch} 轮</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">阶段数</div>
                   <div className="mt-1 font-black text-slate-900">{stageSequence.length}</div>
                 </div>
@@ -3099,6 +3131,50 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">队列位置</div>
                   <div className="mt-1 font-black text-slate-900">{detail.is_queued ? `第 ${detail.queue_position || '-'} 位` : '未排队'}</div>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === 'overview' && cleanupSnapshot && (cleanupDownstreamRefs.length > 0 || Object.keys(cleanupCounts).length > 0) ? (
+            <section className="rounded-[2rem] border border-orange-200 bg-orange-50/60 p-6 shadow-sm">
+              <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">严格清理快照</h3>
+                  <p className="mt-1 text-sm text-slate-600">本次“清空并从头开始”会先删除旧执行世界，再进入新的执行代次。</p>
+                </div>
+                <div className="text-xs font-semibold text-slate-500">{cleanupSnapshot.requested_at ? `记录时间：${fmt(cleanupSnapshot.requested_at)}` : '记录时间：-'}</div>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">上一执行代次</div>
+                  <div className="mt-1 font-black text-slate-900">第 {cleanupSnapshot.previous_epoch ?? '-'} 轮</div>
+                </div>
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">下游清理目标</div>
+                  <div className="mt-1 font-black text-slate-900">{cleanupDownstreamRefs.length}</div>
+                </div>
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">阶段子任务删除</div>
+                  <div className="mt-1 font-black text-slate-900">{cleanupCounts.stage_items_deleted ?? '-'}</div>
+                </div>
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">归档记录删除</div>
+                  <div className="mt-1 font-black text-slate-900">{cleanupCounts.archive_jobs_deleted ?? '-'}</div>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">阶段运行记录删除</div>
+                  <div className="mt-1 font-black text-slate-900">{cleanupCounts.stage_runs_deleted ?? '-'}</div>
+                </div>
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">时间线事件删除</div>
+                  <div className="mt-1 font-black text-slate-900">{cleanupCounts.timeline_events_deleted ?? '-'}</div>
+                </div>
+                <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm">
+                  <div className="text-xs font-bold text-slate-400">状态事件删除</div>
+                  <div className="mt-1 font-black text-slate-900">{cleanupCounts.state_events_deleted ?? '-'}</div>
                 </div>
               </div>
             </section>

@@ -14,6 +14,8 @@ import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 import {
   asBinarySecurityContract,
   contractText,
+  dfaContractSourceFile,
+  dfaInputContractRows,
   dfaContractModuleInputPath,
   dfaContractSourceRootPath,
   entryContractDescriptorRoot,
@@ -467,6 +469,8 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
   const inputContract = asBinarySecurityContract(taskConfig.input_contract);
   const moduleInputPath = dfaContractModuleInputPath(inputContract, inputSummary);
   const sourceRootPath = dfaContractSourceRootPath(inputContract, inputSummary);
+  const sourceFile = dfaContractSourceFile(inputContract, inputSummary) || (typeof taskConfig.source_file === 'string' ? taskConfig.source_file : null);
+  const inputContractRows = dfaInputContractRows(inputContract, inputSummary);
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -489,11 +493,31 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
           { label: '模块输入目录', path: moduleInputPath },
           { label: '源码根目录', path: sourceRootPath },
           { label: '输入工作区', path: inputSummary.workspace_root || inputSummary.workspace_dir },
-          { label: '源码文件', value: taskConfig.source_file ? <span className="break-all font-mono text-xs">{taskConfig.source_file}</span> : '-' },
+          { label: '源码文件', value: sourceFile ? <span className="break-all font-mono text-xs">{sourceFile}</span> : '-' },
           { label: '函数名', value: taskConfig.function_name || '-' },
           { label: '行号提示', value: taskConfig.line_hint || '-' },
         ]}
       />
+
+      <SectionCard title="DFA 输入 Contract">
+        {inputContractRows.length === 0 ? (
+          <EmptyState text="当前任务未记录结构化 DFA 输入 Contract。" />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {inputContractRows.map((row, index) => (
+              <React.Fragment key={`${row.label}-${index}`}>
+                <ConfigRow label={row.label}>
+                  <div className="space-y-1">
+                    {row.semantic ? <div className="text-[11px] font-semibold text-slate-500">{row.semantic}</div> : null}
+                    <span className="break-all font-mono text-xs text-slate-800">{row.value}</span>
+                  </div>
+                </ConfigRow>
+                {index < inputContractRows.length - 1 ? <Divider /> : null}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
       <PathSummarySection
         title="输出信息"

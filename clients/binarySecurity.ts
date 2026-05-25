@@ -135,6 +135,7 @@ export interface BinarySecurityEntryContract {
   data_flow_files?: string[];
   primary_report_path?: string | null;
   data_flow_file?: string | null;
+  input_contract?: BinarySecurityEntryContract | BinarySecurityModuleContract | null;
   [key: string]: any;
 }
 
@@ -148,6 +149,7 @@ export interface BinarySecurityTask {
   task_type: BinarySecurityTaskType;
   name: string;
   status: string;
+  execution_epoch: number;
   current_stage?: string | null;
   pending_action?: 'continue' | 'retry' | string | null;
   last_error?: string | null;
@@ -227,6 +229,26 @@ export interface BinarySecurityTask {
     can_delete: boolean;
     can_edit_policy: boolean;
     can_confirm_modules: boolean;
+  };
+}
+
+export interface BinarySecurityCleanupSnapshot {
+  requested_at?: string | null;
+  previous_epoch?: number;
+  stage_sequence?: string[];
+  downstream_refs?: Array<{
+    service?: string;
+    task_id?: string;
+    project_id?: string;
+    stage_name?: string | null;
+  }>;
+  cleanup_counts?: {
+    archive_jobs_deleted?: number;
+    stage_items_deleted?: number;
+    stage_runs_deleted?: number;
+    timeline_events_deleted?: number;
+    state_events_deleted?: number;
+    [key: string]: number | undefined;
   };
 }
 
@@ -343,6 +365,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   }>;
   overview_nodes: BinarySecurityOverviewNode[];
   orchestration_observability?: BinarySecurityOrchestrationObservability;
+  cleanup_snapshot?: BinarySecurityCleanupSnapshot;
   abnormal_reason_history?: BinarySecurityAbnormalReasonEventSummary[];
 }
 
