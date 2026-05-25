@@ -23,7 +23,6 @@ import { showConfirm } from '../../components/DialogService';
 import {
   asBinarySecurityContract,
   contractText,
-  legacyContractValue,
   moduleArtifactKindSummary,
   moduleContractInputRows,
   moduleContractKey,
@@ -263,36 +262,11 @@ function stageItemContractValue(
 }
 
 function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][number]) {
-  const inputRef = asStageItemContract(item.input_ref);
   const outputRef = asStageItemContract(item.output_ref);
   const resultRef = asStageItemContract(item.result);
   const isDataflowStage = item.stage_name === 'dataflow_analysis';
   const isVulnScanStage = item.stage_name === 'vuln_scan';
   return {
-    input: [
-      { label: 'module_dir', value: stageItemContractValue(inputRef, 'module_dir', 'source_dir') || legacyContractValue(item.input_ref, 'input_path') },
-      { label: 'descriptor_root', value: stageItemContractValue(inputRef, 'descriptor_root', 'entry_descriptor_root') },
-      { label: 'files_list', value: stageItemContractValue(inputRef, 'files_list_path', 'entry_files_list', 'files_list') },
-      { label: 'source_root', value: stageItemContractValue(inputRef, 'source_root', 'source_root_path') || legacyContractValue(item.input_ref, 'unpacked_root') },
-      ...(isDataflowStage ? [
-        { label: 'module_input_path', value: stageItemContractValue(inputRef, 'module_input_path', 'module_dir') },
-        { label: 'source_root_path', value: stageItemContractValue(inputRef, 'source_root_path', 'source_root', 'source_dir') },
-        { label: 'source_file', value: stageItemContractValue(inputRef, 'source_file', 'definition_file', 'file_name') },
-        { label: 'entry_file', value: stageItemContractValue(inputRef, 'entry_file') },
-        { label: 'definition_file', value: stageItemContractValue(inputRef, 'definition_file') },
-      ] : []),
-      ...(isVulnScanStage ? [
-        { label: 'data_flow_root', value: stageItemContractValue(inputRef, 'data_flow_root') },
-        { label: 'primary_report', value: stageItemContractValue(inputRef, 'primary_report_path', 'data_flow_file') },
-        {
-          label: 'data_flow_files',
-          value: Array.isArray(inputRef?.data_flow_files) && inputRef.data_flow_files.length > 0
-            ? inputRef.data_flow_files.join('\n')
-            : null,
-        },
-        { label: 'source_dir', value: stageItemContractValue(inputRef, 'source_dir', 'source_root', 'source_root_path') },
-      ] : []),
-    ].filter((row) => row.value),
     output: [
       { label: 'artifact_root', value: stageItemContractValue(outputRef, 'artifact_root') || stageItemContractValue(resultRef, 'artifact_root') },
       { label: 'archive_root', value: stageItemContractValue(outputRef, 'archive_root') || stageItemContractValue(resultRef, 'archive_root') },
@@ -328,6 +302,30 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
       ] : []),
     ].filter((row) => row.value),
   };
+}
+
+function stageItemInputContractRows(item: BinarySecurityTaskDetail['stage_items'][number]) {
+  if (!item.input_ref || typeof item.input_ref !== 'object' || Array.isArray(item.input_ref)) {
+    return [];
+  }
+  return Object.entries(item.input_ref as Record<string, unknown>)
+    .filter(([, value]) => value !== undefined)
+    .sort(([left], [right]) => left.localeCompare(right, 'zh-Hans-CN'))
+    .map(([label, value]) => ({
+      label,
+      value: formatStageItemRawContractValue(value),
+    }));
+}
+
+function formatStageItemRawContractValue(value: unknown): string {
+  if (value == null) return 'null';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 const normalizeDownstreamDetailError = (error: any) => {
@@ -3680,6 +3678,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          const checked = selectedStageItemIds.includes(item.id);
                             const riskCounts = systemAnalysisRiskCountLabels(downstreamByItemId[item.id]);
                             const contractRows = stageItemContractRows(item);
+                            const inputContractRows = stageItemInputContractRows(item);
 	                          return (
 	                            <React.Fragment key={item.id}>
 	                              <tr className="align-top transition hover:bg-slate-50/80">
@@ -3820,12 +3819,13 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               {item.error_message}
                                             </div>
                                           ) : null}
-                                          {(contractRows.input.length > 0 || contractRows.output.length > 0) ? (
+                                          {(inputContractRows.length > 0 || contractRows.output.length > 0) ? (
                                             <div className={`grid gap-4 ${item.error_message ? 'mt-4' : 'mt-4'} xl:grid-cols-2`}>
                                               <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
                                                 <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">输入 Contract</div>
+                                                <div className="mt-1 text-[11px] text-slate-500">直接展示当前阶段子任务记录的原始输入合约，不做字段推断。</div>
                                                 <div className="mt-3 space-y-2">
-                                                  {contractRows.input.length > 0 ? contractRows.input.map((row) => (
+                                                  {inputContractRows.length > 0 ? inputContractRows.map((row) => (
                                                     <div key={`${item.id}-input-${row.label}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                                       <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">{row.label}</div>
                                                       {renderContractValue(row.value)}
@@ -3836,9 +3836,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                     </div>
                                                   )}
                                                 </div>
+                                                {inputContractRows.length > 0 ? (
+                                                  <details className="mt-3">
+                                                    <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">
+                                                      查看原始 JSON
+                                                    </summary>
+                                                    <pre className="mt-2 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-6 text-slate-100">
+                                                      {JSON.stringify(item.input_ref, null, 2)}
+                                                    </pre>
+                                                  </details>
+                                                ) : null}
                                               </div>
                                               <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
                                                 <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">输出 Contract</div>
+                                                <div className="mt-1 text-[11px] text-slate-500">展示当前阶段子任务记录的结构化输出合约；原始 JSON 见下方。</div>
                                                 <div className="mt-3 space-y-2">
                                                   {contractRows.output.length > 0 ? contractRows.output.map((row) => (
                                                     <div key={`${item.id}-output-${row.label}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
@@ -3851,6 +3862,31 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                                     </div>
                                                   )}
                                                 </div>
+                                                {(item.output_ref || item.result) ? (
+                                                  <details className="mt-3">
+                                                    <summary className="cursor-pointer text-xs font-bold text-slate-500 hover:text-slate-800">
+                                                      查看原始 JSON
+                                                    </summary>
+                                                    <div className="mt-2 space-y-2">
+                                                      {item.output_ref ? (
+                                                        <div>
+                                                          <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">output_ref</div>
+                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-6 text-slate-100">
+                                                            {JSON.stringify(item.output_ref, null, 2)}
+                                                          </pre>
+                                                        </div>
+                                                      ) : null}
+                                                      {item.result ? (
+                                                        <div>
+                                                          <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">result</div>
+                                                          <pre className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-6 text-slate-100">
+                                                            {JSON.stringify(item.result, null, 2)}
+                                                          </pre>
+                                                        </div>
+                                                      ) : null}
+                                                    </div>
+                                                  </details>
+                                                ) : null}
                                               </div>
                                             </div>
                                           ) : null}
