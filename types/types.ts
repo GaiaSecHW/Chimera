@@ -3085,6 +3085,34 @@ export interface AppDfaStageEvent {
   data?: Record<string, any>;
 }
 
+export interface AppDfaTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  source: string;
+  level: string;
+  event_type: string;
+  status?: string | null;
+  worker_id?: string | null;
+  execution_owner_id?: string | null;
+  execution_epoch?: number | null;
+  control_version?: number | null;
+  dispatch_status?: string | null;
+  function_name?: string | null;
+  source_file?: string | null;
+  line_hint?: string | null;
+  parent_task_id?: string | null;
+  parent_stage_item_id?: string | null;
+  message: string;
+  payload?: Record<string, any>;
+  created_at?: string | null;
+}
+
+export interface AppDfaTaskTimeline {
+  task_id: string;
+  events: AppDfaTaskEvent[];
+}
+
 export interface AppDfaStagesJson {
   events: AppDfaStageEvent[];
   final?: boolean;
