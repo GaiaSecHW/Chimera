@@ -2031,7 +2031,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       setSystemWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
     }
     try {
-      const [rawText, dfaWorkerData, entryWorkerData] = await Promise.all([
+      const [rawText, dfaWorkerData, entryWorkerData, systemWorkerData] = await Promise.all([
         executionMetricsApi.getServiceMetrics(serviceKey),
         serviceKey === 'dataflow-analysis' && projectId
           ? dataflowAnalysisApi.getWorkerClusterCapacity(projectId)

@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy,
-  FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Search, ScrollText,
+  Clock3, FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Search, ScrollText,
   Trash2, XCircle,
 } from 'lucide-react';
 
@@ -19,8 +19,10 @@ import {
   AppEaStagesJson,
   AppEaTaskDetail,
   AppEaTaskEvaluation,
+  AppEaTaskEvent,
   AppEaTaskResult,
   AppEaFunctionCatalogItem,
+  AppEaTaskActionResponse,
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -140,8 +142,40 @@ const LEAN_STAGE_STEPS = [
 ];
 
 
-type DetailTab = 'overview' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
+type DetailTab = 'overview' | 'task-config' | 'timeline' | 'session' | 'relationship' | 'result' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+function timelineLevelTone(level?: string | null) {
+  const normalized = String(level || '').toLowerCase();
+  if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'warning' || normalized === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
+}
+
+function formatTimelineEventTypeLabel(eventType?: string | null) {
+  const normalized = String(eventType || '').trim();
+  if (!normalized) return '-';
+  return normalized.replace(/_/g, ' ');
+}
+
+function formatTimelinePayloadValue(value: any): string {
+  if (value == null) return '-';
+  if (typeof value === 'string') return value || '-';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.length ? value.map((entry) => formatTimelinePayloadValue(entry)).join(', ') : '-';
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function timelinePayloadRows(payload: Record<string, any>) {
+  return Object.entries(payload || {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => ({ key, label: key.replace(/_/g, ' '), value: formatTimelinePayloadValue(value) }));
+}
 
 function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {
   if (!startedAt || !finishedAt) return '-';
@@ -946,6 +980,13 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [resultLoading, setResultLoading] = useState(false);
   const [evaluationLoading, setEvaluationLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  const [timeline, setTimeline] = useState<AppEaTaskEvent[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineClearing, setTimelineClearing] = useState(false);
+  const [deletingTimelineEventId, setDeletingTimelineEventId] = useState<string | null>(null);
+  const [timelineStageFilter, setTimelineStageFilter] = useState<string>('__all__');
+  const [timelineEventTypeFilter, setTimelineEventTypeFilter] = useState<string>('__all__');
+  const [timelineLevelFilter, setTimelineLevelFilter] = useState<string>('__all__');
   const [resultView, setResultView] = useState<'final' | 'functions' | 'report' | 'json'>('final');
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -1046,6 +1087,18 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     finally { setEvaluationLoading(false); }
   };
 
+  const loadTimeline = async () => {
+    setTimelineLoading(true);
+    try {
+      const resp = await appApi.getTimeline(taskId);
+      setTimeline(resp.events || []);
+    } catch (err: any) {
+      notify(`加载事件时间线失败: ${err?.message || err}`, 'error');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
   const closeSessionSocket = () => {
     if (sessionSocketRef.current) {
       sessionSocketRef.current.close();
@@ -1138,9 +1191,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   }, [logs.events.length, logsExpanded]);
   useEffect(() => { if (activeTab === 'result') void loadResult(); }, [activeTab, taskId]);
   useEffect(() => { if (activeTab === 'evaluation') void loadEvaluation(); }, [activeTab, taskId]);
+  useEffect(() => { if (activeTab === 'timeline') void loadTimeline(); }, [activeTab, taskId]);
   useEffect(() => {
     if (activeTab !== 'evaluation' || !detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadEvaluation(), 12000);
+    return () => window.clearInterval(timer);
+  }, [activeTab, detail?.status, taskId]);
+  useEffect(() => {
+    if (activeTab !== 'timeline' || !detail || !['pending', 'running'].includes(detail.status)) return;
+    const timer = window.setInterval(() => void loadTimeline(), 12000);
     return () => window.clearInterval(timer);
   }, [activeTab, detail?.status, taskId]);
   useEffect(() => {
@@ -1214,7 +1273,11 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     if (!detail) return;
     const ok = await showConfirm({ title: '删除任务', message: `确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`, confirmText: '确认删除', cancelText: '取消', danger: true });
     if (!ok) return;
-    try { await appApi.deleteTask(detail.task_id, true); notify('任务已删除', 'success'); handleBack(); }
+    try {
+      const resp = await appApi.deleteTask(detail.task_id, true);
+      notify(`任务已删除，清理时间线事件 ${resp.deleted_event_count || 0} 条`, 'success');
+      handleBack();
+    }
     catch (err: any) { notify(`删除失败: ${err?.message || err}`, 'error'); }
   };
   const handleRestart = async () => {
@@ -1271,6 +1334,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const funcPageCount = Math.ceil(funcFiltered.length / funcPageSize);
   const funcPageSlice = funcFiltered.slice(funcPage * funcPageSize, (funcPage + 1) * funcPageSize);
   const logLines = events.map(formatEvent);
+  const timelineStageOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.stage_key || '').trim()).filter(Boolean))), [timeline]);
+  const timelineEventTypeOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.event_type || '').trim()).filter(Boolean))), [timeline]);
+  const timelineLevelOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.level || '').trim()).filter(Boolean))), [timeline]);
+  const filteredTimeline = useMemo(() => timeline.filter((event) => {
+    if (timelineStageFilter !== '__all__' && (event.stage_key || '__none__') !== timelineStageFilter) return false;
+    if (timelineEventTypeFilter !== '__all__' && (event.event_type || '__none__') !== timelineEventTypeFilter) return false;
+    if (timelineLevelFilter !== '__all__' && (event.level || '__none__') !== timelineLevelFilter) return false;
+    return true;
+  }), [timeline, timelineStageFilter, timelineEventTypeFilter, timelineLevelFilter]);
   const groupedSessions = useMemo(() => {
     const map = new Map<string, AppEaSessionMeta[]>();
     sessions.forEach((session) => map.set(session.stage_group, [...(map.get(session.stage_group) || []), session]));
@@ -1469,6 +1541,138 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     return () => { if (judgeSessionSocketRef.current === socket) closeJudgeSessionSocket(); else socket.close(); };
   }, [activeTab, detail, fileserverApi, judgeSessionSnapshot, judgeSessionWatchStartLine, projectId, selectedEvaluationJudge, selectedEvaluationJudgeKey, selectedEvaluationJudgeSessionPath]);
 
+  const handleClearTimeline = async () => {
+    if (!detail || timelineClearing) return;
+    const ok = await showConfirm({ title: '清空时间线', message: '仅删除任务事件时间线，不影响任务状态和产物，是否继续？', confirmText: '确认清空', cancelText: '取消', danger: true });
+    if (!ok) return;
+    setTimelineClearing(true);
+    try {
+      const resp = await appApi.clearTimeline(detail.task_id);
+      setTimeline([]);
+      notify(`已清空 ${resp.deleted_event_count || 0} 条事件`, 'success');
+      await loadDetail();
+    } catch (err: any) {
+      notify(`清空时间线失败: ${err?.message || err}`, 'error');
+    } finally {
+      setTimelineClearing(false);
+    }
+  };
+
+  const handleDeleteTimelineEvent = async (eventId: string) => {
+    if (!detail || timelineClearing) return;
+    setDeletingTimelineEventId(eventId);
+    try {
+      await appApi.deleteTimelineEvent(detail.task_id, eventId);
+      setTimeline((current) => current.filter((event) => event.id !== eventId));
+      await loadDetail();
+    } catch (err: any) {
+      notify(`删除时间线事件失败: ${err?.message || err}`, 'error');
+    } finally {
+      setDeletingTimelineEventId(null);
+    }
+  };
+
+  const renderTimeline = () => (
+    <section className="space-y-4">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">事件时间线</h2>
+            <p className="mt-1 text-xs text-slate-400">按时间查看入口分析任务的关键轨迹、阶段事件与异常链路。</p>
+          </div>
+          <button onClick={() => void handleClearTimeline()} disabled={timelineClearing || timelineLoading || timeline.length === 0} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">
+            {timelineClearing ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            清空时间线
+          </button>
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">事件总数</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{detail?.event_summary?.total_events ?? timeline.length}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近事件</div>
+            <div className="mt-2 text-sm font-black text-slate-900">{detail?.event_summary?.latest_event_type ? formatTimelineEventTypeLabel(detail.event_summary.latest_event_type) : '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近阶段</div>
+            <div className="mt-2 text-sm font-black text-slate-900">{detail?.event_summary?.latest_stage_key || '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近时间</div>
+            <div className="mt-2 text-sm font-black text-slate-900">{detail?.event_summary?.latest_event_at ? new Date(detail.event_summary.latest_event_at).toLocaleString('zh-CN') : '-'}</div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+            <option value="__all__">全部阶段</option>
+            {timelineStageOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+            <option value="__all__">全部事件</option>
+            {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
+          </select>
+          <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+            <option value="__all__">全部级别</option>
+            {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+            当前显示 <span className="font-black text-slate-900">{filteredTimeline.length}</span> / {timeline.length}
+          </div>
+        </div>
+      </section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        {timelineLoading ? (
+          <div className="py-10 text-center text-sm text-slate-500">加载时间线中...</div>
+        ) : filteredTimeline.length === 0 ? (
+          <div className="py-10 text-center text-sm text-slate-500">当前任务暂无事件时间线</div>
+        ) : (
+          <div className="space-y-3">
+            {filteredTimeline.map((event) => (
+              <div key={event.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span>
+                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600">{formatTimelineEventTypeLabel(event.event_type)}</span>
+                      {event.stage_key ? <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700">{event.stage_key}</span> : null}
+                      {event.status ? <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-600">{event.status}</span> : null}
+                    </div>
+                    <div className="mt-2 text-sm font-bold text-slate-900">{event.message}</div>
+                    <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                      <span>{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</span>
+                      {event.file_path ? <span className="break-all">文件: {event.file_path}</span> : null}
+                      {event.function_name ? <span>函数: {event.function_name}</span> : null}
+                      {event.attempt != null ? <span>Attempt: {event.attempt}</span> : null}
+                    </div>
+                  </div>
+                  <button type="button" disabled={deletingTimelineEventId === event.id || timelineClearing} onClick={() => void handleDeleteTimelineEvent(event.id)} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
+                    {deletingTimelineEventId === event.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                    删除
+                  </button>
+                </div>
+                {event.payload && Object.keys(event.payload).length > 0 ? (
+                  <details className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <summary className="cursor-pointer text-xs font-black uppercase tracking-[0.16em] text-slate-500">事件细节</summary>
+                    <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                      {timelinePayloadRows(event.payload).slice(0, 12).map((row) => (
+                        <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs">
+                          <div className="font-bold capitalize text-slate-400">{row.label}</div>
+                          <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <pre className="mt-3 max-h-64 overflow-auto rounded-lg bg-slate-950 p-3 text-[11px] leading-5 text-slate-100">{JSON.stringify(event.payload, null, 2)}</pre>
+                  </details>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </section>
+  );
+
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
@@ -1491,7 +1695,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="entry_analysis" task={detail} /> : null}
             {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleResume()} disabled={resuming} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50">{resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}断点续跑</button> : null}
             {detail ? <button onClick={() => void handleDelete()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Trash2 size={13} />删除任务</button> : null}
-            <button onClick={() => { void loadDetail(); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading ? 'animate-spin' : ''} /></button>
+            <button onClick={() => { void loadDetail(); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (activeTab === 'timeline') void loadTimeline(); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || timelineLoading ? 'animate-spin' : ''} /></button>
           </div>
         </div>
         {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
@@ -1587,7 +1791,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
       {detail ? <>
         <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">{[
-            ['overview', '总览'], ['task-config', '任务配置'], ['session', '智能体会话'], ['relationship', '智能体关系'], ['result', '结果'], ['evaluation', '观测指标'],
+            ['overview', '总览'], ['task-config', '任务配置'], ['timeline', '事件时间线'], ['session', '智能体会话'], ['relationship', '智能体关系'], ['result', '结果'], ['evaluation', '观测指标'],
           ].map(([id, label]) => <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-2xl px-5 py-3 text-sm font-black transition ${activeTab === id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>{label}</button>)}</div>
         </section>
 
@@ -1927,9 +2131,11 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           </section>
         ) : activeTab === 'result' ? (
           <section className="space-y-4"><div className="grid gap-4 xl:grid-cols-5"><MetricCard label="函数数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div><div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>{resultLoading ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">加载结果中...</section> : !result ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">暂无结果数据</section> : !result.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 shadow-sm text-center text-sm text-slate-500">任务完成后可查看结果，当前状态：{STATUS_LABEL[result.status] || result.status}</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_300px]"><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终结果'], ['functions', 'functions.list'], ['report', '运行报告'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}>{label}</button>)}</div></aside><main className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="border-b border-slate-200 pb-4 text-2xl font-black tracking-tight text-slate-900">{resultView === 'final' ? '最终结果' : resultView === 'functions' ? '函数列表' : resultView === 'report' ? '运行报告' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultContent ? resultView === 'json' ? <pre className="rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{resultContent}</pre> : <MarkdownContent content={markdownResultContent} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">函数列表</div><div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">{result.functions.length ? result.functions.map((fn) => <div key={fn} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">{fn}</div>) : <div className="rounded-xl border border-dashed border-slate-300 px-3 py-6 text-center text-xs text-slate-400">没有 functions.list 内容</div>}</div></aside></section>}</section>
-        ) : (
+        ) : activeTab === 'evaluation' ? (
           <section className="space-y-4">{evaluationLoading ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">加载观测指标中...</section> : !evaluation || !evaluation.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500"><BarChart3 size={20} /></div><div className="mt-4 text-base font-bold text-slate-800">当前尚未生成可解析的观测数据</div><div className="mt-2 text-sm text-slate-500">运行中任务会优先展示实时会话快照；若仍为空，说明尚未产生 Worker/Judge 会话文件。</div></section> : <><WarningListPanel title="部分观测文件读取异常" items={evaluation.warnings} />{evaluationIsRealtime ? <section className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-4 text-sm text-cyan-800 shadow-sm"><div className="font-black">实时观测快照</div><div className="mt-1 text-xs leading-6">当前数据来自运行目录和智能体会话索引，最终指标以任务完成后写出的 result.json 为准。快照时间：{evaluation.snapshot_generated_at ? new Date(evaluation.snapshot_generated_at).toLocaleString('zh-CN') : '-'}</div><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-white/80 px-3 py-1 font-bold">会话 {formatNumber(evaluationRuntimeSummary?.session_count)}</span><span className="rounded-full bg-white/80 px-3 py-1 font-bold">活跃 {formatNumber(evaluationRuntimeSummary?.active_session_count)}</span><span className="rounded-full bg-white/80 px-3 py-1 font-bold">Worker {formatNumber(evaluationRuntimeSummary?.worker_count)}</span><span className="rounded-full bg-white/80 px-3 py-1 font-bold">Judge {formatNumber(evaluationRuntimeSummary?.judge_count)}</span></div></section> : null}<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MetricCard label="总轮数" value={formatNumber(evaluation.summary?.round_count ?? evaluation.rounds.length)} icon={<BarChart3 size={18} />} /><MetricCard label={evaluationIsRealtime ? '活跃会话' : '通过轮次'} value={evaluationIsRealtime ? formatNumber(evaluationRuntimeSummary?.active_session_count) : formatNumber(evaluation.summary?.passed_round_count)} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(evaluation.summary?.total_tokens)} icon={<ScrollText size={18} />} /><MetricCard label="实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ScrollText size={18} />} /><MetricCard label="平均 Judge 分" value={avgJudgeScore == null ? '-' : formatNumber(avgJudgeScore, 1)} icon={<BarChart3 size={18} />} /><MetricCard label="最终通过率" value={formatRate(evaluation.summary?.effectiveness?.final_round_pass_rate)} icon={<CheckCircle2 size={18} />} /></section>{selectedEvaluationRound ? <section className="space-y-4"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><button type="button" onClick={() => setSelectedEvaluationRoundKey(null)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"><ArrowLeft size={14} />返回轮次列表</button><div className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Round Detail</div><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">#{selectedEvaluationRound.round ?? '-'} · {selectedEvaluationRound.module_name || detail.module_name || '入口分析'}</h2><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>{selectedEvaluationRound.status || '-'}</span><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-600">{stageLabel(selectedEvaluationRound.stage)}</span><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono font-bold text-slate-600">Stage Round {selectedEvaluationRound.stage_round ?? '-'}</span>{selectedEvaluationRound.extra?.source === 'runtime_snapshot' ? <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 font-bold text-cyan-700">实时快照</span> : null}</div></div><div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500"><div className="font-black text-slate-700">来源文件</div><div className="mt-1 max-w-xl break-all font-mono">{selectedEvaluationRound.source_path || detail.source_path || selectedEvaluationRound.extra?.round_dir || '-'}</div></div></div></section><section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MetricCard label="耗时" value={formatMs(selectedEvaluationRound.duration_ms)} icon={<BarChart3 size={18} />} /><MetricCard label="Token" value={formatNumber(selectedEvaluationRound.metrics?.token_total)} icon={<ScrollText size={18} />} /><MetricCard label="任务实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ScrollText size={18} />} /><MetricCard label={evaluationIsRealtime ? '活跃会话' : 'Judge 均分'} value={evaluationIsRealtime ? formatNumber(selectedEvaluationRound.metrics?.active_session_count) : formatNumber(selectedEvaluationRound.metrics?.avg_judge_score, 1)} icon={<CheckCircle2 size={18} />} /></section><section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]"><div className="space-y-4"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">本轮执行摘要</h3><div className="mt-4 space-y-3"><InfoRow label="开始时间" value={selectedEvaluationRound.started_at ? new Date(selectedEvaluationRound.started_at).toLocaleString('zh-CN') : '-'} /><InfoRow label="结束时间" value={selectedEvaluationRound.ended_at ? new Date(selectedEvaluationRound.ended_at).toLocaleString('zh-CN') : '-'} /><InfoRow label="完成原因" value={selectedEvaluationRound.completion_reason || '-'} /><InfoRow label="模块完成" value={selectedEvaluationRound.module_completed ? '是' : '否'} /><InfoRow label="通过投票" value={selectedEvaluationRound.metrics?.passed_by_vote ? '通过' : '未通过'} /><InfoRow label="通过率" value={formatRate(selectedEvaluationRound.metrics?.review_pass_rate)} />{evaluationIsRealtime ? <><InfoRow label="Worker产物" value={formatNumber(selectedEvaluationRound.metrics?.worker_artifact_count)} /><InfoRow label="Judge产物" value={formatNumber(selectedEvaluationRound.metrics?.judge_artifact_count)} /></> : null}</div><div className="mt-4 flex flex-wrap gap-2 text-xs">{selectedEvaluationRound.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-3 py-1 font-bold text-amber-700">需要反思</span> : null}{selectedEvaluationRound.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-3 py-1 font-bold text-red-700">触发重分类</span> : null}{!selectedEvaluationRound.effectiveness?.needed_reflection && !selectedEvaluationRound.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-600">无额外调整</span> : null}</div></section><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Worker</h3><div className="mt-4 space-y-3"><InfoRow label="模型" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.model || '-'}</span>} /><InfoRow label="会话文件" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.session_file || '-'}</span>} /><InfoRow label="错误" value={selectedEvaluationRound.worker?.error || '-'} /></div>{Array.isArray(selectedEvaluationRound.worker?.artifact_paths) && selectedEvaluationRound.worker.artifact_paths.length > 0 ? <div className="mt-4"><div className="text-xs font-bold text-slate-500">产物路径</div><div className="mt-2 space-y-2">{(selectedEvaluationRound.worker?.artifact_paths || []).slice(0, 8).map((path: string) => <div key={path} className="break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">{path}</div>)}</div></div> : null}</section></div><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 评审</h3><p className="mt-1 text-xs text-slate-400">展示本轮所有 Judge 的评分、通过状态、会话文件和反馈摘要</p></div><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">{selectedEvaluationRound.judges?.length || 0} 个 Judge</span></div><div className="mt-4 space-y-3">{(selectedEvaluationRound.judges || []).map((judge, index) => <div key={`${judge.judge_id || index}-${judge.model || ''}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div className="font-mono text-xs font-bold text-slate-700">{judge.judge_id || `judge-${index + 1}`}</div><div className="flex flex-wrap gap-2 text-[11px]">{judge.session_file ? <button type="button" onClick={() => setSelectedEvaluationJudgeKey(`${judge.judge_id || index}::${judge.model || ''}`)} className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey === `${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}>查看会话</button> : null}<span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-100 text-emerald-700' : judge.is_active ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{judge.passed ? '通过' : judge.is_active ? '运行中' : '未通过'}</span><span className="rounded-full bg-white px-2 py-0.5 font-bold text-slate-600">评分 {formatNumber(judge.score)}</span></div></div><div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.model || '-'}</div><div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.session_file || '未记录会话文件'}</div>{judge.feedback_excerpt ? <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">{judge.feedback_excerpt}</div> : null}</div>)}{(selectedEvaluationRound.judges || []).length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">本轮没有 Judge 明细</div> : null}</div></section></section>{selectedEvaluationJudge ? <section className="space-y-4"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 会话</h3><p className="mt-1 text-xs text-slate-400">通过 fileserver 读取当前选中 Judge 的 session 文件；任务运行中会实时监听追加内容。</p></div>{selectedEvaluationJudgeSessionPath ? <div className="max-w-xl break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-500">{selectedEvaluationJudgeSessionPath.fsPath}</div> : null}</div></section><WarningListPanel title="Judge 会话文件存在部分异常行，已跳过不可解析内容" items={judgeSessionWarnings} /><AgentSessionViewer sessionMeta={selectedEvaluationJudgeSessionMeta} sessionHeader={judgeSessionSnapshot?.session_meta} events={judgeSessionEvents} loading={judgeSessionLoading} live={judgeSessionLive} error={judgeSessionError} /></section> : null}<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">原始 JSON</h3><p className="mt-1 text-xs text-slate-400">保留完整观测文件内容，便于核对字段。</p></div></div><pre className="mt-4 max-h-[480px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(selectedEvaluationRound, null, 2)}</pre></section></section> : <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2><p className="mt-1 text-xs text-slate-400">展示每一轮 Worker/Judge 的观测指标，点击行进入轮次详情页</p></div><div className="flex flex-wrap gap-2"><div className="relative"><Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" /><input value={evaluationKeyword} onChange={(e) => setEvaluationKeyword(e.target.value)} placeholder="模块过滤" className="rounded-xl border border-slate-200 py-2 pl-8 pr-3 text-xs" /></div><select value={evaluationStatus} onChange={(e) => setEvaluationStatus(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs"><option value="">全部状态</option>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></div></div><div className="mt-4 overflow-auto rounded-2xl border border-slate-200"><table className="min-w-full divide-y divide-slate-200 text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-3 py-3">Round</th><th className="px-3 py-3">阶段</th><th className="px-3 py-3">状态</th><th className="px-3 py-3">耗时</th><th className="px-3 py-3">Judge 分</th><th className="px-3 py-3">通过率</th><th className="px-3 py-3">Token</th><th className="px-3 py-3">任务实际开始时间</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{filteredRounds.map((round) => <tr key={evaluationRoundKey(round)} onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))} className="cursor-pointer hover:bg-slate-50"><td className="px-3 py-3 font-mono text-slate-700">{round.round}</td><td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td><td className="px-3 py-3"><span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span></td><td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td><td className="px-3 py-3">{formatNumber(round.metrics?.avg_judge_score, 1)}</td><td className="px-3 py-3">{formatRate(round.metrics?.review_pass_rate)}</td><td className="px-3 py-3">{formatNumber(round.metrics?.token_total)}</td><td className="px-3 py-3">{detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'}</td></tr>)}</tbody></table>{filteredRounds.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">没有符合过滤条件的轮次</div> : null}</div></section>}</>}</section>
-        )}
+        ) : activeTab === 'timeline' ? renderTimeline()
+        : null
+        }
       </> : !loading ? <div className="py-16 text-center text-sm text-slate-400">未指定任务或任务不存在。</div> : null}
 
       {activeAgentSessionPath ? (

@@ -1,5 +1,6 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import { FirmwareSessionIndexItem, normalizeFirmwareSessionIndex } from '../pages/execution/sessionParsing';
+export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
 
 // ---------------------------------------------------------------------------
 // Types

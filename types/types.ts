@@ -2880,6 +2880,47 @@ export interface AppEaTaskLogsResponse {
   events: AppEaStageEvent[];
 }
 
+export interface AppEaTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  source: string;
+  level: string;
+  event_type: string;
+  stage_key?: string | null;
+  file_hash?: string | null;
+  func_hash?: string | null;
+  file_path?: string | null;
+  function_name?: string | null;
+  attempt?: number | null;
+  status?: string | null;
+  message: string;
+  payload: Record<string, any>;
+  created_at?: string | null;
+}
+
+export interface AppEaTaskEventSummary {
+  total_events: number;
+  latest_event_type?: string | null;
+  latest_event_at?: string | null;
+  latest_stage_key?: string | null;
+  latest_file_path?: string | null;
+  latest_function_name?: string | null;
+  latest_attempt?: number | null;
+}
+
+export interface AppEaTaskTimelineResponse {
+  task_id: string;
+  events: AppEaTaskEvent[];
+}
+
+export interface AppEaTaskActionResponse {
+  status: string;
+  task_id: string;
+  message: string;
+  deleted_event_count: number;
+}
+
 export interface AppEaFunctionCatalogItem {
   func_hash: string;
   file_hash?: string;
@@ -2917,6 +2958,7 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   } | null;
   output_summary?: Record<string, any> | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
+  event_summary?: AppEaTaskEventSummary | null;
 }
 
 export interface AppEaTaskResultSummary {

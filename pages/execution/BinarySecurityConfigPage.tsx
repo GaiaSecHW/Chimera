@@ -176,7 +176,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
       setDispatchTimeoutSeconds(serviceConfig.dispatch_timeout_seconds);
       setMaxRetriesPerItem(projectConfig.max_retries_per_item);
       setContinueOnItemFailure(projectConfig.continue_on_item_failure);
-      setPipelineMode(projectConfig.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier');
+      setPipelineMode(projectConfig.pipeline_mode);
       setPartialSuccessStageAdvancement({
         ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
         ...(projectConfig.partial_success_stage_advancement || {}),
@@ -215,7 +215,7 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
   const syncProjectDraft = (projectConfig: Record<string, any>) => {
     setMaxRetriesPerItem(projectConfig.max_retries_per_item);
     setContinueOnItemFailure(projectConfig.continue_on_item_failure);
-    setPipelineMode(projectConfig.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier');
+    setPipelineMode(projectConfig.pipeline_mode);
     setPartialSuccessStageAdvancement({
       ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
       ...(projectConfig.partial_success_stage_advancement || {}),
