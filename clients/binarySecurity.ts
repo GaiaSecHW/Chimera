@@ -139,9 +139,33 @@ export interface BinarySecurityEntryContract {
   [key: string]: any;
 }
 
-export type BinarySecurityStageItemInputContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
-export type BinarySecurityStageItemOutputContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
-export type BinarySecurityStageItemResultContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
+export interface BinarySecurityEntryOutputContract extends BinarySecurityEntryContract {
+  module_input_path?: string | null;
+  source_root_path?: string | null;
+  source_dir?: string | null;
+  definition_file?: string | null;
+  definition_line?: string | null;
+  definition_kind?: string | null;
+  taint_params?: string[];
+  function_description?: string | null;
+  function_description_source?: string | null;
+  entry_reason?: string | null;
+  entry_reason_source?: string | null;
+  taint_details?: Array<Record<string, any>>;
+}
+
+export interface BinarySecurityDataflowOutputContract extends BinarySecurityEntryOutputContract {
+  source_file?: string | null;
+  artifact_root?: string | null;
+  archive_root?: string | null;
+  data_flow_file?: string | null;
+  data_flow_root?: string | null;
+  primary_report_path?: string | null;
+}
+
+export type BinarySecurityStageItemInputContract = BinarySecurityModuleContract | BinarySecurityEntryOutputContract | BinarySecurityDataflowOutputContract;
+export type BinarySecurityStageItemOutputContract = BinarySecurityModuleContract | BinarySecurityEntryOutputContract | BinarySecurityDataflowOutputContract;
+export type BinarySecurityStageItemResultContract = BinarySecurityModuleContract | BinarySecurityEntryOutputContract | BinarySecurityDataflowOutputContract;
 
 export interface BinarySecurityTask {
   id: string;
@@ -304,7 +328,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     candidate_modules?: BinarySecurityModuleContract[];
     system_analysis_modules?: BinarySecurityModuleContract[];
     b2s_results?: BinarySecurityModuleContract[];
-    entry_results?: BinarySecurityModuleContract[];
+    entry_results?: BinarySecurityEntryOutputContract[];
+    dataflow_results?: BinarySecurityDataflowOutputContract[];
   };
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;

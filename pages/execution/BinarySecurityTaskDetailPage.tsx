@@ -24,6 +24,7 @@ import {
   asBinarySecurityContract,
   contractText,
   dfaInputContractRows,
+  dfaOutputContractRows,
   moduleArtifactKindSummary,
   moduleContractInputRows,
   moduleContractKey,
@@ -267,6 +268,9 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
   const resultRef = asStageItemContract(item.result);
   const isDataflowStage = item.stage_name === 'dataflow_analysis';
   const isVulnScanStage = item.stage_name === 'vuln_scan';
+  const dfaOutputRows = isDataflowStage || isVulnScanStage
+    ? dfaOutputContractRows(resultRef || outputRef)
+    : [];
   return {
     output: [
       { label: 'artifact_root', value: stageItemContractValue(outputRef, 'artifact_root') || stageItemContractValue(resultRef, 'artifact_root') },
@@ -279,9 +283,6 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
         { label: 'module_input_path', value: stageItemContractValue(resultRef, 'module_input_path') || stageItemContractValue(outputRef, 'module_input_path') },
         { label: 'source_root_path', value: stageItemContractValue(resultRef, 'source_root_path', 'source_root', 'source_dir') || stageItemContractValue(outputRef, 'source_root_path', 'source_root', 'source_dir') },
         { label: 'source_file', value: stageItemContractValue(resultRef, 'source_file', 'definition_file', 'file_name') || stageItemContractValue(outputRef, 'source_file', 'definition_file', 'file_name') },
-        { label: 'artifact_root', value: stageItemContractValue(resultRef, 'artifact_root') || stageItemContractValue(outputRef, 'artifact_root') },
-        { label: 'data_flow_root', value: stageItemContractValue(resultRef, 'data_flow_root') || stageItemContractValue(outputRef, 'data_flow_root') },
-        { label: 'primary_report', value: stageItemContractValue(resultRef, 'primary_report_path', 'data_flow_file') || stageItemContractValue(outputRef, 'primary_report_path', 'data_flow_file') },
         {
           label: 'data_flow_files',
           value: Array.isArray(resultRef?.data_flow_files) && resultRef.data_flow_files.length > 0
@@ -292,8 +293,6 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
         },
       ] : []),
       ...(isVulnScanStage ? [
-        { label: 'data_flow_root', value: stageItemContractValue(resultRef, 'data_flow_root') || stageItemContractValue(outputRef, 'data_flow_root') },
-        { label: 'primary_report', value: stageItemContractValue(resultRef, 'primary_report_path', 'data_flow_file') || stageItemContractValue(outputRef, 'primary_report_path', 'data_flow_file') },
         {
           label: 'data_flow_files',
           value: Array.isArray(resultRef?.data_flow_files) && resultRef.data_flow_files.length > 0
@@ -302,8 +301,8 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
               ? outputRef.data_flow_files.join('\n')
               : null),
         },
-        { label: 'source_dir', value: stageItemContractValue(resultRef, 'source_dir', 'source_root', 'source_root_path') || stageItemContractValue(outputRef, 'source_dir', 'source_root', 'source_root_path') },
       ] : []),
+      ...dfaOutputRows.map((row) => ({ label: row.label, value: row.value })),
     ].filter((row) => row.value),
   };
 }
