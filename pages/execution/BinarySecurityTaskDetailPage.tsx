@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   BinarySecurityAbnormalReason,
   BinarySecurityAbnormalReasonEventSummary,
+  BinarySecurityEntryContract,
+  BinarySecurityModuleContract,
   BinarySecurityModuleSelection,
   BinarySecurityOverviewNode,
   BinarySecurityStageItemPage,
@@ -18,6 +20,18 @@ import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
 import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 import { AppDfaTaskDetail, AppEaTaskDetail, AppSaTaskDetail } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
+import {
+  asBinarySecurityContract,
+  contractText,
+  legacyContractValue,
+  moduleArtifactKindSummary,
+  moduleContractInputRows,
+  moduleContractKey,
+  moduleContractList,
+  moduleContractNumber,
+  moduleContractText,
+  renderContractValue,
+} from '../../utils/binarySecurityContracts';
 import { clearExecutionReturnContext, saveBinarySecurityReturnContext } from '../../utils/executionReturnContext';
 
 interface Props {
@@ -226,6 +240,96 @@ const formatStageItemSyncStatus = (status?: string | null) => {
       return status ? status : '-';
   }
 };
+
+function firstMeaningfulValue(...values: Array<unknown>): string | null {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return null;
+}
+
+type StageItemContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
+
+function asStageItemContract(value: unknown): StageItemContract | null {
+  return asBinarySecurityContract(value) as StageItemContract | null;
+}
+
+function stageItemContractValue(
+  contract: StageItemContract | null | undefined,
+  ...fields: Array<keyof StageItemContract>
+): string | null {
+  return contractText(contract, ...fields);
+}
+
+function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][number]) {
+  const inputRef = asStageItemContract(item.input_ref);
+  const outputRef = asStageItemContract(item.output_ref);
+  const resultRef = asStageItemContract(item.result);
+  const isDataflowStage = item.stage_name === 'dataflow_analysis';
+  const isVulnScanStage = item.stage_name === 'vuln_scan';
+  return {
+    input: [
+      { label: 'module_dir', value: stageItemContractValue(inputRef, 'module_dir', 'source_dir') || legacyContractValue(item.input_ref, 'input_path') },
+      { label: 'descriptor_root', value: stageItemContractValue(inputRef, 'descriptor_root', 'entry_descriptor_root') },
+      { label: 'files_list', value: stageItemContractValue(inputRef, 'files_list_path', 'entry_files_list', 'files_list') },
+      { label: 'source_root', value: stageItemContractValue(inputRef, 'source_root', 'source_root_path') || legacyContractValue(item.input_ref, 'unpacked_root') },
+      ...(isDataflowStage ? [
+        { label: 'module_input_path', value: stageItemContractValue(inputRef, 'module_input_path', 'module_dir') },
+        { label: 'source_root_path', value: stageItemContractValue(inputRef, 'source_root_path', 'source_root', 'source_dir') },
+        { label: 'source_file', value: stageItemContractValue(inputRef, 'source_file', 'definition_file', 'file_name') },
+        { label: 'entry_file', value: stageItemContractValue(inputRef, 'entry_file') },
+        { label: 'definition_file', value: stageItemContractValue(inputRef, 'definition_file') },
+      ] : []),
+      ...(isVulnScanStage ? [
+        { label: 'data_flow_root', value: stageItemContractValue(inputRef, 'data_flow_root', 'artifact_root', 'archive_root') },
+        { label: 'primary_report', value: stageItemContractValue(inputRef, 'primary_report_path', 'data_flow_file') },
+        {
+          label: 'data_flow_files',
+          value: Array.isArray(inputRef?.data_flow_files) && inputRef.data_flow_files.length > 0
+            ? inputRef.data_flow_files.join('\n')
+            : null,
+        },
+        { label: 'source_dir', value: stageItemContractValue(inputRef, 'source_dir', 'source_root', 'source_root_path') },
+      ] : []),
+    ].filter((row) => row.value),
+    output: [
+      { label: 'artifact_root', value: stageItemContractValue(outputRef, 'artifact_root') || stageItemContractValue(resultRef, 'artifact_root') },
+      { label: 'archive_root', value: stageItemContractValue(outputRef, 'archive_root') || stageItemContractValue(resultRef, 'archive_root') },
+      { label: 'module_dir', value: stageItemContractValue(resultRef, 'module_dir') || stageItemContractValue(outputRef, 'module_dir') },
+      { label: 'descriptor_root', value: stageItemContractValue(resultRef, 'descriptor_root', 'entry_descriptor_root') || stageItemContractValue(outputRef, 'descriptor_root', 'entry_descriptor_root') },
+      { label: 'files_list', value: stageItemContractValue(resultRef, 'files_list_path', 'entry_files_list', 'files_list') || stageItemContractValue(outputRef, 'files_list_path', 'entry_files_list', 'files_list') },
+      { label: 'source_root', value: stageItemContractValue(resultRef, 'source_root', 'source_root_path', 'source_dir') || stageItemContractValue(outputRef, 'source_root', 'source_root_path', 'source_dir') },
+      ...(isDataflowStage ? [
+        { label: 'artifact_root', value: stageItemContractValue(resultRef, 'artifact_root') || stageItemContractValue(outputRef, 'artifact_root') },
+        { label: 'data_flow_root', value: stageItemContractValue(resultRef, 'data_flow_root', 'artifact_root', 'archive_root') || stageItemContractValue(outputRef, 'data_flow_root', 'artifact_root', 'archive_root') },
+        { label: 'primary_report', value: stageItemContractValue(resultRef, 'primary_report_path', 'data_flow_file') || stageItemContractValue(outputRef, 'primary_report_path', 'data_flow_file') },
+        {
+          label: 'data_flow_files',
+          value: Array.isArray(resultRef?.data_flow_files) && resultRef.data_flow_files.length > 0
+            ? resultRef.data_flow_files.join('\n')
+            : (Array.isArray(outputRef?.data_flow_files) && outputRef.data_flow_files.length > 0
+              ? outputRef.data_flow_files.join('\n')
+              : null),
+        },
+      ] : []),
+      ...(isVulnScanStage ? [
+        { label: 'data_flow_root', value: stageItemContractValue(resultRef, 'data_flow_root') || stageItemContractValue(outputRef, 'data_flow_root') },
+        { label: 'primary_report', value: stageItemContractValue(resultRef, 'primary_report_path', 'data_flow_file') || stageItemContractValue(outputRef, 'primary_report_path', 'data_flow_file') },
+        {
+          label: 'data_flow_files',
+          value: Array.isArray(resultRef?.data_flow_files) && resultRef.data_flow_files.length > 0
+            ? resultRef.data_flow_files.join('\n')
+            : (Array.isArray(outputRef?.data_flow_files) && outputRef.data_flow_files.length > 0
+              ? outputRef.data_flow_files.join('\n')
+              : null),
+        },
+        { label: 'source_dir', value: stageItemContractValue(resultRef, 'source_dir', 'source_root', 'source_root_path') || stageItemContractValue(outputRef, 'source_dir', 'source_root', 'source_root_path') },
+      ] : []),
+    ].filter((row) => row.value),
+  };
+}
+
 const normalizeDownstreamDetailError = (error: any) => {
   const message = String(error?.message || error || '').toLowerCase();
   if (message.includes('not found') || message.includes('不存在') || message.includes('404')) {
@@ -1384,7 +1488,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       const defaultKeys = (moduleSelectionResp?.selected_modules?.length
         ? moduleSelectionResp.selected_modules
         : moduleSelectionResp?.candidate_modules || []
-      ).map((item) => String(item.module_key || '')).filter(Boolean);
+      ).map((item, index) => moduleContractKey(item, index)).filter(Boolean);
       setSelectedModuleKeys(defaultKeys);
     } catch {
       setModuleSelection(null);
@@ -2308,7 +2412,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const renderModuleTable = (
     title: string,
-    rows: Array<Record<string, any>>,
+    rows: BinarySecurityModuleContract[],
     emptyText: string,
     options?: { selectable?: boolean },
   ) => (
@@ -2333,21 +2437,18 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <th className="min-w-[220px] px-4 py-3">类型计数</th>
                 <th className="w-24 px-4 py-3">风险</th>
                 <th className="w-24 px-4 py-3">分数</th>
-                <th className="min-w-[240px] px-4 py-3">目录 / 报告</th>
+                <th className="min-w-[280px] px-4 py-3">输入 Contract</th>
                 <th className="min-w-[220px] px-4 py-3">模块键</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {rows.map((module, index) => {
-                const moduleKey = String(module.module_key || module.module_dir || `module-${index}`);
+                const moduleKey = moduleContractKey(module, index);
                 const checked = selectedModuleKeys.includes(moduleKey);
-                const primaryResultKind = String(module.primary_result_kind || '').trim();
-                const resultKinds = Array.isArray(module.result_kinds)
-                  ? module.result_kinds.map((kind: any) => String(kind || '').trim()).filter(Boolean)
-                  : [];
-                const artifactKindSummary = module.artifact_kind_summary && typeof module.artifact_kind_summary === 'object'
-                  ? Object.entries(module.artifact_kind_summary as Record<string, unknown>)
-                  : [];
+                const primaryResultKind = moduleContractText(module, 'primary_result_kind') || '';
+                const resultKinds = moduleContractList(module, 'result_kinds');
+                const artifactKindSummary = moduleArtifactKindSummary(module);
+                const contractRows = moduleContractInputRows(module);
                 return (
                   <tr key={moduleKey} className={checked ? 'bg-amber-50/50' : 'bg-white'}>
                     {options?.selectable ? (
@@ -2365,8 +2466,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       </td>
                     ) : null}
                     <td className="px-4 py-3 align-top">
-                      <div className="font-bold text-slate-900">{module.module_name || moduleKey}</div>
-                      <div className="mt-1 text-[11px] text-slate-500">{module.module_type || module.language || '-'}</div>
+                      <div className="font-bold text-slate-900">{moduleContractText(module, 'module_name') || moduleKey}</div>
+                      <div className="mt-1 text-[11px] text-slate-500">{moduleContractText(module, 'module_type', 'language') || '-'}</div>
                     </td>
                     <td className="px-4 py-3 align-top">
                       <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-1 font-bold text-sky-700">
@@ -2393,13 +2494,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <span className={`inline-flex rounded-full border px-2 py-1 font-bold ${statusTone(String(module.risk_level || 'pending'))}`}>
-                        {module.risk_level || '-'}
+                      <span className={`inline-flex rounded-full border px-2 py-1 font-bold ${statusTone(moduleContractText(module, 'risk_level') || 'pending')}`}>
+                        {moduleContractText(module, 'risk_level') || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 align-top font-bold text-slate-700">{module.risk_score ?? '-'}</td>
-                    <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-500">
-                      {module.module_report || module.module_dir || '-'}
+                    <td className="px-4 py-3 align-top font-bold text-slate-700">{moduleContractNumber(module, 'risk_score') ?? '-'}</td>
+                    <td className="px-4 py-3 align-top text-[11px] text-slate-500">
+                      <div className="space-y-1 font-mono">
+                        {contractRows.map((row) => (
+                          <div key={`${moduleKey}-${row.label}`} className="break-all">
+                            <span className="font-semibold text-slate-400">{row.label}:</span>{' '}
+                            {row.value}
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-500">{moduleKey}</td>
                   </tr>
@@ -3571,6 +3679,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          const expanded = expandedStageItemId === item.id;
 	                          const checked = selectedStageItemIds.includes(item.id);
                             const riskCounts = systemAnalysisRiskCountLabels(downstreamByItemId[item.id]);
+                            const contractRows = stageItemContractRows(item);
 	                          return (
 	                            <React.Fragment key={item.id}>
 	                              <tr className="align-top transition hover:bg-slate-50/80">
@@ -3711,6 +3820,40 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               {item.error_message}
                                             </div>
                                           ) : null}
+                                          {(contractRows.input.length > 0 || contractRows.output.length > 0) ? (
+                                            <div className={`grid gap-4 ${item.error_message ? 'mt-4' : 'mt-4'} xl:grid-cols-2`}>
+                                              <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                                                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">输入 Contract</div>
+                                                <div className="mt-3 space-y-2">
+                                                  {contractRows.input.length > 0 ? contractRows.input.map((row) => (
+                                                    <div key={`${item.id}-input-${row.label}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                                      <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">{row.label}</div>
+                                                      {renderContractValue(row.value)}
+                                                    </div>
+                                                  )) : (
+                                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-400">
+                                                      当前子任务未记录结构化输入 Contract。
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                                                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">输出 Contract</div>
+                                                <div className="mt-3 space-y-2">
+                                                  {contractRows.output.length > 0 ? contractRows.output.map((row) => (
+                                                    <div key={`${item.id}-output-${row.label}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                                      <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">{row.label}</div>
+                                                      {renderContractValue(row.value)}
+                                                    </div>
+                                                  )) : (
+                                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-400">
+                                                      当前子任务未记录结构化输出 Contract。
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ) : null}
                                           <div className={item.error_message ? 'mt-4' : ''}>
                                             {renderDownstreamDetail(item)}
                                           </div>
@@ -3779,7 +3922,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </span>
                     <button
                       type="button"
-                      onClick={() => setSelectedModuleKeys(candidateModules.map((module, index) => String(module.module_key || module.module_dir || `module-${index}`)).filter(Boolean))}
+                      onClick={() => setSelectedModuleKeys(candidateModules.map((module, index) => moduleContractKey(module, index)).filter(Boolean))}
                       className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700"
                     >
                       全选候选模块

@@ -6,7 +6,12 @@ import {
   AppEaTaskDetail,
   AppSaTaskDetail,
 } from '../../types/types';
+import {
+  BinarySecurityEntryContract,
+  BinarySecurityModuleContract,
+} from '../../clients/binarySecurity';
 import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
+import { asBinarySecurityContract, contractText } from '../../utils/binarySecurityContracts';
 
 const ANALYSE_TARGET_LABELS: Record<string, string> = {
   all: '全部文件',
@@ -373,8 +378,13 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
   const taskConfig = asRecord(detail.task_config_json);
   const outputSummary = asRecord(detail.output_summary);
   const inputSummary = asRecord(detail.input_summary);
-  const filesListPath = String(inputSummary.files_list_path || '').trim()
-    || safeJoinPath(inputSummary.module_root || detail.input_path, 'files.list')
+  const inputContract = asBinarySecurityContract(taskConfig.input_contract);
+  const contractModuleDir = contractText(inputContract, 'module_dir', 'source_dir');
+  const contractDescriptorRoot = contractText(inputContract, 'descriptor_root', 'entry_descriptor_root');
+  const contractSourceRoot = contractText(inputContract, 'source_root', 'source_root_path', 'source_dir');
+  const filesListPath = contractText(inputContract, 'files_list_path', 'entry_files_list', 'files_list')
+    || String(inputSummary.files_list_path || '').trim()
+    || safeJoinPath(contractModuleDir || inputSummary.module_root || detail.input_path, 'files.list')
     || null;
   return (
     <div className="space-y-4">
@@ -396,8 +406,9 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
         title="输入信息"
         projectId={detail.project_id}
         rows={[
-          { label: '模块目录', path: detail.input_path },
-          { label: '源码目录', path: detail.source_path },
+          { label: '模块目录', path: contractModuleDir || detail.input_path },
+          { label: '描述根目录', path: contractDescriptorRoot || detail.input_path },
+          { label: '源码目录', path: contractSourceRoot || detail.source_path },
           { label: '模块文件清单', path: filesListPath },
         ]}
       />
@@ -455,6 +466,8 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
   const taskConfig = asRecord(detail.task_config_json);
   const inputSummary = asRecord(detail.input_summary);
   const outputSummary = asRecord(detail.output_summary);
+  const moduleInputPath = String((detail as any).module_input_path || inputSummary.module_input_path || detail.input_path || '').trim() || null;
+  const sourceRootPath = String((detail as any).source_root_path || inputSummary.source_root_path || detail.input_path || '').trim() || null;
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -474,7 +487,8 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         title="输入信息"
         projectId={detail.project_id}
         rows={[
-          { label: '输入路径', path: detail.input_path },
+          { label: '模块输入目录', path: moduleInputPath },
+          { label: '源码根目录', path: sourceRootPath },
           { label: '输入工作区', path: inputSummary.workspace_root || inputSummary.workspace_dir },
           { label: '源码文件', value: taskConfig.source_file ? <span className="break-all font-mono text-xs">{taskConfig.source_file}</span> : '-' },
           { label: '函数名', value: taskConfig.function_name || '-' },

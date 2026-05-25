@@ -62,6 +62,86 @@ export interface BinarySecurityAbnormalReasonEventSummary {
   reason: BinarySecurityAbnormalReason;
 }
 
+export interface BinarySecurityModuleContract {
+  contract_version?: number;
+  input_kind?: string | null;
+  output_kind?: string | null;
+  firmware_key?: string | null;
+  firmware_name?: string | null;
+  filename?: string | null;
+  unpacked_root?: string | null;
+  task_type?: BinarySecurityTaskType | string | null;
+  module_key?: string | null;
+  module_name?: string | null;
+  module_dir?: string | null;
+  descriptor_root?: string | null;
+  source_dir?: string | null;
+  source_root?: string | null;
+  source_root_path?: string | null;
+  files_list_path?: string | null;
+  files_list?: string | null;
+  entry_descriptor_root?: string | null;
+  entry_files_list?: string | null;
+  entry_descriptor_ready?: boolean;
+  module_report?: string | null;
+  primary_result_kind?: string | null;
+  result_kinds?: string[];
+  artifact_kind_summary?: Record<string, number>;
+  result_kind_summary?: Record<string, number>;
+  artifact_index_path?: string | null;
+  result_summary_version?: number;
+  risk_level?: string | null;
+  risk_score?: number | null;
+  rank?: number | null;
+  file_count?: number | null;
+  language?: string | null;
+  module_type?: string | null;
+  artifact_root?: string | null;
+  archive_root?: string | null;
+  entry_count?: number | null;
+  entries?: BinarySecurityEntryContract[];
+  entries_preview?: BinarySecurityEntryContract[];
+  [key: string]: any;
+}
+
+export interface BinarySecurityEntryContract {
+  entry_key?: string | null;
+  firmware_key?: string | null;
+  firmware_name?: string | null;
+  module_key?: string | null;
+  module_name?: string | null;
+  module_dir?: string | null;
+  descriptor_root?: string | null;
+  source_dir?: string | null;
+  source_root?: string | null;
+  source_root_path?: string | null;
+  module_input_path?: string | null;
+  files_list_path?: string | null;
+  entry_file?: string | null;
+  file_name?: string | null;
+  source_file?: string | null;
+  definition_file?: string | null;
+  function_name?: string | null;
+  raw_function_name?: string | null;
+  line_no?: string | null;
+  definition_line?: string | null;
+  definition_kind?: string | null;
+  function_description?: string | null;
+  entry_reason?: string | null;
+  taint_params?: string[];
+  artifact_root?: string | null;
+  archive_root?: string | null;
+  data_flow_root?: string | null;
+  data_flow_files?: string[];
+  primary_report_path?: string | null;
+  data_flow_file?: string | null;
+  [key: string]: any;
+}
+
+export type BinarySecurityStageItemInputContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
+export type BinarySecurityStageItemOutputContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
+export type BinarySecurityStageItemResultContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
+
 export interface BinarySecurityTask {
   id: string;
   project_id: string;
@@ -197,7 +277,13 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   workspace_root: string;
   fileserver_subproject_name?: string | null;
   policy: BinarySecurityTaskPolicy;
-  summary: Record<string, any>;
+  summary: Record<string, any> & {
+    selected_modules?: BinarySecurityModuleContract[];
+    candidate_modules?: BinarySecurityModuleContract[];
+    system_analysis_modules?: BinarySecurityModuleContract[];
+    b2s_results?: BinarySecurityModuleContract[];
+    entry_results?: BinarySecurityModuleContract[];
+  };
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;
   stage_items_total?: number;
@@ -212,9 +298,9 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     retry_count: number;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
-    input_ref: Record<string, any>;
-    output_ref: Record<string, any>;
-    result: Record<string, any>;
+    input_ref: BinarySecurityStageItemInputContract;
+    output_ref: BinarySecurityStageItemOutputContract;
+    result: BinarySecurityStageItemResultContract;
     error_message?: string | null;
     abnormal_reason?: BinarySecurityAbnormalReason | null;
     sync_status?: string | null;
@@ -354,9 +440,9 @@ export interface BinarySecurityModuleSelection {
   selection_mode: BinarySecurityModuleSelectionMode;
   risk_levels: string[];
   requires_confirmation: boolean;
-  system_analysis_modules: Array<Record<string, any>>;
-  candidate_modules: Array<Record<string, any>>;
-  selected_modules: Array<Record<string, any>>;
+  system_analysis_modules: BinarySecurityModuleContract[];
+  candidate_modules: BinarySecurityModuleContract[];
+  selected_modules: BinarySecurityModuleContract[];
 }
 
 export interface BinarySecurityTimeline {
