@@ -879,11 +879,16 @@ function deriveFuncProgress(
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
           f.has_external_input = Boolean(d.has_external_input);
+          f.r3w = 'passed';
           if (!f.has_external_input) {
-            // 无外部输入：R3-W 跑了但确定不是入口，R4/R5 跳过
-            f.r3w = 'passed'; f.r4 = 'skip'; f.rep = 'skip';
+            // 无外部输入（本次轮次），R4/R5 暂标 skip
+            // 但若 catalog 已确认 r4=keep/remove（来自完成的 pipeline_state），保留不覆盖
+            if (f.r4 !== 'keep' && f.r4 !== 'remove') {
+              f.r4 = 'skip'; f.rep = 'skip';
+            }
           } else {
-            f.r3w = 'passed';
+            // 确认有外部输入：若之前被临时标为 skip，重置等待 R4 决策
+            if (f.r4 === 'skip') { f.r4 = 'pending'; }
             if (d.entry_role) f.entry_role = String(d.entry_role);
             const fileH = String(d.file_hash || '');
             if (fileH) {
