@@ -92,6 +92,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [searchText, setSearchText] = useState('');
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
+  const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
@@ -584,10 +585,19 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
-            <p className="mt-1 text-sm text-slate-500">展示当前 PI RE Agent 集群的实时执行槽位、运行中的 job 数量和各 worker 健康度。</p>
-          </div>
+          <button
+            type="button"
+            onClick={() => setSlotsPanelExpanded((current) => !current)}
+            className="flex flex-1 items-start justify-between gap-4 text-left"
+          >
+            <div>
+              <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
+              <p className="mt-1 text-sm text-slate-500">展示当前 PI RE Agent 集群的实时执行槽位、运行中的 job 数量和各 worker 健康度。</p>
+            </div>
+            <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
+              {slotsPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </span>
+          </button>
           <div className="flex flex-wrap items-center gap-3">
             <div className="text-xs text-slate-400">
               最近同步 {formatDateTime(piClusterCapacity?.updated_at)}
@@ -601,6 +611,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </button>
           </div>
         </div>
+        {slotsPanelExpanded ? (
+          <>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">总槽位</div>
@@ -655,6 +667,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
             </div>
           ) : null}
         </div>
+          </>
+        ) : null}
       </section>
 
       {showSlotDetailModal ? (

@@ -1,4 +1,4 @@
-import { API_BASE, fetchWithRetry, getAuthHeaders, handleResponse } from './base';
+import { API_BASE, fetchWithRetry, getAuthHeaders, getHeaders, handleResponse } from './base';
 
 export type BinarySecurityMetricsServiceKey =
   | 'binary-security'
@@ -26,7 +26,7 @@ export type BinarySecurityMetricsGroup =
   | 'service-specific'
   | 'other';
 
-export type BinarySecurityMetricsSecondaryTab = 'observability' | 'reducer' | 'ai-zone';
+export type BinarySecurityMetricsSecondaryTab = 'observability' | 'reducer' | 'ai-zone' | 'agent';
 
 export type BinarySecurityCanonicalAiMetricKey =
   | 'request-total'
@@ -64,6 +64,7 @@ export const BINARY_SECURITY_METRICS_SECONDARY_TABS: Array<{ key: BinarySecurity
   { key: 'observability', label: '通用观测' },
   { key: 'reducer', label: 'Reducer' },
   { key: 'ai-zone', label: 'AI专区' },
+  { key: 'agent', label: '智能体' },
 ];
 
 export const BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS = [
@@ -211,4 +212,40 @@ export const binarySecurityMetricsApi = {
     const payload = await handleResponse(response);
     return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
   },
+  getAgentObservabilitySummary: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
+    handleResponse(await fetchWithRetry(
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}summary?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { retries: 2, retryDelayMs: 400 },
+    )),
+  getAgentProcesses: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
+    handleResponse(await fetchWithRetry(
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}processes?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { retries: 2, retryDelayMs: 400 },
+    )),
+  getAgentSessions: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
+    handleResponse(await fetchWithRetry(
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}sessions?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { retries: 2, retryDelayMs: 400 },
+    )),
+  getAgentTasks: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
+    handleResponse(await fetchWithRetry(
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}tasks?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { retries: 2, retryDelayMs: 400 },
+    )),
+  killAgentProcess: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string, pid: number) =>
+    handleResponse(await fetchWithRetry(
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}processes/${encodeURIComponent(String(pid))}/kill?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'POST', headers: { ...getHeaders() } },
+      { retries: 2, retryDelayMs: 400 },
+    )),
+  killAllOrphanProcesses: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
+    handleResponse(await fetchWithRetry(
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}processes/kill-all-orphans?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'POST', headers: { ...getHeaders() } },
+      { retries: 2, retryDelayMs: 400 },
+    )),
 };
