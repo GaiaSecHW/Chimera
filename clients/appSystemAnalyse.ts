@@ -14,6 +14,7 @@ import {
   SystemAnalysisPromptTemplate,
   SystemAnalysisServiceConfig,
 } from '../types/types';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 
 const BASE = `${API_BASE}/api/app/system-analyse`;
 
@@ -56,7 +57,7 @@ export const DEFAULT_MODELS_CONFIG: SystemAnalysisModelsConfig = {
 
 export const appSystemAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string }> =>
+  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
     handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────

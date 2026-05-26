@@ -43,6 +43,7 @@ import {
   DataflowFileserverRunSummary,
 } from '../../clients/dataflowVulnRunsFileserver';
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
@@ -429,13 +430,17 @@ const JsonBlock: React.FC<{ value: any; maxHeight?: string }> = ({ value, maxHei
 const PageHeader: React.FC<{
   eyebrow: string;
   title: string;
+  version?: string | null;
   description?: string;
   children?: React.ReactNode;
-}> = ({ eyebrow, title, description, children }) => (
+}> = ({ eyebrow, title, version, description, children }) => (
   <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
+          <ServiceBuildVersion version={version} />
+        </div>
         <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{title}</h1>
         {description ? <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">{description}</p> : null}
       </div>
@@ -585,6 +590,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [showCreate, setShowCreate] = useState(false);
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const loadTasksPromiseRef = useRef<Promise<void> | null>(null);
 
   const openTaskDetail = async (
@@ -728,6 +734,20 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   }, [projectId]);
 
   useEffect(() => {
+    let active = true;
+    void executionApi.getHealth()
+      .then((payload: any) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [executionApi]);
+
+  useEffect(() => {
     void load();
   }, [projectId]);
 
@@ -833,6 +853,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         <PageHeader
           eyebrow="Dataflow Vulnerability Mining"
           title="数据流漏洞挖掘"
+          version={buildVersion}
         >
           <button
             onClick={() => {

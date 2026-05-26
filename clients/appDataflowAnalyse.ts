@@ -13,12 +13,13 @@ import {
   AppDfaTaskItem,
   AppDfaTaskResult,
 } from '../types/types';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 
 const BASE = `${API_BASE}/api/app/dataflow-analyse`;
 
 export const appDataflowAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string }> =>
+  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
     handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────

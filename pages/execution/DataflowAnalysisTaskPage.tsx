@@ -6,6 +6,7 @@ import { api } from '../../clients/api';
 import { AppDfaClusterCapacity, AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem, AppDfaWorkerActiveJob } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard } from './taskOrigin';
@@ -539,6 +540,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const refreshIntervalStorageKey = `secflow:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -675,6 +677,20 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   }, [loadTasks, loadSlotSummary, page]);
 
   useEffect(() => { void loadAll(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    let active = true;
+    void appApi.getHealth()
+      .then((payload: any) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [appApi]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -1336,7 +1352,10 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
+          <ServiceBuildVersion version={buildVersion} />
+        </div>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">数据流分析任务</h1>
         <p className="mt-2 text-sm text-slate-500">追踪污点传播路径，识别敏感数据流向危险函数的安全风险。</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">

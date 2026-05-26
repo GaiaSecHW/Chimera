@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, Trash2, UploadClou
 import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SOverallProgressBasis, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
@@ -79,6 +80,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [activeTaskDetails, setActiveTaskDetails] = useState<Record<string, B2STaskDetail>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
@@ -137,6 +139,20 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       setPiClusterCapacity(null);
     }
   }, [executionApi.binaryToSource, projectId]);
+
+  useEffect(() => {
+    let active = true;
+    void executionApi.binaryToSource.getHealth()
+      .then((payload) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [executionApi.binaryToSource]);
 
   useEffect(() => {
     void load(true);
@@ -518,7 +534,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">Binary Reverse</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">Binary Reverse</p>
+              <ServiceBuildVersion version={buildVersion} />
+            </div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">二进制逆向</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。

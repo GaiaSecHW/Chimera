@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { AppSaClusterCapacity, AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
@@ -165,6 +166,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const refreshIntervalStorageKey = `secflow:systemAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRestarting, setBatchRestarting] = useState(false);
@@ -239,6 +241,20 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     sessionStorage.removeItem('secflow:systemAnalysisTaskId');
     onOpenTask(storedTaskId);
   }, [onOpenTask]);
+
+  useEffect(() => {
+    let active = true;
+    void appApi.getHealth()
+      .then((payload: any) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [appApi]);
 
   // ── Load task list ────────────────────────────────────────────────────────
 
@@ -617,7 +633,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
+              <ServiceBuildVersion version={buildVersion} />
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">

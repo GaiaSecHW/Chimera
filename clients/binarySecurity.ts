@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 
 export interface BinarySecurityInputFile {
   filename: string;
@@ -11,6 +12,7 @@ export interface BinarySecurityInputFile {
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
+export type BinarySecurityHealth = { status?: string; service?: string } & ServiceHealthMeta;
 
 export interface BinarySecurityStageOption {
   enabled: boolean;
@@ -576,6 +578,14 @@ export interface BinarySecurityActionResult {
 }
 
 export const binarySecurityApi = {
+  getHealth: async (): Promise<BinarySecurityHealth> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/health`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
   listTasks: async (
     projectId: string,
     status?: string,
