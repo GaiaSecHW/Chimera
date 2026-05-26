@@ -2959,12 +2959,18 @@ export interface AppEaFunctionCatalogItem {
   signature?: string;
   start_line?: number;
   end_line?: number;
-  r1b_state?: string;
-  r2_state?: string;
-  r2j_state?: string;
+  // 新字段名（后端 v2 fix 后）
+  r2j_state_new?: string;  // r2_j_state 准确性 Judge（待部署后启用）
+  r3w_state?: string;      // r3_w_state 外部输入 W（待部署后启用）
+  r3j_state?: string;      // r3_j_state 外部输入 J（待部署后启用）
+  r5_state?: string;       // r5_state 报告（待部署后启用）
+  // 旧字段名（当前部署版本疑用）
+  r1b_state?: string;      // = r2_j_state
+  r2_state?: string;       // = r3_w_state
+  r2j_state?: string;      // = r3_j_state
   r3_state?: string;
   r4_state?: string;
-  rep_state?: string;
+  rep_state?: string;      // = r5_state
   has_external_input?: boolean | null;
   entry_role?: string;
   r4_decision?: string;
