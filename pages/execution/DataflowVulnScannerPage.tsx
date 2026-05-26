@@ -23,6 +23,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
   X,
   XCircle,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ import {
 } from '../../clients/dataflowVulnRunsFileserver';
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
 import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
+import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
@@ -116,13 +118,15 @@ const DATAFLOW_VULN_FLOW = {
   ],
 };
 const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-cyan-600';
+const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/secflow-app-dataflow-vuln-scanner';
+const DEFAULT_CREATE_TASK_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
 const TASK_PURPOSE_META: Record<string, { label: string; className: string }> = {
   normal: { label: '正常任务', className: 'border-slate-200 bg-slate-50 text-slate-700' },
   evolution: { label: '进化任务', className: 'border-amber-200 bg-amber-50 text-amber-700' },
 };
 
 const defaultConfigPayload = (): DataflowProfileConfigPayload => ({
-  model: 'my_llm/MiniMax/MiniMax-M2.5',
+  model: DEFAULT_CREATE_TASK_MODEL,
   review_profile: 'balanced',
   max_review_cycles: 6,
   worker_timeout: 3600,
@@ -493,38 +497,46 @@ interface CreateTaskState {
   autoReportVulnerabilities: boolean;
 }
 
+const createTaskDefaultConfigPayload = (): DataflowProfileConfigPayload => ({
+  ...defaultConfigPayload(),
+  model: DEFAULT_CREATE_TASK_MODEL,
+  review_profile: 'fast',
+  max_review_cycles: REVIEW_PROFILE_DEFAULT_MAX_CYCLES.fast,
+});
+
 const initialCreateTaskState = (): CreateTaskState => ({
   title: `dataflow-vuln-${new Date().toISOString().slice(0, 16).replace('T', '-')}`,
   profileId: '',
-  workspacePath: '',
+  workspacePath: DEFAULT_DATAFLOW_VULN_RUNS_ROOT,
   dataFlowPath: '',
   sourcePath: '',
-  model: defaultConfigPayload().model,
+  model: createTaskDefaultConfigPayload().model,
   provider: '',
-  reviewProfile: defaultConfigPayload().review_profile || 'balanced',
-  maxReviewCycles: defaultConfigPayload().max_review_cycles,
-  timeoutMaxRetries: defaultConfigPayload().timeout_max_retries ?? 3,
-  timeoutRetryIntervalSeconds: defaultConfigPayload().timeout_retry_interval_seconds ?? 30,
-  resultReviewConcurrency: defaultConfigPayload().result_review_concurrency,
+  reviewProfile: createTaskDefaultConfigPayload().review_profile || 'balanced',
+  maxReviewCycles: createTaskDefaultConfigPayload().max_review_cycles,
+  timeoutMaxRetries: createTaskDefaultConfigPayload().timeout_max_retries ?? 3,
+  timeoutRetryIntervalSeconds: createTaskDefaultConfigPayload().timeout_retry_interval_seconds ?? 30,
+  resultReviewConcurrency: createTaskDefaultConfigPayload().result_review_concurrency,
   runtimeOverridesText: '',
   autoReportVulnerabilities: true,
 });
 
 const applyConfigPayloadToCreateTaskState = (
   state: CreateTaskState,
-  configPayload: DataflowProfileConfigPayload
+  configPayload: DataflowProfileConfigPayload,
+  options?: { preserveModel?: boolean; preserveReviewProfile?: boolean; preserveMaxReviewCycles?: boolean }
 ): CreateTaskState => ({
   ...state,
-  model: configPayload.model,
-  reviewProfile: configPayload.review_profile || 'balanced',
-  maxReviewCycles: configPayload.max_review_cycles,
+  model: options?.preserveModel ? state.model : configPayload.model,
+  reviewProfile: options?.preserveReviewProfile ? state.reviewProfile : (configPayload.review_profile || createTaskDefaultConfigPayload().review_profile || 'fast'),
+  maxReviewCycles: options?.preserveMaxReviewCycles ? state.maxReviewCycles : configPayload.max_review_cycles,
   timeoutMaxRetries: configPayload.timeout_max_retries ?? 3,
   timeoutRetryIntervalSeconds: configPayload.timeout_retry_interval_seconds ?? 30,
   resultReviewConcurrency: configPayload.result_review_concurrency,
 });
 
 const isCreateTaskConfigUntouched = (state: CreateTaskState) => {
-  const defaults = defaultConfigPayload();
+  const defaults = createTaskDefaultConfigPayload();
   return (
     !state.provider.trim()
     && state.model === defaults.model
@@ -587,6 +599,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [loading, setLoading] = useState(true);
   const [runQuery, setRunQuery] = useState('');
   const [runStatusFilter, setRunStatusFilter] = useState('');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [batchDeleting, setBatchDeleting] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
@@ -687,7 +701,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         setCreateState((current) => (
           current.profileId || !isCreateTaskConfigUntouched(current)
             ? current
-            : applyConfigPayloadToCreateTaskState(current, defaultProfilePayload)
+            : applyConfigPayloadToCreateTaskState(current, defaultProfilePayload, {
+              preserveModel: true,
+              preserveReviewProfile: true,
+              preserveMaxReviewCycles: true,
+            })
         ));
       }
     } catch (error: any) {
@@ -731,6 +749,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   useEffect(() => {
     setProfiles([]);
     setProfilesLoaded(false);
+    setSelectedTaskIds(new Set());
   }, [projectId]);
 
   useEffect(() => {
@@ -797,6 +816,112 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     };
   }, [tasks]);
 
+  useEffect(() => {
+    const taskIds = new Set(tasks.map((task) => task.task_id));
+    setSelectedTaskIds((current) => {
+      const next = new Set<string>();
+      current.forEach((taskId) => {
+        if (taskIds.has(taskId)) next.add(taskId);
+      });
+      return next.size === current.size ? current : next;
+    });
+  }, [tasks]);
+
+  const toggleTaskSelection = (taskId: string, checked: boolean) => {
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(taskId);
+      else next.delete(taskId);
+      return next;
+    });
+  };
+
+  const toggleAllVisibleSelection = (checked: boolean) => {
+    const visibleTaskIds = filteredTasks.map((task) => task.task_id);
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      if (checked) visibleTaskIds.forEach((taskId) => next.add(taskId));
+      else visibleTaskIds.forEach((taskId) => next.delete(taskId));
+      return next;
+    });
+  };
+
+  const handleDeleteTask = async (task: DataflowScanTask) => {
+    const taskLabel = task.title || task.run_name || task.task_id;
+    const confirmed = await showConfirm({
+      title: '删除任务',
+      message: `确定要删除任务「${taskLabel}」及其关联 Run / 输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await executionApi.deleteTask(task.task_id);
+      notify('任务已删除', 'success');
+      setSelectedTaskIds((current) => {
+        const next = new Set(current);
+        next.delete(task.task_id);
+        return next;
+      });
+      await load();
+    } catch (error: any) {
+      notify(`删除任务失败: ${error?.message || error || '未知错误'}`, 'error');
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    const taskIds = tasks
+      .map((task) => task.task_id)
+      .filter((taskId) => selectedTaskIds.has(taskId));
+    if (taskIds.length === 0) {
+      notify('请先选择要删除的任务', 'warning');
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '批量删除任务',
+      message: `确定要批量删除 ${taskIds.length} 个任务及其关联 Run / 输出文件吗？此操作不可撤销。`,
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    setBatchDeleting(true);
+    let success = 0;
+    let failed = 0;
+    let firstError = '';
+
+    for (const taskId of taskIds) {
+      try {
+        await executionApi.deleteTask(taskId);
+        success += 1;
+      } catch (error: any) {
+        failed += 1;
+        if (!firstError) firstError = error?.message || String(error);
+      }
+    }
+
+    setBatchDeleting(false);
+    setSelectedTaskIds((current) => {
+      const next = new Set(current);
+      taskIds.forEach((taskId) => next.delete(taskId));
+      return next;
+    });
+    await load();
+
+    if (failed === 0) {
+      notify(`批量删除成功，共 ${success} 个任务`, 'success');
+    } else if (success > 0) {
+      notify(`批量删除完成，成功 ${success} / ${taskIds.length}，首个错误：${firstError}`, 'warning');
+    } else {
+      notify(`批量删除失败：${firstError || '未知错误'}`, 'error');
+    }
+  };
+
+  const hasSelection = selectedTaskIds.size > 0;
+  const allVisibleSelected = filteredTasks.length > 0 && filteredTasks.every((task) => selectedTaskIds.has(task.task_id));
+
   const submitCreateTask = async () => {
     if (!projectId) {
       notify('请先选择项目', 'warning');
@@ -804,6 +929,10 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     }
     if (!createState.title.trim()) {
       notify('请输入任务标题', 'warning');
+      return;
+    }
+    if (!createState.workspacePath.trim()) {
+      notify('请选择 Runs 根目录路径', 'warning');
       return;
     }
     if (!createState.dataFlowPath.trim()) {
@@ -860,7 +989,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               const defaultProfile = resolveDefaultProfile(profiles);
               const initialState = initialCreateTaskState();
               setCreateState(defaultProfile
-                ? applyConfigPayloadToCreateTaskState(initialState, normalizeConfigPayload(defaultProfile.config_payload))
+                ? applyConfigPayloadToCreateTaskState(initialState, normalizeConfigPayload(defaultProfile.config_payload), {
+                  preserveModel: true,
+                  preserveReviewProfile: true,
+                  preserveMaxReviewCycles: true,
+                })
                 : initialState);
               setShowCreate(true);
               void loadProfiles();
@@ -928,12 +1061,54 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   {tasksError}
                 </div>
               ) : null}
+              {hasSelection ? (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+                    <label className="inline-flex items-center gap-2 font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={(event) => toggleAllVisibleSelection(event.target.checked)}
+                      />
+                      全选当前筛选结果（{filteredTasks.length} 条）
+                    </label>
+                    <span className="font-black text-cyan-700">已选择 {selectedTaskIds.size} 个任务</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTaskIds(new Set())}
+                      disabled={batchDeleting}
+                      className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      清除选择
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleBatchDelete()}
+                      disabled={batchDeleting}
+                      className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      {batchDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      批量删除（{selectedTaskIds.size}）
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="overflow-auto">
-              <table className="w-full min-w-[1280px] text-left text-sm">
+              <table className="w-full min-w-[1320px] text-left text-sm">
                 <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
                   <tr>
+                    <th className="px-4 py-3 w-12">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={(event) => toggleAllVisibleSelection(event.target.checked)}
+                        aria-label="全选当前筛选任务"
+                      />
+                    </th>
                     <th className="px-4 py-3">任务 / Run</th>
                     <th className="px-4 py-3">Run 目录</th>
                     <th className="px-4 py-3">状态</th>
@@ -943,7 +1118,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     <th className="px-4 py-3">疑点上报</th>
                     <th className="px-4 py-3">开始时间</th>
                     <th className="px-4 py-3">耗时</th>
-                    <th className="px-4 py-3 text-right">详情</th>
+                    <th className="px-4 py-3 text-right">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -965,9 +1140,17 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       <tr
                         key={task.task_id}
                         onClick={() => void openTaskRowDetail(task)}
-                        className="cursor-pointer border-t border-slate-100 bg-white hover:bg-cyan-50/50"
+                        className={`cursor-pointer border-t border-slate-100 ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-50/60' : 'bg-white hover:bg-cyan-50/50'}`}
                         title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
                       >
+                        <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedTaskIds.has(task.task_id)}
+                            onChange={(event) => toggleTaskSelection(task.task_id, event.target.checked)}
+                            aria-label={`选择任务 ${displayName}`}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
@@ -1028,8 +1211,27 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                         <td className="px-4 py-3 text-slate-600">
                           {runSummary.duration_seconds ? formatSeconds(runSummary.duration_seconds || 0) : formatDuration(task.started_at || task.created_at, task.finished_at)}
                         </td>
-                        <td className="px-4 py-3 text-right text-cyan-700">
-                          <ChevronRight size={17} className="ml-auto" />
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteTask(task)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50"
+                              title="删除任务及其关联 Run"
+                            >
+                              <Trash2 size={13} />
+                              删除
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void openTaskRowDetail(task)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-white px-2.5 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50"
+                              title="进入详情"
+                            >
+                              详情
+                              <ChevronRight size={15} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1397,12 +1599,14 @@ const CreateTaskDialog: React.FC<{
                   value={state.profileId}
                   onChange={(event) => {
                     const profile = profiles.find((item) => item.profile_id === event.target.value);
-                    const payload = normalizeConfigPayload(profile?.config_payload);
+                    const payload = event.target.value
+                      ? normalizeConfigPayload(profile?.config_payload)
+                      : createTaskDefaultConfigPayload();
                     onChange({
                       ...state,
                       profileId: event.target.value,
-                      model: payload.model,
-                      reviewProfile: payload.review_profile || 'balanced',
+                      model: event.target.value ? payload.model : DEFAULT_CREATE_TASK_MODEL,
+                      reviewProfile: payload.review_profile || createTaskDefaultConfigPayload().review_profile || 'fast',
                       maxReviewCycles: payload.max_review_cycles,
                       timeoutMaxRetries: payload.timeout_max_retries ?? 3,
                       timeoutRetryIntervalSeconds: payload.timeout_retry_interval_seconds ?? 30,
@@ -1431,14 +1635,14 @@ const CreateTaskDialog: React.FC<{
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-2 text-sm font-black text-slate-900">
                   <FolderOpen size={16} />
-                  Runs 根目录（可选）
+                  Runs 根目录
                 </div>
-                <div className="mt-2 text-xs leading-5 text-slate-500">填写后会作为 run_vuln_scan.py 的 --runs-root；留空则使用项目默认 DATAFLOW_VULN_SCANNER/runs。</div>
+                <div className="mt-2 text-xs leading-5 text-slate-500">默认使用当前项目的 /app/secflow-app-dataflow-vuln-scanner；后端会在该目录下创建标准 Run 扫描目录。</div>
                 <div className="mt-3 flex gap-2">
                   <input
                     value={state.workspacePath}
                     onChange={(event) => onChange({ ...state, workspacePath: event.target.value })}
-                    placeholder="/DATAFLOW_VULN_SCANNER/runs"
+                    placeholder={DEFAULT_DATAFLOW_VULN_RUNS_ROOT}
                     className={FORM_INPUT_CLASS}
                   />
                   <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
@@ -1511,6 +1715,9 @@ const CreateTaskDialog: React.FC<{
                 >
                   {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
+                {state.reviewProfile === 'fast' ? (
+                  <span className="mt-1 block text-[11px] leading-4 text-slate-500">快速筛选会关闭评审；这里的“1”表示至少执行 1 个发现周期，不代表还会再做 1 轮评审。</span>
+                ) : null}
               </label>
               <label>
                 <span className="text-xs font-black text-slate-600">最大评审轮次</span>

@@ -651,6 +651,14 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
+  deleteTask: async (taskId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   cancelTask: async (taskId: string): Promise<DataflowScanTask> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/cancel`, {
       method: 'POST',

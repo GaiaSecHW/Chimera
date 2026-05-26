@@ -2636,7 +2636,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       sessionViews: Record<string, Record<string, any>>;
     }>,
     refreshTimer: null as ReturnType<typeof setInterval> | null,
-    REFRESH_INTERVAL: 6000,
+    REFRESH_INTERVAL: 10000,
     currentRunsFilter: '',
     collapsedRunDates: {} as Record<string, boolean>,
     runDetailRequestSeq: 0,
