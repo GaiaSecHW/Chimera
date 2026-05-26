@@ -187,6 +187,38 @@ export interface DataflowServiceEffectiveConfig {
   config: Record<string, any>;
 }
 
+export interface DataflowServiceRuntimeConfig {
+  service_name: string;
+  api_prefix: string;
+  config: {
+    scheduler?: {
+      enabled?: boolean;
+      role?: string;
+      worker_capacity?: number;
+      poll_interval_seconds?: number;
+      heartbeat_interval_seconds?: number;
+      worker_timeout_seconds?: number;
+      worker_retention_seconds?: number;
+      cleanup_interval_seconds?: number;
+      discovery_mode?: 'registry' | 'static_urls' | 'hybrid' | string;
+      reservation_lease_seconds?: number;
+      worker_queue_depth?: number;
+      dispatch_batch_size?: number;
+      requeue_stuck_dispatch_after_seconds?: number;
+    };
+    dataflow_worker?: {
+      base_url?: string;
+      worker_urls?: string[];
+      worker_url_template?: string;
+      advertise_url_template?: string;
+      timeout?: number;
+      dispatch_retry_interval_seconds?: number;
+      dispatch_max_retries?: number;
+    };
+    [key: string]: any;
+  };
+}
+
 export interface DataflowSchedulerWorker {
   pod_id: string;
   host_name: string;
@@ -787,6 +819,20 @@ export const dataflowVulnScannerApi = {
 
   getServiceEffectiveConfig: async (): Promise<DataflowServiceEffectiveConfig> => {
     const response = await fetch(`${PREFIX}/service/config/effective`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getServiceConfig: async (): Promise<DataflowServiceRuntimeConfig> => {
+    const response = await fetch(`${PREFIX}/service/config`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  saveServiceConfig: async (config: DataflowServiceRuntimeConfig['config']): Promise<DataflowServiceRuntimeConfig> => {
+    const response = await fetch(`${PREFIX}/service/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ config }),
+    });
     return handleResponse(response);
   },
 

@@ -39,6 +39,7 @@ import {
   DataflowScanTask,
   DataflowScanTaskDetail,
   DataflowCreateTaskPayload,
+  DataflowServiceRuntimeConfig,
   DataflowVulnClusterCapacity,
   DataflowRunResolve,
 } from '../../clients/dataflowVulnScanner';
@@ -2215,22 +2216,26 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
   const [versions, setVersions] = useState<any[]>([]);
   const [effectiveConfig, setEffectiveConfig] = useState<any>(null);
   const [serviceConfig, setServiceConfig] = useState<any>(null);
+  const [serviceRuntimeConfig, setServiceRuntimeConfig] = useState<DataflowServiceRuntimeConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingPanel, setSavingPanel] = useState<ProfilePanelId | null>(null);
+  const [savingServiceConfig, setSavingServiceConfig] = useState(false);
 
   const load = async () => {
     if (!projectId) return;
     setLoading(true);
     try {
-      const [profileResp, projectConfigResp, serviceConfigResp] = await Promise.all([
+      const [profileResp, projectConfigResp, serviceConfigResp, serviceRuntimeResp] = await Promise.all([
         executionApi.listProfiles(projectId),
         executionApi.getProjectEffectiveConfig(projectId).catch(() => null),
         executionApi.getServiceEffectiveConfig().catch(() => null),
+        executionApi.getServiceConfig().catch(() => null),
       ]);
       setProfiles(profileResp || []);
       setEffectiveConfig(projectConfigResp);
       setServiceConfig(serviceConfigResp);
+      setServiceRuntimeConfig(serviceRuntimeResp);
       const nextProfile = profileResp.find((item) => item.profile_id === selectedProfileId) || profileResp.find((item) => item.is_default) || profileResp[0];
       if (nextProfile) {
         setSelectedProfileId(nextProfile.profile_id);
@@ -2361,6 +2366,49 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
       </button>
     </>
   );
+
+  const updateServiceSchedulerField = (key: string, value: any) => {
+    setServiceRuntimeConfig((current) => ({
+      service_name: current?.service_name || 'secflow-app-dataflow-vuln-scanner',
+      api_prefix: current?.api_prefix || '/api/dataflow-vuln-scanner',
+      config: {
+        ...(current?.config || {}),
+        scheduler: {
+          ...((current?.config?.scheduler as Record<string, any>) || {}),
+          [key]: value,
+        },
+      },
+    }));
+  };
+
+  const updateServiceWorkerField = (key: string, value: any) => {
+    setServiceRuntimeConfig((current) => ({
+      service_name: current?.service_name || 'secflow-app-dataflow-vuln-scanner',
+      api_prefix: current?.api_prefix || '/api/dataflow-vuln-scanner',
+      config: {
+        ...(current?.config || {}),
+        dataflow_worker: {
+          ...((current?.config?.dataflow_worker as Record<string, any>) || {}),
+          [key]: value,
+        },
+      },
+    }));
+  };
+
+  const saveRuntimeConfig = async () => {
+    if (!serviceRuntimeConfig) return;
+    setSavingServiceConfig(true);
+    try {
+      const saved = await executionApi.saveServiceConfig(serviceRuntimeConfig.config);
+      setServiceRuntimeConfig(saved);
+      setServiceConfig(await executionApi.getServiceEffectiveConfig().catch(() => serviceConfig));
+      notify('调度与并发参数已保存', 'success');
+    } catch (error: any) {
+      notify(error?.message || '保存调度参数失败', 'error');
+    } finally {
+      setSavingServiceConfig(false);
+    }
+  };
 
   return (
     <div className={embedded ? 'space-y-6 text-slate-900' : 'min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7'}>
@@ -2585,6 +2633,77 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
         </section>
 
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm xl:col-span-2">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-black text-slate-900"><Settings size={16} />调度与并发</div>
+                <div className="mt-1 text-xs text-slate-500">控制动态扩容自发现、槽位预留、批量分发、失联回收等关键参数。</div>
+              </div>
+              <button
+                onClick={() => void saveRuntimeConfig()}
+                disabled={!serviceRuntimeConfig || savingServiceConfig}
+                className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
+              >
+                <Save size={16} />
+                {savingServiceConfig ? '保存中...' : '保存调度参数'}
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <Field label="发现模式">
+                <select
+                  value={String(serviceRuntimeConfig?.config?.scheduler?.discovery_mode || 'registry')}
+                  onChange={(event) => updateServiceSchedulerField('discovery_mode', event.target.value)}
+                  className={FORM_INPUT_CLASS}
+                >
+                  <option value="registry">registry</option>
+                  <option value="hybrid">hybrid</option>
+                  <option value="static_urls">static_urls</option>
+                </select>
+              </Field>
+              <Field label="每 Pod 槽位数">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.worker_capacity || 0)} onChange={(value) => updateServiceSchedulerField('worker_capacity', value)} />
+              </Field>
+              <Field label="单 worker 排队深度">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.worker_queue_depth || 0)} onChange={(value) => updateServiceSchedulerField('worker_queue_depth', value)} />
+              </Field>
+              <Field label="心跳间隔(秒)">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.heartbeat_interval_seconds || 5)} onChange={(value) => updateServiceSchedulerField('heartbeat_interval_seconds', value)} />
+              </Field>
+              <Field label="失联阈值(秒)">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.worker_timeout_seconds || 300)} onChange={(value) => updateServiceSchedulerField('worker_timeout_seconds', value)} />
+              </Field>
+              <Field label="保留窗口(秒)">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.worker_retention_seconds || 1800)} onChange={(value) => updateServiceSchedulerField('worker_retention_seconds', value)} />
+              </Field>
+              <Field label="reservation lease(秒)">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.reservation_lease_seconds || 30)} onChange={(value) => updateServiceSchedulerField('reservation_lease_seconds', value)} />
+              </Field>
+              <Field label="dispatch 批次">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.dispatch_batch_size || 8)} onChange={(value) => updateServiceSchedulerField('dispatch_batch_size', value)} />
+              </Field>
+              <Field label="dispatch 卡住回收(秒)">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.requeue_stuck_dispatch_after_seconds || 60)} onChange={(value) => updateServiceSchedulerField('requeue_stuck_dispatch_after_seconds', value)} />
+              </Field>
+              <Field label="worker 自报地址模板">
+                <input
+                  value={String(serviceRuntimeConfig?.config?.dataflow_worker?.advertise_url_template || '')}
+                  onChange={(event) => updateServiceWorkerField('advertise_url_template', event.target.value)}
+                  className={FORM_INPUT_CLASS}
+                  placeholder="http://{host_name}.secflow-app-dataflow-vuln-scanner-worker-headless.secflow-ns.svc.cluster.local:8080"
+                />
+              </Field>
+              <Field label="静态 base_url">
+                <input
+                  value={String(serviceRuntimeConfig?.config?.dataflow_worker?.base_url || '')}
+                  onChange={(event) => updateServiceWorkerField('base_url', event.target.value)}
+                  className={FORM_INPUT_CLASS}
+                />
+              </Field>
+              <Field label="dispatch 重试间隔(秒)">
+                <NumberInput value={Number(serviceRuntimeConfig?.config?.dataflow_worker?.dispatch_retry_interval_seconds || 2)} onChange={(value) => updateServiceWorkerField('dispatch_retry_interval_seconds', value)} />
+              </Field>
+            </div>
+          </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2 text-sm font-black text-slate-900"><ServerCog size={16} />Agent 默认存储目录</div>
             {serviceConfig?.agent_storage?.agents?.length ? (
