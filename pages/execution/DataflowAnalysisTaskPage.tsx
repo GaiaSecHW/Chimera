@@ -6,10 +6,13 @@ import { api } from '../../clients/api';
 import { AppDfaClusterCapacity, AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem, AppDfaWorkerActiveJob } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard } from './taskOrigin';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
+
+const RUNNING_AGENT_PAGE_SIZE = 10;
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -295,6 +298,17 @@ interface EntryItem {
   taint_vars: string;
 }
 
+interface RunningAgentView {
+  id: string;
+  name: string;
+  model: string;
+  round: number | null;
+  currentFunction: string;
+  startedTs: number;
+  lastTs: number;
+  lastEventType: string;
+}
+
 /** Extract clean comma-separated variable names from new-format taint field.
  * Input examples:  aHeader`🔴 `aMessage`🔴   /   aSingle`🟡   /   aConfig`⚠️
  */
@@ -356,6 +370,64 @@ function parseFunctionsList(content: string): EntryItem[] {
     }
   }
   return result;
+}
+
+function deriveRunningAgents(events: AppDfaStageEvent[], taskStatus: string): RunningAgentView[] {
+  if (!['running', 'pending'].includes(taskStatus)) return [];
+
+  const runningAgents = new Map<string, RunningAgentView>();
+  let currentRound: number | null = null;
+  let currentFunction = '';
+
+  for (const evt of events) {
+    const data = evt.data ?? {};
+    if (evt.type === 'round_start') {
+      const roundValue = Number(data.round);
+      if (Number.isFinite(roundValue) && roundValue > 0) currentRound = roundValue;
+    }
+    if (evt.type === 'trace_start') {
+      const nextFunction = String(data.function ?? data.task ?? '').trim();
+      if (nextFunction) currentFunction = nextFunction;
+    }
+
+    const workerId = String(data.worker_id ?? data.agent ?? '').trim();
+    if (!workerId) continue;
+
+    if (evt.type === 'worker_start') {
+      runningAgents.set(workerId, {
+        id: workerId,
+        name: workerId,
+        model: String(data.model ?? '').trim(),
+        round: Number.isFinite(Number(data.round)) && Number(data.round) > 0 ? Number(data.round) : currentRound,
+        currentFunction: String(data.function ?? data.target_function ?? currentFunction ?? '').trim(),
+        startedTs: evt.ts,
+        lastTs: evt.ts,
+        lastEventType: evt.type,
+      });
+      continue;
+    }
+
+    const current = runningAgents.get(workerId);
+    if (!current) continue;
+
+    if (evt.type === 'worker_done') {
+      runningAgents.delete(workerId);
+      continue;
+    }
+
+    current.lastTs = evt.ts;
+    current.lastEventType = evt.type;
+    if (!current.model && data.model) current.model = String(data.model).trim();
+    const nextRound = Number(data.round);
+    if (Number.isFinite(nextRound) && nextRound > 0) current.round = nextRound;
+    const nextFunction = String(data.function ?? data.target_function ?? currentFunction ?? '').trim();
+    if (nextFunction) current.currentFunction = nextFunction;
+  }
+
+  return Array.from(runningAgents.values()).sort((left, right) => {
+    if (right.lastTs !== left.lastTs) return right.lastTs - left.lastTs;
+    return left.name.localeCompare(right.name, 'zh-CN');
+  });
 }
 
 const emptyForm = {
@@ -539,6 +611,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const refreshIntervalStorageKey = `secflow:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -561,8 +634,11 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [slotSummary, setSlotSummary] = useState<AppDfaClusterCapacity | null>(null);
   const [slotSummaryLoading, setSlotSummaryLoading] = useState(false);
   const [slotSummaryError, setSlotSummaryError] = useState('');
+  const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
+  const [runningAgentNameFilter, setRunningAgentNameFilter] = useState('');
+  const [runningAgentPage, setRunningAgentPage] = useState(1);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -656,8 +732,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       setSlotSummary(payload);
       setExpandedSlotWorkerIds((current) => {
         const availableIds = new Set((payload.workers || []).map((worker) => worker.worker_id));
-        const retained = current.filter((workerId) => availableIds.has(workerId));
-        return retained.length > 0 ? retained : (payload.workers || []).slice(0, 1).map((worker) => worker.worker_id);
+        return current.filter((workerId) => availableIds.has(workerId));
       });
     } catch (err: any) {
       setSlotSummary(null);
@@ -675,6 +750,20 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   }, [loadTasks, loadSlotSummary, page]);
 
   useEffect(() => { void loadAll(page); }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    let active = true;
+    void appApi.getHealth()
+      .then((payload: any) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [appApi]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -1051,9 +1140,32 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
   const events = detail?.stages_json?.events ?? [];
   const roundProgress = computeRoundProgress(events);
+  const runningAgents = detail ? deriveRunningAgents(events, detail.status) : [];
+  const normalizedRunningAgentNameFilter = runningAgentNameFilter.trim().toLowerCase();
+  const filteredRunningAgents = useMemo(() => {
+    if (!normalizedRunningAgentNameFilter) return runningAgents;
+    return runningAgents.filter((agent) => [agent.name, agent.model, agent.currentFunction]
+      .some((value) => String(value || '').toLowerCase().includes(normalizedRunningAgentNameFilter)));
+  }, [normalizedRunningAgentNameFilter, runningAgents]);
+  const runningAgentTotalPages = Math.max(1, Math.ceil(filteredRunningAgents.length / RUNNING_AGENT_PAGE_SIZE));
+  const pagedRunningAgents = useMemo(() => {
+    const currentPage = Math.min(runningAgentPage, runningAgentTotalPages);
+    const startIndex = (currentPage - 1) * RUNNING_AGENT_PAGE_SIZE;
+    return filteredRunningAgents.slice(startIndex, startIndex + RUNNING_AGENT_PAGE_SIZE);
+  }, [filteredRunningAgents, runningAgentPage, runningAgentTotalPages]);
   const dfaTree = detail ? buildDfaTree(events, detail.status) : null;
 
   const logLines = events.map(formatEventLog).filter(Boolean);
+  useEffect(() => {
+    setRunningAgentNameFilter('');
+    setRunningAgentPage(1);
+  }, [detail?.task_id]);
+  useEffect(() => {
+    setRunningAgentPage(1);
+  }, [runningAgentNameFilter]);
+  useEffect(() => {
+    setRunningAgentPage((current) => Math.min(current, runningAgentTotalPages));
+  }, [runningAgentTotalPages]);
   const toggleSlotWorkerExpanded = (workerId: string) => {
     setExpandedSlotWorkerIds((current) => (
       current.includes(workerId)
@@ -1255,6 +1367,86 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </div>
                 </div>
 
+                <div>
+                  <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">当前运行智能体</h3>
+                      <p className="mt-1 text-xs text-slate-400">
+                        共 {filteredRunningAgents.length} 个
+                        {normalizedRunningAgentNameFilter ? `，筛选前 ${runningAgents.length} 个` : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        value={runningAgentNameFilter}
+                        onChange={(e) => setRunningAgentNameFilter(e.target.value)}
+                        placeholder="按名称/模型/函数快速筛选"
+                        className="w-56 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none transition focus:border-violet-300 focus:ring-2 focus:ring-violet-100"
+                      />
+                      <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-[11px] text-slate-500">
+                        每页 {RUNNING_AGENT_PAGE_SIZE} 条
+                      </span>
+                    </div>
+                  </div>
+                  {pagedRunningAgents.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                      {runningAgents.length === 0 ? '当前没有处于运行中的智能体。' : '没有匹配当前筛选条件的运行中智能体。'}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pagedRunningAgents.map((agent) => (
+                        <div key={agent.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="truncate text-sm font-black text-slate-900" title={agent.name}>{agent.name}</div>
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">运行中</span>
+                                {agent.round ? (
+                                  <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">第 {agent.round} 轮</span>
+                                ) : null}
+                              </div>
+                              <div className="mt-2 grid gap-2 text-xs text-slate-500 md:grid-cols-2">
+                                <div className="truncate" title={agent.model || '-'}>模型: {agent.model || '-'}</div>
+                                <div className="truncate" title={agent.currentFunction || '-'}>当前函数: {agent.currentFunction || '-'}</div>
+                                <div>开始时间: {formatDateTime(new Date(agent.startedTs * 1000).toISOString())}</div>
+                                <div>最近活动: {formatDateTime(new Date(agent.lastTs * 1000).toISOString())}</div>
+                              </div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+                              最近事件
+                              <div className="mt-1 font-semibold text-slate-700">{agent.lastEventType}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {runningAgentTotalPages > 1 ? (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <div className="text-xs text-slate-500">第 {runningAgentPage} / {runningAgentTotalPages} 页</div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setRunningAgentPage((current) => Math.max(1, current - 1))}
+                              disabled={runningAgentPage <= 1}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              上一页
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRunningAgentPage((current) => Math.min(runningAgentTotalPages, current + 1))}
+                              disabled={runningAgentPage >= runningAgentTotalPages}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              下一页
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+
                 {/* Dataflow Call Tree */}
                 {dfaTree ? (
                   <div>
@@ -1336,15 +1528,19 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
+          <ServiceBuildVersion version={buildVersion} />
+        </div>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">数据流分析任务</h1>
         <p className="mt-2 text-sm text-slate-500">追踪污点传播路径，识别敏感数据流向危险函数的安全风险。</p>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {[
             { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
             { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
             { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
-            { label: '失败/取消', value: tasks.filter((t) => ['failed', 'error', 'cancelled'].includes(t.status)).length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+            { label: '失败', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error').length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+            { label: '取消', value: tasks.filter((t) => t.status === 'cancelled').length, bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
               <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
@@ -1353,21 +1549,40 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
           ))}
         </div>
         <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
-              <p className="mt-1 text-sm text-slate-500">展示当前数据流分析 worker 的执行槽位、活跃任务和心跳情况。</p>
-            </div>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <button
+              type="button"
+              onClick={() => setSlotsPanelExpanded((current) => !current)}
+              className="flex flex-1 items-start justify-between gap-4 text-left"
+            >
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
+                <p className="mt-2 text-sm text-slate-500">展示当前数据流分析 worker 的执行槽位、活跃任务和心跳情况。</p>
+              </div>
+              <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
+                {slotsPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} className="rotate-[-90deg]" />}
+              </span>
+            </button>
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-xs text-slate-400">
                 最近同步 {formatDateTime(slotSummary?.updated_at)}
               </div>
+              {slotSummary ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSlotDetailModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                >
+                  查看 Worker 明细
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => setShowSlotDetailModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                onClick={() => void loadSlotSummary()}
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
               >
-                查看详情
+                <RefreshCw size={14} />
               </button>
               {slotSummaryLoading ? (
                 <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
@@ -1377,56 +1592,60 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               ) : null}
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            {slotCards.map((card) => (
-              <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
-                <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
-                <div className="mt-2 text-2xl font-black text-slate-900">{card.value}</div>
-                <div className="mt-1 text-[11px] text-slate-500">{card.hint}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {(slotSummary?.workers || []).map((worker) => (
-              <div
-                key={worker.worker_id}
-                className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
-                  worker.healthy
-                    ? 'border-slate-200 bg-slate-50'
-                    : 'border-rose-200 bg-rose-50'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-black text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
-                  <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                  }`}>
-                    {worker.healthy ? 'healthy' : 'unhealthy'}
+          {slotsPanelExpanded ? (
+            <>
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                {slotCards.map((card) => (
+                  <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
+                    <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{card.value}</div>
+                    <div className="mt-1 text-[11px] text-slate-500">{card.hint}</div>
                   </div>
-                </div>
-                <div className="mt-1 truncate text-[11px] text-slate-400" title={worker.worker_id}>{worker.worker_id}</div>
-                <div className="mt-2 text-xs text-slate-600">
-                  槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
-                  {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
-                </div>
-                <div className="mt-1 text-xs text-slate-400">
-                  来源 {worker.source || 'worker_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
-                </div>
-                {worker.error ? (
-                  <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {(slotSummary?.workers || []).map((worker) => (
+                  <div
+                    key={worker.worker_id}
+                    className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
+                      worker.healthy
+                        ? 'border-slate-200 bg-slate-50'
+                        : 'border-rose-200 bg-rose-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-black text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
+                      <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                      }`}>
+                        {worker.healthy ? 'healthy' : 'unhealthy'}
+                      </div>
+                    </div>
+                    <div className="mt-1 truncate text-[11px] text-slate-400" title={worker.worker_id}>{worker.worker_id}</div>
+                    <div className="mt-2 text-xs text-slate-600">
+                      槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
+                      {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      来源 {worker.source || 'worker_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
+                    </div>
+                    {worker.error ? (
+                      <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
+                    ) : null}
+                  </div>
+                ))}
+                {slotSummary && (slotSummary.workers || []).length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                    当前未发现可用的数据流分析 worker。
+                  </div>
                 ) : null}
               </div>
-            ))}
-            {slotSummary && (slotSummary.workers || []).length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
-                当前未发现可用的数据流分析 worker。
-              </div>
-            ) : null}
-          </div>
-          {slotSummaryError ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
-              暂无槽位数据：{slotSummaryError}
-            </div>
+              {slotSummaryError ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                  暂无槽位数据：{slotSummaryError}
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
       </section>

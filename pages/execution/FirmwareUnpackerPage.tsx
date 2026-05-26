@@ -26,6 +26,7 @@ import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProj
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -131,6 +132,13 @@ function formatPhaseDuration(seconds: number | null | undefined) {
 
 type ProgressPhase = FirmwareTaskProgress['phases'][number];
 
+type ProgressLaneNode = {
+  key: string;
+  label: string;
+  phase: ProgressPhase;
+  rounds?: ProgressPhase[];
+};
+
 function buildPlaceholderPhase(key: string, label: string): ProgressPhase {
   return {
     key,
@@ -195,6 +203,83 @@ function normalizeProgressPhases(progress: FirmwareTaskProgress | null): Progres
     }
     return phase;
   });
+}
+
+function groupRoundPhasesByPrefix(phases: ProgressPhase[], prefix: string) {
+  return phases
+    .filter((phase) => phase.key.startsWith(`${prefix}_round_`))
+    .sort((left, right) => {
+      const leftRound = Number(left.key.match(/_round_(\d+)$/)?.[1] || 0);
+      const rightRound = Number(right.key.match(/_round_(\d+)$/)?.[1] || 0);
+      return leftRound - rightRound;
+    });
+}
+
+function buildLayeredProgressNodes(phases: ProgressPhase[]) {
+  const byKey = new Map(phases.map((phase) => [phase.key, phase]));
+  const preprocess = byKey.get('preprocess') || buildPlaceholderPhase('preprocess', '预处理');
+  const cleanup = byKey.get('llm_cleanup') || buildPlaceholderPhase('llm_cleanup', 'LLM 清理');
+  const toolReview = byKey.get('llm_review_tool') || byKey.get('llm_review') || buildPlaceholderPhase('llm_review_tool', 'LLM 评审');
+  const llmUnpackRounds = groupRoundPhasesByPrefix(phases, 'llm_unpack');
+  const llmRecursiveRounds = groupRoundPhasesByPrefix(phases, 'recursive_expand_llm');
+  const llmReviewRounds = groupRoundPhasesByPrefix(phases, 'llm_review');
+
+  const toolLane: ProgressLaneNode[] = [
+    {
+      key: 'tool_match',
+      label: '工具匹配执行',
+      phase: byKey.get('tool_match') || buildPlaceholderPhase('tool_match', '工具匹配执行'),
+    },
+    {
+      key: 'recursive_expand_tool',
+      label: '递归解包',
+      phase: byKey.get('recursive_expand_tool') || buildPlaceholderPhase('recursive_expand_tool', '递归解包'),
+    },
+    {
+      key: 'llm_review_tool',
+      label: 'LLM 评审',
+      phase: toolReview,
+    },
+  ];
+
+  const llmLane: ProgressLaneNode[] = [
+    {
+      key: 'llm_unpack',
+      label: 'LLM 解包',
+      phase: byKey.get('llm_unpack') || llmUnpackRounds[0] || buildPlaceholderPhase('llm_unpack', 'LLM 解包'),
+      rounds: llmUnpackRounds,
+    },
+    {
+      key: 'recursive_expand_llm',
+      label: '递归解包',
+      phase: byKey.get('recursive_expand_llm') || llmRecursiveRounds[0] || buildPlaceholderPhase('recursive_expand_llm', '递归解包'),
+      rounds: llmRecursiveRounds,
+    },
+    {
+      key: 'llm_review',
+      label: 'LLM 评审',
+      phase: byKey.get('llm_review') || llmReviewRounds[0] || buildPlaceholderPhase('llm_review', 'LLM 评审'),
+      rounds: llmReviewRounds,
+    },
+  ];
+
+  return { preprocess, cleanup, toolLane, llmLane };
+}
+
+function phaseNodeTone(status: string) {
+  if (status === 'success') return 'border-emerald-500 bg-emerald-50 text-emerald-600';
+  if (status === 'running') return 'border-blue-500 bg-blue-50 text-blue-600';
+  if (status === 'failed') return 'border-red-400 bg-red-50 text-red-600';
+  if (status === 'skipped') return 'border-amber-400 bg-amber-50 text-amber-600';
+  return 'border-slate-200 bg-white text-slate-400';
+}
+
+function phaseTextTone(status: string) {
+  if (status === 'running') return 'text-blue-600';
+  if (status === 'success') return 'text-emerald-600';
+  if (status === 'failed') return 'text-red-500';
+  if (status === 'skipped') return 'text-amber-600';
+  return 'text-slate-400';
 }
 
 function fmtPercent(used: number | null, limit: number | null, unitSuffix = '') {
@@ -892,6 +977,7 @@ function TaskDetailPanel({
 }) {
   const fileserverApi = api.domains.assets.fileserver;
   const normalizedProgressPhases = useMemo(() => normalizeProgressPhases(progress), [progress]);
+  const layeredProgress = useMemo(() => buildLayeredProgressNodes(normalizedProgressPhases), [normalizedProgressPhases]);
   const progressDurationSeconds = useMemo(() => {
     const values = normalizedProgressPhases
       .filter((phase) => !['pending', 'not_executed'].includes(String(phase.status || '')))
@@ -1717,70 +1803,144 @@ function TaskDetailPanel({
                     </div>
                   )}
                   <div className="overflow-x-auto pb-1">
-                    <div className="relative flex min-w-[720px] items-start gap-0">
-                      {normalizedProgressPhases.map((phase, index) => {
-                        const isCompleted = phase.status === 'success';
-                        const isRunning = phase.status === 'running';
-                        const isFailed = phase.status === 'failed';
-                        const lineClass = isCompleted ? 'bg-emerald-400' : isFailed ? 'bg-red-300' : 'bg-slate-200';
-                        const nodeClass = isCompleted
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
-                          : isRunning
-                            ? 'border-blue-500 bg-blue-50 text-blue-600'
-                            : isFailed
-                              ? 'border-red-400 bg-red-50 text-red-600'
-                              : phase.status === 'skipped'
-                                ? 'border-amber-400 bg-amber-50 text-amber-600'
-                                : 'border-slate-200 bg-white text-slate-400';
-                        const textClass = isRunning
-                          ? 'text-blue-600'
-                          : isCompleted
-                            ? 'text-emerald-600'
-                            : isFailed
-                              ? 'text-red-500'
-                              : phase.status === 'skipped'
-                                ? 'text-amber-600'
-                                : 'text-slate-400';
-
-                        return (
-                          <div key={phase.key} className="relative flex-1">
-                            {index < normalizedProgressPhases.length - 1 ? (
-                              <div className={`absolute left-1/2 top-4 h-0.5 w-full ${lineClass}`} />
-                            ) : null}
-                            <div className="relative z-10 flex flex-col items-center px-2 text-center">
-                              <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${nodeClass}`}>
-                                <PhaseNodeStatusIcon status={phase.status} index={index} />
-                              </div>
-                              <div className={`mt-2 px-1 ${textClass}`}>
-                                <div className="text-xs font-semibold">
-                                  {phase.label}
-                                  {formatPhaseDuration(phase.duration_seconds)}
-                                </div>
-                                <div className="mt-1 flex justify-center">
-                                  <PhaseStatusBadge status={phase.status} />
-                                </div>
-                                <div className="mt-1 text-[10px] leading-tight text-slate-500">
-                                  {phase.detail || '-'}
-                                </div>
-                                {phase.updated_at && (
-                                  <div className="mt-1 text-[10px] text-slate-400">
-                                    {fmtTime(phase.updated_at)}
-                                  </div>
-                                )}
-                                <div className="mt-2 flex justify-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => onOpenPhaseLog(task.id, phase.key, phase.label)}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
-                                  >
-                                    <Terminal size={11} /> 查看日志
-                                  </button>
-                                </div>
-                              </div>
+                    <div className="min-w-[980px] rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                      <div className="grid grid-cols-[160px_1fr_160px] items-start gap-4">
+                        <div className="pt-28">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4 text-center">
+                            <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.preprocess.status)}`}>
+                              <PhaseNodeStatusIcon status={layeredProgress.preprocess.status} index={0} />
+                            </div>
+                            <div className={`mt-2 text-xs font-semibold ${phaseTextTone(layeredProgress.preprocess.status)}`}>
+                              {layeredProgress.preprocess.label}
+                              {formatPhaseDuration(layeredProgress.preprocess.duration_seconds)}
+                            </div>
+                            <div className="mt-1 flex justify-center">
+                              <PhaseStatusBadge status={layeredProgress.preprocess.status} />
+                            </div>
+                            <div className="mt-1 text-[10px] leading-tight text-slate-500">{layeredProgress.preprocess.detail || '-'}</div>
+                            <div className="mt-2 flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => onOpenPhaseLog(task.id, layeredProgress.preprocess.key, layeredProgress.preprocess.label)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                              >
+                                <Terminal size={11} /> 查看日志
+                              </button>
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+
+                        <div className="space-y-6">
+                          {[
+                            { laneKey: 'tool', nodes: layeredProgress.toolLane, lineColor: 'bg-slate-300' },
+                            { laneKey: 'llm', nodes: layeredProgress.llmLane, lineColor: 'bg-slate-300' },
+                          ].map((lane, laneIndex) => (
+                            <div key={lane.laneKey} className="relative">
+                              <div className="grid grid-cols-3 gap-4">
+                                {lane.nodes.map((node, index) => (
+                                  <div key={node.key} className="relative">
+                                    {index < lane.nodes.length - 1 ? (
+                                      <div className={`absolute left-1/2 top-4 h-0.5 w-full ${lane.lineColor}`} />
+                                    ) : null}
+                                    <div className="relative z-10 flex flex-col items-center px-2 text-center">
+                                      <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(node.phase.status)}`}>
+                                        <PhaseNodeStatusIcon status={node.phase.status} index={laneIndex * 10 + index + 1} />
+                                      </div>
+                                      <div className={`mt-2 px-1 ${phaseTextTone(node.phase.status)}`}>
+                                        {(() => {
+                                          const hideAggregateDuration = Boolean(node.rounds && node.rounds.length > 0);
+                                          const hideAggregateLogButton = Boolean(node.rounds && node.rounds.length > 0);
+                                          return (
+                                            <>
+                                        <div className="text-xs font-semibold">
+                                          {node.label}
+                                          {hideAggregateDuration ? '' : formatPhaseDuration(node.phase.duration_seconds)}
+                                        </div>
+                                        <div className="mt-1 flex justify-center">
+                                          <PhaseStatusBadge status={node.phase.status} />
+                                        </div>
+                                        <div className="mt-1 text-[10px] leading-tight text-slate-500">
+                                          {node.phase.detail || '-'}
+                                        </div>
+                                        {node.phase.updated_at && (
+                                          <div className="mt-1 text-[10px] text-slate-400">
+                                            {fmtTime(node.phase.updated_at)}
+                                          </div>
+                                        )}
+                                        {!hideAggregateLogButton ? (
+                                          <div className="mt-2 flex justify-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => onOpenPhaseLog(task.id, node.phase.key, node.label)}
+                                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                                            >
+                                              <Terminal size={11} /> 查看日志
+                                            </button>
+                                          </div>
+                                        ) : null}
+                                        {node.rounds && node.rounds.length > 0 ? (
+                                          <div className="mt-3 space-y-1 rounded-xl border border-slate-100 bg-slate-50 px-2 py-2 text-left">
+                                            {node.rounds.map((roundPhase) => (
+                                              <div key={roundPhase.key} className="rounded-lg border border-slate-200 bg-white px-2 py-2">
+                                                <div className="flex items-center justify-between gap-2 text-[10px] text-slate-500">
+                                                  <span className="font-semibold text-slate-600">
+                                                    第{roundPhase.current_round || Number(roundPhase.key.match(/_round_(\d+)$/)?.[1] || 0)}轮
+                                                    {formatPhaseDuration(roundPhase.duration_seconds)}
+                                                  </span>
+                                                  <span className={`rounded-full px-1.5 py-0.5 ${phaseTextTone(roundPhase.status)}`}>
+                                                    {roundPhase.status === 'running' ? '运行中' : roundPhase.status === 'success' ? '成功' : roundPhase.status === 'failed' ? '失败' : roundPhase.status === 'skipped' ? '跳过' : roundPhase.status === 'not_executed' ? '未执行' : '待处理'}
+                                                  </span>
+                                                </div>
+                                                <div className="mt-2 flex justify-end">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => onOpenPhaseLog(task.id, roundPhase.key, roundPhase.label)}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                                                  >
+                                                    <Terminal size={11} /> 查看日志
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : null}
+                                            </>
+                                          );
+                                        })()}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="pt-28">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4 text-center">
+                            <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.cleanup.status)}`}>
+                              <PhaseNodeStatusIcon status={layeredProgress.cleanup.status} index={99} />
+                            </div>
+                            <div className={`mt-2 text-xs font-semibold ${phaseTextTone(layeredProgress.cleanup.status)}`}>
+                              {layeredProgress.cleanup.label}
+                              {formatPhaseDuration(layeredProgress.cleanup.duration_seconds)}
+                            </div>
+                            <div className="mt-1 flex justify-center">
+                              <PhaseStatusBadge status={layeredProgress.cleanup.status} />
+                            </div>
+                            <div className="mt-1 text-[10px] leading-tight text-slate-500">{layeredProgress.cleanup.detail || '-'}</div>
+                            <div className="mt-2 flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => onOpenPhaseLog(task.id, layeredProgress.cleanup.key, layeredProgress.cleanup.label)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
+                              >
+                                <Terminal size={11} /> 查看日志
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3039,6 +3199,7 @@ function TaskDetailPanel({
 
 export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = [], initialTaskId = '', onActiveTaskChange }) => {
   const { notify, feedbackNodes } = useUiFeedback();
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -3097,6 +3258,20 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     resetCreateForm();
     setCreateModalOpen(true);
   }, [resetCreateForm]);
+
+  useEffect(() => {
+    let active = true;
+    void fwApi.getHealth()
+      .then((payload) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const fetchTasks = useCallback(async (resetPage = false, options?: {
     silent?: boolean;
@@ -3644,9 +3819,12 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         <div className="flex items-center gap-2">
           <Package size={18} className="text-indigo-600" />
           <div>
-            <h2 className="text-sm font-bold text-slate-800">
-              {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-800">
+                {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
+              </h2>
+              <ServiceBuildVersion version={buildVersion} />
+            </div>
             {!showingDetail && hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
           </div>
         </div>

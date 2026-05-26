@@ -4,6 +4,7 @@ import {
   DataflowRunDetail,
   DataflowRunFile,
   DataflowRunMutationResponse,
+  DataflowRunOverview,
   DataflowRunResolve,
   DataflowRunRetryPayload,
   DataflowRunRetryPreview,
@@ -17,7 +18,7 @@ export const DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT = '/dataflow-vuln-scanner/run
 export type DataflowFileserverRunFile = DataflowRunFile;
 export type DataflowFileserverRunSession = DataflowRunSession;
 export type DataflowFileserverRunSummary = DataflowRunSummary;
-export type DataflowFileserverRunOverview = DataflowRunDetail;
+export type DataflowFileserverRunOverview = DataflowRunOverview;
 export type DataflowFileserverRunDetail = DataflowRunDetail;
 
 const resolveCache = new Map<string, Promise<DataflowRunResolve>>();
@@ -159,7 +160,7 @@ export const inspectDataflowFileserverRun = async (
   runName: string
 ): Promise<DataflowFileserverRunDetail> => {
   const resolved = await resolveRun(projectId, rootPath, runName);
-  return dataflowVulnScannerApi.getRun(resolved.run_id);
+  return dataflowVulnScannerApi.getRunDetail(resolved.run_id);
 };
 
 export const adoptDataflowFileserverRun = async (

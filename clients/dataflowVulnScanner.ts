@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   ProjectFilesystemChildrenResponse,
   ProjectFilesystemRootResponse,
@@ -67,6 +68,15 @@ export interface DataflowInputRef {
 export interface DataflowAgentStateRootPayload {
   root_dir: DataflowInputRef;
 }
+
+export type DataflowVulnScannerHealth = {
+  status: string;
+  pod_id: string;
+  database: string;
+  scheduler: string;
+  scheduler_role?: string;
+  worker_enabled?: string;
+} & ServiceHealthMeta;
 
 export interface DataflowAgentStateDir {
   agent_id: string;
@@ -344,7 +354,7 @@ export interface DataflowRunCheckpoint {
   [key: string]: any;
 }
 
-export interface DataflowRunDetail extends DataflowRunSummary {
+export interface DataflowRunOverview extends DataflowRunSummary {
   config: Record<string, any>;
   error?: string | null;
   cycles: Record<string, any>[];
@@ -353,9 +363,9 @@ export interface DataflowRunDetail extends DataflowRunSummary {
   manifests: Record<string, any>;
   latest_issues: Record<string, any>[];
   atomic_work_path: string;
-  files: DataflowRunFile[];
-  sessions: DataflowRunSession[];
-  run_log: string;
+  files?: DataflowRunFile[];
+  sessions?: DataflowRunSession[];
+  run_log?: string;
   command?: string[];
   command_display?: string;
   current_step?: DataflowRunCheckpoint;
@@ -363,6 +373,12 @@ export interface DataflowRunDetail extends DataflowRunSummary {
   cycle_timing?: Record<string, any>;
   raw: Record<string, any>;
   linked_task_detail?: DataflowScanTaskDetail | null;
+}
+
+export interface DataflowRunDetail extends DataflowRunOverview {
+  files: DataflowRunFile[];
+  sessions: DataflowRunSession[];
+  run_log: string;
 }
 
 export interface DataflowRunCycle {
@@ -436,6 +452,16 @@ const withQuery = (path: string, params: Record<string, string | number | undefi
   return text ? `${path}?${text}` : path;
 };
 
+const fetchRunDetailWithFallback = async <T,>(runId: string): Promise<T> => {
+  const encoded = encodeURIComponent(runId);
+  const primary = await fetch(`${PREFIX}/runs/${encoded}/detail`, { headers: getHeaders() });
+  if (primary.status !== 404) {
+    return handleResponse(primary);
+  }
+  const fallback = await fetch(`${PREFIX}/runs/${encoded}`, { headers: getHeaders() });
+  return handleResponse(fallback);
+};
+
 const unwrapList = <T,>(payload: unknown): T[] => {
   if (Array.isArray(payload)) return payload as T[];
   if (!payload || typeof payload !== 'object') return [];
@@ -465,6 +491,11 @@ const unwrapList = <T,>(payload: unknown): T[] => {
 };
 
 export const dataflowVulnScannerApi = {
+  getHealth: async (): Promise<DataflowVulnScannerHealth> => {
+    const response = await fetch(`${PREFIX}/health`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
   getCapabilities: async (): Promise<Record<string, any>> => {
     const response = await fetch(`${PREFIX}/capabilities`, { headers: getHeaders() });
     return handleResponse(response);
@@ -530,9 +561,13 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  getRun: async (runId: string): Promise<DataflowRunDetail> => {
+  getRun: async (runId: string): Promise<DataflowRunOverview> => {
     const response = await fetch(`${PREFIX}/runs/${encodeURIComponent(runId)}`, { headers: getHeaders() });
     return handleResponse(response);
+  },
+
+  getRunDetail: async (runId: string): Promise<DataflowRunDetail> => {
+    return fetchRunDetailWithFallback<DataflowRunDetail>(runId);
   },
 
   reportRunVulnerabilities: async (runId: string, resultFiles: string[]): Promise<DataflowVulnReportResponse> => {

@@ -6,18 +6,20 @@ import {
   AppDfaSessionSnapshot,
   AppDfaStagesJson,
   AppDfaClusterCapacity,
+  AppDfaTaskTimeline,
   AppDfaTaskCreateRequest,
   AppDfaTaskDetail,
   AppDfaTaskEvaluation,
   AppDfaTaskItem,
   AppDfaTaskResult,
 } from '../types/types';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 
 const BASE = `${API_BASE}/api/app/dataflow-analyse`;
 
 export const appDataflowAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string }> =>
+  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
     handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
@@ -57,6 +59,21 @@ export const appDataflowAnalyseApi = {
 
   getTask: async (taskId: string): Promise<AppDfaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
+  getTimeline: async (taskId: string): Promise<AppDfaTaskTimeline> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
+
+  clearTimeline: async (taskId: string): Promise<{ status: string; task_id: string; message: string; deleted_event_count: number }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
+  deleteTimelineEvent: async (taskId: string, eventId: string): Promise<{ status: string; task_id: string; message: string; deleted_event_count: number }> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
 
   cancelTask: async (taskId: string): Promise<AppDfaTaskItem> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/cancel`, {

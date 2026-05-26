@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 
 export interface BinarySecurityInputFile {
   filename: string;
@@ -11,6 +12,7 @@ export interface BinarySecurityInputFile {
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
+export type BinarySecurityHealth = { status?: string; service?: string } & ServiceHealthMeta;
 
 export interface BinarySecurityStageOption {
   enabled: boolean;
@@ -135,12 +137,37 @@ export interface BinarySecurityEntryContract {
   data_flow_files?: string[];
   primary_report_path?: string | null;
   data_flow_file?: string | null;
+  input_contract?: BinarySecurityEntryContract | BinarySecurityModuleContract | null;
   [key: string]: any;
 }
 
-export type BinarySecurityStageItemInputContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
-export type BinarySecurityStageItemOutputContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
-export type BinarySecurityStageItemResultContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
+export interface BinarySecurityEntryOutputContract extends BinarySecurityEntryContract {
+  module_input_path?: string | null;
+  source_root_path?: string | null;
+  source_dir?: string | null;
+  definition_file?: string | null;
+  definition_line?: string | null;
+  definition_kind?: string | null;
+  taint_params?: string[];
+  function_description?: string | null;
+  function_description_source?: string | null;
+  entry_reason?: string | null;
+  entry_reason_source?: string | null;
+  taint_details?: Array<Record<string, any>>;
+}
+
+export interface BinarySecurityDataflowOutputContract extends BinarySecurityEntryOutputContract {
+  source_file?: string | null;
+  artifact_root?: string | null;
+  archive_root?: string | null;
+  data_flow_file?: string | null;
+  data_flow_root?: string | null;
+  primary_report_path?: string | null;
+}
+
+export type BinarySecurityStageItemInputContract = BinarySecurityModuleContract | BinarySecurityEntryOutputContract | BinarySecurityDataflowOutputContract;
+export type BinarySecurityStageItemOutputContract = BinarySecurityModuleContract | BinarySecurityEntryOutputContract | BinarySecurityDataflowOutputContract;
+export type BinarySecurityStageItemResultContract = BinarySecurityModuleContract | BinarySecurityEntryOutputContract | BinarySecurityDataflowOutputContract;
 
 export interface BinarySecurityTask {
   id: string;
@@ -148,6 +175,7 @@ export interface BinarySecurityTask {
   task_type: BinarySecurityTaskType;
   name: string;
   status: string;
+  execution_epoch: number;
   current_stage?: string | null;
   pending_action?: 'continue' | 'retry' | string | null;
   last_error?: string | null;
@@ -230,6 +258,26 @@ export interface BinarySecurityTask {
   };
 }
 
+export interface BinarySecurityCleanupSnapshot {
+  requested_at?: string | null;
+  previous_epoch?: number;
+  stage_sequence?: string[];
+  downstream_refs?: Array<{
+    service?: string;
+    task_id?: string;
+    project_id?: string;
+    stage_name?: string | null;
+  }>;
+  cleanup_counts?: {
+    archive_jobs_deleted?: number;
+    stage_items_deleted?: number;
+    stage_runs_deleted?: number;
+    timeline_events_deleted?: number;
+    state_events_deleted?: number;
+    [key: string]: number | undefined;
+  };
+}
+
 export interface BinarySecurityProjectStats {
   total: number;
   running: number;
@@ -282,7 +330,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     candidate_modules?: BinarySecurityModuleContract[];
     system_analysis_modules?: BinarySecurityModuleContract[];
     b2s_results?: BinarySecurityModuleContract[];
-    entry_results?: BinarySecurityModuleContract[];
+    entry_results?: BinarySecurityEntryOutputContract[];
+    dataflow_results?: BinarySecurityDataflowOutputContract[];
   };
   metrics: Record<string, any>;
   item_stats: Record<string, Record<string, number>>;
@@ -296,6 +345,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     parent_key?: string | null;
     status: string;
     retry_count: number;
+    rerun_count?: number;
+    auto_retry_count?: number;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
     input_ref: BinarySecurityStageItemInputContract;
@@ -343,6 +394,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   }>;
   overview_nodes: BinarySecurityOverviewNode[];
   orchestration_observability?: BinarySecurityOrchestrationObservability;
+  cleanup_snapshot?: BinarySecurityCleanupSnapshot;
   abnormal_reason_history?: BinarySecurityAbnormalReasonEventSummary[];
 }
 
@@ -526,6 +578,14 @@ export interface BinarySecurityActionResult {
 }
 
 export const binarySecurityApi = {
+  getHealth: async (): Promise<BinarySecurityHealth> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/health`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
   listTasks: async (
     projectId: string,
     status?: string,

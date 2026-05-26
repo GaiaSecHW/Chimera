@@ -1,12 +1,19 @@
 import React from 'react';
 
 import {
+  BinarySecurityDataflowOutputContract,
+  BinarySecurityEntryOutputContract,
   BinarySecurityEntryContract,
   BinarySecurityModuleContract,
 } from '../clients/binarySecurity';
 
-export type BinarySecurityContract = BinarySecurityModuleContract | BinarySecurityEntryContract;
+export type BinarySecurityContract =
+  | BinarySecurityModuleContract
+  | BinarySecurityEntryContract
+  | BinarySecurityEntryOutputContract
+  | BinarySecurityDataflowOutputContract;
 export type BinarySecurityContractRow = { label: string; value: string };
+export type BinarySecurityNamedContractRow = BinarySecurityContractRow & { semantic?: string };
 
 export function asBinarySecurityContract(value: unknown): BinarySecurityContract | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as BinarySecurityContract : null;
@@ -140,4 +147,61 @@ export function dfaContractSourceRootPath(
 ): string | null {
   return contractText(contract, 'source_root_path', 'source_root', 'source_dir')
     || legacyContractValue(inputSummary, 'source_root_path');
+}
+
+export function dfaContractSourceFile(
+  contract: BinarySecurityContract | null | undefined,
+  inputSummary?: Record<string, unknown> | null,
+): string | null {
+  return contractText(contract, 'source_file', 'definition_file', 'file_name')
+    || legacyContractValue(inputSummary, 'source_file', 'definition_file', 'file_name');
+}
+
+export function dfaInputContractRows(
+  contract: BinarySecurityContract | null | undefined,
+  inputSummary?: Record<string, unknown> | null,
+): BinarySecurityNamedContractRow[] {
+  return [
+    {
+      label: 'module_input_path',
+      semantic: '模块描述目录',
+      value: dfaContractModuleInputPath(contract, inputSummary) || '',
+    },
+    {
+      label: 'source_root_path',
+      semantic: '源码根目录',
+      value: dfaContractSourceRootPath(contract, inputSummary) || '',
+    },
+    {
+      label: 'source_file',
+      semantic: '相对源码文件',
+      value: dfaContractSourceFile(contract, inputSummary) || '',
+    },
+  ].filter((row) => row.value);
+}
+
+export function dfaOutputContractRows(
+  contract: BinarySecurityContract | null | undefined,
+  outputSummary?: Record<string, unknown> | null,
+): BinarySecurityNamedContractRow[] {
+  return [
+    {
+      label: 'data_flow_root',
+      semantic: '数据流产物目录',
+      value: contractText(contract, 'data_flow_root', 'artifact_root', 'archive_root')
+        || legacyContractValue(outputSummary, 'data_flow_root', 'dataflow_output_path') || '',
+    },
+    {
+      label: 'primary_report_path',
+      semantic: '主报告文件',
+      value: contractText(contract, 'primary_report_path', 'data_flow_file')
+        || legacyContractValue(outputSummary, 'primary_report_path', 'result_path') || '',
+    },
+    {
+      label: 'source_dir',
+      semantic: '源码目录',
+      value: contractText(contract, 'source_dir', 'source_root_path', 'source_root')
+        || legacyContractValue(outputSummary, 'source_dir', 'source_root_path') || '',
+    },
+  ].filter((row) => row.value);
 }

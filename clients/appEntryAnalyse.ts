@@ -1,5 +1,7 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppEaTaskActionResponse,
+  AppEaTaskEvent,
   AppEaSessionIndex,
   AppEaSessionMeta,
   AppEaSessionSnapshot,
@@ -7,7 +9,9 @@ import {
   AppEaTaskDetail,
   AppEaTaskEvaluation,
   AppEaTaskItem,
+  AppEaTaskLogsResponse,
   AppEaTaskResult,
+  AppEaTaskTimelineResponse,
   EntryAnalyseSlotClusterSummary,
   EntryAnalysisModelsConfig,
   EntryAnalysisPromptTemplate,
@@ -75,6 +79,21 @@ export const appEntryAnalyseApi = {
   getTask: async (taskId: string): Promise<AppEaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
 
+  getTimeline: async (taskId: string): Promise<AppEaTaskTimelineResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
+
+  clearTimeline: async (taskId: string): Promise<AppEaTaskActionResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
+  deleteTimelineEvent: async (taskId: string, eventId: string): Promise<AppEaTaskActionResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
   getTaskResult: async (taskId: string): Promise<AppEaTaskResult> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
 
@@ -110,16 +129,17 @@ export const appEntryAnalyseApi = {
       headers: getHeaders(),
     })),
 
-  deleteTask: async (taskId: string, deleteFiles = true): Promise<void> => {
-    const resp = await fetch(
+  deleteTask: async (taskId: string, deleteFiles = true): Promise<AppEaTaskActionResponse> => {
+    return handleResponse(await fetch(
       `${BASE}/tasks/${encodeURIComponent(taskId)}?delete_files=${deleteFiles}`,
       { method: 'DELETE', headers: getHeaders() },
-    );
-    if (!resp.ok) await handleResponse(resp);
+    ));
   },
 
-  getTaskLogs: async (taskId: string): Promise<{ task_id: string; status: string; stages_json: import('../types/types').AppEaStagesJson }> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs`, { headers: getHeaders() })),
+  getTaskLogs: async (taskId: string, since = 0): Promise<AppEaTaskLogsResponse> => {
+    const q = since > 0 ? `?since=${since}` : '';
+    return handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/logs${q}`, { headers: getHeaders() }));
+  },
 
   generatePrompt: async (inputPath: string): Promise<{ prompt: string }> =>
     handleResponse(await fetch(`${BASE}/generate-prompt`, {

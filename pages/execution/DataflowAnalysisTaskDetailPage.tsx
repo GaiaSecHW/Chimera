@@ -16,6 +16,7 @@ import {
   AppDfaSessionSnapshot,
   AppDfaStageEvent,
   AppDfaTaskDetail,
+  AppDfaTaskEvent,
   AppDfaTaskEvaluation,
   AppDfaTaskResult,
 } from '../../types/types';
@@ -71,7 +72,7 @@ const EVT_STAGE: Record<string, number> = {
   task_end: 3,
 };
 
-type DetailTab = 'overview' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
+type DetailTab = 'overview' | 'timeline' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 function extractFsRelPath(path: string, projectId: string): string | null {
@@ -162,6 +163,64 @@ function evaluationStatusTone(status?: string) {
   if (status === 'running') return 'border-blue-200 bg-blue-50 text-blue-700';
   if (status === 'skipped') return 'border-amber-200 bg-amber-50 text-amber-700';
   return 'border-slate-200 bg-slate-100 text-slate-600';
+}
+
+function timelineLevelTone(level?: string | null) {
+  const normalized = String(level || '').toLowerCase();
+  if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'warning' || normalized === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
+}
+
+function isAgentKillTimelineEvent(eventType?: string | null) {
+  return ['agent_process_manual_kill', 'agent_process_bulk_manual_kill'].includes(String(eventType || '').trim());
+}
+
+function timelineEventTypeTone(eventType?: string | null) {
+  const normalized = String(eventType || '').trim();
+  if (normalized === 'agent_process_manual_kill') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-slate-200 bg-white text-slate-700';
+}
+
+function formatTimelineEventTypeLabel(eventType?: string | null) {
+  const normalized = String(eventType || '').trim();
+  if (!normalized) return '-';
+  if (normalized === 'agent_process_manual_kill') return '智能体手工终止';
+  if (normalized === 'agent_process_bulk_manual_kill') return '智能体批量终止';
+  return normalized.replace(/_/g, ' ');
+}
+
+function formatTimelinePayloadValue(value: any): string {
+  if (value == null) return '-';
+  if (typeof value === 'string') return value || '-';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.length ? value.map((entry) => formatTimelinePayloadValue(entry)).join(', ') : '-';
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function timelinePayloadRows(payload: Record<string, any>) {
+  return Object.entries(payload || {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => ({ key, label: key.replace(/_/g, ' '), value: formatTimelinePayloadValue(value) }));
+}
+
+function timelineAuditSummary(payload: Record<string, any>) {
+  const operator = formatTimelinePayloadValue(payload.operator);
+  const pid = formatTimelinePayloadValue(payload.pid);
+  const podName = formatTimelinePayloadValue(payload.pod_name);
+  const killMode = formatTimelinePayloadValue(payload.kill_mode);
+  return [
+    operator !== '-' ? `操作人 ${operator}` : '',
+    pid !== '-' ? `PID ${pid}` : '',
+    podName !== '-' ? `Pod ${podName}` : '',
+    killMode !== '-' ? `方式 ${killMode}` : '',
+  ].filter(Boolean).join(' · ');
 }
 
 function evaluationRoundKey(round: AppDfaEvaluationRound): string {
@@ -303,6 +362,16 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
   const [result, setResult] = useState<AppDfaTaskResult | null>(null);
   const [resultLoading, setResultLoading] = useState(false);
   const [resultView, setResultView] = useState<'final' | 'report' | 'dataflow' | 'json'>('final');
+  const [timeline, setTimeline] = useState<AppDfaTaskEvent[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineClearing, setTimelineClearing] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [expandedTimelineEventId, setExpandedTimelineEventId] = useState<string>('');
+  const [timelineEventTypeFilter, setTimelineEventTypeFilter] = useState<string>('__all__');
+  const [timelineLevelFilter, setTimelineLevelFilter] = useState<string>('__all__');
+  const [timelineStatusFilter, setTimelineStatusFilter] = useState<string>('__all__');
+  const [timelinePage, setTimelinePage] = useState(1);
+  const [timelinePageSize, setTimelinePageSize] = useState(200);
   const [selectedDataflowFile, setSelectedDataflowFile] = useState<string>('');
   const [evaluation, setEvaluation] = useState<AppDfaTaskEvaluation | null>(null);
   const [evaluationLoading, setEvaluationLoading] = useState(false);
@@ -356,6 +425,61 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
       notify(`加载结果失败: ${err?.message || err}`, 'error');
     } finally {
       setResultLoading(false);
+    }
+  };
+
+  const loadTimeline = async () => {
+    if (!taskId || timelineLoading) return;
+    setTimelineLoading(true);
+    try {
+      const data = await appApi.getTimeline(taskId);
+      setTimeline(data.events || []);
+    } catch (err: any) {
+      notify(`加载事件时间线失败: ${err?.message || err}`, 'error');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
+
+  const clearTimeline = async () => {
+    if (!taskId || timelineClearing) return;
+    const confirmed = await showConfirm({
+      title: '清空事件时间线',
+      message: '将删除当前数据流分析任务的全部事件时间线记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？',
+      confirmText: '确认清空',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setTimelineClearing(true);
+    try {
+      await appApi.clearTimeline(taskId);
+      setTimeline([]);
+    } catch (err: any) {
+      notify(`清空事件时间线失败: ${err?.message || err}`, 'error');
+    } finally {
+      setTimelineClearing(false);
+    }
+  };
+
+  const deleteTimelineEvent = async (eventId: string) => {
+    if (!taskId || !eventId || deletingEventId) return;
+    const confirmed = await showConfirm({
+      title: '删除事件',
+      message: '将删除当前事件记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？',
+      confirmText: '确认删除',
+      cancelText: '取消',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeletingEventId(eventId);
+    try {
+      await appApi.deleteTimelineEvent(taskId, eventId);
+      setTimeline((current) => current.filter((event) => event.id !== eventId));
+    } catch (err: any) {
+      notify(`删除事件失败: ${err?.message || err}`, 'error');
+    } finally {
+      setDeletingEventId(null);
     }
   };
 
@@ -427,10 +551,38 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
     return () => clearInterval(timer);
   }, []);
   useEffect(() => {
+    if (activeTab === 'timeline' && timeline.length === 0 && !timelineLoading) void loadTimeline();
     if (activeTab === 'result' && !result && !resultLoading) void loadResult();
     if (activeTab === 'evaluation' && !evaluation && !evaluationLoading) void loadEvaluation();
     if ((activeTab === 'overview' || activeTab === 'session' || activeTab === 'relationship' || Boolean(activeAgentSessionPath)) && sessions.length === 0 && !sessionsLoading) void loadSessions();
   }, [activeTab, activeAgentSessionPath]);
+  const timelineEventTypeOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.event_type || '').trim()).filter(Boolean))), [timeline]);
+  const timelineLevelOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.level || '').trim()).filter(Boolean))), [timeline]);
+  const timelineStatusOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.status || event.dispatch_status || '').trim()).filter(Boolean))), [timeline]);
+  const filteredTimeline = useMemo(() => timeline.filter((event) => {
+    if (timelineEventTypeFilter !== '__all__' && (event.event_type || '__none__') !== timelineEventTypeFilter) return false;
+    if (timelineLevelFilter !== '__all__' && (event.level || '__none__') !== timelineLevelFilter) return false;
+    const normalizedStatus = event.status || event.dispatch_status || '__none__';
+    if (timelineStatusFilter !== '__all__' && normalizedStatus !== timelineStatusFilter) return false;
+    return true;
+  }), [timeline, timelineEventTypeFilter, timelineLevelFilter, timelineStatusFilter]);
+  const timelineTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredTimeline.length / Math.max(1, timelinePageSize))),
+    [filteredTimeline.length, timelinePageSize],
+  );
+  const normalizedTimelinePage = Math.min(Math.max(1, timelinePage), timelineTotalPages);
+  const pagedTimelineItems = useMemo(() => {
+    const start = (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize);
+    return filteredTimeline.slice(start, start + Math.max(1, timelinePageSize));
+  }, [filteredTimeline, normalizedTimelinePage, timelinePageSize]);
+  const timelineRangeStart = filteredTimeline.length === 0 ? 0 : (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize) + 1;
+  const timelineRangeEnd = filteredTimeline.length === 0 ? 0 : Math.min(normalizedTimelinePage * Math.max(1, timelinePageSize), filteredTimeline.length);
+  useEffect(() => {
+    if (timelinePage > timelineTotalPages) setTimelinePage(timelineTotalPages);
+  }, [timelinePage, timelineTotalPages]);
+  useEffect(() => {
+    setTimelinePage(1);
+  }, [timelineEventTypeFilter, timelineLevelFilter, timelineStatusFilter, taskId]);
   useEffect(() => {
     if (!logsExpanded || !logRef.current) return;
     logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -612,6 +764,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
       <div className="flex gap-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
         {[
           ['overview', '总览'],
+          ['timeline', '事件时间线'],
           ['task-config', '任务配置'],
           ['session', '智能体会话'],
           ['relationship', '智能体关系'],
@@ -634,6 +787,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                   <InfoRow label="输出路径" value={detail.output_path ? <span className="font-mono">{detail.output_path}</span> : '-'} />
                   <InfoRow label="开始时间" value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
                   <InfoRow label="完成时间" value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
+                  <InfoRow label="最近事件时间" value={timeline[0]?.created_at ? new Date(timeline[0].created_at).toLocaleString('zh-CN') : '-'} />
                   <InfoRow label="耗时" value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
                   <InfoRow label="描述" value={detail.task_description || '-'} />
                 </div>
@@ -702,6 +856,132 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
             {detail.abnormal_reason ? <AbnormalReasonCard reason={detail.abnormal_reason} history={detail.abnormal_reason_history} /> : null}
             {detail.error ? <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm"><h2 className="text-sm font-black uppercase tracking-[0.2em] text-red-600">错误信息</h2><pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl border border-red-200 bg-white/70 px-3 py-3 text-xs text-red-700">{detail.error}</pre></section> : null}
             {detail.prompt_content ? <section className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"><details><summary className="cursor-pointer select-none px-6 py-4 text-sm font-black text-slate-700 hover:bg-slate-50">分析 Prompt</summary><pre className="px-6 py-4 text-xs text-slate-600 whitespace-pre-wrap break-all bg-slate-50 max-h-72 overflow-auto border-t border-slate-100">{detail.prompt_content}</pre></details></section> : null}
+          </section>
+        ) : activeTab === 'timeline' ? (
+          <section className="space-y-4">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">事件时间线</h2>
+                  <p className="mt-1 text-xs text-slate-400">记录任务关键时间点和运行轨迹，用于分析调度、租约、控制权和执行阶段问题。</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                    展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
+                  </div>
+                  <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                    每页
+                    <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">
+                      {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
+                    </select>
+                  </label>
+                  <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                    {timelineLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    刷新
+                  </button>
+                  <button onClick={() => void clearTimeline()} disabled={timelineClearing || timeline.length === 0} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60">
+                    {timelineClearing ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    清空
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <option value="__all__">全部事件</option>
+                  {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
+                </select>
+                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <option value="__all__">全部级别</option>
+                  {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                  <option value="__all__">全部状态</option>
+                  {timelineStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </div>
+              <div className="mt-4 space-y-3">
+                {timelineLoading && timeline.length === 0 ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">加载事件时间线中...</div>
+                ) : filteredTimeline.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">当前暂无数据库事件时间线</div>
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-[1180px] w-full divide-y divide-slate-100 text-left text-xs">
+                        <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                          <tr>
+                            <th className="w-14 px-3 py-2">#</th>
+                            <th className="w-44 px-3 py-2">时间</th>
+                            <th className="w-44 px-3 py-2">事件</th>
+                            <th className="w-28 px-3 py-2">状态</th>
+                            <th className="w-24 px-3 py-2">级别</th>
+                            <th className="px-3 py-2">摘要</th>
+                            <th className="w-56 px-3 py-2">来源/归属</th>
+                            <th className="w-36 px-3 py-2 text-right">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {pagedTimelineItems.map((event, index) => {
+                            const expanded = expandedTimelineEventId === event.id;
+                            const sourceLabel = [event.source, event.worker_id || event.execution_owner_id, event.execution_epoch != null ? `Epoch ${event.execution_epoch}` : '', event.dispatch_status].filter(Boolean).join(' · ') || '-';
+                            const hasPayload = !!(event.payload && Object.keys(event.payload).length > 0);
+                            const statusText = event.status || event.dispatch_status || '-';
+                            const auditEvent = isAgentKillTimelineEvent(event.event_type);
+                            const auditSummary = auditEvent ? timelineAuditSummary(event.payload || {}) : '';
+                            return (
+                              <React.Fragment key={event.id}>
+                                <tr className="align-top">
+                                  <td className="px-3 py-2 font-mono text-slate-500">{timelineRangeStart + index}</td>
+                                  <td className="px-3 py-2 text-slate-600">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</td>
+                                  <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span></td>
+                                  <td className="px-3 py-2"><span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[event.status || 'pending'] || 'bg-slate-100 text-slate-600'}`}>{STATUS_LABEL[event.status || 'pending'] || statusText}</span></td>
+                                  <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
+                                  <td className="max-w-[360px] px-3 py-2">
+                                    <div className="truncate font-semibold text-slate-800" title={event.message}>{event.message}</div>
+                                    {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-700" title={auditSummary}>{auditSummary}</div> : null}
+                                  </td>
+                                  <td className="px-3 py-2 text-[11px] text-slate-500"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
+                                  <td className="px-3 py-2 text-right">
+                                    <div className="flex items-center justify-end gap-3">
+                                      <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-black text-slate-500 transition hover:text-slate-900 disabled:opacity-30">{expanded ? '收起' : '查看'}</button>
+                                      <button onClick={() => void deleteTimelineEvent(event.id)} disabled={deletingEventId === event.id || timelineClearing} className="text-[11px] font-black text-rose-600 transition hover:text-rose-800 disabled:opacity-40">{deletingEventId === event.id ? '删除中' : '删除'}</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                                {expanded ? (
+                                  <tr className="bg-slate-50/60">
+                                    <td colSpan={8} className="px-3 py-3">
+                                      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                                        {timelinePayloadRows(event.payload || {}).slice(0, 12).map((row) => (
+                                          <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs">
+                                            <div className="font-bold capitalize text-slate-400">{row.label}</div>
+                                            <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <pre className="mt-3 overflow-auto rounded-xl border border-slate-200 bg-slate-950 px-3 py-3 text-xs leading-relaxed text-slate-200">{JSON.stringify(event.payload || {}, null, 2)}</pre>
+                                    </td>
+                                  </tr>
+                                ) : null}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+            {filteredTimeline.length > 0 ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="text-sm text-slate-500">第 {normalizedTimelinePage} / {timelineTotalPages} 页</div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setTimelinePage((current) => Math.max(1, current - 1))} disabled={normalizedTimelinePage <= 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">上一页</button>
+                  <button type="button" onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))} disabled={normalizedTimelinePage >= timelineTotalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">下一页</button>
+                </div>
+              </div>
+            ) : null}
           </section>
         ) : activeTab === 'task-config' ? (
           <DataflowAnalysisTaskConfigPanel detail={detail} />

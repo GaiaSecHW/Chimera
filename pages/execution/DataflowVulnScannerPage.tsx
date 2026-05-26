@@ -43,6 +43,7 @@ import {
   DataflowFileserverRunSummary,
 } from '../../clients/dataflowVulnRunsFileserver';
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { DataflowFileserverRunDashboardPage } from './DataflowFileserverRunDashboardPage';
 import { StaticPipelineFlow } from './StaticPipelineFlow';
@@ -240,6 +241,48 @@ const normalizeConfigPayload = (value?: Partial<DataflowProfileConfigPayload> | 
 const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const TASK_RUN_ROUTE_CACHE_PREFIX = 'secflow:dataflowVuln:taskRunRoute:';
+
+type CachedTaskRunRoute = {
+  taskId: string;
+  executionId: string;
+  run_id: string;
+  name: string;
+  root_path: string;
+  linked_task_id?: string | null;
+};
+
+const readCachedTaskRunRoute = (taskId: string, executionId = ''): CachedTaskRunRoute | null => {
+  if (!taskId) return null;
+  try {
+    const raw = window.sessionStorage.getItem(`${TASK_RUN_ROUTE_CACHE_PREFIX}${taskId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedTaskRunRoute;
+    if (!parsed || parsed.taskId !== taskId || !parsed.name || !parsed.root_path) return null;
+    if (executionId && parsed.executionId && parsed.executionId !== executionId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedTaskRunRoute = (
+  taskId: string,
+  executionId: string | null | undefined,
+  run: Pick<DataflowFileserverRunSummary, 'name' | 'run_id' | 'root_path'> & { linked_task_id?: string | null }
+) => {
+  if (!taskId || !run?.name || !run?.root_path) return;
+  try {
+    window.sessionStorage.setItem(`${TASK_RUN_ROUTE_CACHE_PREFIX}${taskId}`, JSON.stringify({
+      taskId,
+      executionId: executionId || '',
+      run_id: run.run_id || '',
+      name: run.name,
+      root_path: run.root_path,
+      linked_task_id: run.linked_task_id || null,
+    } satisfies CachedTaskRunRoute));
+  } catch {}
+};
 
 const buildRunDetailPath = (
   run: Pick<DataflowFileserverRunSummary, 'name' | 'run_id' | 'root_path'> & { linked_task_id?: string | null }
@@ -387,13 +430,17 @@ const JsonBlock: React.FC<{ value: any; maxHeight?: string }> = ({ value, maxHei
 const PageHeader: React.FC<{
   eyebrow: string;
   title: string;
+  version?: string | null;
   description?: string;
   children?: React.ReactNode;
-}> = ({ eyebrow, title, description, children }) => (
+}> = ({ eyebrow, title, version, description, children }) => (
   <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
+          <ServiceBuildVersion version={version} />
+        </div>
         <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{title}</h1>
         {description ? <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">{description}</p> : null}
       </div>
@@ -543,6 +590,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [showCreate, setShowCreate] = useState(false);
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const loadTasksPromiseRef = useRef<Promise<void> | null>(null);
 
   const openTaskDetail = async (
@@ -550,10 +598,33 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     options?: { retry?: number }
   ) => {
     let taskForResolve = task;
+    const maxAttempts = Math.max(options?.retry ?? 1, 1);
+    const cached = readCachedTaskRunRoute(task.task_id, task.latest_execution_id || '');
+    if (cached) {
+      navigate(buildRunDetailPath(cached));
+      return true;
+    }
+
+    if (task.latest_execution_id) {
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, task.latest_execution_id);
+          const target = runResolveToRouteTarget(resolved);
+          writeCachedTaskRunRoute(task.task_id, resolved.linked_execution_id || task.latest_execution_id, target);
+          navigate(buildRunDetailPath(target));
+          return true;
+        } catch {
+          // The Run index may appear just after task creation; retry briefly before falling back.
+        }
+        if (attempt + 1 < maxAttempts) await wait(500);
+      }
+    }
+
     try {
       const detail = await executionApi.getTask(task.task_id);
       const run = taskRunLocator(detail);
       if (run.name && run.root_path) {
+        writeCachedTaskRunRoute(task.task_id, detail.latest_execution_id, run as DataflowFileserverRunSummary);
         navigate(buildRunDetailPath(run as DataflowFileserverRunSummary), {
           state: {
             fileserverRunSummary: run,
@@ -566,11 +637,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       // Fall through to the resolver endpoint. This keeps old/pending task
       // links usable even if the task-detail fetch races with creation.
     }
-    const maxAttempts = Math.max(options?.retry ?? 1, 1);
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
         const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, taskForResolve.latest_execution_id);
-        navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)));
+        const target = runResolveToRouteTarget(resolved);
+        writeCachedTaskRunRoute(task.task_id, resolved.linked_execution_id || taskForResolve.latest_execution_id, target);
+        navigate(buildRunDetailPath(target));
         return true;
       } catch {
         // The Run index may appear just after task creation; retry briefly before falling back to the resolver route.
@@ -593,6 +665,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const openTaskRowDetail = async (task: DataflowScanTask) => {
     const run = taskRunLocator(task);
     if (run.name && run.root_path) {
+      writeCachedTaskRunRoute(task.task_id, task.latest_execution_id, run as DataflowFileserverRunSummary);
       openRunDetail(run as DataflowFileserverRunSummary);
       return;
     }
@@ -659,6 +732,20 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     setProfiles([]);
     setProfilesLoaded(false);
   }, [projectId]);
+
+  useEffect(() => {
+    let active = true;
+    void executionApi.getHealth()
+      .then((payload: any) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [executionApi]);
 
   useEffect(() => {
     void load();
@@ -766,6 +853,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         <PageHeader
           eyebrow="Dataflow Vulnerability Mining"
           title="数据流漏洞挖掘"
+          version={buildVersion}
         >
           <button
             onClick={() => {
@@ -1042,15 +1130,37 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
 
   const resolveTaskRouteToRun = async (targetTaskId: string, preferredExecutionId = requestedExecutionId) => {
     if (!projectId || !targetTaskId) return;
+    const cached = readCachedTaskRunRoute(targetTaskId, preferredExecutionId || '');
+    if (cached) {
+      navigate(buildRunDetailPath(cached), { replace: true });
+      return;
+    }
     setDetailLoading(true);
     setLoadError('');
     try {
       let executionId = preferredExecutionId || '';
+
+      if (executionId) {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, executionId);
+            const target = runResolveToRouteTarget(resolved);
+            writeCachedTaskRunRoute(targetTaskId, resolved.linked_execution_id || executionId, target);
+            navigate(buildRunDetailPath(target), { replace: true });
+            return;
+          } catch (error: any) {
+            if (attempt >= 2) break;
+          }
+          await wait(300);
+        }
+      }
+
       try {
         const taskDetail = await executionApi.getTask(targetTaskId);
         setLinkedTaskDetail(taskDetail);
         const run = taskRunLocator(taskDetail);
         if (run.name && run.root_path) {
+          writeCachedTaskRunRoute(targetTaskId, taskDetail.latest_execution_id, run as DataflowFileserverRunSummary);
           navigate(buildRunDetailPath(run as DataflowFileserverRunSummary), {
             replace: true,
             state: {
@@ -1066,7 +1176,9 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
       for (let attempt = 0; attempt < 6; attempt += 1) {
         try {
           const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, executionId);
-          navigate(buildRunDetailPath(runResolveToRouteTarget(resolved)), { replace: true });
+          const target = runResolveToRouteTarget(resolved);
+          writeCachedTaskRunRoute(targetTaskId, resolved.linked_execution_id || executionId, target);
+          navigate(buildRunDetailPath(target), { replace: true });
           return;
         } catch (error: any) {
           if (attempt >= 5) throw error;

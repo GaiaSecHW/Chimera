@@ -1,5 +1,7 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import { FirmwareSessionIndexItem, normalizeFirmwareSessionIndex } from '../pages/execution/sessionParsing';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
+export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -8,6 +10,9 @@ import { FirmwareSessionIndexItem, normalizeFirmwareSessionIndex } from '../page
 export interface FirmwareUnpackerHealth {
   status: string;
   worker_id?: string;
+  service_id?: string | null;
+  service_name?: string | null;
+  build_version?: string | null;
 }
 
 export interface FirmwareUnpackPayload {
@@ -272,6 +277,16 @@ export interface FirmwareEvolutionRound {
   generated_new_tool: boolean;
   executed_tool: boolean;
   tool_response_preview: string | null;
+  metrics?: {
+    tool_unpack_duration_seconds?: number | null;
+    evolution_executor_tokens?: Record<string, number> | null;
+    reviewer_tokens?: Record<string, number> | null;
+    total_tokens?: Record<string, number> | null;
+  } | null;
+  tool_unpack_duration_seconds?: number | null;
+  evolution_executor_tokens?: Record<string, number> | null;
+  reviewer_tokens?: Record<string, number> | null;
+  total_tokens?: Record<string, number> | null;
   created_at: string | null;
   completed_at: string | null;
 }
@@ -1515,8 +1530,9 @@ export const firmwareUnpackerApi = {
   },
 
   /** GET /api/app/firmware-unpacker/runtime-files */
-  listRuntimeFiles: async (projectId?: string | null, limit = 2000): Promise<FirmwareRuntimeFileList> => {
+  listRuntimeFiles: async (projectId?: string | null, limit = 2000, root?: string | null): Promise<FirmwareRuntimeFileList> => {
     const query = new URLSearchParams({ limit: String(limit) });
+    if (root) query.set('root', root);
     const path = projectId
       ? `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(projectId)}/runtime-files?${query.toString()}`
       : `${API_BASE}/api/app/firmware-unpacker/runtime-files?${query.toString()}`;
@@ -1524,8 +1540,9 @@ export const firmwareUnpackerApi = {
     return normalizeRuntimeFileList(await handleResponse(r));
   },
 
-  fetchRuntimeFilePreviewBlob: async (path: string, projectId?: string | null, maxBytes = 262144): Promise<FirmwareRuntimeFilePreview> => {
+  fetchRuntimeFilePreviewBlob: async (path: string, projectId?: string | null, maxBytes = 262144, root?: string | null): Promise<FirmwareRuntimeFilePreview> => {
     const query = new URLSearchParams({ path, max_bytes: String(maxBytes) });
+    if (root) query.set('root', root);
     const target = projectId
       ? `${API_BASE}/api/app/firmware-unpacker/projects/${encodeURIComponent(projectId)}/runtime-files/content?${query.toString()}`
       : `${API_BASE}/api/app/firmware-unpacker/runtime-files/content?${query.toString()}`;

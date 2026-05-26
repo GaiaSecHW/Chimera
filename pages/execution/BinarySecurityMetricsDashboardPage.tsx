@@ -19,6 +19,7 @@ import {
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { api } from '../../clients/api';
+import { showAlert, showConfirm } from '../../components/DialogService';
 import {
   BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS,
   BINARY_SECURITY_CANONICAL_AI_METRICS,
@@ -30,7 +31,19 @@ import {
   BinarySecurityMetricsServiceKey,
   getBinarySecurityMetricsService,
 } from '../../clients/binarySecurityMetrics';
-import { AppDfaClusterCapacity, AppSaClusterCapacity, EntryAnalyseSlotClusterSummary } from '../../types/types';
+import {
+  AgentObservabilitySummary,
+  AgentProcessKillResponse,
+  AgentProcessSnapshot,
+  AgentSessionObservabilitySnapshot,
+  AgentTaskOwnershipSnapshot,
+  AppDfaSessionSnapshot,
+  AppEaSessionSnapshot,
+  AppSaSessionSnapshot,
+  AppDfaClusterCapacity,
+  AppSaClusterCapacity,
+  EntryAnalyseSlotClusterSummary,
+} from '../../types/types';
 import {
   DataflowVulnAiSection,
   DataflowVulnObservabilitySection,
@@ -40,6 +53,7 @@ import {
 } from './binarySecurityMetricsDataflowVuln';
 import type { DataflowVulnAiViewModel, DataflowVulnOverviewViewModel, DataflowVulnSampleScope } from './binarySecurityMetricsDataflowVuln';
 import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, matchesDataflowVulnSampleScope } from './binarySecurityMetricsDataflowVulnBuilders';
+import { AgentSessionViewer } from './AgentSessionViewer';
 
 type MetricsState = {
   loading: boolean;
@@ -67,6 +81,29 @@ type SystemAnalysisWorkerDetailState = {
   data: AppSaClusterCapacity | null;
   error: string | null;
   refreshedAt: number | null;
+};
+
+type AgentObservabilityState = {
+  loading: boolean;
+  summary: AgentObservabilitySummary | null;
+  processes: AgentProcessSnapshot[];
+  sessions: AgentSessionObservabilitySnapshot[];
+  tasks: AgentTaskOwnershipSnapshot[];
+  error: string | null;
+  refreshedAt: number | null;
+};
+
+type AgentSessionContentState = {
+  loading: boolean;
+  data: AppEaSessionSnapshot | AppSaSessionSnapshot | AppDfaSessionSnapshot | null;
+  error: string | null;
+};
+
+type AgentKillHistoryEntry = {
+  id: string;
+  scope: 'single' | 'selected' | 'bulk';
+  createdAt: number;
+  response: AgentProcessKillResponse;
 };
 
 type PrometheusMetricType = 'counter' | 'gauge' | 'histogram' | 'summary' | 'untyped';
@@ -150,6 +187,15 @@ type B2SBusinessViewModel = {
   costTotal: number | null;
   latestSeenAt: number | null;
   missingReasons: Array<{ reason: string; value: number }>;
+  syncCandidates: number | null;
+  syncLastAttempted: number | null;
+  syncLastSucceeded: number | null;
+  syncLastChanged: number | null;
+  syncLastFailed: number | null;
+  syncLastDurationSeconds: number | null;
+  syncLastRunAt: number | null;
+  syncTotalTicks: number | null;
+  syncTotalFailedTasks: number | null;
 };
 
 type B2SCacheViewModel = {
@@ -314,6 +360,7 @@ type BinarySecurityObservabilityViewModel = {
   alerts: Array<{ label: string; text: string; tone: string }>;
   pipelineSummary: ReducerBreakdownItem[];
   reducerSummary: ReducerBreakdownItem[];
+  syncSummary: ReducerBreakdownItem[];
   groupCounts: Array<{ group: BinarySecurityMetricsGroup; count: number }>;
 };
 
@@ -407,6 +454,14 @@ const formatSeconds = (value: number | null | undefined) => {
 
 const formatTime = (timestamp: number | null) =>
   timestamp ? new Date(timestamp).toLocaleString('zh-CN', { hour12: false }) : '-';
+
+const formatBytes = (value: number | null | undefined) => {
+  if (value == null || !Number.isFinite(value)) return '-';
+  if (value >= 1024 * 1024 * 1024) return `${formatNumber(value / (1024 * 1024 * 1024), 2)} GB`;
+  if (value >= 1024 * 1024) return `${formatNumber(value / (1024 * 1024), 2)} MB`;
+  if (value >= 1024) return `${formatNumber(value / 1024, 2)} KB`;
+  return `${formatNumber(value, 0)} B`;
+};
 
 const sampleFamilyName = (name: string) => name.replace(/_(bucket|sum|count|total|created)$/u, '');
 
@@ -669,6 +724,13 @@ const buildBinarySecurityObservabilityViewModel = (
   const runningWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'running');
   const pendingWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'pending');
   const dispatchWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'dispatch');
+  const reconcileCandidates = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_candidates');
+  const reconcileLastAttempted = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_attempted');
+  const reconcileLastChanged = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_changed');
+  const reconcileLastFailed = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_failed');
+  const reconcileLastRunAt = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_run_timestamp');
+  const reconcileChangedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'changed' });
+  const reconcileFailedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'failed' });
   const alerts: Array<{ label: string; text: string; tone: string }> = [];
 
   if (aggregateCoverage?.partial) {
@@ -704,6 +766,13 @@ const buildBinarySecurityObservabilityViewModel = (
       label: '归档仍在处理中',
       text: `archive queued=${formatNumber(archiveQueued)}，running=${formatNumber(archiveRunning)}，终态收口仍可能继续延迟。`,
       tone: 'border-sky-200 bg-sky-50 text-sky-800',
+    });
+  }
+  if ((reconcileLastFailed || 0) > 0) {
+    alerts.push({
+      label: '后台状态同步失败',
+      text: `最近一轮后台状态同步失败 ${formatNumber(reconcileLastFailed)} 个任务。列表查询已不再触发同步，请检查后台循环与下游状态拉取。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if (!alerts.length) {
@@ -772,6 +841,13 @@ const buildBinarySecurityObservabilityViewModel = (
         tone: runningWorkers > 0 ? 'text-teal-700' : 'text-slate-900',
         icon: <TrendingUp size={16} />,
       },
+      {
+        label: '同步候选任务',
+        value: formatNumber(reconcileCandidates),
+        hint: `最近运行 ${formatTime(reconcileLastRunAt)}`,
+        tone: (reconcileCandidates || 0) > 0 ? 'text-cyan-700' : 'text-slate-900',
+        icon: <RefreshCw size={16} />,
+      },
     ],
     alerts,
     pipelineSummary: [
@@ -789,6 +865,13 @@ const buildBinarySecurityObservabilityViewModel = (
       { label: 'lock wait avg', value: lockWaitAvg, tone: (lockWaitAvg || 0) > 0.3 ? 'text-orange-700' : 'text-slate-600' },
       { label: 'lock held avg', value: lockHeldAvg, tone: (lockHeldAvg || 0) > 1.5 ? 'text-rose-700' : 'text-slate-600' },
       { label: 'active locks', value: activeLocks, tone: activeLocks > 0 ? 'text-orange-700' : 'text-slate-600' },
+    ],
+    syncSummary: [
+      { label: 'last attempted', value: reconcileLastAttempted, tone: 'text-slate-600' },
+      { label: 'last changed', value: reconcileLastChanged, tone: (reconcileLastChanged || 0) > 0 ? 'text-cyan-700' : 'text-slate-600' },
+      { label: 'last failed', value: reconcileLastFailed, tone: (reconcileLastFailed || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: 'changed total', value: reconcileChangedTotal, tone: (reconcileChangedTotal || 0) > 0 ? 'text-cyan-700' : 'text-slate-600' },
+      { label: 'failed total', value: reconcileFailedTotal, tone: (reconcileFailedTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
     ],
     groupCounts: (Object.keys(GROUP_LABELS) as BinarySecurityMetricsGroup[]).map((group) => ({
       group,
@@ -1233,6 +1316,7 @@ const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewMod
   const missingItems = missingReasons.length ? missingReasons.reduce((sum, item) => sum + item.value, 0) : legacyMissing;
   const totalItems = (availableItems || 0) + (missingItems || 0);
   const latestSeenSeconds = metricValueByName(rows, 'secflow_binary_to_source_latest_runtime_metric_seen_timestamp');
+  const syncLastRunAt = metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_run_timestamp');
   return {
     availableItems,
     missingItems,
@@ -1259,6 +1343,15 @@ const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewMod
     costTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_cost_total'),
     latestSeenAt: latestSeenSeconds && latestSeenSeconds > 0 ? latestSeenSeconds * 1000 : null,
     missingReasons,
+    syncCandidates: metricValueByName(rows, 'secflow_binary_to_source_task_sync_candidates'),
+    syncLastAttempted: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_attempted_tasks'),
+    syncLastSucceeded: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_succeeded_tasks'),
+    syncLastChanged: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_changed_tasks'),
+    syncLastFailed: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_failed_tasks'),
+    syncLastDurationSeconds: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_duration_seconds'),
+    syncLastRunAt: syncLastRunAt && syncLastRunAt > 0 ? syncLastRunAt * 1000 : null,
+    syncTotalTicks: metricValueByName(rows, 'secflow_binary_to_source_task_sync_ticks_total'),
+    syncTotalFailedTasks: metricValueByName(rows, 'secflow_binary_to_source_task_sync_tasks_total', { result: 'failed' }),
   };
 };
 
@@ -1960,6 +2053,22 @@ const INITIAL_ENTRY_WORKER_DETAIL_STATE: EntryWorkerDetailState = {
   refreshedAt: null,
 };
 
+const INITIAL_AGENT_STATE: AgentObservabilityState = {
+  loading: false,
+  summary: null,
+  processes: [],
+  sessions: [],
+  tasks: [],
+  error: null,
+  refreshedAt: null,
+};
+
+const INITIAL_AGENT_SESSION_CONTENT_STATE: AgentSessionContentState = {
+  loading: false,
+  data: null,
+  error: null,
+};
+
 const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
   <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{title}</div>
@@ -2010,6 +2119,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     error: null,
     refreshedAt: null,
   });
+  const [agentState, setAgentState] = useState<AgentObservabilityState>(INITIAL_AGENT_STATE);
+  const [selectedAgentPids, setSelectedAgentPids] = useState<number[]>([]);
+  const [selectedAgentTaskId, setSelectedAgentTaskId] = useState<string>('');
+  const [selectedAgentSessionId, setSelectedAgentSessionId] = useState<string>('');
+  const [agentSessionContentState, setAgentSessionContentState] = useState<AgentSessionContentState>(INITIAL_AGENT_SESSION_CONTENT_STATE);
+  const [agentKillHistory, setAgentKillHistory] = useState<AgentKillHistoryEntry[]>([]);
 
   const activeService = useMemo(
     () => BINARY_SECURITY_METRICS_SERVICES.find((service) => service.key === activeServiceKey) || BINARY_SECURITY_METRICS_SERVICES[0],
@@ -2031,7 +2146,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       setSystemWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
     }
     try {
-      const [rawText, dfaWorkerData, entryWorkerData] = await Promise.all([
+      const [rawText, dfaWorkerData, entryWorkerData, systemWorkerData] = await Promise.all([
         executionMetricsApi.getServiceMetrics(serviceKey),
         serviceKey === 'dataflow-analysis' && projectId
           ? dataflowAnalysisApi.getWorkerClusterCapacity(projectId)
@@ -2154,6 +2269,40 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     }
   };
 
+  const agentObservabilityEnabled = activeServiceKey === 'entry-analysis' || activeServiceKey === 'system-analysis' || activeServiceKey === 'dataflow-analysis';
+
+  const loadAgentObservability = async (serviceKey: BinarySecurityMetricsServiceKey) => {
+    if (!projectId || !(serviceKey === 'entry-analysis' || serviceKey === 'system-analysis' || serviceKey === 'dataflow-analysis')) {
+      setAgentState(INITIAL_AGENT_STATE);
+      return;
+    }
+    setAgentState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const [summary, processes, sessions, tasks] = await Promise.all([
+        executionMetricsApi.getAgentObservabilitySummary(serviceKey, projectId) as Promise<AgentObservabilitySummary>,
+        executionMetricsApi.getAgentProcesses(serviceKey, projectId) as Promise<AgentProcessSnapshot[]>,
+        executionMetricsApi.getAgentSessions(serviceKey, projectId) as Promise<AgentSessionObservabilitySnapshot[]>,
+        executionMetricsApi.getAgentTasks(serviceKey, projectId) as Promise<AgentTaskOwnershipSnapshot[]>,
+      ]);
+      setAgentState({
+        loading: false,
+        summary,
+        processes,
+        sessions,
+        tasks,
+        error: null,
+        refreshedAt: Date.now(),
+      });
+    } catch (error: any) {
+      setAgentState((current) => ({
+        ...current,
+        loading: false,
+        error: error?.message || '智能体观测抓取失败',
+        refreshedAt: Date.now(),
+      }));
+    }
+  };
+
   useEffect(() => {
     const current = stateByService[activeServiceKey];
     if (!current.rawText && !current.loading && !current.error) {
@@ -2170,15 +2319,27 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   }, [activeSecondaryTab, activeServiceKey, reducerMetricsState]);
 
   useEffect(() => {
+    if (activeSecondaryTab !== 'agent') return;
+    if (!agentObservabilityEnabled) return;
+    if (!agentState.summary && !agentState.loading && !agentState.error) {
+      void loadAgentObservability(activeServiceKey);
+    }
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, agentState.error, agentState.loading, agentState.summary]);
+
+  useEffect(() => {
     if (!autoRefresh) return undefined;
     const timer = window.setInterval(() => {
+      if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
+        void loadAgentObservability(activeServiceKey);
+        return;
+      }
       void loadMetrics(activeServiceKey);
       if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer') {
         void loadReducerMetrics();
       }
-    }, 30000);
+    }, activeSecondaryTab === 'agent' ? 5000 : 30000);
     return () => window.clearInterval(timer);
-  }, [activeSecondaryTab, activeServiceKey, autoRefresh]);
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, autoRefresh]);
 
   useEffect(() => {
     setSearchKeyword('');
@@ -2188,6 +2349,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setAiRoleFilter('all');
     setSelectedEntryStage('all');
     setActiveSecondaryTab('observability');
+    setAgentState(INITIAL_AGENT_STATE);
+    setSelectedAgentPids([]);
+    setSelectedAgentTaskId('');
+    setSelectedAgentSessionId('');
+    setAgentSessionContentState(INITIAL_AGENT_SESSION_CONTENT_STATE);
   }, [activeServiceKey, projectId]);
 
   const activeState = stateByService[activeServiceKey];
@@ -2320,6 +2486,164 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     return Array.from(roles).sort((left, right) => left.localeCompare(right, 'zh-CN'));
   }, [aiViewModel.rows]);
 
+  const filteredAgentProcesses = useMemo(() => {
+    return agentState.processes.filter((item) => {
+      if (selectedAgentTaskId && item.task_id !== selectedAgentTaskId) return false;
+      if (selectedAgentSessionId && item.session_id !== selectedAgentSessionId) return false;
+      return true;
+    });
+  }, [agentState.processes, selectedAgentSessionId, selectedAgentTaskId]);
+
+  const filteredAgentSessions = useMemo(() => {
+    return agentState.sessions.filter((item) => {
+      if (selectedAgentTaskId && item.task_id !== selectedAgentTaskId) return false;
+      if (selectedAgentSessionId && item.session_id !== selectedAgentSessionId) return false;
+      return true;
+    });
+  }, [agentState.sessions, selectedAgentSessionId, selectedAgentTaskId]);
+
+  const filteredAgentTasks = useMemo(() => {
+    return selectedAgentTaskId ? agentState.tasks.filter((item) => item.task_id === selectedAgentTaskId) : agentState.tasks;
+  }, [agentState.tasks, selectedAgentTaskId]);
+
+  const selectedAgentSession = useMemo(
+    () => agentState.sessions.find((item) => item.session_id === selectedAgentSessionId) || null,
+    [agentState.sessions, selectedAgentSessionId],
+  );
+
+  useEffect(() => {
+    const loadSessionContent = async () => {
+      if (!selectedAgentSession || !selectedAgentSession.task_id || !selectedAgentSession.session_file) {
+        setAgentSessionContentState(INITIAL_AGENT_SESSION_CONTENT_STATE);
+        return;
+      }
+      setAgentSessionContentState({ loading: true, data: null, error: null });
+      try {
+        const data = activeServiceKey === 'entry-analysis'
+          ? await entryAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file)
+          : activeServiceKey === 'system-analysis'
+            ? await systemAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file)
+            : await dataflowAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file);
+        setAgentSessionContentState({ loading: false, data, error: null });
+      } catch (error: any) {
+        setAgentSessionContentState({ loading: false, data: null, error: error?.message || '会话内容加载失败' });
+      }
+    };
+    if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
+      void loadSessionContent();
+    }
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, dataflowAnalysisApi, entryAnalysisApi, selectedAgentSession, systemAnalysisApi]);
+
+  const selectedKillablePids = useMemo(
+    () => selectedAgentPids.filter((pid) => agentState.processes.some((item) => item.pid === pid && item.owner_kind === 'orphan' && item.kill_allowed)),
+    [agentState.processes, selectedAgentPids],
+  );
+
+  const orphanProcesses = useMemo(
+    () => agentState.processes.filter((item) => item.owner_kind === 'orphan'),
+    [agentState.processes],
+  );
+
+  const killSingleOrphan = async (process: AgentProcessSnapshot) => {
+    if (!projectId || !agentObservabilityEnabled) return;
+    if (process.owner_kind !== 'orphan' || !process.kill_allowed) {
+      await showAlert({
+        title: '不允许终止',
+        message: process.kill_block_reason || '仅允许终止已判定为明确孤儿的智能体进程。',
+      });
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '杀死孤儿智能体进程',
+      message: `仅针对“已判定为明确孤儿”的智能体进程。\nPID=${process.pid} PGID=${process.pgid ?? '-'}。\n不影响运行中受控任务，操作不可撤销。`,
+      confirmText: '确认杀死',
+      danger: true,
+    });
+    if (!confirmed) return;
+    const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, process.pid) as AgentProcessKillResponse;
+    setAgentKillHistory((current) => [
+      {
+        id: `single-${process.pid}-${Date.now()}`,
+        scope: 'single',
+        createdAt: Date.now(),
+        response: result,
+      },
+      ...current,
+    ].slice(0, 8));
+    await showAlert({
+      title: '执行结果',
+      message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
+    });
+    setSelectedAgentPids((current) => current.filter((pid) => pid !== process.pid));
+    await loadAgentObservability(activeServiceKey);
+  };
+
+  const killSelectedOrphans = async () => {
+    if (!projectId || !agentObservabilityEnabled || selectedKillablePids.length === 0) return;
+    const confirmed = await showConfirm({
+      title: '批量杀死选中孤儿',
+      message: `仅针对“已判定为明确孤儿”的智能体进程。\n本次将处理 ${selectedKillablePids.length} 个 PID，不影响运行中受控任务，操作不可撤销。`,
+      confirmText: '确认批量杀死',
+      danger: true,
+    });
+    if (!confirmed) return;
+    let summary = { requested: 0, matched: 0, succeeded: 0, failed: 0, skipped: 0 };
+    const items: AgentProcessKillResponse['items'] = [];
+    for (const pid of selectedKillablePids) {
+      const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, pid) as AgentProcessKillResponse;
+      summary = {
+        requested: summary.requested + result.requested,
+        matched: summary.matched + result.matched,
+        succeeded: summary.succeeded + result.succeeded,
+        failed: summary.failed + result.failed,
+        skipped: summary.skipped + result.skipped,
+      };
+      items.push(...(result.items || []));
+    }
+    setAgentKillHistory((current) => [
+      {
+        id: `selected-${Date.now()}`,
+        scope: 'selected',
+        createdAt: Date.now(),
+        response: { ...summary, items },
+      },
+      ...current,
+    ].slice(0, 8));
+    await showAlert({
+      title: '批量执行结果',
+      message: `请求 ${summary.requested}，命中 ${summary.matched}，成功 ${summary.succeeded}，失败 ${summary.failed}，跳过 ${summary.skipped}`,
+    });
+    setSelectedAgentPids([]);
+    await loadAgentObservability(activeServiceKey);
+  };
+
+  const killAllOrphans = async () => {
+    if (!projectId || !agentObservabilityEnabled) return;
+    const confirmed = await showConfirm({
+      title: '一键杀死全部明确孤儿',
+      message: '仅针对“已判定为明确孤儿”的智能体进程，不影响运行中受控任务，操作不可撤销。',
+      confirmText: '确认全部杀死',
+      danger: true,
+    });
+    if (!confirmed) return;
+    const result = await executionMetricsApi.killAllOrphanProcesses(activeServiceKey, projectId) as AgentProcessKillResponse;
+    setAgentKillHistory((current) => [
+      {
+        id: `bulk-${Date.now()}`,
+        scope: 'bulk',
+        createdAt: Date.now(),
+        response: result,
+      },
+      ...current,
+    ].slice(0, 8));
+    await showAlert({
+      title: '执行结果',
+      message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
+    });
+    setSelectedAgentPids([]);
+    await loadAgentObservability(activeServiceKey);
+  };
+
   return (
     <div className="space-y-6 px-8 pb-10 pt-8">
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -2344,6 +2668,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
             <button
               type="button"
               onClick={() => {
+                if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
+                  void loadAgentObservability(activeServiceKey);
+                  return;
+                }
                 if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer') {
                   void loadReducerMetrics();
                   return;
@@ -2422,6 +2750,411 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-12 text-center shadow-sm">
           <p className="text-sm font-semibold text-rose-700">{activeState.error}</p>
         </section>
+      ) : activeSecondaryTab === 'agent' ? (
+        !agentObservabilityEnabled ? (
+          <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+            <div className="mx-auto max-w-2xl">
+              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Agent</div>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">当前服务未接入智能体观测</h2>
+              <p className="mt-3 text-sm text-slate-500">本期仅对入口分析、系统分析、数据流分析开放智能体进程/会话/归属关系观测。</p>
+            </div>
+          </section>
+        ) : (
+          <section className="space-y-4 rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.08),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.22em] text-teal-600">Agent Health</div>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">智能体进程健康与孤儿处置</h2>
+                <p className="mt-2 max-w-3xl text-sm text-slate-500">聚焦 Pod 内智能体进程、会话和任务归属关系，并仅对已判定为明确孤儿的进程开放手工处置。</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={selectedKillablePids.length === 0}
+                  onClick={() => void killSelectedOrphans()}
+                  className={`rounded-xl px-4 py-2 text-sm font-bold ${selectedKillablePids.length ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-slate-100 text-slate-400'}`}
+                >
+                  杀死选中孤儿
+                </button>
+                <button
+                  type="button"
+                  disabled={!orphanProcesses.some((item) => item.kill_allowed)}
+                  onClick={() => void killAllOrphans()}
+                  className={`rounded-xl px-4 py-2 text-sm font-bold ${orphanProcesses.some((item) => item.kill_allowed) ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-400'}`}
+                >
+                  一键杀死全部明确孤儿
+                </button>
+              </div>
+            </div>
+
+            {agentState.error ? (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{agentState.error}</div>
+            ) : null}
+
+            {activeServiceKey === 'dataflow-analysis' && agentState.summary?.aggregate_mode ? (
+              <div className={`rounded-2xl border px-4 py-3 text-sm ${
+                agentState.summary.aggregate_partial ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              }`}>
+                <div className="font-semibold">
+                  DFA Aggregate:
+                  {' '}
+                  mode={agentState.summary.aggregate_mode}
+                  {' '}
+                  sources={formatNumber(agentState.summary.aggregate_sources ?? 0)}
+                  {' '}
+                  errors={formatNumber(agentState.summary.aggregate_fanout_errors ?? 0)}
+                </div>
+                <div className="mt-1 text-xs opacity-85">
+                  {agentState.summary.aggregate_partial
+                    ? '当前是部分聚合结果，至少有一个 worker Pod 未成功返回智能体快照。'
+                    : '当前是 API Pod 汇总的多 Pod 智能体视图。'}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                  <span className="rounded-full bg-white/80 px-2 py-1">fanout {formatSeconds(agentState.summary.aggregate_duration_seconds ?? 0)}</span>
+                  <span className="rounded-full bg-white/80 px-2 py-1">cache {agentState.summary.aggregate_cache_hit ? `hit ${formatSeconds(agentState.summary.aggregate_cache_age_seconds ?? 0)}` : 'miss'}</span>
+                </div>
+                {agentState.summary.aggregate_failed_targets?.length ? (
+                  <div className="mt-2 text-[11px] opacity-90">
+                    失败目标：{agentState.summary.aggregate_failed_targets.join(', ')}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {(selectedAgentTaskId || selectedAgentSessionId) ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-xs text-cyan-900">
+                {selectedAgentTaskId ? <span className="rounded-full bg-white px-3 py-1 font-mono">task: {selectedAgentTaskId}</span> : null}
+                {selectedAgentSessionId ? <span className="rounded-full bg-white px-3 py-1 font-mono">session: {selectedAgentSessionId}</span> : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedAgentTaskId('');
+                    setSelectedAgentSessionId('');
+                  }}
+                  className="rounded-full border border-cyan-200 bg-white px-3 py-1 font-semibold text-cyan-700 hover:bg-cyan-100"
+                >
+                  清除筛选
+                </button>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 xl:grid-cols-5">
+              {[
+                { label: '活跃进程', value: agentState.summary?.active_processes ?? 0, tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+                { label: '明确孤儿进程', value: agentState.summary?.orphan_processes ?? 0, tone: 'border-rose-200 bg-rose-50 text-rose-800' },
+                { label: '可杀孤儿进程', value: agentState.summary?.killable_orphan_processes ?? 0, tone: 'border-orange-200 bg-orange-50 text-orange-800' },
+                { label: '孤儿会话', value: agentState.summary?.orphan_sessions ?? 0, tone: 'border-amber-200 bg-amber-50 text-amber-800' },
+                { label: '未知进程', value: agentState.summary?.unknown_processes ?? 0, tone: 'border-slate-200 bg-slate-50 text-slate-700' },
+              ].map((item) => (
+                <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 shadow-sm ${item.tone}`}>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em]">{item.label}</div>
+                  <div className="mt-3 text-3xl font-black tracking-tight">{formatNumber(item.value)}</div>
+                  <div className="mt-1 text-xs opacity-80">最近扫描 {formatTime(agentState.refreshedAt)}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,2.4fr)_minmax(320px,1fr)]">
+              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Processes</div>
+                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">实时进程表</h3>
+                  </div>
+                  {agentState.loading ? <div className="flex items-center gap-2 text-sm text-slate-500"><Loader2 size={14} className="animate-spin" />扫描中...</div> : null}
+                </div>
+                <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500">
+                      <tr>
+                        <th className="px-3 py-3">选择</th>
+                        <th className="px-3 py-3">Pod</th>
+                        <th className="px-3 py-3">PID / PGID</th>
+                        <th className="px-3 py-3">Task</th>
+                        <th className="px-3 py-3">Stage / Role</th>
+                        <th className="px-3 py-3">Session</th>
+                        <th className="px-3 py-3">Memory</th>
+                        <th className="px-3 py-3">Owner</th>
+                        <th className="px-3 py-3">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {filteredAgentProcesses.map((item) => {
+                        const selected = selectedAgentPids.includes(item.pid);
+                        const selectable = item.owner_kind === 'orphan' && item.kill_allowed;
+                        return (
+                          <tr key={`${item.pod_name}:${item.pid}`} className="hover:bg-slate-50">
+                            <td className="px-3 py-3">
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                disabled={!selectable}
+                                onChange={(event) => {
+                                  setSelectedAgentPids((current) => event.target.checked ? [...current, item.pid] : current.filter((pid) => pid !== item.pid));
+                                }}
+                                className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                              />
+                            </td>
+                            <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{item.pod_name}</td>
+                            <td className="px-3 py-3 font-mono text-[11px] text-slate-700">
+                              <div>{item.pid}</div>
+                              <div className="text-slate-400">pgid {item.pgid ?? '-'}</div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <button type="button" onClick={() => setSelectedAgentTaskId(item.task_id || '')} className="text-left">
+                                <div className="font-mono text-[11px] font-bold text-slate-800">{item.task_id || '-'}</div>
+                                <div className="mt-1 max-w-[14rem] truncate text-[11px] text-slate-500">{item.task_name || '-'}</div>
+                              </button>
+                            </td>
+                            <td className="px-3 py-3 text-slate-700">
+                              <div>{item.stage_key || '-'}</div>
+                              <div className="mt-1 text-[11px] text-slate-500">{item.role_kind || '-'}</div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedAgentSessionId(item.session_id || '')}
+                                className="font-mono text-[11px] text-cyan-700 hover:underline"
+                              >
+                                {item.session_id || '-'}
+                              </button>
+                            </td>
+                            <td className="px-3 py-3 text-slate-700">{formatBytes(item.rss_bytes)}</td>
+                            <td className="px-3 py-3">
+                              <div className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                                item.owner_kind === 'tracked'
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : item.owner_kind === 'orphan'
+                                    ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600'
+                              }`}>
+                                {item.owner_kind}
+                              </div>
+                              <div className="mt-1 max-w-[14rem] text-[11px] text-slate-500">{item.kill_allowed ? item.owner_reason : (item.kill_block_reason || item.owner_reason)}</div>
+                            </td>
+                            <td className="px-3 py-3">
+                              <button
+                                type="button"
+                                disabled={!selectable}
+                                onClick={() => void killSingleOrphan(item)}
+                                className={`rounded-lg px-3 py-1.5 text-[11px] font-bold ${selectable ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-slate-100 text-slate-400'}`}
+                                title={!selectable ? (item.kill_block_reason || '仅明确孤儿可手工终止') : '杀死孤儿'}
+                              >
+                                杀死孤儿
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  {!filteredAgentProcesses.length ? <div className="px-4 py-10 text-center text-sm text-slate-500">当前没有可展示的智能体进程。</div> : null}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Exceptions</div>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">异常面板</h3>
+                  <div className="mt-4 space-y-2">
+                    {orphanProcesses.length ? orphanProcesses.slice(0, 8).map((item) => (
+                      <div key={`orphan-${item.pid}`} className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-mono text-xs font-bold text-rose-800">PID {item.pid}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${item.kill_allowed ? 'bg-white text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+                            {item.kill_allowed ? '可处置' : '禁止'}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-[11px] text-rose-700">{item.owner_reason}</div>
+                      </div>
+                    )) : (
+                      <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">当前未发现明确孤儿进程。</div>
+                    )}
+                  </div>
+                  <div className="mt-4 border-t border-slate-100 pt-4">
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Recent Manual Kill</div>
+                    <div className="mt-3 space-y-2">
+                      {agentKillHistory.length ? agentKillHistory.slice(0, 4).map((entry) => (
+                        <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-bold text-slate-800">
+                              {entry.scope === 'single' ? '单个处置' : entry.scope === 'selected' ? '选中批量处置' : '全部孤儿处置'}
+                            </span>
+                            <span className="text-[11px] text-slate-500">{formatTime(entry.createdAt)}</span>
+                          </div>
+                          <div className="mt-2 text-[11px] text-slate-600">
+                            请求 {formatNumber(entry.response.requested)} / 命中 {formatNumber(entry.response.matched)} / 成功 {formatNumber(entry.response.succeeded)} / 失败 {formatNumber(entry.response.failed)} / 跳过 {formatNumber(entry.response.skipped)}
+                          </div>
+                          {entry.response.items?.length ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {entry.response.items.slice(0, 6).map((item) => (
+                                <span
+                                  key={`${entry.id}-${item.pid}-${item.status}`}
+                                  className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                                    item.status === 'succeeded'
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : item.status === 'failed'
+                                        ? 'bg-rose-100 text-rose-700'
+                                        : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                  title={item.reason || ''}
+                                >
+                                  PID {item.pid} · {item.status}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      )) : (
+                        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">当前还没有手工处置记录。</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Scan</div>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">扫描状态</h3>
+                  <div className="mt-4 grid gap-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">最近扫描时间：{formatTime(agentState.refreshedAt)}</div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">扫描错误数：{formatNumber(agentState.summary?.scan_errors ?? 0)}</div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">Pod：{agentState.summary?.pod_name || '-'}</div>
+                    {activeServiceKey === 'dataflow-analysis' ? (
+                      <>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">Aggregate 模式：{agentState.summary?.aggregate_mode || '-'}</div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">成功来源数：{formatNumber(agentState.summary?.aggregate_sources ?? 0)}</div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">Fan-out 错误数：{formatNumber(agentState.summary?.aggregate_fanout_errors ?? 0)}</div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">Fan-out 耗时：{formatSeconds(agentState.summary?.aggregate_duration_seconds ?? 0)}</div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">缓存状态：{agentState.summary?.aggregate_cache_hit ? `命中 (${formatSeconds(agentState.summary?.aggregate_cache_age_seconds ?? 0)})` : '未命中'}</div>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">是否部分结果：{agentState.summary?.aggregate_partial ? '是' : '否'}</div>
+                        {agentState.summary?.aggregate_failed_targets?.length ? (
+                          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                            <div className="font-semibold">失败目标</div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {agentState.summary.aggregate_failed_targets.map((target) => (
+                                <span key={target} className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-amber-800">{target}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Ownership</div>
+                <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">任务-智能体归属关系</h3>
+                <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500">
+                      <tr>
+                        <th className="px-3 py-3">Task</th>
+                        <th className="px-3 py-3">Stage</th>
+                        <th className="px-3 py-3">Pod</th>
+                        <th className="px-3 py-3">Process</th>
+                        <th className="px-3 py-3">Session</th>
+                        <th className="px-3 py-3">Roles</th>
+                        <th className="px-3 py-3">Ownership</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {filteredAgentTasks.map((item) => (
+                        <tr key={item.task_id} className="hover:bg-slate-50">
+                          <td className="px-3 py-3">
+                            <button type="button" onClick={() => setSelectedAgentTaskId(item.task_id)} className="text-left">
+                              <div className="font-mono text-[11px] font-bold text-slate-800">{item.task_id}</div>
+                              <div className="mt-1 max-w-[16rem] truncate text-[11px] text-slate-500">{item.task_name}</div>
+                            </button>
+                          </td>
+                          <td className="px-3 py-3 text-slate-700">{item.stage_key || '-'}</td>
+                          <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{item.pod_name}</td>
+                          <td className="px-3 py-3 text-slate-700">{formatNumber(item.process_count)}</td>
+                          <td className="px-3 py-3 text-slate-700">{formatNumber(item.session_count)}</td>
+                          <td className="px-3 py-3 text-slate-700">{item.agent_roles.length ? item.agent_roles.join(', ') : '-'}</td>
+                          <td className="px-3 py-3">
+                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${
+                              item.ownership_status === 'healthy'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                : item.ownership_status === 'partial'
+                                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                                  : 'border-slate-200 bg-slate-50 text-slate-600'
+                            }`}>
+                              {item.ownership_status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {!filteredAgentTasks.length ? <div className="px-4 py-10 text-center text-sm text-slate-500">当前没有任务归属关系数据。</div> : null}
+                </div>
+              </div>
+
+              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Sessions</div>
+                <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">会话列表与详情</h3>
+                <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.4fr)]">
+                  <div className="space-y-2">
+                    {filteredAgentSessions.length ? filteredAgentSessions.map((item) => (
+                      <button
+                        key={`${item.session_file}:${item.session_id || ''}`}
+                        type="button"
+                        onClick={() => setSelectedAgentSessionId(item.session_id || '')}
+                        className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                          selectedAgentSessionId === (item.session_id || '') ? 'border-cyan-300 bg-cyan-50' : 'border-slate-200 bg-slate-50 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-slate-800">{item.display_name}</div>
+                            <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{item.session_id || item.session_file}</div>
+                          </div>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${item.orphan_session ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {item.orphan_session ? 'orphan' : (item.live ? 'live' : 'history')}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-[11px] text-slate-500">{item.task_id || '-'} / {item.role_kind || '-'}</div>
+                      </button>
+                    )) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">当前没有会话数据。</div>
+                    )}
+                  </div>
+
+                  {selectedAgentSession ? (
+                    <AgentSessionViewer
+                      loading={agentSessionContentState.loading}
+                      error={agentSessionContentState.error}
+                      sessionMeta={agentSessionContentState.data?.meta || {
+                        session_id: selectedAgentSession.session_id || selectedAgentSession.session_file,
+                        session_name: selectedAgentSession.display_name,
+                        relative_path: selectedAgentSession.session_file,
+                        stage_group: selectedAgentSession.stage_key || 'agent',
+                        role_name: selectedAgentSession.role_kind || 'agent',
+                        size: 0,
+                        mtime: 0,
+                        event_count: 0,
+                        line_count: selectedAgentSession.line_count,
+                        is_active: selectedAgentSession.live,
+                        display_name: selectedAgentSession.display_name,
+                        warnings: selectedAgentSession.parse_warnings,
+                      }}
+                      events={agentSessionContentState.data?.events || []}
+                      live={selectedAgentSession.live}
+                    />
+                  ) : (
+                    <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
+                      请选择左侧会话
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )
       ) : activeSecondaryTab === 'observability' ? (
         <>
           {aggregateCoverage ? (
@@ -2496,6 +3229,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 <ReducerMetricList title="编排推进摘要" items={binarySecurityObservabilityViewModel.pipelineSummary} emptyText="暂无编排摘要。" />
                 <ReducerMetricList title="Reducer/锁摘要" items={binarySecurityObservabilityViewModel.reducerSummary} emptyText="暂无 reducer 摘要。" />
               </div>
+
+              <ReducerMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
 
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {binarySecurityObservabilityViewModel.groupCounts.map((item) => (
@@ -3179,6 +3914,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       { label: '失败批次占比', value: b2sBusinessViewModel.batchFailureRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchFailureRate * 100, 1)}%`, hint: 'failed batches / batches', tone: (b2sBusinessViewModel.batchFailureRate || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
                       { label: '平均 Attempts', value: formatNumber(b2sBusinessViewModel.avgAttemptsPerBatch, 2), hint: 'attempts per batch', tone: (b2sBusinessViewModel.avgAttemptsPerBatch || 0) > 1.2 ? 'text-amber-700' : 'text-slate-900' },
                       { label: 'Token / 成本', value: `${formatNumber(b2sBusinessViewModel.tokenTotal)} / ${formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN)}`, hint: 'runtime llm summary', tone: 'text-indigo-700' },
+                      { label: '同步候选任务', value: formatNumber(b2sBusinessViewModel.syncCandidates), hint: '后台状态同步器当前关注的活跃任务', tone: (b2sBusinessViewModel.syncCandidates || 0) > 0 ? 'text-cyan-700' : 'text-slate-900' },
+                      { label: '最近同步结果', value: `${formatNumber(b2sBusinessViewModel.syncLastSucceeded)} / ${formatNumber(b2sBusinessViewModel.syncLastAttempted)}`, hint: `changed ${formatNumber(b2sBusinessViewModel.syncLastChanged)} · failed ${formatNumber(b2sBusinessViewModel.syncLastFailed)}`, tone: (b2sBusinessViewModel.syncLastFailed || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+                      { label: '同步耗时', value: formatSeconds(b2sBusinessViewModel.syncLastDurationSeconds), hint: `最近运行 ${formatTime(b2sBusinessViewModel.syncLastRunAt)}`, tone: (b2sBusinessViewModel.syncLastDurationSeconds || 0) > 5 ? 'text-amber-700' : 'text-slate-900' },
+                      { label: '累计同步异常', value: formatNumber(b2sBusinessViewModel.syncTotalFailedTasks), hint: `ticks ${formatNumber(b2sBusinessViewModel.syncTotalTicks)}`, tone: (b2sBusinessViewModel.syncTotalFailedTasks || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
                     ].map((item) => (
                       <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
                         <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
