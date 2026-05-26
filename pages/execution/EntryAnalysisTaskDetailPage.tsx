@@ -1400,8 +1400,17 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
   const [funcEntryOnly, setFuncEntryOnly] = useState(false);
+  const [funcKeyword, setFuncKeyword] = useState('');
+  const [activeSessionKeyword, setActiveSessionKeyword] = useState('');
+  const [activeSessionPage, setActiveSessionPage] = useState(0);
+  const activeSessionPageSize = 10;
   // 过滤后的列表
-  const funcFiltered = funcEntryOnly ? funcProgress.filter((f) => f.is_entry) : funcProgress;
+  const funcFiltered = funcProgress.filter((f) => {
+    if (funcEntryOnly && !f.is_entry) return false;
+    const keyword = funcKeyword.trim().toLowerCase();
+    if (!keyword) return true;
+    return String(f.name || '').toLowerCase().includes(keyword);
+  });
   const funcPageCount = Math.ceil(funcFiltered.length / funcPageSize);
   const funcPageSlice = funcFiltered.slice(funcPage * funcPageSize, (funcPage + 1) * funcPageSize);
   const logLines = events.map(formatEvent);
@@ -1496,10 +1505,40 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   }, [sessions, stageFocusHint]);
   const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
   const activeSessions = useMemo(() => sessions.filter((item) => item.is_active), [sessions]);
+  const activeSessionsFiltered = useMemo(() => {
+    const keyword = activeSessionKeyword.trim().toLowerCase();
+    if (!keyword) return activeSessions;
+    return activeSessions.filter((session) => {
+      const name = String(session.display_name || '').toLowerCase();
+      const path = String(session.relative_path || '').toLowerCase();
+      return name.includes(keyword) || path.includes(keyword);
+    });
+  }, [activeSessionKeyword, activeSessions]);
+  const activeSessionPageCount = Math.max(1, Math.ceil(activeSessionsFiltered.length / activeSessionPageSize));
+  const activeSessionPageSlice = useMemo(
+    () => activeSessionsFiltered.slice(activeSessionPage * activeSessionPageSize, (activeSessionPage + 1) * activeSessionPageSize),
+    [activeSessionPage, activeSessionsFiltered],
+  );
   const activeAgentSessionMeta = useMemo(
     () => sessions.find((item) => item.relative_path === activeAgentSessionPath) || null,
     [sessions, activeAgentSessionPath],
   );
+  useEffect(() => {
+    setFuncPage(0);
+  }, [funcKeyword, funcEntryOnly, funcPageSize]);
+  useEffect(() => {
+    if (funcPage > 0 && funcPage >= Math.max(1, funcPageCount)) {
+      setFuncPage(Math.max(0, funcPageCount - 1));
+    }
+  }, [funcPage, funcPageCount]);
+  useEffect(() => {
+    setActiveSessionPage(0);
+  }, [activeSessionKeyword]);
+  useEffect(() => {
+    if (activeSessionPage > 0 && activeSessionPage >= activeSessionPageCount) {
+      setActiveSessionPage(Math.max(0, activeSessionPageCount - 1));
+    }
+  }, [activeSessionPage, activeSessionPageCount]);
   const resultRootFsPath = result?.output_root ? extractFsRelPath(result.output_root, projectId) : null;
   const resultContent = resultView === 'final'
     ? result?.result_markdown || ''
@@ -2130,6 +2169,12 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={funcKeyword}
+                    onChange={(event) => setFuncKeyword(event.target.value)}
+                    placeholder="按函数名筛选"
+                    className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-700 placeholder:text-slate-400"
+                  />
                   <button onClick={() => { setFuncEntryOnly((v) => !v); setFuncPage(0); }}
                     className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcEntryOnly ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
                     {funcEntryOnly ? '✓ 仅入口' : '仅入口'}
@@ -2225,31 +2270,60 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
                 <p className="mt-1 text-xs text-slate-400">各函数/文件独立并行运行的智能体会话，点击查看实时 session。</p>
               </div>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={activeSessionKeyword}
+                  onChange={(event) => setActiveSessionKeyword(event.target.value)}
+                  placeholder="按名称筛选"
+                  className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-700 placeholder:text-slate-400"
+                />
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessionsFiltered.length} 个活跃会话</span>
+              </div>
             </div>
             {sessionsLoading && sessions.length === 0 ? (
               <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div>
-            ) : activeSessions.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {activeSessions.map((session) => (
-                  <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-5 py-4 text-left transition hover:bg-slate-50">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
-                        <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
-                        <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-slate-500">
-                          <span>分组 {session.stage_group || '-'}</span>
-                          <span>事件 {session.event_count}</span>
-                          <span>更新 {formatSessionMtime(session.mtime)}</span>
+            ) : activeSessionsFiltered.length > 0 ? (
+              <>
+                <div className="divide-y divide-slate-100">
+                  {activeSessionPageSlice.map((session) => (
+                    <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-5 py-4 text-left transition hover:bg-slate-50">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
+                          <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
+                          <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-slate-500">
+                            <span>分组 {session.stage_group || '-'}</span>
+                            <span>事件 {session.event_count}</span>
+                            <span>更新 {formatSessionMtime(session.mtime)}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>{sessionRoleLabel(session.role_name)}</span>
+                          <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>{sessionRoleLabel(session.role_name)}</span>
-                        <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))}
+                </div>
+                {activeSessionPageCount > 1 ? (
+                  <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-5 py-3">
+                    <button disabled={activeSessionPage === 0} onClick={() => setActiveSessionPage(0)}
+                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">«</button>
+                    <button disabled={activeSessionPage === 0} onClick={() => setActiveSessionPage((page) => page - 1)}
+                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">‹</button>
+                    <span className="text-[11px] text-slate-500">
+                      {activeSessionPage + 1} / {activeSessionPageCount}（共 {activeSessionsFiltered.length} 个会话）
+                    </span>
+                    <button disabled={activeSessionPage >= activeSessionPageCount - 1} onClick={() => setActiveSessionPage((page) => page + 1)}
+                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">›</button>
+                    <button disabled={activeSessionPage >= activeSessionPageCount - 1} onClick={() => setActiveSessionPage(activeSessionPageCount - 1)}
+                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">»</button>
+                  </div>
+                ) : null}
+              </>
+            ) : activeSessions.length > 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-slate-500">
+                当前筛选条件下没有匹配的活跃智能体。
               </div>
             ) : (
               <div className="px-5 py-10 text-center text-sm text-slate-500">
