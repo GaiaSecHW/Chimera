@@ -884,7 +884,8 @@ function deriveFuncProgress(
     if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
     return (b.lastTs || 0) - (a.lastTs || 0);
   });
-  return { funcs, totalFuncCount };
+  // R1-W/J 可能发现 ctags 遗漏的函数，实际流水线函数数可能大于 r1_static_done 之和
+  return { funcs, totalFuncCount: Math.max(totalFuncCount, map.size) };
 }
 
 // ─── 函数级阶段小图标 ────────────────────────────────────────────────────────
