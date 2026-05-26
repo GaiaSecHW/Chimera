@@ -356,6 +356,12 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     abnormal_reason?: BinarySecurityAbnormalReason | null;
     sync_status?: string | null;
     last_synced_at?: string | null;
+    downstream_raw_status?: string | null;
+    downstream_mapped_status?: string | null;
+    downstream_state_applied?: boolean | null;
+    sync_observation_error_message?: string | null;
+    sync_observation_error_type?: string | null;
+    sync_observation_http_status?: number | null;
     started_at?: string | null;
     finished_at?: string | null;
   }>;

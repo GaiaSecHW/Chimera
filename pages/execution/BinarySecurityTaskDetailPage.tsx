@@ -242,6 +242,11 @@ const formatStageItemSyncStatus = (status?: string | null) => {
   }
 };
 
+const formatSyncAppliedLabel = (value?: boolean | null) => {
+  if (value == null) return '-';
+  return value ? '已应用' : '未应用';
+};
+
 function firstMeaningfulValue(...values: Array<unknown>): string | null {
   for (const value of values) {
     const text = String(value ?? '').trim();
@@ -1752,7 +1757,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     if (!detail || TERMINAL.has(detail.status)) return;
     if (detail.status === 'pending_module_confirmation') return;
-    const intervalMs = detail.manual_operation_state?.operation_in_progress ? 2000 : 5000;
+    const intervalMs = detail.manual_operation_state?.operation_in_progress ? 2000 : 30000;
     const timer = window.setInterval(
       () => void loadTask({ preserveStrategyDraft: activeTab === 'strategy' && strategyDirty }),
       intervalMs,
@@ -3881,7 +3886,40 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               <div className="text-slate-400">任务 ID</div>
                                               <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
                                             </div>
+                                            <div>
+                                              <div className="text-slate-400">当前聚合状态</div>
+                                              <div className="mt-1">
+                                                <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-black ${statusTone(item.status)}`}>
+                                                  {formatBinarySecurityStatus(item.status)}
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <div className="text-slate-400">下游原始状态</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_raw_status || '-'}</div>
+                                            </div>
+                                            <div>
+                                              <div className="text-slate-400">映射后的状态</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_mapped_status || '-'}</div>
+                                            </div>
+                                            <div>
+                                              <div className="text-slate-400">状态是否已应用</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{formatSyncAppliedLabel(item.downstream_state_applied)}</div>
+                                            </div>
+                                            <div>
+                                              <div className="text-slate-400">同步错误类型</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.sync_observation_error_type || '-'}</div>
+                                            </div>
+                                            <div>
+                                              <div className="text-slate-400">同步 HTTP 状态</div>
+                                              <div className="mt-1 break-all font-mono text-slate-800">{item.sync_observation_http_status ?? '-'}</div>
+                                            </div>
                                           </div>
+                                          {item.sync_observation_error_message ? (
+                                            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                                              {item.sync_observation_error_message}
+                                            </div>
+                                          ) : null}
                                           {!detailSupport.supported ? (
                                             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
                                               {detailSupport.reason}

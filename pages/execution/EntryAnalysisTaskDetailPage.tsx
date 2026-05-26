@@ -625,33 +625,122 @@ function parseSessionDelta(lines: string[], startLine: number): { events: AppEaS
 function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[], stageSteps: typeof FULL_STAGE_STEPS): StepStatus[] {
   const statuses: StepStatus[] = stageSteps.map((): StepStatus => 'pending');
   if (taskStatus === 'pending') return statuses;
-  if (taskStatus === 'passed') return stageSteps.map((): StepStatus => 'completed');
-  let last = -1;
-  // CC 独立跟踪（非致命，失败不阻断 R4）
-  let ccDone = false, ccFailed = false;
+  if (taskStatus === 'passed')  return stageSteps.map((): StepStatus => 'completed');
+
+  const isRunning  = taskStatus === 'running';
+  const isFailed   = ['failed', 'error', 'cancelled'].includes(taskStatus);
+
+  // ── CC 独立跟踪 ────────────────────────────────────────────────────────────
+  let ccStarted = false, ccDone = false, ccFailed = false;
+
+  // ── 每阶段启动/完成计数（简单 start/done 匹配） ────────────────────────────
+  // R1/R2: 按文件计数
+  const r1FileStart = new Set<string>(), r1FileDone = new Set<string>();
+  const r2FuncStart = new Set<string>(), r2FuncDone = new Set<string>();
+  // R3: 按唯一 func_hash 计数（支持 W+J 多次重试）
+  const r3FuncW_Start = new Set<string>(), r3FuncJ_Done = new Set<string>();
+  // R4: 按唯一 func_hash 计数（支持多次重试）
+  const r4FuncStart = new Set<string>(), r4FuncDone = new Set<string>();
+  // R5
+  let r5Started = false, r5Done = false;
+
   for (const evt of events) {
-    if (evt.type === 'callchain_done')   ccDone   = true;
-    if (evt.type === 'callchain_failed') ccFailed = true;
-    stageSteps.forEach((step, index) => {
-      if (step.triggers.includes(evt.type)) last = Math.max(last, index);
-    });
-  }
-  if (last < 0) {
-    statuses[0] = taskStatus === 'running' ? 'running'
-      : ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'pending';
-    return statuses;
-  }
-  for (let i = 0; i < stageSteps.length; i += 1) {
-    const isCCStage = stageSteps[i].key === 'cc';
-    if (isCCStage && ccFailed && !ccDone) {
-      // CC 建图失败（非致命）：标记 failed 但不阻断后续阶段
-      statuses[i] = 'failed';
-    } else if (i < last) {
-      statuses[i] = 'completed';
-    } else if (i === last) {
-      statuses[i] = ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'running';
+    const d  = evt.data ?? {};
+    const fh = String(d.func_hash ?? '');
+    const fi = String(d.file ?? d.file_hash ?? '');
+    switch (evt.type) {
+      // CC
+      case 'callchain_start':  ccStarted = true; break;
+      case 'callchain_done':   ccDone    = true; break;
+      case 'callchain_failed': ccFailed  = true; break;
+      // R1
+      case 'r1_w_start': if (fi) r1FileStart.add(fi); break;
+      case 'r1_j_done':  if (fi) r1FileDone.add(fi);  break;
+      // R2
+      case 'r2_j_start': if (fh) r2FuncStart.add(fh); break;
+      case 'r2_j_done':  if (fh) r2FuncDone.add(fh);  break;
+      // R3
+      case 'r3_w_start': if (fh) r3FuncW_Start.add(fh); break;
+      case 'r3_j_done':  if (fh) r3FuncJ_Done.add(fh);  break;
+      // R4
+      case 'r4_w_func_start': if (fh) r4FuncStart.add(fh); break;
+      case 'r4_w_func_done':  if (fh) r4FuncDone.add(fh);  break;
+      // R5
+      case 'r5_w_start': r5Started = true; break;
+      case 'r5_done':    r5Done    = true; break;
     }
   }
+
+  for (let i = 0; i < stageSteps.length; i++) {
+    const key = stageSteps[i].key;
+
+    // ── CC 阶段 ──
+    if (key === 'cc') {
+      if (!ccStarted) { statuses[i] = 'pending'; continue; }
+      if (ccFailed && !ccDone) { statuses[i] = 'failed'; continue; }
+      statuses[i] = ccDone ? 'completed' : 'running';
+      continue;
+    }
+
+    // ── R1 ──
+    if (key === 'r1') {
+      if (r1FileStart.size === 0) { statuses[i] = 'pending'; continue; }
+      if (r1FileDone.size === r1FileStart.size && r1FileDone.size > 0) {
+        statuses[i] = 'completed';
+      } else {
+        statuses[i] = isRunning ? 'running' : (isFailed ? 'failed' : 'completed');
+      }
+      continue;
+    }
+
+    // ── R2 ──
+    if (key === 'r2') {
+      if (r2FuncStart.size === 0) { statuses[i] = 'pending'; continue; }
+      const r2Done = r2FuncDone.size >= r2FuncStart.size;
+      if (r2Done && r3FuncW_Start.size > 0) {
+        // R3 已开始，说明 R2 已全完成
+        statuses[i] = 'completed';
+      } else if (r2Done && !isRunning) {
+        statuses[i] = 'completed';
+      } else {
+        statuses[i] = isRunning ? 'running' : (isFailed ? 'failed' : 'completed');
+      }
+      continue;
+    }
+
+    // ── R3 （与 R4 并行，用唯一 func_hash 判断） ──
+    if (key === 'r3') {
+      if (r3FuncW_Start.size === 0) { statuses[i] = 'pending'; continue; }
+      // R3 运行中：开始的函数 > J完成的函数
+      const r3Active = isRunning && (r3FuncW_Start.size > r3FuncJ_Done.size);
+      statuses[i] = r3Active ? 'running' : (isFailed ? 'failed' : 'completed');
+      continue;
+    }
+
+    // ── R4 （与 R3 并行，用唯一 func_hash 判断） ──
+    if (key === 'r4') {
+      if (r4FuncStart.size === 0) { statuses[i] = 'pending'; continue; }
+      const r4Active = isRunning && (r4FuncDone.size < r4FuncStart.size);
+      statuses[i] = r4Active ? 'running' : (isFailed ? 'failed' : 'completed');
+      continue;
+    }
+
+    // ── R5 ──
+    if (key === 'r5') {
+      if (!r5Started) { statuses[i] = 'pending'; continue; }
+      statuses[i] = r5Done ? 'completed' : (isRunning ? 'running' : (isFailed ? 'failed' : 'completed'));
+      continue;
+    }
+
+    // ── 其他阶段（lean 模式等）：原有 trigger 逻辑 ──
+    const hasAny = stageSteps[i].triggers.some(t => events.some(e => e.type === t));
+    if (!hasAny) { statuses[i] = 'pending'; continue; }
+    const hasLastTrigger = stageSteps[i].triggers.includes('task_end')
+      ? events.some(e => e.type === 'task_end') : false;
+    if (hasLastTrigger) { statuses[i] = 'completed'; continue; }
+    statuses[i] = isRunning ? 'running' : (isFailed ? 'failed' : 'completed');
+  }
+
   return statuses;
 }
 
@@ -753,41 +842,102 @@ interface FuncProgress {
   lastTs?: number;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// deriveFuncProgress: 架构说明
+//
+// 「双源分离」策略：
+//   Catalog 是「全部函数列表 + 各阶段终态」的权威来源（直接映射 pipeline_state.json）
+//   Events 「只能前进」差异覆盖（only-advance：只能由 pending 升到 running，终态不被覆盖）
+//   pending/running 都是可被事件升级的非终态；passed/failed/keep/remove/skip 是终态，不可退
+//
+// R3 和 R4 并行运行属于正常现象（不同函数同时处于不同阶段），不是显示错误
+// ─────────────────────────────────────────────────────────────────────────────
 function deriveFuncProgress(
   events: AppEaStageEvent[],
   functionCatalog?: AppEaFunctionCatalogItem[] | null,
+  taskStatus?: string,
 ): {
   funcs: FuncProgress[];
   totalFuncCount: number;
 } {
-  const map = new Map<string, FuncProgress>();
-  let totalFuncCount = 0;
-  for (const evt of events) {
-    if (evt.type === 'r1_static_done') totalFuncCount += Number((evt.data || {}).count) || 0;
-  }
+  // 终态集合：一旦到达这些状态就不会被事件覆盖
+  const TERMINAL: ReadonlySet<FuncStage> = new Set(['passed', 'failed', 'keep', 'remove', 'skip']);
+  const isTerminal = (s: FuncStage) => TERMINAL.has(s);
 
   const toStage = (s?: string | null): FuncStage => {
-    switch (String(s || 'pending')) {
+    switch (String(s ?? 'pending')) {
       case 'running': return 'running';
-      case 'passed': return 'passed';
-      case 'failed': return 'failed';
-      case 'skip': return 'skip';
-      case 'keep': return 'keep';
+      case 'passed':  return 'passed';
+      case 'failed':  return 'failed';
+      case 'skip':    return 'skip';
+      case 'keep':    return 'keep';
       case 'remove':
-      case 'filter': return 'remove';
-      default: return 'pending';
+      case 'filter':  return 'remove';
+      default:        return 'pending';
     }
   };
+
+  // ── Step 1: Catalog 构建稳定基线状态 ────────────────────────────────────────
+  const map = new Map<string, FuncProgress>();
+
+  for (const item of functionCatalog ?? []) {
+    const fh = String(item.func_hash ?? '');
+    if (!fh) continue;
+
+    // 支持旧字段名（r1b_state/r2_state/r2j_state/rep_state）和新字段名（r2j_state_new/r3w_state/r3j_state/r5_state）
+    // 后端 v2 修复后输出 r1b_state（r2_j）, r2_state（r3_w）, r2j_state（r3_j）, rep_state（r5）
+    const r2jState = (item as any).r2j_state_new ?? item.r1b_state ?? null;
+    const r3wState = (item as any).r3w_state ?? item.r2_state ?? null;
+    const r3jState = (item as any).r3j_state ?? item.r2j_state ?? null;
+    const r5State  = (item as any).r5_state  ?? item.rep_state  ?? null;
+
+    const r2j    = toStage(r2jState);
+    const r4dec  = String(item.r4_decision ?? '').toLowerCase();
+    const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
+
+    let r3w: FuncStage, r3j: FuncStage, r4: FuncStage, rep: FuncStage;
+
+    if (r2j === 'failed') {
+      // R2 失败：函数边界不可信，后续全部跳过
+      r3w = r3j = r4 = rep = 'skip';
+    } else {
+      r3w = toStage(r3wState);
+      r3j = toStage(r3jState);
+      if (r4dec === 'keep') {
+        r4  = 'keep';
+        rep = toStage(r5State);
+      } else if (r4dec === 'filter' || r4dec === 'remove') {
+        // has_input=false → R3-W 就确认无外部输入，R4入口决策步未运行 → 显示 skip
+        // has_input=true  → R3-W 确认有外部输入但入口决策 W 过滤  → 显示 remove
+        r4  = (hasInput === false) ? 'skip' : 'remove';
+        rep = 'skip';
+      } else {
+        // 还未做入口决策（pending/running）
+        r4  = toStage(item.r4_state);
+        rep = 'skip';
+      }
+    }
+
+    map.set(fh, {
+      func_hash: fh,
+      name:  String(item.name ?? fh),
+      file:  String(item.file ?? ''),
+      r2j, r3w, r3j, r4, rep,
+      is_entry:          Boolean(item.is_entry) || r4 === 'keep',
+      has_external_input: hasInput,
+      entry_role:        item.entry_role,
+    });
+  }
+
+  // ── Step 2: Events 只前进覆盖（only-advance，终态不可退） ─────────────────────
+  // 目的：对于任务运行中的函数，显示实时“运行中”动画；对于 catalog 还未纳入的新函数，建立动态条目
+  // 原则：事件只能将 pending → running → 终态，不能让终态退回
 
   const getOrCreate = (fh: string, name?: string, file?: string): FuncProgress => {
     if (!map.has(fh)) {
       map.set(fh, {
-        func_hash: fh,
-        name: name || fh.slice(0, 8),
-        file,
-        r2j: 'pending',
-        r3w: 'pending', r3j: 'pending',
-        r4: 'pending', rep: 'pending',
+        func_hash: fh, name: name || fh.slice(0, 8), file,
+        r2j: 'pending', r3w: 'pending', r3j: 'pending', r4: 'pending', rep: 'pending',
         is_entry: false,
       });
     }
@@ -797,162 +947,111 @@ function deriveFuncProgress(
     return f;
   };
 
-  // 先用 function_catalog 初始化所有函数
-  for (const item of functionCatalog || []) {
-    const fh = String(item.func_hash || '');
-    if (!fh) continue;
-    const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    const r2jS    = toStage(item.r1b_state);   // r2_j_state
-    const r3wS    = toStage(item.r2_state);    // r3_w_state
-    const r3jS    = toStage(item.r2j_state);   // r3_j_state
-    const r4dec   = String(item.r4_decision || '').toLowerCase();
-    const r4stateS = toStage(item.r4_state);   // r4_state (only set by cross-file R4)
-    const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
-
-    f.r2j = r2jS;
-    f.has_external_input = hasInput;
-    if (item.entry_role) f.entry_role = String(item.entry_role);
-
-    if (r2jS === 'failed') {
-      // R2 失败：函数边界不可信，后续全部跳过
-      f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; f.rep = 'skip';
-    } else {
-      f.r3w = r3wS;
-      f.r3j = r3jS;
-      if (r4dec === 'keep') {
-        f.r4 = 'keep';
-        f.rep = toStage(item.rep_state);
-        f.is_entry = true;
-      } else if (r4dec === 'filter' || r4dec === 'remove') {
-        // has_input=false → 所有 input在 R3-W 就就确定无输入，R4决策从ce未运行
-        // has_input=true → R3-W 确定有输入但入口决策 W 过滤 (r4dec=filter)
-        f.r4 = (hasInput === false) ? 'skip' : 'remove';
-        f.rep = 'skip'; // 过滤函数不生成报告
-      } else {
-        f.r4 = r4stateS;
-        f.rep = 'skip'; // 还没进入 R5
-      }
-    }
-    f.is_entry = Boolean(item.is_entry) || f.r4 === 'keep';
-  }
-  if (!totalFuncCount) totalFuncCount = (functionCatalog || []).length;
-
-  const fileHasExternalFuncs = new Map<string, Set<string>>();
-  for (const item of functionCatalog || []) {
-    const fileH = String(item.file_hash || '');
-    const funcH = String(item.func_hash || '');
-    if (fileH && funcH && item.has_external_input) {
-      if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
-      fileHasExternalFuncs.get(fileH)!.add(funcH);
-    }
-  }
+  // 事件升级副作用：只有当目标字段非终态时才覆盖
+  const advance = (f: FuncProgress, field: keyof Pick<FuncProgress, 'r2j'|'r3w'|'r3j'|'r4'|'rep'>, next: FuncStage) => {
+    if (!isTerminal(f[field])) f[field] = next;
+  };
 
   for (const evt of events) {
-    const ts = evt.ts || 0;
-    const d = evt.data || {};
-    const fh = String(d.func_hash || '');
-    const fn = String(d.function || d.func_hash || '');
-    const fi = String(d.file || '');
+    const d   = evt.data ?? {};
+    const fh  = String(d.func_hash ?? '');
+    if (!fh) continue;
+    const fn  = String(d.function ?? d.func_hash ?? '');
+    const fi  = String(d.file ?? '');
+    const ts  = evt.ts ?? 0;
+    const f   = getOrCreate(fh, fn, fi);
 
     switch (evt.type) {
-      // R2-J 只有 Judge，无 Worker
-      case 'r2_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = 'running'; f.lastTs = ts; }
-        break;
+      // R2 准确性验证 (Judge only)
+      case 'r2_j_start': advance(f, 'r2j', 'running'); f.lastTs = ts; break;
       case 'r2_j_done':
-        if (fh) {
-          const f = getOrCreate(fh, fn, fi);
+        if (!isTerminal(f.r2j)) {
           f.r2j = d.passed ? 'passed' : 'failed';
           if (!d.passed) {
-            // R2 失败：后续全部跳过
-            f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; f.rep = 'skip';
+            // R2 失败：后续全部跳过（仅更新非终态字段）
+            if (!isTerminal(f.r3w)) f.r3w = 'skip';
+            if (!isTerminal(f.r3j)) f.r3j = 'skip';
+            if (!isTerminal(f.r4))  f.r4  = 'skip';
+            if (!isTerminal(f.rep)) f.rep = 'skip';
           }
-          f.lastTs = ts;
         }
-        break;
+        f.lastTs = ts; break;
 
-      // R3-W (backend event: r3_w_start/done)
-      case 'r3_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r3w = 'running'; f.lastTs = ts; }
-        break;
+      // R3-W 外部输入分析 Worker
+      case 'r3_w_start': advance(f, 'r3w', 'running'); f.lastTs = ts; break;
       case 'r3_w_done':
-        if (fh) {
-          const f = getOrCreate(fh, fn, fi);
+        if (!isTerminal(f.r3w)) {
+          // r3_w 可能多次重试（中间轮次可能 has_input=false，最终轮次才是定论）
+          // 这里不设终态，保持 r3w=running 直到 r3_j_done 小循环结束
           f.has_external_input = Boolean(d.has_external_input);
-          if (!f.has_external_input) {
-            // 无外部输入：R3-W 跑了但确定不是入口，R4/R5 跳过
-            f.r3w = 'passed'; f.r4 = 'skip'; f.rep = 'skip';
-          } else {
-            f.r3w = 'passed';
-            if (d.entry_role) f.entry_role = String(d.entry_role);
-            const fileH = String(d.file_hash || '');
-            if (fileH) {
-              if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
-              fileHasExternalFuncs.get(fileH)!.add(fh);
-            }
-          }
-          f.lastTs = ts;
+          if (d.entry_role) f.entry_role = String(d.entry_role);
+          // 如果确认有输入且 r4 被临时标为 skip，重置等待入口决策
+          if (f.has_external_input && f.r4 === 'skip') f.r4 = 'pending';
         }
-        break;
+        f.lastTs = ts; break;
 
-      // R3-J (backend event: r3_j_start/done)
-      case 'r3_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = 'running'; f.lastTs = ts; }
-        break;
+      // R3-J 外部输入验证 Judge
+      case 'r3_j_start': advance(f, 'r3j', 'running'); f.lastTs = ts; break;
       case 'r3_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
-        break;
-
-      // R4-W func (backend event: r4_w_func_start/done)
-      case 'r4_w_func_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r4 = 'running'; f.lastTs = ts; }
-        break;
-      case 'r4_w_func_done':
-        if (fh) {
-          const f = getOrCreate(fh, fn, fi);
-          const dec = String(d.decision || 'keep').toLowerCase();
-          if (dec === 'filter' || dec === 'remove') {
-            f.r4 = 'remove';
-            f.rep = 'skip';  // 入口决策过滤，不生成报告
+        if (!isTerminal(f.r3j)) {
+          const passed = Boolean(d.passed);
+          if (passed) {
+            // r3_j 通过：W+J 小循环最终确认，同步 r3w/r3j 为终态
+            if (!isTerminal(f.r3w)) f.r3w = 'passed';
+            f.r3j = 'passed';
+            // 若事件携带 r4_decision，直接设置 R4 列（无需等 catalog 刷新）
+            const r4dec = String(d.r4_decision ?? '').toLowerCase();
+            if (r4dec && !isTerminal(f.r4)) {
+              if (r4dec === 'keep') {
+                f.r4 = 'keep'; f.is_entry = true;
+                if (!isTerminal(f.rep)) f.rep = 'pending';
+              } else if (r4dec === 'filter' || r4dec === 'remove') {
+                f.r4 = f.has_external_input === false ? 'skip' : 'remove';
+                if (!isTerminal(f.rep)) f.rep = 'skip';
+              }
+            }
           } else {
-            f.r4 = 'keep';
-            f.rep = 'pending'; // keep 函数将运行 R5 报告
+            // 未通过，将重试：下一轮 r3_w_start 会把 r3w 设回 running
+            if (!isTerminal(f.r3w)) f.r3w = 'pending';
+            f.r3j = 'pending'; // 重置等待下一轮
           }
-          f.is_entry = f.r4 === 'keep';
-          f.lastTs = ts;
         }
-        break;
+        f.lastTs = ts; break;
+      case 'r4_w_func_done': {
+        if (!isTerminal(f.r4)) {
+          const dec = String(d.decision ?? 'keep').toLowerCase();
+          f.r4 = (dec === 'filter' || dec === 'remove') ? 'remove' : 'keep';
+          f.is_entry = f.r4 === 'keep';
+          if (!isTerminal(f.rep)) f.rep = f.r4 === 'keep' ? 'pending' : 'skip';
+        }
+        f.lastTs = ts; break;
+      }
 
-      // R4-W file-level aggregation (older event for file-level summary)
-      case 'r4_w_start':
-        break; // file-level, not func-level
-      case 'r4_w_done':
-        break; // file-level, not func-level
-
-      // R5 report
-      case 'r5_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; }
-        break;
+      // R5 报告
+      case 'r5_w_start': advance(f, 'rep', 'running'); f.lastTs = ts; break;
       case 'r5_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
-        break;
-      default:
-        break;
+        if (!isTerminal(f.rep)) f.rep = d.passed ? 'passed' : 'failed';
+        f.lastTs = ts; break;
+
+      default: break;
     }
   }
 
+  // ── Step 3: 修复 is_entry 最终推断 ─────────────────────────────────────────
   for (const f of map.values()) {
-    // 事件驱动推断 is_entry：R4 keep 或进入 R5 的都是入口
     if (f.r4 === 'keep' || f.rep === 'running' || f.rep === 'passed') f.is_entry = true;
   }
 
   const funcs = Array.from(map.values());
   funcs.sort((a, b) => {
     if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
-    return (b.lastTs || 0) - (a.lastTs || 0);
+    // 入口内部按最新活动时间排序，非入口按字母
+    if (a.is_entry) return (b.lastTs ?? 0) - (a.lastTs ?? 0);
+    return (a.name ?? '').localeCompare(b.name ?? '');
   });
-  // R1-W/J 可能发现 ctags 遗漏的函数，实际流水线函数数可能大于 r1_static_done 之和
-  return { funcs, totalFuncCount: Math.max(totalFuncCount, map.size) };
+
+  const totalFuncCount = Math.max((functionCatalog ?? []).length, map.size);
+  return { funcs, totalFuncCount };
 }
 
 // ─── 函数级阶段小图标 ────────────────────────────────────────────────────────
@@ -1394,7 +1493,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     [events, isLeanMode],
   );
   const { funcs: funcProgress, totalFuncCount } = useMemo(
-    () => deriveFuncProgress(events, detail?.function_catalog || []),
+    () => deriveFuncProgress(events, detail?.function_catalog || [], detail?.status),
     [events, detail?.function_catalog],
   );
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
