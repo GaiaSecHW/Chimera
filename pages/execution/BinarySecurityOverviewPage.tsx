@@ -417,14 +417,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setRefreshing(true);
     setError(null);
     try {
-      const activeTaskIds = items
-        .filter((item) => !TERMINAL.has(item.status))
-        .map((item) => item.id);
-      if (activeTaskIds.length > 0) {
-        await Promise.allSettled(
-          activeTaskIds.map((taskId) => executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, { force: true })),
-        );
-      }
+      // Keep refresh side-effect free; background reconcile loops own state convergence.
       await load();
     } catch (e: any) {
       setError(e?.message || '刷新失败');

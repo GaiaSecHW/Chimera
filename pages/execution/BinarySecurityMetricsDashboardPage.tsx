@@ -187,6 +187,15 @@ type B2SBusinessViewModel = {
   costTotal: number | null;
   latestSeenAt: number | null;
   missingReasons: Array<{ reason: string; value: number }>;
+  syncCandidates: number | null;
+  syncLastAttempted: number | null;
+  syncLastSucceeded: number | null;
+  syncLastChanged: number | null;
+  syncLastFailed: number | null;
+  syncLastDurationSeconds: number | null;
+  syncLastRunAt: number | null;
+  syncTotalTicks: number | null;
+  syncTotalFailedTasks: number | null;
 };
 
 type B2SCacheViewModel = {
@@ -351,6 +360,7 @@ type BinarySecurityObservabilityViewModel = {
   alerts: Array<{ label: string; text: string; tone: string }>;
   pipelineSummary: ReducerBreakdownItem[];
   reducerSummary: ReducerBreakdownItem[];
+  syncSummary: ReducerBreakdownItem[];
   groupCounts: Array<{ group: BinarySecurityMetricsGroup; count: number }>;
 };
 
@@ -714,6 +724,13 @@ const buildBinarySecurityObservabilityViewModel = (
   const runningWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'running');
   const pendingWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'pending');
   const dispatchWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'dispatch');
+  const reconcileCandidates = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_candidates');
+  const reconcileLastAttempted = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_attempted');
+  const reconcileLastChanged = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_changed');
+  const reconcileLastFailed = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_failed');
+  const reconcileLastRunAt = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_run_timestamp');
+  const reconcileChangedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'changed' });
+  const reconcileFailedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'failed' });
   const alerts: Array<{ label: string; text: string; tone: string }> = [];
 
   if (aggregateCoverage?.partial) {
@@ -749,6 +766,13 @@ const buildBinarySecurityObservabilityViewModel = (
       label: '归档仍在处理中',
       text: `archive queued=${formatNumber(archiveQueued)}，running=${formatNumber(archiveRunning)}，终态收口仍可能继续延迟。`,
       tone: 'border-sky-200 bg-sky-50 text-sky-800',
+    });
+  }
+  if ((reconcileLastFailed || 0) > 0) {
+    alerts.push({
+      label: '后台状态同步失败',
+      text: `最近一轮后台状态同步失败 ${formatNumber(reconcileLastFailed)} 个任务。列表查询已不再触发同步，请检查后台循环与下游状态拉取。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
     });
   }
   if (!alerts.length) {
@@ -817,6 +841,13 @@ const buildBinarySecurityObservabilityViewModel = (
         tone: runningWorkers > 0 ? 'text-teal-700' : 'text-slate-900',
         icon: <TrendingUp size={16} />,
       },
+      {
+        label: '同步候选任务',
+        value: formatNumber(reconcileCandidates),
+        hint: `最近运行 ${formatTime(reconcileLastRunAt)}`,
+        tone: (reconcileCandidates || 0) > 0 ? 'text-cyan-700' : 'text-slate-900',
+        icon: <RefreshCw size={16} />,
+      },
     ],
     alerts,
     pipelineSummary: [
@@ -834,6 +865,13 @@ const buildBinarySecurityObservabilityViewModel = (
       { label: 'lock wait avg', value: lockWaitAvg, tone: (lockWaitAvg || 0) > 0.3 ? 'text-orange-700' : 'text-slate-600' },
       { label: 'lock held avg', value: lockHeldAvg, tone: (lockHeldAvg || 0) > 1.5 ? 'text-rose-700' : 'text-slate-600' },
       { label: 'active locks', value: activeLocks, tone: activeLocks > 0 ? 'text-orange-700' : 'text-slate-600' },
+    ],
+    syncSummary: [
+      { label: 'last attempted', value: reconcileLastAttempted, tone: 'text-slate-600' },
+      { label: 'last changed', value: reconcileLastChanged, tone: (reconcileLastChanged || 0) > 0 ? 'text-cyan-700' : 'text-slate-600' },
+      { label: 'last failed', value: reconcileLastFailed, tone: (reconcileLastFailed || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: 'changed total', value: reconcileChangedTotal, tone: (reconcileChangedTotal || 0) > 0 ? 'text-cyan-700' : 'text-slate-600' },
+      { label: 'failed total', value: reconcileFailedTotal, tone: (reconcileFailedTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
     ],
     groupCounts: (Object.keys(GROUP_LABELS) as BinarySecurityMetricsGroup[]).map((group) => ({
       group,
@@ -1278,6 +1316,7 @@ const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewMod
   const missingItems = missingReasons.length ? missingReasons.reduce((sum, item) => sum + item.value, 0) : legacyMissing;
   const totalItems = (availableItems || 0) + (missingItems || 0);
   const latestSeenSeconds = metricValueByName(rows, 'secflow_binary_to_source_latest_runtime_metric_seen_timestamp');
+  const syncLastRunAt = metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_run_timestamp');
   return {
     availableItems,
     missingItems,
@@ -1304,6 +1343,15 @@ const buildB2SBusinessViewModel = (rows: DisplayMetricRow[]): B2SBusinessViewMod
     costTotal: metricValueByName(rows, 'secflow_binary_to_source_llm_token_cost_total'),
     latestSeenAt: latestSeenSeconds && latestSeenSeconds > 0 ? latestSeenSeconds * 1000 : null,
     missingReasons,
+    syncCandidates: metricValueByName(rows, 'secflow_binary_to_source_task_sync_candidates'),
+    syncLastAttempted: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_attempted_tasks'),
+    syncLastSucceeded: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_succeeded_tasks'),
+    syncLastChanged: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_changed_tasks'),
+    syncLastFailed: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_failed_tasks'),
+    syncLastDurationSeconds: metricValueByName(rows, 'secflow_binary_to_source_task_sync_last_duration_seconds'),
+    syncLastRunAt: syncLastRunAt && syncLastRunAt > 0 ? syncLastRunAt * 1000 : null,
+    syncTotalTicks: metricValueByName(rows, 'secflow_binary_to_source_task_sync_ticks_total'),
+    syncTotalFailedTasks: metricValueByName(rows, 'secflow_binary_to_source_task_sync_tasks_total', { result: 'failed' }),
   };
 };
 
@@ -3182,6 +3230,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 <ReducerMetricList title="Reducer/锁摘要" items={binarySecurityObservabilityViewModel.reducerSummary} emptyText="暂无 reducer 摘要。" />
               </div>
 
+              <ReducerMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
+
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {binarySecurityObservabilityViewModel.groupCounts.map((item) => (
                   <div key={item.group} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
@@ -3864,6 +3914,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       { label: '失败批次占比', value: b2sBusinessViewModel.batchFailureRate == null ? '-' : `${formatNumber(b2sBusinessViewModel.batchFailureRate * 100, 1)}%`, hint: 'failed batches / batches', tone: (b2sBusinessViewModel.batchFailureRate || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
                       { label: '平均 Attempts', value: formatNumber(b2sBusinessViewModel.avgAttemptsPerBatch, 2), hint: 'attempts per batch', tone: (b2sBusinessViewModel.avgAttemptsPerBatch || 0) > 1.2 ? 'text-amber-700' : 'text-slate-900' },
                       { label: 'Token / 成本', value: `${formatNumber(b2sBusinessViewModel.tokenTotal)} / ${formatMetricValue(b2sBusinessViewModel.costTotal ?? Number.NaN)}`, hint: 'runtime llm summary', tone: 'text-indigo-700' },
+                      { label: '同步候选任务', value: formatNumber(b2sBusinessViewModel.syncCandidates), hint: '后台状态同步器当前关注的活跃任务', tone: (b2sBusinessViewModel.syncCandidates || 0) > 0 ? 'text-cyan-700' : 'text-slate-900' },
+                      { label: '最近同步结果', value: `${formatNumber(b2sBusinessViewModel.syncLastSucceeded)} / ${formatNumber(b2sBusinessViewModel.syncLastAttempted)}`, hint: `changed ${formatNumber(b2sBusinessViewModel.syncLastChanged)} · failed ${formatNumber(b2sBusinessViewModel.syncLastFailed)}`, tone: (b2sBusinessViewModel.syncLastFailed || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+                      { label: '同步耗时', value: formatSeconds(b2sBusinessViewModel.syncLastDurationSeconds), hint: `最近运行 ${formatTime(b2sBusinessViewModel.syncLastRunAt)}`, tone: (b2sBusinessViewModel.syncLastDurationSeconds || 0) > 5 ? 'text-amber-700' : 'text-slate-900' },
+                      { label: '累计同步异常', value: formatNumber(b2sBusinessViewModel.syncTotalFailedTasks), hint: `ticks ${formatNumber(b2sBusinessViewModel.syncTotalTicks)}`, tone: (b2sBusinessViewModel.syncTotalFailedTasks || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
                     ].map((item) => (
                       <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/80 px-4 py-3 shadow-sm">
                         <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
