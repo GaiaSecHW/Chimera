@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   AppEaTaskActionResponse,
   AppEaTaskEvent,
@@ -41,7 +42,7 @@ export const DEFAULT_MODELS_CONFIG: EntryAnalysisModelsConfig = {
 
 export const appEntryAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string }> =>
+  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
     handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────

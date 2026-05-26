@@ -522,7 +522,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
+        <div className="mt-3 flex items-center gap-2">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
+          <ServiceBuildVersion version={buildVersion} />
+        </div>
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[

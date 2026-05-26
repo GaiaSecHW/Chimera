@@ -2,6 +2,7 @@
 import { AlertTriangle, ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { AppEaStageEvent, AppEaStagesJson, AppEaTaskDetail, AppEaTaskItem, EntryAnalyseSlotClusterSummary } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
@@ -362,6 +363,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const refreshIntervalStorageKey = `secflow:entryAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -406,6 +408,20 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [pickerTarget, setPickerTarget] = useState<'input' | 'source' | 'output'>('input');
   const logScrollRef = useRef<HTMLDivElement>(null);
   const riskPresetAppliedRef = useRef('');
+
+  useEffect(() => {
+    let active = true;
+    void appApi.getHealth()
+      .then((payload) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [appApi]);
 
   const handleHeaderSort = (field: 'task' | 'module' | 'status' | 'origin' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -1337,7 +1353,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">入口分析任务</h1>
+        <div className="mt-3 flex items-center gap-2">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">入口分析任务</h1>
+          <ServiceBuildVersion version={buildVersion} />
+        </div>
         <p className="mt-2 text-sm text-slate-500">指定目标模块路径，自动生成 Prompt 并启动入口点分析任务。</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
