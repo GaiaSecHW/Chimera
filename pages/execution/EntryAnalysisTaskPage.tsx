@@ -1709,6 +1709,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   onClick={() => handleHeaderSort('task')}
                 />
                 <ExecutionTableTh>模块</ExecutionTableTh>
+                <ExecutionTableTh>入口数量</ExecutionTableTh>
                 <ExecutionTableTh>模式</ExecutionTableTh>
                 <SortableHeader
                   label="状态"
@@ -1802,6 +1803,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
                     <div className="text-sm font-semibold text-slate-700">{t.module_name || '-'}</div>
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {['passed', 'failed', 'error', 'cancelled'].includes(t.status)
+                      ? (typeof t.entry_count === 'number' ? t.entry_count : '-')
+                      : '-'}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap">
                     <button

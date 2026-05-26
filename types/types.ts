@@ -2822,6 +2822,7 @@ export interface AppEaTaskItem {
   source_path?: string | null;
   module_name?: string | null;
   output_path?: string | null;
+  entry_count?: number | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   owner_pod?: string | null;
   lease_expires_at?: string | null;
