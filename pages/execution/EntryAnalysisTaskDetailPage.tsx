@@ -771,20 +771,42 @@ function deriveFuncProgress(
     return f;
   };
 
-  // 先用 function_catalog 初始化所有函数，保证 R2 开始前就有函数表
+  // 先用 function_catalog 初始化所有函数
   for (const item of functionCatalog || []) {
     const fh = String(item.func_hash || '');
     if (!fh) continue;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    f.r2j = toStage(item.r1b_state);  // r1b_state = r2_j_state (accuracy judge)
-    f.r3w = toStage(item.r2_state);
-    f.r3j = toStage(item.r2j_state);
-    f.r4  = String(item.r4_decision || '').toLowerCase() === 'keep' ? 'keep'
-      : String(item.r4_decision || '').toLowerCase() === 'remove' || String(item.r4_decision || '').toLowerCase() === 'filter' ? 'remove'
-      : toStage(item.r4_state);
-    f.rep = toStage(item.rep_state);
-    f.has_external_input = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
+    const r2jS    = toStage(item.r1b_state);   // r2_j_state
+    const r3wS    = toStage(item.r2_state);    // r3_w_state
+    const r3jS    = toStage(item.r2j_state);   // r3_j_state
+    const r4dec   = String(item.r4_decision || '').toLowerCase();
+    const r4stateS = toStage(item.r4_state);   // r4_state (only set by cross-file R4)
+    const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
+
+    f.r2j = r2jS;
+    f.has_external_input = hasInput;
     if (item.entry_role) f.entry_role = String(item.entry_role);
+
+    if (r2jS === 'failed') {
+      // R2 失败：函数边界不可信，后续全部跳过
+      f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; f.rep = 'skip';
+    } else {
+      f.r3w = r3wS;
+      f.r3j = r3jS;
+      if (r4dec === 'keep') {
+        f.r4 = 'keep';
+        f.rep = toStage(item.rep_state);
+        f.is_entry = true;
+      } else if (r4dec === 'filter' || r4dec === 'remove') {
+        // has_input=false → 所有 input在 R3-W 就就确定无输入，R4决策从ce未运行
+        // has_input=true → R3-W 确定有输入但入口决策 W 过滤 (r4dec=filter)
+        f.r4 = (hasInput === false) ? 'skip' : 'remove';
+        f.rep = 'skip'; // 过滤函数不生成报告
+      } else {
+        f.r4 = r4stateS;
+        f.rep = 'skip'; // 还没进入 R5
+      }
+    }
     f.is_entry = Boolean(item.is_entry) || f.r4 === 'keep';
   }
   if (!totalFuncCount) totalFuncCount = (functionCatalog || []).length;
@@ -812,7 +834,15 @@ function deriveFuncProgress(
         if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = 'running'; f.lastTs = ts; }
         break;
       case 'r2_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          f.r2j = d.passed ? 'passed' : 'failed';
+          if (!d.passed) {
+            // R2 失败：后续全部跳过
+            f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; f.rep = 'skip';
+          }
+          f.lastTs = ts;
+        }
         break;
 
       // R3-W (backend event: r3_w_start/done)
@@ -822,14 +852,18 @@ function deriveFuncProgress(
       case 'r3_w_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          f.r3w = 'passed';
           f.has_external_input = Boolean(d.has_external_input);
-          if (!f.has_external_input) { f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; }
-          else if (d.entry_role) { f.entry_role = String(d.entry_role); }
-          const fileH = String(d.file_hash || '');
-          if (fileH && f.has_external_input) {
-            if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
-            fileHasExternalFuncs.get(fileH)!.add(fh);
+          if (!f.has_external_input) {
+            // 无外部输入：R3-W 跑了但确定不是入口，R4/R5 跳过
+            f.r3w = 'passed'; f.r4 = 'skip'; f.rep = 'skip';
+          } else {
+            f.r3w = 'passed';
+            if (d.entry_role) f.entry_role = String(d.entry_role);
+            const fileH = String(d.file_hash || '');
+            if (fileH) {
+              if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
+              fileHasExternalFuncs.get(fileH)!.add(fh);
+            }
           }
           f.lastTs = ts;
         }
@@ -851,7 +885,13 @@ function deriveFuncProgress(
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
           const dec = String(d.decision || 'keep').toLowerCase();
-          f.r4 = dec === 'filter' || dec === 'remove' ? 'remove' : 'keep';
+          if (dec === 'filter' || dec === 'remove') {
+            f.r4 = 'remove';
+            f.rep = 'skip';  // 入口决策过滤，不生成报告
+          } else {
+            f.r4 = 'keep';
+            f.rep = 'pending'; // keep 函数将运行 R5 报告
+          }
           f.is_entry = f.r4 === 'keep';
           f.lastTs = ts;
         }
@@ -876,7 +916,8 @@ function deriveFuncProgress(
   }
 
   for (const f of map.values()) {
-    if (f.r4 === 'pending' && f.r3j === 'passed' && f.has_external_input) f.is_entry = true;
+    // 事件驱动推断 is_entry：R4 keep 或进入 R5 的都是入口
+    if (f.r4 === 'keep' || f.rep === 'running' || f.rep === 'passed') f.is_entry = true;
   }
 
   const funcs = Array.from(map.values());
@@ -2022,9 +2063,11 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                             ? <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">✓ 入口</span>
                             : f.r4 === 'remove'
                               ? <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[9px] font-semibold text-orange-600">✗ 已过滤</span>
-                              : f.r3w === 'skip'
-                                ? <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-400">— 无输入</span>
-                                : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未知</span>
+                            : f.r2j === 'failed'
+                              ? <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[9px] font-semibold text-red-500">R2失败</span>
+                            : f.has_external_input === false
+                              ? <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-400">— 无输入</span>
+                              : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未完成</span>
                           }
                         </td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2" /></td>
@@ -2035,9 +2078,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <td className="px-4 py-2 text-slate-500">
                           {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
                           : f.r4 === 'remove' ? <span className="text-orange-600">R4 过滤</span>
+                          : f.r2j === 'failed' ? <span className="text-red-500 font-medium">R2失败-跳过</span>
+                          : f.has_external_input === false ? <span className="text-slate-400">无外部输入</span>
                           : f.r3j === 'passed' ? <span className="text-sky-700">R3 候选</span>
-                          : f.r3j === 'failed' ? <span className="text-slate-400">R3 未通过</span>
-                          : f.r3w === 'skip'   ? <span className="text-slate-300">无外部输入</span>
+                          : f.r3j === 'failed' ? <span className="text-slate-400">R3-J 未通过</span>
                           : f.r3w === 'running' || f.r3j === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
                           : f.r2j === 'running' ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
                           : <span className="text-slate-300">等待中</span>}
