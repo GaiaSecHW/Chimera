@@ -225,19 +225,20 @@ function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
 }
 
 function dataflowCandidates(result: AppDfaTaskResult | null): Candidate[] {
-  const files = (result?.dataflow_files?.length ? result.dataflow_files : result?.output_files) || [];
-  const markdownFiles = files.filter((file) => /\.m(?:ark)?d$/i.test(file.name || file.relative_path));
-  return markdownFiles.map((file) => {
-    const path = joinPath(result?.output_root || '', file.relative_path);
-    const dataFlowDir = result?.output_root || dirname(path);
-    return {
-      key: file.relative_path,
-      label: file.name || basename(file.relative_path),
-      description: `${file.relative_path} · ${file.size || 0} bytes`,
-      disabledReason: !dataFlowDir ? '缺少结果目录' : undefined,
-      payload: { file, dataFlowPath: path, dataFlowDir },
-    };
-  });
+  if (!result?.output_root) return [];
+  const dataflowDir = joinPath(result.output_root, 'dataflow');
+  const fileCount = Array.isArray(result.dataflow_files) ? result.dataflow_files.length : 0;
+  const dataflowAvailable = fileCount > 0;
+  return [{
+    key: dataflowDir,
+    label: 'dataflow 目录',
+    description: `${dataflowDir} · ${fileCount} 个数据流文档`,
+    disabledReason: dataflowAvailable ? undefined : '缺少 dataflow 目录结果',
+    payload: {
+      dataFlowDir: dataflowDir,
+      fileCount,
+    },
+  }];
 }
 
 export const DownstreamTaskCreator: React.FC<Props> = ({
@@ -271,7 +272,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
     return 'vuln_scan';
   }, [mode, sourceKind]);
 
-  const modeOptions: DownstreamMode[] = sourceKind === 'system_analysis' || sourceKind === 'entry_analysis' || sourceKind === 'dataflow_analysis'
+  const modeOptions: DownstreamMode[] = sourceKind === 'system_analysis' || sourceKind === 'entry_analysis'
     ? ['binary', 'source']
     : sourceKind === 'firmware_unpack' || sourceKind === 'binary_to_source'
       ? ['binary']
@@ -401,16 +402,17 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
         }
       } else if (sourceKind === 'dataflow_analysis') {
         const dfaTask = task as AppDfaTaskDetail;
-        for (const candidate of selectedCandidates) {
-          const createdTask = await executionApi.dataflowVulnScanner.createTask({
-            project_id: projectId,
-            title: `${defaultPrefix}-${candidate.label}`,
-            task_markdown: `基于数据流分析结果 ${candidate.label} 执行漏洞扫描。`,
-            data_flow: dataflowVulnInputRef(projectId, String(candidate.payload.dataFlowDir || dirname(String(candidate.payload.dataFlowPath)))),
-            source_dir: dataflowVulnInputRef(projectId, dfaTask.input_path),
-          });
-          rows.push({ id: createdTask.task_id, label: createdTask.title || createdTask.task_id, targetStage: 'vuln_scan' });
-        }
+        const candidate = selectedCandidates[0];
+        const sourceDir = String(dfaTask.input_summary?.source_root_path || dfaTask.input_path || '').trim();
+        const dataFlowDir = String(candidate?.payload.dataFlowDir || '').trim();
+        const createdTask = await executionApi.dataflowVulnScanner.createTask({
+          project_id: projectId,
+          title: `${defaultPrefix}-vuln-scan`,
+          task_markdown: `基于数据流分析目录 ${candidate?.label || 'dataflow'} 执行漏洞扫描。`,
+          data_flow: dataflowVulnInputRef(projectId, dataFlowDir),
+          source_dir: dataflowVulnInputRef(projectId, sourceDir),
+        });
+        rows.push({ id: createdTask.task_id, label: createdTask.title || createdTask.task_id, targetStage: 'vuln_scan' });
       }
       setCreated(rows);
       setMessage(rows.length ? `已创建 ${rows.length} 个${TARGET_LABEL[targetStage]}任务` : '没有创建任务');
