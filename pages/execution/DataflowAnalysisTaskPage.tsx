@@ -563,6 +563,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [slotSummary, setSlotSummary] = useState<AppDfaClusterCapacity | null>(null);
   const [slotSummaryLoading, setSlotSummaryLoading] = useState(false);
   const [slotSummaryError, setSlotSummaryError] = useState('');
+  const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
 
@@ -658,8 +659,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       setSlotSummary(payload);
       setExpandedSlotWorkerIds((current) => {
         const availableIds = new Set((payload.workers || []).map((worker) => worker.worker_id));
-        const retained = current.filter((workerId) => availableIds.has(workerId));
-        return retained.length > 0 ? retained : (payload.workers || []).slice(0, 1).map((worker) => worker.worker_id);
+        return current.filter((workerId) => availableIds.has(workerId));
       });
     } catch (err: any) {
       setSlotSummary(null);
@@ -1372,21 +1372,40 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
           ))}
         </div>
         <div className="mt-4 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
-              <p className="mt-1 text-sm text-slate-500">展示当前数据流分析 worker 的执行槽位、活跃任务和心跳情况。</p>
-            </div>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <button
+              type="button"
+              onClick={() => setSlotsPanelExpanded((current) => !current)}
+              className="flex flex-1 items-start justify-between gap-4 text-left"
+            >
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
+                <p className="mt-2 text-sm text-slate-500">展示当前数据流分析 worker 的执行槽位、活跃任务和心跳情况。</p>
+              </div>
+              <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
+                {slotsPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} className="rotate-[-90deg]" />}
+              </span>
+            </button>
             <div className="flex flex-wrap items-center gap-3">
               <div className="text-xs text-slate-400">
                 最近同步 {formatDateTime(slotSummary?.updated_at)}
               </div>
+              {slotSummary ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSlotDetailModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                >
+                  查看 Worker 明细
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => setShowSlotDetailModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                onClick={() => void loadSlotSummary()}
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
               >
-                查看详情
+                <RefreshCw size={14} />
               </button>
               {slotSummaryLoading ? (
                 <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
@@ -1396,56 +1415,60 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               ) : null}
             </div>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            {slotCards.map((card) => (
-              <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
-                <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
-                <div className="mt-2 text-2xl font-black text-slate-900">{card.value}</div>
-                <div className="mt-1 text-[11px] text-slate-500">{card.hint}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {(slotSummary?.workers || []).map((worker) => (
-              <div
-                key={worker.worker_id}
-                className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
-                  worker.healthy
-                    ? 'border-slate-200 bg-slate-50'
-                    : 'border-rose-200 bg-rose-50'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-black text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
-                  <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                    worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                  }`}>
-                    {worker.healthy ? 'healthy' : 'unhealthy'}
+          {slotsPanelExpanded ? (
+            <>
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                {slotCards.map((card) => (
+                  <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
+                    <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{card.value}</div>
+                    <div className="mt-1 text-[11px] text-slate-500">{card.hint}</div>
                   </div>
-                </div>
-                <div className="mt-1 truncate text-[11px] text-slate-400" title={worker.worker_id}>{worker.worker_id}</div>
-                <div className="mt-2 text-xs text-slate-600">
-                  槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
-                  {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
-                </div>
-                <div className="mt-1 text-xs text-slate-400">
-                  来源 {worker.source || 'worker_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
-                </div>
-                {worker.error ? (
-                  <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {(slotSummary?.workers || []).map((worker) => (
+                  <div
+                    key={worker.worker_id}
+                    className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
+                      worker.healthy
+                        ? 'border-slate-200 bg-slate-50'
+                        : 'border-rose-200 bg-rose-50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-black text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
+                      <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                      }`}>
+                        {worker.healthy ? 'healthy' : 'unhealthy'}
+                      </div>
+                    </div>
+                    <div className="mt-1 truncate text-[11px] text-slate-400" title={worker.worker_id}>{worker.worker_id}</div>
+                    <div className="mt-2 text-xs text-slate-600">
+                      槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}
+                      {worker.available_slots >= 0 ? ` · 空闲 ${worker.available_slots}` : ''}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      来源 {worker.source || 'worker_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
+                    </div>
+                    {worker.error ? (
+                      <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div>
+                    ) : null}
+                  </div>
+                ))}
+                {slotSummary && (slotSummary.workers || []).length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                    当前未发现可用的数据流分析 worker。
+                  </div>
                 ) : null}
               </div>
-            ))}
-            {slotSummary && (slotSummary.workers || []).length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
-                当前未发现可用的数据流分析 worker。
-              </div>
-            ) : null}
-          </div>
-          {slotSummaryError ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
-              暂无槽位数据：{slotSummaryError}
-            </div>
+              {slotSummaryError ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                  暂无槽位数据：{slotSummaryError}
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
       </section>
