@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   BarChart3,
@@ -37,8 +37,10 @@ import {
   AgentProcessSnapshot,
   AgentSessionObservabilitySnapshot,
   AgentTaskOwnershipSnapshot,
+  AppDfaSessionMeta,
   AppDfaSessionSnapshot,
   AppEaSessionSnapshot,
+  AppSaSessionMeta,
   AppSaSessionSnapshot,
   AppDfaClusterCapacity,
   AppSaClusterCapacity,
@@ -104,6 +106,75 @@ type AgentKillHistoryEntry = {
   scope: 'single' | 'selected' | 'bulk';
   createdAt: number;
   response: AgentProcessKillResponse;
+};
+
+const buildFallbackAgentSessionMeta = (
+  session: AgentSessionObservabilitySnapshot,
+): AppSaSessionMeta => ({
+  session_id: session.session_id || session.session_file,
+  session_name: session.display_name,
+  relative_path: session.session_file,
+  stage_group: session.stage_key || 'agent',
+  role_name: session.role_kind || 'agent',
+  size: 0,
+  mtime: 0,
+  event_count: 0,
+  line_count: session.line_count,
+  is_active: session.live,
+  display_name: session.display_name,
+  warnings: session.parse_warnings,
+});
+
+const normalizeAgentSessionMeta = (
+  snapshot: AppEaSessionSnapshot | AppSaSessionSnapshot | AppDfaSessionSnapshot | null,
+  session: AgentSessionObservabilitySnapshot | null,
+): AppSaSessionMeta | null => {
+  if (!session) return null;
+  const fallback = buildFallbackAgentSessionMeta(session);
+  if (!snapshot) return fallback;
+
+  const dfaMeta = 'meta' in snapshot ? (snapshot.meta as AppDfaSessionMeta | undefined | null) : null;
+  if (dfaMeta) {
+    return {
+      ...fallback,
+      session_id: dfaMeta.session_id || fallback.session_id,
+      session_name: dfaMeta.session_name || fallback.session_name,
+      relative_path: dfaMeta.relative_path || fallback.relative_path,
+      stage_group: dfaMeta.stage_group || fallback.stage_group,
+      role_name: dfaMeta.role_name || fallback.role_name,
+      size: dfaMeta.size ?? fallback.size,
+      mtime: dfaMeta.mtime ?? fallback.mtime,
+      event_count: dfaMeta.event_count ?? snapshot.events?.length ?? fallback.event_count,
+      line_count: snapshot.line_count ?? fallback.line_count,
+      is_active: dfaMeta.is_active ?? fallback.is_active,
+      display_name: dfaMeta.display_name || fallback.display_name,
+      warnings: snapshot.warnings || fallback.warnings,
+    };
+  }
+
+  const rawMeta = 'session_meta' in snapshot ? snapshot.session_meta : null;
+  if (rawMeta && typeof rawMeta === 'object') {
+    const meta = rawMeta as Partial<AppSaSessionMeta> & Record<string, unknown>;
+    return {
+      ...fallback,
+      session_id: String(meta.session_id || fallback.session_id),
+      session_name: String(meta.session_name || fallback.session_name),
+      relative_path: String(meta.relative_path || fallback.relative_path),
+      stage_group: String(meta.stage_group || fallback.stage_group),
+      role_name: String(meta.role_name || fallback.role_name),
+      size: typeof meta.size === 'number' ? meta.size : fallback.size,
+      mtime: typeof meta.mtime === 'number' ? meta.mtime : fallback.mtime,
+      event_count: typeof meta.event_count === 'number' ? meta.event_count : snapshot.events?.length ?? fallback.event_count,
+      line_count: typeof meta.line_count === 'number' ? meta.line_count : snapshot.line_count ?? fallback.line_count,
+      is_active: typeof meta.is_active === 'boolean' ? meta.is_active : fallback.is_active,
+      display_name: String(meta.display_name || fallback.display_name),
+      warnings: Array.isArray(meta.warnings)
+        ? meta.warnings.map((item) => String(item))
+        : snapshot.warnings || fallback.warnings,
+    };
+  }
+
+  return fallback;
 };
 
 type PrometheusMetricType = 'counter' | 'gauge' | 'histogram' | 'summary' | 'untyped';
@@ -2511,6 +2582,23 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     [agentState.sessions, selectedAgentSessionId],
   );
 
+  const selectedAgentSessionMeta = useMemo(
+    () => normalizeAgentSessionMeta(agentSessionContentState.data, selectedAgentSession),
+    [agentSessionContentState.data, selectedAgentSession],
+  );
+
+  const pushAgentKillHistory = useCallback((scope: AgentKillHistoryEntry['scope'], response: AgentProcessKillResponse, id: string) => {
+    setAgentKillHistory((current) => [
+      {
+        id,
+        scope,
+        createdAt: Date.now(),
+        response,
+      },
+      ...current,
+    ].slice(0, 8));
+  }, []);
+
   useEffect(() => {
     const loadSessionContent = async () => {
       if (!selectedAgentSession || !selectedAgentSession.task_id || !selectedAgentSession.session_file) {
@@ -2561,15 +2649,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
     if (!confirmed) return;
     const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, process.pid) as AgentProcessKillResponse;
-    setAgentKillHistory((current) => [
-      {
-        id: `single-${process.pid}-${Date.now()}`,
-        scope: 'single',
-        createdAt: Date.now(),
-        response: result,
-      },
-      ...current,
-    ].slice(0, 8));
+    pushAgentKillHistory('single', result, `single-${process.pid}-${Date.now()}`);
     await showAlert({
       title: '执行结果',
       message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
@@ -2600,15 +2680,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       };
       items.push(...(result.items || []));
     }
-    setAgentKillHistory((current) => [
-      {
-        id: `selected-${Date.now()}`,
-        scope: 'selected',
-        createdAt: Date.now(),
-        response: { ...summary, items },
-      },
-      ...current,
-    ].slice(0, 8));
+    pushAgentKillHistory('selected', { ...summary, items }, `selected-${Date.now()}`);
     await showAlert({
       title: '批量执行结果',
       message: `请求 ${summary.requested}，命中 ${summary.matched}，成功 ${summary.succeeded}，失败 ${summary.failed}，跳过 ${summary.skipped}`,
@@ -2627,15 +2699,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
     if (!confirmed) return;
     const result = await executionMetricsApi.killAllOrphanProcesses(activeServiceKey, projectId) as AgentProcessKillResponse;
-    setAgentKillHistory((current) => [
-      {
-        id: `bulk-${Date.now()}`,
-        scope: 'bulk',
-        createdAt: Date.now(),
-        response: result,
-      },
-      ...current,
-    ].slice(0, 8));
+    pushAgentKillHistory('bulk', result, `bulk-${Date.now()}`);
     await showAlert({
       title: '执行结果',
       message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
@@ -3128,20 +3192,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     <AgentSessionViewer
                       loading={agentSessionContentState.loading}
                       error={agentSessionContentState.error}
-                      sessionMeta={agentSessionContentState.data?.meta || {
-                        session_id: selectedAgentSession.session_id || selectedAgentSession.session_file,
-                        session_name: selectedAgentSession.display_name,
-                        relative_path: selectedAgentSession.session_file,
-                        stage_group: selectedAgentSession.stage_key || 'agent',
-                        role_name: selectedAgentSession.role_kind || 'agent',
-                        size: 0,
-                        mtime: 0,
-                        event_count: 0,
-                        line_count: selectedAgentSession.line_count,
-                        is_active: selectedAgentSession.live,
-                        display_name: selectedAgentSession.display_name,
-                        warnings: selectedAgentSession.parse_warnings,
-                      }}
+                      sessionMeta={selectedAgentSessionMeta}
                       events={agentSessionContentState.data?.events || []}
                       live={selectedAgentSession.live}
                     />
