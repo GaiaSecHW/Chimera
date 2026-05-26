@@ -15,7 +15,7 @@ interface Props {
 
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
 
-const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
+const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'delete_failed']);
 const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
@@ -28,6 +28,8 @@ const statusTone = (status: string) => {
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'failed':
       return 'bg-rose-50 text-rose-700 border-rose-200';
+    case 'delete_failed':
+      return 'bg-rose-100 text-rose-800 border-rose-300';
     case 'cancelled':
       return 'bg-slate-100 text-slate-500 border-slate-200';
     case 'pending_upload':
@@ -152,7 +154,7 @@ const deriveProjectStats = (items: BinarySecurityTask[]): BinarySecurityProjectS
     if (TERMINAL.has(item.status)) {
       if (item.status === 'success') stats.success += 1;
       if (item.status === 'partial_success') stats.partial_success += 1;
-      if (item.status === 'failed') stats.failed += 1;
+      if (item.status === 'failed' || item.status === 'delete_failed') stats.failed += 1;
       if (item.status === 'cancelled') stats.cancelled += 1;
     } else {
       stats.running += 1;

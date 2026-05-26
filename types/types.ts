@@ -1930,7 +1930,7 @@ export interface AdminDashboardStats {
 }
 
 export type AnalysisRiskLevel = 'unknown' | 'low' | 'medium' | 'high' | 'critical';
-export type AnalysisTaskStatus = 'pending' | 'preparing' | 'running' | 'partial_success' | 'success' | 'failed' | 'cancelled';
+export type AnalysisTaskStatus = 'pending' | 'preparing' | 'running' | 'partial_success' | 'success' | 'failed' | 'cancelled' | 'delete_failed';
 export type AnalysisTaskType =
   | 'general_env_check'
   | 'service_dependency_check'

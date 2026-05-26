@@ -42,7 +42,7 @@ interface Props {
   onBack: () => void;
 }
 
-const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'downstream_missing']);
+const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'delete_failed', 'downstream_missing']);
 const PREPARING_STATUSES = new Set(['continue_preparing', 'retry_preparing']);
 const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'firmware_unpack',
@@ -124,6 +124,8 @@ const statusTone = (status: string) => {
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'failed':
       return 'bg-rose-50 text-rose-700 border-rose-200';
+    case 'delete_failed':
+      return 'bg-rose-100 text-rose-800 border-rose-300';
     case 'downstream_missing':
       return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'cancelled':
@@ -166,6 +168,8 @@ const stageNodeTone = (status: string, selected: boolean) => {
       return `border-amber-300 bg-amber-50 text-amber-800 ${selectedDepth}`;
     case 'failed':
       return `border-rose-300 bg-rose-50 text-rose-800 ${selectedDepth}`;
+    case 'delete_failed':
+      return `border-rose-400 bg-rose-100 text-rose-900 ${selectedDepth}`;
     case 'downstream_missing':
       return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
     case 'running':
@@ -195,6 +199,8 @@ const stageConnectorTone = (status: string) => {
       return 'text-amber-400';
     case 'failed':
       return 'text-rose-400';
+    case 'delete_failed':
+      return 'text-rose-500';
     case 'downstream_missing':
       return 'text-orange-400';
     case 'running':
@@ -221,6 +227,7 @@ const formatBinarySecurityStatus = (status?: string | null) => {
   const normalized = String(status || '').trim().toLowerCase();
   const labels: Record<string, string> = {
     downstream_missing: '子任务不存在',
+    delete_failed: '删除失败',
   };
   return labels[normalized] || status || '-';
 };
@@ -883,7 +890,7 @@ const durationLabel = (started?: string | null, ended?: string | null) => {
 };
 
 const shouldShowStageRetryReason = (status?: string | null, retryable?: boolean, retryReason?: string | null) => (
-  Boolean(!retryable && retryReason && ['failed', 'partial_success', 'cancelled', 'downstream_missing'].includes(String(status || '')))
+  Boolean(!retryable && retryReason && ['failed', 'delete_failed', 'partial_success', 'cancelled', 'downstream_missing'].includes(String(status || '')))
 );
 
 type TaskStatusReason = {
@@ -949,11 +956,11 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   const stageItems = detail.stage_items || [];
   const archiveJobs = detail.archive_jobs || [];
   const currentStageLabel = STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-';
-  const failedStages = stageSummaries.filter((stage) => ['failed', 'partial_success', 'downstream_missing'].includes(stage.status));
+  const failedStages = stageSummaries.filter((stage) => ['failed', 'delete_failed', 'partial_success', 'downstream_missing'].includes(stage.status));
   const cancelledStages = stageSummaries.filter((stage) => stage.status === 'cancelled');
   const runningStages = stageSummaries.filter((stage) => ['running', 'dispatching', 'applying'].includes(stage.status));
   const pendingStages = stageSummaries.filter((stage) => stage.status === 'pending');
-  const failedItems = stageItems.filter((item) => item.status === 'failed');
+  const failedItems = stageItems.filter((item) => item.status === 'failed' || item.status === 'delete_failed');
   const missingItems = stageItems.filter((item) => item.status === 'downstream_missing');
   const runningItems = stageItems.filter((item) => ['running', 'dispatching'].includes(item.status));
   const cancelledItems = stageItems.filter((item) => item.status === 'cancelled');
@@ -979,7 +986,7 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     };
   }
 
-  if (detail.status === 'failed') {
+  if (detail.status === 'failed' || detail.status === 'delete_failed') {
     const reason = firstText(
       detail.last_error,
       latestFailedStage?.last_error,
@@ -990,8 +997,14 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     const failedStageName = latestFailedStage?.stage_name || latestFailedItem?.stage_name || latestFailedArchive?.stage_name || detail.current_stage;
     return {
       tone: 'error',
-      title: `任务失败于 ${STAGE_LABELS[failedStageName || ''] || failedStageName || '当前阶段'}`,
-      description: reason || '当前任务存在失败阶段、失败子任务或归档失败记录，编排器因此将总任务置为失败。',
+      title: detail.status === 'delete_failed'
+        ? '任务删除失败'
+        : `任务失败于 ${STAGE_LABELS[failedStageName || ''] || failedStageName || '当前阶段'}`,
+      description: reason || (
+        detail.status === 'delete_failed'
+          ? '任务记录保留，原因是工作目录或下游清理未完成，需要修复残留后重新删除。'
+          : '当前任务存在失败阶段、失败子任务或归档失败记录，编排器因此将总任务置为失败。'
+      ),
       evidence: [
         { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
         { label: '失败子任务', value: summarizeCount(failedItems.length) },
@@ -2893,7 +2906,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   {stageSequence.map((stageName) => {
                     const summary = stageSummaryByName.get(stageName);
                     const summaryStatus = String(summary?.status || '');
-                    const stageFinished = ['success', 'partial_success', 'failed', 'cancelled', 'skipped', 'downstream_missing'].includes(summaryStatus);
+                    const stageFinished = ['success', 'partial_success', 'failed', 'delete_failed', 'cancelled', 'skipped', 'downstream_missing'].includes(summaryStatus);
                     const stageActive = ['running', 'dispatching', 'queued', 'pending', 'waiting_confirmation'].includes(summaryStatus);
                     const stageMessage = stageActive
                       ? '运行中，本次修改仅影响后续/下次'
