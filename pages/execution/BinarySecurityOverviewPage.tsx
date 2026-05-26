@@ -4,6 +4,7 @@ import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Sh
 import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { showConfirm } from '../../components/DialogService';
 
 interface Props {
@@ -339,6 +340,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createDefaultsLoading, setCreateDefaultsLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -415,14 +417,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setRefreshing(true);
     setError(null);
     try {
-      const activeTaskIds = items
-        .filter((item) => !TERMINAL.has(item.status))
-        .map((item) => item.id);
-      if (activeTaskIds.length > 0) {
-        await Promise.allSettled(
-          activeTaskIds.map((taskId) => executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, { force: true })),
-        );
-      }
+      // Keep refresh side-effect free; background reconcile loops own state convergence.
       await load();
     } catch (e: any) {
       setError(e?.message || '刷新失败');
@@ -508,6 +503,20 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const deleteTask = async (taskId: string) => {
     await deleteTasks([taskId]);
   };
+
+  useEffect(() => {
+    let active = true;
+    void executionApi.binarySecurity.getHealth()
+      .then((payload) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [executionApi.binarySecurity]);
 
   useEffect(() => {
     void load();
@@ -805,7 +814,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
+              <ServiceBuildVersion version={buildVersion} />
+            </div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               {isSourceTask

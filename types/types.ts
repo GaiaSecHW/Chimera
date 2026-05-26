@@ -2457,6 +2457,31 @@ export interface AppSaStagesJson {
   final?: boolean;
 }
 
+export interface AppSaTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  stage_name?: string | null;
+  level: string;
+  event_type: string;
+  message: string;
+  payload?: Record<string, any> | null;
+  payload_json?: Record<string, any> | null;
+  created_at?: string | null;
+}
+
+export interface AppSaTaskTimeline {
+  task_id: string;
+  events: AppSaTaskEvent[];
+}
+
+export interface AppSaTaskActionResponse {
+  status: string;
+  task_id: string;
+  message: string;
+  deleted_event_count: number;
+}
+
 export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
@@ -2797,6 +2822,7 @@ export interface AppEaTaskItem {
   source_path?: string | null;
   module_name?: string | null;
   output_path?: string | null;
+  entry_count?: number | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   owner_pod?: string | null;
   lease_expires_at?: string | null;
@@ -2847,6 +2873,9 @@ export interface EntryAnalyseSlotClusterSummary {
   busy_slots: number;
   running_jobs: number;
   available_slots: number;
+  dispatch_limit: number;
+  dispatch_running: number;
+  dispatch_available: number;
   queued_tasks: number;
   queued_jobs: number;
   updated_at?: string | null;
@@ -3387,6 +3416,95 @@ export interface AppDfaTaskEvaluation {
   summary: AppDfaTaskResult['summary'];
   rounds: AppDfaEvaluationRound[];
   warnings: string[];
+}
+
+export interface AgentObservabilitySummary {
+  pod_name: string;
+  active_processes: number;
+  orphan_processes: number;
+  unknown_processes: number;
+  killable_orphan_processes: number;
+  orphan_sessions: number;
+  scanned_at?: number | null;
+  scan_errors?: number;
+  aggregate_mode?: string | null;
+  aggregate_partial?: boolean | null;
+  aggregate_sources?: number | null;
+  aggregate_fanout_errors?: number | null;
+  aggregate_duration_seconds?: number | null;
+  aggregate_cache_hit?: boolean | null;
+  aggregate_cache_age_seconds?: number | null;
+  aggregate_failed_targets?: string[];
+}
+
+export interface AgentProcessSnapshot {
+  pod_name: string;
+  pid: number;
+  pgid?: number | null;
+  ppid?: number | null;
+  command: string;
+  cwd?: string | null;
+  rss_bytes?: number | null;
+  session_file?: string | null;
+  session_id?: string | null;
+  task_id?: string | null;
+  task_name?: string | null;
+  task_status?: string | null;
+  stage_key?: string | null;
+  role_kind?: string | null;
+  owner_kind: 'tracked' | 'orphan' | 'unknown' | string;
+  owner_reason: string;
+  kill_allowed: boolean;
+  kill_block_reason?: string | null;
+  termination_state: string;
+}
+
+export interface AgentSessionObservabilitySnapshot {
+  pod_name: string;
+  session_file: string;
+  session_id?: string | null;
+  task_id?: string | null;
+  task_name?: string | null;
+  stage_key?: string | null;
+  role_kind?: string | null;
+  display_name: string;
+  line_count: number;
+  last_event_at?: string | null;
+  live: boolean;
+  has_process: boolean;
+  process_pid?: number | null;
+  orphan_session: boolean;
+  parse_warnings: string[];
+}
+
+export interface AgentTaskOwnershipSnapshot {
+  task_id: string;
+  task_name: string;
+  task_status: string;
+  stage_key?: string | null;
+  pod_name: string;
+  process_count: number;
+  session_count: number;
+  agent_roles: string[];
+  process_pids: number[];
+  session_ids: string[];
+  ownership_status: 'healthy' | 'partial' | 'orphaned' | 'unknown' | string;
+}
+
+export interface AgentProcessKillItem {
+  pid: number;
+  pgid?: number | null;
+  status: string;
+  reason?: string | null;
+}
+
+export interface AgentProcessKillResponse {
+  requested: number;
+  matched: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  items: AgentProcessKillItem[];
 }
 
 

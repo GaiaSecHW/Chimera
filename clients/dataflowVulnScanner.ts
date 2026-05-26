@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   ProjectFilesystemChildrenResponse,
   ProjectFilesystemRootResponse,
@@ -67,6 +68,15 @@ export interface DataflowInputRef {
 export interface DataflowAgentStateRootPayload {
   root_dir: DataflowInputRef;
 }
+
+export type DataflowVulnScannerHealth = {
+  status: string;
+  pod_id: string;
+  database: string;
+  scheduler: string;
+  scheduler_role?: string;
+  worker_enabled?: string;
+} & ServiceHealthMeta;
 
 export interface DataflowAgentStateDir {
   agent_id: string;
@@ -481,6 +491,11 @@ const unwrapList = <T,>(payload: unknown): T[] => {
 };
 
 export const dataflowVulnScannerApi = {
+  getHealth: async (): Promise<DataflowVulnScannerHealth> => {
+    const response = await fetch(`${PREFIX}/health`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
   getCapabilities: async (): Promise<Record<string, any>> => {
     const response = await fetch(`${PREFIX}/capabilities`, { headers: getHeaders() });
     return handleResponse(response);

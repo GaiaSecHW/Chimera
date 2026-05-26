@@ -26,6 +26,7 @@ import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProj
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -3198,6 +3199,7 @@ function TaskDetailPanel({
 
 export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = [], initialTaskId = '', onActiveTaskChange }) => {
   const { notify, feedbackNodes } = useUiFeedback();
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -3256,6 +3258,20 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
     resetCreateForm();
     setCreateModalOpen(true);
   }, [resetCreateForm]);
+
+  useEffect(() => {
+    let active = true;
+    void fwApi.getHealth()
+      .then((payload) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const fetchTasks = useCallback(async (resetPage = false, options?: {
     silent?: boolean;
@@ -3803,9 +3819,12 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         <div className="flex items-center gap-2">
           <Package size={18} className="text-indigo-600" />
           <div>
-            <h2 className="text-sm font-bold text-slate-800">
-              {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-800">
+                {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
+              </h2>
+              <ServiceBuildVersion version={buildVersion} />
+            </div>
             {!showingDetail && hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
           </div>
         </div>
