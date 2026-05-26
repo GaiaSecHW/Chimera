@@ -249,6 +249,7 @@ const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const TASK_RUN_ROUTE_CACHE_PREFIX = 'secflow:dataflowVuln:taskRunRoute:';
+const DATAFLOW_VULN_LIST_RETURN_VIEW = 'pentest-exec-dataflow-vuln-task-list';
 
 type CachedTaskRunRoute = {
   taskId: string;
@@ -257,6 +258,11 @@ type CachedTaskRunRoute = {
   name: string;
   root_path: string;
   linked_task_id?: string | null;
+};
+
+type DataflowVulnRouteState = {
+  fileserverRunSummary?: DataflowFileserverRunSummary;
+  returnView?: typeof DATAFLOW_VULN_LIST_RETURN_VIEW;
 };
 
 const readCachedTaskRunRoute = (taskId: string, executionId = ''): CachedTaskRunRoute | null => {
@@ -624,7 +630,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     const maxAttempts = Math.max(options?.retry ?? 1, 1);
     const cached = readCachedTaskRunRoute(task.task_id, task.latest_execution_id || '');
     if (cached) {
-      navigate(buildRunDetailPath(cached));
+      navigate(buildRunDetailPath(cached), {
+        state: { returnView: DATAFLOW_VULN_LIST_RETURN_VIEW } satisfies DataflowVulnRouteState,
+      });
       return true;
     }
 
@@ -634,7 +642,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, task.latest_execution_id);
           const target = runResolveToRouteTarget(resolved);
           writeCachedTaskRunRoute(task.task_id, resolved.linked_execution_id || task.latest_execution_id, target);
-          navigate(buildRunDetailPath(target));
+          navigate(buildRunDetailPath(target), {
+            state: { returnView: DATAFLOW_VULN_LIST_RETURN_VIEW } satisfies DataflowVulnRouteState,
+          });
           return true;
         } catch {
           // The Run index may appear just after task creation; retry briefly before falling back.
@@ -651,6 +661,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         navigate(buildRunDetailPath(run as DataflowFileserverRunSummary), {
           state: {
             fileserverRunSummary: run,
+            returnView: DATAFLOW_VULN_LIST_RETURN_VIEW,
           },
         });
         return true;
@@ -665,7 +676,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         const resolved = await executionApi.resolveRunByTask(projectId, task.task_id, taskForResolve.latest_execution_id);
         const target = runResolveToRouteTarget(resolved);
         writeCachedTaskRunRoute(task.task_id, resolved.linked_execution_id || taskForResolve.latest_execution_id, target);
-        navigate(buildRunDetailPath(target));
+        navigate(buildRunDetailPath(target), {
+          state: { returnView: DATAFLOW_VULN_LIST_RETURN_VIEW } satisfies DataflowVulnRouteState,
+        });
         return true;
       } catch {
         // The Run index may appear just after task creation; retry briefly before falling back to the resolver route.
@@ -673,7 +686,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       if (attempt + 1 < maxAttempts) await wait(500);
     }
     const runQuery = taskForResolve.latest_execution_id ? `?execution_id=${encodeURIComponent(taskForResolve.latest_execution_id)}` : '';
-    navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(task.task_id)}${runQuery}`);
+    navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(task.task_id)}${runQuery}`, {
+      state: { returnView: DATAFLOW_VULN_LIST_RETURN_VIEW } satisfies DataflowVulnRouteState,
+    });
     return false;
   };
 
@@ -681,6 +696,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     navigate(buildRunDetailPath(run), {
       state: {
         fileserverRunSummary: run,
+        returnView: DATAFLOW_VULN_LIST_RETURN_VIEW,
       },
     });
   };
@@ -1598,7 +1614,9 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     () => new URLSearchParams(location.search).get('fileserver_root') || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
     [location.search]
   );
-  const fileserverRouteSummary = (location.state as { fileserverRunSummary?: DataflowFileserverRunSummary } | null)?.fileserverRunSummary || null;
+  const routeState = (location.state as DataflowVulnRouteState | null) || null;
+  const fileserverRouteSummary = routeState?.fileserverRunSummary || null;
+  const returnView = routeState?.returnView || '';
   const isSyntheticFileserverTask = useMemo(() => isSyntheticFileserverTaskId(taskId), [taskId]);
   const isFileserverMode = isSyntheticFileserverTask && Boolean(fileserverRunName);
   const isRunBootstrapMode = isSyntheticFileserverTask && Boolean(routeRunId && !fileserverRunName);
@@ -1607,6 +1625,10 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const [linkedTaskDetail, setLinkedTaskDetail] = useState<DataflowScanTaskDetail | null>(null);
 
   const goBack = () => {
+    if (returnView === DATAFLOW_VULN_LIST_RETURN_VIEW) {
+      navigate('/pentest-exec-dataflow-vuln');
+      return;
+    }
     if (navigateBackByTaskOrigin(linkedTaskDetail)) {
       return;
     }
