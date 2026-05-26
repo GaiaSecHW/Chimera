@@ -652,8 +652,8 @@ function formatEvent(evt: AppEaStageEvent): string {
     // ── R2 准确性校正 ─────────────────────────────────────────────────
     case 'r2_w_start':          return `[${ts}] ▶ R2-W 启动: ${d.function ?? d.func_hash ?? ''}${Number(d.attempt) > 1 ? `(第${d.attempt}次)` : ''}`;
     case 'r2_w_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-W 完成: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.error ? ` — ${d.error}` : ''}`;
-    case 'r2_j_start':          return `[${ts}] ▶ R2-J 准确性验证: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 准确性验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    case 'r2_j_start':          return `[${ts}] ▶ R2 准确性验证: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2 准确性验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
     // ── R3 外部输入分析 ───────────────────────────────────────────────
     case 'r3_w_start':          return `[${ts}] ▶ R3-W 外部输入分析: ${d.function ?? d.func_hash ?? ''}`;
     case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.function ?? d.func_hash ?? ''} has_input=${d.has_external_input ?? ''}`;
@@ -1974,7 +1974,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 <div>
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">各函数流水线进度</h2>
                   <p className="mt-1 text-xs text-slate-400">
-                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。阶段：R2-J · R3-W · R3-J · R4 · R5
+                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。各函数并行推进：R2 · R3-W · R3-J · R4 · R5（不同函数同时处于不同阶段为正常现象）
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -2001,7 +2001,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       <th className="px-4 py-2.5 text-left">函数名</th>
                       <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
-                      <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2-J</th>
+                      <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2</th>
                       <th className="px-2 py-2.5 text-center">R3-W</th>
                       <th className="px-2 py-2.5 text-center">R3-J</th>
                       <th className="px-2 py-2.5 text-center">R4</th>
@@ -2026,7 +2026,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                                 : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未知</span>
                           }
                         </td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2-J" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3w} label="R3-W" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3j} label="R3-J" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
