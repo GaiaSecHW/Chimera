@@ -99,6 +99,13 @@ type AgentSessionContentState = {
   error: string | null;
 };
 
+type AgentKillHistoryEntry = {
+  id: string;
+  scope: 'single' | 'selected' | 'bulk';
+  createdAt: number;
+  response: AgentProcessKillResponse;
+};
+
 type PrometheusMetricType = 'counter' | 'gauge' | 'histogram' | 'summary' | 'untyped';
 
 type ParsedMetricSample = {
@@ -2069,6 +2076,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [selectedAgentTaskId, setSelectedAgentTaskId] = useState<string>('');
   const [selectedAgentSessionId, setSelectedAgentSessionId] = useState<string>('');
   const [agentSessionContentState, setAgentSessionContentState] = useState<AgentSessionContentState>(INITIAL_AGENT_SESSION_CONTENT_STATE);
+  const [agentKillHistory, setAgentKillHistory] = useState<AgentKillHistoryEntry[]>([]);
 
   const activeService = useMemo(
     () => BINARY_SECURITY_METRICS_SERVICES.find((service) => service.key === activeServiceKey) || BINARY_SECURITY_METRICS_SERVICES[0],
@@ -2505,6 +2513,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
     if (!confirmed) return;
     const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, process.pid) as AgentProcessKillResponse;
+    setAgentKillHistory((current) => [
+      {
+        id: `single-${process.pid}-${Date.now()}`,
+        scope: 'single',
+        createdAt: Date.now(),
+        response: result,
+      },
+      ...current,
+    ].slice(0, 8));
     await showAlert({
       title: '执行结果',
       message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
@@ -2523,6 +2540,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
     if (!confirmed) return;
     let summary = { requested: 0, matched: 0, succeeded: 0, failed: 0, skipped: 0 };
+    const items: AgentProcessKillResponse['items'] = [];
     for (const pid of selectedKillablePids) {
       const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, pid) as AgentProcessKillResponse;
       summary = {
@@ -2532,7 +2550,17 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         failed: summary.failed + result.failed,
         skipped: summary.skipped + result.skipped,
       };
+      items.push(...(result.items || []));
     }
+    setAgentKillHistory((current) => [
+      {
+        id: `selected-${Date.now()}`,
+        scope: 'selected',
+        createdAt: Date.now(),
+        response: { ...summary, items },
+      },
+      ...current,
+    ].slice(0, 8));
     await showAlert({
       title: '批量执行结果',
       message: `请求 ${summary.requested}，命中 ${summary.matched}，成功 ${summary.succeeded}，失败 ${summary.failed}，跳过 ${summary.skipped}`,
@@ -2551,6 +2579,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
     if (!confirmed) return;
     const result = await executionMetricsApi.killAllOrphanProcesses(activeServiceKey, projectId) as AgentProcessKillResponse;
+    setAgentKillHistory((current) => [
+      {
+        id: `bulk-${Date.now()}`,
+        scope: 'bulk',
+        createdAt: Date.now(),
+        response: result,
+      },
+      ...current,
+    ].slice(0, 8));
     await showAlert({
       title: '执行结果',
       message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
@@ -2886,6 +2923,45 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">当前未发现明确孤儿进程。</div>
                     )}
                   </div>
+                  <div className="mt-4 border-t border-slate-100 pt-4">
+                    <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Recent Manual Kill</div>
+                    <div className="mt-3 space-y-2">
+                      {agentKillHistory.length ? agentKillHistory.slice(0, 4).map((entry) => (
+                        <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-bold text-slate-800">
+                              {entry.scope === 'single' ? '单个处置' : entry.scope === 'selected' ? '选中批量处置' : '全部孤儿处置'}
+                            </span>
+                            <span className="text-[11px] text-slate-500">{formatTime(entry.createdAt)}</span>
+                          </div>
+                          <div className="mt-2 text-[11px] text-slate-600">
+                            请求 {formatNumber(entry.response.requested)} / 命中 {formatNumber(entry.response.matched)} / 成功 {formatNumber(entry.response.succeeded)} / 失败 {formatNumber(entry.response.failed)} / 跳过 {formatNumber(entry.response.skipped)}
+                          </div>
+                          {entry.response.items?.length ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {entry.response.items.slice(0, 6).map((item) => (
+                                <span
+                                  key={`${entry.id}-${item.pid}-${item.status}`}
+                                  className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+                                    item.status === 'succeeded'
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : item.status === 'failed'
+                                        ? 'bg-rose-100 text-rose-700'
+                                        : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                  title={item.reason || ''}
+                                >
+                                  PID {item.pid} · {item.status}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      )) : (
+                        <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500">当前还没有手工处置记录。</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
@@ -2905,7 +2981,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">是否部分结果：{agentState.summary?.aggregate_partial ? '是' : '否'}</div>
                         {agentState.summary?.aggregate_failed_targets?.length ? (
                           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-                            失败目标：{agentState.summary.aggregate_failed_targets.join(', ')}
+                            <div className="font-semibold">失败目标</div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {agentState.summary.aggregate_failed_targets.map((target) => (
+                                <span key={target} className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-amber-800">{target}</span>
+                              ))}
+                            </div>
                           </div>
                         ) : null}
                       </>

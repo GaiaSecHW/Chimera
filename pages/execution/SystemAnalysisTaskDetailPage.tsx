@@ -435,9 +435,22 @@ function timelineLevelTone(level?: string | null) {
   return 'border-slate-200 bg-slate-50 text-slate-700';
 }
 
+function isAgentKillTimelineEvent(eventType?: string | null) {
+  return ['agent_process_manual_kill', 'agent_process_bulk_manual_kill'].includes(String(eventType || '').trim());
+}
+
+function timelineEventTypeTone(eventType?: string | null) {
+  const normalized = String(eventType || '').trim();
+  if (normalized === 'agent_process_manual_kill') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-slate-200 bg-white text-slate-700';
+}
+
 function formatTimelineEventTypeLabel(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
   if (!normalized) return '-';
+  if (normalized === 'agent_process_manual_kill') return '智能体手工终止';
+  if (normalized === 'agent_process_bulk_manual_kill') return '智能体批量终止';
   return normalized.replace(/_/g, ' ');
 }
 
@@ -457,6 +470,19 @@ function timelinePayloadRows(payload: Record<string, any>) {
   return Object.entries(payload || {})
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => ({ key, label: key.replace(/_/g, ' '), value: formatTimelinePayloadValue(value) }));
+}
+
+function timelineAuditSummary(payload: Record<string, any>) {
+  const operator = formatTimelinePayloadValue(payload.operator);
+  const pid = formatTimelinePayloadValue(payload.pid);
+  const podName = formatTimelinePayloadValue(payload.pod_name);
+  const killMode = formatTimelinePayloadValue(payload.kill_mode);
+  return [
+    operator !== '-' ? `操作人 ${operator}` : '',
+    pid !== '-' ? `PID ${pid}` : '',
+    podName !== '-' ? `Pod ${podName}` : '',
+    killMode !== '-' ? `方式 ${killMode}` : '',
+  ].filter(Boolean).join(' · ');
 }
 
 function findLatestStageEventData(events: AppSaStageEvent[], stages: string[]): Record<string, any> | null {
@@ -2173,15 +2199,20 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             const payload = event.payload || event.payload_json || {};
                             const hasPayload = Object.keys(payload).length > 0;
                             const sourceLabel = event.project_id || '-';
+                            const auditEvent = isAgentKillTimelineEvent(event.event_type);
+                            const auditSummary = auditEvent ? timelineAuditSummary(payload) : '';
                             return (
                               <React.Fragment key={event.id}>
                                 <tr className="align-top">
                                   <td className="px-3 py-2 font-mono text-slate-500">{timelineRangeStart + index}</td>
                                   <td className="px-3 py-2 text-slate-600">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</td>
-                                  <td className="px-3 py-2"><span className="inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-700">{formatTimelineEventTypeLabel(event.event_type)}</span></td>
+                                  <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span></td>
                                   <td className="px-3 py-2">{event.stage_name ? <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700">{stageLabel(event.stage_name)}</span> : <span className="text-slate-400">-</span>}</td>
                                   <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
-                                  <td className="max-w-[360px] px-3 py-2"><div className="truncate font-semibold text-slate-800" title={event.message}>{event.message}</div></td>
+                                  <td className="max-w-[360px] px-3 py-2">
+                                    <div className="truncate font-semibold text-slate-800" title={event.message}>{event.message}</div>
+                                    {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-700" title={auditSummary}>{auditSummary}</div> : null}
+                                  </td>
                                   <td className="px-3 py-2 text-[11px] text-slate-500"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
                                   <td className="px-3 py-2 text-right">
                                     <div className="flex items-center justify-end gap-3">
