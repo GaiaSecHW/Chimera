@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   AppSaSessionIndex,
   AppSaSessionMeta,
@@ -56,7 +57,7 @@ export const DEFAULT_MODELS_CONFIG: SystemAnalysisModelsConfig = {
 
 export const appSystemAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string }> =>
+  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
     handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────

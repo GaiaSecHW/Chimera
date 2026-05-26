@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownUp, ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { AppSaClusterCapacity, AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
@@ -165,6 +166,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const refreshIntervalStorageKey = `secflow:systemAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
+  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRestarting, setBatchRestarting] = useState(false);
@@ -189,6 +191,20 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [clusterCapacity, setClusterCapacity] = useState<AppSaClusterCapacity | null>(null);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void appApi.getHealth()
+      .then((payload) => {
+        if (active) setBuildVersion(payload.build_version || null);
+      })
+      .catch(() => {
+        if (active) setBuildVersion(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [appApi]);
 
   const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
