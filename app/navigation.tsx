@@ -390,7 +390,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
     {
       title: '终端安全',
       items: [
-        { id: 'mobile-security-ipc-vuln', label: 'IPC漏洞扫描', icon: Terminal, requiresProject: true },
+        { id: 'mobile-security-ipc-vuln', label: '鸿蒙框架漏洞挖掘', icon: Terminal, requiresProject: true },
         { id: 'kernel-scan', label: '内核扫描', icon: Shield, requiresProject: true },
       ],
     },
