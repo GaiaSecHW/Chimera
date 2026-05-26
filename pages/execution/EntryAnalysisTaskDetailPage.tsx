@@ -995,22 +995,28 @@ function deriveFuncProgress(
       case 'r3_j_done':
         if (!isTerminal(f.r3j)) {
           const passed = Boolean(d.passed);
-          f.r3j = passed ? 'passed' : 'failed';  // failed = 本轮未通过，可重试
-          // r3_j_done passed=true 且无外部输入 → 设置 r3w/r3j=passed + r4=skip
-          if (passed && f.has_external_input === false) {
+          if (passed) {
+            // r3_j 通过：W+J 小循环最终确认，同步 r3w/r3j 为终态
             if (!isTerminal(f.r3w)) f.r3w = 'passed';
-            if (!isTerminal(f.r4))  f.r4  = 'skip';
-            if (!isTerminal(f.rep)) f.rep = 'skip';
-          } else if (!passed) {
+            f.r3j = 'passed';
+            // 若事件携带 r4_decision，直接设置 R4 列（无需等 catalog 刷新）
+            const r4dec = String(d.r4_decision ?? '').toLowerCase();
+            if (r4dec && !isTerminal(f.r4)) {
+              if (r4dec === 'keep') {
+                f.r4 = 'keep'; f.is_entry = true;
+                if (!isTerminal(f.rep)) f.rep = 'pending';
+              } else if (r4dec === 'filter' || r4dec === 'remove') {
+                f.r4 = f.has_external_input === false ? 'skip' : 'remove';
+                if (!isTerminal(f.rep)) f.rep = 'skip';
+              }
+            }
+          } else {
             // 未通过，将重试：下一轮 r3_w_start 会把 r3w 设回 running
             if (!isTerminal(f.r3w)) f.r3w = 'pending';
             f.r3j = 'pending'; // 重置等待下一轮
           }
         }
         f.lastTs = ts; break;
-
-      // R4 入口决策 Worker (r4_w_func)
-      case 'r4_w_func_start': advance(f, 'r4', 'running'); f.lastTs = ts; break;
       case 'r4_w_func_done': {
         if (!isTerminal(f.r4)) {
           const dec = String(d.decision ?? 'keep').toLowerCase();
@@ -1028,11 +1034,6 @@ function deriveFuncProgress(
         f.lastTs = ts; break;
 
       default: break;
-    }
-
-    // r3_j_done passed=true 且 has_input 尚未确定：把 r3w 设终态
-    if (evt.type === 'r3_j_done' && d.passed && f.has_external_input !== false) {
-      if (!isTerminal(f.r3w)) f.r3w = 'passed';
     }
   }
 
