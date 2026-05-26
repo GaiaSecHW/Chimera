@@ -199,6 +199,48 @@ export interface DataflowSchedulerWorker {
   updated_at?: string | null;
 }
 
+export interface DataflowVulnWorkerActiveJob {
+  execution_id: string;
+  task_id?: string | null;
+  task_title?: string | null;
+  status: string;
+  worker_job_id: string;
+  worker_url?: string | null;
+  dispatch_status?: string | null;
+  started_at?: string | null;
+  updated_at?: string | null;
+  run_name?: string | null;
+  run_path?: string | null;
+  project_id?: string | null;
+  mapped: boolean;
+  mapping_reason: string;
+}
+
+export interface DataflowVulnWorkerCapacity {
+  worker_id: string;
+  host_name: string;
+  healthy: boolean;
+  max_concurrent_jobs: number;
+  running_jobs: number;
+  available_slots: number;
+  source: string;
+  last_heartbeat_at?: string | null;
+  error?: string | null;
+  active_jobs: DataflowVulnWorkerActiveJob[];
+}
+
+export interface DataflowVulnClusterCapacity {
+  worker_count: number;
+  healthy_workers: number;
+  stale_workers: number;
+  total_capacity: number;
+  running_jobs: number;
+  queued_jobs: number;
+  available_slots: number;
+  updated_at: string;
+  workers: DataflowVulnWorkerCapacity[];
+}
+
 export interface DataflowCreateTaskPayload {
   project_id: string;
   profile_id?: string;
@@ -522,6 +564,11 @@ export const dataflowVulnScannerApi = {
       profile_id: params.profileId,
     }), { headers: getHeaders() });
     return unwrapList<DataflowScanTask>(await handleResponse(response));
+  },
+
+  getWorkerClusterCapacity: async (): Promise<DataflowVulnClusterCapacity> => {
+    const response = await fetch(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
+    return handleResponse(response);
   },
 
   createTask: async (payload: DataflowCreateTaskPayload): Promise<DataflowScanTask> => {

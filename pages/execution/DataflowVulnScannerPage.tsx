@@ -5,7 +5,9 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Clock,
   FileSearch,
   FolderOpen,
@@ -37,6 +39,7 @@ import {
   DataflowScanTask,
   DataflowScanTaskDetail,
   DataflowCreateTaskPayload,
+  DataflowVulnClusterCapacity,
   DataflowRunResolve,
 } from '../../clients/dataflowVulnScanner';
 import {
@@ -605,6 +608,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
   const [buildVersion, setBuildVersion] = useState<string | null>(null);
+  const [slotSummary, setSlotSummary] = useState<DataflowVulnClusterCapacity | null>(null);
+  const [slotSummaryLoading, setSlotSummaryLoading] = useState(false);
+  const [slotSummaryError, setSlotSummaryError] = useState('');
+  const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
+  const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
+  const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
   const loadTasksPromiseRef = useRef<Promise<void> | null>(null);
 
   const openTaskDetail = async (
@@ -725,8 +734,20 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       setLoading(true);
       setTasksError('');
       try {
-        const payload = await executionApi.listTasks({ projectId });
+        const [payload, nextSlotSummary] = await Promise.all([
+          executionApi.listTasks({ projectId }),
+          executionApi.getWorkerClusterCapacity().catch((error: any) => {
+            setSlotSummaryError(error?.message || '读取执行槽位失败');
+            return null;
+          }),
+        ]);
         setTasks(payload || []);
+        if (nextSlotSummary) {
+          setSlotSummary(nextSlotSummary);
+          setSlotSummaryError('');
+        } else {
+          setSlotSummary(null);
+        }
       } catch (error: any) {
         setTasks([]);
         const message = error?.message || '读取任务列表失败';
@@ -743,6 +764,20 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       if (loadTasksPromiseRef.current === promise) {
         loadTasksPromiseRef.current = null;
       }
+    }
+  };
+
+  const loadSlotSummary = async () => {
+    setSlotSummaryLoading(true);
+    try {
+      const payload = await executionApi.getWorkerClusterCapacity();
+      setSlotSummary(payload);
+      setSlotSummaryError('');
+    } catch (error: any) {
+      setSlotSummary(null);
+      setSlotSummaryError(error?.message || '读取执行槽位失败');
+    } finally {
+      setSlotSummaryLoading(false);
     }
   };
 
@@ -921,6 +956,47 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   const hasSelection = selectedTaskIds.size > 0;
   const allVisibleSelected = filteredTasks.length > 0 && filteredTasks.every((task) => selectedTaskIds.has(task.task_id));
+  const toggleSlotWorkerExpanded = (workerId: string) => {
+    setExpandedSlotWorkerIds((current) => (
+      current.includes(workerId)
+        ? current.filter((item) => item !== workerId)
+        : [...current, workerId]
+    ));
+  };
+  const slotCards = useMemo(() => [
+    {
+      label: '总槽位',
+      value: slotSummary?.total_capacity ?? '-',
+      hint: slotSummary?.updated_at ? `更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}` : '全局 worker 总执行槽位',
+      border: 'border-slate-200',
+      bg: 'bg-slate-50',
+      text: 'text-slate-800',
+    },
+    {
+      label: '忙槽位',
+      value: slotSummary?.running_jobs ?? '-',
+      hint: slotSummary && slotSummary.total_capacity > 0 ? `利用率 ${Math.round((slotSummary.running_jobs / slotSummary.total_capacity) * 100)}%` : '当前活跃任务占用的槽位',
+      border: 'border-cyan-200',
+      bg: 'bg-cyan-50',
+      text: 'text-cyan-700',
+    },
+    {
+      label: '空闲槽位',
+      value: slotSummary?.available_slots ?? '-',
+      hint: '当前未被活跃任务占用的容量',
+      border: 'border-emerald-200',
+      bg: 'bg-emerald-50',
+      text: 'text-emerald-700',
+    },
+    {
+      label: '排队任务',
+      value: slotSummary?.queued_jobs ?? '-',
+      hint: `在线 Worker ${slotSummary?.worker_count ?? 0}`,
+      border: 'border-amber-200',
+      bg: 'bg-amber-50',
+      text: 'text-amber-700',
+    },
+  ], [slotSummary]);
 
   const submitCreateTask = async () => {
     if (!projectId) {
@@ -978,7 +1054,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   return (
     <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
       {feedbackNodes}
-      <div className="mx-auto max-w-[1800px] space-y-4">
+      <div className="space-y-4">
         <PageHeader
           eyebrow="Dataflow Vulnerability Mining"
           title="数据流漏洞挖掘"
@@ -1017,6 +1093,92 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           <MetricCard label="运行中" value={stats.running} icon={<Activity size={17} />} />
           <MetricCard label="已成功" value={stats.succeeded} icon={<ShieldCheck size={17} />} tone="bg-emerald-50/70" />
           <MetricCard label="失败" value={stats.failed} icon={<AlertTriangle size={17} />} tone="bg-rose-50/70" />
+        </section>
+
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <button
+              type="button"
+              onClick={() => setSlotsPanelExpanded((current) => !current)}
+              className="flex flex-1 items-start justify-between gap-4 text-left"
+            >
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
+                <p className="mt-2 text-sm text-slate-500">展示数据流漏洞挖掘服务全局 worker 槽位、活跃任务和心跳状态，不区分项目。</p>
+              </div>
+              <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
+                {slotsPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} className="rotate-[-90deg]" />}
+              </span>
+            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="text-xs text-slate-400">最近同步 {formatDateTime(slotSummary?.updated_at)}</div>
+              {slotSummary ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSlotDetailModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-100"
+                >
+                  查看详情
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void loadSlotSummary()}
+                className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+              >
+                <RefreshCw size={14} />
+              </button>
+              {slotSummaryLoading ? (
+                <div className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <Loader2 size={13} className="animate-spin" />
+                  刷新槽位数据中
+                </div>
+              ) : null}
+            </div>
+          </div>
+          {slotsPanelExpanded ? (
+            <>
+              <div className="mt-5 grid gap-3 md:grid-cols-4">
+                {slotCards.map((card) => (
+                  <div key={card.label} className={`rounded-2xl border ${card.border} ${card.bg} px-4 py-3`}>
+                    <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${card.text}`}>{card.label}</div>
+                    <div className="mt-2 text-2xl font-black text-slate-900">{card.value}</div>
+                    <div className="mt-1 text-[11px] text-slate-500">{card.hint}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {(slotSummary?.workers || []).map((worker) => (
+                  <div
+                    key={worker.worker_id}
+                    className={`min-w-[220px] rounded-2xl border px-4 py-3 ${worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50'}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-black text-slate-900" title={worker.worker_id}>{worker.host_name || worker.worker_id}</div>
+                      <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        {worker.healthy ? 'healthy' : 'unhealthy'}
+                      </div>
+                    </div>
+                    <div className="mt-1 truncate text-[11px] text-slate-400" title={worker.worker_id}>{worker.worker_id}</div>
+                    <div className="mt-2 text-xs text-slate-600">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs} · 空闲 {worker.available_slots}</div>
+                    <div className="mt-1 text-xs text-slate-400">心跳 {formatDateTime(worker.last_heartbeat_at)}</div>
+                    {worker.error ? <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div> : null}
+                  </div>
+                ))}
+                {slotSummary && (slotSummary.workers || []).length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                    当前未发现可用的漏洞挖掘 worker。
+                  </div>
+                ) : null}
+              </div>
+              {slotSummaryError ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                  暂无槽位数据：{slotSummaryError}
+                </div>
+              ) : null}
+            </>
+          ) : null}
         </section>
 
         <section>
@@ -1285,6 +1447,134 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
           onSubmit={submitCreateTask}
         />
       ) : null}
+
+      {showSlotDetailModal ? (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm" onClick={() => setShowSlotDetailModal(false)}>
+          <div className="w-full max-w-5xl rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_30px_100px_rgba(15,23,42,0.35)]" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Slot Detail</div>
+                <h3 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位详情</h3>
+                <p className="mt-2 text-sm text-slate-500">按 worker 展示当前正在执行的数据流漏洞挖掘任务。</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right text-xs text-slate-400">
+                  <div>最近同步</div>
+                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(slotSummary?.updated_at)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSlotDetailModal(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  aria-label="关闭执行槽位详情"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[75vh] overflow-auto px-6 py-5">
+              {(slotSummary?.workers || []).length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
+                  当前未发现可用的漏洞挖掘 worker。
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(slotSummary?.workers || []).map((worker) => {
+                    const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
+                    const activeJobs = worker.active_jobs || [];
+                    return (
+                      <section key={worker.worker_id} className={`overflow-hidden rounded-[1.5rem] border ${worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/70'}`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSlotWorkerExpanded(worker.worker_id)}
+                          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-slate-50/70"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{worker.healthy ? 'healthy' : 'unhealthy'}</span>
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">活动任务 {activeJobs.length}</span>
+                            </div>
+                            <div className="mt-1 text-[11px] text-slate-400">{worker.worker_id}</div>
+                            <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                              <span>槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                              <span>空闲 {worker.available_slots}</span>
+                              <span>心跳 {formatDateTime(worker.last_heartbeat_at)}</span>
+                            </div>
+                          </div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+                            {expanded ? <ChevronDown size={16} /> : <ChevronUp size={16} className="rotate-90" />}
+                          </div>
+                        </button>
+                        {expanded ? (
+                          <div className="border-t border-slate-100 px-5 py-4">
+                            {!worker.healthy && worker.error ? (
+                              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                                明细拉取失败：{worker.error}
+                              </div>
+                            ) : activeJobs.length === 0 ? (
+                              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">
+                                当前无运行中的漏洞挖掘任务。
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {activeJobs.map((job) => (
+                                  <div key={`${worker.worker_id}:${job.execution_id}:${job.worker_job_id}`} className={`rounded-2xl border px-4 py-4 ${job.mapped ? 'border-slate-200 bg-slate-50/70' : 'border-amber-200 bg-amber-50/80'}`}>
+                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          {job.mapped && job.task_id ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => void openTaskDetail({ task_id: job.task_id || '', latest_execution_id: job.execution_id || '' })}
+                                              className="truncate text-left text-sm font-black text-cyan-700 hover:text-cyan-800"
+                                            >
+                                              {job.task_title || job.task_id}
+                                            </button>
+                                          ) : (
+                                            <div className="truncate text-sm font-black text-slate-900">{job.task_title || '未关联任务'}</div>
+                                          )}
+                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${job.mapped ? 'bg-cyan-100 text-cyan-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {job.mapped ? '已关联任务' : '未关联任务'}
+                                          </span>
+                                        </div>
+                                        <div className="mt-2 grid gap-2 text-xs text-slate-500 md:grid-cols-2">
+                                          <div>任务 ID: {job.task_id || '-'}</div>
+                                          <div>执行 ID: {job.execution_id || '-'}</div>
+                                          <div>Run 名称: {job.run_name || '-'}</div>
+                                          <div className="break-all">Run 路径: {job.run_path || '-'}</div>
+                                          <div>状态: {job.status || '-'}</div>
+                                          <div>调度状态: {job.dispatch_status || '-'}</div>
+                                          <div>开始时间: {formatDateTime(job.started_at)}</div>
+                                          <div>最近更新时间: {formatDateTime(job.updated_at)}</div>
+                                        </div>
+                                      </div>
+                                      {job.mapped && job.task_id ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => void openTaskDetail({ task_id: job.task_id || '', latest_execution_id: job.execution_id || '' })}
+                                          className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-white px-3 py-1.5 text-xs font-bold text-cyan-700 hover:bg-cyan-50"
+                                        >
+                                          进入任务
+                                          <ChevronRight size={14} />
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -1465,7 +1755,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     return (
       <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
         {feedbackNodes}
-        <div className="mx-auto max-w-[960px]">
+        <div className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3 text-sm font-bold text-slate-600">
               <Loader2 size={16} className={detailLoading ? 'animate-spin' : ''} />
@@ -1481,7 +1771,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     return (
       <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
         {feedbackNodes}
-        <div className="mx-auto max-w-[960px] space-y-4">
+        <div className="space-y-4">
           <PageHeader
             eyebrow="Dataflow Vulnerability Mining"
             title="正在进入 Run 详情"
@@ -1522,7 +1812,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   return (
     <div className="min-h-full bg-slate-100 px-5 py-5 text-slate-900 lg:px-8 lg:py-7">
       {feedbackNodes}
-      <div className="mx-auto max-w-[960px] space-y-4">
+      <div className="space-y-4">
         <PageHeader
           eyebrow="Dataflow Vulnerability Mining"
           title="缺少 Run 入口"
