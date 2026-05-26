@@ -21,6 +21,14 @@ import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContaine
 import { api } from '../../clients/api';
 import { showAlert, showConfirm } from '../../components/DialogService';
 import {
+  ExecutionTable,
+  ExecutionTableEmptyRow,
+  ExecutionTableHead,
+  ExecutionTableTd,
+  ExecutionTableTh,
+  executionTableRowClassName,
+} from '../../components/execution/ExecutionTable';
+import {
   BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS,
   BINARY_SECURITY_CANONICAL_AI_METRICS,
   BINARY_SECURITY_METRICS_SECONDARY_TABS,
@@ -46,6 +54,7 @@ import {
   AppSaClusterCapacity,
   EntryAnalyseSlotClusterSummary,
 } from '../../types/types';
+import type { BinarySecurityReducerEventRecord, BinarySecurityReducerEventRecordPage } from '../../clients/binarySecurity';
 import {
   DataflowVulnAiSection,
   DataflowVulnObservabilitySection,
@@ -60,6 +69,13 @@ import { AgentSessionViewer } from './AgentSessionViewer';
 type MetricsState = {
   loading: boolean;
   rawText: string;
+  error: string | null;
+  refreshedAt: number | null;
+};
+
+type ReducerEventState = {
+  loading: boolean;
+  data: BinarySecurityReducerEventRecordPage | null;
   error: string | null;
   refreshedAt: number | null;
 };
@@ -107,6 +123,9 @@ type AgentKillHistoryEntry = {
   createdAt: number;
   response: AgentProcessKillResponse;
 };
+
+type ReducerEventSortBy = 'processed_at' | 'duration_ms' | 'created_at';
+type ReducerEventSortOrder = 'asc' | 'desc';
 
 const buildFallbackAgentSessionMeta = (
   session: AgentSessionObservabilitySnapshot,
@@ -491,6 +510,7 @@ const CHART_COLOR = '#0f766e';
 const AI_CHART_COLOR = '#7c3aed';
 const CHART_GRID = '#e2e8f0';
 const INITIAL_STATE: MetricsState = { loading: false, rawText: '', error: null, refreshedAt: null };
+const INITIAL_REDUCER_EVENT_STATE: ReducerEventState = { loading: false, data: null, error: null, refreshedAt: null };
 const ENTRY_ANALYSIS_STAGE_FOCUS_STORAGE_KEY = 'secflow:entryAnalysisStageFocus';
 const ENTRY_ANALYSIS_RISK_FOCUS_STORAGE_KEY = 'secflow:entryAnalysisRiskFocus';
 
@@ -521,6 +541,12 @@ const formatSeconds = (value: number | null | undefined) => {
   if (value >= 3600) return `${formatNumber(value / 3600, 2)}h`;
   if (value >= 60) return `${formatNumber(value / 60, 2)}m`;
   return `${formatNumber(value, value >= 10 ? 1 : 2)}s`;
+};
+
+const formatMilliseconds = (value: number | null | undefined) => {
+  if (value == null || !Number.isFinite(value)) return '-';
+  if (value >= 1000) return formatSeconds(value / 1000);
+  return `${formatNumber(value, 0)}ms`;
 };
 
 const formatTime = (timestamp: number | null) =>
@@ -2158,8 +2184,18 @@ const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]
   </div>
 );
 
+const reducerFailedKinds = new Set(['retryable', 'dead_letter', 'reducer_failed', 'lease_expired', 'unknown']);
+
+function reducerRowClassName(item: BinarySecurityReducerEventRecord): string {
+  if (reducerFailedKinds.has(item.failure_kind)) {
+    return `${executionTableRowClassName} bg-rose-50/80 hover:bg-rose-50`;
+  }
+  return executionTableRowClassName;
+}
+
 export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionMetricsApi = api.domains.execution.metrics;
+  const binarySecurityExecutionApi = api.domains.execution.binarySecurity;
   const dataflowAnalysisApi = api.domains.execution.appDataflowAnalyse;
   const entryAnalysisApi = api.domains.execution.appEntryAnalyse;
   const systemAnalysisApi = api.domains.execution.appSystemAnalyse;
@@ -2179,6 +2215,17 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, []])) as Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>,
   );
   const [reducerMetricsState, setReducerMetricsState] = useState<MetricsState>(INITIAL_STATE);
+  const [reducerEventState, setReducerEventState] = useState<ReducerEventState>(INITIAL_REDUCER_EVENT_STATE);
+  const [reducerEventPage, setReducerEventPage] = useState(1);
+  const [reducerEventPageSize, setReducerEventPageSize] = useState(50);
+  const [reducerEventSortBy, setReducerEventSortBy] = useState<ReducerEventSortBy>('processed_at');
+  const [reducerEventSortOrder, setReducerEventSortOrder] = useState<ReducerEventSortOrder>('desc');
+  const [reducerEventStatusFilter, setReducerEventStatusFilter] = useState<string>('all');
+  const [reducerEventTypeFilter, setReducerEventTypeFilter] = useState('');
+  const [reducerEventHandlerFilter, setReducerEventHandlerFilter] = useState('');
+  const [reducerEventTaskFilter, setReducerEventTaskFilter] = useState('');
+  const [reducerEventFailedOnly, setReducerEventFailedOnly] = useState(false);
+  const [reducerEventSlowOnly, setReducerEventSlowOnly] = useState(false);
   const [stateByService, setStateByService] = useState<Record<BinarySecurityMetricsServiceKey, MetricsState>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, INITIAL_STATE])) as Record<BinarySecurityMetricsServiceKey, MetricsState>,
   );
@@ -2340,6 +2387,37 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     }
   };
 
+  const loadReducerEvents = async () => {
+    setReducerEventState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const data = await binarySecurityExecutionApi.getReducerEvents({
+        page: reducerEventPage,
+        page_size: reducerEventPageSize,
+        sort_by: reducerEventSortBy,
+        sort_order: reducerEventSortOrder,
+        status: reducerEventStatusFilter === 'all' ? [] : [reducerEventStatusFilter],
+        event_type: reducerEventTypeFilter.trim() || undefined,
+        handler_pod: reducerEventHandlerFilter.trim() || undefined,
+        task_id: reducerEventTaskFilter.trim() || undefined,
+        failed_only: reducerEventFailedOnly,
+        slow_only: reducerEventSlowOnly,
+      });
+      setReducerEventState({
+        loading: false,
+        data,
+        error: null,
+        refreshedAt: Date.now(),
+      });
+    } catch (error: any) {
+      setReducerEventState((current) => ({
+        ...current,
+        loading: false,
+        error: error?.message || 'Reducer 事件记录抓取失败',
+        refreshedAt: Date.now(),
+      }));
+    }
+  };
+
   const agentObservabilityEnabled = activeServiceKey === 'entry-analysis' || activeServiceKey === 'system-analysis' || activeServiceKey === 'dataflow-analysis';
 
   const loadAgentObservability = async (serviceKey: BinarySecurityMetricsServiceKey) => {
@@ -2390,6 +2468,25 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   }, [activeSecondaryTab, activeServiceKey, reducerMetricsState]);
 
   useEffect(() => {
+    if (activeServiceKey !== 'binary-security') return;
+    if (activeSecondaryTab !== 'reducer') return;
+    void loadReducerEvents();
+  }, [
+    activeSecondaryTab,
+    activeServiceKey,
+    reducerEventPage,
+    reducerEventPageSize,
+    reducerEventSortBy,
+    reducerEventSortOrder,
+    reducerEventStatusFilter,
+    reducerEventTypeFilter,
+    reducerEventHandlerFilter,
+    reducerEventTaskFilter,
+    reducerEventFailedOnly,
+    reducerEventSlowOnly,
+  ]);
+
+  useEffect(() => {
     if (activeSecondaryTab !== 'agent') return;
     if (!agentObservabilityEnabled) return;
     if (!agentState.summary && !agentState.loading && !agentState.error) {
@@ -2407,6 +2504,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       void loadMetrics(activeServiceKey);
       if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer') {
         void loadReducerMetrics();
+        void loadReducerEvents();
       }
     }, activeSecondaryTab === 'agent' ? 5000 : 30000);
     return () => window.clearInterval(timer);
@@ -4807,6 +4905,53 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               ))}
             </div>
 
+            <div className="grid gap-3 xl:grid-cols-6">
+              {[
+                {
+                  label: '慢事件数',
+                  value: formatNumber(reducerEventState.data?.summary?.slow_event_count ?? 0),
+                  hint: '处理耗时 >= 1s',
+                  tone: 'border-amber-200 bg-amber-50 text-amber-800',
+                },
+                {
+                  label: '失败事件数',
+                  value: formatNumber(reducerEventState.data?.summary?.failed_like_count ?? 0),
+                  hint: 'retryable / dead_letter / failed-like',
+                  tone: 'border-rose-200 bg-rose-50 text-rose-800',
+                },
+                {
+                  label: 'P95 处理耗时',
+                  value: formatMilliseconds(reducerEventState.data?.summary?.p95_processing_duration_ms ?? null),
+                  hint: '用于识别长尾',
+                  tone: 'border-sky-200 bg-sky-50 text-sky-800',
+                },
+                {
+                  label: '平均处理耗时',
+                  value: formatMilliseconds(reducerEventState.data?.summary?.avg_processing_duration_ms ?? null),
+                  hint: '仅统计有处理时长样本',
+                  tone: 'border-slate-200 bg-slate-50 text-slate-700',
+                },
+                {
+                  label: '最长处理耗时',
+                  value: formatMilliseconds(reducerEventState.data?.summary?.max_processing_duration_ms ?? null),
+                  hint: '单条最慢样本',
+                  tone: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800',
+                },
+                {
+                  label: '事件容量',
+                  value: reducerEventState.data?.truncated ? '10,000+' : formatNumber(reducerEventState.data?.total ?? 0),
+                  hint: reducerEventState.data?.truncated ? '已触发 10,000 条上限截断' : '过滤后总数',
+                  tone: 'border-teal-200 bg-teal-50 text-teal-800',
+                },
+              ].map((item) => (
+                <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 shadow-sm ${item.tone}`}>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em]">{item.label}</div>
+                  <div className="mt-3 text-2xl font-black tracking-tight">{item.value}</div>
+                  <div className="mt-1 text-xs opacity-85">{item.hint}</div>
+                </div>
+              ))}
+            </div>
+
             <div className="grid gap-3 xl:grid-cols-4">
               {reducerViewModel.queueCards.map((item) => (
                 <div key={item.label} className={`rounded-[1.4rem] border px-4 py-4 shadow-sm ${item.tone}`}>
@@ -4934,6 +5079,245 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 <ReducerMetricList title="Reducer Event Result" items={reducerViewModel.reducerEventResults} emptyText="暂无事件应用结果。" />
                 <ReducerMetricList title="Dead Letters" items={reducerViewModel.deadLetters} emptyText="当前没有死信事件。" />
                 <ReducerMetricList title="Task State Lock / File Writes" items={[...reducerViewModel.activeLocks, ...reducerViewModel.fileWriteResults].slice(0, 8)} emptyText="暂无锁和文件落盘统计。" />
+              </div>
+            </div>
+
+            <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">全局事件明细</div>
+                  <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">事件处理记录</h3>
+                  <p className="mt-2 text-sm text-slate-500">用于直接观察 reducer 处理时间、处理者、失败结果和当前积压状态，不区分项目，最多浏览 10,000 条。</p>
+                </div>
+                <div className="text-xs text-slate-500">
+                  最近刷新 {formatTime(reducerEventState.refreshedAt)}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 xl:grid-cols-6">
+                <label className="text-xs font-semibold text-slate-600">
+                  状态
+                  <select
+                    value={reducerEventStatusFilter}
+                    onChange={(event) => {
+                      setReducerEventStatusFilter(event.target.value);
+                      setReducerEventPage(1);
+                    }}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  >
+                    <option value="all">全部状态</option>
+                    <option value="pending">pending</option>
+                    <option value="processing">processing</option>
+                    <option value="retryable">retryable</option>
+                    <option value="dead_letter">dead_letter</option>
+                    <option value="processed">processed</option>
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600">
+                  排序
+                  <select
+                    value={reducerEventSortBy}
+                    onChange={(event) => {
+                      setReducerEventSortBy(event.target.value as ReducerEventSortBy);
+                      setReducerEventPage(1);
+                    }}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  >
+                    <option value="processed_at">最近处理时间</option>
+                    <option value="duration_ms">处理耗时</option>
+                    <option value="created_at">创建时间</option>
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600">
+                  排序方向
+                  <select
+                    value={reducerEventSortOrder}
+                    onChange={(event) => {
+                      setReducerEventSortOrder(event.target.value as ReducerEventSortOrder);
+                      setReducerEventPage(1);
+                    }}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  >
+                    <option value="desc">降序</option>
+                    <option value="asc">升序</option>
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-600">
+                  事件类型
+                  <input
+                    value={reducerEventTypeFilter}
+                    onChange={(event) => {
+                      setReducerEventTypeFilter(event.target.value);
+                      setReducerEventPage(1);
+                    }}
+                    placeholder="如 downstream_terminal_observed"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">
+                  处理者 Pod
+                  <input
+                    value={reducerEventHandlerFilter}
+                    onChange={(event) => {
+                      setReducerEventHandlerFilter(event.target.value);
+                      setReducerEventPage(1);
+                    }}
+                    placeholder="如 reducer-pod-1"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  />
+                </label>
+                <label className="text-xs font-semibold text-slate-600">
+                  Task ID
+                  <input
+                    value={reducerEventTaskFilter}
+                    onChange={(event) => {
+                      setReducerEventTaskFilter(event.target.value);
+                      setReducerEventPage(1);
+                    }}
+                    placeholder="按 task_id 过滤"
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={reducerEventFailedOnly}
+                    onChange={(event) => {
+                      setReducerEventFailedOnly(event.target.checked);
+                      setReducerEventPage(1);
+                    }}
+                  />
+                  只看失败
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={reducerEventSlowOnly}
+                    onChange={(event) => {
+                      setReducerEventSlowOnly(event.target.checked);
+                      setReducerEventPage(1);
+                    }}
+                  />
+                  只看慢事件
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  每页
+                  <select
+                    value={reducerEventPageSize}
+                    onChange={(event) => {
+                      setReducerEventPageSize(Number(event.target.value));
+                      setReducerEventPage(1);
+                    }}
+                    className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700"
+                  >
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                    <option value={200}>200</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void loadReducerEvents()}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <RefreshCw size={14} />
+                  刷新记录
+                </button>
+              </div>
+
+              {reducerEventState.error ? (
+                <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{reducerEventState.error}</div>
+              ) : null}
+
+              <div className="mt-4">
+                <ExecutionTable minWidth={1540}>
+                  <ExecutionTableHead>
+                    <tr>
+                      <ExecutionTableTh>处理时间</ExecutionTableTh>
+                      <ExecutionTableTh>事件 ID</ExecutionTableTh>
+                      <ExecutionTableTh>事件类型</ExecutionTableTh>
+                      <ExecutionTableTh>状态</ExecutionTableTh>
+                      <ExecutionTableTh>处理结果</ExecutionTableTh>
+                      <ExecutionTableTh>处理者</ExecutionTableTh>
+                      <ExecutionTableTh>任务 ID</ExecutionTableTh>
+                      <ExecutionTableTh>阶段</ExecutionTableTh>
+                      <ExecutionTableTh align="right">尝试次数</ExecutionTableTh>
+                      <ExecutionTableTh align="right">排队耗时</ExecutionTableTh>
+                      <ExecutionTableTh align="right">处理耗时</ExecutionTableTh>
+                      <ExecutionTableTh align="right">总耗时</ExecutionTableTh>
+                      <ExecutionTableTh>错误/失败原因</ExecutionTableTh>
+                    </tr>
+                  </ExecutionTableHead>
+                  <tbody>
+                    {reducerEventState.loading && !(reducerEventState.data?.items?.length) ? (
+                      <ExecutionTableEmptyRow colSpan={13} message="正在加载 reducer 事件记录..." />
+                    ) : reducerEventState.data?.items?.length ? (
+                      reducerEventState.data.items.map((item) => (
+                        <tr key={item.event_id} className={reducerRowClassName(item)}>
+                          <ExecutionTableTd className="font-mono text-[11px] text-slate-700">{item.processed_at ? formatTime(new Date(item.processed_at).getTime()) : '-'}</ExecutionTableTd>
+                          <ExecutionTableTd className="font-mono text-[11px] text-slate-800">{item.event_id}</ExecutionTableTd>
+                          <ExecutionTableTd className="font-mono text-[11px] text-slate-700">{item.event_type}</ExecutionTableTd>
+                          <ExecutionTableTd>
+                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-700">
+                              {item.queue_status}
+                            </span>
+                          </ExecutionTableTd>
+                          <ExecutionTableTd>
+                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
+                              reducerFailedKinds.has(item.failure_kind)
+                                ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                : item.result === 'success'
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : 'border-slate-200 bg-slate-50 text-slate-700'
+                            }`}>
+                              {item.result}
+                            </span>
+                          </ExecutionTableTd>
+                          <ExecutionTableTd className="font-mono text-[11px] text-slate-700">{item.handler_pod || '-'}</ExecutionTableTd>
+                          <ExecutionTableTd className="font-mono text-[11px] text-slate-800">{item.task_id}</ExecutionTableTd>
+                          <ExecutionTableTd className="text-slate-700">{item.stage_name || '-'}</ExecutionTableTd>
+                          <ExecutionTableTd align="right" className="font-mono text-[11px] text-slate-800">{formatNumber(item.attempts)}</ExecutionTableTd>
+                          <ExecutionTableTd align="right" className="font-mono text-[11px] text-slate-700">{formatMilliseconds(item.queue_wait_ms)}</ExecutionTableTd>
+                          <ExecutionTableTd align="right" className={`font-mono text-[11px] ${(item.processing_duration_ms ?? 0) >= 1000 ? 'text-amber-700 font-black' : 'text-slate-800'}`}>{formatMilliseconds(item.processing_duration_ms)}</ExecutionTableTd>
+                          <ExecutionTableTd align="right" className="font-mono text-[11px] text-slate-800">{formatMilliseconds(item.end_to_end_duration_ms)}</ExecutionTableTd>
+                          <ExecutionTableTd className="max-w-[24rem] text-xs text-slate-600">
+                            {item.last_error || item.failure_reason || '-'}
+                          </ExecutionTableTd>
+                        </tr>
+                      ))
+                    ) : (
+                      <ExecutionTableEmptyRow colSpan={13} message="当前没有符合条件的 reducer 事件记录。" />
+                    )}
+                  </tbody>
+                </ExecutionTable>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                <div>
+                  第 {formatNumber(reducerEventState.data?.page ?? reducerEventPage)} 页 / 共 {formatNumber(Math.max(1, Math.ceil((reducerEventState.data?.total ?? 0) / Math.max(1, reducerEventPageSize))))} 页
+                  ，总计 {reducerEventState.data?.truncated ? '10,000+' : formatNumber(reducerEventState.data?.total ?? 0)} 条
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={reducerEventPage <= 1}
+                    onClick={() => setReducerEventPage((current) => Math.max(1, current - 1))}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    上一页
+                  </button>
+                  <button
+                    type="button"
+                    disabled={reducerEventPage >= Math.max(1, Math.ceil((reducerEventState.data?.total ?? 0) / Math.max(1, reducerEventPageSize)))}
+                    onClick={() => setReducerEventPage((current) => current + 1)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    下一页
+                  </button>
+                </div>
               </div>
             </div>
           </section>
