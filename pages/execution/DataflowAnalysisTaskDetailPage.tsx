@@ -384,6 +384,9 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
   const [activeAgentSessionPath, setActiveAgentSessionPath] = useState<string | null>(null);
+  const [activeAgentKeyword, setActiveAgentKeyword] = useState('');
+  const [activeAgentPage, setActiveAgentPage] = useState(1);
+  const [activeAgentPageSize, setActiveAgentPageSize] = useState(10);
   const [sessionSnapshot, setSessionSnapshot] = useState<AppDfaSessionSnapshot | null>(null);
   const [sessionEvents, setSessionEvents] = useState<AppDfaSessionEvent[]>([]);
   const [sessionWarnings, setSessionWarnings] = useState<string[]>([]);
@@ -671,6 +674,31 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
   }, [sessions]);
   const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
   const activeSessions = useMemo(() => sessions.filter((item) => item.is_active), [sessions]);
+  const filteredActiveSessions = useMemo(() => {
+    const keyword = activeAgentKeyword.trim().toLowerCase();
+    if (!keyword) return activeSessions;
+    return activeSessions.filter((session) =>
+      [
+        session.display_name,
+        session.relative_path,
+        session.stage_group,
+        session.role_name,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword)),
+    );
+  }, [activeAgentKeyword, activeSessions]);
+  const activeAgentTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredActiveSessions.length / Math.max(1, activeAgentPageSize))),
+    [filteredActiveSessions.length, activeAgentPageSize],
+  );
+  const normalizedActiveAgentPage = Math.min(Math.max(1, activeAgentPage), activeAgentTotalPages);
+  const pagedActiveSessions = useMemo(() => {
+    const start = (normalizedActiveAgentPage - 1) * Math.max(1, activeAgentPageSize);
+    return filteredActiveSessions.slice(start, start + Math.max(1, activeAgentPageSize));
+  }, [activeAgentPageSize, filteredActiveSessions, normalizedActiveAgentPage]);
+  const activeAgentRangeStart = filteredActiveSessions.length === 0 ? 0 : (normalizedActiveAgentPage - 1) * Math.max(1, activeAgentPageSize) + 1;
+  const activeAgentRangeEnd = filteredActiveSessions.length === 0 ? 0 : Math.min(normalizedActiveAgentPage * Math.max(1, activeAgentPageSize), filteredActiveSessions.length);
   const activeAgentSessionMeta = useMemo(
     () => sessions.find((item) => item.relative_path === activeAgentSessionPath) || null,
     [sessions, activeAgentSessionPath],
@@ -707,6 +735,14 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
     [evaluationRounds, selectedEvaluationRoundKey],
   );
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
+
+  useEffect(() => {
+    setActiveAgentPage(1);
+  }, [activeAgentKeyword, activeAgentPageSize, taskId]);
+
+  useEffect(() => {
+    if (activeAgentPage > activeAgentTotalPages) setActiveAgentPage(activeAgentTotalPages);
+  }, [activeAgentPage, activeAgentTotalPages]);
 
   const cancelTask = async () => {
     if (!detail) return;
@@ -822,36 +858,93 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
                   <p className="mt-1 text-xs text-slate-400">展示当前任务仍处于活跃状态的智能体会话与角色，点击可查看实时会话。</p>
                 </div>
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+                    展示 {activeAgentRangeStart}-{activeAgentRangeEnd} / {filteredActiveSessions.length}
+                  </span>
+                </div>
               </div>
               {sessionsLoading && sessions.length === 0 ? (
                 <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载智能体状态中...</div>
               ) : activeSessions.length > 0 ? (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
-                  <div className="divide-y divide-slate-200 bg-white">
-                    {activeSessions.map((session) => (
-                      <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-slate-50">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
-                            <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
-                            <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
-                              <span>分组 {session.stage_group || '-'}</span>
-                              <span>事件 {session.event_count}</span>
-                              <span>更新时间 {formatSessionMtime(session.mtime)}</span>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>
-                              {sessionRoleLabel(session.role_name)}
-                            </span>
-                            <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+                <>
+                  <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <Search size={14} className="text-slate-400" />
+                      <input
+                        value={activeAgentKeyword}
+                        onChange={(event) => setActiveAgentKeyword(event.target.value)}
+                        placeholder="按名称、路径、分组或角色筛选"
+                        className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                      />
+                    </div>
+                    <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                      每页
+                      <select
+                        value={activeAgentPageSize}
+                        onChange={(event) => setActiveAgentPageSize(Math.max(1, Number(event.target.value) || 10))}
+                        className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700"
+                      >
+                        {[10, 20, 50].map((size) => <option key={size} value={size}>{size}</option>)}
+                      </select>
+                    </label>
                   </div>
-                </div>
+                  {filteredActiveSessions.length > 0 ? (
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
+                      <div className="divide-y divide-slate-200 bg-white">
+                        {pagedActiveSessions.map((session) => (
+                          <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-4 py-4 text-left transition hover:bg-slate-50">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
+                                <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
+                                <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                                  <span>分组 {session.stage_group || '-'}</span>
+                                  <span>事件 {session.event_count}</span>
+                                  <span>更新时间 {formatSessionMtime(session.mtime)}</span>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>
+                                  {sessionRoleLabel(session.role_name)}
+                                </span>
+                                <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                      当前筛选条件下没有匹配的活跃智能体会话。
+                    </div>
+                  )}
+                  {activeAgentTotalPages > 1 && filteredActiveSessions.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                      <span>第 {normalizedActiveAgentPage} / {activeAgentTotalPages} 页</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setActiveAgentPage((current) => Math.max(1, current - 1))}
+                          disabled={normalizedActiveAgentPage <= 1}
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+                        >
+                          上一页
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveAgentPage((current) => Math.min(activeAgentTotalPages, current + 1))}
+                          disabled={normalizedActiveAgentPage >= activeAgentTotalPages}
+                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+                        >
+                          下一页
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                   {detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前没有检测到活跃智能体会话。' : '任务已结束，当前没有活跃智能体。'}
