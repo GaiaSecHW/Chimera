@@ -79,6 +79,7 @@ const DASHBOARD_HTML = `
         </nav>
 
         <div id="tabOverview" class="tab-content active">
+          <div class="card" id="taskOverviewCard"></div>
           <div class="grid-2">
             <div class="card" id="scoreChart"></div>
             <div class="card" id="vulnTrendCard"></div>
@@ -4195,9 +4196,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       el.innerHTML = `<div style="display:grid;gap:14px">${cards.join('')}</div>`;
     },
 
-    renderTaskInfo(data: DataflowFileserverRunOverview) {
-      const el = this.$('taskInfoCard');
-      if (!el) return;
+    buildTaskInfoCardHtml(data: DataflowFileserverRunOverview, options?: { title?: string }) {
       const linked = !!(data.linked_task_id || data.linked_execution_id);
       const commandDisplay = this.runCommandDisplay(data);
       const retryCommandDisplay = this.retryCommandDisplay(data);
@@ -4224,8 +4223,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         ['Atomic Work', data.atomic_work_path || '-'],
         ['解析时间', data.updated_at || '-'],
       ];
-      el.innerHTML = `
-        <div class="card-title">任务 / Run 信息</div>
+      return `
+        <div class="card-title">${this.esc(options?.title || '任务 / Run 信息')}</div>
         <div class="task-state-line">
           <span class="badge ${linked ? 'badge-succeeded' : 'badge-warning'}">${linked ? '已关联任务记录' : '未关联任务记录'}</span>
           <span class="text-muted">${linked ? '当前 Run 已关联任务与执行记录，可以统一使用取消、重试、删除能力。' : '点击“关联任务记录”会创建任务与执行记录并绑定该 Run，不会启动扫描。'}</span>
@@ -4367,7 +4366,20 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       `;
     },
 
+    renderTaskInfo(data: DataflowFileserverRunOverview) {
+      const taskInfoCardHtml = this.buildTaskInfoCardHtml(data, { title: '任务 / Run 信息' });
+      const taskInfoEl = this.$('taskInfoCard');
+      if (taskInfoEl) {
+        taskInfoEl.innerHTML = taskInfoCardHtml;
+      }
+      const taskOverviewEl = this.$('taskOverviewCard');
+      if (taskOverviewEl) {
+        taskOverviewEl.innerHTML = this.buildTaskInfoCardHtml(data, { title: '概览 / 任务信息' });
+      }
+    },
+
     renderOverview(data: DataflowFileserverRunOverview) {
+      this.renderTaskInfo(data);
       this.renderScoreChart(data.cycles || []);
       this.renderVulnerabilityTrendCard(data.cycles || []);
       this.renderManifestCard(data.manifests || {});

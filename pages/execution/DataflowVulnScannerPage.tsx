@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Activity,
@@ -1817,6 +1817,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const [detailLoading, setDetailLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [linkedTaskDetail, setLinkedTaskDetail] = useState<DataflowScanTaskDetail | null>(null);
+  const routeResolveGenerationRef = useRef(0);
 
   const goBack = () => {
     if (returnView === DATAFLOW_VULN_LIST_RETURN_VIEW) {
@@ -1836,13 +1837,20 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     navigate('/pentest-exec-dataflow-vuln');
   };
 
-  const resolveTaskRouteToRun = async (targetTaskId: string, preferredExecutionId = requestedExecutionId) => {
+  const resolveTaskRouteToRun = async (
+    targetTaskId: string,
+    preferredExecutionId = requestedExecutionId,
+    isActive: () => boolean = () => true
+  ) => {
     if (!projectId || !targetTaskId) return;
+    if (!isActive()) return;
     const cached = readCachedTaskRunRoute(targetTaskId, preferredExecutionId || '');
     if (cached) {
+      if (!isActive()) return;
       navigate(buildRunDetailPath(cached), { replace: true });
       return;
     }
+    if (!isActive()) return;
     setDetailLoading(true);
     setLoadError('');
     try {
@@ -1852,19 +1860,23 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
         for (let attempt = 0; attempt < 3; attempt += 1) {
           try {
             const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, executionId);
+            if (!isActive()) return;
             const target = runResolveToRouteTarget(resolved);
             writeCachedTaskRunRoute(targetTaskId, resolved.linked_execution_id || executionId, target);
             navigate(buildRunDetailPath(target), { replace: true });
             return;
           } catch (error: any) {
+            if (!isActive()) return;
             if (attempt >= 2) break;
           }
           await wait(300);
+          if (!isActive()) return;
         }
       }
 
       try {
         const taskDetail = await executionApi.getTask(targetTaskId);
+        if (!isActive()) return;
         setLinkedTaskDetail(taskDetail);
         const run = taskRunLocator(taskDetail);
         if (run.name && run.root_path) {
@@ -1879,31 +1891,48 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
         }
         executionId = executionId || taskDetail.latest_execution_id || '';
       } catch {
+        if (!isActive()) return;
         setLinkedTaskDetail(null);
       }
       for (let attempt = 0; attempt < 6; attempt += 1) {
         try {
           const resolved = await executionApi.resolveRunByTask(projectId, targetTaskId, executionId);
+          if (!isActive()) return;
           const target = runResolveToRouteTarget(resolved);
           writeCachedTaskRunRoute(targetTaskId, resolved.linked_execution_id || executionId, target);
           navigate(buildRunDetailPath(target), { replace: true });
           return;
         } catch (error: any) {
+          if (!isActive()) return;
           if (attempt >= 5) throw error;
         }
-        if (attempt < 5) await wait(500);
+        if (attempt < 5) {
+          await wait(500);
+          if (!isActive()) return;
+        }
       }
+      if (!isActive()) return;
       setLoadError('没有找到该任务对应的 Run 目录。可能任务刚创建完成，Run 目录仍在初始化；请稍后刷新任务列表。');
     } catch (error: any) {
+      if (!isActive()) return;
       setLoadError(error?.message || '解析任务对应 Run 失败');
     } finally {
-      setDetailLoading(false);
+      if (isActive()) {
+        setDetailLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     if (isFileserverMode || isRunBootstrapMode) return;
-    void resolveTaskRouteToRun(taskId, requestedExecutionId);
+    let cancelled = false;
+    const generation = routeResolveGenerationRef.current + 1;
+    routeResolveGenerationRef.current = generation;
+    const isActive = () => !cancelled && routeResolveGenerationRef.current === generation;
+    void resolveTaskRouteToRun(taskId, requestedExecutionId, isActive);
+    return () => {
+      cancelled = true;
+    };
   }, [taskId, requestedExecutionId, isFileserverMode, isRunBootstrapMode, fileserverRunName, fileserverRootPath, projectId]);
 
   useEffect(() => {
@@ -2842,16 +2871,10 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
               </button>
             </div>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <Field label="发现模式">
-                <select
-                  value={String(serviceRuntimeConfig?.config?.scheduler?.discovery_mode || 'registry')}
-                  onChange={(event) => updateServiceSchedulerField('discovery_mode', event.target.value)}
-                  className={FORM_INPUT_CLASS}
-                >
-                  <option value="registry">registry</option>
-                  <option value="hybrid">hybrid</option>
-                  <option value="static_urls">static_urls</option>
-                </select>
+              <Field label="Worker 发现方式">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
+                  registry（固定）
+                </div>
               </Field>
               <Field label="每 Pod 槽位数">
                 <NumberInput value={Number(serviceRuntimeConfig?.config?.scheduler?.worker_capacity || 0)} onChange={(value) => updateServiceSchedulerField('worker_capacity', value)} />
@@ -2882,15 +2905,9 @@ export const DataflowVulnConfigPage: React.FC<{ projectId: string; embedded?: bo
                   value={String(serviceRuntimeConfig?.config?.dataflow_worker?.advertise_url_template || '')}
                   onChange={(event) => updateServiceWorkerField('advertise_url_template', event.target.value)}
                   className={FORM_INPUT_CLASS}
-                  placeholder="http://{host_name}.secflow-app-dataflow-vuln-scanner-worker-headless.secflow-ns.svc.cluster.local:8080"
+                  placeholder="http://{pod_id}.{headless_service_name}.{pod_namespace}.svc.cluster.local:8080"
                 />
-              </Field>
-              <Field label="静态 base_url">
-                <input
-                  value={String(serviceRuntimeConfig?.config?.dataflow_worker?.base_url || '')}
-                  onChange={(event) => updateServiceWorkerField('base_url', event.target.value)}
-                  className={FORM_INPUT_CLASS}
-                />
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">留空时自动使用 registry FQDN：`pod_id.headless_service_name.pod_namespace.svc.cluster.local`。</span>
               </Field>
               <Field label="dispatch 重试间隔(秒)">
                 <NumberInput value={Number(serviceRuntimeConfig?.config?.dataflow_worker?.dispatch_retry_interval_seconds || 2)} onChange={(value) => updateServiceWorkerField('dispatch_retry_interval_seconds', value)} />

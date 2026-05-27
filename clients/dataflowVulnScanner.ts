@@ -211,16 +211,12 @@ export interface DataflowServiceRuntimeConfig {
       worker_timeout_seconds?: number;
       worker_retention_seconds?: number;
       cleanup_interval_seconds?: number;
-      discovery_mode?: 'registry' | 'static_urls' | 'hybrid' | string;
       reservation_lease_seconds?: number;
       worker_queue_depth?: number;
       dispatch_batch_size?: number;
       requeue_stuck_dispatch_after_seconds?: number;
     };
     dataflow_worker?: {
-      base_url?: string;
-      worker_urls?: string[];
-      worker_url_template?: string;
       advertise_url_template?: string;
       timeout?: number;
       dispatch_retry_interval_seconds?: number;
