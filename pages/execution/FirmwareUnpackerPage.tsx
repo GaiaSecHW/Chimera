@@ -95,6 +95,12 @@ function deriveRunPath(outputPath: string) {
   return '';
 }
 
+function resolveTaskRunPath(task: Pick<FirmwareUnpackTask, 'run_path' | 'output_path'> | null | undefined) {
+  const explicit = String(task?.run_path || '').trim();
+  if (explicit) return explicit;
+  return deriveRunPath(String(task?.output_path || ''));
+}
+
 function fmtTime(iso: string | null) {
   if (!iso) return '-';
   return new Date(iso).toLocaleString('zh-CN', { hour12: false });
@@ -127,6 +133,11 @@ function formatSeconds(seconds: number | null | undefined) {
 function formatPhaseDuration(seconds: number | null | undefined) {
   if (seconds == null || !Number.isFinite(seconds)) return '';
   return `（${formatSeconds(seconds)}）`;
+}
+
+function formatEvolutionToolDuration(seconds: number | null | undefined) {
+  if (seconds == null || !Number.isFinite(seconds)) return '-';
+  return formatSeconds(seconds);
 }
 
 type ProgressPhase = FirmwareTaskProgress['phases'][number];
@@ -173,7 +184,7 @@ function normalizeProgressPhases(progress: FirmwareTaskProgress | null): Progres
 
   if (hasRoundPhases) {
     if (toolReviewPhase) {
-      expected.push({ key: 'llm_review_tool', label: toolReviewPhase.label || 'LLM 评审（工具阶段）' });
+      expected.push({ key: 'llm_review_tool', label: toolReviewPhase.label || 'tool评审' });
     }
     for (let round = 1; round <= maxRound; round += 1) {
       expected.push({ key: `llm_unpack_round_${round}`, label: `LLM 解包（第${round}轮）` });
@@ -186,7 +197,7 @@ function normalizeProgressPhases(progress: FirmwareTaskProgress | null): Progres
     expected.push(
       toolReviewPhase
         ? { key: 'llm_review_tool', label: toolReviewPhase.label || 'LLM 评审（工具阶段）' }
-        : { key: 'llm_review', label: 'LLM 评审' },
+        : { key: 'llm_review', label: 'LLM评审' },
     );
   }
   expected.push({ key: 'llm_cleanup', label: 'LLM 清理' });
@@ -218,7 +229,7 @@ function buildLayeredProgressNodes(phases: ProgressPhase[]) {
   const byKey = new Map(phases.map((phase) => [phase.key, phase]));
   const preprocess = byKey.get('preprocess') || buildPlaceholderPhase('preprocess', '预处理');
   const cleanup = byKey.get('llm_cleanup') || buildPlaceholderPhase('llm_cleanup', 'LLM 清理');
-  const toolReview = byKey.get('llm_review_tool') || byKey.get('llm_review') || buildPlaceholderPhase('llm_review_tool', 'LLM 评审');
+  const toolReview = byKey.get('llm_review_tool') || byKey.get('llm_review') || buildPlaceholderPhase('llm_review_tool', 'tool评审');
   const llmUnpackRounds = groupRoundPhasesByPrefix(phases, 'llm_unpack');
   const llmRecursiveRounds = groupRoundPhasesByPrefix(phases, 'recursive_expand_llm');
   const llmReviewRounds = groupRoundPhasesByPrefix(phases, 'llm_review');
@@ -236,7 +247,7 @@ function buildLayeredProgressNodes(phases: ProgressPhase[]) {
     },
     {
       key: 'llm_review_tool',
-      label: 'LLM 评审',
+      label: 'tool评审',
       phase: toolReview,
     },
   ];
@@ -256,14 +267,21 @@ function buildLayeredProgressNodes(phases: ProgressPhase[]) {
     },
     {
       key: 'llm_review',
-      label: 'LLM 评审',
-      phase: byKey.get('llm_review') || llmReviewRounds[0] || buildPlaceholderPhase('llm_review', 'LLM 评审'),
+      label: 'LLM评审',
+      phase: byKey.get('llm_review') || llmReviewRounds[0] || buildPlaceholderPhase('llm_review', 'LLM评审'),
       rounds: llmReviewRounds,
     },
   ];
 
   return { preprocess, cleanup, toolLane, llmLane };
 }
+
+type ProgressConnectorPath = {
+  id: string;
+  d: string;
+  stroke?: string;
+  dashArray?: string;
+};
 
 function phaseNodeTone(status: string) {
   if (status === 'success') return 'border-emerald-500 bg-emerald-50 text-emerald-600';
@@ -745,7 +763,6 @@ function RoundDetailModal({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-black text-slate-900">{activeSummaryTitle}</div>
-                    <div className="mt-1 text-xs text-slate-500">Markdown 解析视图，适合直接阅读完整内容</div>
                   </div>
                   <div className="flex flex-wrap gap-2 text-[11px]">
                     <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-600">状态：{activeSummaryMeta.status}</span>
@@ -1030,6 +1047,14 @@ function TaskDetailPanel({
   const [evolutionLogLoading, setEvolutionLogLoading] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
   const lastRefreshRequestRef = useRef(refreshRequest ?? 0);
+  const progressCanvasRef = useRef<HTMLDivElement | null>(null);
+  const preprocessNodeRef = useRef<HTMLDivElement | null>(null);
+  const toolEntryNodeRef = useRef<HTMLDivElement | null>(null);
+  const llmEntryNodeRef = useRef<HTMLDivElement | null>(null);
+  const toolExitNodeRef = useRef<HTMLDivElement | null>(null);
+  const llmExitNodeRef = useRef<HTMLDivElement | null>(null);
+  const cleanupNodeRef = useRef<HTMLDivElement | null>(null);
+  const [progressConnectorPaths, setProgressConnectorPaths] = useState<ProgressConnectorPath[]>([]);
 
   const closeSessionSocket = useCallback(() => {
     if (sessionSocketRef.current) {
@@ -1038,6 +1063,105 @@ function TaskDetailPanel({
     }
     setSessionLive(false);
   }, []);
+
+  useEffect(() => {
+    const container = progressCanvasRef.current;
+    if (!container) {
+      setProgressConnectorPaths([]);
+      return;
+    }
+
+    const getCenter = (node: HTMLDivElement | null) => {
+      if (!node) return null;
+      const rect = node.getBoundingClientRect();
+      const base = container.getBoundingClientRect();
+      return {
+        x: rect.left - base.left + rect.width / 2,
+        y: rect.top - base.top + rect.height / 2,
+        r: Math.min(rect.width, rect.height) / 2,
+      };
+    };
+
+    const preprocess = getCenter(preprocessNodeRef.current);
+    const toolEntry = getCenter(toolEntryNodeRef.current);
+    const llmEntry = getCenter(llmEntryNodeRef.current);
+    const toolExit = getCenter(toolExitNodeRef.current);
+    const llmExit = getCenter(llmExitNodeRef.current);
+    const cleanup = getCenter(cleanupNodeRef.current);
+
+    if (!preprocess || !toolEntry || !llmEntry || !toolExit || !llmExit || !cleanup) {
+      setProgressConnectorPaths([]);
+      return;
+    }
+
+    const phaseIsVisible = (status: string | null | undefined) => !['pending', 'not_executed'].includes(String(status || ''));
+    const phaseIsPassed = (status: string | null | undefined) => String(status || '') === 'success';
+    const phaseIsFailed = (status: string | null | undefined) => String(status || '') === 'failed';
+    const phaseActuallyExecuted = (status: string | null | undefined) =>
+      phaseIsVisible(status) && String(status || '') !== 'skipped';
+
+    const horizontalSign = (fromX: number, toX: number) => (toX >= fromX ? 1 : -1);
+    const edgePoint = (
+      point: { x: number; y: number; r: number },
+      direction: 'left' | 'right',
+    ) => ({
+      x: point.x + (direction === 'right' ? point.r : -point.r),
+      y: point.y,
+    });
+
+    const elbow = (
+      from: { x: number; y: number; r: number },
+      to: { x: number; y: number; r: number },
+      midX: number,
+    ) => {
+      const start = edgePoint(from, horizontalSign(from.x, midX) >= 0 ? 'right' : 'left');
+      const end = edgePoint(to, horizontalSign(midX, to.x) >= 0 ? 'left' : 'right');
+      return `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
+    };
+
+    const leftMidX = preprocess.x + (toolEntry.x - preprocess.x) * 0.42;
+    const rightMidX = cleanup.x - (cleanup.x - toolExit.x) * 0.42;
+    const toolReviewPhase = layeredProgress.toolLane[layeredProgress.toolLane.length - 1]?.phase;
+    const llmReviewPhase = layeredProgress.llmLane[layeredProgress.llmLane.length - 1]?.phase;
+    const toolPhase = layeredProgress.toolLane[0]?.phase;
+    const llmPhase = layeredProgress.llmLane[0]?.phase;
+    const toolRecursivePhase = layeredProgress.toolLane[1]?.phase;
+    const toolReviewPassed = phaseIsPassed(toolReviewPhase?.status);
+    const toolReviewFailed = phaseIsFailed(toolReviewPhase?.status);
+    const llmReviewVisible = phaseActuallyExecuted(llmReviewPhase?.status);
+    const llmPhaseExecuted = phaseActuallyExecuted(llmPhase?.status);
+    const toolChainExecuted =
+      phaseActuallyExecuted(toolPhase?.status)
+      || phaseActuallyExecuted(toolRecursivePhase?.status)
+      || phaseActuallyExecuted(toolReviewPhase?.status);
+
+    const nextPaths: ProgressConnectorPath[] = [];
+
+    if (phaseIsVisible(toolPhase?.status)) {
+      nextPaths.push({ id: 'preprocess-tool', d: elbow(preprocess, toolEntry, leftMidX) });
+    }
+    if (!toolChainExecuted && llmPhaseExecuted) {
+      nextPaths.push({ id: 'preprocess-llm', d: elbow(preprocess, llmEntry, leftMidX) });
+    }
+
+    if (toolReviewPassed && !llmPhaseExecuted && !llmReviewVisible) {
+      nextPaths.push({ id: 'tool-cleanup', d: elbow(toolExit, cleanup, rightMidX) });
+    }
+    if (llmReviewVisible) {
+      nextPaths.push({ id: 'llm-cleanup', d: elbow(llmExit, cleanup, rightMidX) });
+    }
+    if (toolChainExecuted && toolReviewFailed && llmPhaseExecuted) {
+      const fallbackMidX = toolExit.x + (llmEntry.x - toolExit.x) * 0.42;
+      nextPaths.unshift({
+        id: 'tool-to-llm-fallback',
+        d: elbow(toolExit, llmEntry, fallbackMidX),
+        stroke: '#ea580c',
+        dashArray: '8 4',
+      });
+    }
+
+    setProgressConnectorPaths(nextPaths);
+  }, [layeredProgress, progress, progressLoading]);
 
   const loadTimeline = useCallback(async (options?: { silent?: boolean }) => {
     if (!task?.id) return;
@@ -1093,11 +1217,11 @@ function TaskDetailPanel({
   }, [task?.id]);
 
   const sessionIndexFsPath = useMemo(() => {
-    if (!task?.output_path || !task?.project_id) return null;
-    const runPath = deriveRunPath(task.output_path);
+    if (!task?.project_id) return null;
+    const runPath = resolveTaskRunPath(task);
     if (!runPath) return null;
     return extractFsRelPath(`${runPath}/sessions/index.json`, task.project_id);
-  }, [task?.output_path, task?.project_id]);
+  }, [task]);
 
   const groupedSessions = useMemo(() => {
     const groups = new Map<string, AppSaSessionMeta[]>();
@@ -1160,8 +1284,12 @@ function TaskDetailPanel({
   }, [fileserverApi, sessionIndexFsPath, task?.project_id]);
 
   const loadSessionFile = useCallback(async (sessionFile: string) => {
-    if (!task?.project_id || !task?.output_path || !sessionFile) return;
-    const runPath = deriveRunPath(task.output_path);
+    if (!task?.project_id || !sessionFile) return;
+    const runPath = resolveTaskRunPath(task);
+    if (!runPath) {
+      setSessionError('当前任务缺少运行目录');
+      return;
+    }
     const fsPath = extractFsRelPath(`${runPath}/sessions/${sessionFile}`, task.project_id);
     if (!fsPath) {
       setSessionError('当前会话路径不在 fileserver 项目目录下');
@@ -1186,7 +1314,7 @@ function TaskDetailPanel({
     } finally {
       setSessionLoading(false);
     }
-  }, [fileserverApi, task?.output_path, task?.project_id]);
+  }, [fileserverApi, task]);
 
   const loadEvolutionJobs = useCallback(async (options?: { silent?: boolean }) => {
     if (!task?.id) {
@@ -1406,12 +1534,18 @@ function TaskDetailPanel({
   }, [activeTab, closeSessionSocket, loadSessionFile, selectedSessionPath]);
 
   useEffect(() => {
-    if (activeTab !== 'session' || !selectedSessionPath || !selectedSessionItem || !task?.project_id || !task?.output_path) return;
+    if (activeTab !== 'session' || !selectedSessionPath || !selectedSessionItem || !task?.project_id) return;
     if (selectedSessionItem.status !== 'running' || !['pending', 'running', 'cancelling'].includes(task.status)) {
       setSessionLive(false);
       return;
     }
-    const sessionAbsPath = normalizeJoinPath(`${deriveRunPath(task.output_path)}/sessions`, selectedSessionPath);
+    const runPath = resolveTaskRunPath(task);
+    if (!runPath) {
+      setSessionLive(false);
+      setSessionError('当前任务缺少运行目录，无法实时监听');
+      return;
+    }
+    const sessionAbsPath = normalizeJoinPath(`${runPath}/sessions`, selectedSessionPath);
     const watchPath = extractFsRelPath(sessionAbsPath, task.project_id);
     if (!watchPath) {
       setSessionLive(false);
@@ -1772,7 +1906,7 @@ function TaskDetailPanel({
                 ['Worker', task.worker_id || '-'],
                 ['固件路径', <span className="font-mono break-all">{task.firmware_path}</span>],
                 ['输出目录', <span className="font-mono break-all">{task.output_path}</span>],
-                ['运行目录', <span className="font-mono break-all">{deriveRunPath(task.output_path) || '-'}</span>],
+                ['运行目录', <span className="font-mono break-all">{resolveTaskRunPath(task) || '-'}</span>],
                 ['创建时间', fmtTime(task.created_at)],
                 ['开始时间', fmtTime(task.started_at)],
                 ['完成时间', fmtTime(task.completed_at)],
@@ -1802,11 +1936,27 @@ function TaskDetailPanel({
                     </div>
                   )}
                   <div className="overflow-x-auto pb-1">
-                    <div className="min-w-[980px] rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <div ref={progressCanvasRef} className="relative min-w-[1080px] rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                      {progressConnectorPaths.length > 0 ? (
+                        <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+                          {progressConnectorPaths.map((path) => (
+                            <path
+                              key={path.id}
+                              d={path.d}
+                              stroke={path.stroke || '#cbd5e1'}
+                              strokeWidth="2"
+                              strokeDasharray={path.dashArray}
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          ))}
+                        </svg>
+                      ) : null}
                       <div className="grid grid-cols-[160px_1fr_160px] items-start gap-4">
                         <div className="pt-28">
                           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4 text-center">
-                            <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.preprocess.status)}`}>
+                            <div ref={preprocessNodeRef} className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.preprocess.status)}`}>
                               <PhaseNodeStatusIcon status={layeredProgress.preprocess.status} index={0} />
                             </div>
                             <div className={`mt-2 text-xs font-semibold ${phaseTextTone(layeredProgress.preprocess.status)}`}>
@@ -1842,7 +1992,20 @@ function TaskDetailPanel({
                                       <div className={`absolute left-1/2 top-4 h-0.5 w-full ${lane.lineColor}`} />
                                     ) : null}
                                     <div className="relative z-10 flex flex-col items-center px-2 text-center">
-                                      <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(node.phase.status)}`}>
+                                      <div
+                                        ref={
+                                          lane.laneKey === 'tool' && index === 0
+                                            ? toolEntryNodeRef
+                                            : lane.laneKey === 'llm' && index === 0
+                                              ? llmEntryNodeRef
+                                              : lane.laneKey === 'tool' && index === lane.nodes.length - 1
+                                                ? toolExitNodeRef
+                                                : lane.laneKey === 'llm' && index === lane.nodes.length - 1
+                                                  ? llmExitNodeRef
+                                                  : undefined
+                                        }
+                                        className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(node.phase.status)}`}
+                                      >
                                         <PhaseNodeStatusIcon status={node.phase.status} index={laneIndex * 10 + index + 1} />
                                       </div>
                                       <div className={`mt-2 px-1 ${phaseTextTone(node.phase.status)}`}>
@@ -1917,7 +2080,7 @@ function TaskDetailPanel({
 
                         <div className="pt-28">
                           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-4 text-center">
-                            <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.cleanup.status)}`}>
+                            <div ref={cleanupNodeRef} className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold ${phaseNodeTone(layeredProgress.cleanup.status)}`}>
                               <PhaseNodeStatusIcon status={layeredProgress.cleanup.status} index={99} />
                             </div>
                             <div className={`mt-2 text-xs font-semibold ${phaseTextTone(layeredProgress.cleanup.status)}`}>
@@ -2775,6 +2938,54 @@ function TaskDetailPanel({
                 </section>
 
                 <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-black text-slate-900">进化效果</div>
+                      <div className="mt-1 text-xs text-slate-500">按轮展示工具脚本实际执行时间，便于直观看出工具是否越进化越快。</div>
+                    </div>
+                  </div>
+                  {!activeEvolutionJob ? (
+                    <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+                      选择一条进化任务后查看效果指标
+                    </div>
+                  ) : activeEvolutionJob.rounds.length === 0 ? (
+                    <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
+                      当前进化任务暂未产出可展示的效果指标
+                    </div>
+                  ) : (
+                    <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                      <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                        <thead className="bg-slate-50 text-slate-500">
+                          <tr>
+                            <th className="px-3 py-3">轮次</th>
+                            <th className="px-3 py-3">状态</th>
+                            <th className="px-3 py-3">工具执行时间</th>
+                            <th className="px-3 py-3">是否换工具</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {activeEvolutionJob.rounds.map((round) => {
+                            const unpackSeconds = round.tool_unpack_duration_seconds ?? round.metrics?.tool_unpack_duration_seconds ?? null;
+                            return (
+                              <tr key={`effect-${round.id}`}>
+                                <td className="px-3 py-3 font-mono text-slate-700">#{round.round}</td>
+                                <td className="px-3 py-3">
+                                  <span className={`rounded-full border px-2 py-0.5 font-bold ${roundStatusTone(round.status)}`}>
+                                    {roundStatusLabel(round.status)}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3 text-slate-700">{formatEvolutionToolDuration(unpackSeconds)}</td>
+                                <td className="px-3 py-3 text-slate-700">{round.tool_changed ? '是' : '否'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="text-sm font-black text-slate-900">进化会话索引</div>
                   <div className="mt-1 text-xs text-slate-500">当前展示所选进化任务的 session 索引，便于定位工具执行器、评审器和工具进化器对话文件。</div>
                   <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -2932,7 +3143,7 @@ function TaskDetailPanel({
                         </div>
                       </div>
 
-                      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                      <div className="mt-5">
                         <div>
                           <div className="text-xs font-black text-slate-500">扩展名分布</div>
                           {result.summary.file_extension_breakdown.length === 0 ? (
@@ -2949,30 +3160,12 @@ function TaskDetailPanel({
                             </div>
                           )}
                         </div>
-                        <div>
-                          <div className="text-xs font-black text-slate-500">最大文件 Top 10</div>
-                          {result.summary.largest_files.length === 0 ? (
-                            <div className="mt-3 text-sm text-slate-500">暂无统计数据</div>
-                          ) : (
-                            <div className="mt-3 space-y-2">
-                              {result.summary.largest_files.map((item, index) => (
-                                <div key={item.path} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <span className="font-bold text-slate-500">#{index + 1}</span>
-                                    <span className="font-bold text-slate-800">{formatBytes(item.size_bytes)}</span>
-                                  </div>
-                                  <div className="mt-1 break-all font-mono text-slate-700">{item.path}</div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
                       </div>
                     </div>
 
                     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">文本结果与关键路径</div>
-                      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">文本结果</div>
+                      <div className="mt-4">
                         <div className="space-y-4">
                           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                             <div className="flex flex-wrap items-center gap-2">
@@ -3022,41 +3215,50 @@ function TaskDetailPanel({
                                 {resultDocumentState.selectedDoc === 'summary' ? '当前文档未生成' : '当前文档未生成'}
                               </div>
                             ) : (
-                              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5">
+                              <div className="mt-4 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm">
                                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
                                   {resultDocumentState.selectedDoc === 'summary' ? '报告总结' : '改进总结'}
                                 </div>
-                                <div className="mt-2 break-all font-mono text-[11px] text-slate-500">
+                                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 break-all font-mono text-[11px] text-slate-500">
                                   {resultDocumentState.selectedPath || '-'}
                                 </div>
-                                <div className="mt-4 prose prose-slate max-w-none text-sm">
+                                <div className="mt-5 rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-6 py-5">
+                                  <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                                    <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-500">
+                                      {resultDocumentState.selectedDoc === 'summary' ? 'summary.md' : 'reason.md'}
+                                    </div>
+                                  </div>
+                                  <div
+                                    className="
+                                      prose prose-slate max-w-none text-[15px] leading-7
+                                      prose-headings:scroll-mt-24 prose-headings:font-black prose-headings:text-slate-900
+                                      prose-h1:text-3xl prose-h1:tracking-tight prose-h1:border-b prose-h1:border-slate-200 prose-h1:pb-3
+                                      prose-h2:text-xl prose-h2:mt-8 prose-h2:border-b prose-h2:border-slate-100 prose-h2:pb-2
+                                      prose-h3:text-base prose-h3:mt-6
+                                      prose-p:text-slate-700
+                                      prose-strong:text-slate-900
+                                      prose-a:text-blue-700 prose-a:no-underline hover:prose-a:text-blue-900
+                                      prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
+                                      prose-ol:my-4 prose-ol:list-decimal prose-ol:pl-6
+                                      prose-li:my-1 prose-li:text-slate-700
+                                      prose-blockquote:border-l-4 prose-blockquote:border-amber-300 prose-blockquote:bg-amber-50 prose-blockquote:px-4 prose-blockquote:py-3 prose-blockquote:italic prose-blockquote:text-slate-700
+                                      prose-hr:border-slate-200
+                                      prose-code:rounded prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-[13px] prose-code:font-semibold prose-code:text-rose-700
+                                      prose-pre:overflow-x-auto prose-pre:rounded-[1.25rem] prose-pre:border prose-pre:border-slate-800 prose-pre:bg-slate-950 prose-pre:px-4 prose-pre:py-4 prose-pre:text-[13px] prose-pre:leading-6 prose-pre:text-slate-100
+                                      prose-pre:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]
+                                      prose-table:block prose-table:w-full prose-table:overflow-x-auto
+                                      prose-thead:border-b prose-thead:border-slate-200
+                                      prose-th:bg-slate-100 prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:text-[12px] prose-th:font-black prose-th:uppercase prose-th:tracking-wide prose-th:text-slate-600
+                                      prose-td:px-3 prose-td:py-2 prose-td:border-b prose-td:border-slate-100 prose-td:text-slate-700
+                                    "
+                                  >
                                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{resultDocumentState.selectedText}</ReactMarkdown>
+                                  </div>
                                 </div>
                               </div>
                             )}
                           </div>
                         </div>
-
-                        <aside className="space-y-3 text-xs text-slate-600">
-                          <div>
-                            <div className="font-bold text-slate-500">output_root</div>
-                            <div className="mt-1 break-all font-mono">{result.output_root || '-'}</div>
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-500">run_root</div>
-                            <div className="mt-1 break-all font-mono">{result.run_root || '-'}</div>
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-500">largest_file</div>
-                            <div className="mt-1 break-all font-mono">{result.summary.largest_file_path || '-'}</div>
-                            <div className="mt-1 text-slate-400">{formatBytes(result.summary.largest_file_size_bytes)}</div>
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-500">deepest_path</div>
-                            <div className="mt-1 break-all font-mono">{result.summary.deepest_path?.path || '-'}</div>
-                            <div className="mt-1 text-slate-400">depth: {result.summary.deepest_path?.depth ?? '-'}</div>
-                          </div>
-                        </aside>
                       </div>
                     </div>
                   </div>
