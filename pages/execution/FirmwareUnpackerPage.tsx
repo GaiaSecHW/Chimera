@@ -1036,6 +1036,7 @@ function TaskDetailPanel({
   const [evolutionJobsError, setEvolutionJobsError] = useState('');
   const [selectedEvolutionJobId, setSelectedEvolutionJobId] = useState<string | null>(null);
   const [selectedEvolutionJob, setSelectedEvolutionJob] = useState<FirmwareEvolutionJob | null>(null);
+  const [selectedEvolutionRounds, setSelectedEvolutionRounds] = useState<FirmwareEvolutionRound[]>([]);
   const [evolutionSessions, setEvolutionSessions] = useState<FirmwareEvolutionSessionIndex | null>(null);
   const [evolutionDetailLoading, setEvolutionDetailLoading] = useState(false);
   const [evolutionDetailError, setEvolutionDetailError] = useState('');
@@ -1321,6 +1322,7 @@ function TaskDetailPanel({
       setEvolutionJobs([]);
       setSelectedEvolutionJobId(null);
       setSelectedEvolutionJob(null);
+      setSelectedEvolutionRounds([]);
       setEvolutionSessions(null);
       setEvolutionJobsError('');
       return;
@@ -1342,6 +1344,7 @@ function TaskDetailPanel({
         setEvolutionJobs([]);
         setSelectedEvolutionJobId(null);
         setSelectedEvolutionJob(null);
+        setSelectedEvolutionRounds([]);
         setEvolutionSessions(null);
         setEvolutionJobsError(e?.message || '加载进化任务失败');
       }
@@ -1353,6 +1356,7 @@ function TaskDetailPanel({
   const loadEvolutionJobDetail = useCallback(async (jobId: string, options?: { silent?: boolean }) => {
     if (!jobId) {
       setSelectedEvolutionJob(null);
+      setSelectedEvolutionRounds([]);
       setEvolutionSessions(null);
       setEvolutionDetailError('');
       return;
@@ -1362,15 +1366,25 @@ function TaskDetailPanel({
       setEvolutionDetailError('');
     }
     try {
-      const [job, sessionsPayload] = await Promise.all([
+      const [job, roundsPayload, sessionsPayload] = await Promise.all([
         fwApi.getEvolutionJob(jobId),
+        fwApi.getEvolutionRounds(jobId).catch(() => null),
         fwApi.getEvolutionSessions(jobId).catch(() => ({ version: 1, session_root: null, items: [] })),
       ]);
-      setSelectedEvolutionJob(job);
+      const mergedJob = roundsPayload && roundsPayload.length > 0
+        ? {
+          ...job,
+          rounds: roundsPayload,
+          round_count: roundsPayload.length,
+        }
+        : job;
+      setSelectedEvolutionJob(mergedJob);
+      setSelectedEvolutionRounds(roundsPayload && roundsPayload.length > 0 ? roundsPayload : (mergedJob.rounds || []));
       setEvolutionSessions(sessionsPayload);
     } catch (e: any) {
       if (!options?.silent) {
         setSelectedEvolutionJob(null);
+        setSelectedEvolutionRounds([]);
         setEvolutionSessions(null);
         setEvolutionDetailError(e?.message || '加载进化任务详情失败');
       }
@@ -1418,6 +1432,7 @@ function TaskDetailPanel({
     setEvolutionJobsLoading(false);
     setSelectedEvolutionJobId(null);
     setSelectedEvolutionJob(null);
+    setSelectedEvolutionRounds([]);
     setEvolutionSessions(null);
     setEvolutionDetailLoading(false);
     setEvolutionDetailError('');
@@ -1483,6 +1498,7 @@ function TaskDetailPanel({
     if (activeTab !== 'evolution' || !selectedEvolutionJobId) {
       if (activeTab !== 'evolution') {
         setSelectedEvolutionJob(null);
+        setSelectedEvolutionRounds([]);
         setEvolutionSessions(null);
         setEvolutionDetailError('');
       }
@@ -1683,6 +1699,7 @@ function TaskDetailPanel({
   const latestRoundMetric = roundItems.length > 0 ? roundItems[roundItems.length - 1] : null;
   const latestEvolutionJob = evolutionJobs[0] || null;
   const activeEvolutionJob = selectedEvolutionJob || latestEvolutionJob;
+  const activeEvolutionRounds = selectedEvolutionJobId ? selectedEvolutionRounds : (activeEvolutionJob?.rounds || []);
   const canCreateEvolution = task?.status === 'success' && !evolutionSubmitting && !evolutionJobs.some((item) => ['pending', 'running'].includes(item.status));
   const canConfirmEvolutionReplacement = Boolean(
     activeEvolutionJob
@@ -2880,13 +2897,13 @@ function TaskDetailPanel({
                     <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
                       选择一条进化任务后查看轮次详情
                     </div>
-                  ) : activeEvolutionJob.rounds.length === 0 ? (
+                  ) : activeEvolutionRounds.length === 0 ? (
                     <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
                       当前进化任务暂未产出轮次记录
                     </div>
                   ) : (
                     <div className="mt-4 space-y-4">
-                      {activeEvolutionJob.rounds.map((round) => (
+                      {activeEvolutionRounds.map((round) => (
                         <div key={round.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
@@ -2948,7 +2965,7 @@ function TaskDetailPanel({
                     <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
                       选择一条进化任务后查看效果指标
                     </div>
-                  ) : activeEvolutionJob.rounds.length === 0 ? (
+                  ) : activeEvolutionRounds.length === 0 ? (
                     <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-6 text-center text-sm text-slate-500">
                       当前进化任务暂未产出可展示的效果指标
                     </div>
@@ -2964,7 +2981,7 @@ function TaskDetailPanel({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
-                          {activeEvolutionJob.rounds.map((round) => {
+                          {activeEvolutionRounds.map((round) => {
                             const unpackSeconds = round.tool_unpack_duration_seconds ?? round.metrics?.tool_unpack_duration_seconds ?? null;
                             return (
                               <tr key={`effect-${round.id}`}>

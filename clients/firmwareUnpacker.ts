@@ -1293,6 +1293,7 @@ const normalizeRuntimeFileList = (value: unknown): FirmwareRuntimeFileList => {
 
 const normalizeEvolutionRound = (value: unknown): FirmwareEvolutionRound => {
   const record = asRecord(value);
+  const metricsRecord = asRecord(record.metrics);
   return {
     id: asString(record.id),
     job_id: asString(record.job_id),
@@ -1313,6 +1314,16 @@ const normalizeEvolutionRound = (value: unknown): FirmwareEvolutionRound => {
     generated_new_tool: asBoolean(record.generated_new_tool || record.generated_new_skill),
     executed_tool: asBoolean(record.executed_tool),
     tool_response_preview: asNullableString(record.tool_response_preview),
+    metrics: record.metrics == null ? null : {
+      tool_unpack_duration_seconds: asNullableNumber(metricsRecord.tool_unpack_duration_seconds),
+      evolution_executor_tokens: asRecord(metricsRecord.evolution_executor_tokens) as Record<string, number> | null,
+      reviewer_tokens: asRecord(metricsRecord.reviewer_tokens) as Record<string, number> | null,
+      total_tokens: asRecord(metricsRecord.total_tokens) as Record<string, number> | null,
+    },
+    tool_unpack_duration_seconds: asNullableNumber(record.tool_unpack_duration_seconds),
+    evolution_executor_tokens: asRecord(record.evolution_executor_tokens) as Record<string, number> | null,
+    reviewer_tokens: asRecord(record.reviewer_tokens) as Record<string, number> | null,
+    total_tokens: asRecord(record.total_tokens) as Record<string, number> | null,
     created_at: asNullableString(record.created_at),
     completed_at: asNullableString(record.completed_at),
   };

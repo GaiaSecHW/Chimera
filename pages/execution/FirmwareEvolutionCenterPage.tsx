@@ -680,9 +680,19 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     if (!jobId) return;
     if (!options?.silent) setDetailLoading(true);
     try {
-      const job = await fwApi.getEvolutionJob(jobId);
-      setActiveJob((prev) => sameJsonValue(prev, job) ? prev : job);
-      setJobs((prev) => prev.map((item) => item.id === job.id ? job : item));
+      const [job, rounds] = await Promise.all([
+        fwApi.getEvolutionJob(jobId),
+        fwApi.getEvolutionRounds(jobId).catch(() => null),
+      ]);
+      const mergedJob = rounds && rounds.length > 0
+        ? {
+          ...job,
+          rounds,
+          round_count: rounds.length,
+        }
+        : job;
+      setActiveJob((prev) => sameJsonValue(prev, mergedJob) ? prev : mergedJob);
+      setJobs((prev) => prev.map((item) => item.id === mergedJob.id ? mergedJob : item));
     } catch (e: any) {
       notify(`加载进化任务详情失败: ${e?.message || e}`, 'error');
     } finally {

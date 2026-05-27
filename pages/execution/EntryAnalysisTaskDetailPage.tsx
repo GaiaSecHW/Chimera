@@ -741,11 +741,12 @@ interface FuncProgress {
   func_hash: string;
   name: string;
   file?: string;
-  r2j:   FuncStage;   // R2 准确性验证-J（无 Worker 步骤）
-  r3w:   FuncStage;   // R3 外部输入分析-W
-  r3j:   FuncStage;   // R3 外部输入分析-J
-  r4:    FuncStage;   // R4 入口决策 (keep/filter)
-  rep:   FuncStage;   // R5 报告
+  r2j: FuncStage;   // R2-J 准确性验证（Judge only）
+  r3w: FuncStage;   // R3-W 内部状态
+  r3j: FuncStage;   // R3-J 内部状态
+  r3: FuncStage;    // R3 合并态
+  r4: FuncStage;    // R4 入口决策
+  rep: FuncStage;   // R5 报告
   has_external_input?: boolean;
   entry_role?: string;
   is_entry: boolean;
@@ -778,6 +779,16 @@ function deriveFuncProgress(
     }
   };
 
+  const isTerminalStage = (state: FuncStage) => ['passed', 'failed', 'skip', 'keep', 'remove'].includes(state);
+  const combineR3 = (r3w: FuncStage, r3j: FuncStage): FuncStage => {
+    if (r3w === 'skip' && r3j === 'skip') return 'skip';
+    if (r3w === 'passed' && r3j === 'passed') return 'passed';
+    if (r3w === 'failed' || r3j === 'failed') return 'failed';
+    if (r3w === 'running' || r3j === 'running') return 'running';
+    if (r3w === 'passed' || r3j === 'passed') return 'running';
+    return 'pending';
+  };
+
   const getOrCreate = (fh: string, name?: string, file?: string): FuncProgress => {
     if (!map.has(fh)) {
       map.set(fh, {
@@ -785,8 +796,11 @@ function deriveFuncProgress(
         name: name || fh.slice(0, 8),
         file,
         r2j: 'pending',
-        r3w: 'pending', r3j: 'pending',
-        r4: 'pending', rep: 'pending',
+        r3w: 'pending',
+        r3j: 'pending',
+        r3: 'pending',
+        r4: 'pending',
+        rep: 'pending',
         is_entry: false,
       });
     }
@@ -796,33 +810,35 @@ function deriveFuncProgress(
     return f;
   };
 
+  const advanceStage = (item: FuncProgress, field: keyof Pick<FuncProgress, 'r2j' | 'r3w' | 'r3j' | 'r3' | 'r4' | 'rep'>, next: FuncStage) => {
+    if (!isTerminalStage(item[field])) item[field] = next;
+  };
+
   // 先用 function_catalog 初始化所有函数，保证 R2 开始前就有函数表
   for (const item of functionCatalog || []) {
     const fh = String(item.func_hash || '');
     if (!fh) continue;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    f.r2j = toStage(item.r1b_state);  // r1b_state = r2_j_state (accuracy judge)
+    f.r2j = toStage(item.r1b_state);
     f.r3w = toStage(item.r2_state);
     f.r3j = toStage(item.r2j_state);
-    f.r4  = String(item.r4_decision || '').toLowerCase() === 'keep' ? 'keep'
-      : String(item.r4_decision || '').toLowerCase() === 'remove' || String(item.r4_decision || '').toLowerCase() === 'filter' ? 'remove'
-      : toStage(item.r4_state);
+    f.r3 = combineR3(f.r3w, f.r3j);
+    const r4Decision = String(item.r4_decision || '').toLowerCase();
+    const r4Actual = toStage(item.r4_state);
+    const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
+    if (r4Decision === 'filter' || r4Decision === 'remove') {
+      f.r4 = hasInput === false ? 'skip' : 'remove';
+    } else if (r4Decision === 'keep') {
+      f.r4 = r4Actual === 'passed' ? 'keep' : r4Actual;
+    } else {
+      f.r4 = r4Actual;
+    }
     f.rep = toStage(item.rep_state);
-    f.has_external_input = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
+    f.has_external_input = hasInput;
     if (item.entry_role) f.entry_role = String(item.entry_role);
-    f.is_entry = Boolean(item.is_entry) || f.r4 === 'keep';
+    f.is_entry = f.r4 === 'keep';
   }
   if (!totalFuncCount) totalFuncCount = (functionCatalog || []).length;
-
-  const fileHasExternalFuncs = new Map<string, Set<string>>();
-  for (const item of functionCatalog || []) {
-    const fileH = String(item.file_hash || '');
-    const funcH = String(item.func_hash || '');
-    if (fileH && funcH && item.has_external_input) {
-      if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
-      fileHasExternalFuncs.get(fileH)!.add(funcH);
-    }
-  }
 
   for (const evt of events) {
     const ts = evt.ts || 0;
@@ -832,68 +848,107 @@ function deriveFuncProgress(
     const fi = String(d.file || '');
 
     switch (evt.type) {
-      // R2-J 只有 Judge，无 Worker
       case 'r2_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = 'running'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'r2j', 'running'); f.lastTs = ts; }
         break;
       case 'r2_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
-        break;
-
-      // R3-W (backend event: r3_w_start/done)
-      case 'r3_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r3w = 'running'; f.lastTs = ts; }
-        break;
-      case 'r3_w_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          f.r3w = 'passed';
-          f.has_external_input = Boolean(d.has_external_input);
-          if (!f.has_external_input) { f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; }
-          else if (d.entry_role) { f.entry_role = String(d.entry_role); }
-          const fileH = String(d.file_hash || '');
-          if (fileH && f.has_external_input) {
-            if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
-            fileHasExternalFuncs.get(fileH)!.add(fh);
+          advanceStage(f, 'r2j', d.passed ? 'passed' : 'failed');
+          if (!d.passed) {
+            advanceStage(f, 'r3', 'skip');
+            advanceStage(f, 'r4', 'skip');
+            advanceStage(f, 'rep', 'skip');
           }
           f.lastTs = ts;
         }
         break;
 
-      // R3-J (backend event: r3_j_start/done)
-      case 'r3_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = 'running'; f.lastTs = ts; }
-        break;
-      case 'r3_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
-        break;
-
-      // R4-W func (backend event: r4_w_func_start/done)
-      case 'r4_w_func_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.r4 = 'running'; f.lastTs = ts; }
-        break;
-      case 'r4_w_func_done':
+      case 'r3_w_start':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          const dec = String(d.decision || 'keep').toLowerCase();
-          f.r4 = dec === 'filter' || dec === 'remove' ? 'remove' : 'keep';
-          f.is_entry = f.r4 === 'keep';
+          advanceStage(f, 'r3w', 'running');
+          advanceStage(f, 'r3', 'running');
+          f.lastTs = ts;
+        }
+        break;
+      case 'r3_w_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          const hasInput = Boolean(d.has_external_input);
+          advanceStage(f, 'r3w', hasInput ? 'passed' : 'skip');
+          f.has_external_input = hasInput;
+          if (!hasInput) {
+            advanceStage(f, 'r3j', 'skip');
+            advanceStage(f, 'r3', 'skip');
+            advanceStage(f, 'r4', 'skip');
+          } else {
+            advanceStage(f, 'r3', 'running');
+          }
+          if (d.entry_role) f.entry_role = String(d.entry_role);
           f.lastTs = ts;
         }
         break;
 
-      // R4-W file-level aggregation (older event for file-level summary)
-      case 'r4_w_start':
-        break; // file-level, not func-level
-      case 'r4_w_done':
-        break; // file-level, not func-level
+      case 'r3_j_start':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          advanceStage(f, 'r3j', 'running');
+          advanceStage(f, 'r3', 'running');
+          f.lastTs = ts;
+        }
+        break;
+      case 'r3_j_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          advanceStage(f, 'r3j', d.passed ? 'passed' : 'pending');
+          f.lastTs = ts;
+        }
+        break;
 
-      // R5 report
+      case 'r4_w_start':
+      case 'r4_w_func_start':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          advanceStage(f, 'r4', 'running');
+          f.lastTs = ts;
+        }
+        break;
+      case 'r4_w_done':
+      case 'r4_w_func_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          const dec = String(d.decision || '').toLowerCase();
+          if (dec === 'filter' || dec === 'remove') {
+            advanceStage(f, 'r4', f.has_external_input === false ? 'skip' : 'remove');
+          }
+          f.lastTs = ts;
+        }
+        break;
+      case 'r4_j_start':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          advanceStage(f, 'r4', 'running');
+          f.lastTs = ts;
+        }
+        break;
+      case 'r4_j_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          if (d.passed) {
+            advanceStage(f, 'r4', 'keep');
+            f.is_entry = true;
+            advanceStage(f, 'rep', 'pending');
+          }
+          f.lastTs = ts;
+        }
+        break;
+
       case 'r5_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', 'running'); f.lastTs = ts; }
         break;
       case 'r5_j_done':
-        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', d.passed ? 'passed' : 'failed'); f.lastTs = ts; }
         break;
       default:
         break;
@@ -901,7 +956,8 @@ function deriveFuncProgress(
   }
 
   for (const f of map.values()) {
-    if (f.r4 === 'pending' && f.r3j === 'passed' && f.has_external_input) f.is_entry = true;
+    if (!isTerminalStage(f.r3)) f.r3 = combineR3(f.r3w, f.r3j);
+    if (f.r4 === 'keep') f.is_entry = true;
   }
 
   const funcs = Array.from(map.values());
@@ -1395,6 +1451,21 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     () => deriveFuncProgress(events, detail?.function_catalog || []),
     [events, detail?.function_catalog],
   );
+  const funcStats = useMemo(() => {
+    let r2 = 0;
+    let r3 = 0;
+    let r4 = 0;
+    let entries = 0;
+    let r5 = 0;
+    for (const item of funcProgress) {
+      if (item.r2j === 'passed' || item.r2j === 'failed') r2 += 1;
+      if (item.r3 === 'passed' || item.r3 === 'skip') r3 += 1;
+      if (item.r4 === 'keep' || item.r4 === 'remove' || item.r4 === 'skip') r4 += 1;
+      if (item.r4 === 'keep') entries += 1;
+      if (item.rep === 'passed') r5 += 1;
+    }
+    return { r2, r3, r4, entries, r5, total: funcProgress.length };
+  }, [funcProgress]);
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
   const [funcEntryOnly, setFuncEntryOnly] = useState(false);
@@ -1929,9 +2000,26 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
                 <div>
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">各函数流水线进度</h2>
-                  <p className="mt-1 text-xs text-slate-400">
-                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。阶段：R2-J · R3-W · R3-J · R4 · R5
-                  </p>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                    {[
+                      { label: 'R2', done: funcStats.r2, total: funcStats.total, color: 'bg-indigo-400' },
+                      { label: 'R3', done: funcStats.r3, total: funcStats.total, color: 'bg-sky-400' },
+                      { label: 'R4', done: funcStats.r4, total: funcStats.total, color: 'bg-violet-400' },
+                      { label: 'R5', done: funcStats.r5, total: funcStats.entries, color: 'bg-emerald-400' },
+                    ].map(({ label, done, total, color }) => (
+                      <span key={label} className="inline-flex items-center gap-1.5">
+                        <span className="font-bold text-slate-600">{label}</span>
+                        <span className="inline-block h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
+                          <span
+                            className={`block h-full rounded-full ${color} transition-all`}
+                            style={{ width: total > 0 ? `${Math.min(100, (done / total) * 100).toFixed(0)}%` : '0%' }}
+                          />
+                        </span>
+                        <span className="tabular-nums">{done}<span className="text-slate-300">/{total}</span></span>
+                      </span>
+                    ))}
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700">入口 {funcStats.entries}</span>
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button onClick={() => { setFuncEntryOnly((v) => !v); setFuncPage(0); }}
@@ -1957,9 +2045,8 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       <th className="px-4 py-2.5 text-left">函数名</th>
                       <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
-                      <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2-J</th>
-                      <th className="px-2 py-2.5 text-center">R3-W</th>
-                      <th className="px-2 py-2.5 text-center">R3-J</th>
+                      <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2</th>
+                      <th className="px-2 py-2.5 text-center" title="R3 外部输入分析（W+J 均通过才算完成）">R3</th>
                       <th className="px-2 py-2.5 text-center">R4</th>
                       <th className="px-2 py-2.5 text-center">R5</th>
                       <th className="px-4 py-2.5 text-left">状态</th>
@@ -1977,23 +2064,23 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                             ? <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">✓ 入口</span>
                             : f.r4 === 'remove'
                               ? <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[9px] font-semibold text-orange-600">✗ 已过滤</span>
-                              : f.r3w === 'skip'
+                              : f.r3 === 'skip'
                                 ? <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-400">— 无输入</span>
-                                : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未知</span>
+                                : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未完成</span>
                           }
                         </td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2-J" /></td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3w} label="R3-W" /></td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3j} label="R3-J" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3} label="R3" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="R5" /></td>
                         <td className="px-4 py-2 text-slate-500">
                           {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
                           : f.r4 === 'remove' ? <span className="text-orange-600">R4 过滤</span>
-                          : f.r3j === 'passed' ? <span className="text-sky-700">R3 候选</span>
-                          : f.r3j === 'failed' ? <span className="text-slate-400">R3 未通过</span>
-                          : f.r3w === 'skip'   ? <span className="text-slate-300">无外部输入</span>
-                          : f.r3w === 'running' || f.r3j === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
+                          : f.r4 === 'running' ? <span className="text-violet-600 animate-pulse">R4 决策中…</span>
+                          : f.r2j === 'failed' ? <span className="text-red-500 font-medium">R2失败-跳过</span>
+                          : f.r3 === 'skip' ? <span className="text-slate-400">无外部输入</span>
+                          : f.r3 === 'passed' ? <span className="text-sky-700">R3通过·等R4</span>
+                          : f.r3 === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
                           : f.r2j === 'running' ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
                           : <span className="text-slate-300">等待中</span>}
                         </td>
