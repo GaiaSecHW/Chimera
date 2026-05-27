@@ -1005,6 +1005,43 @@ const histogramAverage = (rows: DisplayMetricRow[], familyName: string, labels: 
   return count > 0 ? sum / count : null;
 };
 
+const histogramQuantile = (
+  rows: DisplayMetricRow[],
+  familyName: string,
+  quantile: number,
+  labels: Record<string, string> = {},
+) => {
+  if (!(quantile >= 0 && quantile <= 1)) return null;
+  const matchesLabels = (row: DisplayMetricRow) =>
+    Object.entries(labels).every(([key, value]) => row.labels[key] === value);
+  const buckets = rows
+    .filter((row) => row.familyName === familyName && row.name.endsWith('_bucket') && matchesLabels(row))
+    .map((row) => ({
+      upperBound: row.labels.le === '+Inf' ? Number.POSITIVE_INFINITY : Number(row.labels.le),
+      count: row.value,
+    }))
+    .filter((item) => Number.isFinite(item.upperBound) || item.upperBound === Number.POSITIVE_INFINITY)
+    .sort((left, right) => left.upperBound - right.upperBound);
+  if (!buckets.length) return null;
+  const total = buckets[buckets.length - 1]?.count ?? 0;
+  if (!(total > 0)) return null;
+  const target = total * quantile;
+  let previousUpperBound = 0;
+  let previousCount = 0;
+  for (const bucket of buckets) {
+    if (bucket.count >= target) {
+      if (!Number.isFinite(bucket.upperBound)) return previousUpperBound;
+      const bucketCount = bucket.count - previousCount;
+      if (!(bucketCount > 0)) return bucket.upperBound;
+      const offset = (target - previousCount) / bucketCount;
+      return previousUpperBound + (bucket.upperBound - previousUpperBound) * offset;
+    }
+    previousUpperBound = Number.isFinite(bucket.upperBound) ? bucket.upperBound : previousUpperBound;
+    previousCount = bucket.count;
+  }
+  return null;
+};
+
 const metricValueByName = (rows: DisplayMetricRow[], name: string, labels: Record<string, string> = {}) => {
   const matches = rows.filter((row) => row.name === name && Object.entries(labels).every(([key, value]) => row.labels[key] === value));
   if (!matches.length) return null;
