@@ -52,7 +52,7 @@ const DASHBOARD_HTML = `
             <span class="toggle-slider"></span>
             自动刷新
           </label>
-          <button id="btnRefresh" class="btn btn-sm" data-action="refresh">刷新 Run</button>
+          <button id="btnRefresh" class="btn btn-sm" data-action="refresh">刷新概要</button>
           <button id="btnAdoptRun" class="btn btn-sm" data-action="adopt-run" disabled>关联任务记录</button>
           <button id="btnCancelRun" class="btn btn-sm btn-warning" data-action="cancel-run" disabled>取消 Run</button>
           <button id="btnRetryRun" class="btn btn-sm" data-action="retry-run" disabled>重试 Run</button>
@@ -2759,6 +2759,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       linkedTaskDetailPromise: Promise<DataflowScanTaskDetail | null> | null;
     }>,
     refreshTimer: null as ReturnType<typeof setInterval> | null,
+    activeTabRefreshTimer: null as ReturnType<typeof setInterval> | null,
     REFRESH_INTERVAL: 10000,
     currentRunsFilter: '',
     collapsedRunDates: {} as Record<string, boolean>,
@@ -3240,6 +3241,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this._destroyed = true;
       this.closeSessionSocket();
       if (this.refreshTimer) clearInterval(this.refreshTimer);
+      if (this.activeTabRefreshTimer) clearInterval(this.activeTabRefreshTimer);
       if (this._durationTimer) clearInterval(this._durationTimer);
       if (this._handleClick) this.root.removeEventListener('click', this._handleClick);
       if (this._handleInput) this.root.removeEventListener('input', this._handleInput);
@@ -3255,21 +3257,39 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const checkbox = this.$('autoRefresh') as HTMLInputElement | null;
         if (checkbox?.checked) this.refresh();
       }, this.REFRESH_INTERVAL);
+      if (this.activeTabRefreshTimer) clearInterval(this.activeTabRefreshTimer);
+      this.activeTabRefreshTimer = setInterval(() => {
+        const checkbox = this.$('autoRefresh') as HTMLInputElement | null;
+        if (!checkbox?.checked) return;
+        this.refreshActiveTabContent(false, { background: true });
+      }, Math.min(this.REFRESH_INTERVAL, 5000));
     },
 
     async refresh(options?: { forceActiveTabReload?: boolean }) {
-      if (this.currentRun) await this.loadRunDetail(this.currentRun, true, !!options?.forceActiveTabReload);
+      if (this.currentRun) await this.loadRunDetail(this.currentRun, true, !!options?.forceActiveTabReload, { scope: 'summary' });
     },
 
     getActiveTab() {
       return (this.root.querySelector('.tab.active[data-tab]') as HTMLElement | null)?.dataset.tab || 'overview';
     },
 
-    refreshActiveTabContent(force = false) {
+    refreshActiveTabContent(force = false, options?: { background?: boolean }) {
       const activeTab = this.getActiveTab();
-      if (activeTab === 'sessions') this.loadSessions(force);
-      if (activeTab === 'files') this.loadFiles(force);
-      if (activeTab === 'log') this.loadLog(force);
+      if (activeTab === 'sessions') {
+        if (!this.sessionBrowser.selectedPath) {
+          this.loadSessions(force);
+        } else if (force) {
+          this.loadSessions(true);
+        }
+        return;
+      }
+      if (activeTab === 'files') {
+        this.loadFiles(force);
+        return;
+      }
+      if (activeTab === 'log') {
+        this.loadLog(force || !!options?.background);
+      }
     },
 
     async preloadAllCycleDetails(name: string, data: DataflowFileserverRunOverview, force = false) {
@@ -3499,7 +3519,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (taskConfigContainer) taskConfigContainer.innerHTML = `<div class="card">${errorCard}</div>`;
     },
 
-    async loadRunDetail(name: string, silent = false, forceActiveTabReload = false) {
+    async loadRunDetail(name: string, silent = false, forceActiveTabReload = false, options?: { scope?: 'full' | 'summary' }) {
       const requestSeq = ++this.runDetailRequestSeq;
       if (!silent) {
         this.showLoadingState(name);
@@ -3519,13 +3539,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           runCache.linkedTaskDetailPromise = null;
         }
         runCache.overview = data;
-        runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
-        runCache.sessionsLoaded = runCache.sessions.length > 0;
-        runCache.files = Array.isArray(data.files) ? data.files : [];
-        runCache.filesLoaded = runCache.files.length > 0;
-        if (typeof data.run_log === 'string' && data.run_log) {
-          runCache.logLoaded = true;
-          runCache.log = data.run_log;
+        const refreshScope = options?.scope || 'full';
+        if (refreshScope === 'full') {
+          runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
+          runCache.sessionsLoaded = runCache.sessions.length > 0;
+          runCache.files = Array.isArray(data.files) ? data.files : [];
+          runCache.filesLoaded = runCache.files.length > 0;
+          if (typeof data.run_log === 'string' && data.run_log) {
+            runCache.logLoaded = true;
+            runCache.log = data.run_log;
+          }
         }
         const embeddedTaskDetail = (data as any).linked_task_detail && typeof (data as any).linked_task_detail === 'object'
           ? (data as any).linked_task_detail as DataflowScanTaskDetail
@@ -3570,9 +3593,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           process_state: data.process_state,
           retry_command_display: data.retry_command_display,
         };
-        this.runSessions = runCache.sessions;
-        this.currentFiles = runCache.files;
-        this.runLog = runCache.logMode === 'full' && runCache.fullLogLoaded ? runCache.fullLog : runCache.log;
+        if (refreshScope === 'full') {
+          this.runSessions = runCache.sessions;
+          this.currentFiles = runCache.files;
+          this.runLog = runCache.logMode === 'full' && runCache.fullLogLoaded ? runCache.fullLog : runCache.log;
+        }
         this.renderRunDetail(data);
         const welcome = this.$('welcomeView');
         const detail = this.$('runDetail');
@@ -3584,7 +3609,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         if (this.getActiveTab() === 'task-config') {
           void this.ensureLinkedTaskDetail(name, { force: forceActiveTabReload });
         }
-        this.refreshActiveTabContent(forceActiveTabReload);
+        if (refreshScope === 'full') {
+          this.refreshActiveTabContent(forceActiveTabReload);
+        }
       } catch (e: any) {
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const message = e?.message || '加载 Run 失败';
@@ -4743,6 +4770,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const runCache = this.getRunCache(runName);
       const el = this.$('sessionsContainer');
       if (!el) return;
+      if (!force && this.sessionBrowser.selectedRun === runName && this.sessionBrowser.selectedPath && this._sessionSocket) {
+        this.renderSessions(runCache.sessions || []);
+        return;
+      }
       if (!force && runCache.sessionsLoaded) {
         this.runSessions = runCache.sessions;
         this.renderSessions(this.runSessions);
@@ -6855,7 +6886,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (!force && runCache.logLoaded) {
         this.runLog = runCache.log;
         el.textContent = this.runLog || '(empty)';
-        el.scrollTop = el.scrollHeight;
+        if (this.getActiveTab() === 'log') el.scrollTop = el.scrollHeight;
         this.renderLogToolbar(runCache);
         return;
       }
@@ -6868,7 +6899,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         runCache.log = logText;
         this.runLog = logText;
         el.textContent = this.runLog || '(empty)';
-        el.scrollTop = el.scrollHeight;
+        if (this.getActiveTab() === 'log') el.scrollTop = el.scrollHeight;
         this.renderLogToolbar(runCache);
       } catch (error) {
         if (this.currentRun !== runName) return;
