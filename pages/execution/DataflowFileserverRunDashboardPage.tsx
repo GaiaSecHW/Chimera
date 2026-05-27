@@ -20,6 +20,7 @@ import {
   reportDataflowFileserverRunVulnerabilities,
   retryDataflowFileserverRun,
 } from '../../clients/dataflowVulnRunsFileserver';
+import { dataflowVulnScannerApi, DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
 import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
 import { AppSaSessionEvent } from '../../types/types';
 import { DATAFLOW_DASHBOARD_MIRROR_CSS } from './DataflowFileserverRunDashboardCss';
@@ -36,7 +37,7 @@ const DASHBOARD_HTML = `
 
       <section class="page-header-card">
         <div class="page-header-copy">
-          <p class="page-eyebrow">Dataflow Vulnerability Mining</p>
+          <p class="page-eyebrow">DATAFLOW VULNERABILITY DISCOVERY</p>
           <div class="page-title-row">
             <h1 id="runName" class="page-title">Run 详情</h1>
             <span id="runStatus" class="badge badge-pending">加载中</span>
@@ -51,7 +52,7 @@ const DASHBOARD_HTML = `
             <span class="toggle-slider"></span>
             自动刷新
           </label>
-          <button id="btnRefresh" class="btn btn-sm" data-action="refresh">刷新 Run</button>
+          <button id="btnRefresh" class="btn btn-sm" data-action="refresh">刷新概要</button>
           <button id="btnAdoptRun" class="btn btn-sm" data-action="adopt-run" disabled>关联任务记录</button>
           <button id="btnCancelRun" class="btn btn-sm btn-warning" data-action="cancel-run" disabled>取消 Run</button>
           <button id="btnRetryRun" class="btn btn-sm" data-action="retry-run" disabled>重试 Run</button>
@@ -73,6 +74,7 @@ const DASHBOARD_HTML = `
           <button class="tab" data-tab="sessions">会话记录</button>
           <button class="tab" data-tab="files">文件浏览</button>
           <button class="tab" data-tab="log">运行日志</button>
+          <button class="tab" data-tab="task-config">任务配置</button>
           <button class="tab" data-tab="task">任务信息</button>
         </nav>
 
@@ -106,6 +108,10 @@ const DASHBOARD_HTML = `
             <div id="logToolbar" class="log-toolbar"></div>
             <pre id="logContent" class="log-viewer"></pre>
           </div>
+        </div>
+
+        <div id="tabTask-config" class="tab-content">
+          <div id="taskConfigContainer"></div>
         </div>
 
         <div id="tabTask" class="tab-content">
@@ -361,6 +367,12 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   font-size: 12px;
 }
 
+.btn-inline-compact {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
 .btn-back {
   padding: 0 16px;
   color: #334155;
@@ -484,6 +496,51 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   gap: 10px;
 }
 
+.task-info-grid.compact {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.task-config-summary {
+  display: grid;
+  gap: 0;
+}
+
+.task-config-summary-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.task-config-summary-row:first-child {
+  padding-top: 0;
+}
+
+.task-config-summary-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.task-config-summary-label {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.task-config-summary-value {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.task-config-summary-value .text-muted {
+  font-size: 11px;
+}
+
 .task-info-row {
   display: grid;
   gap: 4px;
@@ -494,6 +551,12 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   min-width: 0;
 }
 
+.task-info-row.compact {
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
 .task-info-label {
   color: #64748b;
   font-size: 11px;
@@ -502,11 +565,21 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   letter-spacing: 0.08em;
 }
 
+.task-info-row.compact .task-info-label {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
 .task-info-value {
   color: #0f172a;
   font-family: var(--mono);
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+.task-info-row.compact .task-info-value {
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 .run-command-block {
@@ -2541,6 +2614,12 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   .task-info-grid {
     grid-template-columns: 1fr;
   }
+
+  .task-config-summary-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
 }
 `;
 
@@ -2573,6 +2652,46 @@ const getFileType = (path: string) => {
 };
 
 const uniqueValues = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
+
+const asRecord = (value: unknown): Record<string, any> => (
+  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {}
+);
+
+const asArray = <T = any,>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
+
+const hasDisplayContent = (value: unknown): boolean => {
+  if (value == null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(asRecord(value)).length > 0;
+  return true;
+};
+
+const prettyJson = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value ?? {}, null, 2);
+  } catch {
+    return String(value ?? '');
+  }
+};
+
+const normalizeProjectFileExplorerPath = (fsPath: string, projectId?: string | null): string => {
+  const normalizedPath = String(fsPath || '').trim();
+  if (!normalizedPath) return '';
+  const normalizedProjectId = String(projectId || '').trim();
+  const projectRoot = normalizedProjectId ? `/data/files/${normalizedProjectId}` : '';
+  if (projectRoot && normalizedPath.startsWith(projectRoot)) {
+    const relativePath = normalizedPath.slice(projectRoot.length).replace(/\/+$/, '');
+    if (!relativePath) return '/';
+    return relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+  }
+  return normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+};
+
+const buildProjectFileExplorerHash = (fsPath: string, projectId?: string | null): string => (
+  `#/project-file-explorer?path=${encodeURIComponent(normalizeProjectFileExplorerPath(fsPath, projectId))}`
+);
 
 interface DashboardAppOptions {
   projectId: string;
@@ -2634,9 +2753,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       allCycleDetailsPromise: Promise<void> | null;
       fileText: Record<string, string>;
       sessionViews: Record<string, Record<string, any>>;
+      linkedTaskDetailLoaded: boolean;
+      linkedTaskDetail: DataflowScanTaskDetail | null;
+      linkedTaskDetailError: string;
+      linkedTaskDetailPromise: Promise<DataflowScanTaskDetail | null> | null;
     }>,
     refreshTimer: null as ReturnType<typeof setInterval> | null,
-    REFRESH_INTERVAL: 6000,
+    activeTabRefreshTimer: null as ReturnType<typeof setInterval> | null,
+    REFRESH_INTERVAL: 10000,
     currentRunsFilter: '',
     collapsedRunDates: {} as Record<string, boolean>,
     runDetailRequestSeq: 0,
@@ -2687,6 +2811,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           allCycleDetailsPromise: null,
           fileText: {},
           sessionViews: {},
+          linkedTaskDetailLoaded: false,
+          linkedTaskDetail: null,
+          linkedTaskDetailError: '',
+          linkedTaskDetailPromise: null,
         };
       }
       return this.tabCacheByRun[key];
@@ -3041,6 +3169,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
             return;
           }
 
+          const retryTaskConfig = target.closest('[data-action="retry-task-config"]') as HTMLElement | null;
+          if (retryTaskConfig) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (this.currentRun) void this.ensureLinkedTaskDetail(this.currentRun, { force: true });
+            return;
+          }
+
           const tab = target.closest('.tab[data-tab]') as HTMLElement | null;
           if (tab) {
             event.preventDefault();
@@ -3105,6 +3241,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this._destroyed = true;
       this.closeSessionSocket();
       if (this.refreshTimer) clearInterval(this.refreshTimer);
+      if (this.activeTabRefreshTimer) clearInterval(this.activeTabRefreshTimer);
       if (this._durationTimer) clearInterval(this._durationTimer);
       if (this._handleClick) this.root.removeEventListener('click', this._handleClick);
       if (this._handleInput) this.root.removeEventListener('input', this._handleInput);
@@ -3120,21 +3257,39 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const checkbox = this.$('autoRefresh') as HTMLInputElement | null;
         if (checkbox?.checked) this.refresh();
       }, this.REFRESH_INTERVAL);
+      if (this.activeTabRefreshTimer) clearInterval(this.activeTabRefreshTimer);
+      this.activeTabRefreshTimer = setInterval(() => {
+        const checkbox = this.$('autoRefresh') as HTMLInputElement | null;
+        if (!checkbox?.checked) return;
+        this.refreshActiveTabContent(false, { background: true });
+      }, Math.min(this.REFRESH_INTERVAL, 5000));
     },
 
     async refresh(options?: { forceActiveTabReload?: boolean }) {
-      if (this.currentRun) await this.loadRunDetail(this.currentRun, true, !!options?.forceActiveTabReload);
+      if (this.currentRun) await this.loadRunDetail(this.currentRun, true, !!options?.forceActiveTabReload, { scope: 'summary' });
     },
 
     getActiveTab() {
       return (this.root.querySelector('.tab.active[data-tab]') as HTMLElement | null)?.dataset.tab || 'overview';
     },
 
-    refreshActiveTabContent(force = false) {
+    refreshActiveTabContent(force = false, options?: { background?: boolean }) {
       const activeTab = this.getActiveTab();
-      if (activeTab === 'sessions') this.loadSessions(force);
-      if (activeTab === 'files') this.loadFiles(force);
-      if (activeTab === 'log') this.loadLog(force);
+      if (activeTab === 'sessions') {
+        if (!this.sessionBrowser.selectedPath) {
+          this.loadSessions(force);
+        } else if (force) {
+          this.loadSessions(true);
+        }
+        return;
+      }
+      if (activeTab === 'files') {
+        this.loadFiles(force);
+        return;
+      }
+      if (activeTab === 'log') {
+        this.loadLog(force || !!options?.background);
+      }
     },
 
     async preloadAllCycleDetails(name: string, data: DataflowFileserverRunOverview, force = false) {
@@ -3320,6 +3475,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const logToolbar = this.$('logToolbar');
       const logContent = this.$('logContent');
       const taskInfoCard = this.$('taskInfoCard');
+      const taskConfigContainer = this.$('taskConfigContainer');
       if (scoreChart) scoreChart.innerHTML = loadingCard;
       if (vulnTrendCard) vulnTrendCard.innerHTML = loadingCard;
       if (manifestCard) manifestCard.innerHTML = loadingCard;
@@ -3329,6 +3485,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (sessionsContainer) sessionsContainer.innerHTML = emptyCard;
       if (filesContainer) filesContainer.innerHTML = emptyCard;
       if (taskInfoCard) taskInfoCard.innerHTML = loadingCard;
+      if (taskConfigContainer) taskConfigContainer.innerHTML = `<div class="card">${loadingCard}</div>`;
       if (logToolbar) {
         logToolbar.innerHTML = `
           <div class="log-toolbar-copy">
@@ -3352,13 +3509,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const vulnTrendCard = this.$('vulnTrendCard');
       const manifestCard = this.$('manifestCard');
       const cycleTimeline = this.$('cycleTimeline');
+      const taskInfoCard = this.$('taskInfoCard');
+      const taskConfigContainer = this.$('taskConfigContainer');
       if (scoreChart) scoreChart.innerHTML = errorCard;
       if (vulnTrendCard) vulnTrendCard.innerHTML = errorCard;
       if (manifestCard) manifestCard.innerHTML = '<div class="card-title">提示</div><div class="empty-state">请检查浏览器控制台，以及 Run 后端对 /data 的挂载和索引配置。</div>';
       if (cycleTimeline) cycleTimeline.innerHTML = '<div class="card-title">运行状态</div><div class="empty-state">当前 Run 详情解析失败，因此无法展示轮次和结果信息。</div>';
+      if (taskInfoCard) taskInfoCard.innerHTML = errorCard;
+      if (taskConfigContainer) taskConfigContainer.innerHTML = `<div class="card">${errorCard}</div>`;
     },
 
-    async loadRunDetail(name: string, silent = false, forceActiveTabReload = false) {
+    async loadRunDetail(name: string, silent = false, forceActiveTabReload = false, options?: { scope?: 'full' | 'summary' }) {
       const requestSeq = ++this.runDetailRequestSeq;
       if (!silent) {
         this.showLoadingState(name);
@@ -3367,14 +3528,39 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         const data = await inspectDataflowFileserverRunOverview(projectId, this.runsRootPath, name);
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const runCache = this.getRunCache(name);
+        const previousTaskId = String(runCache.overview?.linked_task_id || '');
+        const previousExecutionId = String(runCache.overview?.linked_execution_id || '');
+        const nextTaskId = String(data.linked_task_id || '');
+        const nextExecutionId = String(data.linked_execution_id || '');
+        if (previousTaskId !== nextTaskId || previousExecutionId !== nextExecutionId) {
+          runCache.linkedTaskDetailLoaded = false;
+          runCache.linkedTaskDetail = null;
+          runCache.linkedTaskDetailError = '';
+          runCache.linkedTaskDetailPromise = null;
+        }
         runCache.overview = data;
-        runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
-        runCache.sessionsLoaded = runCache.sessions.length > 0;
-        runCache.files = Array.isArray(data.files) ? data.files : [];
-        runCache.filesLoaded = runCache.files.length > 0;
-        if (typeof data.run_log === 'string' && data.run_log) {
-          runCache.logLoaded = true;
-          runCache.log = data.run_log;
+        const refreshScope = options?.scope || 'full';
+        if (refreshScope === 'full') {
+          runCache.sessions = Array.isArray(data.sessions) ? data.sessions : [];
+          runCache.sessionsLoaded = runCache.sessions.length > 0;
+          runCache.files = Array.isArray(data.files) ? data.files : [];
+          runCache.filesLoaded = runCache.files.length > 0;
+          if (typeof data.run_log === 'string' && data.run_log) {
+            runCache.logLoaded = true;
+            runCache.log = data.run_log;
+          }
+        }
+        const embeddedTaskDetail = (data as any).linked_task_detail && typeof (data as any).linked_task_detail === 'object'
+          ? (data as any).linked_task_detail as DataflowScanTaskDetail
+          : null;
+        if (embeddedTaskDetail) {
+          runCache.linkedTaskDetail = embeddedTaskDetail;
+          runCache.linkedTaskDetailLoaded = true;
+          runCache.linkedTaskDetailError = '';
+        } else if (!nextTaskId) {
+          runCache.linkedTaskDetail = null;
+          runCache.linkedTaskDetailLoaded = true;
+          runCache.linkedTaskDetailError = '';
         }
         this.currentRunData = data;
         this.currentSummary = {
@@ -3407,9 +3593,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           process_state: data.process_state,
           retry_command_display: data.retry_command_display,
         };
-        this.runSessions = runCache.sessions;
-        this.currentFiles = runCache.files;
-        this.runLog = runCache.logMode === 'full' && runCache.fullLogLoaded ? runCache.fullLog : runCache.log;
+        if (refreshScope === 'full') {
+          this.runSessions = runCache.sessions;
+          this.currentFiles = runCache.files;
+          this.runLog = runCache.logMode === 'full' && runCache.fullLogLoaded ? runCache.fullLog : runCache.log;
+        }
         this.renderRunDetail(data);
         const welcome = this.$('welcomeView');
         const detail = this.$('runDetail');
@@ -3418,7 +3606,13 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         if (this.getActiveTab() === 'cycles') {
           void this.preloadAllCycleDetails(name, data, forceActiveTabReload);
         }
-        this.refreshActiveTabContent(forceActiveTabReload);
+        if (data.linked_task_id || data.linked_execution_id) {
+          const forceTaskDetailReload = forceActiveTabReload && this.getActiveTab() === 'task-config';
+          void this.ensureLinkedTaskDetail(name, { force: forceTaskDetailReload });
+        }
+        if (refreshScope === 'full') {
+          this.refreshActiveTabContent(forceActiveTabReload);
+        }
       } catch (e: any) {
         if (this._destroyed || requestSeq !== this.runDetailRequestSeq || this.currentRun !== name) return;
         const message = e?.message || '加载 Run 失败';
@@ -3429,8 +3623,9 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
 
     renderRunDetail(data: DataflowFileserverRunOverview) {
       const cycles = data.cycles || [];
+      const linkedTaskDetail = this.cachedLinkedTaskDetail(data.name, data);
       const runNameEl = this.$('runName');
-      if (runNameEl) runNameEl.textContent = data.name;
+      if (runNameEl) runNameEl.textContent = String(linkedTaskDetail?.title || data.name || 'Run 详情');
       const statusEl = this.$('runStatus');
       if (statusEl) {
         statusEl.className = `badge badge-${data.status}`;
@@ -3471,6 +3666,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.renderOverview(data);
       this.renderCycles(data);
       this.renderResults(data);
+      this.renderTaskConfig(data);
       this.renderTaskInfo(data);
     },
 
@@ -3630,6 +3826,375 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return String(data.retry_command_display || '').trim();
     },
 
+    renderTaskConfigRows(rows: Array<{ label: string; value: string }>, options?: { compact?: boolean }) {
+      const gridClass = options?.compact ? 'task-info-grid compact' : 'task-info-grid';
+      const rowClass = options?.compact ? 'task-info-row compact' : 'task-info-row';
+      return `
+        <div class="${gridClass}">
+          ${rows.map((row) => `
+            <div class="${rowClass}">
+              <span class="task-info-label">${this.esc(row.label)}</span>
+              <div class="task-info-value" style="word-break:break-word">${row.value}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    },
+
+    renderTaskConfigSummaryRows(rows: Array<{ label: string; value: string }>) {
+      return `
+        <div class="task-config-summary">
+          ${rows.map((row) => `
+            <div class="task-config-summary-row">
+              <div class="task-config-summary-label">${this.esc(row.label)}</div>
+              <div class="task-config-summary-value">${row.value}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    },
+
+    renderProjectPathValue(path: unknown, options?: { compact?: boolean }) {
+      const rawPath = String(path ?? '').trim();
+      if (!rawPath) return '<span class="text-muted">-</span>';
+      const explorerPath = normalizeProjectFileExplorerPath(rawPath, projectId);
+      const href = buildProjectFileExplorerHash(rawPath, projectId);
+      const compact = !!options?.compact;
+      const gap = compact ? 6 : 8;
+      const basis = compact ? 180 : 260;
+      const pathFont = compact ? 11 : 12;
+      const rawFont = compact ? 10 : 11;
+      const buttonClass = compact ? 'action-link' : 'btn btn-sm';
+      return `
+        <div style="display:flex;flex-wrap:wrap;align-items:${compact ? 'center' : 'flex-start'};gap:${gap}px">
+          <div style="min-width:0;flex:1 1 ${basis}px">
+            <div style="font-family:var(--mono);font-size:${pathFont}px;line-height:${compact ? '1.2' : '1.4'};word-break:break-all">${this.esc(explorerPath)}</div>
+            ${!compact && explorerPath !== rawPath ? `<div class="text-muted" style="margin-top:4px;font-family:var(--mono);font-size:${rawFont}px;word-break:break-all">${this.esc(rawPath)}</div>` : ''}
+          </div>
+          <a href="${this.attr(href)}" target="_blank" rel="noopener noreferrer" class="${buttonClass}"${compact ? ' style="font-size:11px;white-space:nowrap"' : ''}>项目文件</a>
+        </div>
+      `;
+    },
+
+    renderJsonDetailsInline(title: string, value: unknown, options?: { emptyText?: string; open?: boolean }) {
+      if (!hasDisplayContent(value)) {
+        return `<div class="text-muted" style="font-size:12px">${this.esc(options?.emptyText || '暂无数据')}</div>`;
+      }
+      const open = options?.open ? ' open' : '';
+      return `
+        <details${open} style="margin-top:6px">
+          <summary class="action-link" style="cursor:pointer">${this.esc(title)}</summary>
+          <pre class="run-command-pre" style="margin-top:8px">${this.esc(prettyJson(value))}</pre>
+        </details>
+      `;
+    },
+
+    renderInputRefValue(ref: unknown, options?: { compact?: boolean; hideFilename?: boolean }) {
+      const record = asRecord(ref);
+      if (!Object.keys(record).length) return '<span class="text-muted">-</span>';
+      const compact = !!options?.compact;
+      const hideFilename = !!options?.hideFilename;
+      const source = String(record.source || '').trim();
+      const path = String(record.path || '').trim();
+      const storageKey = String(record.storage_key || '').trim();
+      const relativePath = String(record.relative_path || '').trim();
+      const filename = hideFilename ? '' : String(record.filename || '').trim();
+      const metadata = asRecord(record.metadata);
+      const extraLines = [
+        storageKey ? `<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>storage_key</strong>: <span style="font-family:var(--mono)">${this.esc(storageKey)}</span></div>` : '',
+        relativePath ? `<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>relative_path</strong>: <span style="font-family:var(--mono)">${this.esc(relativePath)}</span></div>` : '',
+        filename ? `<div class="text-muted" style="font-size:${compact ? 11 : 12}px"><strong>filename</strong>: <span style="font-family:var(--mono)">${this.esc(filename)}</span></div>` : '',
+      ].filter(Boolean).join('');
+      return `
+        <div style="display:grid;gap:${compact ? 4 : 6}px">
+          ${source && !compact ? `<div><span class="badge badge-sm badge-mode">${this.esc(source)}</span></div>` : ''}
+          ${path ? this.renderProjectPathValue(path, { compact }) : ''}
+          ${!path && relativePath ? `<div style="font-family:var(--mono);font-size:${compact ? 11 : 12}px;line-height:${compact ? '1.25' : '1.4'};word-break:break-all">${this.esc(relativePath)}</div>` : ''}
+          ${extraLines}
+          ${Object.keys(metadata).length ? this.renderJsonDetailsInline('metadata', metadata) : ''}
+          ${!path && !extraLines && !Object.keys(metadata).length ? this.renderJsonDetailsInline('原始引用 JSON', record, { open: true }) : ''}
+        </div>
+      `;
+    },
+
+    cachedLinkedTaskDetail(runName: string, data?: DataflowFileserverRunOverview | null) {
+      const runCache = this.getRunCache(runName);
+      const embedded = data && typeof (data as any).linked_task_detail === 'object'
+        ? (data as any).linked_task_detail as DataflowScanTaskDetail
+        : null;
+      if (!runCache.linkedTaskDetail && embedded) {
+        runCache.linkedTaskDetail = embedded;
+        runCache.linkedTaskDetailLoaded = true;
+        runCache.linkedTaskDetailError = '';
+      }
+      return runCache.linkedTaskDetail || embedded;
+    },
+
+    async ensureLinkedTaskDetail(runName: string, options?: { force?: boolean }) {
+      const normalizedRun = String(runName || '');
+      if (!normalizedRun) return null;
+      const runCache = this.getRunCache(normalizedRun);
+      const overview = runCache.overview || (this.currentRunData?.name === normalizedRun ? this.currentRunData : null);
+      const taskId = String(overview?.linked_task_id || '').trim();
+      if (!taskId) {
+        runCache.linkedTaskDetail = null;
+        runCache.linkedTaskDetailLoaded = true;
+        runCache.linkedTaskDetailError = '';
+        return null;
+      }
+      if (options?.force) {
+        runCache.linkedTaskDetail = null;
+        runCache.linkedTaskDetailLoaded = false;
+        runCache.linkedTaskDetailError = '';
+        runCache.linkedTaskDetailPromise = null;
+      }
+      if (runCache.linkedTaskDetailLoaded && runCache.linkedTaskDetail) {
+        return runCache.linkedTaskDetail;
+      }
+      if (runCache.linkedTaskDetailPromise) {
+        return await runCache.linkedTaskDetailPromise;
+      }
+      const promise = (async () => {
+        try {
+          const detail = await dataflowVulnScannerApi.getTask(taskId);
+          runCache.linkedTaskDetail = detail;
+          runCache.linkedTaskDetailLoaded = true;
+          runCache.linkedTaskDetailError = '';
+          if (this.currentRun === normalizedRun && this.currentRunData) {
+            (this.currentRunData as any).linked_task_detail = detail;
+            this.renderRunDetail(this.currentRunData);
+            this.renderTaskInfo(this.currentRunData);
+            this.renderTaskConfig(this.currentRunData);
+          }
+          return detail;
+        } catch (error: any) {
+          runCache.linkedTaskDetail = null;
+          runCache.linkedTaskDetailLoaded = false;
+          runCache.linkedTaskDetailError = error?.message || '加载任务详情失败';
+          if (this.currentRun === normalizedRun && this.currentRunData) {
+            this.renderTaskInfo(this.currentRunData);
+            this.renderTaskConfig(this.currentRunData);
+          }
+          return null;
+        } finally {
+          if (runCache.linkedTaskDetailPromise === promise) {
+            runCache.linkedTaskDetailPromise = null;
+          }
+        }
+      })();
+      runCache.linkedTaskDetailPromise = promise;
+      return await promise;
+    },
+
+    renderTaskConfig(data: DataflowFileserverRunOverview) {
+      const el = this.$('taskConfigContainer');
+      if (!el) return;
+      const linked = !!(data.linked_task_id || data.linked_execution_id);
+      const taskPurpose = String(data.linked_task_purpose || 'normal').trim() === 'evolution' ? 'evolution' : 'normal';
+      const taskPurposeLabel = taskPurpose === 'evolution' ? '进化任务' : '正常任务';
+      const taskPurposeBadgeClass = taskPurpose === 'evolution' ? 'badge-warning' : 'badge-succeeded';
+      const runCache = this.getRunCache(data.name);
+      const taskDetail = this.cachedLinkedTaskDetail(data.name, data);
+      const taskDetailLoading = !!runCache.linkedTaskDetailPromise;
+      const taskDetailError = String(runCache.linkedTaskDetailError || '').trim();
+      if (linked && !taskDetail && !taskDetailLoading && !taskDetailError && this.getActiveTab() === 'task-config') {
+        void this.ensureLinkedTaskDetail(data.name);
+      }
+
+      const section = (title: string, body: string, subtitle = '') => `
+        <section class="card">
+          <div class="card-title">${this.esc(title)}</div>
+          ${subtitle ? `<div class="text-muted" style="margin-top:-6px;margin-bottom:10px;font-size:12px">${this.esc(subtitle)}</div>` : ''}
+          ${body}
+        </section>
+      `;
+
+      const cards: string[] = [];
+      const identityRows = [
+        { label: 'Task ID', value: this.esc(String(data.linked_task_id || taskDetail?.task_id || '-')) },
+        { label: 'Execution ID', value: this.esc(String(data.linked_execution_id || taskDetail?.latest_execution_id || '-')) },
+        { label: 'Run ID', value: this.esc(String(data.run_id || '-')) },
+        { label: '任务标题', value: this.esc(String(taskDetail?.title || data.name || '-')) },
+        { label: 'Profile', value: this.esc([String(taskDetail?.profile_id || data.profile_id || '-'), taskDetail?.profile_version ? `v${taskDetail.profile_version}` : ''].filter(Boolean).join(' · ')) },
+        { label: '任务用途', value: `<span class="badge ${taskPurposeBadgeClass}">${this.esc(taskPurposeLabel)}</span>` },
+        { label: '任务来源', value: this.esc(String(taskDetail?.origin_label || taskDetail?.task_origin_type || data.source_type || '-')) },
+        { label: '父任务 ID', value: this.esc(String(taskDetail?.parent_task_id || '-')) },
+        { label: '父任务类型', value: this.esc(String(taskDetail?.parent_task_type || '-')) },
+        { label: '父阶段', value: this.esc(String(taskDetail?.parent_stage_name || '-')) },
+      ];
+      cards.push(section('任务标识', this.renderTaskConfigRows(identityRows)));
+
+      if (!linked) {
+        cards.push(section(
+          '任务配置详情',
+          '<div class="empty-state">当前 Run 尚未关联任务记录，因此只能展示运行侧摘要。点击“任务信息”中的“关联任务记录”后，即可在这里查看完整任务配置。</div>',
+        ));
+        cards.push(section('运行侧摘要', this.renderTaskConfigRows([
+          { label: '模型', value: this.esc(String(data.model || '-')) },
+          { label: 'Provider', value: this.esc(String(data.provider || '-')) },
+          { label: 'Thinking', value: this.esc(String(data.thinking || '-')) },
+          { label: 'Review Profile', value: this.esc(String(data.review_profile || '-')) },
+          { label: 'Run 根目录', value: this.renderProjectPathValue(data.path) },
+          { label: 'Atomic Work', value: this.renderProjectPathValue(data.atomic_work_path) },
+        ])));
+        cards.push(section('运行配置 JSON', this.renderJsonDetailsInline('config', data.config, { open: true })));
+        el.innerHTML = `<div style="display:grid;gap:14px">${cards.join('')}</div>`;
+        return;
+      }
+
+      if (!taskDetail) {
+        const loadingOrError = taskDetailError
+          ? `
+            <div class="empty-state text-error">${this.esc(taskDetailError)}</div>
+            <div style="margin-top:12px">
+              <button class="btn btn-sm" type="button" data-action="retry-task-config">重新读取任务配置</button>
+            </div>
+          `
+          : '<div class="empty-state">正在读取关联任务详情，稍后会在此展示输入目录、输出目录、运行参数和原始配置。</div>';
+        cards.push(section('任务配置详情', loadingOrError));
+        el.innerHTML = `<div style="display:grid;gap:14px">${cards.join('')}</div>`;
+        return;
+      }
+
+      const taskMetadata = asRecord(taskDetail.task_metadata);
+      const requestPayload = asRecord(taskMetadata.dataflow_scan_request);
+      const cliMeta = asRecord(taskMetadata.dataflow_cli);
+      const inputSummary = asRecord(taskDetail.input_summary);
+      const outputSummary = asRecord(taskDetail.output_summary);
+      const effectiveConfigSummary = asRecord(taskDetail.effective_config_summary);
+      const compiledProfile = asRecord(taskMetadata.compiled_profile || effectiveConfigSummary.compiled_profile);
+      const runtimeOverrides = asRecord(taskDetail.runtime_overrides || effectiveConfigSummary.runtime_overrides);
+      const attempts = asArray(taskDetail.attempts);
+      const agentStateDirs = data.linked_task_agent_state_dirs && typeof data.linked_task_agent_state_dirs === 'object'
+        ? Object.values(data.linked_task_agent_state_dirs)
+        : [];
+      const dataFlowFiles = asArray<string>(inputSummary.data_flow_files);
+      const autoReportEnabled = taskDetail.auto_report_vulnerabilities ?? !!taskMetadata.auto_report_vulnerabilities;
+      const configRows = [
+        { label: '模型', value: this.esc(String(requestPayload.model || data.model || '-')) },
+        { label: 'Provider', value: this.esc(String(requestPayload.provider || data.provider || '-')) },
+        { label: 'Thinking', value: this.esc(String(data.thinking || '-')) },
+        { label: 'Review Profile', value: this.esc(String(requestPayload.review_profile || effectiveConfigSummary.review_profile || data.review_profile || '-')) },
+        { label: '最大评审轮次', value: this.esc(String(requestPayload.max_review_cycles ?? data.max_cycles ?? '-')) },
+        { label: 'Pi Timeout 最大次数', value: this.esc(String(requestPayload.timeout_max_retries ?? '-')) },
+        { label: 'Pi Timeout 重试间隔（秒）', value: this.esc(String(requestPayload.timeout_retry_interval_seconds ?? '-')) },
+        { label: '结果评审并发', value: this.esc(String(requestPayload.result_review_concurrency ?? '-')) },
+        { label: '自动上报漏洞', value: this.esc(autoReportEnabled ? '开启' : '关闭') },
+        { label: '运行模式', value: this.esc(String(cliMeta.mode || 'fresh')) },
+      ];
+      const inputRows = [
+        { label: 'Runs根目录', value: this.renderProjectPathValue(cliMeta.runs_root, { compact: true }) },
+        { label: '数据流目录', value: this.renderInputRefValue(inputSummary.data_flow, { compact: true, hideFilename: true }) },
+        { label: '代码目录', value: this.renderInputRefValue(inputSummary.source_dir, { compact: true, hideFilename: true }) },
+        { label: '自定义输出目录（output_dir）', value: this.renderInputRefValue(inputSummary.output_dir, { compact: true }) },
+        { label: '任务 Markdown 路径', value: this.renderProjectPathValue(inputSummary.task_markdown_path, { compact: true }) },
+        {
+          label: '数据流文件清单',
+          value: dataFlowFiles.length
+            ? `<div>${this.esc(String(dataFlowFiles.length))} 个文件</div>${this.renderJsonDetailsInline('查看文件列表', dataFlowFiles)}`
+            : '<span class="text-muted">未记录</span>',
+        },
+      ];
+      const outputRows = [
+        { label: 'TASK ROOT', value: this.renderProjectPathValue(taskDetail.task_root || data.path, { compact: true }) },
+        { label: '输出目录', value: this.renderProjectPathValue(outputSummary.output_root, { compact: true }) },
+      ];
+      cards.push(section('输入信息', this.renderTaskConfigSummaryRows(inputRows)));
+      cards.push(section('输出信息', this.renderTaskConfigSummaryRows(outputRows)));
+      cards.push(section('运行参数', this.renderTaskConfigRows(configRows)));
+
+      cards.push(section(
+        '运行时覆盖与编译后配置',
+        [
+          this.renderJsonDetailsInline('runtime_overrides', runtimeOverrides, { emptyText: '当前任务没有 runtime_overrides。' }),
+          this.renderJsonDetailsInline('effective_config_summary', effectiveConfigSummary, { emptyText: '未记录 effective_config_summary。' }),
+          this.renderJsonDetailsInline('compiled_profile', compiledProfile, { emptyText: '未记录 compiled_profile。' }),
+        ].join(''),
+      ));
+
+      cards.push(section(
+        '输入引用 / 请求 JSON',
+        [
+          this.renderJsonDetailsInline('dataflow_scan_request', requestPayload, { emptyText: '未记录 dataflow_scan_request。', open: true }),
+          this.renderJsonDetailsInline('dataflow_cli', cliMeta, { emptyText: '未记录 dataflow_cli。' }),
+          this.renderJsonDetailsInline('input_summary', inputSummary, { emptyText: '未记录 input_summary。' }),
+          this.renderJsonDetailsInline('output_summary', outputSummary, { emptyText: '未记录 output_summary。' }),
+        ].join(''),
+      ));
+
+
+      cards.push(section(
+        'Agent 状态目录',
+        agentStateDirs.length
+          ? `<div style="overflow:auto"><table style="width:100%;min-width:760px;border-collapse:collapse;font-size:12px">
+              <thead>
+                <tr style="background:rgba(148,163,184,0.08);text-align:left">
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Agent</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Root</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Skills</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Memory</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">来源</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${agentStateDirs.map((item: any) => `
+                  <tr>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono);font-weight:700">${this.esc(String(item?.agent_id || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.root_dir || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.skills_dir || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.memory_dir || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.source || 'shared_default'))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table></div>`
+          : '<div class="empty-state">当前任务未返回 agent 状态目录信息。</div>',
+      ));
+
+      cards.push(section(
+        '执行尝试记录',
+        attempts.length
+          ? `<div style="overflow:auto"><table style="width:100%;min-width:960px;border-collapse:collapse;font-size:12px">
+              <thead>
+                <tr style="background:rgba(148,163,184,0.08);text-align:left">
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Attempt</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">状态</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Execution ID</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Dispatch</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Process</th>
+                  <th style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.18)">Workspace</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${attempts.map((item: any) => `
+                  <tr>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-weight:700">#${this.esc(String(item?.attempt_no || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.statusBadge(String(item?.status || 'unknown'), 'badge-sm')}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.execution_id || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.dispatch_status || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12)">${this.esc(String(item?.process_status || '-'))}</td>
+                    <td style="padding:8px 10px;border-bottom:1px solid rgba(148,163,184,0.12);font-family:var(--mono)">${this.esc(String(item?.workspace_root || '-'))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table></div>
+            ${this.renderJsonDetailsInline('attempts JSON', attempts)}`
+          : '<div class="empty-state">当前任务没有 execution attempts 记录。</div>',
+      ));
+
+      cards.push(section(
+        '任务原始信息',
+        [
+          taskDetail.task_markdown
+            ? `<details><summary class="action-link" style="cursor:pointer">查看 task_markdown</summary><pre class="run-command-pre" style="margin-top:8px">${this.esc(taskDetail.task_markdown)}</pre></details>`
+            : '<div class="text-muted" style="font-size:12px">未记录 task_markdown 内容。</div>',
+          this.renderJsonDetailsInline('task_metadata', taskMetadata, { emptyText: '未记录 task_metadata。' }),
+        ].join(''),
+      ));
+
+      el.innerHTML = `<div style="display:grid;gap:14px">${cards.join('')}</div>`;
+    },
+
     renderTaskInfo(data: DataflowFileserverRunOverview) {
       const el = this.$('taskInfoCard');
       if (!el) return;
@@ -3642,7 +4207,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const agentStateDirs = data.linked_task_agent_state_dirs && typeof data.linked_task_agent_state_dirs === 'object'
         ? Object.values(data.linked_task_agent_state_dirs)
         : [];
-      const linkedTaskDetail = data.linked_task_detail && typeof data.linked_task_detail === 'object' ? data.linked_task_detail : null;
+      const linkedTaskDetail = this.cachedLinkedTaskDetail(data.name, data);
       const inputSummary = linkedTaskDetail && typeof linkedTaskDetail.input_summary === 'object' ? linkedTaskDetail.input_summary : {};
       const outputSummary = linkedTaskDetail && typeof linkedTaskDetail.output_summary === 'object' ? linkedTaskDetail.output_summary : {};
       const effectiveConfigSummary = linkedTaskDetail && typeof linkedTaskDetail.effective_config_summary === 'object' ? linkedTaskDetail.effective_config_summary : {};
@@ -3726,7 +4291,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           <details class="run-command-block">
             <summary class="run-command-title" style="cursor:pointer">
               <span>任务配置</span>
-              <span>${linkedTaskDetail ? '展开查看输入/输出/配置' : '展开查看运行侧摘要'}</span>
+              <span>${linkedTaskDetail ? '展开查看输入/输出/配置' : '切换到“任务配置”页签后自动加载完整任务配置'}</span>
             </summary>
             <div style="margin-top:12px;display:grid;gap:14px">
               <div>
@@ -4206,6 +4771,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const runCache = this.getRunCache(runName);
       const el = this.$('sessionsContainer');
       if (!el) return;
+      if (!force && this.sessionBrowser.selectedRun === runName && this.sessionBrowser.selectedPath && this._sessionSocket) {
+        this.renderSessions(runCache.sessions || []);
+        return;
+      }
       if (!force && runCache.sessionsLoaded) {
         this.runSessions = runCache.sessions;
         this.renderSessions(this.runSessions);
@@ -6318,7 +6887,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (!force && runCache.logLoaded) {
         this.runLog = runCache.log;
         el.textContent = this.runLog || '(empty)';
-        el.scrollTop = el.scrollHeight;
+        if (this.getActiveTab() === 'log') el.scrollTop = el.scrollHeight;
         this.renderLogToolbar(runCache);
         return;
       }
@@ -6331,7 +6900,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
         runCache.log = logText;
         this.runLog = logText;
         el.textContent = this.runLog || '(empty)';
-        el.scrollTop = el.scrollHeight;
+        if (this.getActiveTab() === 'log') el.scrollTop = el.scrollHeight;
         this.renderLogToolbar(runCache);
       } catch (error) {
         if (this.currentRun !== runName) return;
@@ -6346,6 +6915,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.$all('.tab-content').forEach((t: HTMLElement) => t.classList.toggle('active', t.id === `tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
       if (tab !== 'sessions') this.closeSessionSocket();
       if (tab === 'cycles' && this.currentRunData) void this.preloadAllCycleDetails(this.currentRunData.name, this.currentRunData, force);
+      if (tab === 'task-config' && this.currentRunData) {
+        this.renderTaskConfig(this.currentRunData);
+        void this.ensureLinkedTaskDetail(this.currentRunData.name, { force });
+      }
       if (tab === 'sessions') this.loadSessions(force);
       if (tab === 'files') this.loadFiles(force);
       if (tab === 'log') this.loadLog(force);
