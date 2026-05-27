@@ -4,6 +4,11 @@ import { SIDEBAR_SECTIONS, SidebarHealthStatus } from '../app/navigation';
 import { UserInfo, ViewType } from '../types/types';
 import { canAccessView } from '../utils/rbac';
 
+const FRONTEND_BUILD_VERSION =
+  typeof __APP_BUILD_VERSION__ === 'string' && __APP_BUILD_VERSION__.trim()
+    ? __APP_BUILD_VERSION__.trim()
+    : null;
+
 interface SidebarProps {
   user: UserInfo | null;
   currentView: ViewType | string;
@@ -172,10 +177,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="p-5 border-t border-slate-800">
         {!isSidebarCollapsed ? (
-          <div className="flex justify-end">
-            <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-slate-800/50 text-slate-500 hover:text-white hover:bg-slate-800 transition-colors">
-              <PanelLeftClose size={18} />
-            </button>
+          <div className="space-y-3">
+            {FRONTEND_BUILD_VERSION ? (
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-2">
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                  Frontend
+                </div>
+                <div className="mt-1 break-all font-mono text-[11px] text-slate-300">
+                  {FRONTEND_BUILD_VERSION}
+                </div>
+              </div>
+            ) : null}
+            <div className="flex justify-end">
+              <button onClick={() => setIsSidebarCollapsed(true)} className="p-3 rounded-2xl bg-slate-800/50 text-slate-500 hover:text-white hover:bg-slate-800 transition-colors">
+                <PanelLeftClose size={18} />
+              </button>
+            </div>
           </div>
         ) : (
           <button onClick={() => setIsSidebarCollapsed(false)} className="w-full flex justify-center p-3 text-slate-500 hover:text-white transition-colors">
