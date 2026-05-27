@@ -763,7 +763,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     }
   };
 
-  const loadTasks = useCallback(async (targetPage = page) => {
+  const loadTasks = useCallback(async (targetPage: number) => {
     if (!projectId) return;
     setLoading(true);
     setTasksError('');
@@ -789,7 +789,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     } finally {
       setLoading(false);
     }
-  }, [executionApi, modeFilter, notify, page, parentTaskIdFilter, perPage, projectId, runStatusFilter, sortBy, sortOrder]);
+  }, [executionApi, modeFilter, notify, parentTaskIdFilter, perPage, projectId, runStatusFilter, sortBy, sortOrder]);
 
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
@@ -805,12 +805,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     }
   }, [executionApi]);
 
-  const loadAll = useCallback(async (targetPage = page) => {
+  const loadAll = useCallback(async (targetPage: number) => {
     await Promise.all([
       loadTasks(targetPage),
       loadSlotSummary(),
     ]);
-  }, [loadSlotSummary, loadTasks, page]);
+  }, [loadSlotSummary, loadTasks]);
 
   const loadSlotDetail = async () => {
     setSlotSummaryLoading(true);

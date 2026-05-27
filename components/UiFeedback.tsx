@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
 
 type NoticeLevel = 'info' | 'success' | 'warning' | 'error';
@@ -76,15 +76,15 @@ export const useUiFeedback = () => {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  const notify = (
+  const notify = useCallback((
     message: string,
     level: NoticeLevel = 'info',
     title = level === 'success' ? '操作成功' : level === 'error' ? '操作失败' : '提示'
   ) => {
     setNotice({ title, message, level });
-  };
+  }, []);
 
-  const confirm = (options: ConfirmOptions) =>
+  const confirm = useCallback((options: ConfirmOptions) =>
     new Promise<boolean>((resolve) => {
       setConfirmState({
         title: options.title || '请确认',
@@ -94,9 +94,9 @@ export const useUiFeedback = () => {
         danger: !!options.danger,
         resolve,
       });
-    });
+    }), []);
 
-  const prompt = (options: PromptOptions) =>
+  const prompt = useCallback((options: PromptOptions) =>
     new Promise<string | null>((resolve) => {
       setPromptValue(options.defaultValue || '');
       setPromptState({
@@ -108,7 +108,7 @@ export const useUiFeedback = () => {
         cancelText: options.cancelText || '取消',
         resolve,
       });
-    });
+    }), []);
 
   const feedbackNodes = useMemo(
     () => (

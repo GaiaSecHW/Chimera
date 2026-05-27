@@ -640,8 +640,6 @@ export const dataflowVulnScannerApi = {
       sort_by: params.sort_by,
       sort_order: params.sort_order,
       profile_id: params.profileId,
-      page: params.page,
-      page_size: params.pageSize,
     }), { headers: getHeaders() });
     return unwrapPagedList<DataflowScanTask>(await handleResponse(response), {
       page: params.page,
@@ -656,6 +654,14 @@ export const dataflowVulnScannerApi = {
 
   getWorkerClusterCapacitySummary: async (): Promise<DataflowVulnClusterCapacity> => {
     const response = await fetch(`${PREFIX}/workers/cluster-capacity/summary`, { headers: getHeaders() });
+    if (response.status === 404) {
+      const fallbackResponse = await fetch(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
+      const payload = await handleResponse(fallbackResponse);
+      return {
+        ...payload,
+        detail_mode: payload.detail_mode || 'detail',
+      };
+    }
     return handleResponse(response);
   },
 
