@@ -39,26 +39,21 @@ export function ExecutionTableHead({ children }: { children: React.ReactNode }) 
 export function ExecutionTableTh({
   children,
   className = '',
-  align,
 }: {
   children: React.ReactNode;
   className?: string;
-  align?: 'left' | 'center' | 'right';
 }) {
-  const alignClassName = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : '';
-  return <th className={`px-4 py-3 ${alignClassName} ${className}`.trim()}>{children}</th>;
+  return <th className={`px-4 py-3 ${className}`.trim()}>{children}</th>;
 }
 
 export function ExecutionTableTd({
   children,
   className = '',
-  colSpan,
 }: {
   children: React.ReactNode;
   className?: string;
-  colSpan?: number;
 }) {
-  return <td colSpan={colSpan} className={`${executionTableCellClassName} ${className}`.trim()}>{children}</td>;
+  return <td className={`${executionTableCellClassName} ${className}`.trim()}>{children}</td>;
 }
 
 export function ExecutionTableEmptyRow({

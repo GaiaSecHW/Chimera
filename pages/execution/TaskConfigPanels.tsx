@@ -16,14 +16,12 @@ import {
   contractText,
   dfaContractSourceFile,
   dfaInputContractRows,
-  dfaOutputContractRows,
   dfaContractModuleInputPath,
   dfaContractSourceRootPath,
   entryContractDescriptorRoot,
   entryContractFilesListPath,
   entryContractModuleDir,
   entryContractSourceRoot,
-  legacyContractValue,
 } from '../../utils/binarySecurityContracts';
 
 const ANALYSE_TARGET_LABELS: Record<string, string> = {
@@ -113,23 +111,6 @@ const TagList: React.FC<{ items: string[]; labelMap?: Record<string, string>; em
 
 function asRecord(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
-}
-
-function recordText(value: unknown, ...fields: string[]): string | null {
-  return legacyContractValue(value, ...fields);
-}
-
-function recordStringArray(value: unknown, field: string): string[] {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
-  const candidate = (value as Record<string, unknown>)[field];
-  if (!Array.isArray(candidate)) return [];
-  return candidate.map((item) => String(item || '').trim()).filter(Boolean);
-}
-
-function recordBool(value: unknown, field: string): boolean | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
-  const candidate = (value as Record<string, unknown>)[field];
-  return typeof candidate === 'boolean' ? candidate : undefined;
 }
 
 function formatBool(value: unknown, trueLabel = '开启', falseLabel = '关闭'): string {
@@ -251,22 +232,6 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
   const taskConfig = asRecord(detail.task_config_json);
   const resolved = asRecord(taskConfig.resolved_config_snapshot || detail.effective_config_json);
   const hasResolved = Object.keys(resolved).length > 0;
-  const analyseTargets = recordStringArray(taskConfig, 'analyse_targets');
-  const binaryArch = recordStringArray(taskConfig, 'binary_arch');
-  const securityFocusCategories = recordStringArray(taskConfig, 'security_focus_categories');
-  const resolvedAnalyseTargets = recordStringArray(resolved, 'analyse_targets');
-  const resolvedBinaryArch = recordStringArray(resolved, 'binary_arch');
-  const resolvedSecurityFocusCategories = recordStringArray(resolved, 'security_focus_categories');
-  const moduleGranularity = recordText(taskConfig, 'module_granularity');
-  const filterEngine = recordText(taskConfig, 'filter_engine');
-  const resolvedModuleGranularity = recordText(resolved, 'module_granularity');
-  const resolvedFilterEngine = recordText(resolved, 'filter_engine') || 'script';
-  const enableFinalCheck = recordBool(taskConfig, 'enable_final_check');
-  const continueOnModuleFailure = recordBool(taskConfig, 'continue_on_module_failure');
-  const resolvedEnableFinalCheck = recordBool(resolved, 'enable_final_check');
-  const resolvedContinueOnModuleFailure = recordBool(resolved, 'continue_on_module_failure');
-  const startStage = recordText(taskConfig, 'start_stage');
-  const resumeWorkspace = recordText(taskConfig, 'resume_workspace');
   const overrideKeys = ['analyse_targets', 'binary_arch', 'security_focus_categories', 'module_granularity', 'filter_engine', 'enable_final_check', 'continue_on_module_failure']
     .filter((key) => taskConfig[key] !== undefined);
 
@@ -314,64 +279,64 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
           <div className="divide-y divide-slate-100">
             {taskConfig.analyse_targets !== undefined ? (
               <>
-                <ConfigRow label="文件类型过滤"><TagList items={analyseTargets} labelMap={ANALYSE_TARGET_LABELS} /></ConfigRow>
+                <ConfigRow label="文件类型过滤"><TagList items={taskConfig.analyse_targets || []} labelMap={ANALYSE_TARGET_LABELS} /></ConfigRow>
                 <Divider />
               </>
             ) : null}
             {taskConfig.binary_arch !== undefined ? (
               <>
-                <ConfigRow label="ELF 架构过滤"><TagList items={binaryArch} labelMap={BINARY_ARCH_LABELS} /></ConfigRow>
+                <ConfigRow label="ELF 架构过滤"><TagList items={taskConfig.binary_arch || []} labelMap={BINARY_ARCH_LABELS} /></ConfigRow>
                 <Divider />
               </>
             ) : null}
             {taskConfig.security_focus_categories !== undefined ? (
               <>
                 <ConfigRow label="安全分析维度">
-                  {securityFocusCategories.includes('all')
+                  {Array.isArray(taskConfig.security_focus_categories) && taskConfig.security_focus_categories.includes('all')
                     ? '全部维度'
-                    : <TagList items={securityFocusCategories} labelMap={Object.fromEntries(Object.entries(SECURITY_CATEGORY_LABELS).map(([key, value]) => [key, value.name]))} />}
+                    : <TagList items={taskConfig.security_focus_categories || []} labelMap={Object.fromEntries(Object.entries(SECURITY_CATEGORY_LABELS).map(([key, value]) => [key, value.name]))} />}
                 </ConfigRow>
                 <Divider />
               </>
             ) : null}
             {taskConfig.module_granularity !== undefined ? (
               <>
-                <ConfigRow label="模块划分粒度">{moduleGranularity === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}</ConfigRow>
+                <ConfigRow label="模块划分粒度">{taskConfig.module_granularity === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}</ConfigRow>
                 <Divider />
               </>
             ) : null}
             {taskConfig.filter_engine !== undefined ? (
               <>
-                <ConfigRow label="过滤引擎">{FILTER_ENGINE_LABELS[String(filterEngine)] || String(filterEngine)}</ConfigRow>
+                <ConfigRow label="过滤引擎">{FILTER_ENGINE_LABELS[String(taskConfig.filter_engine)] || String(taskConfig.filter_engine)}</ConfigRow>
                 <Divider />
               </>
             ) : null}
             {taskConfig.enable_final_check !== undefined ? (
               <>
-                <ConfigRow label="完整性检查">{formatBool(enableFinalCheck, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
+                <ConfigRow label="完整性检查">{formatBool(taskConfig.enable_final_check, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
                 {taskConfig.continue_on_module_failure !== undefined ? <Divider /> : null}
               </>
             ) : null}
             {taskConfig.continue_on_module_failure !== undefined ? (
               <ConfigRow label="单模块失败后继续">
-                {formatBool(continueOnModuleFailure, '允许继续', '失败即终止任务')}
+                {formatBool(taskConfig.continue_on_module_failure, '允许继续', '失败即终止任务')}
               </ConfigRow>
             ) : null}
           </div>
         )}
       </SectionCard>
 
-      {(startStage || resumeWorkspace) ? (
+      {(taskConfig.start_stage || taskConfig.resume_workspace) ? (
         <SectionCard title="续跑配置">
           <div className="divide-y divide-slate-100">
-            {startStage ? (
+            {taskConfig.start_stage ? (
               <>
-                <ConfigRow label="起始阶段">{`Stage ${startStage}`}</ConfigRow>
-                {resumeWorkspace ? <Divider /> : null}
+                <ConfigRow label="起始阶段">{`Stage ${taskConfig.start_stage}`}</ConfigRow>
+                {taskConfig.resume_workspace ? <Divider /> : null}
               </>
             ) : null}
-            {resumeWorkspace ? (
-              <ConfigRow label="复用工作区"><ProjectDirectoryValue path={resumeWorkspace} projectId={detail.project_id} /></ConfigRow>
+            {taskConfig.resume_workspace ? (
+              <ConfigRow label="复用工作区"><ProjectDirectoryValue path={taskConfig.resume_workspace} projectId={detail.project_id} /></ConfigRow>
             ) : null}
           </div>
         </SectionCard>
@@ -380,24 +345,24 @@ export const SystemAnalysisTaskConfigPanel: React.FC<{ detail: AppSaTaskDetail }
       {hasResolved ? (
         <SectionCard title="实际运行快照">
           <div className="divide-y divide-slate-100">
-            <ConfigRow label="文件类型过滤"><TagList items={resolvedAnalyseTargets} labelMap={ANALYSE_TARGET_LABELS} emptyText="-" /></ConfigRow>
+            <ConfigRow label="文件类型过滤"><TagList items={resolved.analyse_targets || []} labelMap={ANALYSE_TARGET_LABELS} emptyText="-" /></ConfigRow>
             <Divider />
-            <ConfigRow label="ELF 架构过滤"><TagList items={resolvedBinaryArch} labelMap={BINARY_ARCH_LABELS} emptyText="-" /></ConfigRow>
+            <ConfigRow label="ELF 架构过滤"><TagList items={resolved.binary_arch || []} labelMap={BINARY_ARCH_LABELS} emptyText="-" /></ConfigRow>
             <Divider />
             <ConfigRow label="安全分析维度">
-              {resolvedSecurityFocusCategories.includes('all')
+              {Array.isArray(resolved.security_focus_categories) && resolved.security_focus_categories.includes('all')
                 ? '全部维度'
-                : <TagList items={resolvedSecurityFocusCategories} labelMap={Object.fromEntries(Object.entries(SECURITY_CATEGORY_LABELS).map(([key, value]) => [key, value.name]))} emptyText="-" />}
+                : <TagList items={resolved.security_focus_categories || []} labelMap={Object.fromEntries(Object.entries(SECURITY_CATEGORY_LABELS).map(([key, value]) => [key, value.name]))} emptyText="-" />}
             </ConfigRow>
             <Divider />
-            <ConfigRow label="模块划分粒度">{resolvedModuleGranularity === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}</ConfigRow>
+            <ConfigRow label="模块划分粒度">{resolved.module_granularity === 'coarse' ? '粗粒度（协议/服务/功能级）' : '细粒度（子组件级）'}</ConfigRow>
             <Divider />
-            <ConfigRow label="过滤引擎">{FILTER_ENGINE_LABELS[String(resolvedFilterEngine)] || String(resolvedFilterEngine)}</ConfigRow>
+            <ConfigRow label="过滤引擎">{FILTER_ENGINE_LABELS[String(resolved.filter_engine || 'script')] || String(resolved.filter_engine || 'script')}</ConfigRow>
             <Divider />
-            <ConfigRow label="完整性检查">{formatBool(resolvedEnableFinalCheck, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
+            <ConfigRow label="完整性检查">{formatBool(resolved.enable_final_check, '开启 Stage 4a', '关闭 Stage 4a')}</ConfigRow>
             <Divider />
             <ConfigRow label="单模块失败后继续">
-              {formatBool(resolvedContinueOnModuleFailure !== false, '允许继续', '失败即终止任务')}
+              {formatBool(resolved.continue_on_module_failure !== false, '允许继续', '失败即终止任务')}
             </ConfigRow>
           </div>
         </SectionCard>
@@ -419,11 +384,8 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
   const contractDescriptorRoot = entryContractDescriptorRoot(inputContract);
   const contractSourceRoot = entryContractSourceRoot(inputContract);
   const filesListPath = entryContractFilesListPath(inputContract)
-    || recordText(inputSummary, 'files_list_path')
+    || String(inputSummary.files_list_path || '').trim()
     || null;
-  const resumeTaskId = recordText(taskConfig, 'resume_task_id');
-  const resumeStage = recordText(taskConfig, 'resume_stage');
-  const resumeWorkspace = recordText(taskConfig, 'resume_workspace');
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -458,10 +420,10 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
           { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
           { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
           { label: '工作目录', path: detail.workspace_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace` : null) },
-          { label: 'R1-functions', path: recordText(outputSummary, 'r1_functions_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r1-functions` : null) },
-          { label: 'R3-entries', path: recordText(outputSummary, 'r3_entries_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r3-entries` : null) },
-          { label: 'R4-module', path: recordText(outputSummary, 'r4_module_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r4-module` : null) },
-          { label: '报告目录', path: recordText(outputSummary, 'report_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/report` : null) },
+          { label: 'R1-functions', path: outputSummary.r1_functions_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r1-functions` : null) },
+          { label: 'R3-entries', path: outputSummary.r3_entries_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r3-entries` : null) },
+          { label: 'R4-module', path: outputSummary.r4_module_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/r4-module` : null) },
+          { label: '报告目录', path: outputSummary.report_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/workspace/report` : null) },
         ]}
       />
 
@@ -470,22 +432,22 @@ export const EntryAnalysisTaskConfigPanel: React.FC<{ detail: AppEaTaskDetail }>
           <EmptyState text="当前任务没有额外 task_config_json 配置。" />
         ) : (
           <div className="divide-y divide-slate-100">
-            {resumeTaskId ? (
+            {taskConfig.resume_task_id !== undefined ? (
               <>
-                <ConfigRow label="断点续跑来源任务"><span className="break-all font-mono text-xs">{resumeTaskId || '-'}</span></ConfigRow>
+                <ConfigRow label="断点续跑来源任务"><span className="break-all font-mono text-xs">{taskConfig.resume_task_id || '-'}</span></ConfigRow>
                 <Divider />
               </>
             ) : null}
-            {resumeStage ? (
+            {taskConfig.resume_stage !== undefined ? (
               <>
-                <ConfigRow label="续跑阶段">{resumeStage}</ConfigRow>
+                <ConfigRow label="续跑阶段">{String(taskConfig.resume_stage || '-')}</ConfigRow>
                 <Divider />
               </>
             ) : null}
-            {resumeWorkspace ? (
-              <ConfigRow label="复用工作区"><ProjectDirectoryValue path={resumeWorkspace} projectId={detail.project_id} /></ConfigRow>
+            {taskConfig.resume_workspace !== undefined ? (
+              <ConfigRow label="复用工作区"><ProjectDirectoryValue path={taskConfig.resume_workspace} projectId={detail.project_id} /></ConfigRow>
             ) : (
-              !resumeTaskId
+              taskConfig.resume_task_id === undefined
                 ? <EmptyState text="当前任务的 task_config_json 中没有可识别的显式字段。" />
                 : null
             )}
@@ -505,17 +467,10 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
   const inputSummary = asRecord(detail.input_summary);
   const outputSummary = asRecord(detail.output_summary);
   const inputContract = asBinarySecurityContract(taskConfig.input_contract);
-  const outputContract = asBinarySecurityContract(outputSummary.output_contract || taskConfig.output_contract);
   const moduleInputPath = dfaContractModuleInputPath(inputContract, inputSummary);
   const sourceRootPath = dfaContractSourceRootPath(inputContract, inputSummary);
-  const sourceFile = dfaContractSourceFile(inputContract, inputSummary) || recordText(taskConfig, 'source_file');
+  const sourceFile = dfaContractSourceFile(inputContract, inputSummary) || (typeof taskConfig.source_file === 'string' ? taskConfig.source_file : null);
   const inputContractRows = dfaInputContractRows(inputContract, inputSummary);
-  const outputContractRows = dfaOutputContractRows(outputContract, outputSummary);
-  const functionName = recordText(taskConfig, 'function_name');
-  const lineHint = recordText(taskConfig, 'line_hint');
-  const functionDescription = recordText(taskConfig, 'function_description');
-  const entryReason = recordText(taskConfig, 'entry_reason');
-  const resumeWorkspace = recordText(taskConfig, 'resume_workspace');
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -537,10 +492,10 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         rows={[
           { label: '模块输入目录', path: moduleInputPath },
           { label: '源码根目录', path: sourceRootPath },
-          { label: '输入工作区', path: recordText(inputSummary, 'workspace_root', 'workspace_dir') },
+          { label: '输入工作区', path: inputSummary.workspace_root || inputSummary.workspace_dir },
           { label: '源码文件', value: sourceFile ? <span className="break-all font-mono text-xs">{sourceFile}</span> : '-' },
-          { label: '函数名', value: functionName || '-' },
-          { label: '行号提示', value: lineHint || '-' },
+          { label: '函数名', value: taskConfig.function_name || '-' },
+          { label: '行号提示', value: taskConfig.line_hint || '-' },
         ]}
       />
 
@@ -564,35 +519,15 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
         )}
       </SectionCard>
 
-      <SectionCard title="DFA 输出 Contract">
-        {outputContractRows.length === 0 ? (
-          <EmptyState text="当前任务未记录结构化 DFA 输出 Contract。" />
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {outputContractRows.map((row, index) => (
-              <React.Fragment key={`${row.label}-${index}`}>
-                <ConfigRow label={row.label}>
-                  <div className="space-y-1">
-                    {row.semantic ? <div className="text-[11px] font-semibold text-slate-500">{row.semantic}</div> : null}
-                    <span className="break-all font-mono text-xs text-slate-800">{row.value}</span>
-                  </div>
-                </ConfigRow>
-                {index < outputContractRows.length - 1 ? <Divider /> : null}
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
       <PathSummarySection
         title="输出信息"
         projectId={detail.project_id}
         rows={[
           { label: '任务目录', path: detail.task_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}` : null) },
           { label: '运行目录', path: detail.run_root || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run` : null) },
-          { label: '最新工作区', path: detail.workspace_root || recordText(outputSummary, 'latest_workspace_root') },
-          { label: '结果文件', path: recordText(outputSummary, 'result_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/result.json` : null) },
-          { label: '数据流输出', path: recordText(outputSummary, 'dataflow_output_path') || (detail.output_path ? `${detail.output_path}/${detail.task_id}/output/dataflow` : null) },
+          { label: '最新工作区', path: detail.workspace_root || outputSummary.latest_workspace_root },
+          { label: '结果文件', path: outputSummary.result_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/run/result.json` : null) },
+          { label: '数据流输出', path: outputSummary.dataflow_output_path || (detail.output_path ? `${detail.output_path}/${detail.task_id}/output/dataflow` : null) },
         ]}
       />
 
@@ -601,21 +536,21 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
           <EmptyState text="当前任务没有额外 task_config_json 配置。" />
         ) : (
           <div className="divide-y divide-slate-100">
-            {sourceFile ? (
+            {taskConfig.source_file !== undefined ? (
               <>
-                <ConfigRow label="源码文件"><span className="break-all font-mono text-xs">{sourceFile || '-'}</span></ConfigRow>
+                <ConfigRow label="源码文件"><span className="break-all font-mono text-xs">{taskConfig.source_file || '-'}</span></ConfigRow>
                 <Divider />
               </>
             ) : null}
-            {functionName ? (
+            {taskConfig.function_name !== undefined ? (
               <>
-                <ConfigRow label="函数名">{functionName || '-'}</ConfigRow>
+                <ConfigRow label="函数名">{taskConfig.function_name || '-'}</ConfigRow>
                 <Divider />
               </>
             ) : null}
-            {lineHint ? (
+            {taskConfig.line_hint !== undefined ? (
               <>
-                <ConfigRow label="行号提示">{lineHint || '-'}</ConfigRow>
+                <ConfigRow label="行号提示">{taskConfig.line_hint || '-'}</ConfigRow>
                 <Divider />
               </>
             ) : null}
@@ -625,15 +560,15 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
                 <Divider />
               </>
             ) : null}
-            {functionDescription ? (
+            {taskConfig.function_description !== undefined ? (
               <>
-                <ConfigRow label="函数描述">{functionDescription || '-'}</ConfigRow>
+                <ConfigRow label="函数描述">{taskConfig.function_description || '-'}</ConfigRow>
                 <Divider />
               </>
             ) : null}
-            {entryReason ? (
+            {taskConfig.entry_reason !== undefined ? (
               <>
-                <ConfigRow label="入口原因">{entryReason || '-'}</ConfigRow>
+                <ConfigRow label="入口原因">{taskConfig.entry_reason || '-'}</ConfigRow>
                 <Divider />
               </>
             ) : null}
@@ -643,9 +578,9 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
                 <Divider />
               </>
             ) : null}
-            {resumeWorkspace ? (
+            {taskConfig.resume_workspace !== undefined ? (
               <>
-                <ConfigRow label="复用工作区"><ProjectDirectoryValue path={resumeWorkspace} projectId={detail.project_id} /></ConfigRow>
+                <ConfigRow label="复用工作区"><ProjectDirectoryValue path={taskConfig.resume_workspace} projectId={detail.project_id} /></ConfigRow>
                 <Divider />
               </>
             ) : null}
@@ -670,8 +605,6 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
 export const FirmwareUnpackerTaskConfigPanel: React.FC<{ detail: FirmwareUnpackTask }> = ({ detail }) => {
   const inputSummary = asRecord(detail.input_summary);
   const outputSummary = asRecord(detail.output_summary);
-  const inputFirmwarePath = recordText(inputSummary, 'firmware_path');
-  const workspaceRoot = recordText(outputSummary, 'workspace_root');
   return (
     <div className="space-y-4">
       <TaskIdentitySection
@@ -693,7 +626,7 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{ detail: FirmwareUnpackT
         rows={[
           { label: '固件文件', path: detail.firmware_path },
           { label: '输入目录', path: detail.input_path },
-          { label: '输入摘要固件路径', path: inputFirmwarePath },
+          { label: '输入摘要固件路径', path: inputSummary.firmware_path },
         ]}
       />
 
@@ -704,7 +637,7 @@ export const FirmwareUnpackerTaskConfigPanel: React.FC<{ detail: FirmwareUnpackT
           { label: '任务目录', path: detail.task_root },
           { label: '输出目录', path: detail.output_path },
           { label: '运行目录', path: detail.run_path || detail.run_root },
-          { label: '工作目录', path: detail.workspace_root || workspaceRoot },
+          { label: '工作目录', path: detail.workspace_root || outputSummary.workspace_root },
           { label: '归档目录', path: detail.archive_root },
           { label: '运行时目录', path: detail.runtime_root },
         ]}

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownUp, ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { AppSaClusterCapacity, AppSaTaskItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
@@ -166,7 +165,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const refreshIntervalStorageKey = `secflow:systemAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
-  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRestarting, setBatchRestarting] = useState(false);
@@ -190,22 +188,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [slotError, setSlotError] = useState<string | null>(null);
   const [clusterCapacity, setClusterCapacity] = useState<AppSaClusterCapacity | null>(null);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
-  const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    void appApi.getHealth()
-      .then((payload) => {
-        if (active) setBuildVersion(payload.build_version || null);
-      })
-      .catch(() => {
-        if (active) setBuildVersion(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [appApi]);
 
   const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -256,20 +239,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     sessionStorage.removeItem('secflow:systemAnalysisTaskId');
     onOpenTask(storedTaskId);
   }, [onOpenTask]);
-
-  useEffect(() => {
-    let active = true;
-    void appApi.getHealth()
-      .then((payload: any) => {
-        if (active) setBuildVersion(payload.build_version || null);
-      })
-      .catch(() => {
-        if (active) setBuildVersion(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [appApi]);
 
   // ── Load task list ────────────────────────────────────────────────────────
 
@@ -553,10 +522,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-        <div className="mt-3 flex items-center gap-2">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
-          <ServiceBuildVersion version={buildVersion} />
-        </div>
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
@@ -575,19 +541,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <button
-            type="button"
-            onClick={() => setSlotsPanelExpanded((current) => !current)}
-            className="flex flex-1 items-start justify-between gap-4 text-left"
-          >
-            <div>
-              <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
-              <p className="mt-1 text-sm text-slate-500">展示当前系统分析 worker 集群的实时执行槽位、运行中的任务数量和各 worker 健康度。</p>
-            </div>
-            <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
-              {slotsPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </span>
-          </button>
+          <div>
+            <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
+            <p className="mt-1 text-sm text-slate-500">展示当前系统分析 worker 集群的实时执行槽位、运行中的任务数量和各 worker 健康度。</p>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="text-xs text-slate-400">最近同步 {formatDateTime(clusterCapacity?.updated_at)}</div>
             <button
@@ -599,8 +556,6 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             </button>
           </div>
         </div>
-        {slotsPanelExpanded ? (
-          <>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Worker 数</div>
@@ -656,18 +611,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             </div>
           ) : null}
         </div>
-          </>
-        ) : null}
       </section>
 
       {/* Task list */}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
-              <ServiceBuildVersion version={buildVersion} />
-            </div>
+            <h2 className="text-lg font-black text-slate-900">任务列表 <span className="text-sm font-normal text-slate-400">({total})</span></h2>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">

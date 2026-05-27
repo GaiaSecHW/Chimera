@@ -2,7 +2,6 @@
 import { AlertTriangle, ArrowDownUp, CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { AppEaStageEvent, AppEaStagesJson, AppEaTaskDetail, AppEaTaskItem, EntryAnalyseSlotClusterSummary } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
@@ -363,7 +362,6 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const refreshIntervalStorageKey = `secflow:entryAnalysis:refreshInterval:${projectId || 'default'}`;
 
   const [loading, setLoading] = useState(true);
-  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -388,7 +386,6 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [slotCluster, setSlotCluster] = useState<EntryAnalyseSlotClusterSummary | null>(null);
   const [slotClusterError, setSlotClusterError] = useState('');
   const [slotDetailOpen, setSlotDetailOpen] = useState(false);
-  const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
   const [expandedWorkerIds, setExpandedWorkerIds] = useState<string[]>([]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -409,20 +406,6 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [pickerTarget, setPickerTarget] = useState<'input' | 'source' | 'output'>('input');
   const logScrollRef = useRef<HTMLDivElement>(null);
   const riskPresetAppliedRef = useRef('');
-
-  useEffect(() => {
-    let active = true;
-    void appApi.getHealth()
-      .then((payload) => {
-        if (active) setBuildVersion(payload.build_version || null);
-      })
-      .catch(() => {
-        if (active) setBuildVersion(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [appApi]);
 
   const handleHeaderSort = (field: 'task' | 'module' | 'status' | 'origin' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -981,15 +964,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const fileProgress = detail ? computeFileProgress(detailLogs.events) : null;
 
   const logLines = detailLogs.events.map(formatEventLog);
-  const workerSlotSummaryCards = slotCluster ? [
+  const slotSummaryCards = slotCluster ? [
     { label: '总槽位', value: slotCluster.total_capacity, className: 'bg-slate-50 border-slate-200 text-slate-800' },
     { label: '占用槽位', value: slotCluster.busy_slots, className: 'bg-blue-50 border-blue-200 text-blue-700' },
     { label: '空闲槽位', value: slotCluster.available_slots, className: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
-  ] : [];
-  const dispatchSummaryCards = slotCluster ? [
-    { label: '调度上限', value: slotCluster.dispatch_limit, className: 'bg-violet-50 border-violet-200 text-violet-700' },
-    { label: '已派发运行', value: slotCluster.dispatch_running, className: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700' },
-    { label: '剩余可派发', value: slotCluster.dispatch_available, className: 'bg-cyan-50 border-cyan-200 text-cyan-700' },
     { label: '排队任务', value: slotCluster.queued_tasks, className: 'bg-amber-50 border-amber-200 text-amber-700' },
   ] : [];
 
@@ -1359,10 +1337,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
-        <div className="mt-3 flex items-center gap-2">
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">入口分析任务</h1>
-          <ServiceBuildVersion version={buildVersion} />
-        </div>
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">入口分析任务</h1>
         <p className="mt-2 text-sm text-slate-500">指定目标模块路径，自动生成 Prompt 并启动入口点分析任务。</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
@@ -1381,20 +1356,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => setSlotsPanelExpanded((current) => !current)}
-            className="flex flex-1 items-start justify-between gap-4 text-left"
-          >
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
-              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
-              <p className="mt-2 text-sm text-slate-500">展示 Worker 槽位容量，以及项目级真实可调度并发上限。Worker 槽位不等于当前项目允许同时派发的任务数。</p>
-            </div>
-            <span className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500">
-              {slotsPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} className="rotate-[-90deg]" />}
-            </span>
-          </button>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
+            <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
+            <p className="mt-2 text-sm text-slate-500">展示入口分析 Worker Pod 的真实槽位占用、空闲容量与失联 Owner。</p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => void loadSlotCluster()} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
@@ -1410,31 +1376,15 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
             ) : null}
           </div>
         </div>
-        {slotsPanelExpanded ? (slotCluster ? (
+        {slotCluster ? (
           <>
-            <div className="mt-4 space-y-3">
-              <div>
-                <div className="mb-2 text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Worker Slots</div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {workerSlotSummaryCards.map((item) => (
-                    <div key={item.label} className={`min-w-[96px] rounded-xl border px-3 py-3 ${item.className}`}>
-                      <p className="text-lg font-black">{item.value}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">{item.label}</p>
-                    </div>
-                  ))}
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {slotSummaryCards.map((item) => (
+                <div key={item.label} className={`min-w-[96px] rounded-xl border px-3 py-3 ${item.className}`}>
+                  <p className="text-lg font-black">{item.value}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">{item.label}</p>
                 </div>
-              </div>
-              <div>
-                <div className="mb-2 text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Dispatch Limit</div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {dispatchSummaryCards.map((item) => (
-                    <div key={item.label} className={`min-w-[96px] rounded-xl border px-3 py-3 ${item.className}`}>
-                      <p className="text-lg font-black">{item.value}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">{item.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">Worker {slotCluster.worker_count}</span>
@@ -1468,7 +1418,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
           <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
             {slotClusterError || '暂无可用槽位信息'}
           </div>
-        )) : null}
+        )}
       </section>
 
       {stageFocusHint || riskPreset ? (
@@ -1728,7 +1678,6 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   onClick={() => handleHeaderSort('task')}
                 />
                 <ExecutionTableTh>模块</ExecutionTableTh>
-                <ExecutionTableTh>入口数量</ExecutionTableTh>
                 <ExecutionTableTh>模式</ExecutionTableTh>
                 <SortableHeader
                   label="状态"
@@ -1822,11 +1771,6 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
                     <div className="text-sm font-semibold text-slate-700">{t.module_name || '-'}</div>
-                  </ExecutionTableTd>
-                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
-                    {['passed', 'failed', 'error', 'cancelled'].includes(t.status)
-                      ? (typeof t.entry_count === 'number' ? t.entry_count : '-')
-                      : '-'}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap">
                     <button

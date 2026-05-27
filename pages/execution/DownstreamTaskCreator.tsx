@@ -1,23 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, ChevronDown, ChevronUp, FolderOpen, Loader2, PlayCircle, ShieldCheck, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, PlayCircle, X } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
 import { clearExecutionReturnContext } from '../../utils/executionReturnContext';
-import {
-  asBinarySecurityContract,
-  contractText,
-  dfaContractSourceRootPath,
-  legacyContractValue,
-} from '../../utils/binarySecurityContracts';
 import { B2SElfTaskInput, B2STaskDetail } from '../../clients/binaryToSource';
-import {
-  DataflowCreateTaskPayload,
-  DataflowInputRef,
-  DataflowProfileConfigPayload,
-  DataflowScanProfile,
-} from '../../clients/dataflowVulnScanner';
+import { DataflowInputRef } from '../../clients/dataflowVulnScanner';
 import {
   AppDfaTaskDetail,
   AppDfaTaskResult,
@@ -60,7 +48,7 @@ const TARGET_LABEL: Record<TargetStage, string> = {
   binary_to_source: '二进制逆向',
   entry_analysis: '入口分析',
   dataflow_analysis: '数据流分析',
-  vuln_scan: '数据流漏洞挖掘',
+  vuln_scan: '数据流漏洞扫描',
 };
 
 const SOURCE_LABEL: Record<SourceKind, string> = {
@@ -73,144 +61,6 @@ const SOURCE_LABEL: Record<SourceKind, string> = {
 
 const DEFAULT_BUTTON_CLASS =
   'inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50';
-
-const DEFAULT_DATAFLOW_VULN_RUNS_ROOT = '/app/secflow-app-dataflow-vuln-scanner';
-const DEFAULT_DATAFLOW_VULN_MODEL = 'local_minimax/MiniMax/MiniMax-M2.5';
-const FORM_INPUT_CLASS = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-500';
-const REVIEW_PROFILE_OPTIONS = [
-  { value: 'fast', label: '快速筛选' },
-  { value: 'balanced', label: '平衡挖掘' },
-  { value: 'audit', label: '深度审计' },
-];
-const REVIEW_PROFILE_DEFAULT_MAX_CYCLES: Record<string, number> = {
-  fast: 1,
-  balanced: 6,
-  audit: 10,
-};
-
-type DownstreamVulnCreateState = {
-  title: string;
-  profileId: string;
-  workspacePath: string;
-  dataFlowPath: string;
-  sourcePath: string;
-  model: string;
-  provider: string;
-  reviewProfile: string;
-  maxReviewCycles: number;
-  timeoutMaxRetries: number;
-  timeoutRetryIntervalSeconds: number;
-  resultReviewConcurrency: number;
-  runtimeOverridesText: string;
-  autoReportVulnerabilities: boolean;
-};
-
-function downstreamVulnDefaultConfigPayload(): DataflowProfileConfigPayload {
-  return {
-    model: DEFAULT_DATAFLOW_VULN_MODEL,
-    review_profile: 'fast',
-    max_review_cycles: REVIEW_PROFILE_DEFAULT_MAX_CYCLES.fast,
-    worker_timeout: 3600,
-    advisor_timeout: 3600,
-    timeout_max_retries: 3,
-    timeout_retry_interval_seconds: 30,
-    result_review_concurrency: 3,
-    runtime_overrides: {},
-  };
-}
-
-function normalizeDownstreamVulnConfigPayload(value?: Partial<DataflowProfileConfigPayload> | null): DataflowProfileConfigPayload {
-  return {
-    ...downstreamVulnDefaultConfigPayload(),
-    ...(value || {}),
-    runtime_overrides: value?.runtime_overrides || {},
-  };
-}
-
-function initialDownstreamVulnCreateState(overrides?: Partial<DownstreamVulnCreateState>): DownstreamVulnCreateState {
-  const defaults = downstreamVulnDefaultConfigPayload();
-  return {
-    title: `dataflow-vuln-${new Date().toISOString().slice(0, 16).replace('T', '-')}`,
-    profileId: '',
-    workspacePath: DEFAULT_DATAFLOW_VULN_RUNS_ROOT,
-    dataFlowPath: '',
-    sourcePath: '',
-    model: defaults.model,
-    provider: '',
-    reviewProfile: defaults.review_profile || 'fast',
-    maxReviewCycles: defaults.max_review_cycles,
-    timeoutMaxRetries: defaults.timeout_max_retries ?? 3,
-    timeoutRetryIntervalSeconds: defaults.timeout_retry_interval_seconds ?? 30,
-    resultReviewConcurrency: defaults.result_review_concurrency,
-    runtimeOverridesText: '',
-    autoReportVulnerabilities: true,
-    ...(overrides || {}),
-  };
-}
-
-function applyConfigPayloadToDownstreamVulnState(
-  state: DownstreamVulnCreateState,
-  configPayload: DataflowProfileConfigPayload,
-  options?: { preserveModel?: boolean; preserveReviewProfile?: boolean; preserveMaxReviewCycles?: boolean },
-): DownstreamVulnCreateState {
-  return {
-    ...state,
-    model: options?.preserveModel ? state.model : configPayload.model,
-    reviewProfile: options?.preserveReviewProfile ? state.reviewProfile : (configPayload.review_profile || downstreamVulnDefaultConfigPayload().review_profile || 'fast'),
-    maxReviewCycles: options?.preserveMaxReviewCycles ? state.maxReviewCycles : configPayload.max_review_cycles,
-    timeoutMaxRetries: configPayload.timeout_max_retries ?? 3,
-    timeoutRetryIntervalSeconds: configPayload.timeout_retry_interval_seconds ?? 30,
-    resultReviewConcurrency: configPayload.result_review_concurrency,
-  };
-}
-
-function resolveDefaultVulnProfile(profiles: DataflowScanProfile[]): DataflowScanProfile | null {
-  return profiles.find((item) => item.is_default && item.enabled)
-    || profiles.find((item) => item.enabled)
-    || null;
-}
-
-function buildDownstreamVulnConfigOverrides(
-  state: DownstreamVulnCreateState,
-  baseline: DataflowProfileConfigPayload,
-): Partial<DataflowCreateTaskPayload> {
-  const overrides: Partial<DataflowCreateTaskPayload> = {};
-  const shouldSend = <T,>(value: T, baselineValue: T) => value !== baselineValue;
-  const model = state.model.trim();
-  const provider = state.provider.trim();
-  if (provider) {
-    overrides.provider = provider;
-    if (model) overrides.model = model;
-  } else if (model && shouldSend(model, baseline.model)) {
-    overrides.model = model;
-  }
-  if (state.reviewProfile && shouldSend(state.reviewProfile, baseline.review_profile || 'balanced')) {
-    overrides.review_profile = state.reviewProfile;
-  }
-  if (shouldSend(state.maxReviewCycles, baseline.max_review_cycles)) {
-    overrides.max_review_cycles = state.maxReviewCycles;
-  }
-  if (shouldSend(state.timeoutMaxRetries, baseline.timeout_max_retries ?? 3)) {
-    overrides.timeout_max_retries = state.timeoutMaxRetries;
-  }
-  if (shouldSend(state.timeoutRetryIntervalSeconds, baseline.timeout_retry_interval_seconds ?? 30)) {
-    overrides.timeout_retry_interval_seconds = state.timeoutRetryIntervalSeconds;
-  }
-  if (shouldSend(state.resultReviewConcurrency, baseline.result_review_concurrency)) {
-    overrides.result_review_concurrency = state.resultReviewConcurrency;
-  }
-  return overrides;
-}
-
-function parseJsonObject(value: string, label: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return {};
-  const parsed = JSON.parse(trimmed);
-  if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
-    throw new Error(`${label} 必须是 JSON 对象`);
-  }
-  return parsed;
-}
 
 function taskIdOf(task: Props['task']): string {
   if (!task) return '';
@@ -256,17 +106,6 @@ function joinPath(base: string, child: string): string {
   return `${base.replace(/\/+$/, '')}/${child.replace(/^\/+/, '')}`;
 }
 
-function normalizeProjectScopedDisplayPath(projectId: string, path?: string | null): string {
-  const normalized = String(path || '').replace(/\\/g, '/').trim();
-  if (!normalized) return '';
-  const projectRoot = `/data/files/${projectId}`;
-  if (normalized === projectRoot) return '/';
-  if (normalized.startsWith(`${projectRoot}/`)) {
-    return `/${normalized.slice(projectRoot.length + 1).replace(/^\/+/, '')}`;
-  }
-  return normalized.startsWith('/') ? normalized : `/${normalized}`;
-}
-
 function dataflowVulnInputRef(projectId: string, path: string): DataflowInputRef {
   const normalized = String(path || '').replace(/\\/g, '/').trim();
   const projectRoot = `/data/files/${projectId}`;
@@ -284,39 +123,6 @@ function dataflowVulnInputRef(projectId: string, path: string): DataflowInputRef
     return { source: 'absolute_path', path: normalized, filename: basename(normalized) };
   }
   return { source: 'project_filesystem', path: normalized.startsWith('/') ? normalized : `/${normalized}`, filename: basename(normalized) };
-}
-
-function asRecord(value: unknown): Record<string, any> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
-}
-
-function stripTrailingDataflowDir(path?: string | null): string {
-  const normalized = String(path || '').replace(/\\/g, '/').replace(/\/+$/, '').trim();
-  if (!normalized) return '';
-  return basename(normalized).toLowerCase() === 'dataflow' ? dirname(normalized) : normalized;
-}
-
-function dataflowAnalysisOutputDir(task: AppDfaTaskDetail, result?: AppDfaTaskResult | null): string {
-  const taskConfig = asRecord(task.task_config_json);
-  const outputSummary = asRecord(task.output_summary);
-  const outputContract = asBinarySecurityContract(outputSummary.output_contract || taskConfig.output_contract);
-  const rawDataFlowRoot = contractText(outputContract, 'data_flow_root', 'artifact_root', 'archive_root')
-    || legacyContractValue(outputSummary, 'data_flow_root', 'dataflow_output_path')
-    || result?.output_root
-    || (task.output_path && task.task_id ? joinPath(joinPath(task.output_path, task.task_id), 'output') : '');
-  return stripTrailingDataflowDir(rawDataFlowRoot);
-}
-
-function dataflowAnalysisSourceRoot(task: AppDfaTaskDetail): string {
-  const taskConfig = asRecord(task.task_config_json);
-  const inputSummary = asRecord(task.input_summary);
-  const outputSummary = asRecord(task.output_summary);
-  const inputContract = asBinarySecurityContract(taskConfig.input_contract);
-  const outputContract = asBinarySecurityContract(outputSummary.output_contract || taskConfig.output_contract);
-  return dfaContractSourceRootPath(inputContract, inputSummary)
-    || contractText(outputContract, 'source_root_path', 'source_root', 'source_dir')
-    || legacyContractValue(outputSummary, 'source_root_path', 'source_root', 'source_dir')
-    || String((task as any).source_path || task.input_path || '').trim();
 }
 
 function navigateTo(targetStage: TargetStage, id: string, navigate: ReturnType<typeof useNavigate>) {
@@ -418,55 +224,20 @@ function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
   }));
 }
 
-function dataflowCandidates(task: AppDfaTaskDetail, result: AppDfaTaskResult | null): Candidate[] {
-  const dataFlowDir = dataflowAnalysisOutputDir(task, result);
-  const sourceDir = dataflowAnalysisSourceRoot(task);
-  const runsRoot = DEFAULT_DATAFLOW_VULN_RUNS_ROOT;
-  const disabledReasons = [
-    !runsRoot ? '缺少 Runs 根目录' : '',
-    !dataFlowDir ? '缺少数据流目录' : '',
-    !sourceDir ? '缺少代码目录' : '',
-  ].filter(Boolean);
-  const fileCount = result?.dataflow_files?.length || result?.output_files?.length || 0;
-  return [{
-    key: task.task_id,
-    label: task.task_name || task.task_id,
-    description: [
-      `Runs 根目录：${runsRoot}`,
-      `数据流目录：${dataFlowDir || '-'}`,
-      `代码目录：${sourceDir || '-'}`,
-      fileCount ? `数据流产物 ${fileCount} 个` : '',
-    ].filter(Boolean).join(' · '),
-    disabledReason: disabledReasons.join('；') || undefined,
-    payload: { runsRoot, dataFlowDir, sourceDir },
-  }];
-}
-
-function buildDownstreamVulnCreatePrefill(
-  projectId: string,
-  task: AppDfaTaskDetail,
-  result: AppDfaTaskResult | null,
-  sourceName: string,
-  defaultProfile?: DataflowScanProfile | null,
-): DownstreamVulnCreateState {
-  const candidate = dataflowCandidates(task, result)[0];
-  const titleBase = sourceName.trim() || task.task_name || task.task_id;
-  const initial = initialDownstreamVulnCreateState({
-    title: `${titleBase}-${TARGET_LABEL.vuln_scan}`,
-    workspacePath: normalizeProjectScopedDisplayPath(projectId, String(candidate?.payload.runsRoot || DEFAULT_DATAFLOW_VULN_RUNS_ROOT)),
-    dataFlowPath: normalizeProjectScopedDisplayPath(projectId, String(candidate?.payload.dataFlowDir || '')),
-    sourcePath: normalizeProjectScopedDisplayPath(projectId, String(candidate?.payload.sourceDir || '')),
+function dataflowCandidates(result: AppDfaTaskResult | null): Candidate[] {
+  const files = (result?.dataflow_files?.length ? result.dataflow_files : result?.output_files) || [];
+  const markdownFiles = files.filter((file) => /\.m(?:ark)?d$/i.test(file.name || file.relative_path));
+  return markdownFiles.map((file) => {
+    const path = joinPath(result?.output_root || '', file.relative_path);
+    const dataFlowDir = result?.output_root || dirname(path);
+    return {
+      key: file.relative_path,
+      label: file.name || basename(file.relative_path),
+      description: `${file.relative_path} · ${file.size || 0} bytes`,
+      disabledReason: !dataFlowDir ? '缺少结果目录' : undefined,
+      payload: { file, dataFlowPath: path, dataFlowDir },
+    };
   });
-  if (!defaultProfile) return initial;
-  return applyConfigPayloadToDownstreamVulnState(
-    initial,
-    normalizeDownstreamVulnConfigPayload(defaultProfile.config_payload),
-    {
-      preserveModel: true,
-      preserveReviewProfile: true,
-      preserveMaxReviewCycles: true,
-    },
-  );
 }
 
 export const DownstreamTaskCreator: React.FC<Props> = ({
@@ -488,10 +259,6 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
   const [message, setMessage] = useState('');
   const [created, setCreated] = useState<CreatedTask[]>([]);
   const [showRaw, setShowRaw] = useState(false);
-  const [pickerField, setPickerField] = useState<null | 'workspacePath' | 'dataFlowPath' | 'sourcePath'>(null);
-  const [vulnProfiles, setVulnProfiles] = useState<DataflowScanProfile[]>([]);
-  const [vulnProfilesLoading, setVulnProfilesLoading] = useState(false);
-  const [vulnCreateState, setVulnCreateState] = useState<DownstreamVulnCreateState | null>(null);
 
   const available = isComplete(sourceKind, task);
   const taskId = taskIdOf(task);
@@ -503,15 +270,12 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
     if (sourceKind === 'entry_analysis') return 'dataflow_analysis';
     return 'vuln_scan';
   }, [mode, sourceKind]);
-  const isVulnDownstream = sourceKind === 'dataflow_analysis' && targetStage === 'vuln_scan';
 
-  const modeOptions: DownstreamMode[] = sourceKind === 'system_analysis' || sourceKind === 'entry_analysis'
+  const modeOptions: DownstreamMode[] = sourceKind === 'system_analysis' || sourceKind === 'entry_analysis' || sourceKind === 'dataflow_analysis'
     ? ['binary', 'source']
     : sourceKind === 'firmware_unpack' || sourceKind === 'binary_to_source'
       ? ['binary']
-      : sourceKind === 'dataflow_analysis'
-        ? []
-        : ['binary', 'source'];
+      : ['binary', 'source'];
 
   const candidates = useMemo<Candidate[]>(() => {
     if (!task) return [];
@@ -529,28 +293,16 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
     if (sourceKind === 'system_analysis') return systemCandidates(result as AppSaTaskResult | null, mode);
     if (sourceKind === 'binary_to_source') return b2sCandidates(task as B2STaskDetail);
     if (sourceKind === 'entry_analysis') return entryCandidates(result as AppEaTaskResult | null);
-    if (sourceKind === 'dataflow_analysis') return dataflowCandidates(task as AppDfaTaskDetail, result as AppDfaTaskResult | null);
+    if (sourceKind === 'dataflow_analysis') return dataflowCandidates(result as AppDfaTaskResult | null);
     return [];
   }, [mode, result, sourceKind, task, taskId]);
 
   const selectableCandidates = candidates.filter((item) => !item.disabledReason);
   const selectedCandidates = selectableCandidates.filter((item) => selectedKeys.has(item.key));
-  const selectableCandidateKeyList = selectableCandidates.map((item) => item.key).join('\u0000');
-  const dataflowVulnPreview = sourceKind === 'dataflow_analysis' ? candidates[0]?.payload : null;
   const defaultPrefix = taskPrefix.trim() || sourceName;
-  const pickerTitle = pickerField === 'workspacePath'
-    ? '选择 Runs 根目录'
-    : pickerField === 'dataFlowPath'
-      ? '选择数据流目录'
-      : '选择代码目录';
-  const pickerDescription = pickerField === 'workspacePath'
-    ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择 run_vuln_scan.py 的 --runs-root。系统会在该目录下创建标准 Run 扫描目录。'
-    : pickerField === 'dataFlowPath'
-      ? '从数据流漏洞挖掘服务直接挂载的 /data 中选择包含数据流分析结果文件的目录。'
-      : '从数据流漏洞挖掘服务直接挂载的 /data 中选择要审计的代码目录。';
 
   const loadResult = async () => {
-    if (!task || !taskId || sourceKind === 'binary_to_source') return null;
+    if (!task || !taskId || sourceKind === 'binary_to_source') return;
     setLoading(true);
     setMessage('');
     try {
@@ -560,28 +312,10 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
       if (sourceKind === 'entry_analysis') data = await executionApi.appEntryAnalyse.getTaskResult(taskId);
       if (sourceKind === 'dataflow_analysis') data = await executionApi.appDataflowAnalyse.getTaskResult(taskId);
       setResult(data);
-      return data;
     } catch (err: any) {
       setMessage(`加载结果失败: ${err?.message || err}`);
-      return null;
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadVulnProfiles = async () => {
-    if (!projectId) return [] as DataflowScanProfile[];
-    setVulnProfilesLoading(true);
-    try {
-      const profiles = await executionApi.dataflowVulnScanner.listProfiles(projectId);
-      setVulnProfiles(profiles);
-      return profiles;
-    } catch (err: any) {
-      setVulnProfiles([]);
-      setMessage((current) => current || `加载漏洞挖掘 Profile 失败: ${err?.message || err}`);
-      return [] as DataflowScanProfile[];
-    } finally {
-      setVulnProfilesLoading(false);
     }
   };
 
@@ -591,78 +325,15 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
     setTaskPrefix(`${sourceName}-${TARGET_LABEL[targetStage]}`);
     setCreated([]);
     setMessage('');
-    setPickerField(null);
-    if (isVulnDownstream && task) {
-      const loadedResult = await loadResult() as AppDfaTaskResult | null;
-      const profiles = await loadVulnProfiles();
-      const defaultProfile = resolveDefaultVulnProfile(profiles);
-      setVulnCreateState(buildDownstreamVulnCreatePrefill(projectId, task as AppDfaTaskDetail, loadedResult, sourceName, defaultProfile));
-      return;
-    }
-    setVulnCreateState(null);
     if (sourceKind !== 'binary_to_source') await loadResult();
   };
 
   React.useEffect(() => {
     setSelectedKeys(new Set(selectableCandidates.map((item) => item.key)));
-  }, [selectableCandidateKeyList, mode, open]);
+  }, [candidates.length, mode, open]);
 
   const createTasks = async () => {
-    if (!task) return;
-    if (isVulnDownstream) {
-      if (!vulnCreateState) return;
-      if (!vulnCreateState.title.trim()) {
-        setMessage('请输入任务标题');
-        return;
-      }
-      if (!vulnCreateState.workspacePath.trim()) {
-        setMessage('请选择 Runs 根目录');
-        return;
-      }
-      if (!vulnCreateState.dataFlowPath.trim()) {
-        setMessage('请选择数据流目录');
-        return;
-      }
-      if (!vulnCreateState.sourcePath.trim()) {
-        setMessage('请选择代码目录');
-        return;
-      }
-      setSubmitting(true);
-      setMessage('');
-      setCreated([]);
-      try {
-        const runtimeOverrides = parseJsonObject(vulnCreateState.runtimeOverridesText, '运行时覆盖');
-        const selectedProfile = vulnCreateState.profileId
-          ? vulnProfiles.find((item) => item.profile_id === vulnCreateState.profileId)
-          : resolveDefaultVulnProfile(vulnProfiles);
-        const baselinePayload = normalizeDownstreamVulnConfigPayload(selectedProfile?.config_payload);
-        const configOverrides = buildDownstreamVulnConfigOverrides(vulnCreateState, baselinePayload);
-        const createdTask = await executionApi.dataflowVulnScanner.createTask({
-          project_id: projectId,
-          profile_id: vulnCreateState.profileId || undefined,
-          title: vulnCreateState.title.trim(),
-          workspace_dir: dataflowVulnInputRef(projectId, vulnCreateState.workspacePath),
-          data_flow: dataflowVulnInputRef(projectId, vulnCreateState.dataFlowPath),
-          source_dir: dataflowVulnInputRef(projectId, vulnCreateState.sourcePath),
-          auto_report_vulnerabilities: vulnCreateState.autoReportVulnerabilities,
-          ...configOverrides,
-          ...(Object.keys(runtimeOverrides).length ? { runtime_overrides: runtimeOverrides } : {}),
-        });
-        const rows: CreatedTask[] = [{
-          id: createdTask.task_id,
-          label: createdTask.title || createdTask.task_id,
-          targetStage: 'vuln_scan',
-        }];
-        setCreated(rows);
-        setMessage(`已创建 ${rows.length} 个${TARGET_LABEL.vuln_scan}任务`);
-      } catch (err: any) {
-        setMessage(`创建失败: ${err?.message || err}`);
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
-    if (selectedCandidates.length === 0) return;
+    if (!task || selectedCandidates.length === 0) return;
     setSubmitting(true);
     setMessage('');
     setCreated([]);
@@ -729,23 +400,14 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
           rows.push({ id: createdTask.task_id, label: createdTask.task_name, targetStage: 'dataflow_analysis' });
         }
       } else if (sourceKind === 'dataflow_analysis') {
+        const dfaTask = task as AppDfaTaskDetail;
         for (const candidate of selectedCandidates) {
-          const dataFlowDir = String(candidate.payload.dataFlowDir || '').trim();
-          const sourceDir = String(candidate.payload.sourceDir || '').trim();
-          const runsRoot = String(candidate.payload.runsRoot || DEFAULT_DATAFLOW_VULN_RUNS_ROOT).trim();
-          if (!dataFlowDir || !sourceDir || !runsRoot) {
-            throw new Error('创建数据流漏洞挖掘任务需要 Runs 根目录、数据流目录和代码目录');
-          }
-          const title = defaultPrefix.includes(candidate.label) ? defaultPrefix : `${defaultPrefix}-${candidate.label}`;
           const createdTask = await executionApi.dataflowVulnScanner.createTask({
             project_id: projectId,
-            title,
-            task_markdown: `基于数据流分析任务 ${candidate.label} 的输出执行漏洞挖掘。`,
-            workspace_dir: dataflowVulnInputRef(projectId, runsRoot),
-            data_flow: dataflowVulnInputRef(projectId, dataFlowDir),
-            source_dir: dataflowVulnInputRef(projectId, sourceDir),
-            model: DEFAULT_DATAFLOW_VULN_MODEL,
-            auto_report_vulnerabilities: true,
+            title: `${defaultPrefix}-${candidate.label}`,
+            task_markdown: `基于数据流分析结果 ${candidate.label} 执行漏洞扫描。`,
+            data_flow: dataflowVulnInputRef(projectId, String(candidate.payload.dataFlowDir || dirname(String(candidate.payload.dataFlowPath)))),
+            source_dir: dataflowVulnInputRef(projectId, dfaTask.input_path),
           });
           rows.push({ id: createdTask.task_id, label: createdTask.title || createdTask.task_id, targetStage: 'vuln_scan' });
         }
@@ -801,291 +463,80 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             <div className="flex-1 overflow-auto px-6 py-5">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
                 <div className="space-y-4">
-                  {isVulnDownstream ? (
-                    <>
-                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-900">
-                        <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">Downstream Prefill</div>
-                        <div className="mt-2 font-black">已按当前数据流分析任务自动填充默认值</div>
-                        <div className="mt-1 text-xs leading-5 text-emerald-800">
-                          下方配置与“数据流漏洞挖掘 → 创建任务”保持一致；你可以在提交前继续修改 Runs 根目录、数据流目录、代码目录、模型和其它参数。
-                        </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                    <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">任务名前缀</label>
+                    <input
+                      value={taskPrefix}
+                      onChange={(event) => setTaskPrefix(event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-300"
+                    />
+                    {modeOptions.length > 1 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {modeOptions.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setMode(item)}
+                            className={`rounded-xl border px-3 py-2 text-xs font-black ${mode === item ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
+                          >
+                            {item === 'binary' ? '二进制任务模式' : '源码任务模式'}
+                          </button>
+                        ))}
                       </div>
+                    ) : (
+                      <div className="mt-4 inline-flex rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600">
+                        {mode === 'binary' ? '二进制任务模式' : '源码任务模式'}
+                      </div>
+                    )}
+                  </div>
 
-                      {!vulnCreateState ? (
-                        <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-12 text-sm font-semibold text-slate-500">
-                          <Loader2 size={16} className="animate-spin" />
-                          正在准备下游任务默认配置...
-                        </div>
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                            <label className="lg:col-span-2">
-                              <span className="text-xs font-black text-slate-600">任务标题 / Run 文件夹名</span>
-                              <input
-                                value={vulnCreateState.title}
-                                onChange={(event) => setVulnCreateState({ ...vulnCreateState, title: event.target.value })}
-                                className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500"
-                              />
-                              <span className="mt-1 block text-xs leading-5 text-slate-500">
-                                提交后会作为后端 run_vuln_scan.py 的 --run-name，最终目录名会做安全字符清洗。
-                              </span>
-                            </label>
-                            <label className="lg:col-span-2">
-                              <span className="text-xs font-black text-slate-600">Profile</span>
-                              <select
-                                value={vulnCreateState.profileId}
-                                onChange={(event) => {
-                                  const profile = vulnProfiles.find((item) => item.profile_id === event.target.value);
-                                  const payload = event.target.value
-                                    ? normalizeDownstreamVulnConfigPayload(profile?.config_payload)
-                                    : downstreamVulnDefaultConfigPayload();
-                                  setVulnCreateState({
-                                    ...vulnCreateState,
-                                    profileId: event.target.value,
-                                    model: event.target.value ? payload.model : DEFAULT_DATAFLOW_VULN_MODEL,
-                                    reviewProfile: payload.review_profile || downstreamVulnDefaultConfigPayload().review_profile || 'fast',
-                                    maxReviewCycles: payload.max_review_cycles,
-                                    timeoutMaxRetries: payload.timeout_max_retries ?? 3,
-                                    timeoutRetryIntervalSeconds: payload.timeout_retry_interval_seconds ?? 30,
-                                    resultReviewConcurrency: payload.result_review_concurrency,
-                                  });
-                                }}
-                                className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-emerald-500"
-                              >
-                                <option value="">使用项目默认 Profile</option>
-                                {vulnProfiles.map((profile) => (
-                                  <option key={profile.profile_id} value={profile.profile_id} disabled={!profile.enabled}>
-                                    {profile.name}{profile.is_default ? '（默认）' : ''}{profile.enabled ? '' : '（停用）'}
-                                  </option>
-                                ))}
-                              </select>
-                              {vulnProfilesLoading ? <div className="mt-2 text-xs text-slate-500">Profile 列表加载中...</div> : null}
-                              {!vulnProfilesLoading && !vulnProfiles.some((profile) => profile.enabled) ? (
-                                <div className="mt-2 text-xs text-slate-500">当前项目还没有可用 Profile，提交任务时系统会自动创建一个默认扫描 Profile。</div>
-                              ) : null}
-                            </label>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                                <FolderOpen size={16} />
-                                Runs 根目录
-                              </div>
-                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前项目的 /app/secflow-app-dataflow-vuln-scanner，但你仍可修改。</div>
-                              <div className="mt-3 flex gap-2">
-                                <input
-                                  value={vulnCreateState.workspacePath}
-                                  onChange={(event) => setVulnCreateState({ ...vulnCreateState, workspacePath: event.target.value })}
-                                  placeholder={DEFAULT_DATAFLOW_VULN_RUNS_ROOT}
-                                  className={FORM_INPUT_CLASS}
-                                />
-                                <button type="button" onClick={() => setPickerField('workspacePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                                  选择
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                                <FolderOpen size={16} />
-                                数据流目录
-                              </div>
-                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前数据流分析任务的输出目录，但你仍可修改。</div>
-                              <div className="mt-3 flex gap-2">
-                                <input
-                                  value={vulnCreateState.dataFlowPath}
-                                  onChange={(event) => setVulnCreateState({ ...vulnCreateState, dataFlowPath: event.target.value })}
-                                  placeholder="/case-a/output"
-                                  className={FORM_INPUT_CLASS}
-                                />
-                                <button type="button" onClick={() => setPickerField('dataFlowPath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                                  选择
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 xl:col-span-2">
-                              <div className="flex items-center gap-2 text-sm font-black text-slate-900">
-                                <FolderOpen size={16} />
-                                代码目录
-                              </div>
-                              <div className="mt-2 text-xs leading-5 text-slate-500">默认填充为当前数据流分析任务关联的源码目录，但你仍可修改。</div>
-                              <div className="mt-3 flex gap-2">
-                                <input
-                                  value={vulnCreateState.sourcePath}
-                                  onChange={(event) => setVulnCreateState({ ...vulnCreateState, sourcePath: event.target.value })}
-                                  placeholder="/case-a/source"
-                                  className={FORM_INPUT_CLASS}
-                                />
-                                <button type="button" onClick={() => setPickerField('sourcePath')} className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50">
-                                  选择
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                            <label>
-                              <span className="text-xs font-black text-slate-600">模型</span>
-                              <input value={vulnCreateState.model} onChange={(event) => setVulnCreateState({ ...vulnCreateState, model: event.target.value })} className={FORM_INPUT_CLASS} />
-                            </label>
-                            <label>
-                              <span className="text-xs font-black text-slate-600">Provider（可选）</span>
-                              <input value={vulnCreateState.provider} onChange={(event) => setVulnCreateState({ ...vulnCreateState, provider: event.target.value })} placeholder="openai / anthropic" className={FORM_INPUT_CLASS} />
-                            </label>
-                            <label>
-                              <span className="text-xs font-black text-slate-600">Review Profile</span>
-                              <select
-                                value={vulnCreateState.reviewProfile}
-                                onChange={(event) => {
-                                  const nextProfile = event.target.value;
-                                  setVulnCreateState({
-                                    ...vulnCreateState,
-                                    reviewProfile: nextProfile,
-                                    maxReviewCycles: REVIEW_PROFILE_DEFAULT_MAX_CYCLES[nextProfile] || vulnCreateState.maxReviewCycles,
-                                  });
-                                }}
-                                className={FORM_INPUT_CLASS}
-                              >
-                                {REVIEW_PROFILE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                              </select>
-                              {vulnCreateState.reviewProfile === 'fast' ? (
-                                <span className="mt-1 block text-[11px] leading-4 text-slate-500">快速筛选会关闭评审；这里的“1”表示至少执行 1 个发现周期，不代表还会再做 1 轮评审。</span>
-                              ) : null}
-                            </label>
-                            <label>
-                              <span className="text-xs font-black text-slate-600">最大评审轮次</span>
-                              <input type="number" min={1} value={vulnCreateState.maxReviewCycles} onChange={(event) => setVulnCreateState({ ...vulnCreateState, maxReviewCycles: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
-                            </label>
-                            <label>
-                              <span className="text-xs font-black text-slate-600">Pi Timeout 最大次数</span>
-                              <input type="number" min={1} value={vulnCreateState.timeoutMaxRetries} onChange={(event) => setVulnCreateState({ ...vulnCreateState, timeoutMaxRetries: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
-                              <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 3；Pi/provider 返回 timeout 时按该次数重发同一提示词。</span>
-                            </label>
-                            <label>
-                              <span className="text-xs font-black text-slate-600">Pi Timeout 重试间隔（秒）</span>
-                              <input type="number" min={0} value={vulnCreateState.timeoutRetryIntervalSeconds} onChange={(event) => setVulnCreateState({ ...vulnCreateState, timeoutRetryIntervalSeconds: Math.max(0, Number(event.target.value) || 0) })} className={FORM_INPUT_CLASS} />
-                              <span className="mt-1 block text-[11px] leading-4 text-slate-500">默认 30；仅在最大次数大于 1 时生效。</span>
-                            </label>
-                            <label>
-                              <span className="text-xs font-black text-slate-600">结果评审并发</span>
-                              <input type="number" min={1} value={vulnCreateState.resultReviewConcurrency} onChange={(event) => setVulnCreateState({ ...vulnCreateState, resultReviewConcurrency: Number(event.target.value) || 1 })} className={FORM_INPUT_CLASS} />
-                            </label>
-                          </div>
-
-                          <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4">
-                            <label className="flex items-start gap-3">
+                  <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                      <div>
+                        <div className="text-sm font-black text-slate-900">候选输入</div>
+                        <div className="mt-1 text-xs text-slate-500">可选 {selectableCandidates.length} / 总计 {candidates.length}</div>
+                      </div>
+                      <button type="button" onClick={toggleAll} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">
+                        {selectedCandidates.length === selectableCandidates.length ? '取消全选' : '全选'}
+                      </button>
+                    </div>
+                    {loading ? (
+                      <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm font-semibold text-slate-500">
+                        <Loader2 size={16} className="animate-spin" />
+                        加载结果中...
+                      </div>
+                    ) : candidates.length === 0 ? (
+                      <div className="px-4 py-12 text-center text-sm text-slate-500">没有可用于创建下游任务的结果。</div>
+                    ) : (
+                      <div className="max-h-[360px] divide-y divide-slate-100 overflow-auto">
+                        {candidates.map((candidate) => {
+                          const checked = selectedKeys.has(candidate.key);
+                          const disabled = Boolean(candidate.disabledReason);
+                          return (
+                            <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-slate-50 text-slate-400' : 'hover:bg-slate-50'}`}>
                               <input
                                 type="checkbox"
-                                checked={vulnCreateState.autoReportVulnerabilities}
-                                onChange={(event) => setVulnCreateState({ ...vulnCreateState, autoReportVulnerabilities: event.target.checked })}
-                                className="mt-1 h-4 w-4 rounded border-emerald-300 text-emerald-700 focus:ring-emerald-600"
+                                disabled={disabled}
+                                checked={checked}
+                                onChange={() => {
+                                  const next = new Set(selectedKeys);
+                                  if (next.has(candidate.key)) next.delete(candidate.key);
+                                  else next.add(candidate.key);
+                                  setSelectedKeys(next);
+                                }}
+                                className="mt-1"
                               />
-                              <span>
-                                <span className="flex items-center gap-2 text-sm font-black text-emerald-950">
-                                  <ShieldCheck size={16} />
-                                  自动上报漏洞疑点
-                                </span>
-                                <span className="mt-1 block text-xs leading-5 text-emerald-800">
-                                  默认开启。任务成功后会将最终有效的 result_NNN.md 上报到当前项目的漏洞引擎，并记录原始任务 ID、执行 ID 和结果文件路径。
-                                </span>
-                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="break-all text-sm font-black text-slate-800">{candidate.label}</div>
+                                {candidate.description ? <div className="mt-1 break-all text-xs text-slate-500">{candidate.description}</div> : null}
+                                {candidate.disabledReason ? <div className="mt-1 text-xs font-semibold text-amber-600">{candidate.disabledReason}</div> : null}
+                              </div>
                             </label>
-                          </div>
-
-                          <div>
-                            <label>
-                              <span className="text-xs font-black text-slate-600">运行时覆盖 JSON</span>
-                              <textarea
-                                value={vulnCreateState.runtimeOverridesText}
-                                onChange={(event) => setVulnCreateState({ ...vulnCreateState, runtimeOverridesText: event.target.value })}
-                                placeholder={'{\n  "global": { "max_review_cycles": 4 }\n}'}
-                                className="mt-2 min-h-[150px] w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs leading-5 text-slate-800 outline-none focus:border-emerald-500"
-                              />
-                            </label>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                        <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">任务名前缀</label>
-                        <input
-                          value={taskPrefix}
-                          onChange={(event) => setTaskPrefix(event.target.value)}
-                          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-300"
-                        />
-                        {modeOptions.length > 1 ? (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {modeOptions.map((item) => (
-                              <button
-                                key={item}
-                                type="button"
-                                onClick={() => setMode(item)}
-                                className={`rounded-xl border px-3 py-2 text-xs font-black ${mode === item ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
-                              >
-                                {item === 'binary' ? '二进制任务模式' : '源码任务模式'}
-                              </button>
-                            ))}
-                          </div>
-                        ) : modeOptions.length === 1 ? (
-                          <div className="mt-4 inline-flex rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600">
-                            {modeOptions[0] === 'binary' ? '二进制任务模式' : '源码任务模式'}
-                          </div>
-                        ) : null}
+                          );
+                        })}
                       </div>
-
-                      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
-                          <div>
-                            <div className="text-sm font-black text-slate-900">候选输入</div>
-                            <div className="mt-1 text-xs text-slate-500">可选 {selectableCandidates.length} / 总计 {candidates.length}</div>
-                          </div>
-                          <button type="button" onClick={toggleAll} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">
-                            {selectedCandidates.length === selectableCandidates.length ? '取消全选' : '全选'}
-                          </button>
-                        </div>
-                        {loading ? (
-                          <div className="flex items-center justify-center gap-2 px-4 py-12 text-sm font-semibold text-slate-500">
-                            <Loader2 size={16} className="animate-spin" />
-                            加载结果中...
-                          </div>
-                        ) : candidates.length === 0 ? (
-                          <div className="px-4 py-12 text-center text-sm text-slate-500">没有可用于创建下游任务的结果。</div>
-                        ) : (
-                          <div className="max-h-[360px] divide-y divide-slate-100 overflow-auto">
-                            {candidates.map((candidate) => {
-                              const checked = selectedKeys.has(candidate.key);
-                              const disabled = Boolean(candidate.disabledReason);
-                              return (
-                                <label key={candidate.key} className={`flex items-start gap-3 px-4 py-3 ${disabled ? 'bg-slate-50 text-slate-400' : 'hover:bg-slate-50'}`}>
-                                  <input
-                                    type="checkbox"
-                                    disabled={disabled}
-                                    checked={checked}
-                                    onChange={() => {
-                                      const next = new Set(selectedKeys);
-                                      if (next.has(candidate.key)) next.delete(candidate.key);
-                                      else next.add(candidate.key);
-                                      setSelectedKeys(next);
-                                    }}
-                                    className="mt-1"
-                                  />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="break-all text-sm font-black text-slate-800">{candidate.label}</div>
-                                    {candidate.description ? <div className="mt-1 break-all text-xs text-slate-500">{candidate.description}</div> : null}
-                                    {candidate.disabledReason ? <div className="mt-1 text-xs font-semibold text-amber-600">{candidate.disabledReason}</div> : null}
-                                  </div>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </section>
-                    </>
-                  )}
+                    )}
+                  </section>
                 </div>
 
                 <aside className="space-y-4">
@@ -1093,54 +544,9 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
                     <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">目标阶段</div>
                     <div className="mt-2 text-xl font-black text-slate-900">{TARGET_LABEL[targetStage]}</div>
                     <div className="mt-2 text-xs leading-5 text-slate-600">
-                      将创建 {isVulnDownstream ? 1 : selectedCandidates.length} 个手动下游任务。
+                      将创建 {selectedCandidates.length} 个手动下游任务。
                     </div>
                   </div>
-                  {isVulnDownstream && vulnCreateState ? (
-                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-                      <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">当前默认填充值</div>
-                      <div className="mt-3 space-y-3 text-xs text-slate-700">
-                        <div>
-                          <div className="font-black text-slate-500">Runs 根目录</div>
-                          <div className="mt-1 break-all font-mono">{vulnCreateState.workspacePath || '-'}</div>
-                        </div>
-                        <div>
-                          <div className="font-black text-slate-500">数据流目录</div>
-                          <div className="mt-1 break-all font-mono">{vulnCreateState.dataFlowPath || '-'}</div>
-                        </div>
-                        <div>
-                          <div className="font-black text-slate-500">代码目录</div>
-                          <div className="mt-1 break-all font-mono">{vulnCreateState.sourcePath || '-'}</div>
-                        </div>
-                        <div>
-                          <div className="font-black text-slate-500">模型</div>
-                          <div className="mt-1 break-all font-mono">{vulnCreateState.model || DEFAULT_DATAFLOW_VULN_MODEL}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : dataflowVulnPreview ? (
-                    <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
-                      <div className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">漏洞挖掘默认参数</div>
-                      <div className="mt-3 space-y-3 text-xs text-slate-700">
-                        <div>
-                          <div className="font-black text-slate-500">Runs 根目录</div>
-                          <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.runsRoot || DEFAULT_DATAFLOW_VULN_RUNS_ROOT)}</div>
-                        </div>
-                        <div>
-                          <div className="font-black text-slate-500">数据流目录</div>
-                          <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.dataFlowDir || '-')}</div>
-                        </div>
-                        <div>
-                          <div className="font-black text-slate-500">代码目录</div>
-                          <div className="mt-1 break-all font-mono">{String(dataflowVulnPreview.sourceDir || '-')}</div>
-                        </div>
-                        <div>
-                          <div className="font-black text-slate-500">模型</div>
-                          <div className="mt-1 break-all font-mono">{DEFAULT_DATAFLOW_VULN_MODEL}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
                   {message ? (
                     <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${message.includes('失败') ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
                       {message}
@@ -1187,7 +593,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => void createTasks()}
-                disabled={submitting || loading || (isVulnDownstream ? !vulnCreateState : selectedCandidates.length === 0)}
+                disabled={submitting || loading || selectedCandidates.length === 0}
                 className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-600 px-4 py-2 text-sm font-black text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? <Loader2 size={15} className="animate-spin" /> : <PlayCircle size={15} />}
@@ -1195,21 +601,6 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
               </button>
             </footer>
           </section>
-
-          <ProjectFilesystemPickerModal
-            isOpen={Boolean(isVulnDownstream && pickerField)}
-            projectId={projectId}
-            selectionMode="directory"
-            backend="dataflowVulnScanner"
-            title={pickerTitle}
-            description={pickerDescription}
-            onClose={() => setPickerField(null)}
-            onSelect={(selection) => {
-              if (!pickerField || !vulnCreateState) return;
-              setVulnCreateState({ ...vulnCreateState, [pickerField]: selection.path });
-              setPickerField(null);
-            }}
-          />
         </div>
       ) : null}
     </div>

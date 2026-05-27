@@ -1,7 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import { FirmwareSessionIndexItem, normalizeFirmwareSessionIndex } from '../pages/execution/sessionParsing';
-import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
-export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -10,9 +8,6 @@ export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing
 export interface FirmwareUnpackerHealth {
   status: string;
   worker_id?: string;
-  service_id?: string | null;
-  service_name?: string | null;
-  build_version?: string | null;
 }
 
 export interface FirmwareUnpackPayload {

@@ -4,7 +4,6 @@ import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Sh
 import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
-import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { showConfirm } from '../../components/DialogService';
 
 interface Props {
@@ -15,7 +14,7 @@ interface Props {
 
 type CreateDialogTab = 'basic' | 'files' | 'strategy' | 'parallelism';
 
-const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'delete_failed']);
+const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled']);
 const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
@@ -28,8 +27,6 @@ const statusTone = (status: string) => {
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'failed':
       return 'bg-rose-50 text-rose-700 border-rose-200';
-    case 'delete_failed':
-      return 'bg-rose-100 text-rose-800 border-rose-300';
     case 'cancelled':
       return 'bg-slate-100 text-slate-500 border-slate-200';
     case 'pending_upload':
@@ -154,7 +151,7 @@ const deriveProjectStats = (items: BinarySecurityTask[]): BinarySecurityProjectS
     if (TERMINAL.has(item.status)) {
       if (item.status === 'success') stats.success += 1;
       if (item.status === 'partial_success') stats.partial_success += 1;
-      if (item.status === 'failed' || item.status === 'delete_failed') stats.failed += 1;
+      if (item.status === 'failed') stats.failed += 1;
       if (item.status === 'cancelled') stats.cancelled += 1;
     } else {
       stats.running += 1;
@@ -342,7 +339,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [buildVersion, setBuildVersion] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createDefaultsLoading, setCreateDefaultsLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -372,10 +368,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   );
   const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
@@ -403,11 +395,9 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setLoading(true);
     setError(null);
     try {
-      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType, page, pageSize);
+      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
       const nextItems = data.items || [];
       setItems(nextItems);
-      setTotal(data.total || 0);
-      setTotalPages(data.total_pages || 1);
       setProjectStats(data.project_stats || deriveProjectStats(nextItems));
       setProjectStageAggregates(Array.isArray(data.project_stage_aggregates) ? data.project_stage_aggregates : emptyStageAggregates());
       setRunningCount(data.running_count || 0);
@@ -425,7 +415,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setRefreshing(true);
     setError(null);
     try {
-      // Keep refresh side-effect free; background reconcile loops own state convergence.
+      const activeTaskIds = items
+        .filter((item) => !TERMINAL.has(item.status))
+        .map((item) => item.id);
+      if (activeTaskIds.length > 0) {
+        await Promise.allSettled(
+          activeTaskIds.map((taskId) => executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, { force: true })),
+        );
+      }
       await load();
     } catch (e: any) {
       setError(e?.message || '刷新失败');
@@ -513,26 +510,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   };
 
   useEffect(() => {
-    let active = true;
-    void executionApi.binarySecurity.getHealth()
-      .then((payload) => {
-        if (active) setBuildVersion(payload.build_version || null);
-      })
-      .catch(() => {
-        if (active) setBuildVersion(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [executionApi.binarySecurity]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [projectId, taskType]);
-
-  useEffect(() => {
     void load();
-  }, [projectId, taskType, page, pageSize]);
+  }, [projectId, taskType]);
 
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
@@ -631,7 +610,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       },
       maxRetries: projectConfig.config.max_retries_per_item ?? 2,
       continueOnFailure: projectConfig.config.continue_on_item_failure ?? true,
-      pipelineMode: projectConfig.config.pipeline_mode as BinarySecurityPipelineMode,
+      pipelineMode: projectConfig.config.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier',
       partialSuccessStageAdvancement: {
         ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
         ...(projectConfig.config.partial_success_stage_advancement || {}),
@@ -826,10 +805,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
-              <ServiceBuildVersion version={buildVersion} />
-            </div>
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               {isSourceTask
@@ -937,24 +913,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 {deleting ? '删除中...' : `删除选中 (${selectedCount})`}
               </button>
             )}
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <span>当前页 {items.length} 条，共 {total} 条</span>
-              <label className="inline-flex items-center gap-2">
-                每页
-                <select
-                  value={pageSize}
-                  onChange={(event) => {
-                    setPageSize(Number(event.target.value));
-                    setPage(1);
-                  }}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700"
-                >
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-              </label>
-            </div>
+            <div className="text-sm text-slate-500">共 {items.length} 条</div>
           </div>
         </div>
         {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
@@ -1052,27 +1011,6 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-              <div>第 {page} / {Math.max(1, totalPages)} 页</div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  disabled={page <= 1 || loading}
-                  className="rounded-xl border border-slate-200 px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  上一页
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage((current) => Math.min(Math.max(1, totalPages), current + 1))}
-                  disabled={page >= Math.max(1, totalPages) || loading}
-                  className="rounded-xl border border-slate-200 px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  下一页
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </section>

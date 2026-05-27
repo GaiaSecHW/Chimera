@@ -1930,7 +1930,7 @@ export interface AdminDashboardStats {
 }
 
 export type AnalysisRiskLevel = 'unknown' | 'low' | 'medium' | 'high' | 'critical';
-export type AnalysisTaskStatus = 'pending' | 'preparing' | 'running' | 'partial_success' | 'success' | 'failed' | 'cancelled' | 'delete_failed';
+export type AnalysisTaskStatus = 'pending' | 'preparing' | 'running' | 'partial_success' | 'success' | 'failed' | 'cancelled';
 export type AnalysisTaskType =
   | 'general_env_check'
   | 'service_dependency_check'
@@ -2457,31 +2457,6 @@ export interface AppSaStagesJson {
   final?: boolean;
 }
 
-export interface AppSaTaskEvent {
-  id: string;
-  task_id: string;
-  project_id: string;
-  stage_name?: string | null;
-  level: string;
-  event_type: string;
-  message: string;
-  payload?: Record<string, any> | null;
-  payload_json?: Record<string, any> | null;
-  created_at?: string | null;
-}
-
-export interface AppSaTaskTimeline {
-  task_id: string;
-  events: AppSaTaskEvent[];
-}
-
-export interface AppSaTaskActionResponse {
-  status: string;
-  task_id: string;
-  message: string;
-  deleted_event_count: number;
-}
-
 export interface AppSaTaskDetail extends AppSaTaskItem {
   prompt_template_id?: string | null;
   prompt_content: string;
@@ -2822,7 +2797,6 @@ export interface AppEaTaskItem {
   source_path?: string | null;
   module_name?: string | null;
   output_path?: string | null;
-  entry_count?: number | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   owner_pod?: string | null;
   lease_expires_at?: string | null;
@@ -2873,9 +2847,6 @@ export interface EntryAnalyseSlotClusterSummary {
   busy_slots: number;
   running_jobs: number;
   available_slots: number;
-  dispatch_limit: number;
-  dispatch_running: number;
-  dispatch_available: number;
   queued_tasks: number;
   queued_jobs: number;
   updated_at?: string | null;
@@ -2909,47 +2880,6 @@ export interface AppEaTaskLogsResponse {
   events: AppEaStageEvent[];
 }
 
-export interface AppEaTaskEvent {
-  id: string;
-  task_id: string;
-  project_id: string;
-  source: string;
-  level: string;
-  event_type: string;
-  stage_key?: string | null;
-  file_hash?: string | null;
-  func_hash?: string | null;
-  file_path?: string | null;
-  function_name?: string | null;
-  attempt?: number | null;
-  status?: string | null;
-  message: string;
-  payload: Record<string, any>;
-  created_at?: string | null;
-}
-
-export interface AppEaTaskEventSummary {
-  total_events: number;
-  latest_event_type?: string | null;
-  latest_event_at?: string | null;
-  latest_stage_key?: string | null;
-  latest_file_path?: string | null;
-  latest_function_name?: string | null;
-  latest_attempt?: number | null;
-}
-
-export interface AppEaTaskTimelineResponse {
-  task_id: string;
-  events: AppEaTaskEvent[];
-}
-
-export interface AppEaTaskActionResponse {
-  status: string;
-  task_id: string;
-  message: string;
-  deleted_event_count: number;
-}
-
 export interface AppEaFunctionCatalogItem {
   func_hash: string;
   file_hash?: string;
@@ -2959,18 +2889,12 @@ export interface AppEaFunctionCatalogItem {
   signature?: string;
   start_line?: number;
   end_line?: number;
-  // 新字段名（后端 v2 fix 后）
-  r2j_state_new?: string;  // r2_j_state 准确性 Judge（待部署后启用）
-  r3w_state?: string;      // r3_w_state 外部输入 W（待部署后启用）
-  r3j_state?: string;      // r3_j_state 外部输入 J（待部署后启用）
-  r5_state?: string;       // r5_state 报告（待部署后启用）
-  // 旧字段名（当前部署版本疑用）
-  r1b_state?: string;      // = r2_j_state
-  r2_state?: string;       // = r3_w_state
-  r2j_state?: string;      // = r3_j_state
+  r1b_state?: string;
+  r2_state?: string;
+  r2j_state?: string;
   r3_state?: string;
   r4_state?: string;
-  rep_state?: string;      // = r5_state
+  rep_state?: string;
   has_external_input?: boolean | null;
   entry_role?: string;
   r4_decision?: string;
@@ -2993,7 +2917,6 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   } | null;
   output_summary?: Record<string, any> | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
-  event_summary?: AppEaTaskEventSummary | null;
 }
 
 export interface AppEaTaskResultSummary {
@@ -3160,34 +3083,6 @@ export interface AppDfaStageEvent {
   ts: number;
   type: string;
   data?: Record<string, any>;
-}
-
-export interface AppDfaTaskEvent {
-  id: string;
-  task_id: string;
-  project_id: string;
-  source: string;
-  level: string;
-  event_type: string;
-  status?: string | null;
-  worker_id?: string | null;
-  execution_owner_id?: string | null;
-  execution_epoch?: number | null;
-  control_version?: number | null;
-  dispatch_status?: string | null;
-  function_name?: string | null;
-  source_file?: string | null;
-  line_hint?: string | null;
-  parent_task_id?: string | null;
-  parent_stage_item_id?: string | null;
-  message: string;
-  payload?: Record<string, any>;
-  created_at?: string | null;
-}
-
-export interface AppDfaTaskTimeline {
-  task_id: string;
-  events: AppDfaTaskEvent[];
 }
 
 export interface AppDfaStagesJson {
@@ -3422,95 +3317,6 @@ export interface AppDfaTaskEvaluation {
   summary: AppDfaTaskResult['summary'];
   rounds: AppDfaEvaluationRound[];
   warnings: string[];
-}
-
-export interface AgentObservabilitySummary {
-  pod_name: string;
-  active_processes: number;
-  orphan_processes: number;
-  unknown_processes: number;
-  killable_orphan_processes: number;
-  orphan_sessions: number;
-  scanned_at?: number | null;
-  scan_errors?: number;
-  aggregate_mode?: string | null;
-  aggregate_partial?: boolean | null;
-  aggregate_sources?: number | null;
-  aggregate_fanout_errors?: number | null;
-  aggregate_duration_seconds?: number | null;
-  aggregate_cache_hit?: boolean | null;
-  aggregate_cache_age_seconds?: number | null;
-  aggregate_failed_targets?: string[];
-}
-
-export interface AgentProcessSnapshot {
-  pod_name: string;
-  pid: number;
-  pgid?: number | null;
-  ppid?: number | null;
-  command: string;
-  cwd?: string | null;
-  rss_bytes?: number | null;
-  session_file?: string | null;
-  session_id?: string | null;
-  task_id?: string | null;
-  task_name?: string | null;
-  task_status?: string | null;
-  stage_key?: string | null;
-  role_kind?: string | null;
-  owner_kind: 'tracked' | 'orphan' | 'unknown' | string;
-  owner_reason: string;
-  kill_allowed: boolean;
-  kill_block_reason?: string | null;
-  termination_state: string;
-}
-
-export interface AgentSessionObservabilitySnapshot {
-  pod_name: string;
-  session_file: string;
-  session_id?: string | null;
-  task_id?: string | null;
-  task_name?: string | null;
-  stage_key?: string | null;
-  role_kind?: string | null;
-  display_name: string;
-  line_count: number;
-  last_event_at?: string | null;
-  live: boolean;
-  has_process: boolean;
-  process_pid?: number | null;
-  orphan_session: boolean;
-  parse_warnings: string[];
-}
-
-export interface AgentTaskOwnershipSnapshot {
-  task_id: string;
-  task_name: string;
-  task_status: string;
-  stage_key?: string | null;
-  pod_name: string;
-  process_count: number;
-  session_count: number;
-  agent_roles: string[];
-  process_pids: number[];
-  session_ids: string[];
-  ownership_status: 'healthy' | 'partial' | 'orphaned' | 'unknown' | string;
-}
-
-export interface AgentProcessKillItem {
-  pid: number;
-  pgid?: number | null;
-  status: string;
-  reason?: string | null;
-}
-
-export interface AgentProcessKillResponse {
-  requested: number;
-  matched: number;
-  succeeded: number;
-  failed: number;
-  skipped: number;
-  items: AgentProcessKillItem[];
 }
 
 

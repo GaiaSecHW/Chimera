@@ -1,18 +1,15 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
-import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   AppSaSessionIndex,
   AppSaSessionMeta,
   AppSaSessionSnapshot,
   AppSaClusterCapacity,
   AppSaStagesJson,
-  AppSaTaskActionResponse,
   AppSaTaskCreateRequest,
   AppSaTaskDetail,
   AppSaTaskEvaluation,
   AppSaTaskItem,
   AppSaTaskResult,
-  AppSaTaskTimeline,
   SystemAnalysisModelsConfig,
   SystemAnalysisPromptTemplate,
   SystemAnalysisServiceConfig,
@@ -59,7 +56,7 @@ export const DEFAULT_MODELS_CONFIG: SystemAnalysisModelsConfig = {
 
 export const appSystemAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
+  getHealth: async (): Promise<{ status: string }> =>
     handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
@@ -96,21 +93,6 @@ export const appSystemAnalyseApi = {
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
-
-  getTimeline: async (taskId: string): Promise<AppSaTaskTimeline> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
-
-  clearTimeline: async (taskId: string): Promise<AppSaTaskActionResponse> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    })),
-
-  deleteTimelineEvent: async (taskId: string, eventId: string): Promise<AppSaTaskActionResponse> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline/${encodeURIComponent(eventId)}`, {
-      method: 'DELETE',
-      headers: getHeaders(),
-    })),
 
   repairTaskOrigin: async (taskId: string, analysisMode: 'binary' | 'source'): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/origin`, {
