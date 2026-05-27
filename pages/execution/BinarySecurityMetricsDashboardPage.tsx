@@ -3670,13 +3670,13 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
 
               <div className="rounded-[1.6rem] border border-teal-100 bg-white/90 p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Worker Detail</div>
-                    <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">执行槽位明细</h3>
-                    <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                      直接复用 DFA worker cluster capacity 接口，和任务列表页保持同一口径，用于核对聚合指标背后的具体 owner / task 归属。
-                    </p>
-                  </div>
+                    <div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Worker Detail</div>
+                      <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">执行槽位明细</h3>
+                      <p className="mt-2 max-w-3xl text-sm text-slate-500">
+                      任务列表首屏与摘要视图使用轻量 summary；此处仍按需读取 DFA worker cluster capacity 明细，用于核对聚合指标背后的具体 owner / task 归属。
+                      </p>
+                    </div>
                   <div className="text-right text-xs text-slate-400">
                     <div>最近刷新</div>
                     <div className="mt-1 font-semibold text-slate-500">{formatTime(dfaWorkerDetailState.refreshedAt)}</div>

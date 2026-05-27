@@ -277,6 +277,7 @@ export interface DataflowVulnClusterCapacity {
   queued_jobs: number;
   available_slots: number;
   updated_at: string;
+  detail_mode?: 'summary' | 'detail';
   workers: DataflowVulnWorkerCapacity[];
 }
 
@@ -639,6 +640,8 @@ export const dataflowVulnScannerApi = {
       sort_by: params.sort_by,
       sort_order: params.sort_order,
       profile_id: params.profileId,
+      page: params.page,
+      page_size: params.pageSize,
     }), { headers: getHeaders() });
     return unwrapPagedList<DataflowScanTask>(await handleResponse(response), {
       page: params.page,
@@ -648,6 +651,11 @@ export const dataflowVulnScannerApi = {
 
   getWorkerClusterCapacity: async (): Promise<DataflowVulnClusterCapacity> => {
     const response = await fetch(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getWorkerClusterCapacitySummary: async (): Promise<DataflowVulnClusterCapacity> => {
+    const response = await fetch(`${PREFIX}/workers/cluster-capacity/summary`, { headers: getHeaders() });
     return handleResponse(response);
   },
 

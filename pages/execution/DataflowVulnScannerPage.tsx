@@ -794,7 +794,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
     try {
-      const payload = await executionApi.getWorkerClusterCapacity();
+      const payload = await executionApi.getWorkerClusterCapacitySummary();
       setSlotSummary(payload);
       setSlotSummaryError('');
     } catch (error: any) {
@@ -812,10 +812,24 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     ]);
   }, [loadSlotSummary, loadTasks, page]);
 
+  const loadSlotDetail = async () => {
+    setSlotSummaryLoading(true);
+    try {
+      const payload = await executionApi.getWorkerClusterCapacity();
+      setSlotSummary(payload);
+      setSlotSummaryError('');
+    } catch (error: any) {
+      setSlotSummaryError(error?.message || '读取执行槽位详情失败');
+    } finally {
+      setSlotSummaryLoading(false);
+    }
+  };
+
   useEffect(() => {
     setProfiles([]);
     setProfilesLoaded(false);
     setSelectedTaskIds(new Set());
+    setPage(1);
   }, [projectId]);
 
   useEffect(() => {
@@ -835,6 +849,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   useEffect(() => {
     void loadAll(page);
   }, [loadAll, page, projectId, perPage, runStatusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (!showSlotDetailModal) return;
+    void loadSlotDetail();
+  }, [showSlotDetailModal]);
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:dataflowVulnTaskId');
@@ -999,7 +1018,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     {
       label: '总槽位',
       value: slotSummary?.total_capacity ?? '-',
-      hint: slotSummary?.updated_at ? `更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}` : '全局 worker 总执行槽位',
+      hint: slotSummary?.updated_at
+        ? `${slotSummary.detail_mode === 'detail' ? '明细' : '摘要'}更新于 ${new Date(slotSummary.updated_at).toLocaleTimeString('zh-CN')}`
+        : '全局 worker 总执行槽位',
       border: 'border-slate-200',
       bg: 'bg-slate-50',
       text: 'text-slate-800',
@@ -1156,7 +1177,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               ) : null}
               <button
                 type="button"
-                onClick={() => void loadSlotSummary()}
+                onClick={() => void (showSlotDetailModal ? loadSlotDetail() : loadSlotSummary())}
                 className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
               >
                 <RefreshCw size={14} />
