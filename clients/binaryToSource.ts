@@ -8,13 +8,15 @@ export interface B2SElfTaskInput {
   metadata?: Record<string, any>;
 }
 
-export type B2SRunMode = 'fast' | 'deep';
+export type B2SRunMode = 'turbo' | 'fast' | 'deep';
+export type B2SRunModeDraft = '' | B2SRunMode;
 export type B2SBudgetExhaustedAction = 'treat_as_passed' | 'treat_as_failed';
 
 export interface B2SServiceConfig {
   project_id: string;
   budget_exhausted_action: B2SBudgetExhaustedAction;
   concurrency: number;
+  default_mode: B2SRunMode;
   llm_provider_key?: string | null;
   effective_llm_provider?: B2SLlmProviderSummary | null;
   updated_at?: string | null;
