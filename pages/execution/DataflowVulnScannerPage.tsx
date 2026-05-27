@@ -1307,7 +1307,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                     title="每页显示条数"
                   >
-                    {[50, 100, 200, 500].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+                    {[20, 50, 100, 200, 500].map((n) => <option key={n} value={n}>{n}条/页</option>)}
                   </select>
                   <button
                     type="button"
