@@ -215,25 +215,25 @@ export const binarySecurityMetricsApi = {
   },
   getAgentObservabilitySummary: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
     handleResponse(await fetchWithRetry(
-      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}summary?project_id=${encodeURIComponent(projectId)}`,
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' ? 'aggregate/' : ''}summary?project_id=${encodeURIComponent(projectId)}`,
       { method: 'GET', headers: { ...getHeaders() } },
       { retries: 2, retryDelayMs: 400 },
     )),
   getAgentProcesses: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
     handleResponse(await fetchWithRetry(
-      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}processes?project_id=${encodeURIComponent(projectId)}`,
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' ? 'aggregate/' : ''}processes?project_id=${encodeURIComponent(projectId)}`,
       { method: 'GET', headers: { ...getHeaders() } },
       { retries: 2, retryDelayMs: 400 },
     )),
   getAgentSessions: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
     handleResponse(await fetchWithRetry(
-      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}sessions?project_id=${encodeURIComponent(projectId)}`,
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' ? 'aggregate/' : ''}sessions?project_id=${encodeURIComponent(projectId)}`,
       { method: 'GET', headers: { ...getHeaders() } },
       { retries: 2, retryDelayMs: 400 },
     )),
   getAgentTasks: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
     handleResponse(await fetchWithRetry(
-      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}tasks?project_id=${encodeURIComponent(projectId)}`,
+      `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' ? 'aggregate/' : ''}tasks?project_id=${encodeURIComponent(projectId)}`,
       { method: 'GET', headers: { ...getHeaders() } },
       { retries: 2, retryDelayMs: 400 },
     )),
