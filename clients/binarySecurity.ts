@@ -345,6 +345,13 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     retry_count: number;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
+    downstream_summary?: {
+      high_risk_module_count?: number | null;
+      medium_risk_module_count?: number | null;
+      low_risk_module_count?: number | null;
+      entry_count?: number | null;
+      [key: string]: any;
+    } | null;
     input_ref: BinarySecurityStageItemInputContract;
     output_ref: BinarySecurityStageItemOutputContract;
     result: BinarySecurityStageItemResultContract;

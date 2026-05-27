@@ -418,16 +418,25 @@ type TaskStrategyDraft = {
 type StrategySectionKey = 'stage_options' | 'module_strategy' | 'execution_policy';
 type ManualOperationState = NonNullable<BinarySecurityTaskDetail['manual_operation_state']>;
 
-const systemAnalysisRiskCountLabels = (state?: DownstreamTaskState) => {
+const systemAnalysisRiskCountLabels = (item: BinarySecurityTaskDetail['stage_items'][number], state?: DownstreamTaskState) => {
+  const summary = item.downstream_summary || {};
+  const hasSummary = summary.high_risk_module_count != null || summary.medium_risk_module_count != null || summary.low_risk_module_count != null;
+  if (hasSummary) {
+    return {
+      high: safeCountLabel(summary.high_risk_module_count),
+      medium: safeCountLabel(summary.medium_risk_module_count),
+      low: safeCountLabel(summary.low_risk_module_count),
+    };
+  }
   if (state?.detail?.kind !== 'system_analysis') {
     return { high: '-', medium: '-', low: '-' };
   }
-  const summary = state.detail.data.result_json?.summary || {};
+  const downstreamSummary = state.detail.data.result_json?.summary || {};
   const resultJson = state.detail.data.result_json || {};
   return {
-    high: safeCountLabel(summary.high_risk_module_count ?? resultJson.high_risk_module_count),
-    medium: safeCountLabel(summary.medium_risk_module_count ?? resultJson.medium_risk_module_count),
-    low: safeCountLabel(summary.low_risk_module_count ?? resultJson.low_risk_module_count),
+    high: safeCountLabel(downstreamSummary.high_risk_module_count ?? resultJson.high_risk_module_count),
+    medium: safeCountLabel(downstreamSummary.medium_risk_module_count ?? resultJson.medium_risk_module_count),
+    low: safeCountLabel(downstreamSummary.low_risk_module_count ?? resultJson.low_risk_module_count),
   };
 };
 
@@ -1419,6 +1428,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [selectedStage, setSelectedStage] = useState<string>(DEFAULT_BINARY_STAGE_SEQUENCE[0]);
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
+  const downstreamByItemIdRef = useRef<Record<string, DownstreamTaskState>>({});
   const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
     mode: 'horizontal',
     cardWidth: 160,
@@ -1789,6 +1799,57 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [activeTab, timeline.length, timelineLoading, projectId, taskId]);
 
   useEffect(() => {
+    downstreamByItemIdRef.current = downstreamByItemId;
+  }, [downstreamByItemId]);
+
+  const fetchDownstreamTaskDetail = async (
+    item: BinarySecurityTaskDetail['stage_items'][number],
+  ): Promise<DownstreamTaskDetail> => {
+    const downstreamTaskId = item.downstream_task_id!;
+    if (item.stage_name === 'firmware_unpack') {
+      const data = await executionApi.firmwareUnpacker.getTask(downstreamTaskId);
+      return { kind: 'firmware_unpack', data };
+    }
+    if (item.stage_name === 'system_analysis') {
+      const data = await executionApi.appSystemAnalyse.getTask(downstreamTaskId);
+      return { kind: 'system_analysis', data };
+    }
+    if (item.stage_name === 'binary_to_source') {
+      const data = await executionApi.binaryToSource.getTask(projectId, downstreamTaskId);
+      return { kind: 'binary_to_source', data };
+    }
+    if (item.stage_name === 'entry_analysis') {
+      const data = await executionApi.appEntryAnalyse.getTask(downstreamTaskId);
+      return { kind: 'entry_analysis', data };
+    }
+    if (item.stage_name === 'dataflow_analysis') {
+      const data = await executionApi.appDataflowAnalyse.getTask(downstreamTaskId);
+      return { kind: 'dataflow_analysis', data };
+    }
+    if (item.stage_name === 'vuln_scan') {
+      const data = await executionApi.dataflowVulnScanner.getTask(downstreamTaskId);
+      return { kind: 'vuln_scan', data };
+    }
+    throw new Error('当前阶段未配置下游详情加载器');
+  };
+
+  const ensureDownstreamDetail = async (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+    if (!item.downstream_task_id) return;
+    const current = downstreamByItemIdRef.current[item.id];
+    if (current?.loading || current?.detail || current?.error) return;
+    setDownstreamByItemId((existing) => ({ ...existing, [item.id]: { loading: true } }));
+    try {
+      const detailState = await fetchDownstreamTaskDetail(item);
+      setDownstreamByItemId((existing) => ({ ...existing, [item.id]: { loading: false, detail: detailState } }));
+    } catch (fetchError: any) {
+      setDownstreamByItemId((existing) => ({
+        ...existing,
+        [item.id]: { loading: false, error: normalizeDownstreamDetailError(fetchError) },
+      }));
+    }
+  };
+
+  useEffect(() => {
     if (activeTab === 'artifacts' && !artifactsLoaded && !artifactsLoading) {
       void loadArtifacts();
     }
@@ -1817,72 +1878,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       cancelled = true;
     };
   }, [activeTab, detail, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, taskId]);
-
-  useEffect(() => {
-    if (activeTab !== 'overview' || selectedNodeKind !== 'business' || !detail || !projectId || !selectedStage) return;
-    const stageItems = selectedNodeKind === 'business' && stageItemsPage?.stage_name === selectedStage
-      ? (stageItemsPage.items || [])
-      : detail.stage_items.filter((item) => item.stage_name === selectedStage);
-    const fetchableItems = stageItems.filter((item) => item.downstream_task_id);
-    if (fetchableItems.length === 0) {
-      setDownstreamByItemId({});
-      return;
-    }
-
-    let cancelled = false;
-    setDownstreamByItemId((current) => {
-      const next: Record<string, DownstreamTaskState> = {};
-      for (const item of fetchableItems) {
-        next[item.id] = current[item.id] && current[item.id].detail
-          ? current[item.id]
-          : { loading: true };
-      }
-      return next;
-    });
-
-    const loadDownstream = async () => {
-      const results = await Promise.all(fetchableItems.map(async (item) => {
-        try {
-          const downstreamTaskId = item.downstream_task_id!;
-          if (item.stage_name === 'firmware_unpack') {
-            const data = await executionApi.firmwareUnpacker.getTask(downstreamTaskId);
-            return [item.id, { loading: false, detail: { kind: 'firmware_unpack', data } satisfies DownstreamTaskDetail }] as const;
-          }
-          if (item.stage_name === 'system_analysis') {
-            const data = await executionApi.appSystemAnalyse.getTask(downstreamTaskId);
-            return [item.id, { loading: false, detail: { kind: 'system_analysis', data } satisfies DownstreamTaskDetail }] as const;
-          }
-          if (item.stage_name === 'binary_to_source') {
-            const data = await executionApi.binaryToSource.getTask(projectId, downstreamTaskId);
-            return [item.id, { loading: false, detail: { kind: 'binary_to_source', data } satisfies DownstreamTaskDetail }] as const;
-          }
-          if (item.stage_name === 'entry_analysis') {
-            const data = await executionApi.appEntryAnalyse.getTask(downstreamTaskId);
-            return [item.id, { loading: false, detail: { kind: 'entry_analysis', data } satisfies DownstreamTaskDetail }] as const;
-          }
-          if (item.stage_name === 'dataflow_analysis') {
-            const data = await executionApi.appDataflowAnalyse.getTask(downstreamTaskId);
-            return [item.id, { loading: false, detail: { kind: 'dataflow_analysis', data } satisfies DownstreamTaskDetail }] as const;
-          }
-          if (item.stage_name === 'vuln_scan') {
-            const data = await executionApi.dataflowVulnScanner.getTask(downstreamTaskId);
-            return [item.id, { loading: false, detail: { kind: 'vuln_scan', data } satisfies DownstreamTaskDetail }] as const;
-          }
-          return [item.id, { loading: false, error: '当前阶段未配置下游详情加载器' }] as const;
-        } catch (fetchError: any) {
-          return [item.id, { loading: false, error: normalizeDownstreamDetailError(fetchError) }] as const;
-        }
-      }));
-
-      if (cancelled) return;
-      setDownstreamByItemId(Object.fromEntries(results));
-    };
-
-    void loadDownstream();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage, stageItemsPage]);
 
   useEffect(() => {
     const node = stageFlowRef.current;
@@ -2266,9 +2261,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   }, [selectedStage, selectedNodeKind, taskId]);
 
   useEffect(() => {
+    setDownstreamByItemId({});
+  }, [taskId]);
+
+  useEffect(() => {
     const validIds = new Set(filteredStageItems.map((item) => item.id));
     setSelectedStageItemIds((current) => current.filter((id) => validIds.has(id)));
   }, [filteredStageItems]);
+
+  useEffect(() => {
+    if (!expandedStageItemId) return;
+    const expandedItem = visibleStageItems.find((item) => item.id === expandedStageItemId);
+    if (!expandedItem) return;
+    void ensureDownstreamDetail(expandedItem);
+  }, [expandedStageItemId, visibleStageItems]);
 
   useEffect(() => {
     if (timelinePage > timelineTotalPages) {
@@ -2345,7 +2351,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       return <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs font-semibold text-rose-700">{state.error}</div>;
     }
     if (!state?.detail) {
-      return <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">当前子任务没有可用的下游详情。</div>;
+      return item.downstream_task_id
+        ? <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">展开详情后按需加载下游任务摘要。</div>
+        : <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">当前子任务没有可用的下游详情。</div>;
     }
 
     const detailState = state.detail;
@@ -3751,7 +3759,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
 	                          const expanded = expandedStageItemId === item.id;
 	                          const checked = selectedStageItemIds.includes(item.id);
-                            const riskCounts = systemAnalysisRiskCountLabels(downstreamByItemId[item.id]);
+                            const riskCounts = systemAnalysisRiskCountLabels(item, downstreamByItemId[item.id]);
                             const contractRows = stageItemContractRows(item);
                             const inputContractRows = stageItemInputContractRows(item);
 	                          return (
