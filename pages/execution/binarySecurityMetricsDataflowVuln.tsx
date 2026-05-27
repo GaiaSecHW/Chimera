@@ -4,8 +4,6 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 
 export type DataflowVulnOverviewViewModel = {
   topCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-  snapshotCards: Array<{ label: string; value: string; hint: string; tone: string }>;
-  serviceOperationCards: Array<{ label: string; value: string; hint: string; tone: string }>;
   cycleCards: Array<{ label: string; value: string; hint: string; tone: string }>;
   plateauFlags: Array<{ label: string; active: boolean; hint: string }>;
   chartData: Array<{ name: string; value: number; fill: string }>;
@@ -77,48 +75,6 @@ export const DataflowVulnObservabilitySection: React.FC<{
         </p>
       </div>
       <span className="inline-flex rounded-full border border-rose-200 bg-white/80 px-3 py-1 text-xs font-black text-rose-800">dataflow-vuln MVP</span>
-    </div>
-
-    <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">快照健康</div>
-          <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Summary Snapshot</h3>
-        </div>
-        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
-          snapshot hit / age / failures
-        </span>
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-4">
-        {viewModel.snapshotCards.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-            <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-            <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <div className="rounded-[1.6rem] border border-rose-100 bg-white/85 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">服务链路观测</div>
-          <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">Task List / Summary / Detail</h3>
-        </div>
-        <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-500">
-          service_operation_duration_seconds
-        </span>
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {viewModel.serviceOperationCards.map((item) => (
-          <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-            <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
-            <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
-          </div>
-        ))}
-      </div>
     </div>
 
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">

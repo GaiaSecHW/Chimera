@@ -7,7 +7,6 @@ import {
   B2SCacheEntry,
   B2SLlmProviderSummary,
   B2SCacheSummary,
-  B2SRunMode,
   B2SServiceConfig,
 } from '../../clients/binaryToSource';
 import { showConfirm } from '../../components/DialogService';
@@ -21,16 +20,9 @@ const defaultConfig = (projectId: string): B2SServiceConfig => ({
   project_id: projectId,
   budget_exhausted_action: 'treat_as_passed',
   concurrency: 8,
-  default_mode: 'fast',
   llm_provider_key: null,
   effective_llm_provider: null,
 });
-
-const B2S_MODE_OPTIONS: Array<{ value: B2SRunMode; label: string; badge: string; description: string; tone: string }> = [
-  { value: 'turbo', label: '极速模式', badge: 'IDA', description: '仅执行 IDA / Hex-Rays 导出，不使用 LLM，适合快速获取伪代码。', tone: 'cyan' },
-  { value: 'fast', label: '快速模式', badge: '推荐', description: '使用混合流水线，兼顾速度和一定质量，适合批量还原。', tone: 'emerald' },
-  { value: 'deep', label: '深度模式', badge: '高质量', description: '使用 Agent 深度推理，质量更高但耗时更长。', tone: 'violet' },
-];
 
 const defaultCacheSummary: B2SCacheSummary = {
   visible_entries: 0,
@@ -292,16 +284,6 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
     );
   };
 
-  const saveDefaultModeConfig = async () => {
-    await persistConfig(
-      {
-        ...savedConfig,
-        default_mode: config.default_mode,
-      },
-      '默认逆向模式已保存',
-    );
-  };
-
   const resetProviderConfig = () => {
     setConfig((prev) => ({ ...prev, llm_provider_key: null }));
     notify('LLM / Agent 配置已重置为默认值（尚未保存）', 'info');
@@ -315,11 +297,6 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
   const resetConcurrencyConfig = () => {
     setConfig((prev) => ({ ...prev, concurrency: defaultConfig(projectId).concurrency }));
     notify('批次并发已重置为默认值（尚未保存）', 'info');
-  };
-
-  const resetDefaultModeConfig = () => {
-    setConfig((prev) => ({ ...prev, default_mode: defaultConfig(projectId).default_mode }));
-    notify('默认逆向模式已重置为快速模式（尚未保存）', 'info');
   };
 
   const resetCacheFilters = () => {
@@ -564,35 +541,6 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               </FieldRow>
               <p className="text-xs leading-5 text-slate-500">
                 这里维护的是项目默认并发。新任务创建时会默认带出该值；如果用户在创建弹窗里手工修改，只影响本次任务。
-              </p>
-            </SectionCard>
-            <SectionCard
-              title="默认逆向模式"
-              subtitle="配置当前项目新建 B2S 任务的默认模式。创建任务时不选择模式会使用这里的项目默认值；任务级选择会覆盖该默认值。"
-              actions={<PanelActions saving={saving} onSave={() => { void saveDefaultModeConfig(); }} onReset={resetDefaultModeConfig} />}
-            >
-              <div className="grid gap-3 md:grid-cols-3">
-                {B2S_MODE_OPTIONS.map((option) => {
-                  const selected = config.default_mode === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      disabled={loading || saving}
-                      onClick={() => setConfig((prev) => ({ ...prev, default_mode: option.value }))}
-                      className={`rounded-2xl border px-4 py-4 text-left transition-all ${selected ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black text-slate-900">{option.label}</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-cyan-700 ring-1 ring-cyan-100">{option.badge}</div>
-                      </div>
-                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">{option.description}</div>
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs leading-5 text-slate-500">
-                建议默认使用快速模式；需要只导出 IDA 伪代码时选择极速模式，需要更高质量 Agent 推理时选择深度模式。
               </p>
             </SectionCard>
             <SectionCard

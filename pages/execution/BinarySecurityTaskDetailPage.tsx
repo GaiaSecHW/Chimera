@@ -42,7 +42,7 @@ interface Props {
   onBack: () => void;
 }
 
-const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'delete_failed', 'downstream_missing']);
+const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'downstream_missing']);
 const PREPARING_STATUSES = new Set(['continue_preparing', 'retry_preparing']);
 const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'firmware_unpack',
@@ -124,8 +124,6 @@ const statusTone = (status: string) => {
       return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'failed':
       return 'bg-rose-50 text-rose-700 border-rose-200';
-    case 'delete_failed':
-      return 'bg-rose-100 text-rose-800 border-rose-300';
     case 'downstream_missing':
       return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'cancelled':
@@ -168,8 +166,6 @@ const stageNodeTone = (status: string, selected: boolean) => {
       return `border-amber-300 bg-amber-50 text-amber-800 ${selectedDepth}`;
     case 'failed':
       return `border-rose-300 bg-rose-50 text-rose-800 ${selectedDepth}`;
-    case 'delete_failed':
-      return `border-rose-400 bg-rose-100 text-rose-900 ${selectedDepth}`;
     case 'downstream_missing':
       return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
     case 'running':
@@ -199,8 +195,6 @@ const stageConnectorTone = (status: string) => {
       return 'text-amber-400';
     case 'failed':
       return 'text-rose-400';
-    case 'delete_failed':
-      return 'text-rose-500';
     case 'downstream_missing':
       return 'text-orange-400';
     case 'running':
@@ -227,7 +221,6 @@ const formatBinarySecurityStatus = (status?: string | null) => {
   const normalized = String(status || '').trim().toLowerCase();
   const labels: Record<string, string> = {
     downstream_missing: '子任务不存在',
-    delete_failed: '删除失败',
   };
   return labels[normalized] || status || '-';
 };
@@ -247,11 +240,6 @@ const formatStageItemSyncStatus = (status?: string | null) => {
     default:
       return status ? status : '-';
   }
-};
-
-const formatSyncAppliedLabel = (value?: boolean | null) => {
-  if (value == null) return '-';
-  return value ? '已应用' : '未应用';
 };
 
 function firstMeaningfulValue(...values: Array<unknown>): string | null {
@@ -890,7 +878,7 @@ const durationLabel = (started?: string | null, ended?: string | null) => {
 };
 
 const shouldShowStageRetryReason = (status?: string | null, retryable?: boolean, retryReason?: string | null) => (
-  Boolean(!retryable && retryReason && ['failed', 'delete_failed', 'partial_success', 'cancelled', 'downstream_missing'].includes(String(status || '')))
+  Boolean(!retryable && retryReason && ['failed', 'partial_success', 'cancelled', 'downstream_missing'].includes(String(status || '')))
 );
 
 type TaskStatusReason = {
@@ -956,11 +944,11 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   const stageItems = detail.stage_items || [];
   const archiveJobs = detail.archive_jobs || [];
   const currentStageLabel = STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-';
-  const failedStages = stageSummaries.filter((stage) => ['failed', 'delete_failed', 'partial_success', 'downstream_missing'].includes(stage.status));
+  const failedStages = stageSummaries.filter((stage) => ['failed', 'partial_success', 'downstream_missing'].includes(stage.status));
   const cancelledStages = stageSummaries.filter((stage) => stage.status === 'cancelled');
   const runningStages = stageSummaries.filter((stage) => ['running', 'dispatching', 'applying'].includes(stage.status));
   const pendingStages = stageSummaries.filter((stage) => stage.status === 'pending');
-  const failedItems = stageItems.filter((item) => item.status === 'failed' || item.status === 'delete_failed');
+  const failedItems = stageItems.filter((item) => item.status === 'failed');
   const missingItems = stageItems.filter((item) => item.status === 'downstream_missing');
   const runningItems = stageItems.filter((item) => ['running', 'dispatching'].includes(item.status));
   const cancelledItems = stageItems.filter((item) => item.status === 'cancelled');
@@ -986,7 +974,7 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     };
   }
 
-  if (detail.status === 'failed' || detail.status === 'delete_failed') {
+  if (detail.status === 'failed') {
     const reason = firstText(
       detail.last_error,
       latestFailedStage?.last_error,
@@ -997,14 +985,8 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     const failedStageName = latestFailedStage?.stage_name || latestFailedItem?.stage_name || latestFailedArchive?.stage_name || detail.current_stage;
     return {
       tone: 'error',
-      title: detail.status === 'delete_failed'
-        ? '任务删除失败'
-        : `任务失败于 ${STAGE_LABELS[failedStageName || ''] || failedStageName || '当前阶段'}`,
-      description: reason || (
-        detail.status === 'delete_failed'
-          ? '任务记录保留，原因是工作目录或下游清理未完成，需要修复残留后重新删除。'
-          : '当前任务存在失败阶段、失败子任务或归档失败记录，编排器因此将总任务置为失败。'
-      ),
+      title: `任务失败于 ${STAGE_LABELS[failedStageName || ''] || failedStageName || '当前阶段'}`,
+      description: reason || '当前任务存在失败阶段、失败子任务或归档失败记录，编排器因此将总任务置为失败。',
       evidence: [
         { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
         { label: '失败子任务', value: summarizeCount(failedItems.length) },
@@ -1770,7 +1752,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     if (!detail || TERMINAL.has(detail.status)) return;
     if (detail.status === 'pending_module_confirmation') return;
-    const intervalMs = detail.manual_operation_state?.operation_in_progress ? 2000 : 30000;
+    const intervalMs = detail.manual_operation_state?.operation_in_progress ? 2000 : 5000;
     const timer = window.setInterval(
       () => void loadTask({ preserveStrategyDraft: activeTab === 'strategy' && strategyDirty }),
       intervalMs,
@@ -2906,7 +2888,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   {stageSequence.map((stageName) => {
                     const summary = stageSummaryByName.get(stageName);
                     const summaryStatus = String(summary?.status || '');
-                    const stageFinished = ['success', 'partial_success', 'failed', 'delete_failed', 'cancelled', 'skipped', 'downstream_missing'].includes(summaryStatus);
+                    const stageFinished = ['success', 'partial_success', 'failed', 'cancelled', 'skipped', 'downstream_missing'].includes(summaryStatus);
                     const stageActive = ['running', 'dispatching', 'queued', 'pending', 'waiting_confirmation'].includes(summaryStatus);
                     const stageMessage = stageActive
                       ? '运行中，本次修改仅影响后续/下次'
@@ -3073,7 +3055,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   ))}
                   <label className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                     <span className="block text-sm font-black text-slate-800">子任务重试次数</span>
-                    <span className="mt-1 block text-xs text-slate-500">单轮执行内的自动重试上限，范围 0-20</span>
+                    <span className="mt-1 block text-xs text-slate-500">范围 0-20</span>
                     <input
                       type="number"
                       min={0}
@@ -3087,9 +3069,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-slate-400"
                     />
                   </label>
-                </div>
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                  阶段子任务表中的“累计重跑”是该条目历史上被重新执行的累计次数；它不同于这里配置的“单轮自动重试上限”。
                 </div>
                 <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-semibold text-slate-700">
                   <input
@@ -3750,8 +3729,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                          </th>
 	                          <th className="w-24 px-3 py-3">状态</th>
 	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
-	                          <th className="w-28 px-3 py-3">自动重试</th>
-	                          <th className="w-32 px-3 py-3">累计重跑</th>
+	                          <th className="w-24 px-3 py-3">重试</th>
                           {isSystemAnalysisStageTable ? (
                             <>
                               <th className="w-28 px-3 py-3">高风险模块</th>
@@ -3813,8 +3791,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 font-bold text-slate-700">{item.auto_retry_count ?? item.retry_count ?? 0}</td>
-                                <td className="px-3 py-3 font-bold text-slate-700">{item.rerun_count ?? 0}</td>
+                                <td className="px-3 py-3 font-bold text-slate-700">{item.retry_count || 0}</td>
                                 {isSystemAnalysisStageTable ? (
                                   <>
                                     <td className="px-3 py-3 font-black text-slate-900">{riskCounts.high}</td>
@@ -3899,40 +3876,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               <div className="text-slate-400">任务 ID</div>
                                               <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
                                             </div>
-                                            <div>
-                                              <div className="text-slate-400">当前聚合状态</div>
-                                              <div className="mt-1">
-                                                <span className={`inline-flex rounded-full border px-2 py-1 text-[11px] font-black ${statusTone(item.status)}`}>
-                                                  {formatBinarySecurityStatus(item.status)}
-                                                </span>
-                                              </div>
-                                            </div>
-                                            <div>
-                                              <div className="text-slate-400">下游原始状态</div>
-                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_raw_status || '-'}</div>
-                                            </div>
-                                            <div>
-                                              <div className="text-slate-400">映射后的状态</div>
-                                              <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_mapped_status || '-'}</div>
-                                            </div>
-                                            <div>
-                                              <div className="text-slate-400">状态是否已应用</div>
-                                              <div className="mt-1 break-all font-mono text-slate-800">{formatSyncAppliedLabel(item.downstream_state_applied)}</div>
-                                            </div>
-                                            <div>
-                                              <div className="text-slate-400">同步错误类型</div>
-                                              <div className="mt-1 break-all font-mono text-slate-800">{item.sync_observation_error_type || '-'}</div>
-                                            </div>
-                                            <div>
-                                              <div className="text-slate-400">同步 HTTP 状态</div>
-                                              <div className="mt-1 break-all font-mono text-slate-800">{item.sync_observation_http_status ?? '-'}</div>
-                                            </div>
                                           </div>
-                                          {item.sync_observation_error_message ? (
-                                            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-                                              {item.sync_observation_error_message}
-                                            </div>
-                                          ) : null}
                                           {!detailSupport.supported ? (
                                             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
                                               {detailSupport.reason}

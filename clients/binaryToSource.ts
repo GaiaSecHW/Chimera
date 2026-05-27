@@ -1,5 +1,4 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
-import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 
 export interface B2SElfTaskInput {
   elf_path: string;
@@ -8,21 +7,17 @@ export interface B2SElfTaskInput {
   metadata?: Record<string, any>;
 }
 
-export type B2SRunMode = 'turbo' | 'fast' | 'deep';
-export type B2SRunModeDraft = '' | B2SRunMode;
+export type B2SRunMode = 'fast' | 'deep';
 export type B2SBudgetExhaustedAction = 'treat_as_passed' | 'treat_as_failed';
 
 export interface B2SServiceConfig {
   project_id: string;
   budget_exhausted_action: B2SBudgetExhaustedAction;
   concurrency: number;
-  default_mode: B2SRunMode;
   llm_provider_key?: string | null;
   effective_llm_provider?: B2SLlmProviderSummary | null;
   updated_at?: string | null;
 }
-
-export type B2SHealth = { status: string; service?: string } & ServiceHealthMeta;
 
 export interface B2SCacheEntry {
   cache_key: string;
@@ -890,14 +885,6 @@ export interface B2STaskDetail extends B2STask {
 }
 
 export const binaryToSourceApi = {
-  getHealth: async (): Promise<B2SHealth> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/health`, {
-      headers: getHeaders(),
-      cache: 'no-store',
-    });
-    return handleResponse(resp);
-  },
-
   getConfig: async (projectId: string): Promise<B2SServiceConfig> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
       headers: getHeaders(),

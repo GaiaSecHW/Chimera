@@ -1,5 +1,4 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
-import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 
 export interface BinarySecurityInputFile {
   filename: string;
@@ -12,7 +11,6 @@ export interface BinarySecurityInputFile {
 export type BinarySecurityTaskType = 'binary' | 'source' | 'binary_module';
 export type BinarySecurityModuleSelectionMode = 'auto' | 'manual_confirm' | string;
 export type BinarySecurityPipelineMode = 'barrier' | 'mixed_streaming';
-export type BinarySecurityHealth = { status?: string; service?: string } & ServiceHealthMeta;
 
 export interface BinarySecurityStageOption {
   enabled: boolean;
@@ -345,8 +343,6 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     parent_key?: string | null;
     status: string;
     retry_count: number;
-    rerun_count?: number;
-    auto_retry_count?: number;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
     input_ref: BinarySecurityStageItemInputContract;
@@ -356,12 +352,6 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     abnormal_reason?: BinarySecurityAbnormalReason | null;
     sync_status?: string | null;
     last_synced_at?: string | null;
-    downstream_raw_status?: string | null;
-    downstream_mapped_status?: string | null;
-    downstream_state_applied?: boolean | null;
-    sync_observation_error_message?: string | null;
-    sync_observation_error_type?: string | null;
-    sync_observation_http_status?: number | null;
     started_at?: string | null;
     finished_at?: string | null;
   }>;
@@ -440,54 +430,6 @@ export interface BinarySecurityOrchestrationObservability {
     summary_path?: string | null;
     metadata_path?: string | null;
   };
-}
-
-export interface BinarySecurityReducerEventRecordSummary {
-  pending_count: number;
-  processing_count: number;
-  retryable_count: number;
-  dead_letter_count: number;
-  processed_count: number;
-  failed_like_count: number;
-  slow_event_count: number;
-  max_processing_duration_ms?: number | null;
-  p95_processing_duration_ms?: number | null;
-  avg_processing_duration_ms?: number | null;
-}
-
-export interface BinarySecurityReducerEventRecord {
-  event_id: string;
-  task_id: string;
-  project_id: string;
-  stage_name?: string | null;
-  event_type: string;
-  queue_status: string;
-  attempts: number;
-  leased_by?: string | null;
-  created_at?: string | null;
-  available_at?: string | null;
-  lease_expires_at?: string | null;
-  processed_at?: string | null;
-  processing_started_at?: string | null;
-  queue_wait_ms?: number | null;
-  processing_duration_ms?: number | null;
-  end_to_end_duration_ms?: number | null;
-  result: string;
-  failure_kind: string;
-  failure_reason?: string | null;
-  last_error?: string | null;
-  handler_pod?: string | null;
-  handler_instance?: string | null;
-  idempotency_key?: string | null;
-}
-
-export interface BinarySecurityReducerEventRecordPage {
-  total: number;
-  page: number;
-  page_size: number;
-  truncated: boolean;
-  items: BinarySecurityReducerEventRecord[];
-  summary: BinarySecurityReducerEventRecordSummary;
 }
 
 export interface BinarySecurityOverviewBusinessDetail {
@@ -632,25 +574,12 @@ export interface BinarySecurityActionResult {
 }
 
 export const binarySecurityApi = {
-  getHealth: async (): Promise<BinarySecurityHealth> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/health`, {
-      headers: getHeaders(),
-      cache: 'no-store',
-    });
-    return handleResponse(resp);
-  },
-
   listTasks: async (
     projectId: string,
     status?: string,
     taskType?: BinarySecurityTaskType,
-    page = 1,
-    pageSize = 50,
   ): Promise<{
     total: number;
-    page: number;
-    page_size: number;
-    total_pages: number;
     running_count: number;
     queued_count: number;
     max_concurrent_tasks: number;
@@ -661,8 +590,6 @@ export const binarySecurityApi = {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
     if (taskType) params.set('task_type', taskType);
-    params.set('page', String(page));
-    params.set('page_size', String(pageSize));
     const q = params.size > 0 ? `?${params.toString()}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),
@@ -698,39 +625,6 @@ export const binarySecurityApi = {
 
   getOrchestrationObservability: async (projectId: string, taskId: string): Promise<BinarySecurityOrchestrationObservability> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/orchestration-observability`, {
-      headers: getHeaders(),
-      cache: 'no-store',
-    });
-    return handleResponse(resp);
-  },
-
-  getReducerEvents: async (params?: {
-    page?: number;
-    page_size?: number;
-    sort_by?: 'processed_at' | 'duration_ms' | 'created_at';
-    sort_order?: 'asc' | 'desc';
-    status?: string[];
-    event_type?: string;
-    handler_pod?: string;
-    task_id?: string;
-    failed_only?: boolean;
-    slow_only?: boolean;
-  }): Promise<BinarySecurityReducerEventRecordPage> => {
-    const query = new URLSearchParams();
-    if (params?.page) query.set('page', String(params.page));
-    if (params?.page_size) query.set('page_size', String(params.page_size));
-    if (params?.sort_by) query.set('sort_by', params.sort_by);
-    if (params?.sort_order) query.set('sort_order', params.sort_order);
-    for (const value of params?.status || []) {
-      if (value) query.append('status', value);
-    }
-    if (params?.event_type) query.set('event_type', params.event_type);
-    if (params?.handler_pod) query.set('handler_pod', params.handler_pod);
-    if (params?.task_id) query.set('task_id', params.task_id);
-    if (params?.failed_only) query.set('failed_only', 'true');
-    if (params?.slow_only) query.set('slow_only', 'true');
-    const q = query.size > 0 ? `?${query.toString()}` : '';
-    const resp = await fetch(`${API_BASE}/api/app/binary-security/reducer/events${q}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

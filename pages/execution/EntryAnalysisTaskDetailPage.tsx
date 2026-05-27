@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   ArrowLeft, BarChart3, CheckCircle2, ChevronDown, ChevronUp, ClipboardCopy,
-  Clock3, FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Search, ScrollText,
+  FolderOpen, Loader2, PlayCircle, RefreshCw, RotateCcw, Search, ScrollText,
   Trash2, XCircle,
 } from 'lucide-react';
 
@@ -19,10 +19,8 @@ import {
   AppEaStagesJson,
   AppEaTaskDetail,
   AppEaTaskEvaluation,
-  AppEaTaskEvent,
   AppEaTaskResult,
   AppEaFunctionCatalogItem,
-  AppEaTaskActionResponse,
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -142,66 +140,8 @@ const LEAN_STAGE_STEPS = [
 ];
 
 
-type DetailTab = 'overview' | 'task-config' | 'timeline' | 'session' | 'relationship' | 'result' | 'evaluation';
+type DetailTab = 'overview' | 'task-config' | 'session' | 'relationship' | 'result' | 'evaluation';
 type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
-
-function timelineLevelTone(level?: string | null) {
-  const normalized = String(level || '').toLowerCase();
-  if (normalized === 'error') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (normalized === 'warning' || normalized === 'warn') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (normalized === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
-}
-
-function isAgentKillTimelineEvent(eventType?: string | null) {
-  return ['agent_process_manual_kill', 'agent_process_bulk_manual_kill'].includes(String(eventType || '').trim());
-}
-
-function timelineEventTypeTone(eventType?: string | null) {
-  const normalized = String(eventType || '').trim();
-  if (normalized === 'agent_process_manual_kill') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-white text-slate-700';
-}
-
-function formatTimelineEventTypeLabel(eventType?: string | null) {
-  const normalized = String(eventType || '').trim();
-  if (!normalized) return '-';
-  if (normalized === 'agent_process_manual_kill') return '智能体手工终止';
-  if (normalized === 'agent_process_bulk_manual_kill') return '智能体批量终止';
-  return normalized.replace(/_/g, ' ');
-}
-
-function formatTimelinePayloadValue(value: any): string {
-  if (value == null) return '-';
-  if (typeof value === 'string') return value || '-';
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-  if (Array.isArray(value)) return value.length ? value.map((entry) => formatTimelinePayloadValue(entry)).join(', ') : '-';
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function timelinePayloadRows(payload: Record<string, any>) {
-  return Object.entries(payload || {})
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => ({ key, label: key.replace(/_/g, ' '), value: formatTimelinePayloadValue(value) }));
-}
-
-function timelineAuditSummary(payload: Record<string, any>) {
-  const operator = formatTimelinePayloadValue(payload.operator);
-  const pid = formatTimelinePayloadValue(payload.pid);
-  const podName = formatTimelinePayloadValue(payload.pod_name);
-  const killMode = formatTimelinePayloadValue(payload.kill_mode);
-  return [
-    operator !== '-' ? `操作人 ${operator}` : '',
-    pid !== '-' ? `PID ${pid}` : '',
-    podName !== '-' ? `Pod ${podName}` : '',
-    killMode !== '-' ? `方式 ${killMode}` : '',
-  ].filter(Boolean).join(' · ');
-}
 
 function formatDuration(startedAt?: string | null, finishedAt?: string | null): string {
   if (!startedAt || !finishedAt) return '-';
@@ -625,122 +565,33 @@ function parseSessionDelta(lines: string[], startLine: number): { events: AppEaS
 function deriveStepStatuses(taskStatus: string, events: AppEaStageEvent[], stageSteps: typeof FULL_STAGE_STEPS): StepStatus[] {
   const statuses: StepStatus[] = stageSteps.map((): StepStatus => 'pending');
   if (taskStatus === 'pending') return statuses;
-  if (taskStatus === 'passed')  return stageSteps.map((): StepStatus => 'completed');
-
-  const isRunning  = taskStatus === 'running';
-  const isFailed   = ['failed', 'error', 'cancelled'].includes(taskStatus);
-
-  // ── CC 独立跟踪 ────────────────────────────────────────────────────────────
-  let ccStarted = false, ccDone = false, ccFailed = false;
-
-  // ── 每阶段启动/完成计数（简单 start/done 匹配） ────────────────────────────
-  // R1/R2: 按文件计数
-  const r1FileStart = new Set<string>(), r1FileDone = new Set<string>();
-  const r2FuncStart = new Set<string>(), r2FuncDone = new Set<string>();
-  // R3: 按唯一 func_hash 计数（支持 W+J 多次重试）
-  const r3FuncW_Start = new Set<string>(), r3FuncJ_Done = new Set<string>();
-  // R4: 按唯一 func_hash 计数（支持多次重试）
-  const r4FuncStart = new Set<string>(), r4FuncDone = new Set<string>();
-  // R5
-  let r5Started = false, r5Done = false;
-
+  if (taskStatus === 'passed') return stageSteps.map((): StepStatus => 'completed');
+  let last = -1;
+  // CC 独立跟踪（非致命，失败不阻断 R4）
+  let ccDone = false, ccFailed = false;
   for (const evt of events) {
-    const d  = evt.data ?? {};
-    const fh = String(d.func_hash ?? '');
-    const fi = String(d.file ?? d.file_hash ?? '');
-    switch (evt.type) {
-      // CC
-      case 'callchain_start':  ccStarted = true; break;
-      case 'callchain_done':   ccDone    = true; break;
-      case 'callchain_failed': ccFailed  = true; break;
-      // R1
-      case 'r1_w_start': if (fi) r1FileStart.add(fi); break;
-      case 'r1_j_done':  if (fi) r1FileDone.add(fi);  break;
-      // R2
-      case 'r2_j_start': if (fh) r2FuncStart.add(fh); break;
-      case 'r2_j_done':  if (fh) r2FuncDone.add(fh);  break;
-      // R3
-      case 'r3_w_start': if (fh) r3FuncW_Start.add(fh); break;
-      case 'r3_j_done':  if (fh) r3FuncJ_Done.add(fh);  break;
-      // R4
-      case 'r4_w_func_start': if (fh) r4FuncStart.add(fh); break;
-      case 'r4_w_func_done':  if (fh) r4FuncDone.add(fh);  break;
-      // R5
-      case 'r5_w_start': r5Started = true; break;
-      case 'r5_done':    r5Done    = true; break;
+    if (evt.type === 'callchain_done')   ccDone   = true;
+    if (evt.type === 'callchain_failed') ccFailed = true;
+    stageSteps.forEach((step, index) => {
+      if (step.triggers.includes(evt.type)) last = Math.max(last, index);
+    });
+  }
+  if (last < 0) {
+    statuses[0] = taskStatus === 'running' ? 'running'
+      : ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'pending';
+    return statuses;
+  }
+  for (let i = 0; i < stageSteps.length; i += 1) {
+    const isCCStage = stageSteps[i].key === 'cc';
+    if (isCCStage && ccFailed && !ccDone) {
+      // CC 建图失败（非致命）：标记 failed 但不阻断后续阶段
+      statuses[i] = 'failed';
+    } else if (i < last) {
+      statuses[i] = 'completed';
+    } else if (i === last) {
+      statuses[i] = ['failed', 'error', 'cancelled'].includes(taskStatus) ? 'failed' : 'running';
     }
   }
-
-  for (let i = 0; i < stageSteps.length; i++) {
-    const key = stageSteps[i].key;
-
-    // ── CC 阶段 ──
-    if (key === 'cc') {
-      if (!ccStarted) { statuses[i] = 'pending'; continue; }
-      if (ccFailed && !ccDone) { statuses[i] = 'failed'; continue; }
-      statuses[i] = ccDone ? 'completed' : 'running';
-      continue;
-    }
-
-    // ── R1 ──
-    if (key === 'r1') {
-      if (r1FileStart.size === 0) { statuses[i] = 'pending'; continue; }
-      if (r1FileDone.size === r1FileStart.size && r1FileDone.size > 0) {
-        statuses[i] = 'completed';
-      } else {
-        statuses[i] = isRunning ? 'running' : (isFailed ? 'failed' : 'completed');
-      }
-      continue;
-    }
-
-    // ── R2 ──
-    if (key === 'r2') {
-      if (r2FuncStart.size === 0) { statuses[i] = 'pending'; continue; }
-      const r2Done = r2FuncDone.size >= r2FuncStart.size;
-      if (r2Done && r3FuncW_Start.size > 0) {
-        // R3 已开始，说明 R2 已全完成
-        statuses[i] = 'completed';
-      } else if (r2Done && !isRunning) {
-        statuses[i] = 'completed';
-      } else {
-        statuses[i] = isRunning ? 'running' : (isFailed ? 'failed' : 'completed');
-      }
-      continue;
-    }
-
-    // ── R3 （与 R4 并行，用唯一 func_hash 判断） ──
-    if (key === 'r3') {
-      if (r3FuncW_Start.size === 0) { statuses[i] = 'pending'; continue; }
-      // R3 运行中：开始的函数 > J完成的函数
-      const r3Active = isRunning && (r3FuncW_Start.size > r3FuncJ_Done.size);
-      statuses[i] = r3Active ? 'running' : (isFailed ? 'failed' : 'completed');
-      continue;
-    }
-
-    // ── R4 （与 R3 并行，用唯一 func_hash 判断） ──
-    if (key === 'r4') {
-      if (r4FuncStart.size === 0) { statuses[i] = 'pending'; continue; }
-      const r4Active = isRunning && (r4FuncDone.size < r4FuncStart.size);
-      statuses[i] = r4Active ? 'running' : (isFailed ? 'failed' : 'completed');
-      continue;
-    }
-
-    // ── R5 ──
-    if (key === 'r5') {
-      if (!r5Started) { statuses[i] = 'pending'; continue; }
-      statuses[i] = r5Done ? 'completed' : (isRunning ? 'running' : (isFailed ? 'failed' : 'completed'));
-      continue;
-    }
-
-    // ── 其他阶段（lean 模式等）：原有 trigger 逻辑 ──
-    const hasAny = stageSteps[i].triggers.some(t => events.some(e => e.type === t));
-    if (!hasAny) { statuses[i] = 'pending'; continue; }
-    const hasLastTrigger = stageSteps[i].triggers.includes('task_end')
-      ? events.some(e => e.type === 'task_end') : false;
-    if (hasLastTrigger) { statuses[i] = 'completed'; continue; }
-    statuses[i] = isRunning ? 'running' : (isFailed ? 'failed' : 'completed');
-  }
-
   return statuses;
 }
 
@@ -767,8 +618,8 @@ function formatEvent(evt: AppEaStageEvent): string {
     // ── R2 准确性校正 ─────────────────────────────────────────────────
     case 'r2_w_start':          return `[${ts}] ▶ R2-W 启动: ${d.function ?? d.func_hash ?? ''}${Number(d.attempt) > 1 ? `(第${d.attempt}次)` : ''}`;
     case 'r2_w_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-W 完成: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.error ? ` — ${d.error}` : ''}`;
-    case 'r2_j_start':          return `[${ts}] ▶ R2 准确性验证: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2 准确性验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    case 'r2_j_start':          return `[${ts}] ▶ R2-J 准确性验证: ${d.function ?? d.func_hash ?? ''}`;
+    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 准确性验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
     // ── R3 外部输入分析 ───────────────────────────────────────────────
     case 'r3_w_start':          return `[${ts}] ▶ R3-W 外部输入分析: ${d.function ?? d.func_hash ?? ''}`;
     case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.function ?? d.func_hash ?? ''} has_input=${d.has_external_input ?? ''}`;
@@ -842,102 +693,41 @@ interface FuncProgress {
   lastTs?: number;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// deriveFuncProgress: 架构说明
-//
-// 「双源分离」策略：
-//   Catalog 是「全部函数列表 + 各阶段终态」的权威来源（直接映射 pipeline_state.json）
-//   Events 「只能前进」差异覆盖（only-advance：只能由 pending 升到 running，终态不被覆盖）
-//   pending/running 都是可被事件升级的非终态；passed/failed/keep/remove/skip 是终态，不可退
-//
-// R3 和 R4 并行运行属于正常现象（不同函数同时处于不同阶段），不是显示错误
-// ─────────────────────────────────────────────────────────────────────────────
 function deriveFuncProgress(
   events: AppEaStageEvent[],
   functionCatalog?: AppEaFunctionCatalogItem[] | null,
-  taskStatus?: string,
 ): {
   funcs: FuncProgress[];
   totalFuncCount: number;
 } {
-  // 终态集合：一旦到达这些状态就不会被事件覆盖
-  const TERMINAL: ReadonlySet<FuncStage> = new Set(['passed', 'failed', 'keep', 'remove', 'skip']);
-  const isTerminal = (s: FuncStage) => TERMINAL.has(s);
-
-  const toStage = (s?: string | null): FuncStage => {
-    switch (String(s ?? 'pending')) {
-      case 'running': return 'running';
-      case 'passed':  return 'passed';
-      case 'failed':  return 'failed';
-      case 'skip':    return 'skip';
-      case 'keep':    return 'keep';
-      case 'remove':
-      case 'filter':  return 'remove';
-      default:        return 'pending';
-    }
-  };
-
-  // ── Step 1: Catalog 构建稳定基线状态 ────────────────────────────────────────
   const map = new Map<string, FuncProgress>();
-
-  for (const item of functionCatalog ?? []) {
-    const fh = String(item.func_hash ?? '');
-    if (!fh) continue;
-
-    // 支持旧字段名（r1b_state/r2_state/r2j_state/rep_state）和新字段名（r2j_state_new/r3w_state/r3j_state/r5_state）
-    // 后端 v2 修复后输出 r1b_state（r2_j）, r2_state（r3_w）, r2j_state（r3_j）, rep_state（r5）
-    const r2jState = (item as any).r2j_state_new ?? item.r1b_state ?? null;
-    const r3wState = (item as any).r3w_state ?? item.r2_state ?? null;
-    const r3jState = (item as any).r3j_state ?? item.r2j_state ?? null;
-    const r5State  = (item as any).r5_state  ?? item.rep_state  ?? null;
-
-    const r2j    = toStage(r2jState);
-    const r4dec  = String(item.r4_decision ?? '').toLowerCase();
-    const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
-
-    let r3w: FuncStage, r3j: FuncStage, r4: FuncStage, rep: FuncStage;
-
-    if (r2j === 'failed') {
-      // R2 失败：函数边界不可信，后续全部跳过
-      r3w = r3j = r4 = rep = 'skip';
-    } else {
-      r3w = toStage(r3wState);
-      r3j = toStage(r3jState);
-      if (r4dec === 'keep') {
-        r4  = 'keep';
-        rep = toStage(r5State);
-      } else if (r4dec === 'filter' || r4dec === 'remove') {
-        // has_input=false → R3-W 就确认无外部输入，R4入口决策步未运行 → 显示 skip
-        // has_input=true  → R3-W 确认有外部输入但入口决策 W 过滤  → 显示 remove
-        r4  = (hasInput === false) ? 'skip' : 'remove';
-        rep = 'skip';
-      } else {
-        // 还未做入口决策（pending/running）
-        r4  = toStage(item.r4_state);
-        rep = 'skip';
-      }
-    }
-
-    map.set(fh, {
-      func_hash: fh,
-      name:  String(item.name ?? fh),
-      file:  String(item.file ?? ''),
-      r2j, r3w, r3j, r4, rep,
-      is_entry:          Boolean(item.is_entry) || r4 === 'keep',
-      has_external_input: hasInput,
-      entry_role:        item.entry_role,
-    });
+  let totalFuncCount = 0;
+  for (const evt of events) {
+    if (evt.type === 'r1_static_done') totalFuncCount += Number((evt.data || {}).count) || 0;
   }
 
-  // ── Step 2: Events 只前进覆盖（only-advance，终态不可退） ─────────────────────
-  // 目的：对于任务运行中的函数，显示实时“运行中”动画；对于 catalog 还未纳入的新函数，建立动态条目
-  // 原则：事件只能将 pending → running → 终态，不能让终态退回
+  const toStage = (s?: string | null): FuncStage => {
+    switch (String(s || 'pending')) {
+      case 'running': return 'running';
+      case 'passed': return 'passed';
+      case 'failed': return 'failed';
+      case 'skip': return 'skip';
+      case 'keep': return 'keep';
+      case 'remove':
+      case 'filter': return 'remove';
+      default: return 'pending';
+    }
+  };
 
   const getOrCreate = (fh: string, name?: string, file?: string): FuncProgress => {
     if (!map.has(fh)) {
       map.set(fh, {
-        func_hash: fh, name: name || fh.slice(0, 8), file,
-        r2j: 'pending', r3w: 'pending', r3j: 'pending', r4: 'pending', rep: 'pending',
+        func_hash: fh,
+        name: name || fh.slice(0, 8),
+        file,
+        r2j: 'pending',
+        r3w: 'pending', r3j: 'pending',
+        r4: 'pending', rep: 'pending',
         is_entry: false,
       });
     }
@@ -947,110 +737,119 @@ function deriveFuncProgress(
     return f;
   };
 
-  // 事件升级副作用：只有当目标字段非终态时才覆盖
-  const advance = (f: FuncProgress, field: keyof Pick<FuncProgress, 'r2j'|'r3w'|'r3j'|'r4'|'rep'>, next: FuncStage) => {
-    if (!isTerminal(f[field])) f[field] = next;
-  };
-
-  for (const evt of events) {
-    const d   = evt.data ?? {};
-    const fh  = String(d.func_hash ?? '');
+  // 先用 function_catalog 初始化所有函数，保证 R2 开始前就有函数表
+  for (const item of functionCatalog || []) {
+    const fh = String(item.func_hash || '');
     if (!fh) continue;
-    const fn  = String(d.function ?? d.func_hash ?? '');
-    const fi  = String(d.file ?? '');
-    const ts  = evt.ts ?? 0;
-    const f   = getOrCreate(fh, fn, fi);
+    const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
+    f.r2j = toStage(item.r1b_state);  // r1b_state = r2_j_state (accuracy judge)
+    f.r3w = toStage(item.r2_state);
+    f.r3j = toStage(item.r2j_state);
+    f.r4  = String(item.r4_decision || '').toLowerCase() === 'keep' ? 'keep'
+      : String(item.r4_decision || '').toLowerCase() === 'remove' || String(item.r4_decision || '').toLowerCase() === 'filter' ? 'remove'
+      : toStage(item.r4_state);
+    f.rep = toStage(item.rep_state);
+    f.has_external_input = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
+    if (item.entry_role) f.entry_role = String(item.entry_role);
+    f.is_entry = Boolean(item.is_entry) || f.r4 === 'keep';
+  }
+  if (!totalFuncCount) totalFuncCount = (functionCatalog || []).length;
 
-    switch (evt.type) {
-      // R2 准确性验证 (Judge only)
-      case 'r2_j_start': advance(f, 'r2j', 'running'); f.lastTs = ts; break;
-      case 'r2_j_done':
-        if (!isTerminal(f.r2j)) {
-          f.r2j = d.passed ? 'passed' : 'failed';
-          if (!d.passed) {
-            // R2 失败：后续全部跳过（仅更新非终态字段）
-            if (!isTerminal(f.r3w)) f.r3w = 'skip';
-            if (!isTerminal(f.r3j)) f.r3j = 'skip';
-            if (!isTerminal(f.r4))  f.r4  = 'skip';
-            if (!isTerminal(f.rep)) f.rep = 'skip';
-          }
-        }
-        f.lastTs = ts; break;
-
-      // R3-W 外部输入分析 Worker
-      case 'r3_w_start': advance(f, 'r3w', 'running'); f.lastTs = ts; break;
-      case 'r3_w_done':
-        if (!isTerminal(f.r3w)) {
-          // r3_w 可能多次重试（中间轮次可能 has_input=false，最终轮次才是定论）
-          // 这里不设终态，保持 r3w=running 直到 r3_j_done 小循环结束
-          f.has_external_input = Boolean(d.has_external_input);
-          if (d.entry_role) f.entry_role = String(d.entry_role);
-          // 如果确认有输入且 r4 被临时标为 skip，重置等待入口决策
-          if (f.has_external_input && f.r4 === 'skip') f.r4 = 'pending';
-        }
-        f.lastTs = ts; break;
-
-      // R3-J 外部输入验证 Judge
-      case 'r3_j_start': advance(f, 'r3j', 'running'); f.lastTs = ts; break;
-      case 'r3_j_done':
-        if (!isTerminal(f.r3j)) {
-          const passed = Boolean(d.passed);
-          if (passed) {
-            // r3_j 通过：W+J 小循环最终确认，同步 r3w/r3j 为终态
-            if (!isTerminal(f.r3w)) f.r3w = 'passed';
-            f.r3j = 'passed';
-            // 若事件携带 r4_decision，直接设置 R4 列（无需等 catalog 刷新）
-            const r4dec = String(d.r4_decision ?? '').toLowerCase();
-            if (r4dec && !isTerminal(f.r4)) {
-              if (r4dec === 'keep') {
-                f.r4 = 'keep'; f.is_entry = true;
-                if (!isTerminal(f.rep)) f.rep = 'pending';
-              } else if (r4dec === 'filter' || r4dec === 'remove') {
-                f.r4 = f.has_external_input === false ? 'skip' : 'remove';
-                if (!isTerminal(f.rep)) f.rep = 'skip';
-              }
-            }
-          } else {
-            // 未通过，将重试：下一轮 r3_w_start 会把 r3w 设回 running
-            if (!isTerminal(f.r3w)) f.r3w = 'pending';
-            f.r3j = 'pending'; // 重置等待下一轮
-          }
-        }
-        f.lastTs = ts; break;
-      case 'r4_w_func_done': {
-        if (!isTerminal(f.r4)) {
-          const dec = String(d.decision ?? 'keep').toLowerCase();
-          f.r4 = (dec === 'filter' || dec === 'remove') ? 'remove' : 'keep';
-          f.is_entry = f.r4 === 'keep';
-          if (!isTerminal(f.rep)) f.rep = f.r4 === 'keep' ? 'pending' : 'skip';
-        }
-        f.lastTs = ts; break;
-      }
-
-      // R5 报告
-      case 'r5_w_start': advance(f, 'rep', 'running'); f.lastTs = ts; break;
-      case 'r5_j_done':
-        if (!isTerminal(f.rep)) f.rep = d.passed ? 'passed' : 'failed';
-        f.lastTs = ts; break;
-
-      default: break;
+  const fileHasExternalFuncs = new Map<string, Set<string>>();
+  for (const item of functionCatalog || []) {
+    const fileH = String(item.file_hash || '');
+    const funcH = String(item.func_hash || '');
+    if (fileH && funcH && item.has_external_input) {
+      if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
+      fileHasExternalFuncs.get(fileH)!.add(funcH);
     }
   }
 
-  // ── Step 3: 修复 is_entry 最终推断 ─────────────────────────────────────────
+  for (const evt of events) {
+    const ts = evt.ts || 0;
+    const d = evt.data || {};
+    const fh = String(d.func_hash || '');
+    const fn = String(d.function || d.func_hash || '');
+    const fi = String(d.file || '');
+
+    switch (evt.type) {
+      // R2-J 只有 Judge，无 Worker
+      case 'r2_j_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = 'running'; f.lastTs = ts; }
+        break;
+      case 'r2_j_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        break;
+
+      // R3-W (backend event: r3_w_start/done)
+      case 'r3_w_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r3w = 'running'; f.lastTs = ts; }
+        break;
+      case 'r3_w_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          f.r3w = 'passed';
+          f.has_external_input = Boolean(d.has_external_input);
+          if (!f.has_external_input) { f.r3w = 'skip'; f.r3j = 'skip'; f.r4 = 'skip'; }
+          else if (d.entry_role) { f.entry_role = String(d.entry_role); }
+          const fileH = String(d.file_hash || '');
+          if (fileH && f.has_external_input) {
+            if (!fileHasExternalFuncs.has(fileH)) fileHasExternalFuncs.set(fileH, new Set());
+            fileHasExternalFuncs.get(fileH)!.add(fh);
+          }
+          f.lastTs = ts;
+        }
+        break;
+
+      // R3-J (backend event: r3_j_start/done)
+      case 'r3_j_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = 'running'; f.lastTs = ts; }
+        break;
+      case 'r3_j_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); if (f.r3j !== 'skip') f.r3j = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        break;
+
+      // R4-W func (backend event: r4_w_func_start/done)
+      case 'r4_w_func_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r4 = 'running'; f.lastTs = ts; }
+        break;
+      case 'r4_w_func_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          const dec = String(d.decision || 'keep').toLowerCase();
+          f.r4 = dec === 'filter' || dec === 'remove' ? 'remove' : 'keep';
+          f.is_entry = f.r4 === 'keep';
+          f.lastTs = ts;
+        }
+        break;
+
+      // R4-W file-level aggregation (older event for file-level summary)
+      case 'r4_w_start':
+        break; // file-level, not func-level
+      case 'r4_w_done':
+        break; // file-level, not func-level
+
+      // R5 report
+      case 'r5_w_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = 'running'; f.lastTs = ts; }
+        break;
+      case 'r5_j_done':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.rep = d.passed ? 'passed' : 'failed'; f.lastTs = ts; }
+        break;
+      default:
+        break;
+    }
+  }
+
   for (const f of map.values()) {
-    if (f.r4 === 'keep' || f.rep === 'running' || f.rep === 'passed') f.is_entry = true;
+    if (f.r4 === 'pending' && f.r3j === 'passed' && f.has_external_input) f.is_entry = true;
   }
 
   const funcs = Array.from(map.values());
   funcs.sort((a, b) => {
     if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
-    // 入口内部按最新活动时间排序，非入口按字母
-    if (a.is_entry) return (b.lastTs ?? 0) - (a.lastTs ?? 0);
-    return (a.name ?? '').localeCompare(b.name ?? '');
+    return (b.lastTs || 0) - (a.lastTs || 0);
   });
-
-  const totalFuncCount = Math.max((functionCatalog ?? []).length, map.size);
   return { funcs, totalFuncCount };
 }
 
@@ -1147,16 +946,6 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [resultLoading, setResultLoading] = useState(false);
   const [evaluationLoading, setEvaluationLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
-  const [timeline, setTimeline] = useState<AppEaTaskEvent[]>([]);
-  const [timelineLoading, setTimelineLoading] = useState(false);
-  const [timelineClearing, setTimelineClearing] = useState(false);
-  const [deletingTimelineEventId, setDeletingTimelineEventId] = useState<string | null>(null);
-  const [expandedTimelineEventId, setExpandedTimelineEventId] = useState<string>('');
-  const [timelineStageFilter, setTimelineStageFilter] = useState<string>('__all__');
-  const [timelineEventTypeFilter, setTimelineEventTypeFilter] = useState<string>('__all__');
-  const [timelineLevelFilter, setTimelineLevelFilter] = useState<string>('__all__');
-  const [timelinePage, setTimelinePage] = useState(1);
-  const [timelinePageSize, setTimelinePageSize] = useState(200);
   const [resultView, setResultView] = useState<'final' | 'functions' | 'report' | 'json'>('final');
   const [restarting, setRestarting] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -1257,18 +1046,6 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     finally { setEvaluationLoading(false); }
   };
 
-  const loadTimeline = async () => {
-    setTimelineLoading(true);
-    try {
-      const resp = await appApi.getTimeline(taskId);
-      setTimeline(resp.events || []);
-    } catch (err: any) {
-      notify(`加载事件时间线失败: ${err?.message || err}`, 'error');
-    } finally {
-      setTimelineLoading(false);
-    }
-  };
-
   const closeSessionSocket = () => {
     if (sessionSocketRef.current) {
       sessionSocketRef.current.close();
@@ -1361,15 +1138,9 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   }, [logs.events.length, logsExpanded]);
   useEffect(() => { if (activeTab === 'result') void loadResult(); }, [activeTab, taskId]);
   useEffect(() => { if (activeTab === 'evaluation') void loadEvaluation(); }, [activeTab, taskId]);
-  useEffect(() => { if (activeTab === 'timeline') void loadTimeline(); }, [activeTab, taskId]);
   useEffect(() => {
     if (activeTab !== 'evaluation' || !detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadEvaluation(), 12000);
-    return () => window.clearInterval(timer);
-  }, [activeTab, detail?.status, taskId]);
-  useEffect(() => {
-    if (activeTab !== 'timeline' || !detail || !['pending', 'running'].includes(detail.status)) return;
-    const timer = window.setInterval(() => void loadTimeline(), 12000);
     return () => window.clearInterval(timer);
   }, [activeTab, detail?.status, taskId]);
   useEffect(() => {
@@ -1443,11 +1214,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     if (!detail) return;
     const ok = await showConfirm({ title: '删除任务', message: `确定要删除任务「${detail.task_name}」及其所有输出文件吗？此操作不可撤销。`, confirmText: '确认删除', cancelText: '取消', danger: true });
     if (!ok) return;
-    try {
-      const resp = await appApi.deleteTask(detail.task_id, true);
-      notify(`任务已删除，清理时间线事件 ${resp.deleted_event_count || 0} 条`, 'success');
-      handleBack();
-    }
+    try { await appApi.deleteTask(detail.task_id, true); notify('任务已删除', 'success'); handleBack(); }
     catch (err: any) { notify(`删除失败: ${err?.message || err}`, 'error'); }
   };
   const handleRestart = async () => {
@@ -1493,46 +1260,17 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     [events, isLeanMode],
   );
   const { funcs: funcProgress, totalFuncCount } = useMemo(
-    () => deriveFuncProgress(events, detail?.function_catalog || [], detail?.status),
+    () => deriveFuncProgress(events, detail?.function_catalog || []),
     [events, detail?.function_catalog],
   );
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
   const [funcEntryOnly, setFuncEntryOnly] = useState(false);
-  const [funcKeyword, setFuncKeyword] = useState('');
-  const [activeSessionKeyword, setActiveSessionKeyword] = useState('');
-  const [activeSessionPage, setActiveSessionPage] = useState(0);
-  const activeSessionPageSize = 10;
   // 过滤后的列表
-  const funcFiltered = funcProgress.filter((f) => {
-    if (funcEntryOnly && !f.is_entry) return false;
-    const keyword = funcKeyword.trim().toLowerCase();
-    if (!keyword) return true;
-    return String(f.name || '').toLowerCase().includes(keyword);
-  });
+  const funcFiltered = funcEntryOnly ? funcProgress.filter((f) => f.is_entry) : funcProgress;
   const funcPageCount = Math.ceil(funcFiltered.length / funcPageSize);
   const funcPageSlice = funcFiltered.slice(funcPage * funcPageSize, (funcPage + 1) * funcPageSize);
   const logLines = events.map(formatEvent);
-  const timelineStageOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.stage_key || '').trim()).filter(Boolean))), [timeline]);
-  const timelineEventTypeOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.event_type || '').trim()).filter(Boolean))), [timeline]);
-  const timelineLevelOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.level || '').trim()).filter(Boolean))), [timeline]);
-  const filteredTimeline = useMemo(() => timeline.filter((event) => {
-    if (timelineStageFilter !== '__all__' && (event.stage_key || '__none__') !== timelineStageFilter) return false;
-    if (timelineEventTypeFilter !== '__all__' && (event.event_type || '__none__') !== timelineEventTypeFilter) return false;
-    if (timelineLevelFilter !== '__all__' && (event.level || '__none__') !== timelineLevelFilter) return false;
-    return true;
-  }), [timeline, timelineStageFilter, timelineEventTypeFilter, timelineLevelFilter]);
-  const timelineTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(filteredTimeline.length / Math.max(1, timelinePageSize))),
-    [filteredTimeline.length, timelinePageSize],
-  );
-  const normalizedTimelinePage = Math.min(Math.max(1, timelinePage), timelineTotalPages);
-  const pagedTimelineItems = useMemo(() => {
-    const start = (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize);
-    return filteredTimeline.slice(start, start + Math.max(1, timelinePageSize));
-  }, [filteredTimeline, normalizedTimelinePage, timelinePageSize]);
-  const timelineRangeStart = filteredTimeline.length === 0 ? 0 : (normalizedTimelinePage - 1) * Math.max(1, timelinePageSize) + 1;
-  const timelineRangeEnd = filteredTimeline.length === 0 ? 0 : Math.min(normalizedTimelinePage * Math.max(1, timelinePageSize), filteredTimeline.length);
   const groupedSessions = useMemo(() => {
     const map = new Map<string, AppEaSessionMeta[]>();
     sessions.forEach((session) => map.set(session.stage_group, [...(map.get(session.stage_group) || []), session]));
@@ -1604,40 +1342,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   }, [sessions, stageFocusHint]);
   const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
   const activeSessions = useMemo(() => sessions.filter((item) => item.is_active), [sessions]);
-  const activeSessionsFiltered = useMemo(() => {
-    const keyword = activeSessionKeyword.trim().toLowerCase();
-    if (!keyword) return activeSessions;
-    return activeSessions.filter((session) => {
-      const name = String(session.display_name || '').toLowerCase();
-      const path = String(session.relative_path || '').toLowerCase();
-      return name.includes(keyword) || path.includes(keyword);
-    });
-  }, [activeSessionKeyword, activeSessions]);
-  const activeSessionPageCount = Math.max(1, Math.ceil(activeSessionsFiltered.length / activeSessionPageSize));
-  const activeSessionPageSlice = useMemo(
-    () => activeSessionsFiltered.slice(activeSessionPage * activeSessionPageSize, (activeSessionPage + 1) * activeSessionPageSize),
-    [activeSessionPage, activeSessionsFiltered],
-  );
   const activeAgentSessionMeta = useMemo(
     () => sessions.find((item) => item.relative_path === activeAgentSessionPath) || null,
     [sessions, activeAgentSessionPath],
   );
-  useEffect(() => {
-    setFuncPage(0);
-  }, [funcKeyword, funcEntryOnly, funcPageSize]);
-  useEffect(() => {
-    if (funcPage > 0 && funcPage >= Math.max(1, funcPageCount)) {
-      setFuncPage(Math.max(0, funcPageCount - 1));
-    }
-  }, [funcPage, funcPageCount]);
-  useEffect(() => {
-    setActiveSessionPage(0);
-  }, [activeSessionKeyword]);
-  useEffect(() => {
-    if (activeSessionPage > 0 && activeSessionPage >= activeSessionPageCount) {
-      setActiveSessionPage(Math.max(0, activeSessionPageCount - 1));
-    }
-  }, [activeSessionPage, activeSessionPageCount]);
   const resultRootFsPath = result?.output_root ? extractFsRelPath(result.output_root, projectId) : null;
   const resultContent = resultView === 'final'
     ? result?.result_markdown || ''
@@ -1761,208 +1469,6 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     return () => { if (judgeSessionSocketRef.current === socket) closeJudgeSessionSocket(); else socket.close(); };
   }, [activeTab, detail, fileserverApi, judgeSessionSnapshot, judgeSessionWatchStartLine, projectId, selectedEvaluationJudge, selectedEvaluationJudgeKey, selectedEvaluationJudgeSessionPath]);
 
-  const handleClearTimeline = async () => {
-    if (!detail || timelineClearing) return;
-    const ok = await showConfirm({ title: '清空时间线', message: '仅删除任务事件时间线，不影响任务状态和产物，是否继续？', confirmText: '确认清空', cancelText: '取消', danger: true });
-    if (!ok) return;
-    setTimelineClearing(true);
-    try {
-      const resp = await appApi.clearTimeline(detail.task_id);
-      setTimeline([]);
-      notify(`已清空 ${resp.deleted_event_count || 0} 条事件`, 'success');
-      await loadDetail();
-    } catch (err: any) {
-      notify(`清空时间线失败: ${err?.message || err}`, 'error');
-    } finally {
-      setTimelineClearing(false);
-    }
-  };
-
-  const handleDeleteTimelineEvent = async (eventId: string) => {
-    if (!detail || timelineClearing) return;
-    setDeletingTimelineEventId(eventId);
-    try {
-      await appApi.deleteTimelineEvent(detail.task_id, eventId);
-      setTimeline((current) => current.filter((event) => event.id !== eventId));
-      await loadDetail();
-    } catch (err: any) {
-      notify(`删除时间线事件失败: ${err?.message || err}`, 'error');
-    } finally {
-      setDeletingTimelineEventId(null);
-    }
-  };
-
-  useEffect(() => {
-    if (timelinePage > timelineTotalPages) setTimelinePage(timelineTotalPages);
-  }, [timelinePage, timelineTotalPages]);
-
-  useEffect(() => {
-    setTimelinePage(1);
-  }, [timelineStageFilter, timelineEventTypeFilter, timelineLevelFilter, taskId]);
-
-  const renderTimeline = () => (
-    <section className="space-y-4">
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">事件时间线</h2>
-            <p className="mt-1 text-xs text-slate-400">按时间查看入口分析任务的关键轨迹、阶段事件与异常链路。</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
-              展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
-            </div>
-            <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
-              每页
-              <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">
-                {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
-              </select>
-            </label>
-            <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
-              {timelineLoading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-              刷新
-            </button>
-            <button onClick={() => void handleClearTimeline()} disabled={timelineClearing || timelineLoading || timeline.length === 0} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50">
-              {timelineClearing ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-              清空时间线
-            </button>
-          </div>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">事件总数</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{detail?.event_summary?.total_events ?? timeline.length}</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近事件</div>
-            <div className="mt-2 text-sm font-black text-slate-900">{detail?.event_summary?.latest_event_type ? formatTimelineEventTypeLabel(detail.event_summary.latest_event_type) : '-'}</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近阶段</div>
-            <div className="mt-2 text-sm font-black text-slate-900">{detail?.event_summary?.latest_stage_key || '-'}</div>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">最近时间</div>
-            <div className="mt-2 text-sm font-black text-slate-900">{detail?.event_summary?.latest_event_at ? new Date(detail.event_summary.latest_event_at).toLocaleString('zh-CN') : '-'}</div>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <select value={timelineStageFilter} onChange={(event) => setTimelineStageFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-            <option value="__all__">全部阶段</option>
-            {timelineStageOptions.map((value) => <option key={value} value={value}>{value}</option>)}
-          </select>
-          <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-            <option value="__all__">全部事件</option>
-            {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
-          </select>
-          <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-            <option value="__all__">全部级别</option>
-            {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
-          </select>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
-            当前显示 <span className="font-black text-slate-900">{filteredTimeline.length}</span> / {timeline.length}
-          </div>
-        </div>
-      </section>
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        {timelineLoading ? (
-          <div className="py-10 text-center text-sm text-slate-500">加载时间线中...</div>
-        ) : filteredTimeline.length === 0 ? (
-          <div className="py-10 text-center text-sm text-slate-500">当前任务暂无事件时间线</div>
-        ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-[1180px] w-full divide-y divide-slate-100 text-left text-xs">
-                <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
-                  <tr>
-                    <th className="w-14 px-3 py-2">#</th>
-                    <th className="w-44 px-3 py-2">时间</th>
-                    <th className="w-44 px-3 py-2">事件</th>
-                    <th className="w-28 px-3 py-2">阶段/状态</th>
-                    <th className="w-24 px-3 py-2">级别</th>
-                    <th className="px-3 py-2">摘要</th>
-                    <th className="w-56 px-3 py-2">来源/归属</th>
-                    <th className="w-36 px-3 py-2 text-right">操作</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {pagedTimelineItems.map((event, index) => {
-                    const expanded = expandedTimelineEventId === event.id;
-                    const sourceLabel = [event.file_path, event.function_name, event.attempt != null ? `Attempt ${event.attempt}` : ''].filter(Boolean).join(' · ') || '-';
-                    const hasPayload = !!(event.payload && Object.keys(event.payload).length > 0);
-                    const auditEvent = isAgentKillTimelineEvent(event.event_type);
-                    const auditSummary = auditEvent ? timelineAuditSummary(event.payload || {}) : '';
-                    return (
-                      <React.Fragment key={event.id}>
-                        <tr className="align-top">
-                          <td className="px-3 py-2 font-mono text-slate-500">{timelineRangeStart + index}</td>
-                          <td className="px-3 py-2 text-slate-600">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</td>
-                          <td className="px-3 py-2">
-                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span>
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex flex-wrap gap-1">
-                              {event.stage_key ? <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700">{event.stage_key}</span> : <span className="text-slate-400">-</span>}
-                              {event.status ? <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-600">{event.status}</span> : null}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span>
-                          </td>
-                          <td className="max-w-[360px] px-3 py-2">
-                            <div className="truncate font-bold text-slate-800" title={event.message}>{event.message}</div>
-                            {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-700" title={auditSummary}>{auditSummary}</div> : null}
-                          </td>
-                          <td className="px-3 py-2 text-[11px] text-slate-500">
-                            <div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div>
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            <div className="flex items-center justify-end gap-3">
-                              <button type="button" onClick={() => setExpandedTimelineEventId(expanded ? '' : event.id)} disabled={!hasPayload} className="text-[11px] font-black text-slate-500 transition hover:text-slate-900 disabled:opacity-30">
-                                {expanded ? '收起' : '查看'}
-                              </button>
-                              <button type="button" disabled={deletingTimelineEventId === event.id || timelineClearing} onClick={() => void handleDeleteTimelineEvent(event.id)} className="text-[11px] font-black text-rose-600 transition hover:text-rose-800 disabled:opacity-40">
-                                {deletingTimelineEventId === event.id ? '删除中' : '删除'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                        {expanded ? (
-                          <tr className="bg-slate-50/60">
-                            <td colSpan={8} className="px-3 py-3">
-                              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                                {timelinePayloadRows(event.payload || {}).slice(0, 12).map((row) => (
-                                  <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs">
-                                    <div className="font-bold capitalize text-slate-400">{row.label}</div>
-                                    <div className="mt-1 break-all font-mono text-slate-700">{row.value}</div>
-                                  </div>
-                                ))}
-                              </div>
-                              <pre className="mt-3 max-h-64 overflow-auto rounded-lg bg-slate-950 p-3 text-[11px] leading-5 text-slate-100">{JSON.stringify(event.payload || {}, null, 2)}</pre>
-                            </td>
-                          </tr>
-                        ) : null}
-                      </React.Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        {filteredTimeline.length > 0 ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-slate-500">第 {normalizedTimelinePage} / {timelineTotalPages} 页</div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => setTimelinePage((current) => Math.max(1, current - 1))} disabled={normalizedTimelinePage <= 1} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">上一页</button>
-              <button type="button" onClick={() => setTimelinePage((current) => Math.min(timelineTotalPages, current + 1))} disabled={normalizedTimelinePage >= timelineTotalPages} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:opacity-40">下一页</button>
-            </div>
-          </div>
-        ) : null}
-      </section>
-    </section>
-  );
-
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
       {feedbackNodes}
@@ -1985,7 +1491,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="entry_analysis" task={detail} /> : null}
             {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleResume()} disabled={resuming} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50">{resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}断点续跑</button> : null}
             {detail ? <button onClick={() => void handleDelete()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Trash2 size={13} />删除任务</button> : null}
-            <button onClick={() => { void loadDetail(); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (activeTab === 'timeline') void loadTimeline(); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || timelineLoading ? 'animate-spin' : ''} /></button>
+            <button onClick={() => { void loadDetail(); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading ? 'animate-spin' : ''} /></button>
           </div>
         </div>
         {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
@@ -2081,7 +1587,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
       {detail ? <>
         <section className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">{[
-            ['overview', '总览'], ['task-config', '任务配置'], ['timeline', '事件时间线'], ['session', '智能体会话'], ['relationship', '智能体关系'], ['result', '结果'], ['evaluation', '观测指标'],
+            ['overview', '总览'], ['task-config', '任务配置'], ['session', '智能体会话'], ['relationship', '智能体关系'], ['result', '结果'], ['evaluation', '观测指标'],
           ].map(([id, label]) => <button key={id} onClick={() => setActiveTab(id as DetailTab)} className={`rounded-2xl px-5 py-3 text-sm font-black transition ${activeTab === id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>{label}</button>)}</div>
         </section>
 
@@ -2264,16 +1770,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 <div>
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">各函数流水线进度</h2>
                   <p className="mt-1 text-xs text-slate-400">
-                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。各函数并行推进：R2 · R3-W · R3-J · R4 · R5（不同函数同时处于不同阶段为正常现象）
+                    共 {funcProgress.length} 个函数（<span className="font-bold text-emerald-700">{funcProgress.filter((f) => f.is_entry).length} 个入口</span>）。阶段：R2-J · R3-W · R3-J · R4 · R5
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    value={funcKeyword}
-                    onChange={(event) => setFuncKeyword(event.target.value)}
-                    placeholder="按函数名筛选"
-                    className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-700 placeholder:text-slate-400"
-                  />
                   <button onClick={() => { setFuncEntryOnly((v) => !v); setFuncPage(0); }}
                     className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold transition ${funcEntryOnly ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
                     {funcEntryOnly ? '✓ 仅入口' : '仅入口'}
@@ -2297,7 +1797,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
                       <th className="px-4 py-2.5 text-left">函数名</th>
                       <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
-                      <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2</th>
+                      <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2-J</th>
                       <th className="px-2 py-2.5 text-center">R3-W</th>
                       <th className="px-2 py-2.5 text-center">R3-J</th>
                       <th className="px-2 py-2.5 text-center">R4</th>
@@ -2317,14 +1817,12 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                             ? <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[9px] font-black text-emerald-700">✓ 入口</span>
                             : f.r4 === 'remove'
                               ? <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[9px] font-semibold text-orange-600">✗ 已过滤</span>
-                            : f.r2j === 'failed'
-                              ? <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[9px] font-semibold text-red-500">R2失败</span>
-                            : f.has_external_input === false
-                              ? <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-400">— 无输入</span>
-                              : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未完成</span>
+                              : f.r3w === 'skip'
+                                ? <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-400">— 无输入</span>
+                                : <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[9px] font-semibold text-slate-300">未知</span>
                           }
                         </td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2" /></td>
+                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2-J" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3w} label="R3-W" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3j} label="R3-J" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
@@ -2332,10 +1830,9 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <td className="px-4 py-2 text-slate-500">
                           {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
                           : f.r4 === 'remove' ? <span className="text-orange-600">R4 过滤</span>
-                          : f.r2j === 'failed' ? <span className="text-red-500 font-medium">R2失败-跳过</span>
-                          : f.has_external_input === false ? <span className="text-slate-400">无外部输入</span>
                           : f.r3j === 'passed' ? <span className="text-sky-700">R3 候选</span>
-                          : f.r3j === 'failed' ? <span className="text-slate-400">R3-J 未通过</span>
+                          : f.r3j === 'failed' ? <span className="text-slate-400">R3 未通过</span>
+                          : f.r3w === 'skip'   ? <span className="text-slate-300">无外部输入</span>
                           : f.r3w === 'running' || f.r3j === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
                           : f.r2j === 'running' ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
                           : <span className="text-slate-300">等待中</span>}
@@ -2369,60 +1866,31 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                 <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
                 <p className="mt-1 text-xs text-slate-400">各函数/文件独立并行运行的智能体会话，点击查看实时 session。</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  value={activeSessionKeyword}
-                  onChange={(event) => setActiveSessionKeyword(event.target.value)}
-                  placeholder="按名称筛选"
-                  className="w-44 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] text-slate-700 placeholder:text-slate-400"
-                />
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessionsFiltered.length} 个活跃会话</span>
-              </div>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
             </div>
             {sessionsLoading && sessions.length === 0 ? (
               <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div>
-            ) : activeSessionsFiltered.length > 0 ? (
-              <>
-                <div className="divide-y divide-slate-100">
-                  {activeSessionPageSlice.map((session) => (
-                    <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-5 py-4 text-left transition hover:bg-slate-50">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
-                          <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
-                          <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-slate-500">
-                            <span>分组 {session.stage_group || '-'}</span>
-                            <span>事件 {session.event_count}</span>
-                            <span>更新 {formatSessionMtime(session.mtime)}</span>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>{sessionRoleLabel(session.role_name)}</span>
-                          <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
+            ) : activeSessions.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {activeSessions.map((session) => (
+                  <button key={session.relative_path} type="button" onClick={() => openActiveAgentSession(session.relative_path)} className="w-full px-5 py-4 text-left transition hover:bg-slate-50">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-black text-slate-900">{session.display_name}</div>
+                        <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{session.relative_path}</div>
+                        <div className="mt-2 flex flex-wrap gap-4 text-[11px] text-slate-500">
+                          <span>分组 {session.stage_group || '-'}</span>
+                          <span>事件 {session.event_count}</span>
+                          <span>更新 {formatSessionMtime(session.mtime)}</span>
                         </div>
                       </div>
-                    </button>
-                  ))}
-                </div>
-                {activeSessionPageCount > 1 ? (
-                  <div className="flex items-center justify-center gap-2 border-t border-slate-100 px-5 py-3">
-                    <button disabled={activeSessionPage === 0} onClick={() => setActiveSessionPage(0)}
-                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">«</button>
-                    <button disabled={activeSessionPage === 0} onClick={() => setActiveSessionPage((page) => page - 1)}
-                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">‹</button>
-                    <span className="text-[11px] text-slate-500">
-                      {activeSessionPage + 1} / {activeSessionPageCount}（共 {activeSessionsFiltered.length} 个会话）
-                    </span>
-                    <button disabled={activeSessionPage >= activeSessionPageCount - 1} onClick={() => setActiveSessionPage((page) => page + 1)}
-                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">›</button>
-                    <button disabled={activeSessionPage >= activeSessionPageCount - 1} onClick={() => setActiveSessionPage(activeSessionPageCount - 1)}
-                      className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 disabled:opacity-40 hover:bg-slate-50">»</button>
-                  </div>
-                ) : null}
-              </>
-            ) : activeSessions.length > 0 ? (
-              <div className="px-5 py-10 text-center text-sm text-slate-500">
-                当前筛选条件下没有匹配的活跃智能体。
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${sessionRoleTone(session.role_name)}`}>{sessionRoleLabel(session.role_name)}</span>
+                        <span className="inline-flex whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">活跃</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             ) : (
               <div className="px-5 py-10 text-center text-sm text-slate-500">
@@ -2459,11 +1927,9 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           </section>
         ) : activeTab === 'result' ? (
           <section className="space-y-4"><div className="grid gap-4 xl:grid-cols-5"><MetricCard label="函数数" value={result?.summary.function_count ?? 0} icon={<ScrollText size={18} />} /><MetricCard label="轮次数" value={result?.summary.round_count ?? 0} icon={<BarChart3 size={18} />} /><MetricCard label="通过轮次" value={result?.summary.passed_round_count ?? 0} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(result?.summary.total_tokens)} icon={<ScrollText size={18} />} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果目录</div><div className="mt-2 text-sm font-semibold text-slate-700 line-clamp-2">{result?.output_root || '-'}</div><div className="mt-3 flex flex-wrap gap-2"><button disabled={!resultRootFsPath} onClick={() => resultRootFsPath && openInFileExplorer(resultRootFsPath)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-50 disabled:opacity-50"><FolderOpen size={11} />打开目录</button><button disabled={!result?.output_root} onClick={() => result?.output_root && navigator.clipboard.writeText(result.output_root)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"><ClipboardCopy size={10} />复制路径</button></div></div></div>{resultLoading ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">加载结果中...</section> : !result ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">暂无结果数据</section> : !result.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 shadow-sm text-center text-sm text-slate-500">任务完成后可查看结果，当前状态：{STATUS_LABEL[result.status] || result.status}</section> : <section className="grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)_300px]"><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div><div className="mt-3 space-y-2">{[['final', '最终结果'], ['functions', 'functions.list'], ['report', '运行报告'], ['json', '结构化 JSON']].map(([id, label]) => <button key={id} onClick={() => setResultView(id as any)} className={`w-full rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${resultView === id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}>{label}</button>)}</div></aside><main className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="border-b border-slate-200 pb-4 text-2xl font-black tracking-tight text-slate-900">{resultView === 'final' ? '最终结果' : resultView === 'functions' ? '函数列表' : resultView === 'report' ? '运行报告' : '结构化 JSON'}</h2><div className="mt-5 max-h-[calc(100vh-24rem)] overflow-auto pr-2">{resultContent ? resultView === 'json' ? <pre className="rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{resultContent}</pre> : <MarkdownContent content={markdownResultContent} /> : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">当前结果缺少可展示内容</div>}</div></main><aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">函数列表</div><div className="mt-3 max-h-[360px] space-y-2 overflow-auto pr-1">{result.functions.length ? result.functions.map((fn) => <div key={fn} className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-[11px] text-slate-700">{fn}</div>) : <div className="rounded-xl border border-dashed border-slate-300 px-3 py-6 text-center text-xs text-slate-400">没有 functions.list 内容</div>}</div></aside></section>}</section>
-        ) : activeTab === 'evaluation' ? (
+        ) : (
           <section className="space-y-4">{evaluationLoading ? <section className="rounded-2xl border border-slate-200 bg-white p-10 shadow-sm text-center text-sm text-slate-500">加载观测指标中...</section> : !evaluation || !evaluation.available ? <section className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500"><BarChart3 size={20} /></div><div className="mt-4 text-base font-bold text-slate-800">当前尚未生成可解析的观测数据</div><div className="mt-2 text-sm text-slate-500">运行中任务会优先展示实时会话快照；若仍为空，说明尚未产生 Worker/Judge 会话文件。</div></section> : <><WarningListPanel title="部分观测文件读取异常" items={evaluation.warnings} />{evaluationIsRealtime ? <section className="rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-4 text-sm text-cyan-800 shadow-sm"><div className="font-black">实时观测快照</div><div className="mt-1 text-xs leading-6">当前数据来自运行目录和智能体会话索引，最终指标以任务完成后写出的 result.json 为准。快照时间：{evaluation.snapshot_generated_at ? new Date(evaluation.snapshot_generated_at).toLocaleString('zh-CN') : '-'}</div><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-white/80 px-3 py-1 font-bold">会话 {formatNumber(evaluationRuntimeSummary?.session_count)}</span><span className="rounded-full bg-white/80 px-3 py-1 font-bold">活跃 {formatNumber(evaluationRuntimeSummary?.active_session_count)}</span><span className="rounded-full bg-white/80 px-3 py-1 font-bold">Worker {formatNumber(evaluationRuntimeSummary?.worker_count)}</span><span className="rounded-full bg-white/80 px-3 py-1 font-bold">Judge {formatNumber(evaluationRuntimeSummary?.judge_count)}</span></div></section> : null}<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MetricCard label="总轮数" value={formatNumber(evaluation.summary?.round_count ?? evaluation.rounds.length)} icon={<BarChart3 size={18} />} /><MetricCard label={evaluationIsRealtime ? '活跃会话' : '通过轮次'} value={evaluationIsRealtime ? formatNumber(evaluationRuntimeSummary?.active_session_count) : formatNumber(evaluation.summary?.passed_round_count)} icon={<CheckCircle2 size={18} />} /><MetricCard label="总 Token" value={formatNumber(evaluation.summary?.total_tokens)} icon={<ScrollText size={18} />} /><MetricCard label="实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ScrollText size={18} />} /><MetricCard label="平均 Judge 分" value={avgJudgeScore == null ? '-' : formatNumber(avgJudgeScore, 1)} icon={<BarChart3 size={18} />} /><MetricCard label="最终通过率" value={formatRate(evaluation.summary?.effectiveness?.final_round_pass_rate)} icon={<CheckCircle2 size={18} />} /></section>{selectedEvaluationRound ? <section className="space-y-4"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><button type="button" onClick={() => setSelectedEvaluationRoundKey(null)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"><ArrowLeft size={14} />返回轮次列表</button><div className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-cyan-600">Round Detail</div><h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">#{selectedEvaluationRound.round ?? '-'} · {selectedEvaluationRound.module_name || detail.module_name || '入口分析'}</h2><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className={`rounded-full border px-3 py-1 font-bold ${evaluationStatusTone(selectedEvaluationRound.status)}`}>{selectedEvaluationRound.status || '-'}</span><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-bold text-slate-600">{stageLabel(selectedEvaluationRound.stage)}</span><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 font-mono font-bold text-slate-600">Stage Round {selectedEvaluationRound.stage_round ?? '-'}</span>{selectedEvaluationRound.extra?.source === 'runtime_snapshot' ? <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 font-bold text-cyan-700">实时快照</span> : null}</div></div><div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500"><div className="font-black text-slate-700">来源文件</div><div className="mt-1 max-w-xl break-all font-mono">{selectedEvaluationRound.source_path || detail.source_path || selectedEvaluationRound.extra?.round_dir || '-'}</div></div></div></section><section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MetricCard label="耗时" value={formatMs(selectedEvaluationRound.duration_ms)} icon={<BarChart3 size={18} />} /><MetricCard label="Token" value={formatNumber(selectedEvaluationRound.metrics?.token_total)} icon={<ScrollText size={18} />} /><MetricCard label="任务实际开始时间" value={detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} icon={<ScrollText size={18} />} /><MetricCard label={evaluationIsRealtime ? '活跃会话' : 'Judge 均分'} value={evaluationIsRealtime ? formatNumber(selectedEvaluationRound.metrics?.active_session_count) : formatNumber(selectedEvaluationRound.metrics?.avg_judge_score, 1)} icon={<CheckCircle2 size={18} />} /></section><section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]"><div className="space-y-4"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">本轮执行摘要</h3><div className="mt-4 space-y-3"><InfoRow label="开始时间" value={selectedEvaluationRound.started_at ? new Date(selectedEvaluationRound.started_at).toLocaleString('zh-CN') : '-'} /><InfoRow label="结束时间" value={selectedEvaluationRound.ended_at ? new Date(selectedEvaluationRound.ended_at).toLocaleString('zh-CN') : '-'} /><InfoRow label="完成原因" value={selectedEvaluationRound.completion_reason || '-'} /><InfoRow label="模块完成" value={selectedEvaluationRound.module_completed ? '是' : '否'} /><InfoRow label="通过投票" value={selectedEvaluationRound.metrics?.passed_by_vote ? '通过' : '未通过'} /><InfoRow label="通过率" value={formatRate(selectedEvaluationRound.metrics?.review_pass_rate)} />{evaluationIsRealtime ? <><InfoRow label="Worker产物" value={formatNumber(selectedEvaluationRound.metrics?.worker_artifact_count)} /><InfoRow label="Judge产物" value={formatNumber(selectedEvaluationRound.metrics?.judge_artifact_count)} /></> : null}</div><div className="mt-4 flex flex-wrap gap-2 text-xs">{selectedEvaluationRound.effectiveness?.needed_reflection ? <span className="rounded-full bg-amber-100 px-3 py-1 font-bold text-amber-700">需要反思</span> : null}{selectedEvaluationRound.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-red-100 px-3 py-1 font-bold text-red-700">触发重分类</span> : null}{!selectedEvaluationRound.effectiveness?.needed_reflection && !selectedEvaluationRound.effectiveness?.triggered_reclassify ? <span className="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-600">无额外调整</span> : null}</div></section><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Worker</h3><div className="mt-4 space-y-3"><InfoRow label="模型" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.model || '-'}</span>} /><InfoRow label="会话文件" value={<span className="break-all font-mono">{selectedEvaluationRound.worker?.session_file || '-'}</span>} /><InfoRow label="错误" value={selectedEvaluationRound.worker?.error || '-'} /></div>{Array.isArray(selectedEvaluationRound.worker?.artifact_paths) && selectedEvaluationRound.worker.artifact_paths.length > 0 ? <div className="mt-4"><div className="text-xs font-bold text-slate-500">产物路径</div><div className="mt-2 space-y-2">{(selectedEvaluationRound.worker?.artifact_paths || []).slice(0, 8).map((path: string) => <div key={path} className="break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">{path}</div>)}</div></div> : null}</section></div><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 评审</h3><p className="mt-1 text-xs text-slate-400">展示本轮所有 Judge 的评分、通过状态、会话文件和反馈摘要</p></div><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">{selectedEvaluationRound.judges?.length || 0} 个 Judge</span></div><div className="mt-4 space-y-3">{(selectedEvaluationRound.judges || []).map((judge, index) => <div key={`${judge.judge_id || index}-${judge.model || ''}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><div className="font-mono text-xs font-bold text-slate-700">{judge.judge_id || `judge-${index + 1}`}</div><div className="flex flex-wrap gap-2 text-[11px]">{judge.session_file ? <button type="button" onClick={() => setSelectedEvaluationJudgeKey(`${judge.judge_id || index}::${judge.model || ''}`)} className={`rounded-full border px-2 py-0.5 font-bold ${selectedEvaluationJudgeKey === `${judge.judge_id || index}::${judge.model || ''}` ? 'border-cyan-300 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}>查看会话</button> : null}<span className={`rounded-full px-2 py-0.5 font-bold ${judge.passed ? 'bg-emerald-100 text-emerald-700' : judge.is_active ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>{judge.passed ? '通过' : judge.is_active ? '运行中' : '未通过'}</span><span className="rounded-full bg-white px-2 py-0.5 font-bold text-slate-600">评分 {formatNumber(judge.score)}</span></div></div><div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.model || '-'}</div><div className="mt-2 break-all font-mono text-[11px] text-slate-500">{judge.session_file || '未记录会话文件'}</div>{judge.feedback_excerpt ? <div className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs leading-6 text-slate-700">{judge.feedback_excerpt}</div> : null}</div>)}{(selectedEvaluationRound.judges || []).length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">本轮没有 Judge 明细</div> : null}</div></section></section>{selectedEvaluationJudge ? <section className="space-y-4"><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Judge 会话</h3><p className="mt-1 text-xs text-slate-400">通过 fileserver 读取当前选中 Judge 的 session 文件；任务运行中会实时监听追加内容。</p></div>{selectedEvaluationJudgeSessionPath ? <div className="max-w-xl break-all rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-500">{selectedEvaluationJudgeSessionPath.fsPath}</div> : null}</div></section><WarningListPanel title="Judge 会话文件存在部分异常行，已跳过不可解析内容" items={judgeSessionWarnings} /><AgentSessionViewer sessionMeta={selectedEvaluationJudgeSessionMeta} sessionHeader={judgeSessionSnapshot?.session_meta} events={judgeSessionEvents} loading={judgeSessionLoading} live={judgeSessionLive} error={judgeSessionError} /></section> : null}<section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-black uppercase tracking-[0.18em] text-slate-500">原始 JSON</h3><p className="mt-1 text-xs text-slate-400">保留完整观测文件内容，便于核对字段。</p></div></div><pre className="mt-4 max-h-[480px] overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-slate-100">{JSON.stringify(selectedEvaluationRound, null, 2)}</pre></section></section> : <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">轮次明细</h2><p className="mt-1 text-xs text-slate-400">展示每一轮 Worker/Judge 的观测指标，点击行进入轮次详情页</p></div><div className="flex flex-wrap gap-2"><div className="relative"><Search size={13} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" /><input value={evaluationKeyword} onChange={(e) => setEvaluationKeyword(e.target.value)} placeholder="模块过滤" className="rounded-xl border border-slate-200 py-2 pl-8 pr-3 text-xs" /></div><select value={evaluationStatus} onChange={(e) => setEvaluationStatus(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs"><option value="">全部状态</option>{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></div></div><div className="mt-4 overflow-auto rounded-2xl border border-slate-200"><table className="min-w-full divide-y divide-slate-200 text-left text-xs"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-3 py-3">Round</th><th className="px-3 py-3">阶段</th><th className="px-3 py-3">状态</th><th className="px-3 py-3">耗时</th><th className="px-3 py-3">Judge 分</th><th className="px-3 py-3">通过率</th><th className="px-3 py-3">Token</th><th className="px-3 py-3">任务实际开始时间</th></tr></thead><tbody className="divide-y divide-slate-100 bg-white">{filteredRounds.map((round) => <tr key={evaluationRoundKey(round)} onClick={() => setSelectedEvaluationRoundKey(evaluationRoundKey(round))} className="cursor-pointer hover:bg-slate-50"><td className="px-3 py-3 font-mono text-slate-700">{round.round}</td><td className="px-3 py-3 font-semibold text-slate-700">{stageLabel(round.stage)}</td><td className="px-3 py-3"><span className={`rounded-full border px-2 py-0.5 font-bold ${evaluationStatusTone(round.status)}`}>{round.status || '-'}</span></td><td className="px-3 py-3 text-slate-600">{formatMs(round.duration_ms)}</td><td className="px-3 py-3">{formatNumber(round.metrics?.avg_judge_score, 1)}</td><td className="px-3 py-3">{formatRate(round.metrics?.review_pass_rate)}</td><td className="px-3 py-3">{formatNumber(round.metrics?.token_total)}</td><td className="px-3 py-3">{detail?.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'}</td></tr>)}</tbody></table>{filteredRounds.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">没有符合过滤条件的轮次</div> : null}</div></section>}</>}</section>
-        ) : activeTab === 'timeline' ? renderTimeline()
-        : null
-        }
+        )}
       </> : !loading ? <div className="py-16 text-center text-sm text-slate-400">未指定任务或任务不存在。</div> : null}
 
       {activeAgentSessionPath ? (
