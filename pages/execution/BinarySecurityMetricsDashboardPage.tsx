@@ -196,6 +196,8 @@ const normalizeAgentSessionMeta = (
   return fallback;
 };
 
+const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+
 type PrometheusMetricType = 'counter' | 'gauge' | 'histogram' | 'summary' | 'untyped';
 
 type ParsedMetricSample = {
@@ -3479,7 +3481,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
                             <div className="font-semibold">失败目标</div>
                             <div className="mt-2 flex flex-wrap gap-2">
-                              {agentState.summary.aggregate_failed_targets.map((target) => (
+                              {asArray(agentState.summary.aggregate_failed_targets).map((target) => (
                                 <span key={target} className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-amber-800">{target}</span>
                               ))}
                             </div>
@@ -4020,8 +4022,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       ))}
                     </div>
                     <div className="mt-4 space-y-3">
-                      {(dfaWorkerDetailState.data?.workers || []).length ? (
-                        dfaWorkerDetailState.data?.workers.map((worker) => (
+                      {asArray(dfaWorkerDetailState.data?.workers).length ? (
+                        asArray(dfaWorkerDetailState.data?.workers).map((worker) => (
                           <div
                             key={worker.worker_id}
                             onClick={() => setSelectedDfaWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
@@ -4037,7 +4039,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                     {worker.healthy ? 'healthy' : 'unhealthy'}
                                   </span>
                                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                                    活动任务 {worker.active_jobs.length}
+                                    活动任务 {asArray(worker.active_jobs).length}
                                   </span>
                                 </div>
                                 <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.worker_id}</div>
@@ -4052,8 +4054,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                               </div>
                             </div>
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
-                              {worker.active_jobs.length ? (
-                                worker.active_jobs.map((job) => (
+                              {asArray(worker.active_jobs).length ? (
+                                asArray(worker.active_jobs).map((job) => (
                                   <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
                                     <div className="flex flex-wrap items-center gap-2">
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_name}>{job.task_name}</div>
@@ -4244,8 +4246,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       ))}
                     </div>
                     <div className="mt-4 space-y-3">
-                      {(entryWorkerDetailState.data?.workers || []).length ? (
-                        entryWorkerDetailState.data?.workers.map((worker) => (
+                      {asArray(entryWorkerDetailState.data?.workers).length ? (
+                        asArray(entryWorkerDetailState.data?.workers).map((worker) => (
                           <div
                             key={worker.worker_id}
                             onClick={() => setSelectedEntryWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
@@ -4261,7 +4263,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                     {worker.healthy ? 'healthy' : worker.source === 'stale_owner' ? 'stale owner' : 'unhealthy'}
                                   </span>
                                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                                    活动任务 {worker.active_tasks.length}
+                                    活动任务 {asArray(worker.active_tasks).length}
                                   </span>
                                 </div>
                                 <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.url || worker.pod_ip || worker.worker_id}</div>
@@ -4276,8 +4278,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                               </div>
                             </div>
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
-                              {worker.active_tasks.length ? (
-                                worker.active_tasks.map((job) => (
+                              {asArray(worker.active_tasks).length ? (
+                                asArray(worker.active_tasks).map((job) => (
                                   <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
                                     <div className="flex flex-wrap items-center gap-2">
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_id}>{job.task_id}</div>
@@ -4701,8 +4703,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       ))}
                     </div>
                     <div className="mt-4 space-y-3">
-                      {(systemWorkerDetailState.data?.workers || []).length ? (
-                        systemWorkerDetailState.data?.workers.map((worker) => (
+                      {asArray(systemWorkerDetailState.data?.workers).length ? (
+                        asArray(systemWorkerDetailState.data?.workers).map((worker) => (
                           <div
                             key={worker.worker_id}
                             onClick={() => setSelectedSystemWorkerFilter((current) => current === worker.worker_id ? '' : worker.worker_id)}
@@ -4718,7 +4720,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                     {worker.healthy ? 'healthy' : 'unhealthy'}
                                   </span>
                                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                                    活动任务 {worker.active_jobs.length}
+                                    活动任务 {asArray(worker.active_jobs).length}
                                   </span>
                                 </div>
                                 <div className="mt-1 font-mono text-[11px] text-slate-400 break-all">{worker.worker_id}</div>
@@ -4733,8 +4735,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                               </div>
                             </div>
                             <div className="mt-3 grid gap-2 lg:grid-cols-2">
-                              {worker.active_jobs.length ? (
-                                worker.active_jobs.map((job) => (
+                              {asArray(worker.active_jobs).length ? (
+                                asArray(worker.active_jobs).map((job) => (
                                   <div key={`${worker.worker_id}:${job.task_id}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
                                     <div className="flex flex-wrap items-center gap-2">
                                       <div className="min-w-0 truncate text-sm font-bold text-slate-900" title={job.task_id}>{job.task_id}</div>
@@ -5733,10 +5735,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     </tr>
                   </ExecutionTableHead>
                   <tbody>
-                    {reducerEventState.loading && !(reducerEventState.data?.items?.length) ? (
+                    {reducerEventState.loading && !asArray(reducerEventState.data?.items).length ? (
                       <ExecutionTableEmptyRow colSpan={13} message="正在加载 reducer 事件记录..." />
-                    ) : reducerEventState.data?.items?.length ? (
-                      reducerEventState.data.items.map((item) => (
+                    ) : asArray(reducerEventState.data?.items).length ? (
+                      asArray(reducerEventState.data?.items).map((item) => (
                         <tr key={item.event_id} className={reducerRowClassName(item)}>
                           <ExecutionTableTd className="font-mono text-[11px] text-slate-700">{item.processed_at ? formatTime(new Date(item.processed_at).getTime()) : '-'}</ExecutionTableTd>
                           <ExecutionTableTd className="font-mono text-[11px] text-slate-800">{item.event_id}</ExecutionTableTd>
