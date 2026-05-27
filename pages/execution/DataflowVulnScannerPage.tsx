@@ -1487,13 +1487,15 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                         className={`${executionTableRowClassName} cursor-pointer ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
                         title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
                       >
-                        <ExecutionTableTd onClick={(event) => event.stopPropagation()}>
+                        <ExecutionTableTd>
+                          <div onClick={(event) => event.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={selectedTaskIds.has(task.task_id)}
                             onChange={(event) => toggleTaskSelection(task.task_id, event.target.checked)}
                             aria-label={`选择任务 ${displayName}`}
                           />
+                          </div>
                         </ExecutionTableTd>
                         <ExecutionTableTd>
                           <div className="flex items-center gap-3">

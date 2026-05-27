@@ -340,6 +340,7 @@ type FirmwareUnpackerViewModel = {
   operations: Array<{ label: string; value: number | null; hint: string; tone: string }>;
   aiSummary: Array<{ label: string; value: string; hint: string; tone: string }>;
   alerts: FirmwareUnpackerHealthAlert[];
+  httpTop: Array<{ name: string; value: number; fill?: string }>;
 };
 
 type EntryAnalysisViewModel = {
@@ -1871,6 +1872,7 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
       { label: 'AI 失败', value: formatNumber(aiFailures), hint: '排除 unknown 的 failure 聚合', tone: aiFailures > 0 ? 'text-rose-700' : 'text-emerald-700' },
     ],
     alerts,
+    httpTop: buildRestApiViewModel(rows).topByCount,
   };
 };
 
@@ -3705,15 +3707,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     <tr key={`${item.method}:${item.route}`} className={executionTableRowClassName}>
                       <ExecutionTableTd className="font-mono text-[11px] text-slate-700">{item.route}</ExecutionTableTd>
                       <ExecutionTableTd>{item.method}</ExecutionTableTd>
-                      <ExecutionTableTd align="right">{formatNumber(item.requestCount)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right">{formatSeconds(item.avgSeconds)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right">{formatSeconds(item.p50Seconds)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right" className={(item.p95Seconds || 0) >= 1 ? 'text-amber-700 font-bold' : ''}>{formatSeconds(item.p95Seconds)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right">{formatSeconds(item.p99Seconds)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right">{formatNumber(item.status2xx)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right">{formatNumber(item.status4xx)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right" className={item.status5xx > 0 ? 'text-rose-700 font-bold' : ''}>{formatNumber(item.status5xx)}</ExecutionTableTd>
-                      <ExecutionTableTd align="right">{formatNumber(item.inflight)}</ExecutionTableTd>
+                      <ExecutionTableTd className="text-right">{formatNumber(item.requestCount)}</ExecutionTableTd>
+                      <ExecutionTableTd className="text-right">{formatSeconds(item.avgSeconds)}</ExecutionTableTd>
+                      <ExecutionTableTd className="text-right">{formatSeconds(item.p50Seconds)}</ExecutionTableTd>
+                      <ExecutionTableTd className={`text-right ${(item.p95Seconds || 0) >= 1 ? 'text-amber-700 font-bold' : ''}`}>{formatSeconds(item.p95Seconds)}</ExecutionTableTd>
+                      <ExecutionTableTd className="text-right">{formatSeconds(item.p99Seconds)}</ExecutionTableTd>
+                      <ExecutionTableTd className="text-right">{formatNumber(item.status2xx)}</ExecutionTableTd>
+                      <ExecutionTableTd className="text-right">{formatNumber(item.status4xx)}</ExecutionTableTd>
+                      <ExecutionTableTd className={`text-right ${item.status5xx > 0 ? 'text-rose-700 font-bold' : ''}`}>{formatNumber(item.status5xx)}</ExecutionTableTd>
+                      <ExecutionTableTd className="text-right">{formatNumber(item.inflight)}</ExecutionTableTd>
                     </tr>
                   ))
                 ) : (

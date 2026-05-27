@@ -123,7 +123,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [concurrency, setConcurrency] = useState(8);
   const [projectDefaultConcurrency, setProjectDefaultConcurrency] = useState(8);
   const [runMode, setRunMode] = useState<B2SRunModeDraft>('');
-  const [projectDefaultMode, setProjectDefaultMode] = useState<B2SRunMode>('fast');
+  const [projectDefaultMode, setProjectDefaultMode] = useState<B2SRunMode>('turbo');
   const [llmProviderKey, setLlmProviderKey] = useState('');
   const [reuseCache, setReuseCache] = useState(true);
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
@@ -413,7 +413,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       const providers = (data.items || []).filter((item) => item.enabled);
       const projectProviderKey = String(projectConfig?.llm_provider_key || '').trim();
       const nextProjectDefaultConcurrency = Math.max(1, Math.min(16, Number(projectConfig?.concurrency) || 8));
-      const nextProjectDefaultMode = normalizeB2SMode(projectConfig?.default_mode) || 'fast';
+      const nextProjectDefaultMode = normalizeB2SMode(projectConfig?.default_mode) || 'turbo';
       setProjectDefaultConcurrency(nextProjectDefaultConcurrency);
       setProjectDefaultMode(nextProjectDefaultMode);
       setConcurrency(nextProjectDefaultConcurrency);

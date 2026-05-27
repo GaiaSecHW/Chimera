@@ -21,7 +21,7 @@ const defaultConfig = (projectId: string): B2SServiceConfig => ({
   project_id: projectId,
   budget_exhausted_action: 'treat_as_passed',
   concurrency: 8,
-  default_mode: 'fast',
+  default_mode: 'turbo',
   llm_provider_key: null,
   effective_llm_provider: null,
 });
@@ -319,7 +319,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
 
   const resetDefaultModeConfig = () => {
     setConfig((prev) => ({ ...prev, default_mode: defaultConfig(projectId).default_mode }));
-    notify('默认逆向模式已重置为快速模式（尚未保存）', 'info');
+    notify('默认逆向模式已重置为极速模式（尚未保存）', 'info');
   };
 
   const resetCacheFilters = () => {
@@ -592,7 +592,7 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                 })}
               </div>
               <p className="text-xs leading-5 text-slate-500">
-                建议默认使用快速模式；需要只导出 IDA 伪代码时选择极速模式，需要更高质量 Agent 推理时选择深度模式。
+                系统默认使用极速模式；需要混合流水线时选择快速模式，需要更高质量 Agent 推理时选择深度模式。
               </p>
             </SectionCard>
             <SectionCard
