@@ -90,6 +90,18 @@ export const appSystemAnalyseApi = {
     return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
   },
 
+  getWorkerClusterCapacitySummary: async (projectId: string): Promise<{
+    worker_count: number;
+    healthy_workers: number;
+    stale_workers: number;
+    total_capacity: number;
+    busy_slots: number;
+    available_slots: number;
+    queued_jobs: number;
+    updated_at?: string | null;
+  }> =>
+    handleResponse(await fetch(`${BASE}/workers/cluster-capacity/summary?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+
   getWorkerClusterCapacity: async (projectId: string): Promise<AppSaClusterCapacity> =>
     handleResponse(await fetch(`${BASE}/workers/cluster-capacity?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 

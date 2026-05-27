@@ -174,6 +174,33 @@ export interface DataflowScanTaskAttempt {
   updated_at: string;
 }
 
+export interface DataflowTaskTimelineEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  execution_id: string;
+  attempt_no?: number | null;
+  stage_name?: string | null;
+  stage_key?: string | null;
+  event_type: string;
+  level?: string | null;
+  message: string;
+  payload?: Record<string, any>;
+  created_at: string;
+}
+
+export interface DataflowTaskTimelineResponse {
+  task_id: string;
+  items: DataflowTaskTimelineEvent[];
+}
+
+export interface DataflowTaskTimelineActionResponse {
+  status: string;
+  task_id: string;
+  message: string;
+  deleted_event_count: number;
+}
+
 export interface DataflowEffectiveConfig {
   project_id: string;
   default_profile_id?: string | null;
@@ -676,6 +703,27 @@ export const dataflowVulnScannerApi = {
 
   getTask: async (taskId: string): Promise<DataflowScanTaskDetail> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getTaskTimeline: async (taskId: string): Promise<DataflowTaskTimelineResponse> => {
+    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  clearTaskTimeline: async (taskId: string): Promise<DataflowTaskTimelineActionResponse> => {
+    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/timeline`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  deleteTaskTimelineEvent: async (taskId: string, eventId: string): Promise<DataflowTaskTimelineActionResponse> => {
+    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/timeline/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
     return handleResponse(response);
   },
 

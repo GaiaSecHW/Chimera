@@ -11,6 +11,7 @@ import { api } from '../../clients/api';
 import { FileWatchMessage } from '../../clients/fileserver';
 import {
   FirmwareEvolutionJob,
+  FirmwareEvolutionRound,
   FirmwareEvolutionSessionIndex,
   FirmwareTaskEvent,
   FirmwareTaskLog,

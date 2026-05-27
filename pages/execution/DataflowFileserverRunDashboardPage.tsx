@@ -20,7 +20,7 @@ import {
   reportDataflowFileserverRunVulnerabilities,
   retryDataflowFileserverRun,
 } from '../../clients/dataflowVulnRunsFileserver';
-import { dataflowVulnScannerApi, DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
+import { dataflowVulnScannerApi, DataflowScanTaskDetail, DataflowTaskTimelineEvent } from '../../clients/dataflowVulnScanner';
 import { FileWatchMessage, fileserverApi } from '../../clients/fileserver';
 import { AppSaSessionEvent } from '../../types/types';
 import { DATAFLOW_DASHBOARD_MIRROR_CSS } from './DataflowFileserverRunDashboardCss';
@@ -76,6 +76,7 @@ const DASHBOARD_HTML = `
           <button class="tab" data-tab="log">运行日志</button>
           <button class="tab" data-tab="task-config">任务配置</button>
           <button class="tab" data-tab="task">任务信息</button>
+          <button class="tab" data-tab="timeline">事件时间线</button>
         </nav>
 
         <div id="tabOverview" class="tab-content active">
@@ -117,6 +118,10 @@ const DASHBOARD_HTML = `
 
         <div id="tabTask" class="tab-content">
           <div class="card" id="taskInfoCard"></div>
+        </div>
+
+        <div id="tabTimeline" class="tab-content">
+          <div id="taskTimelineContainer"></div>
         </div>
       </div>
     </div>
@@ -677,6 +682,132 @@ const DATAFLOW_DASHBOARD_SECFLOW_REFRESH_CSS = `
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.14em;
+}
+
+.timeline-toolbar,
+.timeline-filters,
+.timeline-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.timeline-toolbar {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.timeline-filters {
+  margin-bottom: 14px;
+}
+
+.timeline-summary-pill {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-select {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #dbe4ee;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-table-wrap {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.timeline-table-scroll {
+  overflow-x: auto;
+}
+
+.timeline-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.timeline-table thead {
+  background: #f8fafc;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.timeline-table th,
+.timeline-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.timeline-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.timeline-table .mono {
+  font-family: var(--mono);
+}
+
+.timeline-expand-row {
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.timeline-payload-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.timeline-payload-item {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.timeline-payload-item-label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.timeline-payload-item-value {
+  margin-top: 6px;
+  color: #334155;
+  font-size: 12px;
+  word-break: break-all;
+  font-family: var(--mono);
+}
+
+.timeline-json {
+  margin-top: 12px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  background: #020617;
+  color: #e2e8f0;
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .badge {
@@ -2758,6 +2889,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       linkedTaskDetail: DataflowScanTaskDetail | null;
       linkedTaskDetailError: string;
       linkedTaskDetailPromise: Promise<DataflowScanTaskDetail | null> | null;
+      timelineLoaded: boolean;
+      timelineLoading: boolean;
+      timelineClearing: boolean;
+      timelineItems: DataflowTaskTimelineEvent[];
+      timelineError: string;
+      deletingTimelineEventId: string;
+      expandedTimelineEventId: string;
+      timelineStageFilter: string;
+      timelineEventTypeFilter: string;
+      timelineLevelFilter: string;
+      timelinePage: number;
+      timelinePageSize: number;
     }>,
     refreshTimer: null as ReturnType<typeof setInterval> | null,
     activeTabRefreshTimer: null as ReturnType<typeof setInterval> | null,
@@ -2816,6 +2959,18 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           linkedTaskDetail: null,
           linkedTaskDetailError: '',
           linkedTaskDetailPromise: null,
+          timelineLoaded: false,
+          timelineLoading: false,
+          timelineClearing: false,
+          timelineItems: [],
+          timelineError: '',
+          deletingTimelineEventId: '',
+          expandedTimelineEventId: '',
+          timelineStageFilter: '__all__',
+          timelineEventTypeFilter: '__all__',
+          timelineLevelFilter: '__all__',
+          timelinePage: 1,
+          timelinePageSize: 200,
         };
       }
       return this.tabCacheByRun[key];
@@ -2996,6 +3151,59 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           if (refreshButton) {
             event.preventDefault();
             void this.refresh({ forceActiveTabReload: true });
+            return;
+          }
+
+          const refreshTimelineButton = target.closest('[data-action="refresh-timeline"]') as HTMLElement | null;
+          if (refreshTimelineButton) {
+            event.preventDefault();
+            if (this.currentRun) void this.loadTaskTimeline(this.currentRun, { force: true });
+            return;
+          }
+
+          const clearTimelineButton = target.closest('[data-action="clear-timeline"]') as HTMLElement | null;
+          if (clearTimelineButton) {
+            event.preventDefault();
+            if (this.currentRun) void this.clearTaskTimeline(this.currentRun);
+            return;
+          }
+
+          const deleteTimelineEventButton = target.closest('[data-action="delete-timeline-event"]') as HTMLElement | null;
+          if (deleteTimelineEventButton) {
+            event.preventDefault();
+            const eventId = String(deleteTimelineEventButton.dataset.eventId || '').trim();
+            if (this.currentRun && eventId) void this.deleteTaskTimelineEvent(this.currentRun, eventId);
+            return;
+          }
+
+          const toggleTimelineEventButton = target.closest('[data-action="toggle-timeline-event"]') as HTMLElement | null;
+          if (toggleTimelineEventButton) {
+            event.preventDefault();
+            const eventId = String(toggleTimelineEventButton.dataset.eventId || '').trim();
+            if (!this.currentRun || !eventId || !this.currentRunData) return;
+            const runCache = this.getRunCache(this.currentRun);
+            runCache.expandedTimelineEventId = runCache.expandedTimelineEventId === eventId ? '' : eventId;
+            this.renderTaskTimeline(this.currentRunData);
+            return;
+          }
+
+          const timelinePrevPageButton = target.closest('[data-action="timeline-prev-page"]') as HTMLElement | null;
+          if (timelinePrevPageButton) {
+            event.preventDefault();
+            if (!this.currentRun || !this.currentRunData) return;
+            const runCache = this.getRunCache(this.currentRun);
+            runCache.timelinePage = Math.max(1, Number(runCache.timelinePage || 1) - 1);
+            this.renderTaskTimeline(this.currentRunData);
+            return;
+          }
+
+          const timelineNextPageButton = target.closest('[data-action="timeline-next-page"]') as HTMLElement | null;
+          if (timelineNextPageButton) {
+            event.preventDefault();
+            if (!this.currentRun || !this.currentRunData) return;
+            const runCache = this.getRunCache(this.currentRun);
+            runCache.timelinePage = Math.max(1, Number(runCache.timelinePage || 1) + 1);
+            this.renderTaskTimeline(this.currentRunData);
             return;
           }
 
@@ -3198,6 +3406,16 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           if (target.id === 'fileSearchInput') {
             this.fileBrowser.searchQuery = target.value;
             this.renderFiles(this.currentFiles);
+            return;
+          }
+          if (target.dataset.action === 'timeline-stage-filter' || target.dataset.action === 'timeline-event-type-filter' || target.dataset.action === 'timeline-level-filter') {
+            if (!this.currentRun || !this.currentRunData) return;
+            const runCache = this.getRunCache(this.currentRun);
+            if (target.dataset.action === 'timeline-stage-filter') runCache.timelineStageFilter = target.value || '__all__';
+            if (target.dataset.action === 'timeline-event-type-filter') runCache.timelineEventTypeFilter = target.value || '__all__';
+            if (target.dataset.action === 'timeline-level-filter') runCache.timelineLevelFilter = target.value || '__all__';
+            runCache.timelinePage = 1;
+            this.renderTaskTimeline(this.currentRunData);
           }
         };
         this.root.addEventListener('input', this._handleInput);
@@ -3214,6 +3432,24 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           if (target instanceof HTMLInputElement && target.dataset.action === 'toggle-result-selection') {
             const resultFile = String(target.dataset.resultFile || '').trim();
             if (resultFile) this.toggleResultSelection(resultFile, target.checked);
+            return;
+          }
+          if (target instanceof HTMLSelectElement && target.dataset.action === 'timeline-page-size') {
+            if (!this.currentRun || !this.currentRunData) return;
+            const runCache = this.getRunCache(this.currentRun);
+            runCache.timelinePageSize = Math.min(500, Math.max(50, Number(target.value) || 200));
+            runCache.timelinePage = 1;
+            this.renderTaskTimeline(this.currentRunData);
+            return;
+          }
+          if (target instanceof HTMLSelectElement && (target.dataset.action === 'timeline-stage-filter' || target.dataset.action === 'timeline-event-type-filter' || target.dataset.action === 'timeline-level-filter')) {
+            if (!this.currentRun || !this.currentRunData) return;
+            const runCache = this.getRunCache(this.currentRun);
+            if (target.dataset.action === 'timeline-stage-filter') runCache.timelineStageFilter = target.value || '__all__';
+            if (target.dataset.action === 'timeline-event-type-filter') runCache.timelineEventTypeFilter = target.value || '__all__';
+            if (target.dataset.action === 'timeline-level-filter') runCache.timelineLevelFilter = target.value || '__all__';
+            runCache.timelinePage = 1;
+            this.renderTaskTimeline(this.currentRunData);
             return;
           }
           if (target.id === 'fileCategoryFilter') {
@@ -3538,6 +3774,17 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
           runCache.linkedTaskDetail = null;
           runCache.linkedTaskDetailError = '';
           runCache.linkedTaskDetailPromise = null;
+          runCache.timelineLoaded = false;
+          runCache.timelineLoading = false;
+          runCache.timelineClearing = false;
+          runCache.timelineItems = [];
+          runCache.timelineError = '';
+          runCache.deletingTimelineEventId = '';
+          runCache.expandedTimelineEventId = '';
+          runCache.timelineStageFilter = '__all__';
+          runCache.timelineEventTypeFilter = '__all__';
+          runCache.timelineLevelFilter = '__all__';
+          runCache.timelinePage = 1;
         }
         runCache.overview = data;
         const refreshScope = options?.scope || 'full';
@@ -3669,6 +3916,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       this.renderResults(data);
       this.renderTaskConfig(data);
       this.renderTaskInfo(data);
+      this.renderTaskTimeline(data);
     },
 
     currentRunId() {
@@ -3985,6 +4233,277 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       })();
       runCache.linkedTaskDetailPromise = promise;
       return await promise;
+    },
+
+    timelineStageLabel(value?: string | null) {
+      const raw = String(value || '').trim();
+      return raw || '-';
+    },
+
+    timelineEventTypeLabel(value?: string | null) {
+      const raw = String(value || '').trim();
+      if (!raw) return '-';
+      return raw
+        .split('_')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    },
+
+    timelineEventBadgeClass(eventType?: string | null) {
+      const raw = String(eventType || '').trim();
+      if (/(failed|abnormal|error|cancel)/i.test(raw)) return 'badge-failed';
+      if (/(warning|retry)/i.test(raw)) return 'badge-warning';
+      if (/(completed|succeeded|finished)/i.test(raw)) return 'badge-succeeded';
+      if (/(started|dispatch|queued|running|resume)/i.test(raw)) return 'badge-running';
+      return 'badge-unknown';
+    },
+
+    timelineLevelBadgeClass(level?: string | null) {
+      const raw = String(level || 'info').trim().toLowerCase();
+      if (raw === 'error') return 'badge-failed';
+      if (raw === 'warning') return 'badge-warning';
+      if (raw === 'info') return 'badge-running';
+      return 'badge-unknown';
+    },
+
+    timelineSourceLabel(event: DataflowTaskTimelineEvent) {
+      const attempt = Number(event.attempt_no || 0);
+      const prefix = attempt > 0 ? `#${attempt}` : '#-';
+      return `${prefix} / ${String(event.execution_id || '').trim() || '-'}`;
+    },
+
+    timelinePayloadRows(payload: Record<string, any>) {
+      return Object.entries(payload || {}).slice(0, 12).map(([key, value]) => ({
+        key,
+        label: key.replace(/_/g, ' '),
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+      }));
+    },
+
+    filteredTimelineItems(runName: string) {
+      const runCache = this.getRunCache(runName);
+      return (runCache.timelineItems || []).filter((event) => {
+        const stageValue = String(event.stage_name || event.stage_key || '__none__');
+        const eventTypeValue = String(event.event_type || '__none__');
+        const levelValue = String(event.level || 'info');
+        if (runCache.timelineStageFilter !== '__all__' && stageValue !== runCache.timelineStageFilter) return false;
+        if (runCache.timelineEventTypeFilter !== '__all__' && eventTypeValue !== runCache.timelineEventTypeFilter) return false;
+        if (runCache.timelineLevelFilter !== '__all__' && levelValue !== runCache.timelineLevelFilter) return false;
+        return true;
+      });
+    },
+
+    renderTaskTimeline(data: DataflowFileserverRunOverview) {
+      const el = this.$('taskTimelineContainer');
+      if (!el) return;
+      const runCache = this.getRunCache(data.name);
+      const taskId = String(data.linked_task_id || '').trim();
+      if (!taskId) {
+        el.innerHTML = `
+          <section class="card">
+            <div class="card-title">事件时间线</div>
+            <div class="empty-state">当前 Run 尚未关联受管任务，暂无可展示的任务级事件时间线。</div>
+          </section>
+        `;
+        return;
+      }
+      const items = this.filteredTimelineItems(data.name);
+      const stageOptions = Array.from(new Set((runCache.timelineItems || []).map((event) => String(event.stage_name || event.stage_key || '').trim()).filter(Boolean)));
+      const eventTypeOptions = Array.from(new Set((runCache.timelineItems || []).map((event) => String(event.event_type || '').trim()).filter(Boolean)));
+      const levelOptions = Array.from(new Set((runCache.timelineItems || []).map((event) => String(event.level || 'info').trim()).filter(Boolean)));
+      const pageSize = Math.min(500, Math.max(50, Number(runCache.timelinePageSize || 200)));
+      const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+      const currentPage = Math.min(Math.max(1, Number(runCache.timelinePage || 1)), pageCount);
+      runCache.timelinePage = currentPage;
+      const rangeStart = items.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+      const rangeEnd = Math.min(items.length, currentPage * pageSize);
+      const pagedItems = items.slice(rangeStart - 1, rangeEnd);
+      const loadingBlock = runCache.timelineLoading ? '<div class="empty-state">加载时间线中...</div>' : '';
+      const errorBlock = runCache.timelineError ? `<div class="empty-state text-error">${this.esc(runCache.timelineError)}</div>` : '';
+      const emptyBlock = !runCache.timelineLoading && !runCache.timelineError && items.length === 0 ? '<div class="empty-state">当前任务暂无事件时间线</div>' : '';
+      el.innerHTML = `
+        <section class="card">
+          <div class="card-title">事件时间线</div>
+          <div class="text-muted" style="margin-top:-6px;margin-bottom:12px;font-size:12px">按时间查看当前任务的调度、阶段推进、重试与异常轨迹。</div>
+          <div class="timeline-toolbar">
+            <div class="timeline-summary-pill">展示 ${rangeStart}-${rangeEnd} / ${items.length}</div>
+            <div class="timeline-pagination">
+              <label class="timeline-summary-pill">
+                每页
+                <select class="timeline-select" data-action="timeline-page-size">
+                  ${[50, 100, 200, 500].map((size) => `<option value="${size}" ${size === pageSize ? 'selected' : ''}>${size}</option>`).join('')}
+                </select>
+              </label>
+              <button class="btn btn-sm" data-action="refresh-timeline" ${runCache.timelineLoading ? 'disabled' : ''}>刷新</button>
+              <button class="btn btn-sm btn-danger" data-action="clear-timeline" ${(runCache.timelineLoading || runCache.timelineClearing || !runCache.timelineItems.length) ? 'disabled' : ''}>${runCache.timelineClearing ? '清空中...' : '清空时间线'}</button>
+            </div>
+          </div>
+          <div class="timeline-filters">
+            <select class="timeline-select" data-action="timeline-stage-filter">
+              <option value="__all__">全部阶段</option>
+              ${stageOptions.map((value) => `<option value="${this.attr(value)}" ${value === runCache.timelineStageFilter ? 'selected' : ''}>${this.esc(this.timelineStageLabel(value))}</option>`).join('')}
+            </select>
+            <select class="timeline-select" data-action="timeline-event-type-filter">
+              <option value="__all__">全部事件</option>
+              ${eventTypeOptions.map((value) => `<option value="${this.attr(value)}" ${value === runCache.timelineEventTypeFilter ? 'selected' : ''}>${this.esc(this.timelineEventTypeLabel(value))}</option>`).join('')}
+            </select>
+            <select class="timeline-select" data-action="timeline-level-filter">
+              <option value="__all__">全部级别</option>
+              ${levelOptions.map((value) => `<option value="${this.attr(value)}" ${value === runCache.timelineLevelFilter ? 'selected' : ''}>${this.esc(value)}</option>`).join('')}
+            </select>
+          </div>
+          ${loadingBlock || errorBlock || emptyBlock || `
+            <div class="timeline-table-wrap">
+              <div class="timeline-table-scroll">
+                <table class="timeline-table">
+                  <thead>
+                    <tr>
+                      <th style="width:56px">#</th>
+                      <th style="width:180px">时间</th>
+                      <th style="width:180px">事件类型</th>
+                      <th style="width:160px">阶段</th>
+                      <th style="width:120px">级别</th>
+                      <th>消息</th>
+                      <th style="width:220px">执行来源</th>
+                      <th style="width:120px">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${pagedItems.map((event, index) => {
+                      const expanded = runCache.expandedTimelineEventId === event.id;
+                      const payload = event.payload && typeof event.payload === 'object' ? event.payload : {};
+                      const hasPayload = Object.keys(payload).length > 0;
+                      const payloadRows = this.timelinePayloadRows(payload);
+                      return `
+                        <tr>
+                          <td class="mono">${rangeStart + index}</td>
+                          <td>${this.esc(event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-')}</td>
+                          <td><span class="badge ${this.timelineEventBadgeClass(event.event_type)}">${this.esc(this.timelineEventTypeLabel(event.event_type))}</span></td>
+                          <td>${event.stage_name ? `<span class="badge badge-running">${this.esc(this.timelineStageLabel(event.stage_name || event.stage_key))}</span>` : '<span class="text-muted">-</span>'}</td>
+                          <td><span class="badge ${this.timelineLevelBadgeClass(event.level)}">${this.esc(String(event.level || 'info'))}</span></td>
+                          <td title="${this.attr(String(event.message || ''))}">${this.esc(String(event.message || '-'))}</td>
+                          <td class="mono" title="${this.attr(this.timelineSourceLabel(event))}">${this.esc(this.timelineSourceLabel(event))}</td>
+                          <td>
+                            <div style="display:flex;justify-content:flex-end;gap:10px">
+                              <button class="btn btn-inline-compact" data-action="toggle-timeline-event" data-event-id="${this.attr(event.id)}" ${hasPayload ? '' : 'disabled'}>${expanded ? '收起' : '查看'}</button>
+                              <button class="btn btn-inline-compact btn-danger" data-action="delete-timeline-event" data-event-id="${this.attr(event.id)}" ${runCache.deletingTimelineEventId === event.id || runCache.timelineClearing ? 'disabled' : ''}>${runCache.deletingTimelineEventId === event.id ? '删除中' : '删除'}</button>
+                            </div>
+                          </td>
+                        </tr>
+                        ${expanded ? `
+                          <tr class="timeline-expand-row">
+                            <td colspan="8">
+                              ${payloadRows.length ? `
+                                <div class="timeline-payload-grid">
+                                  ${payloadRows.map((row) => `
+                                    <div class="timeline-payload-item">
+                                      <div class="timeline-payload-item-label">${this.esc(row.label)}</div>
+                                      <div class="timeline-payload-item-value">${this.esc(row.value)}</div>
+                                    </div>
+                                  `).join('')}
+                                </div>
+                              ` : '<div class="empty-state">当前事件没有 payload 明细</div>'}
+                              <pre class="timeline-json">${this.esc(JSON.stringify(payload, null, 2))}</pre>
+                            </td>
+                          </tr>
+                        ` : ''}
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="timeline-pagination" style="margin-top:14px;justify-content:flex-end">
+              <button class="btn btn-sm" data-action="timeline-prev-page" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+              <div class="timeline-summary-pill">第 ${currentPage} / ${pageCount} 页</div>
+              <button class="btn btn-sm" data-action="timeline-next-page" ${currentPage >= pageCount ? 'disabled' : ''}>下一页</button>
+            </div>
+          `}
+        </section>
+      `;
+    },
+
+    async loadTaskTimeline(runName: string, options?: { force?: boolean }) {
+      const normalizedRun = String(runName || '');
+      if (!normalizedRun) return;
+      const runCache = this.getRunCache(normalizedRun);
+      const overview = runCache.overview || (this.currentRunData?.name === normalizedRun ? this.currentRunData : null);
+      const taskId = String(overview?.linked_task_id || '').trim();
+      if (!taskId) {
+        runCache.timelineLoaded = true;
+        runCache.timelineItems = [];
+        runCache.timelineError = '';
+        if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+        return;
+      }
+      if (runCache.timelineLoading) return;
+      if (runCache.timelineLoaded && !options?.force) {
+        if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+        return;
+      }
+      runCache.timelineLoading = true;
+      runCache.timelineError = '';
+      if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+      try {
+        const response = await dataflowVulnScannerApi.getTaskTimeline(taskId);
+        runCache.timelineItems = Array.isArray(response.items) ? response.items : [];
+        runCache.timelineLoaded = true;
+        runCache.timelinePage = 1;
+      } catch (error: any) {
+        runCache.timelineError = error?.message || '加载任务时间线失败';
+      } finally {
+        runCache.timelineLoading = false;
+        if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+      }
+    },
+
+    async clearTaskTimeline(runName: string) {
+      const normalizedRun = String(runName || '');
+      if (!normalizedRun) return;
+      const runCache = this.getRunCache(normalizedRun);
+      const overview = runCache.overview || (this.currentRunData?.name === normalizedRun ? this.currentRunData : null);
+      const taskId = String(overview?.linked_task_id || '').trim();
+      if (!taskId || runCache.timelineClearing) return;
+      if (!window.confirm('将删除当前任务的全部事件时间线记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？')) return;
+      runCache.timelineClearing = true;
+      runCache.timelineError = '';
+      if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+      try {
+        await dataflowVulnScannerApi.clearTaskTimeline(taskId);
+        runCache.timelineItems = [];
+        runCache.timelineLoaded = true;
+        runCache.timelinePage = 1;
+        runCache.expandedTimelineEventId = '';
+      } catch (error: any) {
+        runCache.timelineError = error?.message || '清空任务时间线失败';
+      } finally {
+        runCache.timelineClearing = false;
+        if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+      }
+    },
+
+    async deleteTaskTimelineEvent(runName: string, eventId: string) {
+      const normalizedRun = String(runName || '');
+      if (!normalizedRun || !eventId) return;
+      const runCache = this.getRunCache(normalizedRun);
+      const overview = runCache.overview || (this.currentRunData?.name === normalizedRun ? this.currentRunData : null);
+      const taskId = String(overview?.linked_task_id || '').trim();
+      if (!taskId || runCache.deletingTimelineEventId) return;
+      if (!window.confirm('将删除当前事件记录。该操作不影响任务状态、结果和产物文件，删除后不可恢复，是否继续？')) return;
+      runCache.deletingTimelineEventId = eventId;
+      runCache.timelineError = '';
+      if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+      try {
+        await dataflowVulnScannerApi.deleteTaskTimelineEvent(taskId, eventId);
+        runCache.timelineItems = (runCache.timelineItems || []).filter((item) => item.id !== eventId);
+        if (runCache.expandedTimelineEventId === eventId) runCache.expandedTimelineEventId = '';
+      } catch (error: any) {
+        runCache.timelineError = error?.message || '删除任务时间线事件失败';
+      } finally {
+        runCache.deletingTimelineEventId = '';
+        if (this.currentRun === normalizedRun && this.currentRunData) this.renderTaskTimeline(this.currentRunData);
+      }
     },
 
     renderTaskConfig(data: DataflowFileserverRunOverview) {
@@ -6930,6 +7449,10 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       if (tab === 'task-config' && this.currentRunData) {
         this.renderTaskConfig(this.currentRunData);
         void this.ensureLinkedTaskDetail(this.currentRunData.name, { force });
+      }
+      if (tab === 'timeline' && this.currentRunData) {
+        this.renderTaskTimeline(this.currentRunData);
+        void this.loadTaskTimeline(this.currentRunData.name, { force });
       }
       if (tab === 'sessions') this.loadSessions(force);
       if (tab === 'files') this.loadFiles(force);

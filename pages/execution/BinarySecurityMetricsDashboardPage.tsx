@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   BarChart3,
@@ -19,6 +19,7 @@ import {
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { api } from '../../clients/api';
+import type { BinarySecurityReducerEventRecord, BinarySecurityReducerEventRecordPage } from '../../clients/binarySecurity';
 import {
   BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS,
   BINARY_SECURITY_CANONICAL_AI_METRICS,
@@ -30,7 +31,30 @@ import {
   BinarySecurityMetricsServiceKey,
   getBinarySecurityMetricsService,
 } from '../../clients/binarySecurityMetrics';
-import { AppDfaClusterCapacity, AppSaClusterCapacity, EntryAnalyseSlotClusterSummary } from '../../types/types';
+import { showAlert, showConfirm } from '../../components/DialogService';
+import {
+  ExecutionTable,
+  ExecutionTableEmptyRow,
+  ExecutionTableHead,
+  ExecutionTableTd,
+  ExecutionTableTh,
+  executionTableRowClassName,
+} from '../../components/execution/ExecutionTable';
+import {
+  AgentObservabilitySummary,
+  AgentProcessKillResponse,
+  AgentProcessSnapshot,
+  AgentSessionObservabilitySnapshot,
+  AgentTaskOwnershipSnapshot,
+  AppDfaClusterCapacity,
+  AppDfaSessionMeta,
+  AppDfaSessionSnapshot,
+  AppEaSessionSnapshot,
+  AppSaClusterCapacity,
+  AppSaSessionMeta,
+  AppSaSessionSnapshot,
+  EntryAnalyseSlotClusterSummary,
+} from '../../types/types';
 import {
   DataflowVulnAiSection,
   DataflowVulnObservabilitySection,
@@ -40,6 +64,7 @@ import {
 } from './binarySecurityMetricsDataflowVuln';
 import type { DataflowVulnAiViewModel, DataflowVulnOverviewViewModel, DataflowVulnSampleScope } from './binarySecurityMetricsDataflowVuln';
 import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, matchesDataflowVulnSampleScope } from './binarySecurityMetricsDataflowVulnBuilders';
+import { AgentSessionViewer } from './AgentSessionViewer';
 
 type MetricsState = {
   loading: boolean;
@@ -108,6 +133,67 @@ type AggregateCoverageSummary = {
   successful: number;
   partial: boolean;
   attemptedByRole: Array<{ role: string; attempted: number; successful: number }>;
+};
+
+type ReducerEventState = {
+  loading: boolean;
+  data: BinarySecurityReducerEventRecordPage | null;
+  error: string | null;
+  refreshedAt: number | null;
+};
+
+type AgentObservabilityState = {
+  loading: boolean;
+  summary: AgentObservabilitySummary | null;
+  processes: AgentProcessSnapshot[];
+  sessions: AgentSessionObservabilitySnapshot[];
+  tasks: AgentTaskOwnershipSnapshot[];
+  error: string | null;
+  refreshedAt: number | null;
+};
+
+type AgentSessionContentState = {
+  loading: boolean;
+  data: AppEaSessionSnapshot | AppSaSessionSnapshot | AppDfaSessionSnapshot | null;
+  error: string | null;
+};
+
+type AgentKillHistoryEntry = {
+  id: string;
+  scope: 'single' | 'selected' | 'bulk';
+  createdAt: number;
+  response: AgentProcessKillResponse;
+};
+
+type ReducerEventSortBy = 'processed_at' | 'duration_ms' | 'created_at';
+type ReducerEventSortOrder = 'asc' | 'desc';
+
+type RestApiRouteSummary = {
+  route: string;
+  method: string;
+  requestCount: number;
+  avgSeconds: number | null;
+  p50Seconds: number | null;
+  p95Seconds: number | null;
+  p99Seconds: number | null;
+  approxMaxSeconds: number | null;
+  status2xx: number;
+  status4xx: number;
+  status5xx: number;
+  inflight: number;
+};
+
+type RestApiViewModel = {
+  rows: RestApiRouteSummary[];
+  totalRequests: number;
+  totalInflight: number;
+  avgSeconds: number | null;
+  p95Seconds: number | null;
+  slowRouteCount: number;
+  errorRate: number | null;
+  topByCount: Array<{ name: string; value: number }>;
+  topByP95: Array<{ name: string; value: number }>;
+  topBy5xx: Array<{ name: string; value: number }>;
 };
 
 type AiCard = {
@@ -364,6 +450,73 @@ const AI_COVERAGE_BADGE: Record<AiCoverage, string> = {
   basic: 'border-amber-200 bg-amber-50 text-amber-700',
   partial: 'border-sky-200 bg-sky-50 text-sky-700',
   complete: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+};
+
+const buildFallbackAgentSessionMeta = (
+  session: AgentSessionObservabilitySnapshot,
+): AppSaSessionMeta => ({
+  session_id: session.session_id || session.session_file,
+  session_name: session.display_name,
+  relative_path: session.session_file,
+  stage_group: session.stage_key || 'agent',
+  role_name: session.role_kind || 'agent',
+  size: 0,
+  mtime: 0,
+  event_count: 0,
+  line_count: session.line_count,
+  is_active: session.live,
+  display_name: session.display_name,
+  warnings: session.parse_warnings,
+});
+
+const normalizeAgentSessionMeta = (
+  snapshot: AppEaSessionSnapshot | AppSaSessionSnapshot | AppDfaSessionSnapshot | null,
+  session: AgentSessionObservabilitySnapshot | null,
+): AppSaSessionMeta | null => {
+  if (!session) return null;
+  const fallback = buildFallbackAgentSessionMeta(session);
+  if (!snapshot) return fallback;
+
+  const dfaMeta = 'meta' in snapshot ? (snapshot.meta as AppDfaSessionMeta | undefined | null) : null;
+  if (dfaMeta) {
+    return {
+      ...fallback,
+      session_id: dfaMeta.session_id || fallback.session_id,
+      session_name: dfaMeta.session_name || fallback.session_name,
+      relative_path: dfaMeta.relative_path || fallback.relative_path,
+      stage_group: dfaMeta.stage_group || fallback.stage_group,
+      role_name: dfaMeta.role_name || fallback.role_name,
+      size: dfaMeta.size ?? fallback.size,
+      mtime: dfaMeta.mtime ?? fallback.mtime,
+      event_count: dfaMeta.event_count ?? snapshot.events?.length ?? fallback.event_count,
+      line_count: snapshot.line_count ?? fallback.line_count,
+      is_active: dfaMeta.is_active ?? fallback.is_active,
+      display_name: dfaMeta.display_name || fallback.display_name,
+      warnings: snapshot.warnings || fallback.warnings,
+    };
+  }
+
+  const rawMeta = 'session_meta' in snapshot ? snapshot.session_meta : null;
+  if (rawMeta && typeof rawMeta === 'object') {
+    const meta = rawMeta as Partial<AppSaSessionMeta> & Record<string, unknown>;
+    return {
+      ...fallback,
+      session_id: String(meta.session_id || fallback.session_id),
+      session_name: String(meta.session_name || fallback.session_name),
+      relative_path: String(meta.relative_path || fallback.relative_path),
+      stage_group: String(meta.stage_group || fallback.stage_group),
+      role_name: String(meta.role_name || fallback.role_name),
+      size: typeof meta.size === 'number' ? meta.size : fallback.size,
+      mtime: typeof meta.mtime === 'number' ? meta.mtime : fallback.mtime,
+      event_count: typeof meta.event_count === 'number' ? meta.event_count : snapshot.events?.length ?? fallback.event_count,
+      line_count: typeof meta.line_count === 'number' ? meta.line_count : snapshot.line_count ?? fallback.line_count,
+      is_active: typeof meta.is_active === 'boolean' ? meta.is_active : fallback.is_active,
+      display_name: String(meta.display_name || fallback.display_name),
+      warnings: Array.isArray(meta.warnings) ? meta.warnings.map((item) => String(item)) : snapshot.warnings || fallback.warnings,
+    };
+  }
+
+  return fallback;
 };
 
 const AI_SERVICE_SCOPE: Record<BinarySecurityMetricsServiceKey, string> = {
@@ -922,6 +1075,103 @@ const buildBinarySecurityObservabilityViewModel = (
       group,
       count: rows.filter((row) => row.group === group).length,
     })),
+  };
+};
+
+const buildRestApiViewModel = (rows: DisplayMetricRow[]): RestApiViewModel => {
+  const routeMap = new Map<string, RestApiRouteSummary>();
+
+  const ensureRoute = (route: string, method: string): RestApiRouteSummary => {
+    const key = `${method} ${route}`;
+    const existing = routeMap.get(key);
+    if (existing) return existing;
+    const created: RestApiRouteSummary = {
+      route,
+      method,
+      requestCount: 0,
+      avgSeconds: null,
+      p50Seconds: null,
+      p95Seconds: null,
+      p99Seconds: null,
+      approxMaxSeconds: null,
+      status2xx: 0,
+      status4xx: 0,
+      status5xx: 0,
+      inflight: 0,
+    };
+    routeMap.set(key, created);
+    return created;
+  };
+
+  rows.forEach((row) => {
+    if (row.group !== 'http') return;
+    const route = row.labels.route || row.labels.path || '/';
+    const method = row.labels.method || row.labels.http_method || 'ALL';
+    const item = ensureRoute(route, method);
+
+    if (/_request(s)?_(total|count)$/u.test(row.name) || /(http|api).*requests_total$/u.test(row.name)) {
+      item.requestCount += row.value;
+      const status = row.labels.status || row.labels.code || row.labels.status_code || '';
+      if (/^2/u.test(status)) item.status2xx += row.value;
+      else if (/^4/u.test(status)) item.status4xx += row.value;
+      else if (/^5/u.test(status)) item.status5xx += row.value;
+    }
+
+    if (/(inflight|in_progress|running_requests)/u.test(row.name)) {
+      item.inflight += row.value;
+    }
+  });
+
+  for (const item of routeMap.values()) {
+    item.avgSeconds =
+      histogramAverage(rows, 'http_request_duration_seconds', { route: item.route, method: item.method }) ??
+      histogramAverage(rows, 'api_request_duration_seconds', { route: item.route, method: item.method }) ??
+      histogramAverage(rows, 'secflow_http_request_duration_seconds', { route: item.route, method: item.method }) ??
+      histogramAverage(rows, 'secflow_api_request_duration_seconds', { route: item.route, method: item.method });
+    item.p50Seconds =
+      histogramQuantile(rows, 'http_request_duration_seconds', 0.5, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'api_request_duration_seconds', 0.5, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'secflow_http_request_duration_seconds', 0.5, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'secflow_api_request_duration_seconds', 0.5, { route: item.route, method: item.method });
+    item.p95Seconds =
+      histogramQuantile(rows, 'http_request_duration_seconds', 0.95, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'api_request_duration_seconds', 0.95, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'secflow_http_request_duration_seconds', 0.95, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'secflow_api_request_duration_seconds', 0.95, { route: item.route, method: item.method });
+    item.p99Seconds =
+      histogramQuantile(rows, 'http_request_duration_seconds', 0.99, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'api_request_duration_seconds', 0.99, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'secflow_http_request_duration_seconds', 0.99, { route: item.route, method: item.method }) ??
+      histogramQuantile(rows, 'secflow_api_request_duration_seconds', 0.99, { route: item.route, method: item.method });
+    item.approxMaxSeconds = Math.max(item.p99Seconds || 0, item.p95Seconds || 0, item.avgSeconds || 0) || null;
+  }
+
+  const resultRows = [...routeMap.values()].sort(
+    (left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0) || right.requestCount - left.requestCount,
+  );
+  const totalRequests = resultRows.reduce((sum, item) => sum + item.requestCount, 0);
+  const totalInflight = resultRows.reduce((sum, item) => sum + item.inflight, 0);
+  const weightedDuration = resultRows.reduce((sum, item) => sum + (item.avgSeconds || 0) * item.requestCount, 0);
+  const total5xx = resultRows.reduce((sum, item) => sum + item.status5xx, 0);
+
+  return {
+    rows: resultRows,
+    totalRequests,
+    totalInflight,
+    avgSeconds: totalRequests > 0 ? weightedDuration / totalRequests : null,
+    p95Seconds: resultRows.reduce<number | null>((max, item) => {
+      if (item.p95Seconds == null) return max;
+      return max == null ? item.p95Seconds : Math.max(max, item.p95Seconds);
+    }, null),
+    slowRouteCount: resultRows.filter((item) => (item.p95Seconds || 0) >= 1 || (item.avgSeconds || 0) >= 0.5).length,
+    errorRate: totalRequests > 0 ? total5xx / totalRequests : null,
+    topByCount: resultRows.slice(0, 6).sort((left, right) => right.requestCount - left.requestCount).map((item) => ({ name: `${item.method} ${item.route}`, value: item.requestCount })),
+    topByP95: resultRows.slice(0, 6).sort((left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0)).map((item) => ({ name: `${item.method} ${item.route}`, value: item.p95Seconds || 0 })),
+    topBy5xx: resultRows
+      .slice(0, 6)
+      .sort((left, right) => right.status5xx - left.status5xx)
+      .filter((item) => item.status5xx > 0)
+      .map((item) => ({ name: `${item.method} ${item.route}`, value: item.status5xx })),
   };
 };
 
@@ -2111,6 +2361,8 @@ const EmptyCard: React.FC<{ text: string }> = ({ text }) => (
   </div>
 );
 
+const INITIAL_REDUCER_EVENT_STATE: ReducerEventState = { loading: false, data: null, error: null, refreshedAt: null };
+
 const INITIAL_DFA_WORKER_DETAIL_STATE: DfaWorkerDetailState = {
   loading: false,
   data: null,
@@ -2123,6 +2375,22 @@ const INITIAL_ENTRY_WORKER_DETAIL_STATE: EntryWorkerDetailState = {
   data: null,
   error: null,
   refreshedAt: null,
+};
+
+const INITIAL_AGENT_STATE: AgentObservabilityState = {
+  loading: false,
+  summary: null,
+  processes: [],
+  sessions: [],
+  tasks: [],
+  error: null,
+  refreshedAt: null,
+};
+
+const INITIAL_AGENT_SESSION_CONTENT_STATE: AgentSessionContentState = {
+  loading: false,
+  data: null,
+  error: null,
 };
 
 const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
@@ -2143,8 +2411,18 @@ const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]
   </div>
 );
 
+const reducerFailedKinds = new Set(['retryable', 'dead_letter', 'reducer_failed', 'lease_expired', 'unknown']);
+
+function reducerRowClassName(item: BinarySecurityReducerEventRecord): string {
+  if (reducerFailedKinds.has(item.failure_kind)) {
+    return `${executionTableRowClassName} bg-rose-50/80 hover:bg-rose-50`;
+  }
+  return executionTableRowClassName;
+}
+
 export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionMetricsApi = api.domains.execution.metrics;
+  const binarySecurityExecutionApi = api.domains.execution.binarySecurity;
   const dataflowAnalysisApi = api.domains.execution.appDataflowAnalyse;
   const entryAnalysisApi = api.domains.execution.appEntryAnalyse;
   const systemAnalysisApi = api.domains.execution.appSystemAnalyse;
@@ -2160,10 +2438,25 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [selectedSystemWorkerFilter, setSelectedSystemWorkerFilter] = useState<string>('');
   const [selectedDfaWorkerFilter, setSelectedDfaWorkerFilter] = useState<string>('');
   const [selectedEntryWorkerFilter, setSelectedEntryWorkerFilter] = useState<string>('');
+  const [restApiRouteKeyword, setRestApiRouteKeyword] = useState('');
+  const [restApiMethodFilter, setRestApiMethodFilter] = useState<'all' | string>('all');
+  const [restApiSlowOnly, setRestApiSlowOnly] = useState(false);
+  const [restApiHideInfra, setRestApiHideInfra] = useState(true);
   const [reducerHistoryByService, setReducerHistoryByService] = useState<Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, []])) as Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>,
   );
   const [reducerMetricsState, setReducerMetricsState] = useState<MetricsState>(INITIAL_STATE);
+  const [reducerEventState, setReducerEventState] = useState<ReducerEventState>(INITIAL_REDUCER_EVENT_STATE);
+  const [reducerEventPage, setReducerEventPage] = useState(1);
+  const [reducerEventPageSize, setReducerEventPageSize] = useState(50);
+  const [reducerEventSortBy, setReducerEventSortBy] = useState<ReducerEventSortBy>('processed_at');
+  const [reducerEventSortOrder, setReducerEventSortOrder] = useState<ReducerEventSortOrder>('desc');
+  const [reducerEventStatusFilter, setReducerEventStatusFilter] = useState<string>('all');
+  const [reducerEventTypeFilter, setReducerEventTypeFilter] = useState('');
+  const [reducerEventHandlerFilter, setReducerEventHandlerFilter] = useState('');
+  const [reducerEventTaskFilter, setReducerEventTaskFilter] = useState('');
+  const [reducerEventFailedOnly, setReducerEventFailedOnly] = useState(false);
+  const [reducerEventSlowOnly, setReducerEventSlowOnly] = useState(false);
   const [stateByService, setStateByService] = useState<Record<BinarySecurityMetricsServiceKey, MetricsState>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, INITIAL_STATE])) as Record<BinarySecurityMetricsServiceKey, MetricsState>,
   );
@@ -2175,6 +2468,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     error: null,
     refreshedAt: null,
   });
+  const [agentState, setAgentState] = useState<AgentObservabilityState>(INITIAL_AGENT_STATE);
+  const [selectedAgentPids, setSelectedAgentPids] = useState<number[]>([]);
+  const [selectedAgentTaskId, setSelectedAgentTaskId] = useState<string>('');
+  const [selectedAgentSessionId, setSelectedAgentSessionId] = useState<string>('');
+  const [agentSessionContentState, setAgentSessionContentState] = useState<AgentSessionContentState>(INITIAL_AGENT_SESSION_CONTENT_STATE);
+  const [agentKillHistory, setAgentKillHistory] = useState<AgentKillHistoryEntry[]>([]);
 
   const activeService = useMemo(
     () => BINARY_SECURITY_METRICS_SERVICES.find((service) => service.key === activeServiceKey) || BINARY_SECURITY_METRICS_SERVICES[0],
@@ -2196,7 +2495,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       setSystemWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
     }
     try {
-      const [rawText, dfaWorkerData, entryWorkerData] = await Promise.all([
+      const [rawText, dfaWorkerData, entryWorkerData, systemWorkerData] = await Promise.all([
         executionMetricsApi.getServiceMetrics(serviceKey),
         serviceKey === 'dataflow-analysis' && projectId
           ? dataflowAnalysisApi.getWorkerClusterCapacity(projectId)
@@ -2319,6 +2618,72 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     }
   };
 
+  const loadReducerEvents = async () => {
+    setReducerEventState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const data = await binarySecurityExecutionApi.getReducerEvents({
+        page: reducerEventPage,
+        page_size: reducerEventPageSize,
+        sort_by: reducerEventSortBy,
+        sort_order: reducerEventSortOrder,
+        status: reducerEventStatusFilter === 'all' ? [] : [reducerEventStatusFilter],
+        event_type: reducerEventTypeFilter.trim() || undefined,
+        handler_pod: reducerEventHandlerFilter.trim() || undefined,
+        task_id: reducerEventTaskFilter.trim() || undefined,
+        failed_only: reducerEventFailedOnly,
+        slow_only: reducerEventSlowOnly,
+      });
+      setReducerEventState({
+        loading: false,
+        data,
+        error: null,
+        refreshedAt: Date.now(),
+      });
+    } catch (error: any) {
+      setReducerEventState((current) => ({
+        ...current,
+        loading: false,
+        error: error?.message || 'Reducer 事件记录抓取失败',
+        refreshedAt: Date.now(),
+      }));
+    }
+  };
+
+  const agentObservabilityEnabled =
+    activeServiceKey === 'entry-analysis' || activeServiceKey === 'system-analysis' || activeServiceKey === 'dataflow-analysis';
+
+  const loadAgentObservability = async (serviceKey: BinarySecurityMetricsServiceKey) => {
+    if (!projectId || !(serviceKey === 'entry-analysis' || serviceKey === 'system-analysis' || serviceKey === 'dataflow-analysis')) {
+      setAgentState(INITIAL_AGENT_STATE);
+      return;
+    }
+    setAgentState((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const [summary, processes, sessions, tasks] = await Promise.all([
+        executionMetricsApi.getAgentObservabilitySummary(serviceKey, projectId) as Promise<AgentObservabilitySummary>,
+        executionMetricsApi.getAgentProcesses(serviceKey, projectId) as Promise<AgentProcessSnapshot[]>,
+        executionMetricsApi.getAgentSessions(serviceKey, projectId) as Promise<AgentSessionObservabilitySnapshot[]>,
+        executionMetricsApi.getAgentTasks(serviceKey, projectId) as Promise<AgentTaskOwnershipSnapshot[]>,
+      ]);
+      setAgentState({
+        loading: false,
+        summary,
+        processes,
+        sessions,
+        tasks,
+        error: null,
+        refreshedAt: Date.now(),
+      });
+    } catch (error: any) {
+      setAgentState((current) => ({
+        ...current,
+        loading: false,
+        error: error?.message || '智能体观测抓取失败',
+        refreshedAt: Date.now(),
+      }));
+    }
+  };
+
   useEffect(() => {
     const current = stateByService[activeServiceKey];
     if (!current.rawText && !current.loading && !current.error) {
@@ -2335,15 +2700,47 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   }, [activeSecondaryTab, activeServiceKey, reducerMetricsState]);
 
   useEffect(() => {
+    if (activeServiceKey !== 'binary-security') return;
+    if (activeSecondaryTab !== 'reducer') return;
+    void loadReducerEvents();
+  }, [
+    activeSecondaryTab,
+    activeServiceKey,
+    reducerEventPage,
+    reducerEventPageSize,
+    reducerEventSortBy,
+    reducerEventSortOrder,
+    reducerEventStatusFilter,
+    reducerEventTypeFilter,
+    reducerEventHandlerFilter,
+    reducerEventTaskFilter,
+    reducerEventFailedOnly,
+    reducerEventSlowOnly,
+  ]);
+
+  useEffect(() => {
+    if (activeSecondaryTab !== 'agent') return;
+    if (!agentObservabilityEnabled) return;
+    if (!agentState.summary && !agentState.loading && !agentState.error) {
+      void loadAgentObservability(activeServiceKey);
+    }
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, agentState.error, agentState.loading, agentState.summary]);
+
+  useEffect(() => {
     if (!autoRefresh) return undefined;
     const timer = window.setInterval(() => {
+      if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
+        void loadAgentObservability(activeServiceKey);
+        return;
+      }
       void loadMetrics(activeServiceKey);
       if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer') {
         void loadReducerMetrics();
+        void loadReducerEvents();
       }
-    }, 30000);
+    }, activeSecondaryTab === 'agent' ? 5000 : 30000);
     return () => window.clearInterval(timer);
-  }, [activeSecondaryTab, activeServiceKey, autoRefresh]);
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, autoRefresh]);
 
   useEffect(() => {
     setSearchKeyword('');
@@ -2353,6 +2750,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setAiRoleFilter('all');
     setSelectedEntryStage('all');
     setActiveSecondaryTab('observability');
+    setAgentState(INITIAL_AGENT_STATE);
+    setSelectedAgentPids([]);
+    setSelectedAgentTaskId('');
+    setSelectedAgentSessionId('');
+    setAgentSessionContentState(INITIAL_AGENT_SESSION_CONTENT_STATE);
   }, [activeServiceKey, projectId]);
 
   const activeState = stateByService[activeServiceKey];
@@ -2417,6 +2819,25 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     () => (activeServiceKey === 'dataflow-analysis' ? buildDataflowAnalysisViewModel(viewModel.rows) : null),
     [activeServiceKey, viewModel.rows],
   );
+  const restApiViewModel = useMemo(() => buildRestApiViewModel(viewModel.rows), [viewModel.rows]);
+  const restApiMethods = useMemo(
+    () => Array.from(new Set(restApiViewModel.rows.map((item) => item.method))).sort((left, right) => left.localeCompare(right, 'zh-CN')),
+    [restApiViewModel.rows],
+  );
+  const filteredRestApiRows = useMemo(() => {
+    const keyword = restApiRouteKeyword.trim().toLowerCase();
+    return restApiViewModel.rows.filter((item) => {
+      if (restApiMethodFilter !== 'all' && item.method !== restApiMethodFilter) return false;
+      if (restApiSlowOnly && (item.p95Seconds || 0) < 1 && (item.avgSeconds || 0) < 0.5) return false;
+      if (restApiHideInfra) {
+        const route = item.route.toLowerCase();
+        if (route.includes('/metrics') || route.includes('/health') || route.includes('/ready')) return false;
+        if (item.method === 'OPTIONS') return false;
+      }
+      if (!keyword) return true;
+      return `${item.method} ${item.route}`.toLowerCase().includes(keyword);
+    });
+  }, [restApiHideInfra, restApiMethodFilter, restApiRouteKeyword, restApiSlowOnly, restApiViewModel.rows]);
   const focusedEntryStageRow = useMemo(() => {
     if (!entryAnalysisViewModel || selectedEntryStage === 'all') return null;
     return entryAnalysisViewModel.stageRows.find((item) => item.stage === selectedEntryStage) || null;
@@ -2484,6 +2905,154 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
     return Array.from(roles).sort((left, right) => left.localeCompare(right, 'zh-CN'));
   }, [aiViewModel.rows]);
+
+  const filteredAgentProcesses = useMemo(() => {
+    return agentState.processes.filter((item) => {
+      if (selectedAgentTaskId && item.task_id !== selectedAgentTaskId) return false;
+      if (selectedAgentSessionId && item.session_id !== selectedAgentSessionId) return false;
+      return true;
+    });
+  }, [agentState.processes, selectedAgentSessionId, selectedAgentTaskId]);
+
+  const filteredAgentSessions = useMemo(() => {
+    return agentState.sessions.filter((item) => {
+      if (selectedAgentTaskId && item.task_id !== selectedAgentTaskId) return false;
+      if (selectedAgentSessionId && item.session_id !== selectedAgentSessionId) return false;
+      return true;
+    });
+  }, [agentState.sessions, selectedAgentSessionId, selectedAgentTaskId]);
+
+  const filteredAgentTasks = useMemo(() => {
+    return selectedAgentTaskId ? agentState.tasks.filter((item) => item.task_id === selectedAgentTaskId) : agentState.tasks;
+  }, [agentState.tasks, selectedAgentTaskId]);
+
+  const selectedAgentSession = useMemo(
+    () => agentState.sessions.find((item) => item.session_id === selectedAgentSessionId) || null,
+    [agentState.sessions, selectedAgentSessionId],
+  );
+
+  const selectedAgentSessionMeta = useMemo(
+    () => normalizeAgentSessionMeta(agentSessionContentState.data, selectedAgentSession),
+    [agentSessionContentState.data, selectedAgentSession],
+  );
+
+  const pushAgentKillHistory = useCallback((scope: AgentKillHistoryEntry['scope'], response: AgentProcessKillResponse, id: string) => {
+    setAgentKillHistory((current) => [
+      {
+        id,
+        scope,
+        createdAt: Date.now(),
+        response,
+      },
+      ...current,
+    ].slice(0, 8));
+  }, []);
+
+  useEffect(() => {
+    const loadSessionContent = async () => {
+      if (!selectedAgentSession || !selectedAgentSession.task_id || !selectedAgentSession.session_file) {
+        setAgentSessionContentState(INITIAL_AGENT_SESSION_CONTENT_STATE);
+        return;
+      }
+      setAgentSessionContentState({ loading: true, data: null, error: null });
+      try {
+        const data = activeServiceKey === 'entry-analysis'
+          ? await entryAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file)
+          : activeServiceKey === 'system-analysis'
+            ? await systemAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file)
+            : await dataflowAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file);
+        setAgentSessionContentState({ loading: false, data, error: null });
+      } catch (error: any) {
+        setAgentSessionContentState({ loading: false, data: null, error: error?.message || '会话内容加载失败' });
+      }
+    };
+    if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
+      void loadSessionContent();
+    }
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, dataflowAnalysisApi, entryAnalysisApi, selectedAgentSession, systemAnalysisApi]);
+
+  const selectedKillablePids = useMemo(
+    () => selectedAgentPids.filter((pid) => agentState.processes.some((item) => item.pid === pid && item.owner_kind === 'orphan' && item.kill_allowed)),
+    [agentState.processes, selectedAgentPids],
+  );
+
+  const orphanProcesses = useMemo(() => agentState.processes.filter((item) => item.owner_kind === 'orphan'), [agentState.processes]);
+
+  const killSingleOrphan = async (process: AgentProcessSnapshot) => {
+    if (!projectId || !agentObservabilityEnabled) return;
+    if (process.owner_kind !== 'orphan' || !process.kill_allowed) {
+      await showAlert({
+        title: '不允许终止',
+        message: process.kill_block_reason || '仅允许终止已判定为明确孤儿的智能体进程。',
+      });
+      return;
+    }
+    const confirmed = await showConfirm({
+      title: '杀死孤儿智能体进程',
+      message: `仅针对“已判定为明确孤儿”的智能体进程。\nPID=${process.pid} PGID=${process.pgid ?? '-'}。\n不影响运行中受控任务，操作不可撤销。`,
+      confirmText: '确认杀死',
+      danger: true,
+    });
+    if (!confirmed) return;
+    const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, process.pid) as AgentProcessKillResponse;
+    pushAgentKillHistory('single', result, `single-${process.pid}-${Date.now()}`);
+    await showAlert({
+      title: '执行结果',
+      message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
+    });
+    setSelectedAgentPids((current) => current.filter((pid) => pid !== process.pid));
+    await loadAgentObservability(activeServiceKey);
+  };
+
+  const killSelectedOrphans = async () => {
+    if (!projectId || !agentObservabilityEnabled || selectedKillablePids.length === 0) return;
+    const confirmed = await showConfirm({
+      title: '批量杀死选中孤儿',
+      message: `仅针对“已判定为明确孤儿”的智能体进程。\n本次将处理 ${selectedKillablePids.length} 个 PID，不影响运行中受控任务，操作不可撤销。`,
+      confirmText: '确认批量杀死',
+      danger: true,
+    });
+    if (!confirmed) return;
+    let summary = { requested: 0, matched: 0, succeeded: 0, failed: 0, skipped: 0 };
+    const items: AgentProcessKillResponse['items'] = [];
+    for (const pid of selectedKillablePids) {
+      const result = await executionMetricsApi.killAgentProcess(activeServiceKey, projectId, pid) as AgentProcessKillResponse;
+      summary = {
+        requested: summary.requested + result.requested,
+        matched: summary.matched + result.matched,
+        succeeded: summary.succeeded + result.succeeded,
+        failed: summary.failed + result.failed,
+        skipped: summary.skipped + result.skipped,
+      };
+      items.push(...(result.items || []));
+    }
+    pushAgentKillHistory('selected', { ...summary, items }, `selected-${Date.now()}`);
+    await showAlert({
+      title: '批量执行结果',
+      message: `请求 ${summary.requested}，命中 ${summary.matched}，成功 ${summary.succeeded}，失败 ${summary.failed}，跳过 ${summary.skipped}`,
+    });
+    setSelectedAgentPids([]);
+    await loadAgentObservability(activeServiceKey);
+  };
+
+  const killAllOrphans = async () => {
+    if (!projectId || !agentObservabilityEnabled) return;
+    const confirmed = await showConfirm({
+      title: '一键杀死全部明确孤儿',
+      message: '仅针对“已判定为明确孤儿”的智能体进程，不影响运行中受控任务，操作不可撤销。',
+      confirmText: '确认全部杀死',
+      danger: true,
+    });
+    if (!confirmed) return;
+    const result = await executionMetricsApi.killAllOrphanProcesses(activeServiceKey, projectId) as AgentProcessKillResponse;
+    pushAgentKillHistory('bulk', result, `bulk-${Date.now()}`);
+    await showAlert({
+      title: '执行结果',
+      message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
+    });
+    setSelectedAgentPids([]);
+    await loadAgentObservability(activeServiceKey);
+  };
 
   return (
     <div className="space-y-6 px-8 pb-10 pt-8">

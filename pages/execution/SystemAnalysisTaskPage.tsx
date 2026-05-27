@@ -269,6 +269,21 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     if (!projectId) return;
     setSlotLoading(true);
     try {
+      const payload = await appApi.getWorkerClusterCapacitySummary(projectId);
+      setClusterCapacity(payload);
+      setSlotError(null);
+    } catch (err: any) {
+      setSlotError(err?.message || '读取执行槽位失败');
+      setClusterCapacity(null);
+    } finally {
+      setSlotLoading(false);
+    }
+  }, [appApi, projectId]);
+
+  const loadClusterCapacityDetail = useCallback(async () => {
+    if (!projectId) return;
+    setSlotLoading(true);
+    try {
       const payload = await appApi.getWorkerClusterCapacity(projectId);
       setClusterCapacity(payload);
       setSlotError(null);
@@ -549,7 +564,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <div className="text-xs text-slate-400">最近同步 {formatDateTime(clusterCapacity?.updated_at)}</div>
             <button
               type="button"
-              onClick={() => setShowSlotDetailModal(true)}
+              onClick={() => { setShowSlotDetailModal(true); void loadClusterCapacityDetail(); }}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
             >
               查看详情

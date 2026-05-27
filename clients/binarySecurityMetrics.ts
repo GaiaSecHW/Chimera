@@ -26,7 +26,7 @@ export type BinarySecurityMetricsGroup =
   | 'service-specific'
   | 'other';
 
-export type BinarySecurityMetricsSecondaryTab = 'observability' | 'reducer' | 'ai-zone';
+export type BinarySecurityMetricsSecondaryTab = 'observability' | 'rest-api' | 'reducer' | 'ai-zone' | 'agent';
 
 export type BinarySecurityCanonicalAiMetricKey =
   | 'request-total'
@@ -62,8 +62,10 @@ export interface BinarySecurityCanonicalAiMetricDefinition {
 
 export const BINARY_SECURITY_METRICS_SECONDARY_TABS: Array<{ key: BinarySecurityMetricsSecondaryTab; label: string }> = [
   { key: 'observability', label: '通用观测' },
+  { key: 'rest-api', label: 'REST API' },
   { key: 'reducer', label: 'Reducer' },
   { key: 'ai-zone', label: 'AI专区' },
+  { key: 'agent', label: '智能体' },
 ];
 
 export const BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS = [

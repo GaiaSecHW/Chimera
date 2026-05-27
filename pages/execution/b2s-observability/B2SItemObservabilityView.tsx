@@ -7,6 +7,7 @@ import { B2SBatchTableRowAction } from './B2SBatchObservabilityTable';
 import { B2SPhaseObservabilityPanel } from './B2SPhaseObservabilityPanel';
 
 type B2SItem = B2STaskDetail['items'][number];
+type B2SObservabilityItem = B2STaskObservability['items'][number];
 type BatchStatusFilter = '__all__' | 'running' | 'failed' | 'passed' | 'partial' | 'pending' | 'not_started' | 'unknown';
 type BatchSortKey = 'sequence' | 'batch' | 'attempts' | 'duration';
 
@@ -19,7 +20,7 @@ interface MetricTileLikeProps {
 
 interface Props {
   selectedItem: B2SItem | null;
-  selectedObservabilityItem: B2STaskObservability['items'][number] | null;
+  selectedObservabilityItem: B2SObservabilityItem | null;
   observabilitySummary: B2STaskObservability | null | undefined;
   currentItemBatchRows: any[];
   currentItemBatchSummary: any;
@@ -70,6 +71,8 @@ export const B2SItemObservabilityView: React.FC<Props> = ({
     selectedObservabilityItem?.phase_observability?.find((entry) => entry.phase === phase)
     || selectedItem?.phase_observability?.find((entry) => entry.phase === phase)
     || null;
+  const itemStatusLabel = selectedItem?.status_label || selectedObservabilityItem?.status_label || selectedItem?.status || '-';
+  const itemDurationMs = selectedItem?.run_duration_ms ?? selectedObservabilityItem?.duration_ms ?? null;
 
   return (
     <div className="space-y-4">
@@ -88,9 +91,9 @@ export const B2SItemObservabilityView: React.FC<Props> = ({
               当前 Item：#{selectedItem.sequence_no} {fileNameOf(selectedItem.elf_path)}
             </div>
             <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-              <MetricTile label="状态" value={selectedItem.status_label || selectedItem.status} tone="slate" icon={<Gauge size={18} />} />
+              <MetricTile label="状态" value={itemStatusLabel} tone="slate" icon={<Gauge size={18} />} />
               <MetricTile label="当前阶段" value={selectedItem.phase_label || selectedItem.phase || '-'} tone="blue" icon={<Clock3 size={18} />} />
-              <MetricTile label="任务项耗时" value={formatDurationMs(selectedItem.run_duration_ms)} tone="violet" icon={<Layers3 size={18} />} />
+              <MetricTile label="任务项耗时" value={formatDurationMs(itemDurationMs)} tone="violet" icon={<Layers3 size={18} />} />
               <MetricTile label="轮次/均分/残留" value={summaryLine} tone="emerald" icon={<GitBranch size={18} />} />
             </div>
           </>
@@ -157,7 +160,7 @@ export const B2SItemObservabilityView: React.FC<Props> = ({
                     <div className="space-y-3">
                       <B2SPhaseObservabilityPanel phase={currentPhaseEntry(phase)} formatDurationMs={formatDurationMs} />
                       <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-                        <MetricTile label="任务项状态" value={selectedItem.status_label || selectedItem.status} tone="slate" />
+                        <MetricTile label="任务项状态" value={itemStatusLabel} tone="slate" />
                         <MetricTile label="当前阶段" value={selectedItem.phase_label || selectedItem.phase || '-'} tone="blue" />
                         <MetricTile label="阶段结束" value={currentPhaseEntry(phase)?.finished_at ? formatDateTime(currentPhaseEntry(phase)?.finished_at) : currentPhaseEntry(phase)?.is_active ? '进行中' : '-'} tone="slate" />
                         <MetricTile label="阶段备注" value={phaseDescriptions[phase] || '-'} tone="slate" />

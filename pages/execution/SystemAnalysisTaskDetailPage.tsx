@@ -1092,11 +1092,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
     void loadEvaluation();
   }, [activeTab, detail, evaluation, evaluationLoading]);
 
-  const timelineStageOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.stage_name || '').trim()).filter(Boolean))), [timeline]);
+  const timelineStageOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.stage_name || event.stage_key || '').trim()).filter(Boolean))), [timeline]);
   const timelineEventTypeOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.event_type || '').trim()).filter(Boolean))), [timeline]);
   const timelineLevelOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.level || '').trim()).filter(Boolean))), [timeline]);
   const filteredTimeline = useMemo(() => timeline.filter((event) => {
-    if (timelineStageFilter !== '__all__' && (event.stage_name || '__none__') !== timelineStageFilter) return false;
+    if (timelineStageFilter !== '__all__' && (event.stage_name || event.stage_key || '__none__') !== timelineStageFilter) return false;
     if (timelineEventTypeFilter !== '__all__' && (event.event_type || '__none__') !== timelineEventTypeFilter) return false;
     if (timelineLevelFilter !== '__all__' && (event.level || '__none__') !== timelineLevelFilter) return false;
     return true;

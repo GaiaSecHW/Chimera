@@ -610,7 +610,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       },
       maxRetries: projectConfig.config.max_retries_per_item ?? 2,
       continueOnFailure: projectConfig.config.continue_on_item_failure ?? true,
-      pipelineMode: projectConfig.config.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier',
+      pipelineMode: (projectConfig.config.pipeline_mode === 'mixed_streaming' ? 'mixed_streaming' : 'barrier') as BinarySecurityPipelineMode,
       partialSuccessStageAdvancement: {
         ...DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
         ...(projectConfig.config.partial_success_stage_advancement || {}),

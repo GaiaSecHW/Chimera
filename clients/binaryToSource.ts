@@ -594,6 +594,7 @@ export interface B2STaskObservabilityItem {
   sequence_no: number;
   item_name: string;
   status: string;
+  status_label?: string | null;
   duration_ms?: number | null;
   batch_count: number;
   session_count: number;
@@ -869,10 +870,12 @@ export interface B2STaskDetail extends B2STask {
     elf_path: string;
     output_dir: string;
     status: string;
+    status_label?: string | null;
     phase?: string;
     phase_label?: string;
     phase_message?: string;
     progress?: B2SProgress;
+    run_duration_ms?: number | null;
     failure_type?: string;
     error_reason?: string;
     pi_job_id?: string | null;

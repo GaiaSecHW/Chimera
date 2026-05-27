@@ -2216,7 +2216,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <tbody className="divide-y divide-slate-100 bg-white">
                           {pagedTimelineItems.map((event, index) => {
                             const expanded = expandedTimelineEventId === event.id;
-                            const payload = event.payload || {};
+                            const payload = event.payload || event.payload_json || {};
                             const sourceLabel = [event.source, event.worker_id || event.execution_owner_id, event.execution_epoch != null ? `Epoch ${event.execution_epoch}` : '', event.dispatch_status].filter(Boolean).join(' · ') || '-';
                             const hasPayload = Object.keys(payload).length > 0;
                             const statusText = event.status || event.dispatch_status || '-';

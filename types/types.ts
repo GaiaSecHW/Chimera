@@ -2604,6 +2604,7 @@ export interface AppSaTaskEvent {
   event_type: string;
   status?: string | null;
   stage_key?: string | null;
+  stage_name?: string | null;
   module_name?: string | null;
   attempt?: number | null;
   worker_id?: string | null;
@@ -2613,6 +2614,7 @@ export interface AppSaTaskEvent {
   parent_stage_item_id?: string | null;
   message: string;
   payload?: Record<string, any> | null;
+  payload_json?: Record<string, any> | null;
   created_at?: string | null;
 }
 
@@ -2927,7 +2929,12 @@ export interface AppEaTaskEvent {
   function_name?: string | null;
   attempt?: number | null;
   status?: string | null;
+  dispatch_status?: string | null;
+  worker_id?: string | null;
+  execution_owner_id?: string | null;
+  execution_epoch?: number | null;
   message?: string | null;
+  payload?: Record<string, any> | null;
   payload_json?: Record<string, any> | null;
   dedupe_key?: string | null;
   created_at: string;
