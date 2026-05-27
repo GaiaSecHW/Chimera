@@ -27,6 +27,7 @@ export const matchesDataflowVulnSampleScope = (row: Pick<MetricRowLike, 'name'>,
     matchesDataflowVulnSampleScope(row, 'runtime') ||
     matchesDataflowVulnSampleScope(row, 'ai') ||
     matchesDataflowVulnSampleScope(row, 'plugin') ||
+    row.name.includes('secflow_dataflow_cluster_capacity_summary_snapshot_') ||
     row.name.includes('secflow_dataflow_service_operation_') ||
     row.name.includes('secflow_dataflow_execution_') ||
     row.name.includes('secflow_dataflow_queue_depth')
@@ -58,6 +59,8 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
   const runtimeField = (mode: string, field: string) => metricValueByName(rows, 'secflow_dataflow_runtime_trace_total', { mode, field });
   const serviceOpCount = (operation: string) => metricValueByName(rows, 'secflow_dataflow_service_operation_total', { operation });
   const serviceOpAvg = (operation: string) => averageFromSummary(rows, 'secflow_dataflow_service_operation_duration_seconds', { operation });
+  const snapshotTotal = (result: string) => metricValueByName(rows, 'secflow_dataflow_cluster_capacity_summary_snapshot_total', { result });
+  const snapshotState = (field: string) => metricValueByName(rows, 'secflow_dataflow_cluster_capacity_summary_snapshot_state', { field });
 
   const plateauHints: Record<string, string> = {
     stagnant: '周期指标长时间不再推进',
@@ -87,6 +90,16 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
       };
     });
   const activePlateauCount = Object.keys(plateauHints).filter((flag) => (plateauFlag(flag) || 0) > 0).length;
+  const snapshotHits = snapshotTotal('hit');
+  const snapshotMisses = snapshotTotal('miss');
+  const snapshotFailures = snapshotTotal('refresh_failure');
+  const snapshotLookups = valueOrZero(snapshotHits) + valueOrZero(snapshotMisses);
+  const snapshotHitRate = snapshotLookups > 0 ? (valueOrZero(snapshotHits) / snapshotLookups) * 100 : null;
+  const snapshotAgeSeconds = snapshotState('age_seconds');
+  const snapshotAvailable = snapshotState('available');
+  const snapshotStale = snapshotState('stale');
+  const snapshotRefreshing = snapshotState('refreshing');
+  const snapshotLastRefreshSeconds = snapshotState('last_refresh_duration_seconds');
 
   return {
     topCards: [
@@ -98,6 +111,32 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
       { label: '失败 Execution', value: formatNumber(failedExecutions), hint: 'execution_status{status=failed}', tone: (failedExecutions || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
       { label: '取消 Execution', value: formatNumber(cancelledExecutions), hint: 'execution_status{status=cancelled}', tone: (cancelledExecutions || 0) > 0 ? 'text-slate-700' : 'text-emerald-700' },
       { label: '重试事件', value: formatNumber(retryEvents), hint: 'execution_events_total{event=retry}', tone: (retryEvents || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+    ],
+    snapshotCards: [
+      {
+        label: '快照命中率',
+        value: snapshotHitRate == null ? '-' : `${formatNumber(snapshotHitRate, 1)}%`,
+        hint: `hit ${formatNumber(snapshotHits)} / miss ${formatNumber(snapshotMisses)}`,
+        tone: snapshotHitRate != null && snapshotHitRate < 80 ? 'text-amber-700' : 'text-emerald-700',
+      },
+      {
+        label: '快照年龄',
+        value: snapshotAgeSeconds != null && snapshotAgeSeconds >= 0 ? formatSeconds(snapshotAgeSeconds) : '-',
+        hint: `available ${formatNumber(snapshotAvailable)} · stale ${formatNumber(snapshotStale)}`,
+        tone: (snapshotStale || 0) > 0 ? 'text-rose-700' : 'text-slate-900',
+      },
+      {
+        label: '刷新失败',
+        value: formatNumber(snapshotFailures),
+        hint: `refreshing ${formatNumber(snapshotRefreshing)} · refresh_failure total`,
+        tone: (snapshotFailures || 0) > 0 ? 'text-rose-700' : 'text-emerald-700',
+      },
+      {
+        label: '最近刷新耗时',
+        value: formatSeconds(snapshotLastRefreshSeconds),
+        hint: 'snapshot last_refresh_duration_seconds',
+        tone: (snapshotLastRefreshSeconds || 0) > 1 ? 'text-amber-700' : 'text-slate-900',
+      },
     ],
     serviceOperationCards: [
       {
