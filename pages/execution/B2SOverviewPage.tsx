@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, Trash2, UploadCloud, X } from 'lucide-react';
 
-import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2SRunModeDraft, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
@@ -40,6 +40,27 @@ const buildProgressLabel = (task: B2STask, detail?: B2STaskDetail | null) => {
 };
 
 const B2S_TASK_STATUS_ORDER = ['pending', 'running', 'success', 'partial', 'failed', 'cancelled', 'completed'];
+
+const normalizeB2SMode = (value?: string | null): B2SRunMode | null => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (normalized === 'turbo' || normalized === 'ida_only') return 'turbo';
+  if (normalized === 'deep' || normalized === 'agent') return 'deep';
+  if (normalized === 'fast' || normalized === 'hybrid') return 'fast';
+  return null;
+};
+
+const formatB2SModeLabel = (value?: string | null): string => {
+  const mode = normalizeB2SMode(value);
+  if (mode === 'turbo') return '极速模式';
+  if (mode === 'deep') return '深度模式';
+  return '快速模式';
+};
+
+const B2S_MODE_OPTIONS: Array<{ value: B2SRunMode; label: string; badge: string; description: string }> = [
+  { value: 'turbo', label: '极速模式', badge: 'IDA', description: '仅执行 IDA / Hex-Rays 导出，不使用 LLM，适合快速获取伪代码。' },
+  { value: 'fast', label: '快速模式', badge: '推荐', description: '使用混合流水线，兼顾速度和一定质量，适合批量还原。' },
+  { value: 'deep', label: '深度模式', badge: '高质量', description: '使用 Agent 深度推理，质量更高但耗时更长。' },
+];
 
 const normalizeB2STaskStatus = (status?: string | null) => {
   const normalized = String(status || '').trim().toLowerCase();
@@ -101,7 +122,8 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [name, setName] = useState('');
   const [concurrency, setConcurrency] = useState(8);
   const [projectDefaultConcurrency, setProjectDefaultConcurrency] = useState(8);
-  const [runMode, setRunMode] = useState<B2SRunMode>('fast');
+  const [runMode, setRunMode] = useState<B2SRunModeDraft>('');
+  const [projectDefaultMode, setProjectDefaultMode] = useState<B2SRunMode>('fast');
   const [llmProviderKey, setLlmProviderKey] = useState('');
   const [reuseCache, setReuseCache] = useState(true);
   const [llmProviders, setLlmProviders] = useState<B2SLlmProviderSummary[]>([]);
@@ -370,7 +392,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const resetCreateForm = () => {
     setName('');
     setConcurrency(projectDefaultConcurrency);
-    setRunMode('fast');
+    setRunMode('');
     setLlmProviderKey('');
     setReuseCache(true);
     setSelectedFiles([]);
@@ -391,7 +413,9 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       const providers = (data.items || []).filter((item) => item.enabled);
       const projectProviderKey = String(projectConfig?.llm_provider_key || '').trim();
       const nextProjectDefaultConcurrency = Math.max(1, Math.min(16, Number(projectConfig?.concurrency) || 8));
+      const nextProjectDefaultMode = normalizeB2SMode(projectConfig?.default_mode) || 'fast';
       setProjectDefaultConcurrency(nextProjectDefaultConcurrency);
+      setProjectDefaultMode(nextProjectDefaultMode);
       setConcurrency(nextProjectDefaultConcurrency);
       setLlmProviders(providers);
       setLlmProviderKey((current) => current || projectProviderKey || data.default_provider_key || providers.find((item) => item.is_default)?.provider_key || providers[0]?.provider_key || '');
@@ -513,7 +537,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         tags: ['reverse', 'binary-to-source'],
         llm_provider_key: llmProviderKey || undefined,
         concurrency: safeConcurrency,
-        mode: runMode,
+        ...(runMode ? { mode: runMode } : {}),
         reuse_cache: reuseCache,
         elf_tasks: elfTasks,
       });
@@ -1281,32 +1305,35 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
               <div className="space-y-3">
                 <div>
-                  <div className="text-sm font-bold text-slate-700">还原模式</div>
-                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="text-sm font-bold text-slate-700">还原模式（可选）</div>
+                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <button
                       type="button"
-                      onClick={() => setRunMode('fast')}
+                      onClick={() => setRunMode('')}
                       disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'fast' ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === '' ? 'border-slate-400 bg-slate-50 ring-2 ring-slate-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black text-slate-900">快速模式</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-cyan-700 ring-1 ring-cyan-100">推荐</div>
+                        <div className="text-sm font-black text-slate-900">使用项目默认</div>
+                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-slate-700 ring-1 ring-slate-100">默认</div>
                       </div>
-                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">优先速度，使用混合流水线，适合初步分析和批量还原。</div>
+                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">当前项目默认：{formatB2SModeLabel(projectDefaultMode)}。提交时不传 mode，由后端配置决定。</div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setRunMode('deep')}
-                      disabled={submitting}
-                      className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === 'deep' ? 'border-violet-300 bg-violet-50 ring-2 ring-violet-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black text-slate-900">深度模式</div>
-                        <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-violet-700 ring-1 ring-violet-100">高质量</div>
-                      </div>
-                      <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">使用 Agent 深度推理，速度较慢，适合关键二进制和高质量还原。</div>
-                    </button>
+                    {B2S_MODE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setRunMode(option.value)}
+                        disabled={submitting}
+                        className={`rounded-3xl border px-4 py-4 text-left transition-all ${runMode === option.value ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-100' : 'border-slate-200 bg-white hover:bg-slate-50'} disabled:opacity-60`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-black text-slate-900">{option.label}</div>
+                          <div className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-cyan-700 ring-1 ring-cyan-100">{option.badge}</div>
+                        </div>
+                        <div className="mt-2 text-xs font-semibold leading-5 text-slate-500">{option.description}</div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -1336,7 +1363,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                     <div>
                       <div className="text-sm font-black text-slate-900">复用已有缓存</div>
                       <div className="mt-1 text-xs font-semibold leading-5 text-slate-600">
-                        默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {runMode === 'deep' ? '深度模式' : '快速模式'} 下的缓存结果。
+                        默认开启。关闭后，本次会忽略历史缓存；如果任务成功，会覆盖当前 ELF 在 {formatB2SModeLabel(runMode || projectDefaultMode)} 下的缓存结果。
                       </div>
                     </div>
                     <label className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-black text-emerald-700">
