@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   Activity,
@@ -78,6 +78,21 @@ const RUN_STATUS_FILTER_KEYS = [
   'interrupted',
   'cancelled',
 ];
+
+const TASK_MODE_OPTIONS = [
+  { value: '', label: '全部来源' },
+  { value: 'manual', label: '手动任务' },
+  { value: 'binary', label: '二进制模式' },
+  { value: 'source', label: '源码模式' },
+] as const;
+
+const TASK_SORT_OPTIONS = [
+  { value: 'created_at', label: '创建时间' },
+  { value: 'updated_at', label: '更新时间' },
+  { value: 'started_at', label: '开始时间' },
+  { value: 'status', label: '状态' },
+  { value: 'priority', label: '优先级' },
+] as const;
 
 const REVIEW_PROFILE_OPTIONS = [
   { value: 'fast', label: '快速筛选' },
@@ -605,10 +620,17 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [tasks, setTasks] = useState<DataflowScanTask[]>([]);
+  const [total, setTotal] = useState(0);
   const [tasksError, setTasksError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(100);
   const [runQuery, setRunQuery] = useState('');
   const [runStatusFilter, setRunStatusFilter] = useState('');
+  const [modeFilter, setModeFilter] = useState<'' | 'manual' | 'binary' | 'source'>('');
+  const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -621,7 +643,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
-  const loadTasksPromiseRef = useRef<Promise<void> | null>(null);
 
   const openTaskDetail = async (
     task: Pick<DataflowScanTask, 'task_id' | 'latest_execution_id'>,
@@ -742,49 +763,35 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     }
   };
 
-  const load = async () => {
+  const loadTasks = useCallback(async (targetPage = page) => {
     if (!projectId) return;
-    if (loadTasksPromiseRef.current) {
-      return loadTasksPromiseRef.current;
-    }
-    const promise = (async () => {
-      setLoading(true);
-      setTasksError('');
-      try {
-        const [payload, nextSlotSummary] = await Promise.all([
-          executionApi.listTasks({ projectId }),
-          executionApi.getWorkerClusterCapacity().catch((error: any) => {
-            setSlotSummaryError(error?.message || '读取执行槽位失败');
-            return null;
-          }),
-        ]);
-        setTasks(payload || []);
-        if (nextSlotSummary) {
-          setSlotSummary(nextSlotSummary);
-          setSlotSummaryError('');
-        } else {
-          setSlotSummary(null);
-        }
-      } catch (error: any) {
-        setTasks([]);
-        const message = error?.message || '读取任务列表失败';
-        setTasksError(message);
-        notify(`加载数据流漏洞挖掘任务列表失败: ${message}`, 'error');
-      } finally {
-        setLoading(false);
-      }
-    })();
-    loadTasksPromiseRef.current = promise;
+    setLoading(true);
+    setTasksError('');
     try {
-      await promise;
+      const payload = await executionApi.listTasks({
+        projectId,
+        page: targetPage,
+        per_page: perPage,
+        status: runStatusFilter || undefined,
+        mode: modeFilter || undefined,
+        parent_task_id: parentTaskIdFilter.trim() || undefined,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      });
+      setTasks(payload.items || []);
+      setTotal(payload.total || 0);
+    } catch (error: any) {
+      setTasks([]);
+      setTotal(0);
+      const message = error?.message || '读取任务列表失败';
+      setTasksError(message);
+      notify(`加载数据流漏洞挖掘任务列表失败: ${message}`, 'error');
     } finally {
-      if (loadTasksPromiseRef.current === promise) {
-        loadTasksPromiseRef.current = null;
-      }
+      setLoading(false);
     }
-  };
+  }, [executionApi, modeFilter, notify, page, parentTaskIdFilter, perPage, projectId, runStatusFilter, sortBy, sortOrder]);
 
-  const loadSlotSummary = async () => {
+  const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
     try {
       const payload = await executionApi.getWorkerClusterCapacity();
@@ -796,7 +803,14 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     } finally {
       setSlotSummaryLoading(false);
     }
-  };
+  }, [executionApi]);
+
+  const loadAll = useCallback(async (targetPage = page) => {
+    await Promise.all([
+      loadTasks(targetPage),
+      loadSlotSummary(),
+    ]);
+  }, [loadSlotSummary, loadTasks, page]);
 
   useEffect(() => {
     setProfiles([]);
@@ -819,8 +833,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   }, [executionApi]);
 
   useEffect(() => {
-    void load();
-  }, [projectId]);
+    void loadAll(page);
+  }, [loadAll, page, projectId, perPage, runStatusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     const storedTaskId = sessionStorage.getItem('secflow:dataflowVulnTaskId');
@@ -861,12 +875,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   const stats = useMemo(() => {
     return {
-      total: tasks.length,
+      total,
       running: tasks.filter((task) => isActiveTaskStatus(taskDisplayStatus(task))).length,
       succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'completed').length,
       failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed').length,
     };
-  }, [tasks]);
+  }, [tasks, total]);
 
   useEffect(() => {
     const taskIds = new Set(tasks.map((task) => task.task_id));
@@ -916,7 +930,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         next.delete(task.task_id);
         return next;
       });
-      await load();
+      await loadTasks(page);
     } catch (error: any) {
       notify(`删除任务失败: ${error?.message || error || '未知错误'}`, 'error');
     }
@@ -960,7 +974,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       taskIds.forEach((taskId) => next.delete(taskId));
       return next;
     });
-    await load();
+    await loadTasks(page);
 
     if (failed === 0) {
       notify(`批量删除成功，共 ${success} 个任务`, 'success');
@@ -973,6 +987,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   const hasSelection = selectedTaskIds.size > 0;
   const allVisibleSelected = filteredTasks.length > 0 && filteredTasks.every((task) => selectedTaskIds.has(task.task_id));
+  const totalPages = Math.max(1, Math.ceil(total / Math.max(1, perPage)));
   const toggleSlotWorkerExpanded = (workerId: string) => {
     setExpandedSlotWorkerIds((current) => (
       current.includes(workerId)
@@ -1073,7 +1088,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       {feedbackNodes}
       <div className="space-y-4">
         <PageHeader
-          eyebrow="Dataflow Vulnerability Mining"
+          eyebrow="DATAFLOW VULNERABILITY DISCOVERY"
           title="数据流漏洞挖掘"
           version={buildVersion}
         >
@@ -1097,7 +1112,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             创建任务
           </button>
           <button
-            onClick={() => void load()}
+            onClick={() => void loadAll(page)}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
           >
             <RefreshCw size={16} />
@@ -1204,11 +1219,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-sm font-black text-slate-900">任务 / Run 列表</div>
+                  <div className="mt-1 text-xs text-slate-500">对齐数据流分析 / 入口分析列表：任务列表与槽位摘要分离加载，支持分页、模式筛选与服务端排序。</div>
                 </div>
                 <div className="text-xs font-bold text-slate-500">
-                  {filteredTasks.length === tasks.length
-                    ? `${tasks.length} 个任务`
-                    : `${filteredTasks.length} / ${tasks.length} 个任务`}
+                  当前页 {tasks.length} 条 · 共 {total} 条
+                  {filteredTasks.length !== tasks.length ? ` · 搜索命中 ${filteredTasks.length} 条` : ''}
                 </div>
               </div>
               <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1217,15 +1232,16 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <input
                     value={runQuery}
                     onChange={(event) => setRunQuery(event.target.value)}
-                    placeholder="搜索任务名、任务 ID、执行 ID、Run 目录、模型、状态或工作流模式"
+                    placeholder="搜索当前页任务名、任务 ID、执行 ID、Run 目录、模型、状态或工作流模式"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <select
                     value={runStatusFilter}
-                    onChange={(event) => setRunStatusFilter(event.target.value)}
+                    onChange={(event) => { setRunStatusFilter(event.target.value); setPage(1); }}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    title="按任务状态筛选"
                   >
                     <option value="">全部状态</option>
                     {RUN_STATUS_FILTER_KEYS.map((key) => {
@@ -1233,6 +1249,54 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       return <option key={key} value={key}>{meta.label}</option>;
                     })}
                   </select>
+                  <select
+                    value={modeFilter}
+                    onChange={(event) => { setModeFilter(event.target.value as '' | 'manual' | 'binary' | 'source'); setPage(1); }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    title="按任务来源筛选"
+                  >
+                    {TASK_MODE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                  <input
+                    value={parentTaskIdFilter}
+                    onChange={(event) => { setParentTaskIdFilter(event.target.value); setPage(1); }}
+                    placeholder="筛选主任务 ID"
+                    className="w-40 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
+                    title="按主任务 ID 筛选"
+                  />
+                  <select
+                    value={sortBy}
+                    onChange={(event) => { setSortBy(event.target.value); setPage(1); }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    title="排序字段"
+                  >
+                    {TASK_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>按{option.label}排序</option>)}
+                  </select>
+                  <select
+                    value={sortOrder}
+                    onChange={(event) => { setSortOrder(event.target.value === 'asc' ? 'asc' : 'desc'); setPage(1); }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    title="排序方向"
+                  >
+                    <option value="desc">降序</option>
+                    <option value="asc">升序</option>
+                  </select>
+                  <select
+                    value={perPage}
+                    onChange={(event) => { setPerPage(Number(event.target.value)); setPage(1); }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                    title="每页显示条数"
+                  >
+                    {[50, 100, 200, 500].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => void loadAll(page)}
+                    className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                    title="刷新任务列表与槽位摘要"
+                  >
+                    <RefreshCw size={14} />
+                  </button>
                 </div>
               </div>
               {tasksError ? (
@@ -1430,6 +1494,28 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 </div>
               ) : null}
             </div>
+
+            {totalPages > 1 ? (
+              <div className="flex items-center justify-center gap-2 border-t border-slate-200 px-4 py-4 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+                >
+                  上一页
+                </button>
+                <span className="text-slate-500">{page} / {totalPages}</span>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                  disabled={page >= totalPages}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-slate-700 disabled:opacity-40"
+                >
+                  下一页
+                </button>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -1796,7 +1882,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
         {feedbackNodes}
         <div className="space-y-4">
           <PageHeader
-            eyebrow="Dataflow Vulnerability Mining"
+            eyebrow="DATAFLOW VULNERABILITY DISCOVERY"
             title="正在进入 Run 详情"
             description="该入口会先定位任务对应的 Run，然后进入详情页。"
           >
@@ -1837,7 +1923,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
       {feedbackNodes}
       <div className="space-y-4">
         <PageHeader
-          eyebrow="Dataflow Vulnerability Mining"
+          eyebrow="DATAFLOW VULNERABILITY DISCOVERY"
           title="缺少 Run 入口"
           description="请从任务列表选择一个 Run 后进入。"
         >

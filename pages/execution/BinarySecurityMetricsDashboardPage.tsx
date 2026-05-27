@@ -5279,10 +5279,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                           <ExecutionTableTd className="font-mono text-[11px] text-slate-700">{item.handler_pod || '-'}</ExecutionTableTd>
                           <ExecutionTableTd className="font-mono text-[11px] text-slate-800">{item.task_id}</ExecutionTableTd>
                           <ExecutionTableTd className="text-slate-700">{item.stage_name || '-'}</ExecutionTableTd>
-                          <ExecutionTableTd align="right" className="font-mono text-[11px] text-slate-800">{formatNumber(item.attempts)}</ExecutionTableTd>
-                          <ExecutionTableTd align="right" className="font-mono text-[11px] text-slate-700">{formatMilliseconds(item.queue_wait_ms)}</ExecutionTableTd>
-                          <ExecutionTableTd align="right" className={`font-mono text-[11px] ${(item.processing_duration_ms ?? 0) >= 1000 ? 'text-amber-700 font-black' : 'text-slate-800'}`}>{formatMilliseconds(item.processing_duration_ms)}</ExecutionTableTd>
-                          <ExecutionTableTd align="right" className="font-mono text-[11px] text-slate-800">{formatMilliseconds(item.end_to_end_duration_ms)}</ExecutionTableTd>
+                          <ExecutionTableTd className="text-right font-mono text-[11px] text-slate-800">{formatNumber(item.attempts)}</ExecutionTableTd>
+                          <ExecutionTableTd className="text-right font-mono text-[11px] text-slate-700">{formatMilliseconds(item.queue_wait_ms)}</ExecutionTableTd>
+                          <ExecutionTableTd className={`text-right font-mono text-[11px] ${(item.processing_duration_ms ?? 0) >= 1000 ? 'text-amber-700 font-black' : 'text-slate-800'}`}>{formatMilliseconds(item.processing_duration_ms)}</ExecutionTableTd>
+                          <ExecutionTableTd className="text-right font-mono text-[11px] text-slate-800">{formatMilliseconds(item.end_to_end_duration_ms)}</ExecutionTableTd>
                           <ExecutionTableTd className="max-w-[24rem] text-xs text-slate-600">
                             {item.last_error || item.failure_reason || '-'}
                           </ExecutionTableTd>

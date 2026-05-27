@@ -123,6 +123,13 @@ export interface DataflowScanTask {
   vuln_report_status?: Record<string, any>;
 }
 
+export interface DataflowScanTaskListResponse {
+  items: DataflowScanTask[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
 export interface DataflowScanTaskDetail extends DataflowScanTask {
   title: string;
   task_markdown: string;
@@ -564,6 +571,28 @@ const unwrapList = <T,>(payload: unknown): T[] => {
   return [];
 };
 
+const unwrapPagedList = <T,>(payload: unknown, defaults?: { page?: number; per_page?: number }): { items: T[]; total: number; page: number; per_page: number } => {
+  const items = unwrapList<T>(payload);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return {
+      items,
+      total: items.length,
+      page: defaults?.page ?? 1,
+      per_page: defaults?.per_page ?? items.length,
+    };
+  }
+  const envelope = payload as Record<string, unknown>;
+  const total = Number(envelope.total);
+  const page = Number(envelope.page);
+  const perPage = Number(envelope.per_page);
+  return {
+    items,
+    total: Number.isFinite(total) ? total : items.length,
+    page: Number.isFinite(page) && page > 0 ? page : (defaults?.page ?? 1),
+    per_page: Number.isFinite(perPage) && perPage > 0 ? perPage : (defaults?.per_page ?? items.length),
+  };
+};
+
 export const dataflowVulnScannerApi = {
   getHealth: async (): Promise<DataflowVulnScannerHealth> => {
     const response = await fetch(`${PREFIX}/health`, { headers: getHeaders() });
@@ -589,13 +618,32 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  listTasks: async (params: { projectId?: string; status?: string; profileId?: string } = {}): Promise<DataflowScanTask[]> => {
+  listTasks: async (params: {
+    projectId?: string;
+    page?: number;
+    per_page?: number;
+    status?: string;
+    mode?: 'manual' | 'binary' | 'source';
+    parent_task_id?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    profileId?: string;
+  } = {}): Promise<DataflowScanTaskListResponse> => {
     const response = await fetch(withQuery(`${PREFIX}/tasks`, {
       project_id: params.projectId,
+      page: params.page,
+      per_page: params.per_page,
       status: params.status,
+      mode: params.mode,
+      parent_task_id: params.parent_task_id,
+      sort_by: params.sort_by,
+      sort_order: params.sort_order,
       profile_id: params.profileId,
     }), { headers: getHeaders() });
-    return unwrapList<DataflowScanTask>(await handleResponse(response));
+    return unwrapPagedList<DataflowScanTask>(await handleResponse(response), {
+      page: params.page,
+      per_page: params.per_page,
+    });
   },
 
   getWorkerClusterCapacity: async (): Promise<DataflowVulnClusterCapacity> => {
