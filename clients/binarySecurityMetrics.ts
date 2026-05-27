@@ -1,4 +1,4 @@
-import { API_BASE, fetchWithRetry, getAuthHeaders, handleResponse } from './base';
+import { API_BASE, fetchWithRetry, getAuthHeaders, getHeaders, handleResponse } from './base';
 
 export type BinarySecurityMetricsServiceKey =
   | 'binary-security'

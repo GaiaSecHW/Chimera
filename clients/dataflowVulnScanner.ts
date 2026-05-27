@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   ProjectFilesystemChildrenResponse,
   ProjectFilesystemRootResponse,
@@ -68,6 +69,15 @@ export interface DataflowAgentStateRootPayload {
   root_dir: DataflowInputRef;
 }
 
+export type DataflowVulnScannerHealth = {
+  status: string;
+  pod_id: string;
+  database: string;
+  scheduler: string;
+  scheduler_role?: string;
+  worker_enabled?: string;
+} & ServiceHealthMeta;
+
 export interface DataflowAgentStateDir {
   agent_id: string;
   root_dir: string;
@@ -104,6 +114,10 @@ export interface DataflowScanTask {
   finished_at?: string | null;
   message?: string | null;
   latest_execution_id?: string | null;
+  owner_pod_id?: string | null;
+  dispatch_status?: string | null;
+  heartbeat_at?: string | null;
+  heartbeat_age_seconds?: number | null;
   run_name?: string | null;
   runs_root?: string | null;
   run_path?: string | null;
@@ -111,6 +125,13 @@ export interface DataflowScanTask {
   latest_run?: Partial<DataflowRunSummary> | null;
   auto_report_vulnerabilities?: boolean;
   vuln_report_status?: Record<string, any>;
+}
+
+export interface DataflowScanTaskListResponse {
+  items: DataflowScanTask[];
+  total: number;
+  page: number;
+  per_page: number;
 }
 
 export interface DataflowScanTaskDetail extends DataflowScanTask {
@@ -177,6 +198,38 @@ export interface DataflowServiceEffectiveConfig {
   config: Record<string, any>;
 }
 
+export interface DataflowServiceRuntimeConfig {
+  service_name: string;
+  api_prefix: string;
+  config: {
+    scheduler?: {
+      enabled?: boolean;
+      role?: string;
+      worker_capacity?: number;
+      poll_interval_seconds?: number;
+      heartbeat_interval_seconds?: number;
+      worker_timeout_seconds?: number;
+      worker_retention_seconds?: number;
+      cleanup_interval_seconds?: number;
+      discovery_mode?: 'registry' | 'static_urls' | 'hybrid' | string;
+      reservation_lease_seconds?: number;
+      worker_queue_depth?: number;
+      dispatch_batch_size?: number;
+      requeue_stuck_dispatch_after_seconds?: number;
+    };
+    dataflow_worker?: {
+      base_url?: string;
+      worker_urls?: string[];
+      worker_url_template?: string;
+      advertise_url_template?: string;
+      timeout?: number;
+      dispatch_retry_interval_seconds?: number;
+      dispatch_max_retries?: number;
+    };
+    [key: string]: any;
+  };
+}
+
 export interface DataflowSchedulerWorker {
   pod_id: string;
   host_name: string;
@@ -187,6 +240,49 @@ export interface DataflowSchedulerWorker {
   metadata_json?: Record<string, any> | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+export interface DataflowVulnWorkerActiveJob {
+  execution_id: string;
+  task_id?: string | null;
+  task_title?: string | null;
+  status: string;
+  worker_job_id: string;
+  worker_url?: string | null;
+  dispatch_status?: string | null;
+  started_at?: string | null;
+  updated_at?: string | null;
+  run_name?: string | null;
+  run_path?: string | null;
+  project_id?: string | null;
+  mapped: boolean;
+  mapping_reason: string;
+}
+
+export interface DataflowVulnWorkerCapacity {
+  worker_id: string;
+  host_name: string;
+  healthy: boolean;
+  max_concurrent_jobs: number;
+  running_jobs: number;
+  available_slots: number;
+  source: string;
+  last_heartbeat_at?: string | null;
+  error?: string | null;
+  active_jobs: DataflowVulnWorkerActiveJob[];
+}
+
+export interface DataflowVulnClusterCapacity {
+  worker_count: number;
+  healthy_workers: number;
+  stale_workers: number;
+  total_capacity: number;
+  running_jobs: number;
+  queued_jobs: number;
+  available_slots: number;
+  updated_at: string;
+  detail_mode?: 'summary' | 'detail';
+  workers: DataflowVulnWorkerCapacity[];
 }
 
 export interface DataflowCreateTaskPayload {
@@ -480,7 +576,34 @@ const unwrapList = <T,>(payload: unknown): T[] => {
   return [];
 };
 
+const unwrapPagedList = <T,>(payload: unknown, defaults?: { page?: number; per_page?: number }): { items: T[]; total: number; page: number; per_page: number } => {
+  const items = unwrapList<T>(payload);
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return {
+      items,
+      total: items.length,
+      page: defaults?.page ?? 1,
+      per_page: defaults?.per_page ?? items.length,
+    };
+  }
+  const envelope = payload as Record<string, unknown>;
+  const total = Number(envelope.total);
+  const page = Number(envelope.page);
+  const perPage = Number(envelope.per_page);
+  return {
+    items,
+    total: Number.isFinite(total) ? total : items.length,
+    page: Number.isFinite(page) && page > 0 ? page : (defaults?.page ?? 1),
+    per_page: Number.isFinite(perPage) && perPage > 0 ? perPage : (defaults?.per_page ?? items.length),
+  };
+};
+
 export const dataflowVulnScannerApi = {
+  getHealth: async (): Promise<DataflowVulnScannerHealth> => {
+    const response = await fetch(`${PREFIX}/health`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
   getCapabilities: async (): Promise<Record<string, any>> => {
     const response = await fetch(`${PREFIX}/capabilities`, { headers: getHeaders() });
     return handleResponse(response);
@@ -500,13 +623,50 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  listTasks: async (params: { projectId?: string; status?: string; profileId?: string } = {}): Promise<DataflowScanTask[]> => {
+  listTasks: async (params: {
+    projectId?: string;
+    page?: number;
+    per_page?: number;
+    status?: string;
+    mode?: 'manual' | 'binary' | 'source';
+    parent_task_id?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    profileId?: string;
+  } = {}): Promise<DataflowScanTaskListResponse> => {
     const response = await fetch(withQuery(`${PREFIX}/tasks`, {
       project_id: params.projectId,
+      page: params.page,
+      per_page: params.per_page,
       status: params.status,
+      mode: params.mode,
+      parent_task_id: params.parent_task_id,
+      sort_by: params.sort_by,
+      sort_order: params.sort_order,
       profile_id: params.profileId,
     }), { headers: getHeaders() });
-    return unwrapList<DataflowScanTask>(await handleResponse(response));
+    return unwrapPagedList<DataflowScanTask>(await handleResponse(response), {
+      page: params.page,
+      per_page: params.per_page,
+    });
+  },
+
+  getWorkerClusterCapacity: async (): Promise<DataflowVulnClusterCapacity> => {
+    const response = await fetch(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getWorkerClusterCapacitySummary: async (): Promise<DataflowVulnClusterCapacity> => {
+    const response = await fetch(`${PREFIX}/workers/cluster-capacity/summary`, { headers: getHeaders() });
+    if (response.status === 404) {
+      const fallbackResponse = await fetch(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
+      const payload = await handleResponse(fallbackResponse);
+      return {
+        ...payload,
+        detail_mode: payload.detail_mode || 'detail',
+      };
+    }
+    return handleResponse(response);
   },
 
   createTask: async (payload: DataflowCreateTaskPayload): Promise<DataflowScanTask> => {
@@ -636,6 +796,14 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
+  deleteTask: async (taskId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
   cancelTask: async (taskId: string): Promise<DataflowScanTask> => {
     const response = await fetch(`${PREFIX}/tasks/${encodeURIComponent(taskId)}/cancel`, {
       method: 'POST',
@@ -717,6 +885,20 @@ export const dataflowVulnScannerApi = {
 
   getServiceEffectiveConfig: async (): Promise<DataflowServiceEffectiveConfig> => {
     const response = await fetch(`${PREFIX}/service/config/effective`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getServiceConfig: async (): Promise<DataflowServiceRuntimeConfig> => {
+    const response = await fetch(`${PREFIX}/service/config`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  saveServiceConfig: async (config: DataflowServiceRuntimeConfig['config']): Promise<DataflowServiceRuntimeConfig> => {
+    const response = await fetch(`${PREFIX}/service/config`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ config }),
+    });
     return handleResponse(response);
   },
 
