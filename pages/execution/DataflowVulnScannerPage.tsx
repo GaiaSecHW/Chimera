@@ -624,7 +624,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [tasksError, setTasksError] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(100);
+  const [perPage, setPerPage] = useState(20);
   const [runQuery, setRunQuery] = useState('');
   const [runStatusFilter, setRunStatusFilter] = useState('');
   const [modeFilter, setModeFilter] = useState<'' | 'manual' | 'binary' | 'source'>('');
@@ -864,12 +864,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   const filteredTasks = useMemo(() => {
     const text = runQuery.trim().toLowerCase();
+    if (!text) return tasks;
     return tasks.filter((task) => {
       const run = taskRunLocator(task);
       const runSummary = taskRunSummary(task);
       const normalizedStatus = normalizeRunStatus(taskDisplayStatus(task));
-      if (runStatusFilter && normalizedStatus !== runStatusFilter) return false;
-      if (!text) return true;
       return [
         task.title,
         task.task_id,
@@ -890,7 +889,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         run.linked_execution_id,
       ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
     });
-  }, [runQuery, runStatusFilter, tasks]);
+  }, [runQuery, tasks]);
 
   const stats = useMemo(() => {
     return {
