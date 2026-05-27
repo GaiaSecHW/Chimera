@@ -316,6 +316,12 @@ type BinarySecurityObservabilityViewModel = {
   alerts: Array<{ label: string; text: string; tone: string }>;
   pipelineSummary: ReducerBreakdownItem[];
   reducerSummary: ReducerBreakdownItem[];
+  syncSummary: ReducerBreakdownItem[];
+  taskListPerformance: {
+    topCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+    stageRows: Array<{ stage: string; p95Seconds: number | null; avgSeconds: number | null; count: number | null; tone: string }>;
+    alerts: Array<{ label: string; text: string; tone: string }>;
+  };
   groupCounts: Array<{ group: BinarySecurityMetricsGroup; count: number }>;
 };
 
@@ -672,6 +678,60 @@ const buildBinarySecurityObservabilityViewModel = (
   const pendingWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'pending');
   const dispatchWorkers = sumMetric(rows, (row) => row.name === 'secflow_binary_security_active_workers' && row.labels.kind === 'dispatch');
   const alerts: Array<{ label: string; text: string; tone: string }> = [];
+  const reconcileCandidates = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_candidates');
+  const reconcileLastAttempted = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_attempted');
+  const reconcileLastChanged = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_changed');
+  const reconcileLastFailed = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_failed');
+  const reconcileLastRunAt = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_run_timestamp');
+  const reconcileChangedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'changed' });
+  const reconcileFailedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'failed' });
+  const listQueryTotal = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_list_queries_total');
+  const listQueryErrors = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_list_queries_total' && row.labels.result === 'error');
+  const listQueryAvgSeconds = histogramAverage(rows, 'secflow_binary_security_task_list_query_duration_seconds');
+  const listQueryP50Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_duration_seconds', 0.5);
+  const listQueryP95Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_duration_seconds', 0.95);
+  const taskListPerfStageKeys = [
+    'count',
+    'page_items',
+    'project_stats',
+    'project_stage_aggregates',
+    'queue_info',
+    'serialize_items',
+    'service_config',
+    'build_base_query',
+  ] as const;
+  const taskListPerfStageLabel = (stage: string) => {
+    const labels: Record<string, string> = {
+      count: '总数统计',
+      page_items: '分页数据查询',
+      project_stats: '项目统计聚合',
+      project_stage_aggregates: '阶段聚合',
+      queue_info: '队列统计',
+      serialize_items: '列表序列化',
+      service_config: '服务配置读取',
+      build_base_query: '基础查询构建',
+    };
+    return labels[stage] || stage;
+  };
+  const taskListStageRows = taskListPerfStageKeys
+    .map((stage) => {
+      const p95Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds', 0.95, { stage });
+      const avgSeconds = histogramAverage(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds', { stage });
+      const count = metricValueByName(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds_count', { stage });
+      const severity = Math.max(p95Seconds || 0, avgSeconds || 0);
+      const tone =
+        severity > 1
+          ? 'text-rose-700'
+          : severity > 0.3
+            ? 'text-amber-700'
+            : severity > 0
+              ? 'text-slate-700'
+              : 'text-slate-500';
+      return { stage, p95Seconds, avgSeconds, count, tone };
+    })
+    .filter((item) => item.count != null || item.avgSeconds != null || item.p95Seconds != null)
+    .sort((left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0));
+  const taskListAlerts: Array<{ label: string; text: string; tone: string }> = [];
 
   if (aggregateCoverage?.partial) {
     alerts.push({
@@ -708,10 +768,46 @@ const buildBinarySecurityObservabilityViewModel = (
       tone: 'border-sky-200 bg-sky-50 text-sky-800',
     });
   }
+  if ((reconcileLastFailed || 0) > 0) {
+    alerts.push({
+      label: '后台状态同步失败',
+      text: `最近一轮后台状态同步失败 ${formatNumber(reconcileLastFailed)} 个任务。列表查询已不再触发同步，请检查后台循环与下游状态拉取。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
   if (!alerts.length) {
     alerts.push({
       label: '编排侧整体平稳',
       text: '当前聚合结果没有显示明显的状态事件积压、死信或锁竞争放大信号，可以继续结合下方原始指标排查细节。',
+      tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    });
+  }
+  const slowestTaskListStage = taskListStageRows[0];
+  if ((listQueryP95Seconds || 0) > 1) {
+    taskListAlerts.push({
+      label: '任务列表长尾延迟偏高',
+      text: `当前列表查询 P95 ${formatSeconds(listQueryP95Seconds)}，用户在任务列表页会明显感知等待。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if ((listQueryErrors || 0) > 0) {
+    taskListAlerts.push({
+      label: '任务列表查询存在错误',
+      text: `累计错误 ${formatNumber(listQueryErrors)} / 总请求 ${formatNumber(listQueryTotal)}，需要排查读路径稳定性或聚合依赖异常。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if (slowestTaskListStage && (slowestTaskListStage.p95Seconds || 0) > 0.3) {
+    taskListAlerts.push({
+      label: `最慢分段：${taskListPerfStageLabel(slowestTaskListStage.stage)}`,
+      text: `P95 ${formatSeconds(slowestTaskListStage.p95Seconds)}，均值 ${formatSeconds(slowestTaskListStage.avgSeconds)}。`,
+      tone: (slowestTaskListStage.p95Seconds || 0) > 1 ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-800',
+    });
+  }
+  if (!taskListAlerts.length) {
+    taskListAlerts.push({
+      label: '任务列表读路径平稳',
+      text: '当前没有明显的任务列表查询慢点或错误积累，若页面仍慢，优先继续排查浏览器渲染或上游网络链路。',
       tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     });
   }
@@ -774,6 +870,13 @@ const buildBinarySecurityObservabilityViewModel = (
         tone: runningWorkers > 0 ? 'text-teal-700' : 'text-slate-900',
         icon: <TrendingUp size={16} />,
       },
+      {
+        label: '同步候选任务',
+        value: formatNumber(reconcileCandidates),
+        hint: `最近运行 ${formatTime(reconcileLastRunAt)}`,
+        tone: (reconcileCandidates || 0) > 0 ? 'text-cyan-700' : 'text-slate-900',
+        icon: <RefreshCw size={16} />,
+      },
     ],
     alerts,
     pipelineSummary: [
@@ -792,6 +895,29 @@ const buildBinarySecurityObservabilityViewModel = (
       { label: 'lock held avg', value: lockHeldAvg, tone: (lockHeldAvg || 0) > 1.5 ? 'text-rose-700' : 'text-slate-600' },
       { label: 'active locks', value: activeLocks, tone: activeLocks > 0 ? 'text-orange-700' : 'text-slate-600' },
     ],
+    syncSummary: [
+      { label: 'last attempted', value: reconcileLastAttempted, tone: 'text-slate-600' },
+      { label: 'last changed', value: reconcileLastChanged, tone: (reconcileLastChanged || 0) > 0 ? 'text-cyan-700' : 'text-slate-600' },
+      { label: 'last failed', value: reconcileLastFailed, tone: (reconcileLastFailed || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+      { label: 'changed total', value: reconcileChangedTotal, tone: (reconcileChangedTotal || 0) > 0 ? 'text-cyan-700' : 'text-slate-600' },
+      { label: 'failed total', value: reconcileFailedTotal, tone: (reconcileFailedTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+    ],
+    taskListPerformance: {
+      topCards: [
+        { label: '列表总请求', value: formatNumber(listQueryTotal), hint: 'task_list_queries_total', tone: 'text-slate-900' },
+        { label: '错误请求', value: formatNumber(listQueryErrors), hint: 'result=error', tone: listQueryErrors > 0 ? 'text-rose-700' : 'text-emerald-700' },
+        { label: '平均耗时', value: formatSeconds(listQueryAvgSeconds), hint: 'overall avg', tone: (listQueryAvgSeconds || 0) > 0.5 ? 'text-amber-700' : 'text-slate-900' },
+        { label: 'P50', value: formatSeconds(listQueryP50Seconds), hint: 'overall p50', tone: (listQueryP50Seconds || 0) > 0.3 ? 'text-amber-700' : 'text-slate-900' },
+        {
+          label: 'P95',
+          value: formatSeconds(listQueryP95Seconds),
+          hint: 'overall p95',
+          tone: (listQueryP95Seconds || 0) > 1 ? 'text-rose-700' : (listQueryP95Seconds || 0) > 0.5 ? 'text-amber-700' : 'text-emerald-700',
+        },
+      ],
+      stageRows: taskListStageRows.map((item) => ({ ...item, stage: taskListPerfStageLabel(item.stage) })),
+      alerts: taskListAlerts,
+    },
     groupCounts: (Object.keys(GROUP_LABELS) as BinarySecurityMetricsGroup[]).map((group) => ({
       group,
       count: rows.filter((row) => row.group === group).length,
@@ -2497,6 +2623,67 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
                 <ReducerMetricList title="编排推进摘要" items={binarySecurityObservabilityViewModel.pipelineSummary} emptyText="暂无编排摘要。" />
                 <ReducerMetricList title="Reducer/锁摘要" items={binarySecurityObservabilityViewModel.reducerSummary} emptyText="暂无 reducer 摘要。" />
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                <ReducerMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
+                <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Task List Query</div>
+                  <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">任务列表查询性能</h3>
+                  <p className="mt-2 text-sm text-slate-500">
+                    只展示列表读路径性能，不夹带同步副作用。这里可以直接看整体延迟、错误，以及最慢子分段是否出在计数、聚合还是序列化。
+                  </p>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    {binarySecurityObservabilityViewModel.taskListPerformance.topCards.map((item) => (
+                      <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                        <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                        <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
+                        <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {binarySecurityObservabilityViewModel.taskListPerformance.alerts.map((alert) => (
+                      <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+                        <div className="text-sm font-black">{alert.label}</div>
+                        <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="px-3 py-2 font-black text-slate-500">分段</th>
+                          <th className="px-3 py-2 font-black text-slate-500">调用次数</th>
+                          <th className="px-3 py-2 font-black text-slate-500">平均耗时</th>
+                          <th className="px-3 py-2 font-black text-slate-500">P95</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {binarySecurityObservabilityViewModel.taskListPerformance.stageRows.length ? (
+                          binarySecurityObservabilityViewModel.taskListPerformance.stageRows.map((item) => (
+                            <tr key={item.stage}>
+                              <td className="px-3 py-2 font-semibold text-slate-700">{item.stage}</td>
+                              <td className="px-3 py-2 font-mono text-slate-500">{formatNumber(item.count)}</td>
+                              <td className={`px-3 py-2 font-mono ${item.tone}`}>{formatSeconds(item.avgSeconds)}</td>
+                              <td className={`px-3 py-2 font-mono ${item.tone}`}>{formatSeconds(item.p95Seconds)}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="px-3 py-8 text-center text-sm text-slate-500">
+                              暂无任务列表分段性能指标。
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">

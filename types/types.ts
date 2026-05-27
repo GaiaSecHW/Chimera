@@ -2595,6 +2595,39 @@ export interface AppSaTaskEvaluation {
   warnings: string[];
 }
 
+export interface AppSaTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  source?: string | null;
+  level?: string | null;
+  event_type: string;
+  status?: string | null;
+  stage_key?: string | null;
+  module_name?: string | null;
+  attempt?: number | null;
+  worker_id?: string | null;
+  execution_owner_id?: string | null;
+  lease_epoch?: number | null;
+  parent_task_id?: string | null;
+  parent_stage_item_id?: string | null;
+  message: string;
+  payload?: Record<string, any> | null;
+  created_at?: string | null;
+}
+
+export interface AppSaTaskTimeline {
+  task_id: string;
+  events: AppSaTaskEvent[];
+}
+
+export interface AppSaTaskActionResponse {
+  status: string;
+  task_id: string;
+  message: string;
+  deleted_event_count?: number | null;
+}
+
 export interface AppSaSessionMeta {
   session_id: string;
   session_name: string;
@@ -2880,6 +2913,48 @@ export interface AppEaTaskLogsResponse {
   events: AppEaStageEvent[];
 }
 
+export interface AppEaTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  source?: string | null;
+  level?: string | null;
+  event_type: string;
+  stage_key?: string | null;
+  file_hash?: string | null;
+  func_hash?: string | null;
+  file_path?: string | null;
+  function_name?: string | null;
+  attempt?: number | null;
+  status?: string | null;
+  message?: string | null;
+  payload_json?: Record<string, any> | null;
+  dedupe_key?: string | null;
+  created_at: string;
+}
+
+export interface AppEaTaskEventSummary {
+  total_events: number;
+  latest_event_type?: string | null;
+  latest_event_at?: string | null;
+  latest_stage_key?: string | null;
+  latest_function_name?: string | null;
+  latest_attempt?: number | null;
+}
+
+export interface AppEaTaskTimelineResponse {
+  task_id: string;
+  total: number;
+  items: AppEaTaskEvent[];
+}
+
+export interface AppEaTaskActionResponse {
+  success: boolean;
+  message?: string | null;
+  deleted_count?: number | null;
+  deleted_event_count?: number | null;
+}
+
 export interface AppEaFunctionCatalogItem {
   func_hash: string;
   file_hash?: string;
@@ -2916,6 +2991,7 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
     files_list_path?: string | null;
   } | null;
   output_summary?: Record<string, any> | null;
+  event_summary?: AppEaTaskEventSummary | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
 }
 
@@ -3083,6 +3159,34 @@ export interface AppDfaStageEvent {
   ts: number;
   type: string;
   data?: Record<string, any>;
+}
+
+export interface AppDfaTaskEvent {
+  id: string;
+  task_id: string;
+  project_id: string;
+  source: string;
+  level: string;
+  event_type: string;
+  status?: string | null;
+  worker_id?: string | null;
+  execution_owner_id?: string | null;
+  execution_epoch?: number | null;
+  control_version?: number | null;
+  dispatch_status?: string | null;
+  function_name?: string | null;
+  source_file?: string | null;
+  line_hint?: string | null;
+  parent_task_id?: string | null;
+  parent_stage_item_id?: string | null;
+  message: string;
+  payload?: Record<string, any> | null;
+  created_at?: string | null;
+}
+
+export interface AppDfaTaskTimeline {
+  task_id: string;
+  events: AppDfaTaskEvent[];
 }
 
 export interface AppDfaStagesJson {

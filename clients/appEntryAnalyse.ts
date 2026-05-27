@@ -1,14 +1,17 @@
 import { API_BASE, getHeaders, handleResponse } from './base';
 import {
+  AppEaTaskActionResponse,
   AppEaSessionIndex,
   AppEaSessionMeta,
   AppEaSessionSnapshot,
   AppEaTaskCreateRequest,
   AppEaTaskDetail,
+  AppEaTaskEvent,
   AppEaTaskEvaluation,
   AppEaTaskItem,
   AppEaTaskLogsResponse,
   AppEaTaskResult,
+  AppEaTaskTimelineResponse,
   EntryAnalyseSlotClusterSummary,
   EntryAnalysisModelsConfig,
   EntryAnalysisPromptTemplate,
@@ -76,6 +79,21 @@ export const appEntryAnalyseApi = {
   getTask: async (taskId: string): Promise<AppEaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
 
+  getTimeline: async (taskId: string): Promise<AppEaTaskTimelineResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
+
+  clearTimeline: async (taskId: string): Promise<AppEaTaskActionResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
+  deleteTimelineEvent: async (taskId: string, eventId: string): Promise<AppEaTaskActionResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
   getTaskResult: async (taskId: string): Promise<AppEaTaskResult> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/result`, { headers: getHeaders() })),
 
@@ -111,13 +129,11 @@ export const appEntryAnalyseApi = {
       headers: getHeaders(),
     })),
 
-  deleteTask: async (taskId: string, deleteFiles = true): Promise<void> => {
-    const resp = await fetch(
+  deleteTask: async (taskId: string, deleteFiles = true): Promise<AppEaTaskActionResponse> =>
+    handleResponse(await fetch(
       `${BASE}/tasks/${encodeURIComponent(taskId)}?delete_files=${deleteFiles}`,
       { method: 'DELETE', headers: getHeaders() },
-    );
-    if (!resp.ok) await handleResponse(resp);
-  },
+    )),
 
   getTaskLogs: async (taskId: string, since = 0): Promise<AppEaTaskLogsResponse> => {
     const q = since > 0 ? `?since=${since}` : '';

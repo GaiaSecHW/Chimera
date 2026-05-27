@@ -5,11 +5,13 @@ import {
   AppSaSessionSnapshot,
   AppSaClusterCapacity,
   AppSaStagesJson,
+  AppSaTaskActionResponse,
   AppSaTaskCreateRequest,
   AppSaTaskDetail,
   AppSaTaskEvaluation,
   AppSaTaskItem,
   AppSaTaskResult,
+  AppSaTaskTimeline,
   SystemAnalysisModelsConfig,
   SystemAnalysisPromptTemplate,
   SystemAnalysisServiceConfig,
@@ -93,6 +95,21 @@ export const appSystemAnalyseApi = {
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+
+  getTimeline: async (taskId: string): Promise<AppSaTaskTimeline> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
+
+  clearTimeline: async (taskId: string): Promise<AppSaTaskActionResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
+
+  deleteTimelineEvent: async (taskId: string, eventId: string): Promise<AppSaTaskActionResponse> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    })),
 
   repairTaskOrigin: async (taskId: string, analysisMode: 'binary' | 'source'): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/origin`, {
