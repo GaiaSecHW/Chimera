@@ -12,7 +12,6 @@ import {
   History,
   Layers,
   Loader2,
-  PauseCircle,
   Play,
   Plus,
   RefreshCw,
@@ -50,25 +49,17 @@ import { navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../.
 
 const STATUS_META: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: { label: '待启动', className: 'bg-slate-100 text-slate-700 border-slate-200', icon: <Clock size={13} /> },
-  queued: { label: '启动中', className: 'bg-sky-50 text-sky-700 border-sky-200', icon: <Clock size={13} /> },
   running: { label: '运行中', className: 'bg-cyan-50 text-cyan-700 border-cyan-200', icon: <Activity size={13} /> },
-  cancel_requested: { label: '取消中', className: 'bg-amber-50 text-amber-700 border-amber-200', icon: <PauseCircle size={13} /> },
-  delete_requested: { label: '删除中', className: 'bg-rose-50 text-rose-700 border-rose-200', icon: <PauseCircle size={13} /> },
-  completed: { label: '已完成', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <CheckCircle2 size={13} /> },
+  succeeded: { label: '已完成', className: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <CheckCircle2 size={13} /> },
   failed: { label: '失败', className: 'bg-rose-50 text-rose-700 border-rose-200', icon: <XCircle size={13} /> },
-  interrupted: { label: '已中断', className: 'bg-orange-50 text-orange-700 border-orange-200', icon: <AlertTriangle size={13} /> },
   cancelled: { label: '已取消', className: 'bg-zinc-100 text-zinc-700 border-zinc-200', icon: <X size={13} /> },
 };
 
 const RUN_STATUS_FILTER_KEYS = [
   'pending',
-  'queued',
   'running',
-  'cancel_requested',
-  'delete_requested',
-  'completed',
+  'succeeded',
   'failed',
-  'interrupted',
   'cancelled',
 ];
 
@@ -352,7 +343,9 @@ const vulnReportStatusLabel = (task: DataflowScanTask) => {
 
 const normalizeRunStatus = (status?: string | null) => {
   const value = String(status || '').trim().toLowerCase();
-  if (['succeeded', 'success', 'passed'].includes(value)) return 'completed';
+  if (['queued', 'dispatching'].includes(value)) return 'pending';
+  if (['succeeded', 'success', 'passed', 'completed'].includes(value)) return 'succeeded';
+  if (['cancel_requested', 'delete_requested'].includes(value)) return 'running';
   if ([
     'orphaned',
     'error',
@@ -369,7 +362,7 @@ const normalizeRunStatus = (status?: string | null) => {
     'blocked_external_source',
     'no_workspace',
   ].includes(value)) return 'failed';
-  if (value === 'stopped') return 'interrupted';
+  if (['interrupted', 'stopped'].includes(value)) return 'cancelled';
   return value;
 };
 
@@ -383,7 +376,7 @@ const statusMeta = (status?: string | null) => {
 };
 
 const isActiveTaskStatus = (status?: string | null) =>
-  ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(normalizeRunStatus(status));
+  ['pending', 'running'].includes(normalizeRunStatus(status));
 
 const StatusBadge: React.FC<{ status?: string | null }> = ({ status }) => {
   const meta = statusMeta(status);
@@ -772,7 +765,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     return {
       total: tasks.length,
       running: tasks.filter((task) => isActiveTaskStatus(taskDisplayStatus(task))).length,
-      succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'completed').length,
+      succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'succeeded').length,
       failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed').length,
     };
   }, [tasks]);
