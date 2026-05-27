@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   ProjectFilesystemChildrenResponse,
@@ -86,38 +86,39 @@ export interface DataflowAgentStateDir {
   source: 'shared_default' | 'task_override';
 }
 
-export interface DataflowScanTask {
+export interface DataflowScanTaskListItem {
   task_id: string;
   project_id: string;
   task_purpose?: 'normal' | 'evolution';
-  agent_state_dirs?: Record<string, DataflowAgentStateDir>;
   task_origin_type?: string | null;
-  parent_project_id?: string | null;
   parent_task_id?: string | null;
   parent_task_type?: string | null;
   parent_stage_name?: string | null;
   parent_stage_item_id?: string | null;
   parent_stage_item_key?: string | null;
+  origin_mode?: 'manual' | 'binary' | 'source' | string;
   origin_label?: string | null;
   parent_task_display?: string | null;
   profile_id: string;
   profile_version: number;
   title?: string;
   status: string;
+  control_state?: string;
   latest_attempt_no: number;
-  retry_count: number;
-  max_retry_count: number;
   priority: number;
   created_by: string;
   created_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+  updated_at?: string | null;
   message?: string | null;
   latest_execution_id?: string | null;
   owner_pod_id?: string | null;
   dispatch_status?: string | null;
-  heartbeat_at?: string | null;
-  heartbeat_age_seconds?: number | null;
+  slot_binding_state?: string | null;
+  slot_binding_reason?: string | null;
+  latest_run_id?: string | null;
+  latest_run_status?: string | null;
   run_name?: string | null;
   runs_root?: string | null;
   run_path?: string | null;
@@ -125,16 +126,34 @@ export interface DataflowScanTask {
   latest_run?: Partial<DataflowRunSummary> | null;
   auto_report_vulnerabilities?: boolean;
   vuln_report_status?: Record<string, any>;
+  abnormal_reason_title?: string | null;
+  abnormal_reason_code?: string | null;
+  abnormal_reason_category?: string | null;
 }
 
+export type DataflowScanTask = DataflowScanTaskListItem;
+
 export interface DataflowScanTaskListResponse {
-  items: DataflowScanTask[];
+  items: DataflowScanTaskListItem[];
   total: number;
   page: number;
   per_page: number;
 }
 
-export interface DataflowScanTaskDetail extends DataflowScanTask {
+export interface DataflowScanTaskStats {
+  total: number;
+  pending: number;
+  running: number;
+  succeeded: number;
+  failed: number;
+  cancelled: number;
+}
+
+export interface DataflowScanTaskDetail extends DataflowScanTaskListItem {
+  agent_state_dirs?: Record<string, DataflowAgentStateDir>;
+  parent_project_id?: string | null;
+  retry_count: number;
+  max_retry_count: number;
   title: string;
   task_markdown: string;
   artifact_refs: DataflowArtifactRef[];
@@ -657,7 +676,7 @@ export const dataflowVulnScannerApi = {
     sort_order?: 'asc' | 'desc';
     profileId?: string;
   } = {}): Promise<DataflowScanTaskListResponse> => {
-    const response = await fetch(withQuery(`${PREFIX}/tasks`, {
+    const payload = await getJsonWithDedupe<any>(withQuery(`${PREFIX}/tasks`, {
       project_id: params.projectId,
       page: params.page,
       per_page: params.per_page,
@@ -668,15 +687,30 @@ export const dataflowVulnScannerApi = {
       sort_order: params.sort_order,
       profile_id: params.profileId,
     }), { headers: getHeaders() });
-    return unwrapPagedList<DataflowScanTask>(await handleResponse(response), {
+    return unwrapPagedList<DataflowScanTaskListItem>(payload, {
       page: params.page,
       per_page: params.per_page,
     });
   },
 
+  getTaskStats: async (params: {
+    projectId?: string;
+    status?: string;
+    mode?: 'manual' | 'binary' | 'source';
+    parent_task_id?: string;
+    profileId?: string;
+  } = {}): Promise<DataflowScanTaskStats> => {
+    return getJsonWithDedupe(withQuery(`${PREFIX}/tasks/stats`, {
+      project_id: params.projectId,
+      status: params.status,
+      mode: params.mode,
+      parent_task_id: params.parent_task_id,
+      profile_id: params.profileId,
+    }), { headers: getHeaders() });
+  },
+
   getWorkerClusterCapacity: async (): Promise<DataflowVulnClusterCapacity> => {
-    const response = await fetch(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
-    return handleResponse(response);
+    return getJsonWithDedupe(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
   },
 
   getWorkerClusterCapacitySummary: async (): Promise<DataflowVulnClusterCapacity> => {

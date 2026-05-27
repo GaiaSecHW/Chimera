@@ -3454,6 +3454,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [pageSize, setPageSize] = useState(20);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pageEffectMountedRef = useRef(false);
   const taskItems = Array.isArray(tasks) ? tasks : [];
   const activeProject = useMemo(
     () => projects.find((item) => item.id === projectId) || null,
@@ -3643,6 +3644,10 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   }, []);
 
   useEffect(() => {
+    if (!pageEffectMountedRef.current) {
+      pageEffectMountedRef.current = true;
+      return;
+    }
     fetchTasks();
   }, [page]);
 

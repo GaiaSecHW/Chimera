@@ -149,6 +149,84 @@ export const fetchWithRetry = async (
   throw new Error('请求失败');
 };
 
+type DedupeGetJsonOptions = {
+  ttlMs?: number;
+  useRetry?: boolean;
+  retryOptions?: { retries?: number; retryDelayMs?: number; retryOnStatus?: number[] };
+};
+
+const DEFAULT_GET_DEDUPE_TTL_MS = 250;
+const pendingGetJsonRequests = new Map<string, { promise: Promise<any>; expiresAt: number }>();
+
+const buildGetDedupeKey = (input: RequestInfo | URL, init?: RequestInit): string => {
+  const url = typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input.url;
+  const headers = new Headers(init?.headers || {});
+  return JSON.stringify({
+    url,
+    method: (init?.method || 'GET').toUpperCase(),
+    authorization: headers.get('Authorization') || '',
+    accept: headers.get('Accept') || '',
+    contentType: headers.get('Content-Type') || '',
+    cache: init?.cache || '',
+    credentials: init?.credentials || '',
+  });
+};
+
+export const getJsonWithDedupe = async <T,>(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options?: DedupeGetJsonOptions,
+): Promise<T> => {
+  const method = (init?.method || 'GET').toUpperCase();
+  if (method !== 'GET') {
+    const response = options?.useRetry
+      ? await fetchWithRetry(input, init, options.retryOptions)
+      : await fetch(input, init);
+    return handleResponse(response);
+  }
+
+  const ttlMs = Math.max(0, options?.ttlMs ?? DEFAULT_GET_DEDUPE_TTL_MS);
+  const key = buildGetDedupeKey(input, init);
+  const now = Date.now();
+  const existing = pendingGetJsonRequests.get(key);
+  if (existing && existing.expiresAt > now) {
+    return existing.promise as Promise<T>;
+  }
+
+  const promise = (async () => {
+    const response = options?.useRetry
+      ? await fetchWithRetry(input, init, options.retryOptions)
+      : await fetch(input, init);
+    return handleResponse(response);
+  })();
+
+  pendingGetJsonRequests.set(key, {
+    promise,
+    expiresAt: now + ttlMs,
+  });
+
+  try {
+    return await promise;
+  } catch (error) {
+    const current = pendingGetJsonRequests.get(key);
+    if (current?.promise === promise) {
+      pendingGetJsonRequests.delete(key);
+    }
+    throw error;
+  } finally {
+    window.setTimeout(() => {
+      const current = pendingGetJsonRequests.get(key);
+      if (current?.promise === promise && current.expiresAt <= Date.now()) {
+        pendingGetJsonRequests.delete(key);
+      }
+    }, ttlMs);
+  }
+};
+
 export interface XhrUploadProgress {
   loaded_bytes: number;
   total_bytes: number;

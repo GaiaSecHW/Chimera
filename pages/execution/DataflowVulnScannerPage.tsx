@@ -37,6 +37,8 @@ import {
   DataflowProfileConfigPayload,
   DataflowScanProfile,
   DataflowScanTask,
+  DataflowScanTaskListItem,
+  DataflowScanTaskStats,
   DataflowScanTaskDetail,
   DataflowCreateTaskPayload,
   DataflowServiceRuntimeConfig,
@@ -90,7 +92,7 @@ const TASK_SORT_OPTIONS = [
   { value: 'created_at', label: '创建时间' },
   { value: 'updated_at', label: '更新时间' },
   { value: 'started_at', label: '开始时间' },
-  { value: 'status', label: '状态' },
+  { value: 'public_status', label: '状态' },
   { value: 'priority', label: '优先级' },
 ] as const;
 
@@ -703,8 +705,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [profiles, setProfiles] = useState<DataflowScanProfile[]>([]);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [profilesLoading, setProfilesLoading] = useState(false);
-  const [tasks, setTasks] = useState<DataflowScanTask[]>([]);
+  const [tasks, setTasks] = useState<DataflowScanTaskListItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [taskStats, setTaskStats] = useState<DataflowScanTaskStats>({ total: 0, pending: 0, running: 0, succeeded: 0, failed: 0, cancelled: 0 });
   const [tasksError, setTasksError] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -875,6 +878,21 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     }
   }, [executionApi, modeFilter, notify, parentTaskIdFilter, perPage, projectId, runStatusFilter, sortBy, sortOrder]);
 
+  const loadTaskStats = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const payload = await executionApi.getTaskStats({
+        projectId,
+        status: runStatusFilter || undefined,
+        mode: modeFilter || undefined,
+        parent_task_id: parentTaskIdFilter.trim() || undefined,
+      });
+      setTaskStats(payload);
+    } catch {
+      setTaskStats((current) => current);
+    }
+  }, [executionApi, modeFilter, parentTaskIdFilter, projectId, runStatusFilter]);
+
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
     try {
@@ -890,11 +908,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   }, [executionApi]);
 
   const loadAll = useCallback(async (targetPage: number) => {
-    await Promise.all([
+    await Promise.allSettled([
       loadTasks(targetPage),
+      loadTaskStats(),
       loadSlotSummary(),
     ]);
-  }, [loadSlotSummary, loadTasks]);
+  }, [loadSlotSummary, loadTaskStats, loadTasks]);
 
   const loadSlotDetail = async () => {
     setSlotSummaryLoading(true);
@@ -913,6 +932,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     setProfiles([]);
     setProfilesLoaded(false);
     setSelectedTaskIds(new Set());
+    setTaskStats({ total: 0, pending: 0, running: 0, succeeded: 0, failed: 0, cancelled: 0 });
     setPage(1);
   }, [projectId]);
 
@@ -975,14 +995,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     });
   }, [runQuery, tasks]);
 
-  const stats = useMemo(() => {
-    return {
-      total,
-      running: tasks.filter((task) => isActiveTaskStatus(taskDisplayStatus(task))).length,
-      succeeded: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'completed').length,
-      failed: tasks.filter((task) => normalizeRunStatus(taskDisplayStatus(task)) === 'failed').length,
-    };
-  }, [tasks, total]);
+  const stats = taskStats;
 
   useEffect(() => {
     const taskIds = new Set(tasks.map((task) => task.task_id));

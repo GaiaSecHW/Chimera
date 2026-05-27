@@ -396,6 +396,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
   const [detailLogs, setDetailLogs] = useState<AppEaStagesJson>({ events: [] });
   const detailLogsCountRef = useRef<number>(0);
+  const detailLoadSeqRef = useRef(0);
+  const detailRefreshInFlightRef = useRef(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [logsExpanded, setLogsExpanded] = useState(true);
 
@@ -556,14 +558,15 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   // ── Load task detail ────────────────────────────────────────────────────
 
   const loadDetail = async (taskId: string) => {
+    const requestSeq = ++detailLoadSeqRef.current;
     setDetailLoading(true);
     try {
       const d = await appApi.getTask(taskId);
-      setDetail(d);
+      if (detailLoadSeqRef.current === requestSeq) setDetail(d);
     } catch (err: any) {
       notify(`加载任务详情失败: ${err?.message || err}`, 'error');
     } finally {
-      setDetailLoading(false);
+      if (detailLoadSeqRef.current === requestSeq) setDetailLoading(false);
     }
   };
 
@@ -621,7 +624,12 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     const timer = setInterval(() => {
       void loadTasks(page);
       void loadSlotCluster();
-      if (selectedTaskId && modalOpen) { void loadDetail(selectedTaskId); void loadDetailLogs(selectedTaskId, true); }
+      if (selectedTaskId && modalOpen && !detailRefreshInFlightRef.current) {
+        detailRefreshInFlightRef.current = true;
+        void Promise.all([loadDetail(selectedTaskId), loadDetailLogs(selectedTaskId, true)]).finally(() => {
+          detailRefreshInFlightRef.current = false;
+        });
+      }
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps

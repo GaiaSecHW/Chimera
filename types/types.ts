@@ -2446,6 +2446,36 @@ export interface AppSaTaskItem {
   lease_expires_at?: string | null;
 }
 
+export interface AppSaTaskListItem {
+  task_id: string;
+  project_id: string;
+  analysis_mode?: 'binary' | 'source' | null;
+  analysis_mode_label?: string | null;
+  task_origin_type?: 'manual' | 'binary_security' | null;
+  parent_project_id?: string | null;
+  parent_task_id?: string | null;
+  parent_task_type?: 'binary' | 'source' | 'binary_module' | null;
+  parent_stage_name?: string | null;
+  parent_stage_item_id?: string | null;
+  parent_stage_item_key?: string | null;
+  origin_label?: string | null;
+  parent_task_display?: string | null;
+  task_name: string;
+  status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
+  abnormal_reason_title?: string | null;
+  abnormal_reason_code?: string | null;
+  abnormal_reason_category?: string | null;
+  abnormal_reason?: ExecutionAbnormalReason | null;
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  dispatcher_instance_id?: string | null;
+  dispatch_started_at?: string | null;
+  lease_epoch?: number | null;
+  lease_expires_at?: string | null;
+}
+
 export interface AppSaStageEvent {
   ts: number;
   type: string;
@@ -2742,6 +2772,79 @@ export interface AppSaSessionSnapshot {
   line_count: number;
 }
 
+export interface AgentObservabilitySummary {
+  active_processes: number;
+  orphan_processes: number;
+  killable_orphan_processes: number;
+  orphan_sessions: number;
+  unknown_processes: number;
+  scan_errors?: number | null;
+  aggregate_mode?: string | null;
+  aggregate_partial?: boolean;
+  aggregate_sources?: number | null;
+  aggregate_fanout_errors?: number | null;
+  aggregate_duration_seconds?: number | null;
+  aggregate_cache_hit?: boolean;
+  aggregate_cache_age_seconds?: number | null;
+  aggregate_failed_targets?: string[];
+}
+
+export interface AgentProcessSnapshot {
+  pid: number;
+  pgid?: number | null;
+  pod_name?: string | null;
+  task_id?: string | null;
+  task_name?: string | null;
+  stage_key?: string | null;
+  role_kind?: string | null;
+  session_id?: string | null;
+  session_file?: string | null;
+  rss_bytes?: number | null;
+  owner_kind: 'tracked' | 'orphan' | 'unknown' | string;
+  owner_reason?: string | null;
+  kill_allowed?: boolean;
+  kill_block_reason?: string | null;
+}
+
+export interface AgentSessionObservabilitySnapshot {
+  session_id?: string | null;
+  session_file: string;
+  display_name: string;
+  line_count: number;
+  live: boolean;
+  parse_warnings: string[];
+  task_id?: string | null;
+  role_kind?: string | null;
+  stage_key?: string | null;
+  orphan_session?: boolean;
+}
+
+export interface AgentTaskOwnershipSnapshot {
+  task_id: string;
+  task_name?: string | null;
+  stage_key?: string | null;
+  pod_name?: string | null;
+  process_count: number;
+  session_count: number;
+  agent_roles: string[];
+  ownership_status: 'healthy' | 'partial' | 'unknown' | string;
+}
+
+export interface AgentProcessKillItem {
+  pid: number;
+  status: 'succeeded' | 'failed' | 'skipped' | string;
+  reason?: string | null;
+}
+
+export interface AgentProcessKillResponse {
+  requested: number;
+  matched: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  items: AgentProcessKillItem[];
+}
+
 export interface AppSaTaskCreateRequest {
   project_id: string;
   task_name: string;
@@ -2809,6 +2912,17 @@ export interface AppSaClusterCapacity {
   queued_jobs: number;
   updated_at?: string | null;
   workers: AppSaWorkerCapacity[];
+}
+
+export interface AppSaClusterCapacitySummary {
+  worker_count: number;
+  healthy_workers: number;
+  stale_workers: number;
+  total_capacity: number;
+  busy_slots: number;
+  available_slots: number;
+  queued_jobs: number;
+  updated_at?: string | null;
 }
 
 
@@ -3000,6 +3114,33 @@ export interface AppEaTaskDetail extends AppEaTaskItem {
   output_summary?: Record<string, any> | null;
   event_summary?: AppEaTaskEventSummary | null;
   abnormal_reason_history?: ExecutionAbnormalReasonEventSummary[] | null;
+}
+
+export interface AppEaTaskRuntimeSummary {
+  task_id: string;
+  project_id?: string | null;
+  status: string;
+  generated_at?: string | null;
+  task_root?: string | null;
+  run_root?: string | null;
+  sessions_root?: string | null;
+  session_index_path?: string | null;
+  session_index_generated_at?: string | null;
+  cache_hit?: boolean;
+  cache_age_seconds?: number | null;
+  session_count: number;
+  active_session_count: number;
+  worker_count: number;
+  judge_count: number;
+  sub_worker_count: number;
+  latest_round?: number | null;
+  active_rounds?: number[];
+  active_stage_keys?: string[];
+  active_roles?: string[];
+  latest_active_event_at?: string | null;
+  entry_count?: number | null;
+  event_summary?: AppEaTaskEventSummary | null;
+  warnings?: string[];
 }
 
 export interface AppEaTaskResultSummary {

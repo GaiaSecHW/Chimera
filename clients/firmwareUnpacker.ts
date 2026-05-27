@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 import type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
 import { normalizeFirmwareSessionIndex } from '../pages/execution/sessionParsing';
 export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
@@ -1452,8 +1452,8 @@ export const firmwareUnpackerApi = {
     if (query.search)     p.set('search',     query.search);
     if (query.limit  != null) p.set('limit',  String(query.limit));
     if (query.offset != null) p.set('offset', String(query.offset));
-    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks?${p}`, { headers: getHeaders() });
-    return normalizeTaskList(await handleResponse(r));
+    const payload = await getJsonWithDedupe<any>(`${API_BASE}/api/app/firmware-unpacker/tasks?${p}`, { headers: getHeaders() });
+    return normalizeTaskList(payload);
   },
 
   /** GET /api/app/firmware-unpacker/tasks/{id} */

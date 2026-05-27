@@ -1,15 +1,17 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 import {
   AppSaSessionIndex,
   AppSaSessionMeta,
   AppSaSessionSnapshot,
   AppSaClusterCapacity,
+  AppSaClusterCapacitySummary,
   AppSaStagesJson,
   AppSaTaskActionResponse,
   AppSaTaskCreateRequest,
   AppSaTaskDetail,
   AppSaTaskEvaluation,
   AppSaTaskItem,
+  AppSaTaskListItem,
   AppSaTaskResult,
   AppSaTaskTimeline,
   SystemAnalysisModelsConfig,
@@ -78,7 +80,7 @@ export const appSystemAnalyseApi = {
     parent_task_id?: string;
     sort_by?: string;
     sort_order?: 'asc' | 'desc';
-  }): Promise<{ items: AppSaTaskItem[]; total: number; page: number; per_page: number }> => {
+  }): Promise<{ items: AppSaTaskListItem[]; total: number; page: number; per_page: number }> => {
     const query = new URLSearchParams({ project_id: params.project_id });
     if (params.page) query.append('page', String(params.page));
     if (params.per_page) query.append('per_page', String(params.per_page));
@@ -87,23 +89,14 @@ export const appSystemAnalyseApi = {
     if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
-    return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
+    return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
   },
 
-  getWorkerClusterCapacitySummary: async (projectId: string): Promise<{
-    worker_count: number;
-    healthy_workers: number;
-    stale_workers: number;
-    total_capacity: number;
-    busy_slots: number;
-    available_slots: number;
-    queued_jobs: number;
-    updated_at?: string | null;
-  }> =>
-    handleResponse(await fetch(`${BASE}/workers/cluster-capacity/summary?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+  getWorkerClusterCapacitySummary: async (projectId: string): Promise<AppSaClusterCapacitySummary> =>
+    getJsonWithDedupe(`${BASE}/workers/cluster-capacity/summary?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
 
   getWorkerClusterCapacity: async (projectId: string): Promise<AppSaClusterCapacity> =>
-    handleResponse(await fetch(`${BASE}/workers/cluster-capacity?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+    getJsonWithDedupe(`${BASE}/workers/cluster-capacity?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),

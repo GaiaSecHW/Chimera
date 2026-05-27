@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 import {
   AppEaTaskActionResponse,
   AppEaSessionIndex,
@@ -11,6 +11,7 @@ import {
   AppEaTaskItem,
   AppEaTaskLogsResponse,
   AppEaTaskResult,
+  AppEaTaskRuntimeSummary,
   AppEaTaskTimelineResponse,
   EntryAnalyseSlotClusterSummary,
   EntryAnalysisModelsConfig,
@@ -70,14 +71,24 @@ export const appEntryAnalyseApi = {
     if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
-    return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
+    return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
   },
 
   getSlotCluster: async (projectId: string): Promise<EntryAnalyseSlotClusterSummary> =>
-    handleResponse(await fetch(`${BASE}/projects/${encodeURIComponent(projectId)}/slot-cluster`, { headers: getHeaders() })),
+    getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/slot-cluster`, { headers: getHeaders() }),
 
-  getTask: async (taskId: string): Promise<AppEaTaskDetail> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
+  getTask: async (taskId: string, options: { includeFunctionCatalog?: boolean } = {}): Promise<AppEaTaskDetail> => {
+    const query = new URLSearchParams();
+    if (options.includeFunctionCatalog) query.append('include_function_catalog', 'true');
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    return handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}${suffix}`, { headers: getHeaders() }));
+  },
+
+  getTaskRuntimeSummary: async (taskId: string): Promise<AppEaTaskRuntimeSummary> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/runtime-summary`, { headers: getHeaders() })),
+
+  getTaskFunctionCatalog: async (taskId: string): Promise<Record<string, any>[]> =>
+    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/function-catalog`, { headers: getHeaders() })),
 
   getTimeline: async (taskId: string): Promise<AppEaTaskTimelineResponse> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
@@ -103,8 +114,10 @@ export const appEntryAnalyseApi = {
   listTaskSessions: async (taskId: string): Promise<AppEaSessionMeta[]> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions`, { headers: getHeaders() })),
 
-  getTaskSessionIndex: async (taskId: string): Promise<AppEaSessionIndex> =>
-    handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/index`, { headers: getHeaders() })),
+  getTaskSessionIndex: async (taskId: string, refresh = false): Promise<AppEaSessionIndex> => {
+    const suffix = refresh ? '?refresh=true' : '';
+    return handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/sessions/index${suffix}`, { headers: getHeaders() }));
+  },
 
   getTaskSessionFile: async (taskId: string, path: string): Promise<AppEaSessionSnapshot> => {
     const query = new URLSearchParams({ path }).toString();

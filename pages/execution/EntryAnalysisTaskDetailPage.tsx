@@ -21,6 +21,7 @@ import {
   AppEaTaskEvent,
   AppEaTaskEvaluation,
   AppEaTaskResult,
+  AppEaTaskRuntimeSummary,
   AppEaFunctionCatalogItem,
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
@@ -1052,8 +1053,13 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
   const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
   const [detail, setDetail] = useState<AppEaTaskDetail | null>(null);
+  const [runtimeSummary, setRuntimeSummary] = useState<AppEaTaskRuntimeSummary | null>(null);
   const [logs, setLogs] = useState<AppEaStagesJson>({ events: [] });
   const logsEventCountRef = useRef<number>(0);
+  const detailRefreshInFlightRef = useRef(false);
+  const detailRequestSeqRef = useRef(0);
+  const sessionLoadSeqRef = useRef(0);
+  const runtimeSummarySeqRef = useRef(0);
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
   const [result, setResult] = useState<AppEaTaskResult | null>(null);
   const [evaluation, setEvaluation] = useState<AppEaTaskEvaluation | null>(null);
@@ -1081,6 +1087,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [sessionIndex, setSessionIndex] = useState<AppEaSessionIndex | null>(null);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [runtimeSummaryLoading, setRuntimeSummaryLoading] = useState(false);
   const [selectedSessionPath, setSelectedSessionPath] = useState<string | null>(null);
   const [activeAgentSessionPath, setActiveAgentSessionPath] = useState<string | null>(null);
   const [sessionSnapshot, setSessionSnapshot] = useState<AppEaSessionSnapshot | null>(null);
@@ -1115,10 +1122,16 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
 
   const loadDetail = async () => {
     if (!taskId) return;
+    const requestSeq = ++detailRequestSeqRef.current;
     setLoading(true);
-    try { setDetail(await appApi.getTask(taskId)); }
+    try {
+      const nextDetail = await appApi.getTask(taskId);
+      if (detailRequestSeqRef.current === requestSeq) setDetail(nextDetail);
+    }
     catch (err: any) { notify(`加载任务详情失败: ${err?.message || err}`, 'error'); }
-    finally { setLoading(false); }
+    finally {
+      if (detailRequestSeqRef.current === requestSeq) setLoading(false);
+    }
   };
 
   /** 增量拉取 stages events。incremental=true 时只拉新增事件，false 时全量重置。 */
@@ -1243,27 +1256,47 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   };
 
   const openActiveAgentSession = (path: string) => {
+    setActiveTab('session');
     setSelectedSessionPath(path);
     setActiveAgentSessionPath(path);
   };
 
-  const loadSessions = async (silent = false) => {
+  const loadRuntimeSummary = async (silent = false) => {
+    if (!taskId) return;
+    const requestSeq = ++runtimeSummarySeqRef.current;
+    if (!silent) setRuntimeSummaryLoading(true);
+    try {
+      const snapshot = await appApi.getTaskRuntimeSummary(taskId);
+      if (runtimeSummarySeqRef.current === requestSeq) setRuntimeSummary(snapshot);
+    } catch (err: any) {
+      if (!silent) notify(`加载运行态摘要失败: ${err?.message || err}`, 'error');
+    } finally {
+      if (!silent && runtimeSummarySeqRef.current === requestSeq) setRuntimeSummaryLoading(false);
+    }
+  };
+
+  const loadSessions = async (silent = false, forceRefresh = false) => {
+    if (!taskId) return;
+    const requestSeq = ++sessionLoadSeqRef.current;
     if (!silent) setSessionsLoading(true);
     setSessionsError(null);
     try {
-      const [data, index] = await Promise.all([
+      const [data, index, runtime] = await Promise.all([
         appApi.listTaskSessions(taskId),
-        appApi.getTaskSessionIndex(taskId).catch(() => null),
+        appApi.getTaskSessionIndex(taskId, forceRefresh).catch(() => null),
+        appApi.getTaskRuntimeSummary(taskId).catch(() => null),
       ]);
+      if (sessionLoadSeqRef.current !== requestSeq) return;
       setSessions(data);
       setSessionIndex(index);
+      if (runtime) setRuntimeSummary(runtime);
       setSelectedSessionPath((current) => current && data.some((item) => item.relative_path === current)
         ? current
         : data.find((item) => item.is_active)?.relative_path || data[0]?.relative_path || null);
     } catch (err: any) {
-      setSessionsError(err?.message || String(err));
+      if (sessionLoadSeqRef.current === requestSeq) setSessionsError(err?.message || String(err));
     } finally {
-      if (!silent) setSessionsLoading(false);
+      if (!silent && sessionLoadSeqRef.current === requestSeq) setSessionsLoading(false);
     }
   };
 
@@ -1286,7 +1319,14 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     }
   };
 
-  useEffect(() => { void loadDetail(); void loadLogs(false); }, [taskId]);
+  useEffect(() => {
+    setRuntimeSummary(null);
+    setSessions([]);
+    setSessionIndex(null);
+    setSelectedSessionPath(null);
+    setActiveAgentSessionPath(null);
+    void Promise.all([loadDetail(), loadLogs(false)]);
+  }, [taskId]);
   useEffect(() => {
     const stored = sessionStorage.getItem(stageFocusStorageKey) || '';
     const normalized = stored.trim().toUpperCase();
@@ -1297,15 +1337,21 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     setRiskFocusHint(stored.trim());
   }, [riskFocusStorageKey, taskId]);
   useEffect(() => () => { closeSessionSocket(); closeJudgeSessionSocket(); }, []);
+  const sessionFeatureActive = activeTab === 'session' || activeTab === 'relationship' || Boolean(activeAgentSessionPath);
+
+  const refreshDetailAndLogs = async () => {
+    if (detailRefreshInFlightRef.current) return;
+    detailRefreshInFlightRef.current = true;
+    try {
+      await Promise.all([loadDetail(), loadLogs(true)]);
+    } finally {
+      detailRefreshInFlightRef.current = false;
+    }
+  };
+
   useEffect(() => {
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
-    const timer = window.setInterval(() => void loadDetail(), 5000);
-    return () => window.clearInterval(timer);
-  }, [detail?.status, taskId]);
-  // 独立轮询 logs：running/pending 时每 5s 增量拉取
-  useEffect(() => {
-    if (!detail || !['pending', 'running'].includes(detail.status)) return;
-    const timer = window.setInterval(() => void loadLogs(true), 5000);
+    const timer = window.setInterval(() => void refreshDetailAndLogs(), 5000);
     return () => window.clearInterval(timer);
   }, [detail?.status, taskId]);
   useEffect(() => {
@@ -1337,15 +1383,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     }
   }, [activeTab]);
   useEffect(() => {
-    if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) { closeSessionSocket(); return; }
+    if (!sessionFeatureActive) { closeSessionSocket(); return; }
     void loadSessions();
-  }, [activeTab, taskId, activeAgentSessionPath]);
+  }, [sessionFeatureActive, taskId]);
   useEffect(() => {
-    if (activeTab !== 'session' && activeTab !== 'overview' && activeTab !== 'relationship' && !activeAgentSessionPath) return;
+    if (!sessionFeatureActive) return;
     if (!detail || !['pending', 'running'].includes(detail.status)) return;
     const timer = window.setInterval(() => void loadSessions(true), 12000);
     return () => window.clearInterval(timer);
-  }, [activeTab, detail?.status, taskId, activeAgentSessionPath]);
+  }, [sessionFeatureActive, detail?.status, taskId]);
   useEffect(() => {
     const sessionViewerActive = activeTab === 'session' || activeTab === 'relationship' || activeAgentSessionPath === selectedSessionPath;
     if (!sessionViewerActive || !selectedSessionPath) return;
@@ -1572,6 +1618,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   }, [sessions, stageFocusHint]);
   const selectedSession = sessions.find((item) => item.relative_path === selectedSessionPath) || null;
   const activeSessions = useMemo(() => sessions.filter((item) => item.is_active), [sessions]);
+  const runtimeActiveSessionCount = runtimeSummary?.active_session_count ?? activeSessions.length;
   const activeAgentSessionMeta = useMemo(
     () => sessions.find((item) => item.relative_path === activeAgentSessionPath) || null,
     [sessions, activeAgentSessionPath],
@@ -1721,7 +1768,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="entry_analysis" task={detail} /> : null}
             {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleResume()} disabled={resuming} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50">{resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}断点续跑</button> : null}
             {detail ? <button onClick={() => void handleDelete()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Trash2 size={13} />删除任务</button> : null}
-            <button onClick={() => { void loadDetail(); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading ? 'animate-spin' : ''} /></button>
+            <button onClick={() => { void Promise.all([loadDetail(), loadLogs(false)]); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (sessionFeatureActive) void loadSessions(false, true); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || sessionsLoading ? 'animate-spin' : ''} /></button>
           </div>
         </div>
         {detail ? <div className="mt-5"><TaskOriginCard origin={detail} /></div> : null}
@@ -2111,12 +2158,29 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
               <div>
                 <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">当前运行智能体</h2>
-                <p className="mt-1 text-xs text-slate-400">各函数/文件独立并行运行的智能体会话，点击查看实时 session。</p>
+                <p className="mt-1 text-xs text-slate-400">默认不再首屏扫描会话目录；切到会话视图或手动刷新后再加载详细 session。</p>
               </div>
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{activeSessions.length} 个活跃会话</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { void loadRuntimeSummary(); setActiveTab('session'); }}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  查看会话详情
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loadRuntimeSummary()}
+                  className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+                  title="刷新运行态摘要"
+                >
+                  <RefreshCw size={14} className={runtimeSummaryLoading ? 'animate-spin' : ''} />
+                </button>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">{runtimeActiveSessionCount} 个活跃会话</span>
+              </div>
             </div>
-            {sessionsLoading && sessions.length === 0 ? (
-              <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载中...</div>
+            {runtimeSummaryLoading && !runtimeSummary ? (
+              <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-slate-500"><Loader2 size={15} className="animate-spin" />加载运行态摘要中...</div>
             ) : activeSessions.length > 0 ? (
               <div className="divide-y divide-slate-100">
                 {activeSessions.map((session) => (
@@ -2139,9 +2203,48 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   </button>
                 ))}
               </div>
+            ) : runtimeSummary ? (
+              <div className="px-5 py-6">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">运行摘要</div>
+                    <div className="mt-3 text-sm font-bold text-slate-900">最近轮次 {runtimeSummary.latest_round ?? '-'}</div>
+                    <div className="mt-1 text-xs text-slate-500">活跃轮次 {(runtimeSummary.active_rounds || []).length > 0 ? runtimeSummary.active_rounds?.join(', ') : '-'}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色分布</div>
+                    <div className="mt-3 text-sm font-bold text-slate-900">{runtimeSummary.active_roles?.length ? runtimeSummary.active_roles.join(' / ') : '暂无活跃角色'}</div>
+                    <div className="mt-1 text-xs text-slate-500">Worker {runtimeSummary.worker_count} · Judge {runtimeSummary.judge_count} · Sub {runtimeSummary.sub_worker_count}</div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">缓存命中</div>
+                    <div className="mt-3 text-sm font-bold text-slate-900">{runtimeSummary.cache_hit ? '已命中会话索引缓存' : '未命中缓存'}</div>
+                    <div className="mt-1 text-xs text-slate-500">{runtimeSummary.cache_age_seconds != null ? `缓存年龄 ${Math.round(runtimeSummary.cache_age_seconds)}s` : '暂无缓存年龄信息'}</div>
+                  </div>
+                </div>
+                {runtimeSummary.warnings && runtimeSummary.warnings.length > 0 ? (
+                  <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                    {runtimeSummary.warnings.join('；')}
+                  </div>
+                ) : null}
+                <div className="mt-4 text-xs text-slate-500">
+                  {runtimeActiveSessionCount > 0
+                    ? '已检测到活跃会话，进入“会话”或“关系图”页签后会按需加载完整索引与会话文件。'
+                    : (detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前没有检测到活跃智能体会话。' : '任务已结束，当前没有活跃智能体。')}
+                </div>
+              </div>
             ) : (
               <div className="px-5 py-10 text-center text-sm text-slate-500">
-                {detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前没有检测到活跃智能体会话。' : '任务已结束，当前没有活跃智能体。'}
+                <div>{detail.status === 'pending' ? '任务尚未启动，当前没有活跃智能体。' : ['running', 'pending'].includes(detail.status) ? '当前尚未加载运行态摘要。' : '任务已结束，当前没有活跃智能体。'}</div>
+                {['running', 'pending'].includes(detail.status) ? (
+                  <button
+                    type="button"
+                    onClick={() => void loadRuntimeSummary()}
+                    className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                  >
+                    加载运行态摘要
+                  </button>
+                ) : null}
               </div>
             )}
           </section>
@@ -2272,7 +2375,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           <EntryAnalysisTaskConfigPanel detail={detail} />
         ) : activeTab === 'session' ? (
           <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-            <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div><div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions()} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => { const groupMatched = normalizedStageFocusKey ? String(group || '').toLowerCase().includes(normalizedStageFocusKey) || items.some((session) => String(session.relative_path || '').toLowerCase().includes(normalizedStageFocusKey)) : false; const groupRecommended = focusedSessionGroup?.group === group; return <div key={group} className={`rounded-2xl border px-3 py-3 transition ${groupRecommended ? 'border-indigo-200 bg-indigo-50/60' : groupMatched ? 'border-cyan-200 bg-cyan-50/50' : 'border-transparent bg-transparent'}`}><div className="mb-2 flex flex-wrap items-center gap-2"><div className={`text-[11px] font-black uppercase tracking-[0.18em] ${groupRecommended ? 'text-indigo-700' : groupMatched ? 'text-cyan-700' : 'text-slate-400'}`}>{group === 'root' ? '根会话' : group}</div>{groupRecommended ? <span className="rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700">当前推荐</span> : null}{!groupRecommended && groupMatched ? <span className="rounded-full border border-cyan-200 bg-white px-2 py-0.5 text-[10px] font-bold text-cyan-700">阶段命中</span> : null}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; const stageMatched = normalizedStageFocusKey && String(session.relative_path || '').toLowerCase().includes(normalizedStageFocusKey); const recommended = focusedSessionGroup?.recommended?.relative_path === session.relative_path; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : recommended ? 'border-indigo-200 bg-indigo-50 text-slate-800 hover:bg-indigo-100/70' : stageMatched ? 'border-cyan-200 bg-cyan-50 text-slate-800 hover:bg-cyan-100/70' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-black">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{session.relative_path}</div></div><div className="flex shrink-0 flex-wrap justify-end gap-1"><span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}>{session.is_active ? '活跃' : '历史'}</span>{recommended ? <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-indigo-300 bg-indigo-400/20 text-indigo-100' : 'border-indigo-200 bg-white text-indigo-700'}`}>推荐</span> : null}{!recommended && stageMatched ? <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-cyan-300 bg-cyan-400/20 text-cyan-100' : 'border-cyan-200 bg-white text-cyan-700'}`}>阶段命中</span> : null}</div></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>; })}</div>}</aside>
+            <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话列表</div><div className="mt-1 text-xs text-slate-500">{sessions.length} 个会话文件</div></div><button onClick={() => void loadSessions(false, true)} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={sessionsLoading ? 'animate-spin' : ''} /></button></div>{sessionsError ? <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">{sessionsError}</div> : null}{sessions.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">{sessionsLoading ? '加载会话中...' : '当前任务暂无智能体会话文件'}</div> : <div className="mt-4 max-h-[calc(100vh-20rem)] space-y-4 overflow-auto pr-1">{groupedSessions.map(([group, items]) => { const groupMatched = normalizedStageFocusKey ? String(group || '').toLowerCase().includes(normalizedStageFocusKey) || items.some((session) => String(session.relative_path || '').toLowerCase().includes(normalizedStageFocusKey)) : false; const groupRecommended = focusedSessionGroup?.group === group; return <div key={group} className={`rounded-2xl border px-3 py-3 transition ${groupRecommended ? 'border-indigo-200 bg-indigo-50/60' : groupMatched ? 'border-cyan-200 bg-cyan-50/50' : 'border-transparent bg-transparent'}`}><div className="mb-2 flex flex-wrap items-center gap-2"><div className={`text-[11px] font-black uppercase tracking-[0.18em] ${groupRecommended ? 'text-indigo-700' : groupMatched ? 'text-cyan-700' : 'text-slate-400'}`}>{group === 'root' ? '根会话' : group}</div>{groupRecommended ? <span className="rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[10px] font-bold text-indigo-700">当前推荐</span> : null}{!groupRecommended && groupMatched ? <span className="rounded-full border border-cyan-200 bg-white px-2 py-0.5 text-[10px] font-bold text-cyan-700">阶段命中</span> : null}</div><div className="space-y-2">{items.map((session) => { const selected = session.relative_path === selectedSessionPath; const stageMatched = normalizedStageFocusKey && String(session.relative_path || '').toLowerCase().includes(normalizedStageFocusKey); const recommended = focusedSessionGroup?.recommended?.relative_path === session.relative_path; return <button key={session.relative_path} onClick={() => setSelectedSessionPath(session.relative_path)} className={`w-full rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-slate-900 bg-slate-900 text-white' : recommended ? 'border-indigo-200 bg-indigo-50 text-slate-800 hover:bg-indigo-100/70' : stageMatched ? 'border-cyan-200 bg-cyan-50 text-slate-800 hover:bg-cyan-100/70' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-white'}`}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="truncate text-sm font-black">{session.display_name}</div><div className={`mt-1 truncate text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}>{session.relative_path}</div></div><div className="flex shrink-0 flex-wrap justify-end gap-1"><span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${session.is_active ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500'}`}>{session.is_active ? '活跃' : '历史'}</span>{recommended ? <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-indigo-300 bg-indigo-400/20 text-indigo-100' : 'border-indigo-200 bg-white text-indigo-700'}`}>推荐</span> : null}{!recommended && stageMatched ? <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold ${selected ? 'border-cyan-300 bg-cyan-400/20 text-cyan-100' : 'border-cyan-200 bg-white text-cyan-700'}`}>阶段命中</span> : null}</div></div><div className={`mt-3 flex flex-wrap gap-3 text-[11px] ${selected ? 'text-slate-300' : 'text-slate-500'}`}><span>事件 {session.event_count}</span><span>{new Date(session.mtime * 1000).toLocaleString('zh-CN')}</span></div></button>; })}</div></div>; })}</div>}</aside>
             <div className="space-y-4"><AgentSessionWarningPanel warnings={sessionWarnings} /><AgentSessionViewer sessionMeta={selectedSession} sessionHeader={sessionSnapshot?.session_meta} events={sessionEvents} loading={sessionLoading} live={sessionLive} error={sessionError} /></div>
           </section>
         ) : activeTab === 'relationship' ? (

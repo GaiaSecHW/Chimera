@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 
 export interface B2SElfTaskInput {
   elf_path: string;
@@ -957,17 +957,15 @@ export const binaryToSourceApi = {
 
   listTasks: async (projectId: string, status?: string): Promise<{ total: number; items: B2STask[] }> => {
     const q = status ? `?status=${encodeURIComponent(status)}` : '';
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`, {
+    return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),
     });
-    return handleResponse(resp);
   },
 
   getPiClusterCapacity: async (projectId: string): Promise<B2SPiClusterCapacity> => {
-    const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/pi-cluster`, {
+    return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/pi-cluster`, {
       headers: getHeaders(),
     });
-    return handleResponse(resp);
   },
 
   getTask: async (projectId: string, taskId: string): Promise<B2STaskDetail> => {

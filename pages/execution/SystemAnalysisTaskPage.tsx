@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownUp, ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppSaClusterCapacity, AppSaTaskItem } from '../../types/types';
+import { AppSaClusterCapacity, AppSaClusterCapacitySummary, AppSaTaskListItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -109,7 +109,7 @@ function isLeaseExpired(leaseUntil?: string | null): boolean {
   return ts < Date.now();
 }
 
-function getExecutionSlotPresentation(task: AppSaTaskItem): {
+function getExecutionSlotPresentation(task: AppSaTaskListItem): {
   label: string;
   tone: string;
   ownerText: string;
@@ -168,10 +168,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [batchCancelling, setBatchCancelling] = useState(false);
   const [batchRestarting, setBatchRestarting] = useState(false);
-  const [tasks, setTasks] = useState<AppSaTaskItem[]>([]);
+  const [tasks, setTasks] = useState<AppSaTaskListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(100);
+  const [perPage, setPerPage] = useState(20);
   const [statusFilter, setStatusFilter] = useState('');
   const [analysisModeFilter, setAnalysisModeFilter] = useState<'' | 'binary' | 'source'>('');
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
@@ -186,9 +186,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [clockNow, setClockNow] = useState(() => Math.floor(Date.now() / 1000));
   const [slotLoading, setSlotLoading] = useState(false);
   const [slotError, setSlotError] = useState<string | null>(null);
-  const [clusterCapacity, setClusterCapacity] = useState<AppSaClusterCapacity | null>(null);
+  const [clusterCapacitySummary, setClusterCapacitySummary] = useState<AppSaClusterCapacitySummary | null>(null);
+  const [clusterCapacityDetail, setClusterCapacityDetail] = useState<AppSaClusterCapacity | null>(null);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
+  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
 
   const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -270,11 +272,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     setSlotLoading(true);
     try {
       const payload = await appApi.getWorkerClusterCapacitySummary(projectId);
-      setClusterCapacity(payload);
+      setClusterCapacitySummary(payload);
       setSlotError(null);
     } catch (err: any) {
       setSlotError(err?.message || '读取执行槽位失败');
-      setClusterCapacity(null);
+      setClusterCapacitySummary(null);
     } finally {
       setSlotLoading(false);
     }
@@ -285,11 +287,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     setSlotLoading(true);
     try {
       const payload = await appApi.getWorkerClusterCapacity(projectId);
-      setClusterCapacity(payload);
+      setClusterCapacityDetail(payload);
       setSlotError(null);
     } catch (err: any) {
       setSlotError(err?.message || '读取执行槽位失败');
-      setClusterCapacity(null);
+      setClusterCapacityDetail(null);
     } finally {
       setSlotLoading(false);
     }
@@ -331,6 +333,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     });
   }, [tasks]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setPageVisible(document.visibilityState === 'visible');
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   // ── Auto-poll when tasks are running or pending ───────────────────────────
   const hasActiveTasks = tasks.some((t) => t.status === 'running' || t.status === 'pending');
   useEffect(() => {
@@ -342,13 +352,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   useEffect(() => {
     if (!autoRefreshEnabled) return;
     if (!hasActiveTasks) return;
+    if (!pageVisible) return;
     const timer = setInterval(() => {
       void loadTasks(page);
       void loadClusterCapacity();
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, projectId, page]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, pageVisible, projectId, page]);
 
   const toggleSlotWorkerExpanded = (workerId: string) => {
     setExpandedSlotWorkerIds((current) => (
@@ -561,10 +572,14 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <p className="mt-1 text-sm text-slate-500">展示当前系统分析 worker 集群的实时执行槽位、运行中的任务数量和各 worker 健康度。</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="text-xs text-slate-400">最近同步 {formatDateTime(clusterCapacity?.updated_at)}</div>
+            <div className="text-xs text-slate-400">最近同步 {formatDateTime(clusterCapacitySummary?.updated_at)}</div>
             <button
               type="button"
-              onClick={() => { setShowSlotDetailModal(true); void loadClusterCapacityDetail(); }}
+              onClick={() => {
+                setExpandedSlotWorkerIds([]);
+                setShowSlotDetailModal(true);
+                void loadClusterCapacityDetail();
+              }}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
             >
               查看详情
@@ -574,19 +589,19 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         <div className="mt-5 grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Worker 数</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacity?.worker_count ?? '-'}</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.worker_count ?? '-'}</div>
           </div>
           <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-700">总槽位</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacity?.total_capacity ?? '-'}</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.total_capacity ?? '-'}</div>
           </div>
           <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">运行中</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacity?.busy_slots ?? '-'}</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.busy_slots ?? '-'}</div>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
             <div className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700">空闲 / 排队</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacity ? `${clusterCapacity.available_slots} / ${clusterCapacity.queued_jobs}` : '-'}</div>
+            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary ? `${clusterCapacitySummary.available_slots} / ${clusterCapacitySummary.queued_jobs}` : '-'}</div>
           </div>
         </div>
         {slotLoading ? (
@@ -600,31 +615,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             暂无槽位数据：{slotError}
           </div>
         ) : null}
-        <div className="mt-4 flex flex-wrap gap-3">
-          {(clusterCapacity?.workers || []).map((worker) => (
-            <div
-              key={worker.worker_id}
-              className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
-                worker.healthy ? 'border-slate-200 bg-slate-50' : 'border-rose-200 bg-rose-50'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-black text-slate-900">{worker.host_name || worker.worker_id}</div>
-                <div className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${worker.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                  {worker.healthy ? 'healthy' : 'unhealthy'}
-                </div>
-              </div>
-              <div className="mt-1 break-all font-mono text-[11px] text-slate-400">{worker.worker_id}</div>
-              <div className="mt-2 text-xs text-slate-600">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs} · 空闲 {worker.available_slots}</div>
-              <div className="mt-1 text-xs text-slate-400">来源 {worker.source || 'runner_registry'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}</div>
-              {worker.error ? <div className="mt-2 break-all text-[11px] text-rose-600">{worker.error}</div> : null}
-            </div>
-          ))}
-          {clusterCapacity && (clusterCapacity.workers || []).length === 0 && !slotError ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
-              当前未发现可用的系统分析 worker。
-            </div>
-          ) : null}
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+          首屏只加载槽位摘要。Worker 明细和活跃任务明细在“查看详情”中按需加载。
         </div>
       </section>
 
@@ -721,6 +713,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
           </span>
           {autoRefreshEnabled && !hasActiveTasks ? (
             <span className="text-amber-600">当前无运行中任务，自动刷新暂不触发</span>
+          ) : null}
+          {autoRefreshEnabled && !pageVisible ? (
+            <span className="text-slate-400">页面不可见时暂停自动刷新</span>
           ) : null}
           {autoRefreshEnabled && hasActiveTasks ? (
             <span className="text-cyan-600">检测到活跃任务，按设定间隔自动刷新</span>
@@ -948,13 +943,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <select
                 value={perPage}
                 onChange={(e) => {
-                  const nextSize = Number(e.target.value) || 50;
+                  const nextSize = Number(e.target.value) || 20;
                   setPerPage(nextSize);
                   setPage(1);
                 }}
                 className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
               >
-                {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
+                {[20, 50, 100, 200, 500].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
               条
             </label>
@@ -1021,7 +1016,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <div className="flex items-center gap-3">
                 <div className="text-right text-xs text-slate-400">
                   <div>最近同步</div>
-                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(clusterCapacity?.updated_at)}</div>
+                  <div className="mt-1 font-semibold text-slate-500">{formatDateTime(clusterCapacityDetail?.updated_at || clusterCapacitySummary?.updated_at)}</div>
                 </div>
                 <button
                   type="button"
@@ -1034,13 +1029,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               </div>
             </div>
             <div className="max-h-[75vh] overflow-auto px-6 py-5">
-              {(clusterCapacity?.workers || []).length === 0 ? (
+              {(clusterCapacityDetail?.workers || []).length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">
                   当前未发现可用的系统分析 worker。
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {(clusterCapacity?.workers || []).map((worker) => {
+                  {(clusterCapacityDetail?.workers || []).map((worker) => {
                     const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
                     const activeJobs = worker.active_jobs || [];
                     return (

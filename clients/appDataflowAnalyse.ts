@@ -1,4 +1,4 @@
-import { API_BASE, getHeaders, handleResponse, fetchWithRetry } from './base';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse, fetchWithRetry } from './base';
 import {
   AppDfaSessionIndex,
   AppDfaServiceConfig,
@@ -47,14 +47,14 @@ export const appDataflowAnalyseApi = {
     if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
-    return handleResponse(await fetch(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() }));
+    return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
   },
 
   getWorkerClusterCapacity: async (projectId: string): Promise<AppDfaClusterCapacity> =>
-    handleResponse(await fetch(
+    getJsonWithDedupe(
       `${BASE}/workers/cluster-capacity?project_id=${encodeURIComponent(projectId)}`,
       { headers: getHeaders() },
-    )),
+    ),
 
   getTask: async (taskId: string): Promise<AppDfaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),
