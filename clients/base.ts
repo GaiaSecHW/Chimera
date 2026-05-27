@@ -1,4 +1,5 @@
 export const API_BASE = '';
+const nativeFetch = globalThis.fetch.bind(globalThis);
 
 export const getHeaders = () => {
   const token = localStorage.getItem('secflow_token');
@@ -128,7 +129,7 @@ export const fetchWithRetry = async (
   let lastError: unknown = null;
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
-      const response = await fetch(input, init);
+      const response = await nativeFetch(input, init);
       if (!statusAllowlist.includes(response.status) || attempt >= retries) {
         return response;
       }
@@ -157,6 +158,8 @@ type DedupeGetJsonOptions = {
 
 const DEFAULT_GET_DEDUPE_TTL_MS = 250;
 const pendingGetJsonRequests = new Map<string, { promise: Promise<any>; expiresAt: number }>();
+const pendingGetResponseRequests = new Map<string, { promise: Promise<Response>; expiresAt: number }>();
+let globalGetRequestDedupeInstalled = false;
 
 const buildGetDedupeKey = (input: RequestInfo | URL, init?: RequestInit): string => {
   const url = typeof input === 'string'
@@ -176,17 +179,93 @@ const buildGetDedupeKey = (input: RequestInfo | URL, init?: RequestInit): string
   });
 };
 
-export const getJsonWithDedupe = async <T,>(
+const resolveRequestMethod = (input: RequestInfo | URL, init?: RequestInit): string => {
+  const requestMethod = input instanceof Request ? input.method : undefined;
+  return (init?.method || requestMethod || 'GET').toUpperCase();
+};
+
+const hasAbortSignal = (input: RequestInfo | URL, init?: RequestInit): boolean => {
+  if (init?.signal) return true;
+  return input instanceof Request && !!input.signal;
+};
+
+const hasDedupeBypassHeader = (input: RequestInfo | URL, init?: RequestInit): boolean => {
+  const requestHeaders = input instanceof Request ? input.headers : undefined;
+  const headers = new Headers(init?.headers || requestHeaders || undefined);
+  return headers.get('x-secflow-no-request-dedupe') === '1';
+};
+
+export const fetchWithGetDedupe = async (
   input: RequestInfo | URL,
   init?: RequestInit,
+  options?: { ttlMs?: number },
+): Promise<Response> => {
+  const method = resolveRequestMethod(input, init);
+  if (method !== 'GET' || hasAbortSignal(input, init) || hasDedupeBypassHeader(input, init)) {
+    return nativeFetch(input, init);
+  }
+
+  const ttlMs = Math.max(0, options?.ttlMs ?? DEFAULT_GET_DEDUPE_TTL_MS);
+  const key = buildGetDedupeKey(input, init);
+  const now = Date.now();
+  const existing = pendingGetResponseRequests.get(key);
+  if (existing && existing.expiresAt > now) {
+    const response = await existing.promise;
+    return response.clone();
+  }
+
+  const promise = nativeFetch(input, init);
+  pendingGetResponseRequests.set(key, {
+    promise,
+    expiresAt: now + ttlMs,
+  });
+
+  try {
+    const response = await promise;
+    return response.clone();
+  } catch (error) {
+    const current = pendingGetResponseRequests.get(key);
+    if (current?.promise === promise) {
+      pendingGetResponseRequests.delete(key);
+    }
+    throw error;
+  } finally {
+    window.setTimeout(() => {
+      const current = pendingGetResponseRequests.get(key);
+      if (current?.promise === promise && current.expiresAt <= Date.now()) {
+        pendingGetResponseRequests.delete(key);
+      }
+    }, ttlMs);
+  }
+};
+
+export const installGlobalGetRequestDedupe = () => {
+  if (globalGetRequestDedupeInstalled) return;
+  globalGetRequestDedupeInstalled = true;
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => (
+    fetchWithGetDedupe(input, init)
+  )) as typeof fetch;
+};
+
+const fetchWithOptionalRetry = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options?: DedupeGetJsonOptions,
+): Promise<Response> => (
+  options?.useRetry
+    ? fetchWithRetry(input, init, options.retryOptions)
+    : fetchWithGetDedupe(input, init)
+);
+
+const getWithDedupe = async <T,>(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  loader: () => Promise<T>,
   options?: DedupeGetJsonOptions,
 ): Promise<T> => {
   const method = (init?.method || 'GET').toUpperCase();
   if (method !== 'GET') {
-    const response = options?.useRetry
-      ? await fetchWithRetry(input, init, options.retryOptions)
-      : await fetch(input, init);
-    return handleResponse(response);
+    return loader();
   }
 
   const ttlMs = Math.max(0, options?.ttlMs ?? DEFAULT_GET_DEDUPE_TTL_MS);
@@ -197,12 +276,7 @@ export const getJsonWithDedupe = async <T,>(
     return existing.promise as Promise<T>;
   }
 
-  const promise = (async () => {
-    const response = options?.useRetry
-      ? await fetchWithRetry(input, init, options.retryOptions)
-      : await fetch(input, init);
-    return handleResponse(response);
-  })();
+  const promise = loader();
 
   pendingGetJsonRequests.set(key, {
     promise,
@@ -226,6 +300,35 @@ export const getJsonWithDedupe = async <T,>(
     }, ttlMs);
   }
 };
+
+export const getJsonWithDedupe = async <T,>(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options?: DedupeGetJsonOptions,
+): Promise<T> => getWithDedupe(
+  input,
+  init,
+  async () => {
+    const response = await fetchWithOptionalRetry(input, init, options);
+    return handleResponse(response);
+  },
+  options,
+);
+
+export const getTextWithDedupe = async (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options?: DedupeGetJsonOptions,
+): Promise<string> => getWithDedupe(
+  input,
+  init,
+  async () => {
+    const response = await fetchWithOptionalRetry(input, init, options);
+    const payload = await handleResponse(response);
+    return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
+  },
+  options,
+);
 
 export interface XhrUploadProgress {
   loaded_bytes: number;

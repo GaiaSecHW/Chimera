@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './styles.css';
+import { installGlobalGetRequestDedupe } from './clients/base';
 import { ensureLocalMonaco } from './utils/monaco';
 
 try {
@@ -10,6 +11,8 @@ try {
 } catch (error) {
   console.error('[bootstrap] Failed to initialize Monaco', error);
 }
+
+installGlobalGetRequestDedupe();
 
 type AppErrorBoundaryState = {
   hasError: boolean;

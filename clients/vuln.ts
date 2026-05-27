@@ -1,4 +1,4 @@
-import { API_BASE, handleResponse, getHeaders } from './base';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
@@ -19,7 +19,7 @@ export const vulnApi = {
   },
 
   getProjectConfig: async (projectId: string): Promise<any> =>
-    handleResponse(await fetch(`${API_BASE}/api/vuln/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
+    getJsonWithDedupe(`${API_BASE}/api/vuln/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
 
   updateProjectConfig: async (projectId: string, config: Record<string, any>): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/config`, {

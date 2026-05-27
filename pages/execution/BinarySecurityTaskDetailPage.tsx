@@ -77,7 +77,7 @@ const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
 ) as Record<string, boolean>;
-const STAGE_ITEMS_PER_PAGE = 100;
+const STAGE_ITEMS_PER_PAGE = 10;
 
 const STAGE_LABELS: Record<string, string> = {
   firmware_unpack: '固件解包',
