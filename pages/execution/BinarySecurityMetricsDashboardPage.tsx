@@ -235,6 +235,34 @@ type AggregateCoverageSummary = {
   attemptedByRole: Array<{ role: string; attempted: number; successful: number }>;
 };
 
+type RestApiRouteSummary = {
+  route: string;
+  method: string;
+  requestCount: number;
+  avgSeconds: number | null;
+  p50Seconds: number | null;
+  p95Seconds: number | null;
+  p99Seconds: number | null;
+  approxMaxSeconds: number | null;
+  status2xx: number;
+  status4xx: number;
+  status5xx: number;
+  inflight: number;
+};
+
+type RestApiViewModel = {
+  rows: RestApiRouteSummary[];
+  totalRequests: number;
+  totalInflight: number;
+  avgSeconds: number | null;
+  p95Seconds: number | null;
+  slowRouteCount: number;
+  errorRate: number | null;
+  topByCount: Array<{ name: string; value: number }>;
+  topByP95: Array<{ name: string; value: number }>;
+  topBy5xx: Array<{ name: string; value: number }>;
+};
+
 type AiCard = {
   label: string;
   value: number;
@@ -309,7 +337,6 @@ type FirmwareUnpackerViewModel = {
   taskStatusChart: Array<{ name: string; value: number; fill: string }>;
   queueChart: Array<{ name: string; value: number; fill: string }>;
   workerChart: Array<{ name: string; value: number; fill: string }>;
-  httpTop: Array<{ name: string; value: number }>;
   operations: Array<{ label: string; value: number | null; hint: string; tone: string }>;
   aiSummary: Array<{ label: string; value: string; hint: string; tone: string }>;
   alerts: FirmwareUnpackerHealthAlert[];
@@ -781,6 +808,130 @@ const buildAggregateCoverageSummary = (rows: DisplayMetricRow[], serviceKey: Bin
     successful,
     partial: Boolean((partialRow?.value || 0) > 0),
     attemptedByRole,
+  };
+};
+
+const quantileFromBuckets = (
+  buckets: Array<{ le: number; count: number }>,
+  totalCount: number,
+  quantile: number,
+): number | null => {
+  if (!buckets.length || totalCount <= 0) return null;
+  const threshold = totalCount * quantile;
+  for (const bucket of buckets.sort((left, right) => left.le - right.le)) {
+    if (bucket.count >= threshold) return Number.isFinite(bucket.le) ? bucket.le : null;
+  }
+  return null;
+};
+
+const httpMetricPrefixes = [
+  'secflow_binary_security_http_request_',
+  'firmware_unpacker_http_request_',
+  'secflow_system_analyse_http_request_',
+  'secflow_binary_to_source_http_request_',
+  'secflow_entry_analyse_http_request_',
+  'secflow_dfa_http_request_',
+  'secflow_dataflow_vuln_http_request_',
+];
+
+const buildRestApiViewModel = (rows: DisplayMetricRow[]): RestApiViewModel => {
+  const normalizedRows = rows.filter((row) => httpMetricPrefixes.some((prefix) => row.name.startsWith(prefix)));
+  const requestRows = normalizedRows.filter((row) => row.name.endsWith('_http_requests_total'));
+  const inflightRows = normalizedRows.filter((row) => row.name.endsWith('_http_request_inflight'));
+  const histogramRows = normalizedRows.filter((row) => row.name.includes('_http_request_duration_seconds_'));
+  const routeMap = new Map<string, RestApiRouteSummary>();
+
+  const ensureRoute = (route: string, method: string): RestApiRouteSummary => {
+    const key = `${method} ${route}`;
+    const existing = routeMap.get(key);
+    if (existing) return existing;
+    const created: RestApiRouteSummary = {
+      route,
+      method,
+      requestCount: 0,
+      avgSeconds: null,
+      p50Seconds: null,
+      p95Seconds: null,
+      p99Seconds: null,
+      approxMaxSeconds: null,
+      status2xx: 0,
+      status4xx: 0,
+      status5xx: 0,
+      inflight: 0,
+    };
+    routeMap.set(key, created);
+    return created;
+  };
+
+  requestRows.forEach((row) => {
+    const route = row.labels.route || row.labels.path || '/';
+    const method = row.labels.method || 'GET';
+    const item = ensureRoute(route, method);
+    item.requestCount += row.value;
+    if (row.labels.status_class === '2xx') item.status2xx += row.value;
+    if (row.labels.status_class === '4xx') item.status4xx += row.value;
+    if (row.labels.status_class === '5xx') item.status5xx += row.value;
+  });
+
+  inflightRows.forEach((row) => {
+    const route = row.labels.route || row.labels.path || '/';
+    const method = row.labels.method || 'GET';
+    ensureRoute(route, method).inflight += row.value;
+  });
+
+  const bucketMap = new Map<string, Array<{ le: number; count: number }>>();
+  const sumMap = new Map<string, number>();
+  const countMap = new Map<string, number>();
+
+  histogramRows.forEach((row) => {
+    const route = row.labels.route || row.labels.path || '/';
+    const method = row.labels.method || 'GET';
+    const key = `${method} ${route}`;
+    if (row.name.endsWith('_bucket')) {
+      const leRaw = row.labels.le;
+      const le = leRaw === '+Inf' ? Number.POSITIVE_INFINITY : Number(leRaw);
+      if (!bucketMap.has(key)) bucketMap.set(key, []);
+      if (Number.isFinite(le) || le === Number.POSITIVE_INFINITY) bucketMap.get(key)?.push({ le, count: row.value });
+    } else if (row.name.endsWith('_sum')) {
+      sumMap.set(key, row.value);
+    } else if (row.name.endsWith('_count')) {
+      countMap.set(key, row.value);
+    }
+  });
+
+  for (const [key, item] of routeMap.entries()) {
+    const count = countMap.get(key) ?? item.requestCount;
+    const sum = sumMap.get(key);
+    const buckets = bucketMap.get(key) || [];
+    item.avgSeconds = count > 0 && sum != null ? sum / count : null;
+    item.p50Seconds = quantileFromBuckets(buckets, count, 0.5);
+    item.p95Seconds = quantileFromBuckets(buckets, count, 0.95);
+    item.p99Seconds = quantileFromBuckets(buckets, count, 0.99);
+    const lastFiniteBucket = [...buckets].sort((left, right) => left.le - right.le).filter((bucket) => Number.isFinite(bucket.le)).pop();
+    item.approxMaxSeconds = lastFiniteBucket?.le ?? null;
+  }
+
+  const resultRows = [...routeMap.values()].sort((left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0) || right.requestCount - left.requestCount);
+  const totalRequests = resultRows.reduce((sum, row) => sum + row.requestCount, 0);
+  const totalInflight = resultRows.reduce((sum, row) => sum + row.inflight, 0);
+  const total5xx = resultRows.reduce((sum, row) => sum + row.status5xx, 0);
+  const weightedAvg = totalRequests > 0
+    ? resultRows.reduce((sum, row) => sum + (row.avgSeconds || 0) * row.requestCount, 0) / totalRequests
+    : null;
+  const p95Max = resultRows.reduce((max, row) => Math.max(max, row.p95Seconds || 0), 0) || null;
+  const slowRouteCount = resultRows.filter((row) => (row.p95Seconds || 0) >= 1 || (row.avgSeconds || 0) >= 0.5).length;
+
+  return {
+    rows: resultRows,
+    totalRequests,
+    totalInflight,
+    avgSeconds: weightedAvg,
+    p95Seconds: p95Max,
+    slowRouteCount,
+    errorRate: totalRequests > 0 ? total5xx / totalRequests : null,
+    topByCount: resultRows.slice(0, 6).sort((left, right) => right.requestCount - left.requestCount).map((item) => ({ name: `${item.method} ${item.route}`, value: item.requestCount })),
+    topByP95: resultRows.slice(0, 6).sort((left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0)).map((item) => ({ name: `${item.method} ${item.route}`, value: item.p95Seconds || 0 })),
+    topBy5xx: resultRows.slice(0, 6).sort((left, right) => right.status5xx - left.status5xx).filter((item) => item.status5xx > 0).map((item) => ({ name: `${item.method} ${item.route}`, value: item.status5xx })),
   };
 };
 
@@ -1705,14 +1856,6 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
       { name: 'slot capacity', value: valueOrZero(slotCapacity), fill: '#0f766e' },
       { name: 'executor', value: valueOrZero(executorCapacity), fill: '#6366f1' },
     ],
-    httpTop: rows
-      .filter((row) => row.name === 'firmware_unpacker_api_requests_total')
-      .sort((left, right) => right.value - left.value)
-      .slice(0, 6)
-      .map((row) => ({
-        name: `${row.labels.method || '-'} ${String(row.labels.path || '').replace('/api/app/firmware-unpacker/', '')}`,
-        value: row.value,
-      })),
     operations: [
       { label: '任务错误', value: taskErrors, hint: 'task_errors_total 聚合', tone: taskErrors > 0 ? 'text-rose-700' : 'text-emerald-700' },
       { label: 'DB 重试', value: dbRetry, hint: 'transient database retries', tone: dbRetry > 0 ? 'text-amber-700' : 'text-slate-900' },
@@ -2331,6 +2474,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [selectedSystemWorkerFilter, setSelectedSystemWorkerFilter] = useState<string>('');
   const [selectedDfaWorkerFilter, setSelectedDfaWorkerFilter] = useState<string>('');
   const [selectedEntryWorkerFilter, setSelectedEntryWorkerFilter] = useState<string>('');
+  const [restApiRouteKeyword, setRestApiRouteKeyword] = useState('');
+  const [restApiMethodFilter, setRestApiMethodFilter] = useState<'all' | string>('all');
+  const [restApiSlowOnly, setRestApiSlowOnly] = useState(false);
+  const [restApiHideInfra, setRestApiHideInfra] = useState(true);
   const [reducerHistoryByService, setReducerHistoryByService] = useState<Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, []])) as Record<BinarySecurityMetricsServiceKey, BinarySecurityReducerSnapshot[]>,
   );
@@ -2707,6 +2854,25 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     () => (activeServiceKey === 'dataflow-analysis' ? buildDataflowAnalysisViewModel(viewModel.rows) : null),
     [activeServiceKey, viewModel.rows],
   );
+  const restApiViewModel = useMemo(() => buildRestApiViewModel(viewModel.rows), [viewModel.rows]);
+  const restApiMethods = useMemo(
+    () => Array.from(new Set(restApiViewModel.rows.map((item) => item.method))).sort((left, right) => left.localeCompare(right, 'zh-CN')),
+    [restApiViewModel.rows],
+  );
+  const filteredRestApiRows = useMemo(() => {
+    const keyword = restApiRouteKeyword.trim().toLowerCase();
+    return restApiViewModel.rows.filter((item) => {
+      if (restApiMethodFilter !== 'all' && item.method !== restApiMethodFilter) return false;
+      if (restApiSlowOnly && (item.p95Seconds || 0) < 1 && (item.avgSeconds || 0) < 0.5) return false;
+      if (restApiHideInfra) {
+        const route = item.route.toLowerCase();
+        if (route.includes('/metrics') || route.includes('/health') || route.includes('/ready')) return false;
+        if (item.method === 'OPTIONS') return false;
+      }
+      if (!keyword) return true;
+      return `${item.method} ${item.route}`.toLowerCase().includes(keyword);
+    });
+  }, [restApiHideInfra, restApiMethodFilter, restApiRouteKeyword, restApiSlowOnly, restApiViewModel.rows]);
   const focusedEntryStageRow = useMemo(() => {
     if (!entryAnalysisViewModel || selectedEntryStage === 'all') return null;
     return entryAnalysisViewModel.stageRows.find((item) => item.stage === selectedEntryStage) || null;
@@ -3424,6 +3590,139 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
             </div>
           </section>
         )
+      ) : activeSecondaryTab === 'rest-api' ? (
+        <section className="space-y-4 rounded-[2rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-600">REST API</div>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">接口耗时统计</h2>
+              <p className="mt-2 max-w-3xl text-sm text-slate-500">按路由模板聚合请求量、耗时分布、错误比例和 inflight，不展示单次请求详情。</p>
+            </div>
+              <div className="text-xs text-slate-500">已使用统一 HTTP 指标。</div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            {[
+              { label: '总请求量', value: formatNumber(restApiViewModel.totalRequests), hint: '聚合后的累计请求数' },
+              { label: 'Inflight', value: formatNumber(restApiViewModel.totalInflight), hint: '当前正在处理的请求' },
+              { label: '平均耗时', value: formatSeconds(restApiViewModel.avgSeconds), hint: '按请求量加权均值' },
+              { label: 'P95', value: formatSeconds(restApiViewModel.p95Seconds), hint: '各路由 P95 最大值' },
+              { label: '慢接口数', value: formatNumber(restApiViewModel.slowRouteCount), hint: 'P95 >= 1s 或均值 >= 500ms' },
+              { label: '5xx 占比', value: restApiViewModel.errorRate == null ? '-' : `${formatNumber(restApiViewModel.errorRate * 100, 2)}%`, hint: '按统一 HTTP 指标计算' },
+            ].map((item) => (
+              <div key={item.label} className="rounded-[1.4rem] border border-sky-100 bg-white px-4 py-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{item.label}</div>
+                <div className="mt-3 text-2xl font-black tracking-tight text-slate-900">{item.value}</div>
+                <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-3">
+            {[
+              { title: '请求量 Top 6', data: restApiViewModel.topByCount, color: '#0f766e' },
+              { title: 'P95 Top 6', data: restApiViewModel.topByP95, color: '#2563eb' },
+              { title: '5xx Top 6', data: restApiViewModel.topBy5xx, color: '#dc2626' },
+            ].map((chart) => (
+              <div key={chart.title} className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{chart.title}</div>
+                <div className="mt-4 h-64">
+                  {chart.data.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chart.data} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                        <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={false} />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                        <Tooltip formatter={(value: number) => formatMetricValue(Number(value))} />
+                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                          {chart.data.map((entry) => (
+                            <Cell key={entry.name} fill={chart.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <EmptyCard text="当前没有可展示的 REST API 聚合数据。" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-3 rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm xl:grid-cols-[minmax(0,1.2fr)_180px_150px_170px]">
+            <label className="space-y-2">
+              <span className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">Route 搜索</span>
+              <input
+                value={restApiRouteKeyword}
+                onChange={(event) => setRestApiRouteKeyword(event.target.value)}
+                placeholder="如 /api/app/.../tasks"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:bg-white"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">Method</span>
+              <select
+                value={restApiMethodFilter}
+                onChange={(event) => setRestApiMethodFilter(event.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-300 focus:bg-white"
+              >
+                <option value="all">全部</option>
+                {restApiMethods.map((method) => (
+                  <option key={method} value={method}>{method}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
+              <input type="checkbox" checked={restApiSlowOnly} onChange={(event) => setRestApiSlowOnly(event.target.checked)} />
+              只看慢接口
+            </label>
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
+              <input type="checkbox" checked={restApiHideInfra} onChange={(event) => setRestApiHideInfra(event.target.checked)} />
+              隐藏 health/metrics/OPTIONS
+            </label>
+          </div>
+
+          <div className="overflow-auto rounded-[1.6rem] border border-slate-200 bg-white shadow-sm">
+            <ExecutionTable>
+              <ExecutionTableHead>
+                <tr>
+                  <ExecutionTableTh>Route</ExecutionTableTh>
+                  <ExecutionTableTh>Method</ExecutionTableTh>
+                  <ExecutionTableTh align="right">请求量</ExecutionTableTh>
+                  <ExecutionTableTh align="right">平均耗时</ExecutionTableTh>
+                  <ExecutionTableTh align="right">P50</ExecutionTableTh>
+                  <ExecutionTableTh align="right">P95</ExecutionTableTh>
+                  <ExecutionTableTh align="right">P99</ExecutionTableTh>
+                  <ExecutionTableTh align="right">2xx</ExecutionTableTh>
+                  <ExecutionTableTh align="right">4xx</ExecutionTableTh>
+                  <ExecutionTableTh align="right">5xx</ExecutionTableTh>
+                  <ExecutionTableTh align="right">Inflight</ExecutionTableTh>
+                </tr>
+              </ExecutionTableHead>
+              <tbody>
+                {filteredRestApiRows.length ? (
+                  filteredRestApiRows.map((item) => (
+                    <tr key={`${item.method}:${item.route}`} className={executionTableRowClassName}>
+                      <ExecutionTableTd className="font-mono text-[11px] text-slate-700">{item.route}</ExecutionTableTd>
+                      <ExecutionTableTd>{item.method}</ExecutionTableTd>
+                      <ExecutionTableTd align="right">{formatNumber(item.requestCount)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right">{formatSeconds(item.avgSeconds)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right">{formatSeconds(item.p50Seconds)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right" className={(item.p95Seconds || 0) >= 1 ? 'text-amber-700 font-bold' : ''}>{formatSeconds(item.p95Seconds)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right">{formatSeconds(item.p99Seconds)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right">{formatNumber(item.status2xx)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right">{formatNumber(item.status4xx)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right" className={item.status5xx > 0 ? 'text-rose-700 font-bold' : ''}>{formatNumber(item.status5xx)}</ExecutionTableTd>
+                      <ExecutionTableTd align="right">{formatNumber(item.inflight)}</ExecutionTableTd>
+                    </tr>
+                  ))
+                ) : (
+                  <ExecutionTableEmptyRow colSpan={11} message="当前没有符合条件的 REST API 统计样本。" />
+                )}
+              </tbody>
+            </ExecutionTable>
+          </div>
+        </section>
       ) : activeSecondaryTab === 'observability' ? (
         <>
           {aggregateCoverage ? (
