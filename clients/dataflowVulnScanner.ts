@@ -123,6 +123,14 @@ export interface DataflowScanTask {
   vuln_report_status?: Record<string, any>;
 }
 
+export interface DataflowScanTaskListPage {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  items: DataflowScanTask[];
+}
+
 export interface DataflowScanTaskDetail extends DataflowScanTask {
   title: string;
   task_markdown: string;
@@ -270,6 +278,7 @@ export interface DataflowVulnClusterCapacity {
   queued_jobs: number;
   available_slots: number;
   updated_at: string;
+  detail_mode?: 'summary' | 'detail';
   workers: DataflowVulnWorkerCapacity[];
 }
 
@@ -589,17 +598,24 @@ export const dataflowVulnScannerApi = {
     return handleResponse(response);
   },
 
-  listTasks: async (params: { projectId?: string; status?: string; profileId?: string } = {}): Promise<DataflowScanTask[]> => {
+  listTasks: async (params: { projectId?: string; status?: string; profileId?: string; page?: number; pageSize?: number } = {}): Promise<DataflowScanTaskListPage> => {
     const response = await fetch(withQuery(`${PREFIX}/tasks`, {
       project_id: params.projectId,
       status: params.status,
       profile_id: params.profileId,
+      page: params.page,
+      page_size: params.pageSize,
     }), { headers: getHeaders() });
-    return unwrapList<DataflowScanTask>(await handleResponse(response));
+    return handleResponse(response);
   },
 
   getWorkerClusterCapacity: async (): Promise<DataflowVulnClusterCapacity> => {
     const response = await fetch(`${PREFIX}/workers/cluster-capacity`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  getWorkerClusterCapacitySummary: async (): Promise<DataflowVulnClusterCapacity> => {
+    const response = await fetch(`${PREFIX}/workers/cluster-capacity/summary`, { headers: getHeaders() });
     return handleResponse(response);
   },
 

@@ -27,6 +27,7 @@ export const matchesDataflowVulnSampleScope = (row: Pick<MetricRowLike, 'name'>,
     matchesDataflowVulnSampleScope(row, 'runtime') ||
     matchesDataflowVulnSampleScope(row, 'ai') ||
     matchesDataflowVulnSampleScope(row, 'plugin') ||
+    row.name.includes('secflow_dataflow_service_operation_') ||
     row.name.includes('secflow_dataflow_execution_') ||
     row.name.includes('secflow_dataflow_queue_depth')
   );
@@ -55,6 +56,8 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
   const cycleField = (field: string) => metricValueByName(rows, 'secflow_dataflow_cycle_metrics', { field });
   const plateauFlag = (flag: string) => metricValueByName(rows, 'secflow_dataflow_cycle_plateau_flags', { flag });
   const runtimeField = (mode: string, field: string) => metricValueByName(rows, 'secflow_dataflow_runtime_trace_total', { mode, field });
+  const serviceOpCount = (operation: string) => metricValueByName(rows, 'secflow_dataflow_service_operation_total', { operation });
+  const serviceOpAvg = (operation: string) => averageFromSummary(rows, 'secflow_dataflow_service_operation_duration_seconds', { operation });
 
   const plateauHints: Record<string, string> = {
     stagnant: '周期指标长时间不再推进',
@@ -95,6 +98,26 @@ export const buildDataflowVulnOverviewViewModel = (rows: MetricRowLike[], deps: 
       { label: '失败 Execution', value: formatNumber(failedExecutions), hint: 'execution_status{status=failed}', tone: (failedExecutions || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
       { label: '取消 Execution', value: formatNumber(cancelledExecutions), hint: 'execution_status{status=cancelled}', tone: (cancelledExecutions || 0) > 0 ? 'text-slate-700' : 'text-emerald-700' },
       { label: '重试事件', value: formatNumber(retryEvents), hint: 'execution_events_total{event=retry}', tone: (retryEvents || 0) > 0 ? 'text-amber-700' : 'text-emerald-700' },
+    ],
+    serviceOperationCards: [
+      {
+        label: '任务列表',
+        value: formatSeconds(serviceOpAvg('task_list')),
+        hint: `count ${formatNumber(serviceOpCount('task_list'))} · task_list avg`,
+        tone: (serviceOpAvg('task_list') || 0) > 1 ? 'text-rose-700' : (serviceOpAvg('task_list') || 0) > 0.3 ? 'text-amber-700' : 'text-emerald-700',
+      },
+      {
+        label: '槽位摘要',
+        value: formatSeconds(serviceOpAvg('cluster_capacity_summary')),
+        hint: `count ${formatNumber(serviceOpCount('cluster_capacity_summary'))} · summary avg`,
+        tone: (serviceOpAvg('cluster_capacity_summary') || 0) > 0.5 ? 'text-amber-700' : 'text-emerald-700',
+      },
+      {
+        label: '槽位明细',
+        value: formatSeconds(serviceOpAvg('cluster_capacity_detail')),
+        hint: `count ${formatNumber(serviceOpCount('cluster_capacity_detail'))} · detail avg`,
+        tone: (serviceOpAvg('cluster_capacity_detail') || 0) > 1.5 ? 'text-rose-700' : (serviceOpAvg('cluster_capacity_detail') || 0) > 0.6 ? 'text-amber-700' : 'text-slate-900',
+      },
     ],
     cycleCards: [
       { label: '最新漏洞数', value: formatNumber(cycleField('issue_count')), hint: 'cycle_metrics issue_count', tone: 'text-rose-700' },
