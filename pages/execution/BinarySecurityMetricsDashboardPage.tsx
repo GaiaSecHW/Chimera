@@ -451,6 +451,11 @@ type BinarySecurityObservabilityViewModel = {
   pipelineSummary: ReducerBreakdownItem[];
   reducerSummary: ReducerBreakdownItem[];
   syncSummary: ReducerBreakdownItem[];
+  taskListPerformance: {
+    topCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+    stageRows: Array<{ stage: string; p95Seconds: number | null; avgSeconds: number | null; count: number | null; tone: string }>;
+    alerts: Array<{ label: string; text: string; tone: string }>;
+  };
   groupCounts: Array<{ group: BinarySecurityMetricsGroup; count: number }>;
 };
 
@@ -828,7 +833,54 @@ const buildBinarySecurityObservabilityViewModel = (
   const reconcileLastRunAt = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_last_run_timestamp');
   const reconcileChangedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'changed' });
   const reconcileFailedTotal = metricValueByName(rows, 'secflow_binary_security_task_readless_reconcile_tasks_total', { result: 'failed' });
+  const listQueryTotal = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_list_queries_total');
+  const listQueryErrors = sumMetric(rows, (row) => row.name === 'secflow_binary_security_task_list_queries_total' && row.labels.result === 'error');
+  const listQueryAvgSeconds = histogramAverage(rows, 'secflow_binary_security_task_list_query_duration_seconds');
+  const listQueryP50Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_duration_seconds', 0.5);
+  const listQueryP95Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_duration_seconds', 0.95);
+  const taskListPerfStageKeys = [
+    'count',
+    'page_items',
+    'project_stats',
+    'project_stage_aggregates',
+    'queue_info',
+    'serialize_items',
+    'service_config',
+    'build_base_query',
+  ] as const;
+  const taskListPerfStageLabel = (stage: string) => {
+    const labels: Record<string, string> = {
+      count: '总数统计',
+      page_items: '分页数据查询',
+      project_stats: '项目统计聚合',
+      project_stage_aggregates: '阶段聚合',
+      queue_info: '队列统计',
+      serialize_items: '列表序列化',
+      service_config: '服务配置读取',
+      build_base_query: '基础查询构建',
+    };
+    return labels[stage] || stage;
+  };
+  const taskListStageRows = taskListPerfStageKeys
+    .map((stage) => {
+      const p95Seconds = histogramQuantile(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds', 0.95, { stage });
+      const avgSeconds = histogramAverage(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds', { stage });
+      const count = metricValueByName(rows, 'secflow_binary_security_task_list_query_stage_duration_seconds_count', { stage });
+      const severity = Math.max(p95Seconds || 0, avgSeconds || 0);
+      const tone =
+        severity > 1
+          ? 'text-rose-700'
+          : severity > 0.3
+            ? 'text-amber-700'
+            : severity > 0
+              ? 'text-slate-700'
+              : 'text-slate-500';
+      return { stage, p95Seconds, avgSeconds, count, tone };
+    })
+    .filter((item) => item.count != null || item.avgSeconds != null || item.p95Seconds != null)
+    .sort((left, right) => (right.p95Seconds || 0) - (left.p95Seconds || 0));
   const alerts: Array<{ label: string; text: string; tone: string }> = [];
+  const taskListAlerts: Array<{ label: string; text: string; tone: string }> = [];
 
   if (aggregateCoverage?.partial) {
     alerts.push({
@@ -876,6 +928,35 @@ const buildBinarySecurityObservabilityViewModel = (
     alerts.push({
       label: '编排侧整体平稳',
       text: '当前聚合结果没有显示明显的状态事件积压、死信或锁竞争放大信号，可以继续结合下方原始指标排查细节。',
+      tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    });
+  }
+  const slowestTaskListStage = taskListStageRows[0];
+  if ((listQueryP95Seconds || 0) > 1) {
+    taskListAlerts.push({
+      label: '任务列表长尾延迟偏高',
+      text: `当前列表查询 P95 ${formatSeconds(listQueryP95Seconds)}，用户在任务列表页会明显感知等待。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if ((listQueryErrors || 0) > 0) {
+    taskListAlerts.push({
+      label: '任务列表查询存在错误',
+      text: `累计错误 ${formatNumber(listQueryErrors)} / 总请求 ${formatNumber(listQueryTotal)}，需要排查读路径稳定性或聚合依赖异常。`,
+      tone: 'border-rose-200 bg-rose-50 text-rose-800',
+    });
+  }
+  if (slowestTaskListStage && (slowestTaskListStage.p95Seconds || 0) > 0.3) {
+    taskListAlerts.push({
+      label: `最慢分段：${taskListPerfStageLabel(slowestTaskListStage.stage)}`,
+      text: `P95 ${formatSeconds(slowestTaskListStage.p95Seconds)}，均值 ${formatSeconds(slowestTaskListStage.avgSeconds)}。`,
+      tone: (slowestTaskListStage.p95Seconds || 0) > 1 ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-amber-200 bg-amber-50 text-amber-800',
+    });
+  }
+  if (!taskListAlerts.length) {
+    taskListAlerts.push({
+      label: '任务列表读路径平稳',
+      text: '当前没有明显的任务列表查询慢点或错误积累，若页面仍慢，优先继续排查浏览器渲染或上游网络链路。',
       tone: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     });
   }
@@ -970,6 +1051,17 @@ const buildBinarySecurityObservabilityViewModel = (
       { label: 'changed total', value: reconcileChangedTotal, tone: (reconcileChangedTotal || 0) > 0 ? 'text-cyan-700' : 'text-slate-600' },
       { label: 'failed total', value: reconcileFailedTotal, tone: (reconcileFailedTotal || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
     ],
+    taskListPerformance: {
+      topCards: [
+        { label: '列表总请求', value: formatNumber(listQueryTotal), hint: 'task_list_queries_total', tone: 'text-slate-900' },
+        { label: '错误请求', value: formatNumber(listQueryErrors), hint: 'result=error', tone: listQueryErrors > 0 ? 'text-rose-700' : 'text-emerald-700' },
+        { label: '平均耗时', value: formatSeconds(listQueryAvgSeconds), hint: 'overall avg', tone: (listQueryAvgSeconds || 0) > 0.5 ? 'text-amber-700' : 'text-slate-900' },
+        { label: 'P50', value: formatSeconds(listQueryP50Seconds), hint: 'overall p50', tone: (listQueryP50Seconds || 0) > 0.3 ? 'text-amber-700' : 'text-slate-900' },
+        { label: 'P95', value: formatSeconds(listQueryP95Seconds), hint: 'overall p95', tone: (listQueryP95Seconds || 0) > 1 ? 'text-rose-700' : (listQueryP95Seconds || 0) > 0.5 ? 'text-amber-700' : 'text-emerald-700' },
+      ],
+      stageRows: taskListStageRows.map((item) => ({ ...item, stage: taskListPerfStageLabel(item.stage) })),
+      alerts: taskListAlerts,
+    },
     groupCounts: (Object.keys(GROUP_LABELS) as BinarySecurityMetricsGroup[]).map((group) => ({
       group,
       count: rows.filter((row) => row.group === group).length,
@@ -1055,6 +1147,34 @@ const histogramAverage = (rows: DisplayMetricRow[], familyName: string, labels: 
   const sum = sumMetric(rows, (row) => row.familyName === familyName && row.name.endsWith('_sum') && matchesLabels(row));
   const count = sumMetric(rows, (row) => row.familyName === familyName && row.name.endsWith('_count') && matchesLabels(row));
   return count > 0 ? sum / count : null;
+};
+
+const histogramQuantile = (
+  rows: DisplayMetricRow[],
+  familyName: string,
+  quantile: number,
+  labels: Record<string, string> = {},
+) => {
+  const matchesLabels = (row: DisplayMetricRow) => Object.entries(labels).every(([key, value]) => row.labels[key] === value);
+  const target = Math.min(1, Math.max(0, quantile));
+  const buckets = rows
+    .filter((row) => row.familyName === familyName && row.name.endsWith('_bucket') && matchesLabels(row))
+    .map((row) => ({
+      le: row.labels.le === '+Inf' ? Number.POSITIVE_INFINITY : Number(row.labels.le),
+      value: row.value,
+    }))
+    .filter((item) => Number.isFinite(item.le) || item.le === Number.POSITIVE_INFINITY)
+    .sort((left, right) => left.le - right.le);
+  if (!buckets.length) return null;
+  const total = buckets[buckets.length - 1]?.value ?? 0;
+  if (!(total > 0)) return null;
+  const wanted = total * target;
+  for (const bucket of buckets) {
+    if (bucket.value >= wanted) {
+      return Number.isFinite(bucket.le) ? bucket.le : null;
+    }
+  }
+  return null;
 };
 
 const metricValueByName = (rows: DisplayMetricRow[], name: string, labels: Record<string, string> = {}) => {
@@ -3380,6 +3500,68 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               </div>
 
               <ReducerMetricList title="后台同步摘要" items={binarySecurityObservabilityViewModel.syncSummary} emptyText="暂无后台同步摘要。" />
+
+              <section className="rounded-[1.6rem] border border-cyan-200 bg-[linear-gradient(180deg,#f8fdff_0%,#ffffff_100%)] p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.18em] text-cyan-700">Task List Query</div>
+                    <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">任务列表查询性能</h3>
+                    <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                      这里专门看 `binary-security` 任务列表读路径的总耗时和分段耗时，直接定位到底是总数统计、分页查询、项目统计、阶段聚合还是序列化拖慢了列表页。
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  {binarySecurityObservabilityViewModel.taskListPerformance.topCards.map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white px-4 py-4 shadow-sm">
+                      <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{item.label}</div>
+                      <div className={`mt-3 text-2xl font-black tracking-tight ${item.tone}`}>{item.value}</div>
+                      <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                  {binarySecurityObservabilityViewModel.taskListPerformance.alerts.map((alert) => (
+                    <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+                      <div className="text-sm font-black">{alert.label}</div>
+                      <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 overflow-auto rounded-2xl border border-slate-200">
+                  <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+                    <thead className="bg-slate-50 text-slate-500">
+                      <tr>
+                        <th className="px-3 py-3">查询分段</th>
+                        <th className="px-3 py-3 text-right">P95</th>
+                        <th className="px-3 py-3 text-right">均值</th>
+                        <th className="px-3 py-3 text-right">样本数</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {binarySecurityObservabilityViewModel.taskListPerformance.stageRows.length ? (
+                        binarySecurityObservabilityViewModel.taskListPerformance.stageRows.map((item) => (
+                          <tr key={item.stage} className="hover:bg-slate-50">
+                            <td className="px-3 py-3 font-semibold text-slate-800">{item.stage}</td>
+                            <td className={`px-3 py-3 text-right font-mono text-[11px] font-black ${item.tone}`}>{formatSeconds(item.p95Seconds)}</td>
+                            <td className="px-3 py-3 text-right font-mono text-[11px] text-slate-700">{formatSeconds(item.avgSeconds)}</td>
+                            <td className="px-3 py-3 text-right font-mono text-[11px] text-slate-700">{formatNumber(item.count)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-sm text-slate-500">
+                            当前还没有采集到任务列表分段耗时样本。
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
 
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {binarySecurityObservabilityViewModel.groupCounts.map((item) => (

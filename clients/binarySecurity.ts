@@ -644,8 +644,13 @@ export const binarySecurityApi = {
     projectId: string,
     status?: string,
     taskType?: BinarySecurityTaskType,
+    page = 1,
+    pageSize = 50,
   ): Promise<{
     total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
     running_count: number;
     queued_count: number;
     max_concurrent_tasks: number;
@@ -656,6 +661,8 @@ export const binarySecurityApi = {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
     if (taskType) params.set('task_type', taskType);
+    params.set('page', String(page));
+    params.set('page_size', String(pageSize));
     const q = params.size > 0 ? `?${params.toString()}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),

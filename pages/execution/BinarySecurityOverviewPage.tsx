@@ -372,6 +372,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT,
   );
   const [stageStatsExpanded, setStageStatsExpanded] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [moduleSelectionMode, setModuleSelectionMode] = useState<'auto' | 'manual_confirm'>('auto');
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
@@ -399,9 +403,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     setLoading(true);
     setError(null);
     try {
-      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
+      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType, page, pageSize);
       const nextItems = data.items || [];
       setItems(nextItems);
+      setTotal(data.total || 0);
+      setTotalPages(data.total_pages || 1);
       setProjectStats(data.project_stats || deriveProjectStats(nextItems));
       setProjectStageAggregates(Array.isArray(data.project_stage_aggregates) ? data.project_stage_aggregates : emptyStageAggregates());
       setRunningCount(data.running_count || 0);
@@ -521,8 +527,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   }, [executionApi.binarySecurity]);
 
   useEffect(() => {
-    void load();
+    setPage(1);
   }, [projectId, taskType]);
+
+  useEffect(() => {
+    void load();
+  }, [projectId, taskType, page, pageSize]);
 
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
@@ -927,7 +937,24 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 {deleting ? '删除中...' : `删除选中 (${selectedCount})`}
               </button>
             )}
-            <div className="text-sm text-slate-500">共 {items.length} 条</div>
+            <div className="flex items-center gap-3 text-sm text-slate-500">
+              <span>当前页 {items.length} 条，共 {total} 条</span>
+              <label className="inline-flex items-center gap-2">
+                每页
+                <select
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700"
+                >
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </label>
+            </div>
           </div>
         </div>
         {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
@@ -1025,6 +1052,27 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 </div>
               </div>
             ))}
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+              <div>第 {page} / {Math.max(1, totalPages)} 页</div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={page <= 1 || loading}
+                  className="rounded-xl border border-slate-200 px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  上一页
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.min(Math.max(1, totalPages), current + 1))}
+                  disabled={page >= Math.max(1, totalPages) || loading}
+                  className="rounded-xl border border-slate-200 px-3 py-2 font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  下一页
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>
