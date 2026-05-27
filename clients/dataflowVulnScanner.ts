@@ -114,6 +114,10 @@ export interface DataflowScanTask {
   finished_at?: string | null;
   message?: string | null;
   latest_execution_id?: string | null;
+  owner_pod_id?: string | null;
+  dispatch_status?: string | null;
+  heartbeat_at?: string | null;
+  heartbeat_age_seconds?: number | null;
   run_name?: string | null;
   runs_root?: string | null;
   run_path?: string | null;

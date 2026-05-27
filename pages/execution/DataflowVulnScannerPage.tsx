@@ -48,6 +48,7 @@ import {
   DataflowFileserverRunSummary,
 } from '../../clients/dataflowVulnRunsFileserver';
 import { ProjectFilesystemPickerModal } from '../../components/assets/ProjectFilesystemPickerModal';
+import { ExecutionTable, ExecutionTableHead, ExecutionTableTd, ExecutionTableTh, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { ServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -414,6 +415,86 @@ const statusMeta = (status?: string | null) => {
 
 const isActiveTaskStatus = (status?: string | null) =>
   ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(normalizeRunStatus(status));
+
+type ExecutionSlotState = 'running' | 'pending' | 'expired' | 'released' | 'idle';
+
+function parseOwnerHost(owner?: string | null) {
+  const normalized = String(owner || '').trim();
+  if (!normalized) return '';
+  const separator = normalized.indexOf(':');
+  return separator >= 0 ? normalized.slice(0, separator) : normalized;
+}
+
+function isHeartbeatExpired(heartbeatAgeSeconds?: number | null): boolean {
+  return typeof heartbeatAgeSeconds === 'number' && Number.isFinite(heartbeatAgeSeconds) && heartbeatAgeSeconds > 300;
+}
+
+function getExecutionSlotView(task: DataflowScanTask): {
+  state: ExecutionSlotState;
+  label: string;
+  ownerLabel: string;
+  ownerFull: string;
+  detail: string[];
+  className: string;
+} {
+  const status = normalizeRunStatus(task.status);
+  const ownerFull = String(task.owner_pod_id || '').trim();
+  const ownerLabel = parseOwnerHost(ownerFull);
+  const dispatchStatus = String(task.dispatch_status || '').trim();
+  const heartbeat = task.heartbeat_at ? `心跳 ${new Date(task.heartbeat_at).toLocaleString('zh-CN')}` : '';
+  const heartbeatAge = typeof task.heartbeat_age_seconds === 'number' ? `距今 ${task.heartbeat_age_seconds}s` : '';
+  const terminal = ['completed', 'failed', 'interrupted', 'cancelled'].includes(status);
+
+  if (terminal) {
+    return {
+      state: 'released',
+      label: '已释放',
+      ownerLabel: '',
+      ownerFull,
+      detail: [dispatchStatus || status].filter(Boolean),
+      className: 'border-slate-200 bg-slate-50 text-slate-600',
+    };
+  }
+  if (status === 'running' && ownerFull && isHeartbeatExpired(task.heartbeat_age_seconds)) {
+    return {
+      state: 'expired',
+      label: '状态过期',
+      ownerLabel: ownerLabel || ownerFull,
+      ownerFull,
+      detail: [dispatchStatus, heartbeatAge || heartbeat].filter(Boolean).slice(0, 2),
+      className: 'border-orange-200 bg-orange-50 text-orange-700',
+    };
+  }
+  if (status === 'running' && ownerFull) {
+    return {
+      state: 'running',
+      label: '运行中',
+      ownerLabel: ownerLabel || ownerFull,
+      ownerFull,
+      detail: [dispatchStatus, heartbeat || heartbeatAge].filter(Boolean).slice(0, 2),
+      className: 'border-cyan-200 bg-cyan-50 text-cyan-700',
+    };
+  }
+  if (status === 'pending' || status === 'queued') {
+    const queued = dispatchStatus === 'queued' || dispatchStatus === 'dispatching' || status === 'queued';
+    return {
+      state: 'pending',
+      label: queued ? '排队中' : '未占用槽位',
+      ownerLabel: '',
+      ownerFull,
+      detail: [dispatchStatus || status].filter(Boolean),
+      className: 'border-amber-200 bg-amber-50 text-amber-700',
+    };
+  }
+  return {
+    state: 'idle',
+    label: '未占用槽位',
+    ownerLabel: ownerLabel || '',
+    ownerFull,
+    detail: [dispatchStatus].filter(Boolean),
+    className: 'border-slate-200 bg-white text-slate-600',
+  };
+}
 
 const StatusBadge: React.FC<{ status?: string | null }> = ({ status }) => {
   const meta = statusMeta(status);
@@ -1361,39 +1442,39 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
             </div>
 
             <div className="overflow-auto">
-              <table className="w-full min-w-[1320px] text-left text-sm">
-                <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">
+              <ExecutionTable minWidth={1320}>
+                <ExecutionTableHead>
                   <tr>
-                    <th className="px-4 py-3 w-12">
+                    <ExecutionTableTh className="w-12">
                       <input
                         type="checkbox"
                         checked={allVisibleSelected}
                         onChange={(event) => toggleAllVisibleSelection(event.target.checked)}
                         aria-label="全选当前筛选任务"
                       />
-                    </th>
-                    <th className="px-4 py-3">任务 / Run</th>
-                    <th className="px-4 py-3">Run 目录</th>
-                    <th className="px-4 py-3">状态</th>
-                    <th className="px-4 py-3">模型</th>
-                    <th className="px-4 py-3">轮次</th>
-                    <th className="px-4 py-3">结果</th>
-                    <th className="px-4 py-3">疑点上报</th>
-                    <th className="px-4 py-3">开始时间</th>
-                    <th className="px-4 py-3">耗时</th>
-                    <th className="px-4 py-3 text-right">操作</th>
+                    </ExecutionTableTh>
+                    <ExecutionTableTh>任务 / Run</ExecutionTableTh>
+                    <ExecutionTableTh>执行槽位</ExecutionTableTh>
+                    <ExecutionTableTh>状态</ExecutionTableTh>
+                    <ExecutionTableTh>模型</ExecutionTableTh>
+                    <ExecutionTableTh>轮次</ExecutionTableTh>
+                    <ExecutionTableTh>结果</ExecutionTableTh>
+                    <ExecutionTableTh>疑点上报</ExecutionTableTh>
+                    <ExecutionTableTh>开始时间</ExecutionTableTh>
+                    <ExecutionTableTh>耗时</ExecutionTableTh>
+                    <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
                   </tr>
-                </thead>
+                </ExecutionTableHead>
                 <tbody>
                   {filteredTasks.map((task) => {
                     const run = taskRunLocator(task);
                     const runSummary = taskRunSummary(task);
+                    const slotView = getExecutionSlotView(task);
                     const displayStatus = taskDisplayStatus(task);
                     const hasRun = Boolean(run.name && run.root_path);
                     const taskId = task.task_id || run.linked_task_id || '';
                     const executionId = task.latest_execution_id || run.linked_execution_id || '';
                     const displayName = task.title || run.name || taskId || run.path || 'Run';
-                    const runPath = taskRunDirectoryPath(task);
                     const reportStatus = vulnReportStatusLabel(task);
                     const purposeMeta = taskPurposeMeta(task.task_purpose);
                     const secondaryLine = hasRun
@@ -1403,18 +1484,18 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                       <tr
                         key={task.task_id}
                         onClick={() => void openTaskRowDetail(task)}
-                        className={`cursor-pointer border-t border-slate-100 ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-50/60' : 'bg-white hover:bg-cyan-50/50'}`}
+                        className={`${executionTableRowClassName} cursor-pointer ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
                         title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
                       >
-                        <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                        <ExecutionTableTd onClick={(event) => event.stopPropagation()}>
                           <input
                             type="checkbox"
                             checked={selectedTaskIds.has(task.task_id)}
                             onChange={(event) => toggleTaskSelection(task.task_id, event.target.checked)}
                             aria-label={`选择任务 ${displayName}`}
                           />
-                        </td>
-                        <td className="px-4 py-3">
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
                               {hasRun ? <FolderOpen size={17} /> : <FileSearch size={17} />}
@@ -1429,28 +1510,31 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <div className="mt-1 truncate text-xs text-slate-500">{secondaryLine}</div>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          {runPath ? (
-                            <div className="max-w-[340px]">
-                              <div className="truncate font-mono text-xs font-bold text-slate-700" title={runPath}>{runPath}</div>
-                              <div className="mt-1 truncate text-[11px] text-slate-400" title={run.root_path || ''}>
-                                root: {run.root_path || '-'}
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="min-w-[200px]">
+                          <div className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${slotView.className}`}>
+                            {slotView.label}
+                          </div>
+                          <div className="mt-1 space-y-0.5 text-xs">
+                            {slotView.ownerLabel ? (
+                              <div className="font-semibold text-slate-700" title={slotView.ownerFull}>
+                                占用 Pod: {slotView.ownerLabel}
                               </div>
-                            </div>
-                          ) : (
-                            <div className="text-xs font-bold text-slate-400">Run 初始化中</div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3"><StatusBadge status={displayStatus} /></td>
-                        <td className="px-4 py-3">
+                            ) : null}
+                            {slotView.detail.map((line) => (
+                              <div key={line} className="text-slate-500">{line}</div>
+                            ))}
+                          </div>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd><StatusBadge status={displayStatus} /></ExecutionTableTd>
+                        <ExecutionTableTd>
                           <div className="font-bold text-slate-700">{runSummary.model || '-'}</div>
                           <div className="mt-1 text-xs text-slate-500">{formatThinking(runSummary.thinking)}</div>
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-700">
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="font-bold text-slate-700">
                           {hasRun ? `${runSummary.cycles_used || 0} / ${runSummary.max_cycles || 0}` : `尝试 ${task.latest_attempt_no || 0}`}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="text-slate-600">
                           {hasRun ? (
                             <>
                               <div>{runSummary.result_count || 0} / {runSummary.passed_count || 0} 通过</div>
@@ -1462,19 +1546,19 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <div className="mt-1 text-xs text-slate-500">Execution: {shortId(executionId || '-', 18)}</div>
                             </>
                           )}
-                        </td>
-                        <td className="px-4 py-3">
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
                           <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${reportStatus.className}`}>
                             {reportStatus.label}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-500">
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="text-xs text-slate-500">
                           {runSummary.start_epoch ? formatEpochTime(runSummary.start_epoch) : formatDateTime(task.started_at || task.created_at)}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="text-slate-600">
                           {runSummary.duration_seconds ? formatSeconds(runSummary.duration_seconds || 0) : formatDuration(task.started_at || task.created_at, task.finished_at)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
+                        </ExecutionTableTd>
+                        <ExecutionTableTd className="text-right">
                           <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
                             <button
                               type="button"
@@ -1495,12 +1579,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               <ChevronRight size={15} />
                             </button>
                           </div>
-                        </td>
+                        </ExecutionTableTd>
                       </tr>
                     );
                   })}
                 </tbody>
-              </table>
+              </ExecutionTable>
 
               {!loading && !tasksError && filteredTasks.length === 0 ? (
                 <div className="p-6">
