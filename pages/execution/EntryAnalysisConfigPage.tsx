@@ -413,7 +413,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
               <FieldRow label="任务内并发上限" hint="单个任务内部 Worker 最大并发">
                 <NumberInput value={config.worker_parallelism} min={1} max={256} onChange={(v) => patch({ worker_parallelism: Math.max(1, Math.min(256, Math.trunc(v || 1))) })} />
               </FieldRow>
-              <FieldRow label="pipeline_parallelism" hint="全局 pi 进程信号量（建议 32-128）">
+              <FieldRow label="pipeline_parallelism" hint="全局 pi 进程信号量，建议≤ model_max_concurrency（过高会导致模型峧排队延迟）">
                 <NumberInput value={config.pipeline_parallelism} min={1} max={512} onChange={(v) => patch({ pipeline_parallelism: Math.max(1, Math.min(512, Math.trunc(v || 64))) })} />
               </FieldRow>
             </div>
