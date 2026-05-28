@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 
 import { api } from '../../clients/api';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import {
   DataflowAgentStateDir,
   DataflowInputRef,
@@ -548,15 +549,14 @@ const PageHeader: React.FC<{
   <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
-          {version ? (
-            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-              {version}
-            </span>
-          ) : null}
-        </div>
-        <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950">{title}</h1>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-700">{eyebrow}</p>
+        <ServicePageTitle
+          title={title}
+          version={version}
+          className="mt-2"
+          titleClassName="text-2xl font-black tracking-tight text-slate-950"
+          badgeClassName="text-[10px]"
+        />
         {description ? <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">{description}</p> : null}
       </div>
       {children ? <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div> : null}
@@ -723,7 +723,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [showCreate, setShowCreate] = useState(false);
   const [createState, setCreateState] = useState<CreateTaskState>(initialCreateTaskState);
   const [submitting, setSubmitting] = useState(false);
-  const [buildVersion, setBuildVersion] = useState<string | null>(null);
+  const buildVersion = useServiceBuildVersion(executionApi.getHealth);
   const [slotSummary, setSlotSummary] = useState<DataflowVulnClusterCapacity | null>(null);
   const [slotSummaryLoading, setSlotSummaryLoading] = useState(false);
   const [slotSummaryError, setSlotSummaryError] = useState('');
@@ -935,20 +935,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     setTaskStats({ total: 0, pending: 0, running: 0, succeeded: 0, failed: 0, cancelled: 0 });
     setPage(1);
   }, [projectId]);
-
-  useEffect(() => {
-    let active = true;
-    void executionApi.getHealth()
-      .then((payload: any) => {
-        if (active) setBuildVersion(payload.build_version || null);
-      })
-      .catch(() => {
-        if (active) setBuildVersion(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [executionApi]);
 
   useEffect(() => {
     void loadAll(page);

@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { AppEaStageEvent, AppEaStagesJson, AppEaTaskDetail, AppEaTaskItem, EntryAnalyseSlotClusterSummary } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard } from './taskOrigin';
@@ -355,6 +356,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({ label, active, directio
 
 export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appEntryAnalyse;
+  const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
   const stageFocusStorageKey = 'secflow:entryAnalysisStageFocus';
   const riskFocusStorageKey = 'secflow:entryAnalysisRiskFocus';
@@ -1345,7 +1347,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">入口分析任务</h1>
+        <ServicePageTitle title="入口分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">指定目标模块路径，自动生成 Prompt 并启动入口点分析任务。</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[

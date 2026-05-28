@@ -5,6 +5,7 @@ import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProj
 import { fileserverApi } from '../../clients/fileserver';
 import { api } from '../../clients/api';
 import { showConfirm } from '../../components/DialogService';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 
 interface Props {
   projectId: string;
@@ -323,6 +324,7 @@ const StageAggregateCard: React.FC<{ aggregate: BinarySecurityProjectStageAggreg
 
 export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskType, onOpenTask }) => {
   const executionApi = api.domains.execution;
+  const buildVersion = useServiceBuildVersion(executionApi.binarySecurity.getHealth);
   const fallbackCreateDefaults = useMemo(() => ({
     stageParallelism: { ...DEFAULT_STAGE_PARALLELISM },
     maxRetries: 2,
@@ -806,7 +808,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-rose-600">Binary Security</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">{pageTitle}</h1>
+            <ServicePageTitle title={pageTitle} version={buildVersion} />
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               {isSourceTask
                 ? '为当前项目统一编排系统分析、入口分析、数据流分析和漏洞扫描，聚合查看源码工程任务的阶段状态与结果。'

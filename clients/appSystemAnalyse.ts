@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   AppSaSessionIndex,
   AppSaSessionMeta,
@@ -60,8 +61,8 @@ export const DEFAULT_MODELS_CONFIG: SystemAnalysisModelsConfig = {
 
 export const appSystemAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string }> =>
-    handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
+  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
+    getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
   createTask: async (payload: AppSaTaskCreateRequest): Promise<AppSaTaskDetail> =>

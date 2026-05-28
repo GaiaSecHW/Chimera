@@ -6,6 +6,7 @@ import { api } from '../../clients/api';
 import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { B2SStatusBadge, B2S_TERMINAL_STATUSES, formatB2SOverallProgressBasis, formatB2SStatus, formatDateTime, pct } from './b2sPresentation';
 import { showConfirm } from '../../components/DialogService';
 
@@ -72,6 +73,7 @@ const formatPiJobStage = (job: B2SPiWorkerActiveJob) => {
 export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const executionApi = api.domains.execution;
   const assetApi = api.domains.assets;
+  const buildVersion = useServiceBuildVersion(executionApi.binaryToSource.getHealth);
   const autoRefreshStorageKey = `secflow:b2s:autoRefresh:${projectId || 'default'}`;
   const refreshIntervalStorageKey = `secflow:b2s:refreshInterval:${projectId || 'default'}`;
   const [items, setItems] = useState<B2STask[]>([]);
@@ -519,7 +521,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">Binary Reverse</p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">二进制逆向</h1>
+            <ServicePageTitle title="二进制逆向" version={buildVersion} />
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
               集中查看当前项目关联的代码逆向还原任务，统一管理状态、进度、阶段与结果，并从同一入口创建新的逆向任务。
             </p>

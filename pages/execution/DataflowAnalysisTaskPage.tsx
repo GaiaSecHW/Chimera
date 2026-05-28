@@ -6,6 +6,7 @@ import { api } from '../../clients/api';
 import { AppDfaClusterCapacity, AppDfaStageEvent, AppDfaTaskDetail, AppDfaTaskItem, AppDfaWorkerActiveJob } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { TaskOriginCard } from './taskOrigin';
@@ -534,6 +535,7 @@ function getWorkerJobModeLabel(job: Pick<AppDfaWorkerActiveJob, 'task_origin_typ
 
 export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appDataflowAnalyse;
+  const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
   const autoRefreshStorageKey = `secflow:dataflowAnalysis:autoRefresh:${projectId || 'default'}`;
   const refreshIntervalStorageKey = `secflow:dataflowAnalysis:refreshInterval:${projectId || 'default'}`;
@@ -1337,7 +1339,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">数据流分析任务</h1>
+        <ServicePageTitle title="数据流分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">追踪污点传播路径，识别敏感数据流向危险函数的安全风险。</p>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[

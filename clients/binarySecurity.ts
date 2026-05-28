@@ -1,4 +1,11 @@
-import { API_BASE, getHeaders, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
+import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
+
+export interface BinarySecurityHealth extends ServiceHealthMeta {
+  status: string;
+  service?: string | null;
+  role?: string | null;
+}
 
 export interface BinarySecurityInputFile {
   filename: string;
@@ -629,6 +636,9 @@ export interface BinarySecurityActionResult {
 }
 
 export const binarySecurityApi = {
+  getHealth: async (): Promise<BinarySecurityHealth> =>
+    getJsonWithDedupe(`${API_BASE}/api/app/binary-security/health`, { headers: getHeaders() }),
+
   listTasks: async (
     projectId: string,
     status?: string,

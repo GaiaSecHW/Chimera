@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse, fetchWithRetry } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import {
   AppDfaSessionIndex,
   AppDfaServiceConfig,
@@ -18,8 +19,8 @@ const BASE = `${API_BASE}/api/app/dataflow-analyse`;
 
 export const appDataflowAnalyseApi = {
   // ── Health ────────────────────────────────────────────────────────────────
-  getHealth: async (): Promise<{ status: string }> =>
-    handleResponse(await fetch(`${BASE}/health`, { headers: getHeaders() })),
+  getHealth: async (): Promise<{ status: string } & ServiceHealthMeta> =>
+    getJsonWithDedupe(`${BASE}/health`, { headers: getHeaders() }),
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
   createTask: async (payload: AppDfaTaskCreateRequest): Promise<AppDfaTaskDetail> =>

@@ -1,3 +1,4 @@
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 
 export interface B2SElfTaskInput {
@@ -17,6 +18,12 @@ export interface B2SServiceConfig {
   llm_provider_key?: string | null;
   effective_llm_provider?: B2SLlmProviderSummary | null;
   updated_at?: string | null;
+}
+
+export interface B2SHealth extends ServiceHealthMeta {
+  status: string;
+  service?: string | null;
+  role?: string | null;
 }
 
 export interface B2SCacheEntry {
@@ -888,6 +895,9 @@ export interface B2STaskDetail extends B2STask {
 }
 
 export const binaryToSourceApi = {
+  getHealth: async (): Promise<B2SHealth> =>
+    getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/health`, { headers: getHeaders() }),
+
   getConfig: async (projectId: string): Promise<B2SServiceConfig> => {
     const resp = await fetch(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/config`, {
       headers: getHeaders(),

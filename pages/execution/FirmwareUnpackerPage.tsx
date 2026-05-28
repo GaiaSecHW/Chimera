@@ -27,6 +27,7 @@ import { AppSaSessionEvent, AppSaSessionMeta, AppSaSessionSnapshot, SecurityProj
 import { FileServerPickerModal } from '../../components/assets/FileServerPickerModal';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableInteractiveRowClassName } from '../../components/execution/ExecutionTable';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { hasBinarySecurityReturnTarget, navigateBackByTaskOrigin, navigateBackToBinarySecurityTask } from '../../utils/executionReturnContext';
 import { TaskOriginCard, TaskOriginInline } from './taskOrigin';
@@ -3417,6 +3418,7 @@ function TaskDetailPanel({
 }
 
 export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = [], initialTaskId = '', onActiveTaskChange }) => {
+  const buildVersion = useServiceBuildVersion(fwApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -4028,9 +4030,13 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
         <div className="flex items-center gap-2">
           <Package size={18} className="text-indigo-600" />
           <div>
-            <h2 className="text-sm font-bold text-slate-800">
-              {showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
-            </h2>
+            <ServicePageTitle
+              title={showingDetail ? '固件解包 · 任务详情' : '固件解包 · 任务列表'}
+              version={buildVersion}
+              className=""
+              titleClassName="text-sm font-bold text-slate-800"
+              badgeClassName="text-[10px]"
+            />
             {!showingDetail && hasRunning && <p className="animate-pulse text-xs font-semibold text-blue-600">● 有任务运行中，每5秒自动刷新</p>}
           </div>
         </div>

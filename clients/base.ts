@@ -259,8 +259,8 @@ const fetchWithOptionalRetry = async (
 
 const getWithDedupe = async <T,>(
   input: RequestInfo | URL,
-  init?: RequestInit,
   loader: () => Promise<T>,
+  init?: RequestInit,
   options?: DedupeGetJsonOptions,
 ): Promise<T> => {
   const method = (init?.method || 'GET').toUpperCase();
@@ -307,11 +307,11 @@ export const getJsonWithDedupe = async <T,>(
   options?: DedupeGetJsonOptions,
 ): Promise<T> => getWithDedupe(
   input,
-  init,
   async () => {
     const response = await fetchWithOptionalRetry(input, init, options);
     return handleResponse(response);
   },
+  init,
   options,
 );
 
@@ -321,12 +321,12 @@ export const getTextWithDedupe = async (
   options?: DedupeGetJsonOptions,
 ): Promise<string> => getWithDedupe(
   input,
-  init,
   async () => {
     const response = await fetchWithOptionalRetry(input, init, options);
     const payload = await handleResponse(response);
     return typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2);
   },
+  init,
   options,
 );
 

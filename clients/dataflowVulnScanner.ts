@@ -114,6 +114,8 @@ export interface DataflowScanTaskListItem {
   message?: string | null;
   latest_execution_id?: string | null;
   owner_pod_id?: string | null;
+  heartbeat_at?: string | null;
+  heartbeat_age_seconds?: number | null;
   dispatch_status?: string | null;
   slot_binding_state?: string | null;
   slot_binding_reason?: string | null;

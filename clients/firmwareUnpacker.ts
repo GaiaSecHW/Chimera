@@ -1,4 +1,5 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
+import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
 import type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
 import { normalizeFirmwareSessionIndex } from '../pages/execution/sessionParsing';
 export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
@@ -7,9 +8,11 @@ export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing
 // Types
 // ---------------------------------------------------------------------------
 
-export interface FirmwareUnpackerHealth {
+export interface FirmwareUnpackerHealth extends ServiceHealthMeta {
   status: string;
   worker_id?: string;
+  service_id?: string | null;
+  service_name?: string | null;
 }
 
 export interface FirmwareUnpackPayload {
@@ -1117,6 +1120,15 @@ const normalizeHealth = (value: unknown): FirmwareUnpackerHealth => {
   return {
     status: asString(record.status, typeof value === 'string' ? value : 'unknown'),
     worker_id: record.worker_id == null ? undefined : asString(record.worker_id),
+    service_id: asNullableString(record.service_id),
+    service_name: asNullableString(record.service_name),
+    build_version: asNullableString(record.build_version),
+    service_version: asNullableString(record.service_version),
+    image_tag: asNullableString(record.image_tag),
+    git_tag: asNullableString(record.git_tag),
+    git_commit: asNullableString(record.git_commit),
+    built_at: asNullableString(record.built_at),
+    version: asNullableString(record.version),
   };
 };
 

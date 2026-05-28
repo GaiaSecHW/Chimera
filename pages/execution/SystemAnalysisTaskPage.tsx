@@ -5,6 +5,7 @@ import { api } from '../../clients/api';
 import { AppSaClusterCapacity, AppSaClusterCapacitySummary, AppSaTaskListItem } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
+import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
 import { useUiFeedback } from '../../components/UiFeedback';
 import { buildDefaultSystemAnalysisTaskForm, SystemAnalysisTaskFormModal, SystemAnalysisTaskFormState } from './SystemAnalysisTaskFormModal';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
@@ -160,6 +161,7 @@ function getExecutionSlotPresentation(task: AppSaTaskListItem): {
 
 export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (taskId: string) => void }> = ({ projectId, onOpenTask }) => {
   const appApi = api.domains.execution.appSystemAnalyse;
+  const buildVersion = useServiceBuildVersion(appApi.getHealth);
   const { notify, feedbackNodes } = useUiFeedback();
   const autoRefreshStorageKey = `secflow:systemAnalysis:autoRefresh:${projectId || 'default'}`;
   const refreshIntervalStorageKey = `secflow:systemAnalysis:refreshInterval:${projectId || 'default'}`;
@@ -548,7 +550,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-600">System Analysis</p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">分析任务</h1>
+        <ServicePageTitle title="分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
