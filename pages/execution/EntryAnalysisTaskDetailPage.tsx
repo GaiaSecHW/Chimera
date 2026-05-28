@@ -977,15 +977,23 @@ function deriveFuncProgress(
   }
 
   const funcs = Array.from(map.values());
+  // 阶段进度优先级：数字越大表示越接近成为入口（同级按函数名字母排序）
+  const stagePriority = (f: FuncProgress): number => {
+    if (f.rep === 'passed')                           return 9; // R5 报告完成
+    if (f.is_entry || f.r4 === 'keep')               return 8; // R4 确认入口
+    if (f.r4 === 'running')                          return 7; // R4 决策中
+    if (f.r4 === 'remove')                           return 6; // R4 决定过滤
+    if (f.r3 === 'passed')                           return 5; // R3 通过，待 R4
+    if (f.r3 === 'running')                          return 4; // R3 进行中
+    if (f.r2j === 'passed')                          return 3; // R2 通过，待 R3
+    if (f.r2j === 'running')                         return 2; // R2 进行中
+    if (f.has_external_input === false || f.r4 === 'skip') return 0; // R3 过滤沉底
+    return 1;
+  };
   funcs.sort((a, b) => {
-    // 优先级 1：入口函数置顶
-    if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
-    // 优先级 2：R3 判断无外部输入（r4='skip'）的函数沉底
-    const aSkip = a.has_external_input === false;
-    const bSkip = b.has_external_input === false;
-    if (aSkip !== bSkip) return aSkip ? 1 : -1;
-    // 优先级 3：按函数名字母排序
-    return (a.name || '').localeCompare(b.name || '');
+    const pa = stagePriority(a), pb = stagePriority(b);
+    if (pa !== pb) return pb - pa;                   // 优先级高的靠前
+    return (a.name || '').localeCompare(b.name || ''); // 同级按函数名字母排序
   });
   return { funcs, totalFuncCount };
 }
