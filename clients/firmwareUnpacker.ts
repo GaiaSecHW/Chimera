@@ -1,5 +1,5 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
-import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
+import type { ServiceHealthMeta } from '../components/execution/serviceHealthMeta';
 import type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';
 import { normalizeFirmwareSessionIndex } from '../pages/execution/sessionParsing';
 export type { FirmwareSessionIndexItem } from '../pages/execution/sessionParsing';

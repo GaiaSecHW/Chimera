@@ -1,4 +1,4 @@
-import { ServiceHealthMeta } from '../components/execution/ServiceBuildVersion';
+import type { ServiceHealthMeta } from '../components/execution/serviceHealthMeta';
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 
 export interface B2SElfTaskInput {

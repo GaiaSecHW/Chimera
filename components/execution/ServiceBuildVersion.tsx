@@ -1,14 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
-export interface ServiceHealthMeta {
-  service_version?: string | null;
-  build_version?: string | null;
-  image_tag?: string | null;
-  git_tag?: string | null;
-  git_commit?: string | null;
-  built_at?: string | null;
-  version?: string | null;
-}
+import type { ServiceHealthMeta } from './serviceHealthMeta';
 
 const VERSION_PRIORITY_FIELDS: Array<keyof ServiceHealthMeta> = [
   'build_version',
