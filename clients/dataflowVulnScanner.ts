@@ -6,6 +6,7 @@ import {
 } from '../types/types';
 
 const PREFIX = `${API_BASE}/api/dataflow-vuln-scanner`;
+const MANAGER_PREFIX = `${API_BASE}/api/dataflow-vuln-scanner-admin-proxy`;
 
 export interface DataflowProfileConfigPayload {
   model: string;
@@ -983,12 +984,12 @@ export const dataflowVulnScannerApi = {
   },
 
   listWorkers: async (): Promise<DataflowSchedulerWorker[]> => {
-    const response = await fetch(`${PREFIX}/admin/scheduler/workers`, { headers: getHeaders() });
+    const response = await fetch(`${MANAGER_PREFIX}/scheduler/workers`, { headers: getHeaders() });
     return unwrapList<DataflowSchedulerWorker>(await handleResponse(response));
   },
 
   drainWorker: async (podId: string): Promise<{ message: string }> => {
-    const response = await fetch(`${PREFIX}/admin/scheduler/workers/${encodeURIComponent(podId)}/drain`, {
+    const response = await fetch(`${MANAGER_PREFIX}/scheduler/workers/${encodeURIComponent(podId)}/drain`, {
       method: 'POST',
       headers: getHeaders(),
     });
@@ -996,7 +997,7 @@ export const dataflowVulnScannerApi = {
   },
 
   activateWorker: async (podId: string): Promise<{ message: string }> => {
-    const response = await fetch(`${PREFIX}/admin/scheduler/workers/${encodeURIComponent(podId)}/activate`, {
+    const response = await fetch(`${MANAGER_PREFIX}/scheduler/workers/${encodeURIComponent(podId)}/activate`, {
       method: 'POST',
       headers: getHeaders(),
     });
