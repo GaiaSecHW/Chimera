@@ -400,6 +400,7 @@ type DownstreamTaskState = {
   loading: boolean;
   detail?: DownstreamTaskDetail;
   error?: string;
+  downstreamTaskId?: string;
 };
 
 type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts' | 'orchestration';
@@ -521,6 +522,10 @@ const TIMELINE_EVENT_LABELS: Record<string, string> = {
   downstream_retry_attached: '接管运行中下游任务',
   downstream_retry_terminal_reused: '复用终态下游结果',
   downstream_retry_target_missing: '下游重试目标不存在',
+  downstream_retry_fallback_delete_requested: '准备删除旧下游任务',
+  downstream_retry_fallback_delete_succeeded: '旧下游任务删除完成',
+  downstream_retry_fallback_delete_failed: '旧下游任务删除失败',
+  downstream_retry_fallback_recreated: '已重建新的下游任务',
   downstream_retry_rejected: '下游重试被拒绝',
   downstream_retry_failed: '下游重试失败',
   downstream_cancel_succeeded: '下游子任务已取消',
@@ -1836,15 +1841,18 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const ensureDownstreamDetail = async (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     if (!item.downstream_task_id) return;
     const current = downstreamByItemIdRef.current[item.id];
-    if (current?.loading || current?.detail || current?.error) return;
+    if (current?.downstreamTaskId === item.downstream_task_id && (current?.loading || current?.detail || current?.error)) return;
     setDownstreamByItemId((existing) => ({ ...existing, [item.id]: { loading: true } }));
     try {
       const detailState = await fetchDownstreamTaskDetail(item);
-      setDownstreamByItemId((existing) => ({ ...existing, [item.id]: { loading: false, detail: detailState } }));
+      setDownstreamByItemId((existing) => ({
+        ...existing,
+        [item.id]: { loading: false, detail: detailState, downstreamTaskId: item.downstream_task_id || undefined },
+      }));
     } catch (fetchError: any) {
       setDownstreamByItemId((existing) => ({
         ...existing,
-        [item.id]: { loading: false, error: normalizeDownstreamDetailError(fetchError) },
+        [item.id]: { loading: false, error: normalizeDownstreamDetailError(fetchError), downstreamTaskId: item.downstream_task_id || undefined },
       }));
     }
   };
@@ -2344,13 +2352,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const renderDownstreamDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     const state = downstreamByItemId[item.id];
-    if (item.downstream_task_id && state?.loading) {
+    const stateMatchesCurrent = state?.downstreamTaskId === item.downstream_task_id;
+    if (item.downstream_task_id && state?.loading && stateMatchesCurrent) {
       return <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">正在加载下游任务详情...</div>;
     }
-    if (state?.error) {
+    if (state?.error && stateMatchesCurrent) {
       return <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-3 text-xs font-semibold text-rose-700">{state.error}</div>;
     }
-    if (!state?.detail) {
+    if (!state?.detail || !stateMatchesCurrent) {
       return item.downstream_task_id
         ? <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">展开详情后按需加载下游任务摘要。</div>
         : <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">当前子任务没有可用的下游详情。</div>;
