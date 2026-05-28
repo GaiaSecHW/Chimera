@@ -2797,11 +2797,18 @@ export interface AgentProcessSnapshot {
   pod_name?: string | null;
   command?: string | null;
   cwd?: string | null;
+  exe?: string | null;
   task_id?: string | null;
   task_name?: string | null;
   task_status?: string | null;
   stage_key?: string | null;
   role_kind?: string | null;
+  runtime_kind?: string | null;
+  match_source?: string | null;
+  match_confidence?: string | null;
+  workspace_root?: string | null;
+  session_arg_path?: string | null;
+  open_session_paths?: string[];
   session_id?: string | null;
   session_file?: string | null;
   rss_bytes?: number | null;
@@ -2853,6 +2860,9 @@ export interface AgentPodRuntimeSnapshot {
   active_task_count?: number;
   last_scanned_at?: number | null;
   scan_errors?: number;
+  processes?: AgentProcessSnapshot[];
+  tasks?: AgentTaskOwnershipSnapshot[];
+  sessions?: AgentSessionObservabilitySnapshot[];
 }
 
 export interface AgentRuntimeAggregateSummary {
@@ -2869,6 +2879,7 @@ export interface AgentRuntimeAggregateSummary {
   aggregate_sources?: number | null;
   aggregate_fanout_errors?: number | null;
   aggregate_failed_targets?: string[];
+  aggregate_all_sources_failed?: boolean;
   scanned_at?: number | null;
 }
 

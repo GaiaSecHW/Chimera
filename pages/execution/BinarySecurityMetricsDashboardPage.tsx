@@ -3027,7 +3027,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   }, [agentState.processes]);
   const dfaRuntimeSummary = agentState.runtimeSummary;
   const filteredDfaPods = useMemo(() => {
-    if (activeServiceKey !== 'dataflow-analysis') return [] as AgentPodRuntimeSnapshot[];
+    if (!agentObservabilityEnabled) return [] as AgentPodRuntimeSnapshot[];
     const podKeyword = dfaAgentPodKeyword.trim().toLowerCase();
     const taskKeyword = dfaAgentTaskKeyword.trim().toLowerCase();
     const pidKeyword = dfaAgentPidKeyword.trim();
@@ -3036,8 +3036,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         const fingerprint = `${pod.pod_name || ''} ${pod.worker_id || ''}`.toLowerCase();
         if (!fingerprint.includes(podKeyword)) return false;
       }
-      const podProcesses = agentState.processes.filter((item) => item.pod_name === pod.pod_name);
-      const podTasks = agentState.tasks.filter((item) => item.pod_name === pod.pod_name);
+      const podProcesses = (pod.processes || agentState.processes.filter((item) => item.pod_name === pod.pod_name));
+      const podTasks = (pod.tasks || agentState.tasks.filter((item) => item.pod_name === pod.pod_name));
       const matchingProcesses = podProcesses.filter((item) => {
         if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
         if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
@@ -3061,7 +3061,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       return true;
     });
   }, [
-    activeServiceKey,
+    agentObservabilityEnabled,
     agentState.pods,
     agentState.processes,
     agentState.tasks,
@@ -5127,9 +5127,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
 
               {dfaRuntimeSummary?.aggregate_partial ? (
                 <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  <div className="font-black">部分 Pod 观测失败</div>
+                  <div className="font-black">{dfaRuntimeSummary?.aggregate_all_sources_failed ? '全部 Worker Pod 观测失败' : '部分 Pod 观测失败'}</div>
                   <div className="mt-1">
-                    本次聚合仅覆盖 {formatNumber(dfaRuntimeSummary.aggregate_sources)} 个来源，失败目标 {formatNumber(dfaRuntimeSummary.aggregate_failed_targets?.length)} 个，页面仍会展示已成功返回的 Pod 数据。
+                    本次聚合仅覆盖 {formatNumber(dfaRuntimeSummary.aggregate_sources)} 个来源，失败目标 {formatNumber(dfaRuntimeSummary.aggregate_failed_targets?.length)} 个。
+                    {dfaRuntimeSummary?.aggregate_all_sources_failed ? ' 当前展示的是失败态，而不是“真实 0 进程”。' : ' 页面仍会展示已成功返回的 Pod 数据。'}
                   </div>
                   {dfaRuntimeSummary.aggregate_fanout_errors ? (
                     <div className="mt-2 text-xs text-amber-800">fanout errors: {formatNumber(dfaRuntimeSummary.aggregate_fanout_errors)}</div>
@@ -5143,7 +5144,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   { label: '运行中智能体进程', value: formatNumber(dfaRuntimeSummary?.total_processes), hint: `tracked ${formatNumber(dfaRuntimeSummary?.tracked_processes)}`, tone: 'text-cyan-800' },
                   { label: '已确认孤儿', value: formatNumber(dfaRuntimeSummary?.orphan_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_orphan_processes)}`, tone: 'text-rose-700' },
                   { label: '疑似孤儿', value: formatNumber(dfaRuntimeSummary?.suspected_orphan_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_suspected_orphan_processes)}`, tone: 'text-amber-700' },
-                  { label: '孤儿会话', value: formatNumber(dfaRuntimeSummary?.orphan_sessions), hint: 'session file still present', tone: 'text-violet-700' },
+                  { label: '孤儿会话', value: formatNumber(dfaRuntimeSummary?.orphan_sessions), hint: '仅 session 层诊断', tone: 'text-violet-700' },
                   { label: '失败 Pod 数', value: formatNumber(dfaRuntimeSummary?.aggregate_failed_targets?.length), hint: dfaRuntimeSummary?.aggregate_partial ? '部分聚合失败' : '本轮聚合完整', tone: (dfaRuntimeSummary?.aggregate_failed_targets?.length || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/85 px-4 py-3 shadow-sm">
@@ -5162,7 +5163,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">按 Pod / 任务 / PID / 归属筛选</h3>
                 </div>
                 <div className="text-xs text-slate-500">
-                  默认不分页，依赖 Pod 折叠降低首屏噪音
+                  每个 worker Pod 独立成表，真实进程优先，session 仅作辅助诊断
                 </div>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -5204,11 +5205,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
                   const expanded = expandedDfaAgentPods.includes(pod.pod_name);
-                  const podTasks = agentState.tasks.filter((item) => item.pod_name === pod.pod_name).filter((item) => {
+                  const podTasks = (pod.tasks || agentState.tasks.filter((item) => item.pod_name === pod.pod_name)).filter((item) => {
                     if (!dfaAgentTaskKeyword.trim()) return true;
                     return `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(dfaAgentTaskKeyword.trim().toLowerCase());
                   });
-                  const podProcesses = agentState.processes.filter((item) => item.pod_name === pod.pod_name).filter((item) => {
+                  const podProcesses = (pod.processes || agentState.processes.filter((item) => item.pod_name === pod.pod_name)).filter((item) => {
                     if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
                     if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
                     if (dfaAgentTaskKeyword.trim()) {
@@ -5335,7 +5336,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                             <div>PID {process.pid}</div>
                                             <div className="text-slate-400">PGID {process.pgid ?? '-'} / PPID {process.ppid ?? '-'}</div>
                                           </td>
-                                          <td className="px-3 py-3 text-slate-700">{process.role_kind || '-'}</td>
+                                          <td className="px-3 py-3">
+                                            <div className="font-semibold text-slate-700">{process.runtime_kind || '-'}</div>
+                                            <div className="mt-1 text-[10px] text-slate-400">{process.role_kind || '-'}</div>
+                                          </td>
                                           <td className="px-3 py-3 align-top">
                                             {process.task_id ? (
                                               <button
@@ -5357,7 +5361,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                             )}
                                             <div className="mt-1 font-mono text-[10px] text-slate-400">{process.task_id || '-'}</div>
                                           </td>
-                                          <td className="px-3 py-3 text-slate-700">{process.stage_key || '-'}</td>
+                                          <td className="px-3 py-3">
+                                            <div className="text-slate-700">{process.task_status || '-'}</div>
+                                            <div className="mt-1 text-[10px] text-slate-400">{process.stage_key || '-'}</div>
+                                          </td>
                                           <td className="px-3 py-3">
                                             <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                               process.owner_kind === 'tracked'
@@ -5373,10 +5380,13 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                           <td className="px-3 py-3 font-mono text-[11px] text-slate-600">
                                             <div>{process.session_id || '-'}</div>
                                             <div className="mt-1 break-all text-slate-400">{process.session_file || '-'}</div>
+                                            {process.session_arg_path ? <div className="mt-1 break-all text-slate-300">arg: {process.session_arg_path}</div> : null}
                                           </td>
                                           <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{formatBytes(process.rss_bytes)}</td>
                                           <td className="px-3 py-3 align-top text-[11px] text-slate-500">
                                             <div className="max-w-[18rem] break-all">{process.cwd || '-'}</div>
+                                            {process.workspace_root ? <div className="mt-1 max-w-[18rem] break-all text-slate-400">workspace: {process.workspace_root}</div> : null}
+                                            {process.match_source || process.match_confidence ? <div className="mt-1 text-[10px] text-slate-400">match: {process.match_source || '-'} / {process.match_confidence || '-'}</div> : null}
                                             {process.command ? <div className="mt-1 max-w-[18rem] break-all font-mono text-[10px] text-slate-400">{process.command}</div> : null}
                                           </td>
                                           <td className="px-3 py-3">
