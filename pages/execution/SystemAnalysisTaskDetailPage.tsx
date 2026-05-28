@@ -2231,6 +2231,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                           <tr>
                             <th className="w-14 px-3 py-2">#</th>
                             <th className="w-44 px-3 py-2">时间</th>
+                            <th className="w-32 px-3 py-2">分类</th>
                             <th className="w-44 px-3 py-2">事件</th>
                             <th className="w-28 px-3 py-2">阶段</th>
                             <th className="w-24 px-3 py-2">级别</th>
@@ -2252,11 +2253,12 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 <tr className="align-top">
                                   <td className="px-3 py-2 font-mono text-slate-500">{timelineRangeStart + index}</td>
                                   <td className="px-3 py-2 text-slate-600">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</td>
+                                  <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventCategoryTone(event.event_type)}`}>{timelineEventCategoryLabel(event.event_type)}</span></td>
                                   <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span></td>
                                   <td className="px-3 py-2">{event.stage_name ? <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-bold text-cyan-700">{stageLabel(event.stage_name)}</span> : <span className="text-slate-400">-</span>}</td>
                                   <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
                                   <td className="max-w-[360px] px-3 py-2">
-                                    <div className="truncate font-semibold text-slate-800" title={event.message}>{event.message}</div>
+                                    <div className="truncate font-semibold text-slate-800" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                     {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-700" title={auditSummary}>{auditSummary}</div> : null}
                                   </td>
                                   <td className="px-3 py-2 text-[11px] text-slate-500"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
@@ -2269,7 +2271,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                                 </tr>
                                 {expanded ? (
                                   <tr className="bg-slate-50/60">
-                                    <td colSpan={8} className="px-3 py-3">
+                                    <td colSpan={9} className="px-3 py-3">
                                       <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                         {timelinePayloadRows(payload).slice(0, 12).map((row) => (
                                           <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs">
