@@ -96,18 +96,19 @@ const FULL_STAGE_STEPS = [
   {
     key: 'r4',
     label: 'R4 入口决策',
-    desc: '每函数入口决策 W（需 R3+CC）→ 最终质量验证 R4-J',
+    desc: '每函数调用链判断 W + 证据验证 R4-J',
     triggers: [
       'r4_w_start', 'r4_w_done', 'r4_w_func_start', 'r4_w_func_done',
-      'r6_j_start', 'r6_j_done',
+      'r4_j_start', 'r4_j_done', 'r6_j_start', 'r6_j_done',
     ],
     artifactSubpath: 'run/workspace/r3-entries',
   },
   {
     key: 'r5',
-    label: 'R5 报告生成',
-    desc: '每入口函数生成报告 + 最终汇总，输出 functions.list',
-    triggers: ['r5_w_start', 'r5_done', 'r5_j_done',
+    label: 'R5/R6 报告生成',
+    desc: '每入口函数生成报告 W+J + R6 最终聚合',
+    triggers: ['r5_w_start', 'r5_j_start', 'r5_j_done', 'r5_done',
+               'r6_script_done', 'r6_report_done',
                'task_end', 'functions_list_synced', 'functions_list_error'],
     artifactSubpath: 'output',
   },
@@ -690,19 +691,24 @@ function formatEvent(evt: AppEaStageEvent): string {
     case 'callchain_start':     return `[${ts}] ▶ CC 调用链静态建图开始`;
     case 'callchain_done':      return `[${ts}] ✓ CC 完成: ${d.nodes ?? 0} 节点, ${d.edges ?? 0} 边`;
     case 'callchain_failed':    return `[${ts}] ⚠ CC 建图失败（非致命）: ${String(d.error ?? '').slice(0, 80)}`;
-    // ── R4 入口决策 ──────────────────────────────────────────────────
-    case 'r4_w_start':          return `[${ts}] ▶ R4-W 文件级入口决策汇总: ${d.file ?? ''}`;
-    case 'r4_w_done':           return `[${ts}] ✓ R4-W 文件级汇总完成: ${d.file ?? ''} 入口数=${d.entry_count ?? ''}`;
-    case 'r4_w_func_start':     return `[${ts}] ▶ R4-W 入口决策: ${d.function ?? d.func_hash ?? ''}${Number(d.attempt) > 1 ? `(第${d.attempt}次)` : ''}`;
-    case 'r4_w_func_done':      return `[${ts}] ${d.decision === 'keep' ? '✓' : '✕'} R4-W 入口决策: ${d.function ?? d.func_hash ?? ''} 决策=${d.decision ?? ''}`;
-    case 'r4_j_retry':          return `[${ts}] ↺ R4 重试: ${d.function ?? ''} (第${d.attempt ?? '?'}次)`;
-    // ── R4-J 最终质量验证 ─────────────────────────────────────────────
-    case 'r6_j_start':          return `[${ts}] ▶ R4-J 最终质量验证（第${d.attempt ?? 1}次）`;
-    case 'r6_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R4-J 最终质量验证 ${d.passed ? '通过' : '未通过'}`;
-    // ── R5 报告生成 ──────────────────────────────────────────────────
-    case 'r5_w_start':   return `[${ts}] ▶ R5-W 报告生成: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
-    case 'r5_j_done':    return `[${ts}] ${d.passed ? '✓' : '✗'} R5-J 报告验证: ${d.function ?? d.func_hash ?? ''}${d.passed ? '' : `—${String(d.feedback ?? '').slice(0,60)}`}`;
-    case 'r5_done':      return `[${ts}] ✓ R5 完成: ${d.entry_count ?? 0} 个入口`;
+    // ── R4 调用链入口判断 ─────────────────────────────────────────────
+    case 'r4_w_start':      return `[${ts}] ▶ R4-W 调用链判断: ${d.function ?? d.func_hash ?? ''}${d.quick_path ? '【快速路径】' : ''}(第${d.attempt ?? 1}次)`;
+    case 'r4_w_done':       return `[${ts}] ${d.decision === 'keep' || !d.decision ? '✓' : '✕'} R4-W 决策: ${d.function ?? d.func_hash ?? ''} → ${d.decision === 'remove' ? 'filter' : (d.decision ?? 'keep')}${d.quick_path ? '【快速路径】' : ''}`;
+    case 'r4_w_func_start': return `[${ts}] ▶ R4-W 调用链判断: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r4_w_func_done':  return `[${ts}] ${d.decision === 'keep' ? '✓' : '✕'} R4-W 决策: ${d.function ?? d.func_hash ?? ''} → ${d.decision ?? ''}`;
+    case 'r4_j_start':      return `[${ts}] ▶ R4-J 调用链验证: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r4_j_done':       return `[${ts}] ${d.passed ? '✓' : '✗'} R4-J 验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.feedback ? `—${String(d.feedback).slice(0,60)}` : ''}`;
+    case 'r4_j_retry':      return `[${ts}] ↺ R4 重试: ${d.function ?? ''} (第${d.attempt ?? '?'}次)`;
+    // ── R5 单函数报告 ────────────────────────────────────────────────
+    case 'r5_w_start':      return `[${ts}] ▶ R5-W 报告生成: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r5_j_start':      return `[${ts}] ▶ R5-J 报告审核: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r5_j_done':       return `[${ts}] ${d.passed ? '✓' : '✗'} R5-J 报告审核 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.feedback ? `—${String(d.feedback).slice(0,60)}` : ''}`;
+    case 'r5_done':         return `[${ts}] ✓ R5 完成: ${d.entry_count ?? 0} 个入口`;
+    // ── R6 聚合与最终报告 ─────────────────────────────────────────────
+    case 'r6_script_done':  return `[${ts}] ✓ R6 聚合完成: ${d.entry_count ?? 0} 个入口${(d.warnings ?? 0) > 0 ? `（${d.warnings} 条字段警告）` : ''}`;
+    case 'r6_report_done':  return `[${ts}] ✓ R6 最终报告生成完成`;
+    case 'r6_j_start':      return `[${ts}] ▶ R6-J 质量验证（第${d.attempt ?? 1}次）`;
+    case 'r6_j_done':       return `[${ts}] ${d.passed ? '✓' : '✗'} R6-J 质量验证 ${d.passed ? '通过' : '未通过'}`;
     // ── 产物 ─────────────────────────────────────────────────────────
     case 'functions_list_synced':   return `[${ts}] ✓ functions.list 生成: ${d.functions_count ?? 0} 条`;
     case 'functions_list_error':    return `[${ts}] ✗ functions.list 错误: ${String(d.error ?? '').slice(0, 80)}`;
@@ -950,8 +956,15 @@ function deriveFuncProgress(
       case 'r5_w_start':
         if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', 'running'); f.lastTs = ts; }
         break;
+      case 'r5_j_start':
+        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', 'running'); f.lastTs = ts; }
+        break;
       case 'r5_j_done':
         if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', d.passed ? 'passed' : 'failed'); f.lastTs = ts; }
+        break;
+      case 'r6_script_done':
+      case 'r6_report_done':
+        // R6 完成 — 不绑定单个函数，触发整体刷新用
         break;
       default:
         break;
