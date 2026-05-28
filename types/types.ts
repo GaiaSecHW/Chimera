@@ -3085,9 +3085,9 @@ export interface AppEaFunctionCatalogItem {
   signature?: string;
   start_line?: number;
   end_line?: number;
-  r1b_state?: string;
-  r2_state?: string;
-  r2j_state?: string;
+  r2j_state?: string;      // = r2_j_state (R2 ctags 准确性 Judge)
+  r3w_state?: string;      // = r3_w_state (R3-W 外部输入分析 Worker)
+  r3j_state?: string;      // = r3_j_state (R3-J 外部输入验证 Judge)
   r3_state?: string;
   r4_state?: string;
   rep_state?: string;

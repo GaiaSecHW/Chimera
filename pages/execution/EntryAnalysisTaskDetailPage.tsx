@@ -96,18 +96,19 @@ const FULL_STAGE_STEPS = [
   {
     key: 'r4',
     label: 'R4 入口决策',
-    desc: '每函数入口决策 W（需 R3+CC）→ 最终质量验证 R4-J',
+    desc: '每函数调用链判断 W + 证据验证 R4-J',
     triggers: [
       'r4_w_start', 'r4_w_done', 'r4_w_func_start', 'r4_w_func_done',
-      'r6_j_start', 'r6_j_done',
+      'r4_j_start', 'r4_j_done', 'r6_j_start', 'r6_j_done',
     ],
     artifactSubpath: 'run/workspace/r3-entries',
   },
   {
     key: 'r5',
-    label: 'R5 报告生成',
-    desc: '每入口函数生成报告 + 最终汇总，输出 functions.list',
-    triggers: ['r5_w_start', 'r5_done', 'r5_j_done',
+    label: 'R5/R6 报告生成',
+    desc: '每入口函数生成报告 W+J + R6 最终聚合',
+    triggers: ['r5_w_start', 'r5_j_start', 'r5_j_done', 'r5_done',
+               'r6_script_done', 'r6_report_done',
                'task_end', 'functions_list_synced', 'functions_list_error'],
     artifactSubpath: 'output',
   },
@@ -690,19 +691,24 @@ function formatEvent(evt: AppEaStageEvent): string {
     case 'callchain_start':     return `[${ts}] ▶ CC 调用链静态建图开始`;
     case 'callchain_done':      return `[${ts}] ✓ CC 完成: ${d.nodes ?? 0} 节点, ${d.edges ?? 0} 边`;
     case 'callchain_failed':    return `[${ts}] ⚠ CC 建图失败（非致命）: ${String(d.error ?? '').slice(0, 80)}`;
-    // ── R4 入口决策 ──────────────────────────────────────────────────
-    case 'r4_w_start':          return `[${ts}] ▶ R4-W 文件级入口决策汇总: ${d.file ?? ''}`;
-    case 'r4_w_done':           return `[${ts}] ✓ R4-W 文件级汇总完成: ${d.file ?? ''} 入口数=${d.entry_count ?? ''}`;
-    case 'r4_w_func_start':     return `[${ts}] ▶ R4-W 入口决策: ${d.function ?? d.func_hash ?? ''}${Number(d.attempt) > 1 ? `(第${d.attempt}次)` : ''}`;
-    case 'r4_w_func_done':      return `[${ts}] ${d.decision === 'keep' ? '✓' : '✕'} R4-W 入口决策: ${d.function ?? d.func_hash ?? ''} 决策=${d.decision ?? ''}`;
-    case 'r4_j_retry':          return `[${ts}] ↺ R4 重试: ${d.function ?? ''} (第${d.attempt ?? '?'}次)`;
-    // ── R4-J 最终质量验证 ─────────────────────────────────────────────
-    case 'r6_j_start':          return `[${ts}] ▶ R4-J 最终质量验证（第${d.attempt ?? 1}次）`;
-    case 'r6_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R4-J 最终质量验证 ${d.passed ? '通过' : '未通过'}`;
-    // ── R5 报告生成 ──────────────────────────────────────────────────
-    case 'r5_w_start':   return `[${ts}] ▶ R5-W 报告生成: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
-    case 'r5_j_done':    return `[${ts}] ${d.passed ? '✓' : '✗'} R5-J 报告验证: ${d.function ?? d.func_hash ?? ''}${d.passed ? '' : `—${String(d.feedback ?? '').slice(0,60)}`}`;
-    case 'r5_done':      return `[${ts}] ✓ R5 完成: ${d.entry_count ?? 0} 个入口`;
+    // ── R4 调用链入口判断 ─────────────────────────────────────────────
+    case 'r4_w_start':      return `[${ts}] ▶ R4-W 调用链判断: ${d.function ?? d.func_hash ?? ''}${d.quick_path ? '【快速路径】' : ''}(第${d.attempt ?? 1}次)`;
+    case 'r4_w_done':       return `[${ts}] ${d.decision === 'keep' || !d.decision ? '✓' : '✕'} R4-W 决策: ${d.function ?? d.func_hash ?? ''} → ${d.decision === 'remove' ? 'filter' : (d.decision ?? 'keep')}${d.quick_path ? '【快速路径】' : ''}`;
+    case 'r4_w_func_start': return `[${ts}] ▶ R4-W 调用链判断: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r4_w_func_done':  return `[${ts}] ${d.decision === 'keep' ? '✓' : '✕'} R4-W 决策: ${d.function ?? d.func_hash ?? ''} → ${d.decision ?? ''}`;
+    case 'r4_j_start':      return `[${ts}] ▶ R4-J 调用链验证: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r4_j_done':       return `[${ts}] ${d.passed ? '✓' : '✗'} R4-J 验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.feedback ? `—${String(d.feedback).slice(0,60)}` : ''}`;
+    case 'r4_j_retry':      return `[${ts}] ↺ R4 重试: ${d.function ?? ''} (第${d.attempt ?? '?'}次)`;
+    // ── R5 单函数报告 ────────────────────────────────────────────────
+    case 'r5_w_start':      return `[${ts}] ▶ R5-W 报告生成: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r5_j_start':      return `[${ts}] ▶ R5-J 报告审核: ${d.function ?? d.func_hash ?? ''}(第${d.attempt ?? 1}次)`;
+    case 'r5_j_done':       return `[${ts}] ${d.passed ? '✓' : '✗'} R5-J 报告审核 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.feedback ? `—${String(d.feedback).slice(0,60)}` : ''}`;
+    case 'r5_done':         return `[${ts}] ✓ R5 完成: ${d.entry_count ?? 0} 个入口`;
+    // ── R6 聚合与最终报告 ─────────────────────────────────────────────
+    case 'r6_script_done':  return `[${ts}] ✓ R6 聚合完成: ${d.entry_count ?? 0} 个入口${(d.warnings ?? 0) > 0 ? `（${d.warnings} 条字段警告）` : ''}`;
+    case 'r6_report_done':  return `[${ts}] ✓ R6 最终报告生成完成`;
+    case 'r6_j_start':      return `[${ts}] ▶ R6-J 质量验证（第${d.attempt ?? 1}次）`;
+    case 'r6_j_done':       return `[${ts}] ${d.passed ? '✓' : '✗'} R6-J 质量验证 ${d.passed ? '通过' : '未通过'}`;
     // ── 产物 ─────────────────────────────────────────────────────────
     case 'functions_list_synced':   return `[${ts}] ✓ functions.list 生成: ${d.functions_count ?? 0} 条`;
     case 'functions_list_error':    return `[${ts}] ✗ functions.list 错误: ${String(d.error ?? '').slice(0, 80)}`;
@@ -820,9 +826,10 @@ function deriveFuncProgress(
     const fh = String(item.func_hash || '');
     if (!fh) continue;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    f.r2j = toStage(item.r1b_state);
-    f.r3w = toStage(item.r2_state);
-    f.r3j = toStage(item.r2j_state);
+    // R2-J: 'failed' 仅是暂时状态（引擎必重试至 passed 或 force-pass），显示为运行中
+    f.r2j = item.r2j_state === 'failed' ? 'running' : toStage(item.r2j_state);
+    f.r3w = toStage(item.r3w_state);
+    f.r3j = toStage(item.r3j_state);
     f.r3 = combineR3(f.r3w, f.r3j);
     const r4Decision = String(item.r4_decision || '').toLowerCase();
     const r4Actual = toStage(item.r4_state);
@@ -855,11 +862,12 @@ function deriveFuncProgress(
       case 'r2_j_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          advanceStage(f, 'r2j', d.passed ? 'passed' : 'failed');
-          if (!d.passed) {
-            advanceStage(f, 'r3', 'skip');
-            advanceStage(f, 'r4', 'skip');
-            advanceStage(f, 'rep', 'skip');
+          if (d.passed) {
+            advanceStage(f, 'r2j', 'passed');
+          } else {
+            // R2-J 失败是暂时的：引擎将带着 J 反馈运行 R2-W 再验证，不允许漏报。
+            // 不设为终态 failed，不将下游 R3/R4 标为 skip，保持 running 状态等待重试。
+            advanceStage(f, 'r2j', 'running');
           }
           f.lastTs = ts;
         }
@@ -922,6 +930,10 @@ function deriveFuncProgress(
           const dec = String(d.decision || '').toLowerCase();
           if (dec === 'filter' || dec === 'remove') {
             advanceStage(f, 'r4', f.has_external_input === false ? 'skip' : 'remove');
+          } else if (dec === 'keep' && d.quick_path) {
+            // 快速路径：W 直接决策 keep，不会再有 r4_j_done 事件
+            advanceStage(f, 'r4', 'keep');
+            f.is_entry = true;
           }
           f.lastTs = ts;
         }
@@ -946,10 +958,30 @@ function deriveFuncProgress(
         break;
 
       case 'r5_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', 'running'); f.lastTs = ts; }
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          // R5 开始意味着 R4 已确认 keep（无论是常规路径、快速路径还是 force-pass）
+          advanceStage(f, 'r4', 'keep');
+          f.is_entry = true;
+          advanceStage(f, 'rep', 'running');
+          f.lastTs = ts;
+        }
+        break;
+      case 'r5_j_start':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          advanceStage(f, 'r4', 'keep');   // 防御性
+          f.is_entry = true;
+          advanceStage(f, 'rep', 'running');
+          f.lastTs = ts;
+        }
         break;
       case 'r5_j_done':
         if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', d.passed ? 'passed' : 'failed'); f.lastTs = ts; }
+        break;
+      case 'r6_script_done':
+      case 'r6_report_done':
+        // R6 完成 — 不绑定单个函数，触发整体刷新用
         break;
       default:
         break;
@@ -962,9 +994,23 @@ function deriveFuncProgress(
   }
 
   const funcs = Array.from(map.values());
+  // 阶段进度优先级：数字越大表示越接近成为入口（同级按函数名字母排序）
+  const stagePriority = (f: FuncProgress): number => {
+    if (f.rep === 'passed')                           return 9; // R5 报告完成
+    if (f.is_entry || f.r4 === 'keep')               return 8; // R4 确认入口
+    if (f.r4 === 'running')                          return 7; // R4 决策中
+    if (f.r4 === 'remove')                           return 6; // R4 决定过滤
+    if (f.r3 === 'passed')                           return 5; // R3 通过，待 R4
+    if (f.r3 === 'running')                          return 4; // R3 进行中
+    if (f.r2j === 'passed')                          return 3; // R2 通过，待 R3
+    if (f.r2j === 'running')                         return 2; // R2 进行中
+    if (f.has_external_input === false || f.r4 === 'skip') return 0; // R3 过滤沉底
+    return 1;
+  };
   funcs.sort((a, b) => {
-    if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
-    return (b.lastTs || 0) - (a.lastTs || 0);
+    const pa = stagePriority(a), pb = stagePriority(b);
+    if (pa !== pb) return pb - pa;                   // 优先级高的靠前
+    return (a.name || '').localeCompare(b.name || ''); // 同级按函数名字母排序
   });
   return { funcs, totalFuncCount };
 }
@@ -1498,19 +1544,22 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     [events, detail?.function_catalog],
   );
   const funcStats = useMemo(() => {
-    let r2 = 0;
-    let r3 = 0;
-    let r4 = 0;
-    let entries = 0;
-    let r5 = 0;
-    for (const item of funcProgress) {
-      if (item.r2j === 'passed' || item.r2j === 'failed') r2 += 1;
-      if (item.r3 === 'passed' || item.r3 === 'skip') r3 += 1;
-      if (item.r4 === 'keep' || item.r4 === 'remove' || item.r4 === 'skip') r4 += 1;
-      if (item.r4 === 'keep') entries += 1;
-      if (item.rep === 'passed') r5 += 1;
+    let r2 = 0, r3 = 0, r4Done = 0, r4Total = 0, entries = 0, r5 = 0;
+    for (const f of funcProgress) {
+      // R2: 全部函数都过 R2
+      if (f.r2j === 'passed') r2 += 1;
+      // R3: 全部函数都过 R3（passed=分析通过, skip=无外部输入跳过）
+      if (f.r3 === 'passed' || f.r3 === 'skip') r3 += 1;
+      // R4: 只统计实际需要 R4 决策的函数
+      //   - has_external_input=false 的函数在 R3 就被过滤，不进入 R4
+      //   - r4='skip' 是 R3 的结果，不应计入 R4 done
+      if (f.has_external_input !== false) r4Total += 1;
+      if (f.r4 === 'keep' || f.r4 === 'remove') r4Done += 1;
+      if (f.r4 === 'keep') entries += 1;
+      // R5: 只统计入口函数（entries）
+      if (f.rep === 'passed') r5 += 1;
     }
-    return { r2, r3, r4, entries, r5, total: funcProgress.length };
+    return { r2, r3, r4Done, r4Total, entries, r5, total: funcProgress.length };
   }, [funcProgress]);
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
@@ -2049,12 +2098,13 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">各函数流水线进度</h2>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
                     {[
-                      { label: 'R2', done: funcStats.r2, total: funcStats.total, color: 'bg-indigo-400' },
-                      { label: 'R3', done: funcStats.r3, total: funcStats.total, color: 'bg-sky-400' },
-                      { label: 'R4', done: funcStats.r4, total: funcStats.total, color: 'bg-violet-400' },
-                      { label: 'R5', done: funcStats.r5, total: funcStats.entries, color: 'bg-emerald-400' },
-                    ].map(({ label, done, total, color }) => (
-                      <span key={label} className="inline-flex items-center gap-1.5">
+                      { label: 'R2', done: funcStats.r2,     total: funcStats.total,    color: 'bg-indigo-400' },
+                      { label: 'R3', done: funcStats.r3,     total: funcStats.total,    color: 'bg-sky-400' },
+                      { label: 'R4', done: funcStats.r4Done, total: funcStats.r4Total,  color: 'bg-violet-400',
+                        tip: 'R4应统计有外部输入的函数，不含 R3 过滤函数' },
+                      { label: 'R5', done: funcStats.r5,     total: funcStats.entries,  color: 'bg-emerald-400' },
+                    ].map(({ label, done, total, color, tip }: { label: string; done: number; total: number; color: string; tip?: string }) => (
+                      <span key={label} className="inline-flex items-center gap-1.5" title={tip}>
                         <span className="font-bold text-slate-600">{label}</span>
                         <span className="inline-block h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
                           <span
@@ -2121,14 +2171,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="R5" /></td>
                         <td className="px-4 py-2 text-slate-500">
-                          {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
-                          : f.r4 === 'remove' ? <span className="text-orange-600">R4 过滤</span>
-                          : f.r4 === 'running' ? <span className="text-violet-600 animate-pulse">R4 决策中…</span>
-                          : f.r2j === 'failed' ? <span className="text-red-500 font-medium">R2失败-跳过</span>
-                          : f.r3 === 'skip' ? <span className="text-slate-400">无外部输入</span>
-                          : f.r3 === 'passed' ? <span className="text-sky-700">R3通过·等R4</span>
-                          : f.r3 === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
-                          : f.r2j === 'running' ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
+                          {f.rep === 'passed'   ? <span className="text-emerald-800 font-bold">✓ R5 完成</span>
+                          : f.rep === 'running'  ? <span className="text-teal-600 animate-pulse">R5 报告中…</span>
+                          : f.r4 === 'keep'      ? <span className="text-emerald-600 font-semibold">✓ 入口·等R5</span>
+                          : f.r4 === 'remove'    ? <span className="text-orange-600">R4 过滤</span>
+                          : f.r4 === 'running'   ? <span className="text-violet-600 animate-pulse">R4 决策中…</span>
+                          : f.r3 === 'skip'      ? <span className="text-slate-400">无外部输入</span>
+                          : f.r3 === 'passed'    ? <span className="text-sky-700">R3通过·等R4</span>
+                          : f.r3 === 'running'   ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
+                          : f.r2j === 'running'  ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
                           : <span className="text-slate-300">等待中</span>}
                         </td>
                       </tr>

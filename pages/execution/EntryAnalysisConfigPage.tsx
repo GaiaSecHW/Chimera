@@ -205,25 +205,12 @@ const applyEntryPanel = (
     case 'basic':
       return {
         ...base,
-        max_rounds: source.max_rounds,
-        max_rounds_exceeded_action: source.max_rounds_exceeded_action,
-        min_rounds: source.min_rounds,
         pass_threshold: source.pass_threshold,
         max_concurrent_tasks: source.max_concurrent_tasks,
         worker_parallel: source.worker_parallel,
         worker_parallelism: source.worker_parallelism,
         pipeline_parallelism: source.pipeline_parallelism,
-        r1a_max_rounds: source.r1a_max_rounds,
-        r1b_max_rounds: source.r1b_max_rounds,
-        r2_max_rounds: source.r2_max_rounds,
-        r3_max_rounds: source.r3_max_rounds,
-        r4_func_max_rounds: source.r4_func_max_rounds,
-        r4_final_max_rounds: source.r4_final_max_rounds,
-        report_func_max_rounds: source.report_func_max_rounds,
-        report_final_max_rounds: source.report_final_max_rounds,
         lean_mode: source.lean_mode,
-        lean_file_max_rounds: source.lean_file_max_rounds,
-        lean_module_max_rounds: source.lean_module_max_rounds,
       };
     case 'retry':
       return {
@@ -359,14 +346,19 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
 
   const handlePanelSave = async (panel: EntryPanelKey, label: string) => {
     setSavingPanel(panel);
-    const payload = applyEntryPanel(savedConfig, config, panel);
-    const saved = await persistConfig(payload);
-    if (saved) {
-      setSavedConfig(saved);
-      setConfig((prev) => restoreOtherEntryPanels(saved, prev, panel));
-      notify(`${label}已保存`, 'success');
+    try {
+      const payload = applyEntryPanel(savedConfig, config, panel);
+      const saved = await persistConfig(payload);
+      if (saved) {
+        setSavedConfig(saved);
+        setConfig((prev) => restoreOtherEntryPanels(saved, prev, panel));
+        notify(`${label}已保存`, 'success');
+      }
+    } catch (err: any) {
+      notify(`保存出错: ${err?.message ?? err}`, 'error');
+    } finally {
+      setSavingPanel(null);
     }
-    setSavingPanel(null);
   };
 
   const handlePanelReset = (panel: EntryPanelKey, label: string) => {
@@ -405,7 +397,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
           {/* 基本配置 */}
           <SectionCard
             title="基本配置"
-            subtitle="分析轮次控制与重试策略"
+            subtitle="并发控制与运行参数"
             actions={(
               <PanelActions
                 saving={savingPanel === 'basic'}
@@ -415,24 +407,13 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             )}
           >
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              <FieldRow label="max_rounds" hint="-1=无限"><NumberInput value={config.max_rounds} min={-1} onChange={(v) => patch({ max_rounds: v })} /></FieldRow>
-              <FieldRow label="min_rounds" hint="最少通过轮数"><NumberInput value={config.min_rounds} min={1} max={20} onChange={(v) => patch({ min_rounds: v })} /></FieldRow>
-              <FieldRow label="pass_threshold" hint="评审通过模式">
-                <select
-                  value={config.pass_threshold}
-                  onChange={(e) => patch({ pass_threshold: Number(e.target.value) })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
-                  <option value={0}>大于半数裁判通过</option>
-                  <option value={-1}>全部裁判均通过</option>
-                </select>
-              </FieldRow>
               <FieldRow label="任务间并发上限" hint="单个项目内同时运行的任务数">
                 <NumberInput value={config.max_concurrent_tasks} min={1} max={128} onChange={(v) => patch({ max_concurrent_tasks: Math.max(1, Math.min(128, Math.trunc(v || 1))) })} />
               </FieldRow>
               <FieldRow label="任务内并发上限" hint="单个任务内部 Worker 最大并发">
                 <NumberInput value={config.worker_parallelism} min={1} max={256} onChange={(v) => patch({ worker_parallelism: Math.max(1, Math.min(256, Math.trunc(v || 1))) })} />
               </FieldRow>
-              <FieldRow label="pipeline_parallelism" hint="全局 pi 进程信号量（建议 32-128）">
+              <FieldRow label="pipeline_parallelism" hint="全局 pi 进程信号量，建议≤ model_max_concurrency（过高会导致模型峧排队延迟）">
                 <NumberInput value={config.pipeline_parallelism} min={1} max={512} onChange={(v) => patch({ pipeline_parallelism: Math.max(1, Math.min(512, Math.trunc(v || 64))) })} />
               </FieldRow>
             </div>
@@ -469,72 +450,12 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                 </label>
               </div>
               {config.lean_mode && (
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <FieldRow label="lean_file_max_rounds" hint="文件级 W+J 最大轮次，-1=无限">
-                    <NumberInput value={config.lean_file_max_rounds} min={-1}
-                      onChange={(v) => patch({ lean_file_max_rounds: v })} />
-                  </FieldRow>
-                  <FieldRow label="lean_module_max_rounds" hint="模块级 W+J 最大轮次，-1=无限">
-                    <NumberInput value={config.lean_module_max_rounds} min={-1}
-                      onChange={(v) => patch({ lean_module_max_rounds: v })} />
-                  </FieldRow>
+                <div className="mt-4 text-xs text-amber-700 font-medium">
+                  精简模式已开启：跳过 R2 行号校正、调用链建图及 per-function 精细分析。
                 </div>
               )}
             </div>
 
-            {/* 各阶段最大轮次（精简模式下置灰提示，完整模式下正常编辑） */}
-            <div className={`mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 ${
-              config.lean_mode ? 'opacity-40 pointer-events-none' : ''
-            }`}>
-              <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-                各阶段最大轮次（-1=无限，0=跳过）
-                {config.lean_mode && (
-                  <span className="ml-2 normal-case font-medium text-amber-600">精简模式下以下阶段均跳过</span>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <FieldRow label="R1a 覆盖率" hint="覆盖率 W+J">
-                  <NumberInput value={config.r1a_max_rounds} min={-1} onChange={(v) => patch({ r1a_max_rounds: v })} />
-                </FieldRow>
-                <FieldRow label="R1b 准确性" hint="行号准确 W+J">
-                  <NumberInput value={config.r1b_max_rounds} min={-1} onChange={(v) => patch({ r1b_max_rounds: v })} />
-                </FieldRow>
-                <FieldRow label="R2 外部输入" hint="污点分析 W+J">
-                  <NumberInput value={config.r2_max_rounds} min={-1} onChange={(v) => patch({ r2_max_rounds: v })} />
-                </FieldRow>
-                <FieldRow label="R3 入口过滤" hint="过滤 W+J">
-                  <NumberInput value={config.r3_max_rounds} min={-1} onChange={(v) => patch({ r3_max_rounds: v })} />
-                </FieldRow>
-                <FieldRow label="R4 函数分析" hint="per-func 跨文件">
-                  <NumberInput value={config.r4_func_max_rounds} min={-1} onChange={(v) => patch({ r4_func_max_rounds: v })} />
-                </FieldRow>
-                <FieldRow label="R4 汇总 Judge" hint="最终验证">
-                  <NumberInput value={config.r4_final_max_rounds} min={-1} onChange={(v) => patch({ r4_final_max_rounds: v })} />
-                </FieldRow>
-                <FieldRow label="Report 函数" hint="per-func 报告 W+J">
-                  <NumberInput value={config.report_func_max_rounds} min={-1} onChange={(v) => patch({ report_func_max_rounds: v })} />
-                </FieldRow>
-                <FieldRow label="Report 最终" hint="汇总报告 W+J">
-                  <NumberInput value={config.report_final_max_rounds} min={-1} onChange={(v) => patch({ report_final_max_rounds: v })} />
-                </FieldRow>
-              </div>
-              <p className="mt-2 text-xs text-slate-400">各阶段独立控制：-1=无限重试直到 Judge 通过，0=跳过该阶段，N=最多 N 轮后强制通过</p>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <FieldRow label="max_rounds_exceeded_action" hint="单个入口分析任务达到最大轮次且评审仍未通过时的处理策略">
-                <select
-                  value={config.max_rounds_exceeded_action}
-                  onChange={(e) => patch({ max_rounds_exceeded_action: e.target.value as EntryAnalysisServiceConfig['max_rounds_exceeded_action'] })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
-                  <option value="treat_as_passed">默认通过，任务按通过收敛</option>
-                  <option value="treat_as_failed">判定失败，任务按失败收敛</option>
-                </select>
-              </FieldRow>
-              <p className="text-xs leading-5 text-slate-500">
-                默认值为 `treat_as_passed`。当单个入口分析任务达到 `max_rounds` 后仍未满足评审通过条件时，
-                将按这里的策略决定最终收敛为通过还是失败。
-              </p>
-            </div>
             <FieldRow label="并行 Worker 模式" hint="开启后 Workers 中的多个实例同时运行，各自分析一个文件分片">
               <div className="flex flex-wrap items-center gap-4">
                 <label className="inline-flex cursor-pointer items-center gap-3">
