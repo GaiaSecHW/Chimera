@@ -220,6 +220,10 @@ export interface BinarySecurityTask {
     total_items: number;
     success_items: number;
     failed_items: number;
+    orchestration_failed_items?: number;
+    downstream_missing_items?: number;
+    cancelled_items?: number;
+    downstream_status_counts?: Record<string, number>;
     skipped_items: number;
     running_items: number;
     started_at?: string | null;
@@ -349,6 +353,7 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     item_name?: string | null;
     parent_key?: string | null;
     status: string;
+    downstream_status?: string | null;
     retry_count: number;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
@@ -450,6 +455,7 @@ export interface BinarySecurityOverviewBusinessDetail {
   total_items: number;
   success_items: number;
   failed_items: number;
+  orchestration_failed_items: number;
   downstream_missing_items: number;
   skipped_items: number;
   running_items: number;

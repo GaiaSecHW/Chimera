@@ -221,8 +221,14 @@ const formatBinarySecurityStatus = (status?: string | null) => {
   const normalized = String(status || '').trim().toLowerCase();
   const labels: Record<string, string> = {
     downstream_missing: '子任务不存在',
+    passed: '通过',
   };
   return labels[normalized] || status || '-';
+};
+
+const formatDownstreamStatus = (status?: string | null) => {
+  if (!status) return '待同步';
+  return formatBinarySecurityStatus(status);
 };
 
 const formatStageItemSyncStatus = (status?: string | null) => {
@@ -964,6 +970,8 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   const pendingStages = stageSummaries.filter((stage) => stage.status === 'pending');
   const failedItems = stageItems.filter((item) => item.status === 'failed');
   const missingItems = stageItems.filter((item) => item.status === 'downstream_missing');
+  const downstreamFailedItems = stageItems.filter((item) => ['failed', 'error'].includes(String(item.downstream_status || '').toLowerCase()));
+  const downstreamCancelledItems = stageItems.filter((item) => String(item.downstream_status || '').toLowerCase() === 'cancelled');
   const runningItems = stageItems.filter((item) => ['running', 'dispatching'].includes(item.status));
   const cancelledItems = stageItems.filter((item) => item.status === 'cancelled');
   const failedArchiveJobs = archiveJobs.filter((job) => job.archive_status === 'failed');
@@ -1000,11 +1008,13 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     return {
       tone: 'error',
       title: `任务失败于 ${STAGE_LABELS[failedStageName || ''] || failedStageName || '当前阶段'}`,
-      description: reason || '当前任务存在失败阶段、失败子任务或归档失败记录，编排器因此将总任务置为失败。',
+      description: reason || '当前任务存在编排失败阶段、编排失败项或归档失败记录，编排器因此将总任务置为失败。',
       evidence: [
         { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
-        { label: '失败子任务', value: summarizeCount(failedItems.length) },
+        { label: '编排失败项', value: summarizeCount(failedItems.length) },
         { label: '丢失子任务', value: summarizeCount(missingItems.length) },
+        { label: '下游真实失败', value: summarizeCount(downstreamFailedItems.length) },
+        { label: '下游真实取消', value: summarizeCount(downstreamCancelledItems.length) },
         { label: '归档失败', value: summarizeCount(failedArchiveJobs.length) },
       ],
     };
@@ -1025,7 +1035,7 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
       evidence: [
         { label: '异常阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
         { label: '丢失子任务', value: summarizeCount(missingItems.length) },
-        { label: '失败子任务', value: summarizeCount(failedItems.length) },
+        { label: '编排失败项', value: summarizeCount(failedItems.length) },
       ],
     };
   }
@@ -1040,12 +1050,13 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     return {
       tone: 'warn',
       title: '任务部分成功',
-      description: reason || '任务已完成可推进的部分，但仍存在失败或取消的阶段子任务，需要按需查看失败项或手动重试对应阶段。',
+      description: reason || '任务已完成可推进的部分，但仍存在编排失败项、丢失项或取消项，需要按需查看失败项或手动重试对应阶段。',
       evidence: [
         { label: '失败阶段', value: failedStages.map((stage) => STAGE_LABELS[stage.stage_name] || stage.stage_name).join(' / ') || '-' },
-        { label: '失败子任务', value: summarizeCount(failedItems.length) },
+        { label: '编排失败项', value: summarizeCount(failedItems.length) },
         { label: '丢失子任务', value: summarizeCount(missingItems.length) },
-        { label: '取消子任务', value: summarizeCount(cancelledItems.length) },
+        { label: '下游真实失败', value: summarizeCount(downstreamFailedItems.length) },
+        { label: '下游真实取消', value: summarizeCount(downstreamCancelledItems.length) },
       ],
     };
   }
@@ -3296,7 +3307,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
                               <div>总数 {(stage.detail as any)?.total_items ?? 0}</div>
                               <div>成功 {(stage.detail as any)?.success_items ?? 0}</div>
-                              <div>失败 {(stage.detail as any)?.failed_items ?? 0}</div>
+                              <div>编排失败 {(stage.detail as any)?.orchestration_failed_items ?? (stage.detail as any)?.failed_items ?? 0}</div>
                               <div>运行 {(stage.detail as any)?.running_items ?? 0}</div>
                             </div>
                             <div className="mt-3 grid gap-1 rounded-2xl border border-current/15 bg-white/55 px-3 py-2 text-[10px] font-semibold leading-4">
@@ -3744,7 +3755,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                              }}
 	                            />
 	                          </th>
-	                          <th className="w-24 px-3 py-3">状态</th>
+	                          <th className="w-24 px-3 py-3">编排状态</th>
+                          <th className="w-24 px-3 py-3">下游状态</th>
 	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
 	                          <th className="w-24 px-3 py-3">重试</th>
                           {isSystemAnalysisStageTable ? (
@@ -3792,12 +3804,29 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                                  <div className="flex flex-col gap-2">
 	                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
                                       {formatBinarySecurityStatus(item.status)}
-                                    </span>
+	                                    </span>
                                     <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
                                       {STAGE_LABELS[item.stage_name] || item.stage_name}
                                     </span>
-                                  </div>
-                                </td>
+	                                  </div>
+	                                </td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex flex-col gap-2">
+                                      <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.downstream_status || 'queued')}`}>
+                                        {formatDownstreamStatus(item.downstream_status)}
+                                      </span>
+                                      {item.status === 'failed' && String(item.downstream_status || '').toLowerCase() === 'passed' ? (
+                                        <span className="inline-flex w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                                          父任务保留失败快照
+                                        </span>
+                                      ) : null}
+                                      {item.status === 'downstream_missing' ? (
+                                        <span className="inline-flex w-fit rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700">
+                                          当前引用下游任务不可观测
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </td>
                                 <td className="px-3 py-3">
                                   <div className="min-w-0">
                                     <div className="break-all text-sm font-black text-slate-900">
