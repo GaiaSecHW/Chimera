@@ -820,7 +820,8 @@ function deriveFuncProgress(
     const fh = String(item.func_hash || '');
     if (!fh) continue;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    f.r2j = toStage(item.r2j_state);
+    // R2-J: 'failed' 仅是暂时状态（引擎必重试至 passed 或 force-pass），显示为运行中
+    f.r2j = item.r2j_state === 'failed' ? 'running' : toStage(item.r2j_state);
     f.r3w = toStage(item.r3w_state);
     f.r3j = toStage(item.r3j_state);
     f.r3 = combineR3(f.r3w, f.r3j);
@@ -855,11 +856,12 @@ function deriveFuncProgress(
       case 'r2_j_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          advanceStage(f, 'r2j', d.passed ? 'passed' : 'failed');
-          if (!d.passed) {
-            advanceStage(f, 'r3', 'skip');
-            advanceStage(f, 'r4', 'skip');
-            advanceStage(f, 'rep', 'skip');
+          if (d.passed) {
+            advanceStage(f, 'r2j', 'passed');
+          } else {
+            // R2-J 失败是暂时的：引擎将带着 J 反馈运行 R2-W 再验证，不允许漏报。
+            // 不设为终态 failed，不将下游 R3/R4 标为 skip，保持 running 状态等待重试。
+            advanceStage(f, 'r2j', 'running');
           }
           f.lastTs = ts;
         }
@@ -1504,7 +1506,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     let entries = 0;
     let r5 = 0;
     for (const item of funcProgress) {
-      if (item.r2j === 'passed' || item.r2j === 'failed') r2 += 1;
+      if (item.r2j === 'passed' || item.r2j === 'running') r2 += 1; // failed 应不存在，已映射为 running
       if (item.r3 === 'passed' || item.r3 === 'skip') r3 += 1;
       if (item.r4 === 'keep' || item.r4 === 'remove' || item.r4 === 'skip') r4 += 1;
       if (item.r4 === 'keep') entries += 1;
@@ -2124,7 +2126,6 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                           {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
                           : f.r4 === 'remove' ? <span className="text-orange-600">R4 过滤</span>
                           : f.r4 === 'running' ? <span className="text-violet-600 animate-pulse">R4 决策中…</span>
-                          : f.r2j === 'failed' ? <span className="text-red-500 font-medium">R2失败-跳过</span>
                           : f.r3 === 'skip' ? <span className="text-slate-400">无外部输入</span>
                           : f.r3 === 'passed' ? <span className="text-sky-700">R3通过·等R4</span>
                           : f.r3 === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
