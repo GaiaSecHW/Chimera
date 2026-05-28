@@ -978,8 +978,14 @@ function deriveFuncProgress(
 
   const funcs = Array.from(map.values());
   funcs.sort((a, b) => {
+    // 优先级 1：入口函数置顶
     if (a.is_entry !== b.is_entry) return a.is_entry ? -1 : 1;
-    return (b.lastTs || 0) - (a.lastTs || 0);
+    // 优先级 2：R3 判断无外部输入（r4='skip'）的函数沉底
+    const aSkip = a.has_external_input === false;
+    const bSkip = b.has_external_input === false;
+    if (aSkip !== bSkip) return aSkip ? 1 : -1;
+    // 优先级 3：按函数名字母排序
+    return (a.name || '').localeCompare(b.name || '');
   });
   return { funcs, totalFuncCount };
 }
