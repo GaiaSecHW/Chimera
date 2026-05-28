@@ -1500,19 +1500,22 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     [events, detail?.function_catalog],
   );
   const funcStats = useMemo(() => {
-    let r2 = 0;
-    let r3 = 0;
-    let r4 = 0;
-    let entries = 0;
-    let r5 = 0;
-    for (const item of funcProgress) {
-      if (item.r2j === 'passed' || item.r2j === 'running') r2 += 1; // failed 应不存在，已映射为 running
-      if (item.r3 === 'passed' || item.r3 === 'skip') r3 += 1;
-      if (item.r4 === 'keep' || item.r4 === 'remove' || item.r4 === 'skip') r4 += 1;
-      if (item.r4 === 'keep') entries += 1;
-      if (item.rep === 'passed') r5 += 1;
+    let r2 = 0, r3 = 0, r4Done = 0, r4Total = 0, entries = 0, r5 = 0;
+    for (const f of funcProgress) {
+      // R2: 全部函数都过 R2
+      if (f.r2j === 'passed') r2 += 1;
+      // R3: 全部函数都过 R3（passed=分析通过, skip=无外部输入跳过）
+      if (f.r3 === 'passed' || f.r3 === 'skip') r3 += 1;
+      // R4: 只统计实际需要 R4 决策的函数
+      //   - has_external_input=false 的函数在 R3 就被过滤，不进入 R4
+      //   - r4='skip' 是 R3 的结果，不应计入 R4 done
+      if (f.has_external_input !== false) r4Total += 1;
+      if (f.r4 === 'keep' || f.r4 === 'remove') r4Done += 1;
+      if (f.r4 === 'keep') entries += 1;
+      // R5: 只统计入口函数（entries）
+      if (f.rep === 'passed') r5 += 1;
     }
-    return { r2, r3, r4, entries, r5, total: funcProgress.length };
+    return { r2, r3, r4Done, r4Total, entries, r5, total: funcProgress.length };
   }, [funcProgress]);
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
@@ -2051,12 +2054,13 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">各函数流水线进度</h2>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
                     {[
-                      { label: 'R2', done: funcStats.r2, total: funcStats.total, color: 'bg-indigo-400' },
-                      { label: 'R3', done: funcStats.r3, total: funcStats.total, color: 'bg-sky-400' },
-                      { label: 'R4', done: funcStats.r4, total: funcStats.total, color: 'bg-violet-400' },
-                      { label: 'R5', done: funcStats.r5, total: funcStats.entries, color: 'bg-emerald-400' },
-                    ].map(({ label, done, total, color }) => (
-                      <span key={label} className="inline-flex items-center gap-1.5">
+                      { label: 'R2', done: funcStats.r2,     total: funcStats.total,    color: 'bg-indigo-400' },
+                      { label: 'R3', done: funcStats.r3,     total: funcStats.total,    color: 'bg-sky-400' },
+                      { label: 'R4', done: funcStats.r4Done, total: funcStats.r4Total,  color: 'bg-violet-400',
+                        tip: 'R4应统计有外部输入的函数，不含 R3 过滤函数' },
+                      { label: 'R5', done: funcStats.r5,     total: funcStats.entries,  color: 'bg-emerald-400' },
+                    ].map(({ label, done, total, color, tip }: { label: string; done: number; total: number; color: string; tip?: string }) => (
+                      <span key={label} className="inline-flex items-center gap-1.5" title={tip}>
                         <span className="font-bold text-slate-600">{label}</span>
                         <span className="inline-block h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
                           <span
