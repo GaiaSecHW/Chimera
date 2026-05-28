@@ -723,11 +723,10 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   const loadSlotSummary = useCallback(async () => {
-    if (!projectId) return;
     setSlotSummaryLoading(true);
     setSlotSummaryError('');
     try {
-      const payload = await appApi.getWorkerClusterCapacity(projectId);
+      const payload = await appApi.getWorkerClusterCapacity();
       setSlotSummary(payload);
       setExpandedSlotWorkerIds((current) => {
         const availableIds = new Set((payload.workers || []).map((worker) => worker.worker_id));
@@ -740,7 +739,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     } finally {
       setSlotSummaryLoading(false);
     }
-  }, [appApi, projectId]);
+  }, [appApi]);
 
   const loadAll = useCallback(async (p = page) => {
     await Promise.all([

@@ -75,8 +75,8 @@ export const appEntryAnalyseApi = {
     return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
   },
 
-  getSlotCluster: async (projectId: string): Promise<EntryAnalyseSlotClusterSummary> =>
-    getJsonWithDedupe(`${BASE}/projects/${encodeURIComponent(projectId)}/slot-cluster`, { headers: getHeaders() }),
+  getSlotCluster: async (): Promise<EntryAnalyseSlotClusterSummary> =>
+    getJsonWithDedupe(`${BASE}/workers/slot-cluster`, { headers: getHeaders() }),
 
   getTask: async (taskId: string, options: { includeFunctionCatalog?: boolean } = {}): Promise<AppEaTaskDetail> => {
     const query = new URLSearchParams();

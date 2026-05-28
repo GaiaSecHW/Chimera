@@ -93,11 +93,11 @@ export const appSystemAnalyseApi = {
     return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
   },
 
-  getWorkerClusterCapacitySummary: async (projectId: string): Promise<AppSaClusterCapacitySummary> =>
-    getJsonWithDedupe(`${BASE}/workers/cluster-capacity/summary?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
+  getWorkerClusterCapacitySummary: async (): Promise<AppSaClusterCapacitySummary> =>
+    getJsonWithDedupe(`${BASE}/workers/cluster-capacity/summary`, { headers: getHeaders() }),
 
-  getWorkerClusterCapacity: async (projectId: string): Promise<AppSaClusterCapacity> =>
-    getJsonWithDedupe(`${BASE}/workers/cluster-capacity?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() }),
+  getWorkerClusterCapacity: async (): Promise<AppSaClusterCapacity> =>
+    getJsonWithDedupe(`${BASE}/workers/cluster-capacity`, { headers: getHeaders() }),
 
   getTask: async (taskId: string): Promise<AppSaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),

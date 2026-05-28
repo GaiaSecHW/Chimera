@@ -133,7 +133,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const loadPiClusterCapacity = useCallback(async () => {
     if (!projectId) return;
     try {
-      const snapshot = await executionApi.binaryToSource.getPiClusterCapacity(projectId);
+      const snapshot = await executionApi.binaryToSource.getPiClusterCapacity();
       setPiClusterCapacity(snapshot);
     } catch {
       setPiClusterCapacity(null);

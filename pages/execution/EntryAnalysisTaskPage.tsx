@@ -514,7 +514,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const loadSlotCluster = useCallback(async () => {
     if (!projectId) return;
     try {
-      const snapshot = await appApi.getSlotCluster(projectId);
+      const snapshot = await appApi.getSlotCluster();
       setSlotCluster(snapshot);
       setSlotClusterError('');
     } catch (err: any) {

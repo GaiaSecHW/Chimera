@@ -270,10 +270,9 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   const loadClusterCapacity = useCallback(async () => {
-    if (!projectId) return;
     setSlotLoading(true);
     try {
-      const payload = await appApi.getWorkerClusterCapacitySummary(projectId);
+      const payload = await appApi.getWorkerClusterCapacitySummary();
       setClusterCapacitySummary(payload);
       setSlotError(null);
     } catch (err: any) {
@@ -282,13 +281,12 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     } finally {
       setSlotLoading(false);
     }
-  }, [appApi, projectId]);
+  }, [appApi]);
 
   const loadClusterCapacityDetail = useCallback(async () => {
-    if (!projectId) return;
     setSlotLoading(true);
     try {
-      const payload = await appApi.getWorkerClusterCapacity(projectId);
+      const payload = await appApi.getWorkerClusterCapacity();
       setClusterCapacityDetail(payload);
       setSlotError(null);
     } catch (err: any) {
@@ -297,7 +295,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     } finally {
       setSlotLoading(false);
     }
-  }, [appApi, projectId]);
+  }, [appApi]);
 
   useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
   useEffect(() => { void loadClusterCapacity(); }, [loadClusterCapacity]);

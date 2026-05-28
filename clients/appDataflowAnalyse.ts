@@ -51,11 +51,8 @@ export const appDataflowAnalyseApi = {
     return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
   },
 
-  getWorkerClusterCapacity: async (projectId: string): Promise<AppDfaClusterCapacity> =>
-    getJsonWithDedupe(
-      `${BASE}/workers/cluster-capacity?project_id=${encodeURIComponent(projectId)}`,
-      { headers: getHeaders() },
-    ),
+  getWorkerClusterCapacity: async (): Promise<AppDfaClusterCapacity> =>
+    getJsonWithDedupe(`${BASE}/workers/cluster-capacity`, { headers: getHeaders() }),
 
   getTask: async (taskId: string): Promise<AppDfaTaskDetail> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}`, { headers: getHeaders() })),

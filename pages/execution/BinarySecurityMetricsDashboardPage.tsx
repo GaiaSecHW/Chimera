@@ -2519,14 +2519,14 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     try {
       const [rawText, dfaWorkerData, entryWorkerData, systemWorkerData] = await Promise.all([
         executionMetricsApi.getServiceMetrics(serviceKey),
-        serviceKey === 'dataflow-analysis' && projectId
-          ? dataflowAnalysisApi.getWorkerClusterCapacity(projectId)
+        serviceKey === 'dataflow-analysis'
+          ? dataflowAnalysisApi.getWorkerClusterCapacity()
           : Promise.resolve(null),
-        serviceKey === 'entry-analysis' && projectId
-          ? entryAnalysisApi.getSlotCluster(projectId)
+        serviceKey === 'entry-analysis'
+          ? entryAnalysisApi.getSlotCluster()
           : Promise.resolve(null),
-        serviceKey === 'system-analysis' && projectId
-          ? systemAnalysisApi.getWorkerClusterCapacity(projectId)
+        serviceKey === 'system-analysis'
+          ? systemAnalysisApi.getWorkerClusterCapacity()
           : Promise.resolve(null),
       ]);
       setStateByService((current) => ({
@@ -2564,7 +2564,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       }));
       if (serviceKey === 'dataflow-analysis') {
         try {
-          const data = projectId ? await dataflowAnalysisApi.getWorkerClusterCapacity(projectId) : null;
+          const data = await dataflowAnalysisApi.getWorkerClusterCapacity();
           setDfaWorkerDetailState({
             loading: false,
             data,
@@ -2582,7 +2582,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       }
       if (serviceKey === 'entry-analysis') {
         try {
-          const data = projectId ? await entryAnalysisApi.getSlotCluster(projectId) : null;
+          const data = await entryAnalysisApi.getSlotCluster();
           setEntryWorkerDetailState({
             loading: false,
             data,
@@ -2600,7 +2600,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       }
       if (serviceKey === 'system-analysis') {
         try {
-          const data = projectId ? await systemAnalysisApi.getWorkerClusterCapacity(projectId) : null;
+          const data = await systemAnalysisApi.getWorkerClusterCapacity();
           setSystemWorkerDetailState({
             loading: false,
             data,

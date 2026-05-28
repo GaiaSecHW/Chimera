@@ -972,8 +972,8 @@ export const binaryToSourceApi = {
     });
   },
 
-  getPiClusterCapacity: async (projectId: string): Promise<B2SPiClusterCapacity> => {
-    return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/pi-cluster`, {
+  getPiClusterCapacity: async (): Promise<B2SPiClusterCapacity> => {
+    return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/pi-cluster`, {
       headers: getHeaders(),
     });
   },
