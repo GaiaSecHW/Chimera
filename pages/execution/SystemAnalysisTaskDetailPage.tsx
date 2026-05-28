@@ -438,10 +438,39 @@ function isAgentKillTimelineEvent(eventType?: string | null) {
   return ['agent_process_manual_kill', 'agent_process_bulk_manual_kill'].includes(String(eventType || '').trim());
 }
 
+function timelineEventCategory(eventType?: string | null) {
+  const normalized = String(eventType || '').trim().toLowerCase();
+  if (!normalized) return 'other';
+  if (/kill|manual|bulk|deleted|cleared/.test(normalized)) return 'task_mutation';
+  if (/(failed|error|abnormal|cancel|reject|noop)/.test(normalized)) return 'failure';
+  if (/(queued|dispatch|started|running|resume|retry|completed|finished|succeeded|repaired)/.test(normalized)) return 'stage_progress';
+  return 'other';
+}
+
+function timelineEventCategoryLabel(eventType?: string | null) {
+  const category = timelineEventCategory(eventType);
+  if (category === 'task_mutation') return '任务操作';
+  if (category === 'failure') return '异常/终态';
+  if (category === 'stage_progress') return '阶段推进';
+  return '其他事件';
+}
+
+function timelineEventCategoryTone(eventType?: string | null) {
+  const category = timelineEventCategory(eventType);
+  if (category === 'task_mutation') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  if (category === 'failure') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (category === 'stage_progress') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  return 'border-slate-200 bg-white text-slate-700';
+}
+
 function timelineEventTypeTone(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
   if (normalized === 'agent_process_manual_kill') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (normalized === 'agent_process_bulk_manual_kill') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'task_operation_rejected') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (normalized === 'task_cancel_requested_noop') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'timeline_cleared' || normalized === 'timeline_event_deleted') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (normalized === 'task_deleted') return 'border-rose-200 bg-rose-50 text-rose-700';
   return 'border-slate-200 bg-white text-slate-700';
 }
 
@@ -450,6 +479,12 @@ function formatTimelineEventTypeLabel(eventType?: string | null) {
   if (!normalized) return '-';
   if (normalized === 'agent_process_manual_kill') return '智能体手工终止';
   if (normalized === 'agent_process_bulk_manual_kill') return '智能体批量终止';
+  if (normalized === 'task_operation_rejected') return '任务操作被拒绝';
+  if (normalized === 'task_cancel_requested_noop') return '取消请求未生效';
+  if (normalized === 'timeline_cleared') return '时间线已清空';
+  if (normalized === 'timeline_event_deleted') return '时间线事件已删除';
+  if (normalized === 'task_origin_repaired') return '任务来源已修复';
+  if (normalized === 'task_deleted') return '任务已删除';
   return normalized.replace(/_/g, ' ');
 }
 
@@ -482,6 +517,12 @@ function timelineAuditSummary(payload: Record<string, any>) {
     podName !== '-' ? `Pod ${podName}` : '',
     killMode !== '-' ? `方式 ${killMode}` : '',
   ].filter(Boolean).join(' · ');
+}
+
+function timelineMessageSummary(event: any) {
+  const payload = event.payload || event.payload_json || {};
+  const summary = timelineAuditSummary(payload);
+  return summary || event.message || '-';
 }
 
 function findLatestStageEventData(events: AppSaStageEvent[], stages: string[]): Record<string, any> | null {

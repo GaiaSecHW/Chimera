@@ -220,6 +220,12 @@ export const binarySecurityMetricsApi = {
       { method: 'GET', headers: { ...getHeaders() } },
       { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
     ),
+  getAgentRuntimeAggregate: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
+    getJsonWithDedupe(
+      `${API_BASE}/api/app/${serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' || serviceKey === 'system-analysis' ? 'aggregate/' : ''}runtime?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+    ),
   getBinarySecurityReducerMetrics: async (): Promise<string> => {
     return getTextWithDedupe(
       `${API_BASE}/api/app/binary-security/metrics/reducer`,
@@ -242,6 +248,12 @@ export const binarySecurityMetricsApi = {
   killAllOrphanProcesses: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
     handleResponse(await fetchWithRetry(
       `${API_BASE}/api/app/${serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' ? 'aggregate/' : ''}processes/kill-all-orphans?project_id=${encodeURIComponent(projectId)}`,
+      { method: 'POST', headers: { ...getHeaders() } },
+      { retries: 2, retryDelayMs: 400 },
+    )),
+  killAllSuspectedOrphanProcesses: async (serviceKey: BinarySecurityMetricsServiceKey, projectId: string) =>
+    handleResponse(await fetchWithRetry(
+      `${API_BASE}/api/app/${serviceKey === 'dataflow-analysis' ? 'dataflow-analyse' : serviceKey === 'entry-analysis' ? 'entry-analyse' : serviceKey === 'system-analysis' ? 'system-analyse' : ''}/agent-observability/${serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' || serviceKey === 'system-analysis' ? 'aggregate/' : ''}processes/kill-all-suspected-orphans?project_id=${encodeURIComponent(projectId)}`,
       { method: 'POST', headers: { ...getHeaders() } },
       { retries: 2, retryDelayMs: 400 },
     )),

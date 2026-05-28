@@ -18,7 +18,9 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const buildTime = env.BUILD_TIME || new Date().toISOString().replace('T', ' ').slice(0, 19);
     return {
-      base: './',
+      // Use an absolute base in dev so HMR/module requests stay rooted at the
+      // Vite server, while production builds keep relative assets for static hosting.
+      base: mode === 'development' ? '/' : './',
       server: {
         port: 3000,
         host: '0.0.0.0',

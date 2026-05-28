@@ -2776,6 +2776,7 @@ export interface AgentObservabilitySummary {
   active_processes: number;
   orphan_processes: number;
   killable_orphan_processes: number;
+  killable_suspected_orphan_processes?: number;
   orphan_sessions: number;
   unknown_processes: number;
   scan_errors?: number | null;
@@ -2792,9 +2793,13 @@ export interface AgentObservabilitySummary {
 export interface AgentProcessSnapshot {
   pid: number;
   pgid?: number | null;
+  ppid?: number | null;
   pod_name?: string | null;
+  command?: string | null;
+  cwd?: string | null;
   task_id?: string | null;
   task_name?: string | null;
+  task_status?: string | null;
   stage_key?: string | null;
   role_kind?: string | null;
   session_id?: string | null;
@@ -2804,6 +2809,7 @@ export interface AgentProcessSnapshot {
   owner_reason?: string | null;
   kill_allowed?: boolean;
   kill_block_reason?: string | null;
+  termination_state?: string | null;
 }
 
 export interface AgentSessionObservabilitySnapshot {
@@ -2822,12 +2828,55 @@ export interface AgentSessionObservabilitySnapshot {
 export interface AgentTaskOwnershipSnapshot {
   task_id: string;
   task_name?: string | null;
+  task_status?: string | null;
   stage_key?: string | null;
   pod_name?: string | null;
   process_count: number;
   session_count: number;
   agent_roles: string[];
+  process_pids?: number[];
+  session_ids?: string[];
   ownership_status: 'healthy' | 'partial' | 'unknown' | string;
+}
+
+export interface AgentPodRuntimeSnapshot {
+  pod_name: string;
+  worker_id?: string | null;
+  healthy?: boolean;
+  process_count: number;
+  tracked_process_count?: number;
+  orphan_process_count: number;
+  suspected_orphan_process_count?: number;
+  session_count: number;
+  orphan_session_count: number;
+  task_count?: number;
+  active_task_count?: number;
+  last_scanned_at?: number | null;
+  scan_errors?: number;
+}
+
+export interface AgentRuntimeAggregateSummary {
+  total_pods: number;
+  healthy_pods: number;
+  total_processes: number;
+  tracked_processes: number;
+  orphan_processes: number;
+  suspected_orphan_processes: number;
+  killable_orphan_processes: number;
+  killable_suspected_orphan_processes: number;
+  orphan_sessions: number;
+  aggregate_partial?: boolean;
+  aggregate_sources?: number | null;
+  aggregate_fanout_errors?: number | null;
+  aggregate_failed_targets?: string[];
+  scanned_at?: number | null;
+}
+
+export interface AgentRuntimeAggregateResponse {
+  summary: AgentRuntimeAggregateSummary;
+  pods: AgentPodRuntimeSnapshot[];
+  processes: AgentProcessSnapshot[];
+  tasks: AgentTaskOwnershipSnapshot[];
 }
 
 export interface AgentProcessKillItem {

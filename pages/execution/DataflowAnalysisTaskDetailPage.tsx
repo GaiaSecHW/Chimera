@@ -177,6 +177,31 @@ function isAgentKillTimelineEvent(eventType?: string | null) {
   return ['agent_process_manual_kill', 'agent_process_bulk_manual_kill'].includes(String(eventType || '').trim());
 }
 
+function timelineEventCategory(eventType?: string | null) {
+  const normalized = String(eventType || '').trim().toLowerCase();
+  if (!normalized) return 'other';
+  if (/kill|manual|bulk/.test(normalized)) return 'task_mutation';
+  if (/(failed|error|abnormal|cancel|reject|noop)/.test(normalized)) return 'failure';
+  if (/(queued|dispatch|started|running|resume|retry|completed|finished|succeeded)/.test(normalized)) return 'stage_progress';
+  return 'other';
+}
+
+function timelineEventCategoryLabel(eventType?: string | null) {
+  const category = timelineEventCategory(eventType);
+  if (category === 'task_mutation') return '任务操作';
+  if (category === 'failure') return '异常/终态';
+  if (category === 'stage_progress') return '阶段推进';
+  return '其他事件';
+}
+
+function timelineEventCategoryTone(eventType?: string | null) {
+  const category = timelineEventCategory(eventType);
+  if (category === 'task_mutation') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  if (category === 'failure') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (category === 'stage_progress') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  return 'border-slate-200 bg-white text-slate-700';
+}
+
 function timelineEventTypeTone(eventType?: string | null) {
   const normalized = String(eventType || '').trim();
   if (normalized === 'agent_process_manual_kill') return 'border-rose-200 bg-rose-50 text-rose-700';
@@ -221,6 +246,12 @@ function timelineAuditSummary(payload: Record<string, any>) {
     podName !== '-' ? `Pod ${podName}` : '',
     killMode !== '-' ? `方式 ${killMode}` : '',
   ].filter(Boolean).join(' · ');
+}
+
+function timelineMessageSummary(event: AppDfaTaskEvent) {
+  const payload = event.payload || {};
+  const summary = timelineAuditSummary(payload);
+  return summary || event.message || '-';
 }
 
 function evaluationRoundKey(round: AppDfaEvaluationRound): string {
@@ -1011,6 +1042,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                         <tr>
                           <th className="w-14 px-3 py-2">#</th>
                           <th className="w-44 px-3 py-2">时间</th>
+                          <th className="w-32 px-3 py-2">分类</th>
                           <th className="w-44 px-3 py-2">事件</th>
                           <th className="w-28 px-3 py-2">状态</th>
                           <th className="w-24 px-3 py-2">级别</th>
@@ -1033,11 +1065,12 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                               <tr className="align-top">
                                 <td className="px-3 py-2 font-mono text-slate-500">{timelineRangeStart + index}</td>
                                 <td className="px-3 py-2 text-slate-600">{event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-'}</td>
+                                <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventCategoryTone(event.event_type)}`}>{timelineEventCategoryLabel(event.event_type)}</span></td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-bold ${timelineEventTypeTone(event.event_type)}`}>{formatTimelineEventTypeLabel(event.event_type)}</span></td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_COLOR[event.status || 'pending'] || 'bg-slate-100 text-slate-600'}`}>{STATUS_LABEL[event.status || 'pending'] || statusText}</span></td>
                                 <td className="px-3 py-2"><span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-black ${timelineLevelTone(event.level)}`}>{event.level || 'info'}</span></td>
                                 <td className="max-w-[360px] px-3 py-2">
-                                  <div className="truncate font-semibold text-slate-800" title={event.message}>{event.message}</div>
+                                  <div className="truncate font-semibold text-slate-800" title={timelineMessageSummary(event)}>{timelineMessageSummary(event)}</div>
                                   {auditSummary ? <div className="mt-1 truncate text-[11px] font-medium text-rose-700" title={auditSummary}>{auditSummary}</div> : null}
                                 </td>
                                 <td className="px-3 py-2 text-[11px] text-slate-500"><div className="truncate font-mono" title={sourceLabel}>{sourceLabel}</div></td>
@@ -1050,7 +1083,7 @@ export const DataflowAnalysisTaskDetailPage: React.FC<{ projectId: string; taskI
                               </tr>
                               {expanded ? (
                                 <tr className="bg-slate-50/60">
-                                  <td colSpan={8} className="px-3 py-3">
+                                  <td colSpan={9} className="px-3 py-3">
                                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                                       {timelinePayloadRows(payload).slice(0, 12).map((row) => (
                                         <div key={row.key} className="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2 text-xs">

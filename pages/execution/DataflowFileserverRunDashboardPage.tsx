@@ -4240,9 +4240,45 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return raw || '-';
     },
 
+    timelineEventCategory(value?: string | null) {
+      const raw = String(value || '').trim().toLowerCase();
+      if (!raw) return 'other';
+      if (/^(task_created|task_retry_queued|task_evolution_created|task_priority_updated|task_projection_rebuilt)$/.test(raw)) return 'task_mutation';
+      if (/^(task_cancel_requested|run_cancel_requested|run_resume_queued|run_delete_requested|run_adopted)$/.test(raw)) return 'run_control';
+      if (/(queued|dispatch|started|running|completed|finished|succeeded|plugin_|execution_|stage_)/.test(raw)) return 'stage_progress';
+      if (/(failed|abnormal|error|cancelled|interrupted)/.test(raw)) return 'failure';
+      if (/(report|review|vuln_)/.test(raw)) return 'review_report';
+      return 'other';
+    },
+
+    timelineEventCategoryLabel(value?: string | null) {
+      const category = this.timelineEventCategory(value);
+      if (category === 'task_mutation') return '任务操作';
+      if (category === 'run_control') return '运行控制';
+      if (category === 'stage_progress') return '阶段推进';
+      if (category === 'failure') return '异常/终态';
+      if (category === 'review_report') return '评审/上报';
+      return '其他事件';
+    },
+
     timelineEventTypeLabel(value?: string | null) {
       const raw = String(value || '').trim();
       if (!raw) return '-';
+      const exactLabels: Record<string, string> = {
+        task_created: '任务已创建',
+        execution_queued: '任务已入队',
+        task_evolution_created: '演化任务已创建',
+        task_retry_queued: '任务重试已入队',
+        task_cancel_requested: '任务取消请求',
+        task_priority_updated: '任务优先级已更新',
+        task_projection_rebuilt: '任务投影已重建',
+        run_cancel_requested: 'Run 取消请求',
+        run_resume_queued: 'Run 恢复已入队',
+        run_adopted: 'Run 已接管',
+        run_delete_requested: 'Run 删除请求',
+        vuln_report_manual: '人工漏洞上报',
+      };
+      if (exactLabels[raw]) return exactLabels[raw];
       return raw
         .split('_')
         .filter(Boolean)
@@ -4267,10 +4303,49 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       return 'badge-unknown';
     },
 
+    timelineEventCategoryBadgeClass(eventType?: string | null) {
+      const category = this.timelineEventCategory(eventType);
+      if (category === 'task_mutation') return 'badge-running';
+      if (category === 'run_control') return 'badge-warning';
+      if (category === 'stage_progress') return 'badge-succeeded';
+      if (category === 'failure') return 'badge-failed';
+      if (category === 'review_report') return 'badge-unknown';
+      return 'badge-unknown';
+    },
+
     timelineSourceLabel(event: DataflowTaskTimelineEvent) {
       const attempt = Number(event.attempt_no || 0);
       const prefix = attempt > 0 ? `#${attempt}` : '#-';
       return `${prefix} / ${String(event.execution_id || '').trim() || '-'}`;
+    },
+
+    timelineMessageLabel(event: DataflowTaskTimelineEvent) {
+      const payload = event.payload && typeof event.payload === 'object' ? event.payload : {};
+      const eventType = String(event.event_type || '').trim();
+      if (eventType === 'task_priority_updated') {
+        const oldPriority = payload.old_priority ?? '-';
+        const newPriority = payload.new_priority ?? '-';
+        return `优先级 ${oldPriority} -> ${newPriority}`;
+      }
+      if (eventType === 'task_cancel_requested') {
+        return `取消任务，原状态 ${payload.status_before || '-'}`;
+      }
+      if (eventType === 'run_cancel_requested') {
+        return `取消 Run，原状态 ${payload.status_before || '-'}`;
+      }
+      if (eventType === 'task_retry_queued') {
+        return `重试已入队，Attempt #${payload.attempt_no || event.attempt_no || '-'}`;
+      }
+      if (eventType === 'task_evolution_created') {
+        return `从源任务 ${payload.source_task_id || '-'} 创建演化任务`;
+      }
+      if (eventType === 'run_delete_requested') {
+        return `请求删除 Run ${payload.run_id || '-'}`;
+      }
+      if (eventType === 'vuln_report_manual') {
+        return `人工上报 ${Array.isArray(payload.result_files) ? payload.result_files.length : 0} 个结果，状态 ${payload.status || '-'}`;
+      }
+      return String(event.message || '-');
     },
 
     timelinePayloadRows(payload: Record<string, any>) {
@@ -4311,7 +4386,14 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       const items = this.filteredTimelineItems(data.name);
       const stageOptions = Array.from(new Set((runCache.timelineItems || []).map((event) => String(event.stage_name || event.stage_key || '').trim()).filter(Boolean)));
       const eventTypeOptions = Array.from(new Set((runCache.timelineItems || []).map((event) => String(event.event_type || '').trim()).filter(Boolean)));
+      const categoryOptions = Array.from(new Set((runCache.timelineItems || []).map((event) => this.timelineEventCategory(event.event_type)).filter(Boolean)));
       const levelOptions = Array.from(new Set((runCache.timelineItems || []).map((event) => String(event.level || 'info').trim()).filter(Boolean)));
+      const categorySummary = categoryOptions
+        .map((category) => {
+          const count = (runCache.timelineItems || []).filter((event) => this.timelineEventCategory(event.event_type) === category).length;
+          return `${this.timelineEventCategoryLabel(category)} ${count}`;
+        })
+        .join(' · ');
       const pageSize = Math.min(500, Math.max(50, Number(runCache.timelinePageSize || 200)));
       const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
       const currentPage = Math.min(Math.max(1, Number(runCache.timelinePage || 1)), pageCount);
@@ -4325,7 +4407,8 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
       el.innerHTML = `
         <section class="card">
           <div class="card-title">事件时间线</div>
-          <div class="text-muted" style="margin-top:-6px;margin-bottom:12px;font-size:12px">按时间查看当前任务的调度、阶段推进、重试与异常轨迹。</div>
+          <div class="text-muted" style="margin-top:-6px;margin-bottom:6px;font-size:12px">按时间查看当前任务的调度、阶段推进、重试与异常轨迹。</div>
+          <div class="text-muted" style="margin-bottom:12px;font-size:12px">${this.esc(categorySummary || '暂无可分类事件')}</div>
           <div class="timeline-toolbar">
             <div class="timeline-summary-pill">展示 ${rangeStart}-${rangeEnd} / ${items.length}</div>
             <div class="timeline-pagination">
@@ -4361,6 +4444,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                     <tr>
                       <th style="width:56px">#</th>
                       <th style="width:180px">时间</th>
+                      <th style="width:130px">事件分类</th>
                       <th style="width:180px">事件类型</th>
                       <th style="width:160px">阶段</th>
                       <th style="width:120px">级别</th>
@@ -4379,10 +4463,11 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                         <tr>
                           <td class="mono">${rangeStart + index}</td>
                           <td>${this.esc(event.created_at ? new Date(event.created_at).toLocaleString('zh-CN') : '-')}</td>
+                          <td><span class="badge ${this.timelineEventCategoryBadgeClass(event.event_type)}">${this.esc(this.timelineEventCategoryLabel(event.event_type))}</span></td>
                           <td><span class="badge ${this.timelineEventBadgeClass(event.event_type)}">${this.esc(this.timelineEventTypeLabel(event.event_type))}</span></td>
                           <td>${event.stage_name ? `<span class="badge badge-running">${this.esc(this.timelineStageLabel(event.stage_name || event.stage_key))}</span>` : '<span class="text-muted">-</span>'}</td>
                           <td><span class="badge ${this.timelineLevelBadgeClass(event.level)}">${this.esc(String(event.level || 'info'))}</span></td>
-                          <td title="${this.attr(String(event.message || ''))}">${this.esc(String(event.message || '-'))}</td>
+                          <td title="${this.attr(this.timelineMessageLabel(event))}">${this.esc(this.timelineMessageLabel(event))}</td>
                           <td class="mono" title="${this.attr(this.timelineSourceLabel(event))}">${this.esc(this.timelineSourceLabel(event))}</td>
                           <td>
                             <div style="display:flex;justify-content:flex-end;gap:10px">
@@ -4393,7 +4478,7 @@ const createDashboardApp = ({ projectId, rootPath, initialRunName, initialSummar
                         </tr>
                         ${expanded ? `
                           <tr class="timeline-expand-row">
-                            <td colspan="8">
+                            <td colspan="9">
                               ${payloadRows.length ? `
                                 <div class="timeline-payload-grid">
                                   ${payloadRows.map((row) => `
