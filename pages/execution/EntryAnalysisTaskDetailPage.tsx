@@ -2154,13 +2154,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="R5" /></td>
                         <td className="px-4 py-2 text-slate-500">
-                          {f.r4 === 'keep'   ? <span className="text-emerald-700 font-bold">✓ 最终入口</span>
-                          : f.r4 === 'remove' ? <span className="text-orange-600">R4 过滤</span>
-                          : f.r4 === 'running' ? <span className="text-violet-600 animate-pulse">R4 决策中…</span>
-                          : f.r3 === 'skip' ? <span className="text-slate-400">无外部输入</span>
-                          : f.r3 === 'passed' ? <span className="text-sky-700">R3通过·等R4</span>
-                          : f.r3 === 'running' ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
-                          : f.r2j === 'running' ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
+                          {f.rep === 'passed'   ? <span className="text-emerald-800 font-bold">✓ R5 完成</span>
+                          : f.rep === 'running'  ? <span className="text-teal-600 animate-pulse">R5 报告中…</span>
+                          : f.r4 === 'keep'      ? <span className="text-emerald-600 font-semibold">✓ 入口·等R5</span>
+                          : f.r4 === 'remove'    ? <span className="text-orange-600">R4 过滤</span>
+                          : f.r4 === 'running'   ? <span className="text-violet-600 animate-pulse">R4 决策中…</span>
+                          : f.r3 === 'skip'      ? <span className="text-slate-400">无外部输入</span>
+                          : f.r3 === 'passed'    ? <span className="text-sky-700">R3通过·等R4</span>
+                          : f.r3 === 'running'   ? <span className="text-blue-600 animate-pulse">R3分析中…</span>
+                          : f.r2j === 'running'  ? <span className="text-indigo-600 animate-pulse">R2验证中…</span>
                           : <span className="text-slate-300">等待中</span>}
                         </td>
                       </tr>
