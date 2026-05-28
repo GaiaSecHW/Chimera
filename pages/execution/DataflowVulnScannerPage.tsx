@@ -431,7 +431,7 @@ function isHeartbeatExpired(heartbeatAgeSeconds?: number | null): boolean {
   return typeof heartbeatAgeSeconds === 'number' && Number.isFinite(heartbeatAgeSeconds) && heartbeatAgeSeconds > 300;
 }
 
-function getExecutionSlotView(task: DataflowScanTask): {
+function getExecutionSlotView(task: DataflowScanTask, autoRefreshEnabled: boolean): {
   state: ExecutionSlotState;
   label: string;
   ownerLabel: string;
@@ -457,7 +457,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
       className: 'border-slate-200 bg-slate-50 text-slate-600',
     };
   }
-  if (status === 'running' && ownerFull && isHeartbeatExpired(task.heartbeat_age_seconds)) {
+  if (autoRefreshEnabled && status === 'running' && ownerFull && isHeartbeatExpired(task.heartbeat_age_seconds)) {
     return {
       state: 'expired',
       label: '状态过期',
@@ -1471,7 +1471,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   {filteredTasks.map((task) => {
                     const run = taskRunLocator(task);
                     const runSummary = taskRunSummary(task);
-                    const slotView = getExecutionSlotView(task);
+                    const slotView = getExecutionSlotView(task, autoRefreshEnabled);
                     const displayStatus = taskDisplayStatus(task);
                     const hasRun = Boolean(run.name && run.root_path);
                     const taskId = task.task_id || run.linked_task_id || '';

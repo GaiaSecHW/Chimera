@@ -526,7 +526,7 @@ function isLeaseExpired(leaseUntil?: string | null): boolean {
   return Number.isFinite(timestamp) && timestamp < Date.now();
 }
 
-function getExecutionSlotView(task: AppDfaTaskItem): {
+function getExecutionSlotView(task: AppDfaTaskItem, autoRefreshEnabled: boolean): {
   state: ExecutionSlotState;
   label: string;
   ownerLabel: string;
@@ -552,7 +552,7 @@ function getExecutionSlotView(task: AppDfaTaskItem): {
       className: 'border-slate-200 bg-slate-50 text-slate-600',
     };
   }
-  if (status === 'running' && ownerFull && isLeaseExpired(task.execution_lease_until)) {
+  if (autoRefreshEnabled && status === 'running' && ownerFull && isLeaseExpired(task.execution_lease_until)) {
     return {
       state: 'expired',
       label: '状态过期',
@@ -1958,7 +1958,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
             </ExecutionTableHead>
             <tbody>
               {tasks.map((t) => {
-                const slotView = getExecutionSlotView(t);
+                const slotView = getExecutionSlotView(t, autoRefreshEnabled);
                 return (
                 <tr
                   key={t.task_id}
