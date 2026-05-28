@@ -930,6 +930,10 @@ function deriveFuncProgress(
           const dec = String(d.decision || '').toLowerCase();
           if (dec === 'filter' || dec === 'remove') {
             advanceStage(f, 'r4', f.has_external_input === false ? 'skip' : 'remove');
+          } else if (dec === 'keep' && d.quick_path) {
+            // 快速路径：W 直接决策 keep，不会再有 r4_j_done 事件
+            advanceStage(f, 'r4', 'keep');
+            f.is_entry = true;
           }
           f.lastTs = ts;
         }
@@ -954,10 +958,23 @@ function deriveFuncProgress(
         break;
 
       case 'r5_w_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', 'running'); f.lastTs = ts; }
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          // R5 开始意味着 R4 已确认 keep（无论是常规路径、快速路径还是 force-pass）
+          advanceStage(f, 'r4', 'keep');
+          f.is_entry = true;
+          advanceStage(f, 'rep', 'running');
+          f.lastTs = ts;
+        }
         break;
       case 'r5_j_start':
-        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', 'running'); f.lastTs = ts; }
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          advanceStage(f, 'r4', 'keep');   // 防御性
+          f.is_entry = true;
+          advanceStage(f, 'rep', 'running');
+          f.lastTs = ts;
+        }
         break;
       case 'r5_j_done':
         if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'rep', d.passed ? 'passed' : 'failed'); f.lastTs = ts; }
