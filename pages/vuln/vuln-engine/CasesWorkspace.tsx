@@ -116,6 +116,7 @@ export const CasesWorkspace: React.FC<any> = ({
   detailEntryLabel = '查看详情',
   onOpenCaseDetail,
   onOpenDedicatedDetail,
+  detailContent,
   enableBulkSelection = false,
   selectedBulkCaseIds = [],
   onToggleBulkCaseId,
@@ -402,10 +403,11 @@ export const CasesWorkspace: React.FC<any> = ({
                     </div>
                     <div className="mt-1 truncate text-[11px] font-mono text-slate-400">{item.id}</div>
                     {item.finding_id ? <div className="mt-1 truncate text-[11px] font-mono text-blue-600">{item.finding_id}</div> : null}
-                    <div className="mt-1 line-clamp-1 text-xs text-slate-500">{item.summary || '暂无摘要'}</div>
+                    <div className="mt-1 line-clamp-1 text-xs text-slate-500">{item.display_summary?.current_report_title || item.summary || '暂无摘要'}</div>
+                    {item.display_summary?.current_report_updated_at ? <div className="mt-1 text-[11px] text-slate-400">报告更新：{formatTime(item.display_summary.current_report_updated_at)}</div> : null}
                   </div>
                   <div className="text-sm font-black text-slate-700">{labelOf(item.current_stage, STAGE_LABELS)}</div>
-                  <div className="text-sm font-semibold text-slate-600">{item.current_status || '未知'}</div>
+                  <div className="text-sm font-semibold text-slate-600">{labelOf(item.validation_result, VALIDATION_RESULT_LABELS) || item.current_status || '未知'}</div>
                   <div>
                     <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${toneOf(item.severity, severityTone)}`}>
                       {labelOf(item.severity, SEVERITY_LABELS)}
@@ -460,7 +462,11 @@ export const CasesWorkspace: React.FC<any> = ({
                     </div>
                     <p className="text-sm font-black text-slate-800 truncate">{item.title}</p>
                     <p className="text-[11px] font-mono text-slate-500 truncate">ID: {item.id}</p>
-                    <p className="text-xs text-slate-500 line-clamp-2">{item.summary || '暂无摘要'}</p>
+                    <p className="text-xs text-slate-500 line-clamp-2">{item.display_summary?.current_report_title || item.summary || '暂无摘要'}</p>
+                    <div className="flex flex-wrap gap-2 text-[11px] text-slate-400">
+                      {item.display_summary?.current_report_updated_at ? <span>报告更新：{formatTime(item.display_summary.current_report_updated_at)}</span> : null}
+                      {item.validation_result ? <span>验证：{labelOf(item.validation_result, VALIDATION_RESULT_LABELS)}</span> : null}
+                    </div>
                     <p className="text-[11px] text-slate-400 truncate">
                       {(item.subject?.type || '通用对象')} · {(item.subject?.locator || '未指定对象')}
                     </p>
@@ -531,6 +537,8 @@ export const CasesWorkspace: React.FC<any> = ({
         </div>
         {!selectedCaseDetail ? (
           <div className={compactLayout ? 'px-4 py-8 text-sm text-slate-400' : 'px-6 py-10 text-sm text-slate-400'}>从左侧选择一个案例查看当前研判详情</div>
+        ) : detailContent ? (
+          <div className={compactLayout ? 'p-4' : 'p-6'}>{detailContent}</div>
         ) : (
           <div className={compactLayout ? 'p-4 space-y-4' : 'p-6 space-y-6'}>
             <div className={compactLayout ? 'space-y-2' : 'space-y-3'}>

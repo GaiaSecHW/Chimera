@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Cpu, RefreshCw, Sparkles } from 'lucide-re
 import { api } from '../../clients/api';
 import {
   ACTION_TYPE_LABELS,
+  DECISION_LABELS,
   STAGE_LABELS,
   DEFAULT_CASE_FORM,
   DEFAULT_DECISION_FORM,
@@ -10,6 +11,7 @@ import {
   DEFAULT_SERVICE_FORM,
   DEFAULT_TASK_FORM,
   DEFAULT_VALIDATION_FORM,
+  FINISHED_REASON_LABELS,
   FINISHED_REASON_OPTIONS,
   LIFECYCLE_NAV_ITEMS,
   LIFECYCLE_STAGE_FLOW,
@@ -17,6 +19,8 @@ import {
   REPRO_ACTION_TYPES,
   STAGE_OPTIONS,
   StatCards,
+  TRIAGE_GATE_LABELS,
+  VALIDATION_RESULT_LABELS,
   VALIDATION_RESULT_OPTIONS,
   WORKSPACE_VIEWS,
   WorkspaceViewKey,
@@ -33,6 +37,7 @@ import {
   TasksWorkspace,
 } from './vuln-engine/WorkspaceViews';
 import { CasesWorkspace } from './vuln-engine/CasesWorkspace';
+import { VulnCaseDetailLayout } from './vuln-engine/VulnCaseDetailLayout';
 
 interface VulnEnginePageProps {
   projectId: string;
@@ -128,6 +133,11 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   const [selectedCaseDetail, setSelectedCaseDetail] = useState<any | null>(null);
   const [selectedCaseTimeline, setSelectedCaseTimeline] = useState<any[]>([]);
   const [recommendedActions, setRecommendedActions] = useState<any[]>([]);
+  const [caseReports, setCaseReports] = useState<any[]>([]);
+  const [selectedReportId, setSelectedReportId] = useState('');
+  const [reportDocument, setReportDocument] = useState<any | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
   const [workspaceView, setWorkspaceView] = useState<WorkspaceViewKey>(initialWorkspaceView);
   const [caseSearch, setCaseSearch] = useState('');
   const [stageFilter, setStageFilter] = useState(defaultStageFilter);
@@ -179,6 +189,133 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
   const resultItems = selectedCaseDetail?.results || [];
   const taskItems = selectedCaseDetail?.manual_tasks || [];
   const actionItems = selectedCaseDetail?.actions || [];
+  const stageSpecificPanel = useMemo(() => {
+    if (!selectedCaseDetail) return null;
+    const stage = selectedCaseDetail.current_stage;
+    const latestResult = resultItems[0] || null;
+    const latestValidationLikeResult = resultItems.find((item) =>
+      ['validation', 'proof_verification', 'timeout'].includes(item.result_type),
+    );
+    const recommendedActionTags = recommendedActions
+      .slice(0, 4)
+      .map((item) => labelOf(item.action_type, ACTION_TYPE_LABELS));
+    const openTaskCount = taskItems.filter((item) => !['completed', 'closed'].includes(item.status)).length;
+    const runningActionCount = actionItems.filter((item) => ['queued', 'running'].includes(item.execution_status)).length;
+
+    const chips = (items: string[], emptyLabel: string) =>
+      items.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {items.map((item, index) => (
+            <span
+              key={`${item}-${index}`}
+              className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-700"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 rounded-xl border border-dashed border-slate-300 px-3 py-3 text-xs text-slate-400">
+          {emptyLabel}
+        </div>
+      );
+
+    if (stage === 'triage') {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-xl bg-slate-50 px-4 py-3">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">研判结论</div>
+            <div className="mt-2 text-sm font-black text-slate-900">
+              {labelOf(selectedCaseDetail.decision_status, DECISION_LABELS)}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              准入 Gate：{labelOf(selectedCaseDetail.triage_gate, TRIAGE_GATE_LABELS)}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl border border-slate-200 px-3 py-3">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">推荐动作</div>
+              <div className="mt-2 text-lg font-black text-slate-900">{recommendedActions.length}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 px-3 py-3">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">待处理人工任务</div>
+              <div className="mt-2 text-lg font-black text-slate-900">{openTaskCount}</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">推荐动作清单</div>
+            {chips(recommendedActionTags, '当前还没有推荐动作，可先从报告与证据中补齐研判依据。')}
+          </div>
+        </div>
+      );
+    }
+
+    if (stage === 'validation') {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-xl bg-slate-50 px-4 py-3">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">验证结论</div>
+            <div className="mt-2 text-sm font-black text-slate-900">
+              {labelOf(selectedCaseDetail.validation_result, VALIDATION_RESULT_LABELS)}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              最新验证反馈：{latestValidationLikeResult?.summary || latestResult?.summary || '暂无回传结果'}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl border border-slate-200 px-3 py-3">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">运行中动作</div>
+              <div className="mt-2 text-lg font-black text-slate-900">{runningActionCount}</div>
+            </div>
+            <div className="rounded-xl border border-slate-200 px-3 py-3">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">人工验证任务</div>
+              <div className="mt-2 text-lg font-black text-slate-900">{openTaskCount}</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">已覆盖能力</div>
+            {chips(
+              actionItems.slice(0, 5).map((item) => labelOf(item.action_type, ACTION_TYPE_LABELS)),
+              '当前还没有验证类动作记录。',
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (stage === 'finished') {
+      return (
+        <div className="space-y-3">
+          <div className="rounded-xl bg-slate-50 px-4 py-3">
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">最终结论</div>
+            <div className="mt-2 text-sm font-black text-slate-900">
+              {labelOf(selectedCaseDetail.decision_status, DECISION_LABELS)}
+            </div>
+            <div className="mt-1 text-xs text-slate-500">
+              结束原因：{labelOf(selectedCaseDetail.finished_reason, FINISHED_REASON_LABELS)}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl border border-slate-200 px-3 py-3">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">验证结果</div>
+              <div className="mt-2 text-sm font-black text-slate-900">
+                {labelOf(selectedCaseDetail.validation_result, VALIDATION_RESULT_LABELS)}
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200 px-3 py-3">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">历史报告数</div>
+              <div className="mt-2 text-lg font-black text-slate-900">{caseReports.length}</div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 px-3 py-3 text-xs leading-6 text-slate-600">
+            {latestResult?.summary || selectedCaseDetail.summary || '当前案例已结束，但暂无额外的终态摘要。'}
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  }, [actionItems, caseReports.length, recommendedActions, resultItems, selectedCaseDetail, taskItems]);
   const automationEvents = selectedTimeline.filter((item) => item.item_type === 'event' && item.payload?.event_type === 'automation_rule_applied');
   const allowedStageOptions = stageScope?.length ? ['all', ...stageScope] : STAGE_OPTIONS;
   const effectiveListEntryMode = listEntryMode;
@@ -253,16 +390,39 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       return;
     }
     try {
-      const [detail, timeline, recommendations] = await Promise.all([
+      const [detail, timeline, recommendations, reports] = await Promise.all([
         vulnApi.vuln.getCaseDetail(caseId),
         vulnApi.vuln.getCaseTimeline(caseId),
         vulnApi.vuln.getRecommendedActions(caseId),
+        vulnApi.vuln.listCaseReports(caseId),
       ]);
       setSelectedCaseDetail(detail);
       setSelectedCaseTimeline(timeline.items || []);
       setRecommendedActions(recommendations.items || []);
+      const reportItems = reports.items || [];
+      setCaseReports(reportItems);
+      const initialReportId = reports.current_report_id || detail?.report_summary?.report_id || reportItems[0]?.report_id || '';
+      setSelectedReportId(initialReportId);
     } catch (err: any) {
       setError(err?.message || '加载案例详情失败');
+    }
+  };
+
+  const loadCaseReport = async (caseId: string, reportId: string) => {
+    if (!caseId || !reportId) {
+      setReportDocument(null);
+      return;
+    }
+    setReportLoading(true);
+    setReportError(null);
+    try {
+      const payload = await vulnApi.vuln.getCaseReport(caseId, reportId);
+      setReportDocument(payload);
+    } catch (err: any) {
+      setReportError(err?.message || '加载报告失败');
+      setReportDocument(null);
+    } finally {
+      setReportLoading(false);
     }
   };
 
@@ -383,6 +543,14 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
       loadCaseDetail(selectedCaseId);
     }
   }, [selectedCaseId, effectiveListEntryMode]);
+
+  useEffect(() => {
+    if (!selectedCaseId || !selectedReportId) {
+      setReportDocument(null);
+      return;
+    }
+    loadCaseReport(selectedCaseId, selectedReportId);
+  }, [selectedCaseId, selectedReportId]);
 
   const refreshAll = async () => {
     await loadWorkspace();
@@ -1038,6 +1206,25 @@ export const VulnEnginePage: React.FC<VulnEnginePageProps> = ({
           hideCasePool={hideCasePool}
           detailEntryLabel={detailEntryLabel}
           onOpenDedicatedDetail={detailTargetView && detailStorageKey ? handleOpenCaseDetail : undefined}
+          detailContent={selectedCaseDetail ? (
+            <VulnCaseDetailLayout
+              projectId={projectId}
+              caseDetail={selectedCaseDetail}
+              timeline={selectedTimeline}
+              actions={actionItems}
+              results={resultItems}
+              tasks={taskItems}
+              recommendedActions={recommendedActions}
+              reportItems={caseReports}
+              reportDocument={reportDocument}
+              reportLoading={reportLoading}
+              reportError={reportError}
+              selectedReportId={selectedReportId}
+              onSelectReport={setSelectedReportId}
+              onRefresh={refreshAll}
+              stageActionContent={stageSpecificPanel}
+            />
+          ) : undefined}
           enableBulkSelection={!hideCasePool}
           selectedBulkCaseIds={selectedEvolutionCaseIds}
           onToggleBulkCaseId={toggleEvolutionCaseId}

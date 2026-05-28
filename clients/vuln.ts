@@ -1,5 +1,68 @@
 import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 
+export interface VulnCaseDisplaySummary {
+  title?: string;
+  subtitle?: string;
+  severity?: string;
+  confidence?: number;
+  current_stage?: string;
+  decision_status?: string;
+  validation_result?: string | null;
+  finished_reason?: string | null;
+  reporter?: Record<string, any>;
+  subject?: Record<string, any>;
+  source_task?: Record<string, any> | null;
+  source_report_ids?: string[];
+  reported_at?: string | null;
+  key_points?: string[];
+  current_report_id?: string | null;
+  current_report_title?: string | null;
+  current_report_updated_at?: string | null;
+}
+
+export interface VulnCaseReportSummary {
+  report_id: string;
+  title: string;
+  report_kind: string;
+  render_format: string;
+  stage: string;
+  storage_path?: string | null;
+  fileserver_path?: string | null;
+  download_url?: string | null;
+  excerpt?: string | null;
+  generated_by?: string | null;
+  generated_at?: string | null;
+  source_service_id?: string | null;
+  result_id?: string | null;
+}
+
+export interface VulnCaseEvidenceSummary {
+  summary?: string | null;
+  reproduction_hint?: string | null;
+  references?: any[];
+  artifacts?: any[];
+  proof_items?: Array<Record<string, any>>;
+}
+
+export interface VulnCaseWorkspaceSummary {
+  timeline_count?: number;
+  action_count?: number;
+  manual_task_count?: number;
+  result_count?: number;
+  related_execution_refs?: Array<{ key: string; value: string }>;
+  files_root_path?: string | null;
+}
+
+export interface VulnCaseReportDocument extends VulnCaseReportSummary {
+  content?: string;
+}
+
+export interface VulnCaseReportListResponse {
+  items: VulnCaseReportSummary[];
+  total: number;
+  current_report_id?: string | null;
+}
+
 const publicJson = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, init);
   if (!response.ok) {
@@ -71,6 +134,14 @@ export const vulnApi = {
 
   getCaseDetail: async (caseId: string): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, { headers: getHeaders() })),
+
+  getCaseReport: async (caseId: string, reportId?: string): Promise<VulnCaseReportDocument> => {
+    const query = reportId ? `?report_id=${encodeURIComponent(reportId)}` : '';
+    return handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/report${query}`, { headers: getHeaders() }));
+  },
+
+  listCaseReports: async (caseId: string): Promise<VulnCaseReportListResponse> =>
+    handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}/reports`, { headers: getHeaders() })),
 
   updateCase: async (caseId: string, payload: any): Promise<any> =>
     handleResponse(await fetch(`${API_BASE}/api/vuln/cases/${caseId}`, {
