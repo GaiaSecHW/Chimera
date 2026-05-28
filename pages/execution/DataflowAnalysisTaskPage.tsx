@@ -12,6 +12,8 @@ import { FileServerPickerModal } from '../../components/assets/FileServerPickerM
 import { TaskOriginCard } from './taskOrigin';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
+const RUNNING_AGENT_PAGE_SIZE = 10;
+
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
   running: '分析中',
@@ -296,6 +298,17 @@ interface EntryItem {
   taint_vars: string;
 }
 
+interface RunningAgentView {
+  id: string;
+  name: string;
+  model: string;
+  round: number | null;
+  currentFunction: string;
+  startedTs: number;
+  lastTs: number;
+  lastEventType: string;
+}
+
 /** Extract clean comma-separated variable names from new-format taint field.
  * Input examples:  aHeader`🔴 `aMessage`🔴   /   aSingle`🟡   /   aConfig`⚠️
  */
@@ -357,6 +370,64 @@ function parseFunctionsList(content: string): EntryItem[] {
     }
   }
   return result;
+}
+
+function deriveRunningAgents(events: AppDfaStageEvent[], taskStatus: string): RunningAgentView[] {
+  if (!['running', 'pending'].includes(taskStatus)) return [];
+
+  const runningAgents = new Map<string, RunningAgentView>();
+  let currentRound: number | null = null;
+  let currentFunction = '';
+
+  for (const evt of events) {
+    const data = evt.data ?? {};
+    if (evt.type === 'round_start') {
+      const roundValue = Number(data.round);
+      if (Number.isFinite(roundValue) && roundValue > 0) currentRound = roundValue;
+    }
+    if (evt.type === 'trace_start') {
+      const nextFunction = String(data.function ?? data.task ?? '').trim();
+      if (nextFunction) currentFunction = nextFunction;
+    }
+
+    const workerId = String(data.worker_id ?? data.agent ?? '').trim();
+    if (!workerId) continue;
+
+    if (evt.type === 'worker_start') {
+      runningAgents.set(workerId, {
+        id: workerId,
+        name: workerId,
+        model: String(data.model ?? '').trim(),
+        round: Number.isFinite(Number(data.round)) && Number(data.round) > 0 ? Number(data.round) : currentRound,
+        currentFunction: String(data.function ?? data.target_function ?? currentFunction ?? '').trim(),
+        startedTs: evt.ts,
+        lastTs: evt.ts,
+        lastEventType: evt.type,
+      });
+      continue;
+    }
+
+    const current = runningAgents.get(workerId);
+    if (!current) continue;
+
+    if (evt.type === 'worker_done') {
+      runningAgents.delete(workerId);
+      continue;
+    }
+
+    current.lastTs = evt.ts;
+    current.lastEventType = evt.type;
+    if (!current.model && data.model) current.model = String(data.model).trim();
+    const nextRound = Number(data.round);
+    if (Number.isFinite(nextRound) && nextRound > 0) current.round = nextRound;
+    const nextFunction = String(data.function ?? data.target_function ?? currentFunction ?? '').trim();
+    if (nextFunction) current.currentFunction = nextFunction;
+  }
+
+  return Array.from(runningAgents.values()).sort((left, right) => {
+    if (right.lastTs !== left.lastTs) return right.lastTs - left.lastTs;
+    return left.name.localeCompare(right.name, 'zh-CN');
+  });
 }
 
 const emptyForm = {
@@ -565,6 +636,8 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [slotSummaryError, setSlotSummaryError] = useState('');
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
+  const [runningAgentNameFilter, setRunningAgentNameFilter] = useState('');
+  const [runningAgentPage, setRunningAgentPage] = useState(1);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
@@ -1053,9 +1126,32 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
 
   const events = detail?.stages_json?.events ?? [];
   const roundProgress = computeRoundProgress(events);
+  const runningAgents = detail ? deriveRunningAgents(events, detail.status) : [];
+  const normalizedRunningAgentNameFilter = runningAgentNameFilter.trim().toLowerCase();
+  const filteredRunningAgents = useMemo(() => {
+    if (!normalizedRunningAgentNameFilter) return runningAgents;
+    return runningAgents.filter((agent) => [agent.name, agent.model, agent.currentFunction]
+      .some((value) => String(value || '').toLowerCase().includes(normalizedRunningAgentNameFilter)));
+  }, [normalizedRunningAgentNameFilter, runningAgents]);
+  const runningAgentTotalPages = Math.max(1, Math.ceil(filteredRunningAgents.length / RUNNING_AGENT_PAGE_SIZE));
+  const pagedRunningAgents = useMemo(() => {
+    const currentPage = Math.min(runningAgentPage, runningAgentTotalPages);
+    const startIndex = (currentPage - 1) * RUNNING_AGENT_PAGE_SIZE;
+    return filteredRunningAgents.slice(startIndex, startIndex + RUNNING_AGENT_PAGE_SIZE);
+  }, [filteredRunningAgents, runningAgentPage, runningAgentTotalPages]);
   const dfaTree = detail ? buildDfaTree(events, detail.status) : null;
 
   const logLines = events.map(formatEventLog).filter(Boolean);
+  useEffect(() => {
+    setRunningAgentNameFilter('');
+    setRunningAgentPage(1);
+  }, [detail?.task_id]);
+  useEffect(() => {
+    setRunningAgentPage(1);
+  }, [runningAgentNameFilter]);
+  useEffect(() => {
+    setRunningAgentPage((current) => Math.min(current, runningAgentTotalPages));
+  }, [runningAgentTotalPages]);
   const toggleSlotWorkerExpanded = (workerId: string) => {
     setExpandedSlotWorkerIds((current) => (
       current.includes(workerId)
@@ -1255,6 +1351,86 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       );
                     })}
                   </div>
+                </div>
+
+                <div>
+                  <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">当前运行智能体</h3>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        当前检测到 {filteredRunningAgents.length} 个运行中的智能体
+                        {normalizedRunningAgentNameFilter ? `，筛选前 ${runningAgents.length} 个` : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="search"
+                        value={runningAgentNameFilter}
+                        onChange={(event) => setRunningAgentNameFilter(event.target.value)}
+                        placeholder="筛选智能体 / 模型 / 函数"
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-violet-400"
+                      />
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+                        每页 {RUNNING_AGENT_PAGE_SIZE} 条
+                      </div>
+                    </div>
+                  </div>
+                  {pagedRunningAgents.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-400">
+                      {runningAgents.length === 0 ? '当前没有处于运行中的智能体。' : '没有匹配当前筛选条件的运行中智能体。'}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pagedRunningAgents.map((agent) => (
+                        <div key={agent.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="truncate text-sm font-black text-slate-900" title={agent.name}>{agent.name}</div>
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">运行中</span>
+                                {agent.round ? (
+                                  <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">第 {agent.round} 轮</span>
+                                ) : null}
+                              </div>
+                              <div className="mt-2 grid gap-2 text-xs text-slate-500 md:grid-cols-2">
+                                <div className="truncate" title={agent.model || '-'}>模型: {agent.model || '-'}</div>
+                                <div className="truncate" title={agent.currentFunction || '-'}>当前函数: {agent.currentFunction || '-'}</div>
+                                <div>开始时间: {formatDateTime(new Date(agent.startedTs * 1000).toISOString())}</div>
+                                <div>最近活动: {formatDateTime(new Date(agent.lastTs * 1000).toISOString())}</div>
+                              </div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+                              最近事件
+                              <div className="mt-1 font-semibold text-slate-700">{agent.lastEventType}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {runningAgentTotalPages > 1 ? (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <div className="text-xs text-slate-500">第 {runningAgentPage} / {runningAgentTotalPages} 页</div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setRunningAgentPage((current) => Math.max(1, current - 1))}
+                              disabled={runningAgentPage <= 1}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              上一页
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRunningAgentPage((current) => Math.min(runningAgentTotalPages, current + 1))}
+                              disabled={runningAgentPage >= runningAgentTotalPages}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              下一页
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
 
                 {/* Dataflow Call Tree */}
