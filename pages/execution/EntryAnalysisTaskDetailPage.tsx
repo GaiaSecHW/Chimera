@@ -820,9 +820,9 @@ function deriveFuncProgress(
     const fh = String(item.func_hash || '');
     if (!fh) continue;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
-    f.r2j = toStage(item.r1b_state);
-    f.r3w = toStage(item.r2_state);
-    f.r3j = toStage(item.r2j_state);
+    f.r2j = toStage(item.r2j_state);
+    f.r3w = toStage(item.r3w_state);
+    f.r3j = toStage(item.r3j_state);
     f.r3 = combineR3(f.r3w, f.r3j);
     const r4Decision = String(item.r4_decision || '').toLowerCase();
     const r4Actual = toStage(item.r4_state);
