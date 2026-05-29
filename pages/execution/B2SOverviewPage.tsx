@@ -99,6 +99,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [refreshIntervalSec, setRefreshIntervalSec] = useState(10);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState('');
+  const [nameEdited, setNameEdited] = useState(false);
   const [concurrency, setConcurrency] = useState(8);
   const [projectDefaultConcurrency, setProjectDefaultConcurrency] = useState(8);
   const [runMode, setRunMode] = useState<B2SRunMode>('fast');
@@ -158,11 +159,12 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   useEffect(() => {
     if (!showCreateDialog) return;
+    if (nameEdited) return;
     if (name.trim()) return;
     const now = new Date();
     const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     setName(`b2s-${ts}`);
-  }, [showCreateDialog, name]);
+  }, [showCreateDialog, name, nameEdited]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -355,6 +357,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
 
   const resetCreateForm = () => {
     setName('');
+    setNameEdited(false);
     setConcurrency(projectDefaultConcurrency);
     setRunMode('fast');
     setLlmProviderKey('');
@@ -1238,7 +1241,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   任务名称
                   <input
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      setNameEdited(true);
+                    }}
                     placeholder="例如：libcrypto 逆向还原"
                     className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm"
                   />
