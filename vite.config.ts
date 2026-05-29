@@ -36,7 +36,26 @@ export default defineConfig(({ mode }) => {
             changeOrigin: true,
             secure: false,
             ws: true,
+            // keepAlive:false prevents stale-socket 502s on long-idle connections.
             agent: new http.Agent({ keepAlive: false }),
+            // Nginx resets the TCP connection after sending a complete response
+            // (RST instead of FIN). Node's http-proxy emits 'error' ECONNRESET
+            // and Vite returns 500 to the browser even though the full response
+            // was already forwarded.  Swallow ECONNRESET when headers were
+            // already sent so the browser receives the real status + body.
+            configure: (proxy) => {
+              proxy.on('error', (err: Error & { code?: string }, _req, res) => {
+                if (err.code === 'ECONNRESET') {
+                  // response was fully forwarded – nothing left to do
+                  return;
+                }
+                // for genuine errors, surface a JSON 502 if possible
+                if (res && 'headersSent' in res && !(res as any).headersSent) {
+                  (res as any).writeHead(502, { 'Content-Type': 'application/json' });
+                  (res as any).end(JSON.stringify({ detail: `proxy error: ${err.message}` }));
+                }
+              });
+            },
           },
           '/ws': {
             target: 'ws://secflow.ai.icsl.huawei.com',
