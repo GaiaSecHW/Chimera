@@ -867,17 +867,18 @@ function deriveFuncProgress(
     const r4Decision = String(item.r4_decision || '').toLowerCase();
     const r4Actual = toStage(item.r4_state);
     const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
-    // r4_state='passed' is the authoritative R4 completion signal (engine sets it
-    // only after J passes or on force-pass). It always means the function was KEPT,
-    // regardless of r4_decision (which is R3-W's pre-decision and may lag behind).
-    if (r4Actual === 'passed') {
-      f.r4 = 'keep';
-    } else if (r4Decision === 'filter' || r4Decision === 'remove') {
+    // r4_decision is the authoritative outcome of R4 (or R3's pre-filter decision):
+    //   'remove' = R4-W ran and decided to remove this function
+    //   'filter' = R3-W pre-filtered it; R4 never ran (r4_state stays pending)
+    //   'keep'   = R4 ran and kept (r4_state='passed' when J confirmed)
+    //   ''       = no decision yet, or single-file bypass (r4_state='passed' = kept)
+    // r4_state='passed' alone is NOT sufficient: a function can have r4_state='passed'
+    // with r4_decision='remove' (R4-W ran, completed, and decided remove).
+    if (r4Decision === 'remove' || r4Decision === 'filter') {
       f.r4 = hasInput === false ? 'skip' : 'remove';
-    } else if (r4Decision === 'keep') {
-      f.r4 = r4Actual; // running/pending while R4 is in progress
     } else {
-      f.r4 = r4Actual;
+      // r4_decision is 'keep' or empty -> r4_state='passed' means kept
+      f.r4 = r4Actual === 'passed' ? 'keep' : r4Actual;
     }
     f.rep = toStage(item.rep_state);
     f.has_external_input = hasInput;
