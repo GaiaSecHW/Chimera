@@ -388,6 +388,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [slotCluster, setSlotCluster] = useState<EntryAnalyseSlotClusterSummary | null>(null);
   const [slotClusterError, setSlotClusterError] = useState('');
   const [slotDetailOpen, setSlotDetailOpen] = useState(false);
+  const [slotPanelExpanded, setSlotPanelExpanded] = useState(false);
   const [expandedWorkerIds, setExpandedWorkerIds] = useState<string[]>([]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -1365,70 +1366,89 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => setSlotPanelExpanded((current) => !current)}
+          className="flex w-full flex-wrap items-start justify-between gap-4 text-left"
+        >
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Execution Slots</p>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">执行槽位总览</h2>
             <p className="mt-2 text-sm text-slate-500">展示入口分析 Worker Pod 的真实槽位占用、空闲容量与失联 Owner。</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={() => void loadSlotCluster()} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                void loadSlotCluster();
+              }}
+              className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"
+            >
               <RefreshCw size={14} />
             </button>
             {slotCluster ? (
               <button
                 type="button"
-                onClick={() => setSlotDetailOpen(true)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setSlotDetailOpen(true);
+                }}
                 className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
               >
                 查看 Worker 明细
               </button>
             ) : null}
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+              {slotPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </div>
           </div>
-        </div>
-        {slotCluster ? (
-          <>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {slotSummaryCards.map((item) => (
-                <div key={item.label} className={`min-w-[96px] rounded-xl border px-3 py-3 ${item.className}`}>
-                  <p className="text-lg font-black">{item.value}</p>
-                  <p className="mt-1 text-[11px] text-slate-500">{item.label}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">Worker {slotCluster.worker_count}</span>
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Healthy {slotCluster.healthy_workers}</span>
-              <span className={`rounded-full px-3 py-1 text-xs ${slotCluster.stale_workers > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>Stale {slotCluster.stale_workers}</span>
-              <span className="text-xs text-slate-400">更新时间：{formatDateTime(slotCluster.updated_at)}</span>
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {slotCluster.workers.slice(0, 6).map((worker) => (
-                <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/70'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-black text-slate-900">{worker.pod_name}</div>
-                      <div className="mt-1 truncate text-[11px] text-slate-500">{worker.url || worker.pod_ip || '-'}</div>
+        </button>
+        {slotPanelExpanded ? (
+          slotCluster ? (
+            <>
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {slotSummaryCards.map((item) => (
+                  <div key={item.label} className={`min-w-[96px] rounded-xl border px-3 py-3 ${item.className}`}>
+                    <p className="text-lg font-black">{item.value}</p>
+                    <p className="mt-1 text-[11px] text-slate-500">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">Worker {slotCluster.worker_count}</span>
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Healthy {slotCluster.healthy_workers}</span>
+                <span className={`rounded-full px-3 py-1 text-xs ${slotCluster.stale_workers > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>Stale {slotCluster.stale_workers}</span>
+                <span className="text-xs text-slate-400">更新时间：{formatDateTime(slotCluster.updated_at)}</span>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {slotCluster.workers.slice(0, 6).map((worker) => (
+                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/70'}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-black text-slate-900">{worker.pod_name}</div>
+                        <div className="mt-1 truncate text-[11px] text-slate-500">{worker.url || worker.pod_ip || '-'}</div>
+                      </div>
+                      {!worker.healthy ? <AlertTriangle size={16} className="shrink-0 text-rose-500" /> : null}
                     </div>
-                    {!worker.healthy ? <AlertTriangle size={16} className="shrink-0 text-rose-500" /> : null}
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                      <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
+                      <span className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
+                      <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
+                    </div>
+                    <div className="mt-3 text-[11px] text-slate-500">心跳：{formatDateTime(worker.last_heartbeat_at)}</div>
+                    <div className="mt-1 text-[11px] text-slate-400">来源：{worker.source || 'worker_registry'} · 活动任务 {worker.active_tasks.length}</div>
+                    {worker.error ? <div className="mt-1 text-[11px] text-rose-600">{worker.error}</div> : null}
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                    <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
-                    <span className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
-                    <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
-                  </div>
-                  <div className="mt-3 text-[11px] text-slate-500">心跳：{formatDateTime(worker.last_heartbeat_at)}</div>
-                  <div className="mt-1 text-[11px] text-slate-400">来源：{worker.source || 'worker_registry'} · 活动任务 {worker.active_tasks.length}</div>
-                  {worker.error ? <div className="mt-1 text-[11px] text-rose-600">{worker.error}</div> : null}
-                </div>
-              ))}
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+              {slotClusterError || '暂无可用槽位信息'}
             </div>
-          </>
-        ) : (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-            {slotClusterError || '暂无可用槽位信息'}
-          </div>
-        )}
+          )
+        ) : null}
       </section>
 
       {stageFocusHint || riskPreset ? (
