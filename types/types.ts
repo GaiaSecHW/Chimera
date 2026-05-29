@@ -2044,7 +2044,6 @@ export interface SystemAnalysisPromptTemplate {
 
 export interface SystemAnalysisStageLoopConfig {
   min_rounds: number;
-  max_rounds: number;
   pass_mode: 'majority' | 'all';
 }
 
@@ -3145,9 +3144,9 @@ export interface AppEaFunctionCatalogItem {
   signature?: string;
   start_line?: number;
   end_line?: number;
-  r2j_state?: string;      // = r2_j_state (R2 ctags 准确性 Judge)
-  r3w_state?: string;      // = r3_w_state (R3-W 外部输入分析 Worker)
-  r3j_state?: string;      // = r3_j_state (R3-J 外部输入验证 Judge)
+  r2j_state?: string;
+  r3w_state?: string;
+  r3j_state?: string;
   r3_state?: string;
   r4_state?: string;
   rep_state?: string;
@@ -3155,6 +3154,34 @@ export interface AppEaFunctionCatalogItem {
   entry_role?: string;
   r4_decision?: string;
   is_entry?: boolean;
+}
+
+export interface AppEaFunctionDetail {
+  func_hash: string;
+  file_hash: string;
+  name: string;
+  signature: string;
+  start_line?: number | null;
+  end_line?: number | null;
+  file_path: string;
+  entry_role: string;
+  entry_confidence?: number | null;
+  entry_category: string;
+  r3_decision: string;
+  r4_decision: string;
+  has_external_input: boolean;
+  function_description: string;
+  entry_reason: string;
+  taint_details: Array<{
+    param?: string;
+    source?: string;
+    type?: string;
+    description?: string;
+    [key: string]: unknown;
+  }>;
+  tag: string;
+  callers: Array<{ name: string; func_hash: string }>;
+  callees: Array<{ name: string; func_hash: string }>;
 }
 
 export interface AppEaTaskDetail extends AppEaTaskItem {
