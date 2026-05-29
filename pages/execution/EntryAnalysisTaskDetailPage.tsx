@@ -867,10 +867,15 @@ function deriveFuncProgress(
     const r4Decision = String(item.r4_decision || '').toLowerCase();
     const r4Actual = toStage(item.r4_state);
     const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
-    if (r4Decision === 'filter' || r4Decision === 'remove') {
+    // r4_state='passed' is the authoritative R4 completion signal (engine sets it
+    // only after J passes or on force-pass). It always means the function was KEPT,
+    // regardless of r4_decision (which is R3-W's pre-decision and may lag behind).
+    if (r4Actual === 'passed') {
+      f.r4 = 'keep';
+    } else if (r4Decision === 'filter' || r4Decision === 'remove') {
       f.r4 = hasInput === false ? 'skip' : 'remove';
     } else if (r4Decision === 'keep') {
-      f.r4 = r4Actual === 'passed' ? 'keep' : r4Actual;
+      f.r4 = r4Actual; // running/pending while R4 is in progress
     } else {
       f.r4 = r4Actual;
     }
@@ -1024,7 +1029,9 @@ function deriveFuncProgress(
 
   for (const f of map.values()) {
     if (!isTerminalStage(f.r3)) f.r3 = combineR3(f.r3w, f.r3j);
-    if (f.r4 === 'keep') f.is_entry = true;
+    // Always sync is_entry from r4 to avoid stale true/false from event handlers.
+    // r4='remove' must clear is_entry even if a stray event set it earlier.
+    f.is_entry = f.r4 === 'keep';
   }
 
   const funcs = Array.from(map.values());

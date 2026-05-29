@@ -168,10 +168,10 @@ const defaultConfig = (projectId: string): SystemAnalysisServiceConfig => ({
   model_stuck_timeout: 1800,
   model_stuck_max_activations: 5,
   stages: {
-    classify: { min_rounds: 2, max_rounds: 5, pass_mode: 'majority' },
-    refine: { min_rounds: 2, max_rounds: 3, pass_mode: 'majority' },
-    analyse: { min_rounds: 2, max_rounds: 5, pass_mode: 'majority' },
-    final_check: { min_rounds: 1, max_rounds: 1, pass_mode: 'all' },
+    classify: { min_rounds: 1, pass_mode: 'majority' },
+    refine: { min_rounds: 1, pass_mode: 'majority' },
+    analyse: { min_rounds: 1, pass_mode: 'majority' },
+    final_check: { min_rounds: 1, pass_mode: 'all' },
   },
   workers: defaultRole(),
   judges: defaultRole(),
@@ -381,9 +381,8 @@ const StageCard: React.FC<{ label: string; desc?: string; value: SystemAnalysisS
       <p className="text-sm font-bold text-slate-800">{label}</p>
       {desc && <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{desc}</p>}
     </div>
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 gap-3">
       <FieldRow label="最少轮数" desc="至少执行的 Worker-Judge 对话轮数，即使提前满足通过条件也不会停止"><NumberInput value={value.min_rounds} min={0} onChange={(v) => onChange({ ...value, min_rounds: v })} /></FieldRow>
-      <FieldRow label="最多轮数" hint="-1=无限" desc="最大允许轮数，超过后强制进入下一阶段（无论是否通过）"><NumberInput value={value.max_rounds} min={-1} onChange={(v) => onChange({ ...value, max_rounds: v })} /></FieldRow>
       <FieldRow label="通过模式" desc="majority=多数 judge 同意即继续，all=所有 judge 必须全部同意"><SelectInput value={value.pass_mode} options={['majority', 'all']} onChange={(v) => onChange({ ...value, pass_mode: v as 'majority' | 'all' })} /></FieldRow>
     </div>
   </div>
@@ -1081,17 +1080,8 @@ export const SystemAnalysisConfigPage: React.FC<{ projectId: string; embedded?: 
               </FieldRow>
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4">
-              <FieldRow
-                label="max_rounds_exceeded_action"
-                desc="当任一系统分析阶段达到 `max_rounds` 后仍未满足评审通过条件时，决定该阶段按通过继续后续流程，还是直接按失败终止任务。">
-                <SelectInput
-                  value={config.max_rounds_exceeded_action}
-                  options={['treat_as_passed', 'treat_as_failed']}
-                  onChange={(v) => patch({ max_rounds_exceeded_action: v as SystemAnalysisServiceConfig['max_rounds_exceeded_action'] })}
-                />
-              </FieldRow>
-              <p className="text-xs leading-5 text-slate-500">
-                默认值为 `treat_as_passed`。该策略对 classify / refine / analyse / final_check 四个阶段统一生效。
+              <p className="text-xs leading-5 text-slate-500 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                ⚠️ <strong>max_rounds 已禁止配置</strong>：所有阶段的最大迭代轮数固定为 <code>-1（无限）</code>，由模型自己收敛而不是被硬性截断。
               </p>
             </div>
           </SectionCard>
