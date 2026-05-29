@@ -3152,6 +3152,7 @@ export interface AppEaFunctionCatalogItem {
   rep_state?: string;
   has_external_input?: boolean | null;
   entry_role?: string;
+  entry_category?: string;
   r4_decision?: string;
   is_entry?: boolean;
 }

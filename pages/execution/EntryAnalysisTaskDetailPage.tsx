@@ -789,6 +789,7 @@ interface FuncProgress {
   rep: FuncStage;   // R5 报告
   has_external_input?: boolean;
   entry_role?: string;
+  entry_category?: string;  // 外部入口 | 处理入口
   is_entry: boolean;
   lastTs?: number;
 }
@@ -883,6 +884,7 @@ function deriveFuncProgress(
     f.rep = toStage(item.rep_state);
     f.has_external_input = hasInput;
     if (item.entry_role) f.entry_role = String(item.entry_role);
+    if (item.entry_category) f.entry_category = String(item.entry_category);
     if (item.file_hash) f.file_hash = String(item.file_hash);
     f.is_entry = f.r4 === 'keep';
   }
@@ -1806,21 +1808,20 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   );
   const funcStats = useMemo(() => {
     let r2 = 0, r3 = 0, r4Done = 0, r4Total = 0, entries = 0, r5 = 0;
+    let extEntries = 0, hdlEntries = 0;
     for (const f of funcProgress) {
-      // R2: 全部函数都过 R2
       if (f.r2j === 'passed') r2 += 1;
-      // R3: 全部函数都过 R3（passed=分析通过, skip=无外部输入跳过）
       if (f.r3 === 'passed' || f.r3 === 'skip') r3 += 1;
-      // R4: 只统计实际需要 R4 决策的函数
-      //   - has_external_input=false 的函数在 R3 就被过滤，不进入 R4
-      //   - r4='skip' 是 R3 的结果，不应计入 R4 done
       if (f.has_external_input !== false) r4Total += 1;
       if (f.r4 === 'keep' || f.r4 === 'remove') r4Done += 1;
-      if (f.r4 === 'keep') entries += 1;
-      // R5: 只统计入口函数（entries）
+      if (f.r4 === 'keep') {
+        entries += 1;
+        if (f.entry_category === '处理入口') hdlEntries += 1;
+        else extEntries += 1;  // '外部入口' 或未分类均算外部
+      }
       if (f.rep === 'passed') r5 += 1;
     }
-    return { r2, r3, r4Done, r4Total, entries, r5, total: funcProgress.length };
+    return { r2, r3, r4Done, r4Total, entries, extEntries, hdlEntries, r5, total: funcProgress.length };
   }, [funcProgress]);
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
@@ -2377,7 +2378,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <span className="tabular-nums">{done}<span className="text-slate-300">/{total}</span></span>
                       </span>
                     ))}
-                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700">入口 {funcStats.entries}</span>
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
+                      入口 {funcStats.entries}
+                      {(funcStats.extEntries > 0 || funcStats.hdlEntries > 0) && (
+                        <span className="font-normal text-slate-400">
+                          （外部 <span className="font-semibold text-emerald-600">{funcStats.extEntries}</span>
+                          {' '}·{' '}处理 <span className="font-semibold text-sky-600">{funcStats.hdlEntries}</span>）
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -2425,6 +2434,12 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                             <span className="truncate max-w-[220px] block font-semibold text-slate-800" title={f.name}>{f.name}</span>
                           )}
                           {f.entry_role ? <span className="mt-0.5 block text-[9px] text-slate-400">{f.entry_role}</span> : null}
+                          {f.entry_category === '外部入口' && (
+                            <span className="mt-0.5 block text-[9px] font-semibold text-emerald-500">外部入口</span>
+                          )}
+                          {f.entry_category === '处理入口' && (
+                            <span className="mt-0.5 block text-[9px] font-semibold text-sky-500">处理入口</span>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-center">
                           {f.is_entry
