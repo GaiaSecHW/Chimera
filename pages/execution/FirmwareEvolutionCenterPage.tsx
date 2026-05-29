@@ -592,7 +592,6 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     && activeJob.replacement_required
     && !activeJob.replacement_confirmed
     && activeJob.final_tool_path
-    && activeJob.replaced_tool_path
     && !replacing,
   );
   const sessionRoot = sessions?.session_root || activeJob?.session_root || null;

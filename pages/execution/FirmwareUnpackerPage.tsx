@@ -1709,7 +1709,6 @@ function TaskDetailPanel({
     && activeEvolutionJob.replacement_required
     && !activeEvolutionJob.replacement_confirmed
     && activeEvolutionJob.final_tool_path
-    && activeEvolutionJob.replaced_tool_path
     && !evolutionReplacing
   );
   const showConfirmEvolutionReplacementButton = Boolean(activeEvolutionJob);
@@ -1721,11 +1720,11 @@ function TaskDetailPanel({
         ? '当前进化结果已确认替换原工具'
         : !activeEvolutionJob.replacement_required
           ? '当前进化结果未产生待替换的新工具'
-          : !activeEvolutionJob.final_tool_path || !activeEvolutionJob.replaced_tool_path
-            ? '缺少原工具路径或新工具路径，无法执行替换'
-            : evolutionReplacing
-              ? '正在替换原工具'
-              : '将新工具覆盖到原工具路径';
+          : !activeEvolutionJob.final_tool_path
+            ? '缺少新工具路径，无法执行替换'
+          : evolutionReplacing
+            ? '正在替换原工具'
+              : '将新工具发布到 active 并同步 dispatcher';
   const evolutionSessionItems = evolutionSessions?.items || [];
 
   if (!task) {
