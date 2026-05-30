@@ -350,6 +350,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createDialogTab, setCreateDialogTab] = useState<CreateDialogTab>('basic');
   const [name, setName] = useState('');
+  const [nameEdited, setNameEdited] = useState(false);
   const [description, setDescription] = useState('');
   const [moduleName, setModuleName] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -524,11 +525,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   useEffect(() => {
     if (!showCreateDialog) return;
+    if (nameEdited) return;
     if (name.trim()) return;
     const now = new Date();
     const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     setName(`${namePrefix}-${ts}`);
-  }, [showCreateDialog, name, namePrefix]);
+  }, [showCreateDialog, name, nameEdited, namePrefix]);
 
   useEffect(() => {
     setSelectedTaskIds((current) => current.filter((id) => items.some((item) => item.id === id)));
@@ -580,6 +582,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   }) => {
     setCreateDialogTab('basic');
     setName('');
+    setNameEdited(false);
     setDescription('');
     setModuleName('');
     setFiles([]);
@@ -1062,7 +1065,15 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
               {createDialogTab === 'basic' ? (
                 <>
                   <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    <input value={name} onChange={(e) => setName(e.target.value)} placeholder="任务名称" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
+                    <input
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        setNameEdited(true);
+                      }}
+                      placeholder="任务名称"
+                      className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+                    />
                     <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="任务描述（可选）" className="rounded-xl border border-slate-200 px-4 py-3 text-sm" />
                   </div>
                   {isBinaryModuleTask ? (

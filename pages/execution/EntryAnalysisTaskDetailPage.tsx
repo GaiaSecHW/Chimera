@@ -23,6 +23,7 @@ import {
   AppEaTaskResult,
   AppEaTaskRuntimeSummary,
   AppEaFunctionCatalogItem,
+  AppEaFunctionDetail,
 } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { useUiFeedback } from '../../components/UiFeedback';
@@ -777,6 +778,7 @@ type FuncStage = 'pending' | 'running' | 'passed' | 'failed' | 'skip' | 'keep' |
 
 interface FuncProgress {
   func_hash: string;
+  file_hash?: string;
   name: string;
   file?: string;
   r2j: FuncStage;   // R2-J 准确性验证（Judge only）
@@ -787,6 +789,7 @@ interface FuncProgress {
   rep: FuncStage;   // R5 报告
   has_external_input?: boolean;
   entry_role?: string;
+  entry_category?: string;  // 外部入口 | 处理入口
   is_entry: boolean;
   lastTs?: number;
 }
@@ -865,16 +868,24 @@ function deriveFuncProgress(
     const r4Decision = String(item.r4_decision || '').toLowerCase();
     const r4Actual = toStage(item.r4_state);
     const hasInput = item.has_external_input == null ? undefined : Boolean(item.has_external_input);
-    if (r4Decision === 'filter' || r4Decision === 'remove') {
+    // r4_decision is the authoritative outcome of R4 (or R3's pre-filter decision):
+    //   'remove' = R4-W ran and decided to remove this function
+    //   'filter' = R3-W pre-filtered it; R4 never ran (r4_state stays pending)
+    //   'keep'   = R4 ran and kept (r4_state='passed' when J confirmed)
+    //   ''       = no decision yet, or single-file bypass (r4_state='passed' = kept)
+    // r4_state='passed' alone is NOT sufficient: a function can have r4_state='passed'
+    // with r4_decision='remove' (R4-W ran, completed, and decided remove).
+    if (r4Decision === 'remove' || r4Decision === 'filter') {
       f.r4 = hasInput === false ? 'skip' : 'remove';
-    } else if (r4Decision === 'keep') {
-      f.r4 = r4Actual === 'passed' ? 'keep' : r4Actual;
     } else {
-      f.r4 = r4Actual;
+      // r4_decision is 'keep' or empty -> r4_state='passed' means kept
+      f.r4 = r4Actual === 'passed' ? 'keep' : r4Actual;
     }
     f.rep = toStage(item.rep_state);
     f.has_external_input = hasInput;
     if (item.entry_role) f.entry_role = String(item.entry_role);
+    if (item.entry_category) f.entry_category = String(item.entry_category);
+    if (item.file_hash) f.file_hash = String(item.file_hash);
     f.is_entry = f.r4 === 'keep';
   }
   if (!totalFuncCount) totalFuncCount = (functionCatalog || []).length;
@@ -1021,7 +1032,9 @@ function deriveFuncProgress(
 
   for (const f of map.values()) {
     if (!isTerminalStage(f.r3)) f.r3 = combineR3(f.r3w, f.r3j);
-    if (f.r4 === 'keep') f.is_entry = true;
+    // Always sync is_entry from r4 to avoid stale true/false from event handlers.
+    // r4='remove' must clear is_entry even if a stray event set it earlier.
+    f.is_entry = f.r4 === 'keep';
   }
 
   const funcs = Array.from(map.values());
@@ -1069,6 +1082,225 @@ function FuncStageDot({ state, label }: { state: FuncStage; label: string }) {
   );
 }
 
+// ─── 函数详情面板 ─────────────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<string, string> = {
+  boundary: '边界函数',
+  callback: '回调函数',
+  ipc_handler: 'IPC处理',
+  dispatch_target: '分发目标',
+  syscall_handler: '系统调用',
+  entry: '入口函数',
+};
+
+const ROLE_COLORS: Record<string, string> = {
+  boundary:        'bg-blue-100 text-blue-700 border-blue-200',
+  callback:        'bg-purple-100 text-purple-700 border-purple-200',
+  ipc_handler:     'bg-orange-100 text-orange-700 border-orange-200',
+  dispatch_target: 'bg-teal-100 text-teal-700 border-teal-200',
+  syscall_handler: 'bg-rose-100 text-rose-700 border-rose-200',
+  entry:           'bg-emerald-100 text-emerald-700 border-emerald-200',
+};
+
+function ConfidenceBar({ score }: { score: number | null | undefined }) {
+  if (score == null) return <span className="text-slate-400 text-xs">—</span>;
+  const pct = Math.round(score * 100);
+  const color = score >= 0.75 ? 'bg-emerald-500' : score >= 0.5 ? 'bg-amber-400' : 'bg-red-400';
+  const label = score >= 0.75 ? '高' : score >= 0.5 ? '中' : '低';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-2 w-32 overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs font-semibold text-slate-700">{pct}%</span>
+      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+        score >= 0.75 ? 'bg-emerald-100 text-emerald-700' :
+        score >= 0.5  ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-600'
+      }`}>{label}</span>
+    </div>
+  );
+}
+
+function FuncDetailPanel({
+  taskId, funcHash, fileHash, onClose,
+}: {
+  taskId: string;
+  funcHash: string;
+  fileHash?: string;
+  onClose: () => void;
+}) {
+  const appApi = api.domains.execution.appEntryAnalyse;
+  const [detail, setDetail] = useState<AppEaFunctionDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    appApi.getTaskFunctionDetail(taskId, funcHash, fileHash)
+      .then(setDetail)
+      .catch((e: any) => setError(e?.message || '加载失败'))
+      .finally(() => setLoading(false));
+  }, [taskId, funcHash]);
+
+  const roleKey = detail?.entry_role || '';
+  const roleLabel = ROLE_LABELS[roleKey] || roleKey || '未知';
+  const roleColor = ROLE_COLORS[roleKey] || 'bg-slate-100 text-slate-600 border-slate-200';
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+      {/* 遮罩 */}
+      <div className="absolute inset-0 bg-black/20" />
+      {/* 侧面板 */}
+      <div
+        className="relative z-10 flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 头部 */}
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 bg-slate-50 px-6 py-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${roleColor}`}>
+                {roleLabel}
+              </span>
+              {detail?.entry_category && (
+                <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                  {detail.entry_category}
+                </span>
+              )}
+            </div>
+            <h2 className="mt-1.5 break-all font-mono text-base font-bold text-slate-900">{detail?.name || funcHash}</h2>
+            {detail?.signature && (
+              <p className="mt-0.5 break-all font-mono text-[11px] text-slate-500 leading-relaxed">{detail.signature}</p>
+            )}
+          </div>
+          <button onClick={onClose} className="mt-0.5 shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700">
+            <svg className="h-4 w-4" viewBox="0 0 16 16" fill="currentColor"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.75.75 0 1 1 1.06 1.06L9.06 8l3.22 3.22a.75.75 0 1 1-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 0 1-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06z"/></svg>
+          </button>
+        </div>
+
+        {/* 内容 */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {loading && (
+            <div className="flex items-center justify-center py-16 text-slate-400">
+              <Loader2 size={20} className="animate-spin mr-2" />加载中…
+            </div>
+          )}
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+          )}
+          {detail && !loading && (<>
+            {/* 基本信息 */}
+            <section>
+              <h3 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">基本信息</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+                <div>
+                  <span className="text-slate-400 text-xs">文件</span>
+                  <p className="mt-0.5 font-mono text-xs text-slate-700 break-all">{detail.file_path ? detail.file_path.split('/').pop() : '—'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-xs">行号</span>
+                  <p className="mt-0.5 font-mono text-xs text-slate-700">
+                    {detail.start_line ?? '—'}{detail.end_line ? ` – ${detail.end_line}` : ''}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-xs">置信度</span>
+                  <div className="mt-1"><ConfidenceBar score={detail.entry_confidence} /></div>
+                </div>
+                <div>
+                  <span className="text-slate-400 text-xs">有外部输入</span>
+                  <p className="mt-0.5 text-xs font-semibold">
+                    {detail.has_external_input
+                      ? <span className="text-emerald-600">✓ 是</span>
+                      : <span className="text-slate-400">否</span>}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* 函数描述 */}
+            {detail.function_description && (
+              <section>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">函数描述</h3>
+                <p className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                  {detail.function_description}
+                </p>
+              </section>
+            )}
+
+            {/* 判定理由 */}
+            {detail.entry_reason && (
+              <section>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">入口判定理由</h3>
+                <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-blue-800">
+                  {detail.entry_reason}
+                </p>
+              </section>
+            )}
+
+            {/* Taint 详情 */}
+            {detail.taint_details && detail.taint_details.length > 0 && (
+              <section>
+                <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">污点详情 ({detail.taint_details.length})</h3>
+                <div className="overflow-hidden rounded-xl border border-slate-100">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 text-slate-500">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold">参数/来源</th>
+                        <th className="px-3 py-2 text-left font-semibold">类型</th>
+                        <th className="px-3 py-2 text-left font-semibold">说明</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {detail.taint_details.map((t, i) => (
+                        <tr key={i} className="hover:bg-slate-50">
+                          <td className="px-3 py-2 font-mono text-slate-700">{t.param || t.source || '—'}</td>
+                          <td className="px-3 py-2 text-slate-500">{t.type || '—'}</td>
+                          <td className="px-3 py-2 text-slate-600">{t.description || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {/* 调用关系 */}
+            {(detail.callers.length > 0 || detail.callees.length > 0) && (
+              <section>
+                <h3 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">调用关系</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {detail.callers.length > 0 && (
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                      <p className="mb-2 text-[10px] font-semibold uppercase text-slate-400">调用者 ({detail.callers.length})</p>
+                      <ul className="space-y-1">
+                        {detail.callers.map((c) => (
+                          <li key={c.func_hash} className="font-mono text-[11px] text-slate-700 truncate" title={c.name}>{c.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {detail.callees.length > 0 && (
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                      <p className="mb-2 text-[10px] font-semibold uppercase text-slate-400">被调用 ({detail.callees.length})</p>
+                      <ul className="space-y-1">
+                        {detail.callees.map((c) => (
+                          <li key={c.func_hash} className="font-mono text-[11px] text-slate-700 truncate" title={c.name}>{c.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+          </>)}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function normalizeSessionDisplayPath(path: string): string {
   return path.replace(/^.*\/run\/sessions\//, '').replace(/^\/+/, '');
@@ -1576,24 +1808,24 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   );
   const funcStats = useMemo(() => {
     let r2 = 0, r3 = 0, r4Done = 0, r4Total = 0, entries = 0, r5 = 0;
+    let extEntries = 0, hdlEntries = 0;
     for (const f of funcProgress) {
-      // R2: 全部函数都过 R2
       if (f.r2j === 'passed') r2 += 1;
-      // R3: 全部函数都过 R3（passed=分析通过, skip=无外部输入跳过）
       if (f.r3 === 'passed' || f.r3 === 'skip') r3 += 1;
-      // R4: 只统计实际需要 R4 决策的函数
-      //   - has_external_input=false 的函数在 R3 就被过滤，不进入 R4
-      //   - r4='skip' 是 R3 的结果，不应计入 R4 done
       if (f.has_external_input !== false) r4Total += 1;
       if (f.r4 === 'keep' || f.r4 === 'remove') r4Done += 1;
-      if (f.r4 === 'keep') entries += 1;
-      // R5: 只统计入口函数（entries）
+      if (f.r4 === 'keep') {
+        entries += 1;
+        if (f.entry_category === '处理入口') hdlEntries += 1;
+        else extEntries += 1;  // '外部入口' 或未分类均算外部
+      }
       if (f.rep === 'passed') r5 += 1;
     }
-    return { r2, r3, r4Done, r4Total, entries, r5, total: funcProgress.length };
+    return { r2, r3, r4Done, r4Total, entries, extEntries, hdlEntries, r5, total: funcProgress.length };
   }, [funcProgress]);
   const [funcPageSize, setFuncPageSize] = useState<50|100|200>(50);
   const [funcPage, setFuncPage] = useState(0);
+  const [selectedFuncHash, setSelectedFuncHash] = useState<{funcHash: string; fileHash?: string} | null>(null);
   const [funcEntryOnly, setFuncEntryOnly] = useState(false);
   // 过滤后的列表
   const funcFiltered = funcEntryOnly ? funcProgress.filter((f) => f.is_entry) : funcProgress;
@@ -2146,7 +2378,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <span className="tabular-nums">{done}<span className="text-slate-300">/{total}</span></span>
                       </span>
                     ))}
-                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700">入口 {funcStats.entries}</span>
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
+                      入口 {funcStats.entries}
+                      {(funcStats.extEntries > 0 || funcStats.hdlEntries > 0) && (
+                        <span className="font-normal text-slate-400">
+                          （外部 <span className="font-semibold text-emerald-600">{funcStats.extEntries}</span>
+                          {' '}·{' '}处理 <span className="font-semibold text-sky-600">{funcStats.hdlEntries}</span>）
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -2184,8 +2424,22 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     {funcPageSlice.map((f) => (
                       <tr key={f.func_hash} className={`transition ${f.is_entry ? 'bg-emerald-50/40 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}>
                         <td className="px-4 py-2 font-mono">
-                          <span className="truncate max-w-[220px] block font-semibold text-slate-800" title={f.name}>{f.name}</span>
+                          {f.is_entry ? (
+                            <button
+                              className="truncate max-w-[220px] block font-semibold text-emerald-700 hover:text-emerald-900 hover:underline underline-offset-2 text-left"
+                              title={f.name}
+                              onClick={() => setSelectedFuncHash({ funcHash: f.func_hash, fileHash: f.file_hash })}
+                            >{f.name}</button>
+                          ) : (
+                            <span className="truncate max-w-[220px] block font-semibold text-slate-800" title={f.name}>{f.name}</span>
+                          )}
                           {f.entry_role ? <span className="mt-0.5 block text-[9px] text-slate-400">{f.entry_role}</span> : null}
+                          {f.entry_category === '外部入口' && (
+                            <span className="mt-0.5 block text-[9px] font-semibold text-emerald-500">外部入口</span>
+                          )}
+                          {f.entry_category === '处理入口' && (
+                            <span className="mt-0.5 block text-[9px] font-semibold text-sky-500">处理入口</span>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-center">
                           {f.is_entry
@@ -2504,6 +2758,14 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
           </div>
         </div>
       ) : null}
+      {selectedFuncHash && (
+        <FuncDetailPanel
+          taskId={taskId}
+          funcHash={selectedFuncHash.funcHash}
+          fileHash={selectedFuncHash.fileHash}
+          onClose={() => setSelectedFuncHash(null)}
+        />
+      )}
     </div>
   );
 };

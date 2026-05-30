@@ -36,7 +36,25 @@ export default defineConfig(({ mode }) => {
             changeOrigin: true,
             secure: false,
             ws: true,
-            agent: new http.Agent({ keepAlive: false }),
+            // keepAlive:true keeps sockets in a pool instead of destroying
+            // them after each request. keepAlive:false caused Node to destroy
+            // the socket immediately after each response; on Windows the OS
+            // then sends TCP RST to Nginx, Nginx echoes RST back, and
+            // Node fires ECONNRESET -> Vite returns empty 500 -> ERR_ABORTED.
+            agent: new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 }),
+            configure: (proxy) => {
+              // If a stale pooled socket is reused and gets ECONNRESET,
+              // send 503 JSON so fetchWithRetry can retry on a fresh socket.
+              proxy.on('error', (err: Error & { code?: string }, _req, res) => {
+                if (err.code === 'ECONNRESET' && res && !('headersSent' in res && (res as any).headersSent)) {
+                  try {
+                    (res as any).writeHead(503, { 'Content-Type': 'application/json' });
+                    (res as any).end(JSON.stringify({ detail: 'stale socket reset – retrying' }));
+                  } catch { /* already committed */ }
+                  return;
+                }
+              });
+            },
           },
           '/ws': {
             target: 'ws://secflow.ai.icsl.huawei.com',

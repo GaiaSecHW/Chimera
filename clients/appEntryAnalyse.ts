@@ -1,6 +1,7 @@
-import { API_BASE, getHeaders, getJsonWithDedupe, handleResponse } from './base';
+import { API_BASE, fetchWithRetry, getHeaders, getJsonWithDedupe, handleResponse } from './base';
 import type { ServiceHealthMeta } from '../components/execution/serviceHealthMeta';
 import {
+  AppEaFunctionDetail,
   AppEaTaskActionResponse,
   AppEaSessionIndex,
   AppEaSessionMeta,
@@ -91,6 +92,11 @@ export const appEntryAnalyseApi = {
   getTaskFunctionCatalog: async (taskId: string): Promise<Record<string, any>[]> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/function-catalog`, { headers: getHeaders() })),
 
+  getTaskFunctionDetail: async (taskId: string, funcHash: string, fileHash?: string): Promise<AppEaFunctionDetail> => {
+    const url = new URL(`${BASE}/tasks/${encodeURIComponent(taskId)}/functions/${encodeURIComponent(funcHash)}`, location.href);
+    if (fileHash) url.searchParams.set('file_hash', fileHash);
+    return handleResponse(await fetch(url.toString(), { headers: getHeaders() }));
+  },
   getTimeline: async (taskId: string): Promise<AppEaTaskTimelineResponse> =>
     handleResponse(await fetch(`${BASE}/tasks/${encodeURIComponent(taskId)}/timeline`, { headers: getHeaders() })),
 
@@ -232,11 +238,11 @@ export const appEntryAnalyseApi = {
     handleResponse(await fetch(`${BASE}/config?project_id=${encodeURIComponent(projectId)}`, { headers: getHeaders() })),
 
   saveConfig: async (config: EntryAnalysisServiceConfig): Promise<EntryAnalysisServiceConfig> =>
-    handleResponse(await fetch(`${BASE}/config`, {
+    handleResponse(await fetchWithRetry(`${BASE}/config`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify({ project_id: config.project_id, config }),
-    })),
+    }, { retries: 2, retryDelayMs: 200, retryOnStatus: [500, 502, 503, 504] })),
 
   // ── Models config ─────────────────────────────────────────────────────────
   getModels: async (): Promise<EntryAnalysisModelsConfig> => {

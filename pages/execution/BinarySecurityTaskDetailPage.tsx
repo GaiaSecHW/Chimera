@@ -233,6 +233,8 @@ const formatDownstreamStatus = (status?: string | null) => {
 
 const formatStageItemSyncStatus = (status?: string | null) => {
   switch (status) {
+    case 'observed':
+      return '已观测';
     case 'synced':
       return '已同步';
     case 'skipped':

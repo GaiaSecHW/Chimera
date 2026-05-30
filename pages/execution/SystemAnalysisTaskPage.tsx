@@ -191,6 +191,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [clusterCapacitySummary, setClusterCapacitySummary] = useState<AppSaClusterCapacitySummary | null>(null);
   const [clusterCapacityDetail, setClusterCapacityDetail] = useState<AppSaClusterCapacity | null>(null);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
+  const [slotPanelExpanded, setSlotPanelExpanded] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
   const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
 
@@ -566,7 +567,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <button
+          type="button"
+          onClick={() => setSlotPanelExpanded((current) => !current)}
+          className="flex w-full flex-col gap-4 text-left lg:flex-row lg:items-start lg:justify-between"
+        >
           <div>
             <h2 className="text-xl font-black text-slate-900">执行槽位</h2>
             <p className="mt-1 text-sm text-slate-500">展示当前系统分析 worker 集群的实时执行槽位、运行中的任务数量和各 worker 健康度。</p>
@@ -575,7 +580,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             <div className="text-xs text-slate-400">最近同步 {formatDateTime(clusterCapacitySummary?.updated_at)}</div>
             <button
               type="button"
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation();
                 setExpandedSlotWorkerIds([]);
                 setShowSlotDetailModal(true);
                 void loadClusterCapacityDetail();
@@ -584,40 +590,47 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             >
               查看详情
             </button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500">
+              {slotPanelExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </div>
           </div>
-        </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-4">
-          <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Worker 数</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.worker_count ?? '-'}</div>
-          </div>
-          <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-700">总槽位</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.total_capacity ?? '-'}</div>
-          </div>
-          <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">运行中</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.busy_slots ?? '-'}</div>
-          </div>
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700">空闲 / 排队</div>
-            <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary ? `${clusterCapacitySummary.available_slots} / ${clusterCapacitySummary.queued_jobs}` : '-'}</div>
-          </div>
-        </div>
-        {slotLoading ? (
-          <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-            <Loader2 size={16} className="animate-spin" />
-            正在读取执行槽位...
-          </div>
+        </button>
+        {slotPanelExpanded ? (
+          <>
+            <div className="mt-5 grid gap-3 md:grid-cols-4">
+              <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-cyan-700">Worker 数</div>
+                <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.worker_count ?? '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-sky-700">总槽位</div>
+                <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.total_capacity ?? '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">运行中</div>
+                <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary?.busy_slots ?? '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+                <div className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-700">空闲 / 排队</div>
+                <div className="mt-2 text-2xl font-black text-slate-900">{clusterCapacitySummary ? `${clusterCapacitySummary.available_slots} / ${clusterCapacitySummary.queued_jobs}` : '-'}</div>
+              </div>
+            </div>
+            {slotLoading ? (
+              <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 size={16} className="animate-spin" />
+                正在读取执行槽位...
+              </div>
+            ) : null}
+            {slotError ? (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                暂无槽位数据：{slotError}
+              </div>
+            ) : null}
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+              首屏只加载槽位摘要。Worker 明细和活跃任务明细在“查看详情”中按需加载。
+            </div>
+          </>
         ) : null}
-        {slotError ? (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            暂无槽位数据：{slotError}
-          </div>
-        ) : null}
-        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-          首屏只加载槽位摘要。Worker 明细和活跃任务明细在“查看详情”中按需加载。
-        </div>
       </section>
 
       {/* Task list */}
