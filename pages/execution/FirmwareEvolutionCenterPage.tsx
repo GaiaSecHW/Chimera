@@ -646,6 +646,14 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     }
   }, [filterSearch, filterStatus, page, pageSize, projectId]);
 
+  const handleRefreshList = useCallback(async () => {
+    await fetchJobs(false);
+  }, [fetchJobs]);
+
+  const handleQueryList = useCallback(async () => {
+    await fetchJobs(true);
+  }, [fetchJobs]);
+
   const loadRuntimeFiles = useCallback(async () => {
     if (!projectId) return;
     setRuntimeFilesLoading(true);
@@ -821,7 +829,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   }), [runtimeExpandedPaths, runtimeSelectedPath]);
 
   useEffect(() => {
-    void fetchJobs(true);
+    void handleQueryList();
   }, [projectId]);
 
   useEffect(() => {
@@ -880,7 +888,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   }, [projectId, runtimeRootPath, runtimeSelectedPath, selectedRuntimeItem?.kind, selectedRuntimeItem?.modified_at, selectedRuntimeItem?.size_bytes]);
 
   useEffect(() => {
-    void fetchJobs(true);
+    void handleQueryList();
   }, [filterStatus, pageSize]);
 
   useEffect(() => {
@@ -1564,7 +1572,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             {!showingDetail && hasRunning ? <p className="animate-pulse text-xs font-semibold text-blue-600">● 有进化任务运行中，每5秒自动刷新</p> : null}
           </div>
         </div>
-        <button onClick={() => showingDetail && activeJobId ? refreshJobDetail(activeJobId) : fetchJobs(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />{showingDetail ? '刷新详情' : '刷新列表'}</button>
+        <button onClick={() => void (showingDetail && activeJobId ? refreshJobDetail(activeJobId) : handleRefreshList())} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white"><RefreshCw size={12} />{showingDetail ? '刷新详情' : '刷新列表'}</button>
       </div>
 
       {showingDetail ? renderDetail() : (
@@ -1651,8 +1659,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
             </div>
             <div className="mb-4 grid gap-3 md:grid-cols-[160px_minmax(0,1fr)_auto]">
               <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 outline-none focus:border-amber-400"><option value="">全部状态</option><option value="pending">排队中</option><option value="running">运行中</option><option value="success">成功</option><option value="failed">失败</option><option value="cancelled">已取消</option></select>
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><Search size={14} className="text-slate-400" /><input value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void fetchJobs(true); }} placeholder="搜索进化任务 ID / 主任务 ID / 固件路径" className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400" /></div>
-              <button onClick={() => fetchJobs(true)} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"><Search size={12} />查询</button>
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"><Search size={14} className="text-slate-400" /><input value={filterSearch} onChange={(e) => setFilterSearch(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void handleQueryList(); }} placeholder="搜索进化任务 ID / 主任务 ID / 固件路径" className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-slate-400" /></div>
+              <button onClick={() => void handleQueryList()} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"><Search size={12} />查询</button>
             </div>
             {listError ? <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{listError}</div> : null}
             <ExecutionTable>
