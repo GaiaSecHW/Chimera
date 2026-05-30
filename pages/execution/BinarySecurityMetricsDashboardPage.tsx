@@ -67,7 +67,6 @@ import {
 } from './binarySecurityMetricsDataflowVuln';
 import type { DataflowVulnAiViewModel, DataflowVulnOverviewViewModel, DataflowVulnSampleScope } from './binarySecurityMetricsDataflowVuln';
 import { buildDataflowVulnAiViewModel, buildDataflowVulnOverviewViewModel, matchesDataflowVulnSampleScope } from './binarySecurityMetricsDataflowVulnBuilders';
-import { AgentSessionViewer } from './AgentSessionViewer';
 
 type MetricsState = {
   loading: boolean;
@@ -147,6 +146,8 @@ type ReducerEventState = {
 
 type AgentObservabilityState = {
   loading: boolean;
+  detailLoading: boolean;
+  detailLoaded: boolean;
   summary: AgentObservabilitySummary | null;
   processes: AgentProcessSnapshot[];
   sessions: AgentSessionObservabilitySnapshot[];
@@ -155,6 +156,14 @@ type AgentObservabilityState = {
   runtimeSummary: AgentRuntimeAggregateSummary | null;
   error: string | null;
   refreshedAt: number | null;
+};
+
+type AgentPodDetailState = {
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
+  processes: AgentProcessSnapshot[];
+  tasks: AgentTaskOwnershipSnapshot[];
 };
 
 type AgentSessionContentState = {
@@ -2391,6 +2400,8 @@ const INITIAL_ENTRY_WORKER_DETAIL_STATE: EntryWorkerDetailState = {
 
 const INITIAL_AGENT_STATE: AgentObservabilityState = {
   loading: false,
+  detailLoading: false,
+  detailLoaded: false,
   summary: null,
   processes: [],
   sessions: [],
@@ -2405,6 +2416,31 @@ const INITIAL_AGENT_SESSION_CONTENT_STATE: AgentSessionContentState = {
   loading: false,
   data: null,
   error: null,
+};
+
+const buildAgentRuntimeSummaryFromState = (
+  summary: AgentObservabilitySummary | null,
+  pods: AgentPodRuntimeSnapshot[],
+  processes: AgentProcessSnapshot[],
+): AgentRuntimeAggregateSummary | null => {
+  if (!summary) return null;
+  return {
+    total_pods: pods.length,
+    healthy_pods: pods.filter((item) => item.healthy !== false).length,
+    total_processes: processes.length || Number(summary.active_processes || 0) + Number(summary.orphan_processes || 0) + Number(summary.unknown_processes || 0),
+    tracked_processes: Number(summary.active_processes || 0),
+    orphan_processes: Number(summary.orphan_processes || 0),
+    suspected_orphan_processes: Number(summary.unknown_processes || 0),
+    killable_orphan_processes: Number(summary.killable_orphan_processes || 0),
+    killable_suspected_orphan_processes: Number(summary.killable_suspected_orphan_processes || 0),
+    orphan_sessions: Number(summary.orphan_sessions || 0),
+    aggregate_partial: Boolean(summary.aggregate_partial),
+    aggregate_sources: summary.aggregate_sources ?? null,
+    aggregate_fanout_errors: summary.aggregate_fanout_errors ?? null,
+    aggregate_failed_targets: summary.aggregate_failed_targets || [],
+    aggregate_all_sources_failed: Boolean(summary.aggregate_all_sources_failed),
+    scanned_at: summary.scanned_at ?? null,
+  };
 };
 
 const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
@@ -2489,6 +2525,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     refreshedAt: null,
   });
   const [agentState, setAgentState] = useState<AgentObservabilityState>(INITIAL_AGENT_STATE);
+  const [agentPodDetails, setAgentPodDetails] = useState<Record<string, AgentPodDetailState>>({});
   const [selectedAgentPids, setSelectedAgentPids] = useState<number[]>([]);
   const [selectedAgentTaskId, setSelectedAgentTaskId] = useState<string>('');
   const [selectedAgentSessionId, setSelectedAgentSessionId] = useState<string>('');
@@ -2672,49 +2709,83 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const agentObservabilityEnabled =
     activeServiceKey === 'entry-analysis' || activeServiceKey === 'system-analysis' || activeServiceKey === 'dataflow-analysis';
 
-  const loadAgentObservability = async (serviceKey: BinarySecurityMetricsServiceKey) => {
+  const loadAgentObservability = async (serviceKey: BinarySecurityMetricsServiceKey, options?: { loadDetails?: boolean }) => {
     if (!projectId || !(serviceKey === 'entry-analysis' || serviceKey === 'system-analysis' || serviceKey === 'dataflow-analysis')) {
       setAgentState(INITIAL_AGENT_STATE);
+      setAgentPodDetails({});
       return;
     }
     setAgentState((current) => ({ ...current, loading: true, error: null }));
     try {
       if (serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' || serviceKey === 'system-analysis') {
-        const runtime = await executionMetricsApi.getAgentRuntimeAggregate(serviceKey, projectId) as AgentRuntimeAggregateResponse;
+        const [summary, pods] = await Promise.all([
+          executionMetricsApi.getAgentObservabilitySummary(serviceKey, projectId) as Promise<AgentObservabilitySummary>,
+          executionMetricsApi.getAgentPods(serviceKey, projectId) as Promise<AgentPodRuntimeSnapshot[]>,
+        ]);
+        let processes: AgentProcessSnapshot[] = [];
+        let tasks: AgentTaskOwnershipSnapshot[] = [];
+        let runtimeSummary = buildAgentRuntimeSummaryFromState(summary, pods, processes);
+        if (options?.loadDetails) {
+          setAgentState((current) => ({ ...current, detailLoading: true }));
+          const runtime = await executionMetricsApi.getAgentRuntimeAggregate(serviceKey, projectId) as AgentRuntimeAggregateResponse;
+          processes = runtime.processes || [];
+          tasks = runtime.tasks || [];
+          runtimeSummary = runtime.summary || runtimeSummary;
+        }
         setAgentState({
           loading: false,
-          summary: {
-            active_processes: runtime.summary.tracked_processes,
-            orphan_processes: runtime.summary.orphan_processes,
-            killable_orphan_processes: runtime.summary.killable_orphan_processes,
-            killable_suspected_orphan_processes: runtime.summary.killable_suspected_orphan_processes,
-            orphan_sessions: runtime.summary.orphan_sessions,
-            unknown_processes: runtime.summary.suspected_orphan_processes,
-            aggregate_partial: runtime.summary.aggregate_partial,
-            aggregate_sources: runtime.summary.aggregate_sources,
-            aggregate_fanout_errors: runtime.summary.aggregate_fanout_errors,
-            aggregate_failed_targets: runtime.summary.aggregate_failed_targets,
-            scan_errors: 0,
-          },
-          processes: runtime.processes,
+          detailLoading: false,
+          detailLoaded: Boolean(options?.loadDetails),
+          summary,
+          processes,
           sessions: [],
-          tasks: runtime.tasks,
-          pods: runtime.pods,
-          runtimeSummary: runtime.summary,
+          tasks,
+          pods,
+          runtimeSummary,
           error: null,
           refreshedAt: Date.now(),
         });
+        if (options?.loadDetails) {
+          setAgentPodDetails({});
+        }
         return;
       }
     } catch (error: any) {
       setAgentState((current) => ({
         ...current,
         loading: false,
+        detailLoading: false,
         error: error?.message || '智能体观测抓取失败',
         refreshedAt: Date.now(),
       }));
     }
   };
+
+  const ensureAgentPodDetail = useCallback(async (serviceKey: BinarySecurityMetricsServiceKey, podName: string) => {
+    if (!projectId || !agentObservabilityEnabled || !podName) return;
+    const cacheKey = `${serviceKey}:${podName}`;
+    const existing = agentPodDetails[cacheKey];
+    if (existing?.loading || existing?.loaded) return;
+    setAgentPodDetails((current) => ({
+      ...current,
+      [cacheKey]: { loading: true, loaded: false, error: null, processes: [], tasks: [] },
+    }));
+    try {
+      const [processes, tasks] = await Promise.all([
+        executionMetricsApi.getAgentProcessesByPod(serviceKey, projectId, podName) as Promise<AgentProcessSnapshot[]>,
+        executionMetricsApi.getAgentTasksByPod(serviceKey, projectId, podName) as Promise<AgentTaskOwnershipSnapshot[]>,
+      ]);
+      setAgentPodDetails((current) => ({
+        ...current,
+        [cacheKey]: { loading: false, loaded: true, error: null, processes, tasks },
+      }));
+    } catch (error: any) {
+      setAgentPodDetails((current) => ({
+        ...current,
+        [cacheKey]: { loading: false, loaded: false, error: error?.message || 'Pod 明细抓取失败', processes: [], tasks: [] },
+      }));
+    }
+  }, [agentObservabilityEnabled, agentPodDetails, executionMetricsApi, projectId]);
 
   useEffect(() => {
     const current = stateByService[activeServiceKey];
@@ -2783,6 +2854,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setSelectedEntryStage('all');
     setActiveSecondaryTab('observability');
     setAgentState(INITIAL_AGENT_STATE);
+    setAgentPodDetails({});
     setSelectedAgentPids([]);
     setSelectedAgentTaskId('');
     setSelectedAgentSessionId('');
@@ -3009,21 +3081,42 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     }
   }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, dataflowAnalysisApi, entryAnalysisApi, selectedAgentSession, systemAnalysisApi]);
 
-  const selectedKillablePids = useMemo(
-    () => selectedAgentPids.filter((pid) => agentState.processes.some((item) => item.pid === pid && item.kill_allowed)),
-    [agentState.processes, selectedAgentPids],
+  const loadedAgentProcesses = useMemo(
+    () => Object.values(agentPodDetails).flatMap((item) => item.processes || []),
+    [agentPodDetails],
   );
 
-  const orphanProcesses = useMemo(() => agentState.processes.filter((item) => item.owner_kind === 'orphan'), [agentState.processes]);
-  const suspectedOrphanProcesses = useMemo(() => agentState.processes.filter((item) => item.owner_kind === 'unknown'), [agentState.processes]);
+  const selectedKillablePids = useMemo(
+    () => selectedAgentPids.filter((pid) => loadedAgentProcesses.some((item) => item.pid === pid && item.kill_allowed)),
+    [loadedAgentProcesses, selectedAgentPids],
+  );
+
+  const orphanProcesses = useMemo(() => loadedAgentProcesses.filter((item) => item.owner_kind === 'orphan'), [loadedAgentProcesses]);
+  const suspectedOrphanProcesses = useMemo(() => loadedAgentProcesses.filter((item) => item.owner_kind === 'unknown'), [loadedAgentProcesses]);
   const dfaAgentRoleOptions = useMemo(() => {
     const roles = new Set<string>();
-    agentState.processes.forEach((item) => {
+    loadedAgentProcesses.forEach((item) => {
       if (item.role_kind) roles.add(item.role_kind);
     });
     return Array.from(roles).sort((left, right) => left.localeCompare(right, 'zh-CN'));
-  }, [agentState.processes]);
+  }, [loadedAgentProcesses]);
   const dfaRuntimeSummary = agentState.runtimeSummary;
+  const requiresAgentDetailFiltering = Boolean(
+    dfaAgentTaskKeyword.trim() ||
+    dfaAgentPidKeyword.trim() ||
+    dfaAgentOwnerFilter !== 'all' ||
+    dfaAgentRoleFilter !== 'all',
+  );
+
+  useEffect(() => {
+    if (activeSecondaryTab !== 'agent' || !agentObservabilityEnabled || !requiresAgentDetailFiltering) return;
+    agentState.pods.forEach((pod) => {
+      if (pod.pod_name) {
+        void ensureAgentPodDetail(activeServiceKey, pod.pod_name);
+      }
+    });
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, agentState.pods, ensureAgentPodDetail, requiresAgentDetailFiltering]);
+
   const filteredDfaPods = useMemo(() => {
     if (!agentObservabilityEnabled) return [] as AgentPodRuntimeSnapshot[];
     const podKeyword = dfaAgentPodKeyword.trim().toLowerCase();
@@ -3034,8 +3127,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         const fingerprint = `${pod.pod_name || ''} ${pod.worker_id || ''}`.toLowerCase();
         if (!fingerprint.includes(podKeyword)) return false;
       }
-      const podProcesses = (pod.processes || agentState.processes.filter((item) => item.pod_name === pod.pod_name));
-      const podTasks = (pod.tasks || agentState.tasks.filter((item) => item.pod_name === pod.pod_name));
+      const detail = agentPodDetails[`${activeServiceKey}:${pod.pod_name}`];
+      const podProcesses = detail?.processes || [];
+      const podTasks = detail?.tasks || [];
       const matchingProcesses = podProcesses.filter((item) => {
         if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
         if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
@@ -3059,10 +3153,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       return true;
     });
   }, [
+    activeServiceKey,
+    agentPodDetails,
     agentObservabilityEnabled,
     agentState.pods,
-    agentState.processes,
-    agentState.tasks,
     dfaAgentOwnerFilter,
     dfaAgentPidKeyword,
     dfaAgentPodKeyword,
@@ -3073,6 +3167,13 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const toggleDfaAgentPod = useCallback((podName: string) => {
     setExpandedDfaAgentPods((current) => (current.includes(podName) ? current.filter((item) => item !== podName) : [...current, podName]));
   }, []);
+
+  useEffect(() => {
+    if (activeSecondaryTab !== 'agent' || !agentObservabilityEnabled) return;
+    expandedDfaAgentPods.forEach((podName) => {
+      void ensureAgentPodDetail(activeServiceKey, podName);
+    });
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, ensureAgentPodDetail, expandedDfaAgentPods]);
 
   const killSingleOrphan = async (process: AgentProcessSnapshot) => {
     if (!projectId || !agentObservabilityEnabled) return;
@@ -3100,7 +3201,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
     });
     setSelectedAgentPids((current) => current.filter((pid) => pid !== process.pid));
-    await loadAgentObservability(activeServiceKey);
+    await loadAgentObservability(activeServiceKey, { loadDetails: true });
   };
 
   const killSelectedOrphans = async () => {
@@ -3131,7 +3232,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       message: `请求 ${summary.requested}，命中 ${summary.matched}，成功 ${summary.succeeded}，失败 ${summary.failed}，跳过 ${summary.skipped}`,
     });
     setSelectedAgentPids([]);
-    await loadAgentObservability(activeServiceKey);
+    await loadAgentObservability(activeServiceKey, { loadDetails: true });
   };
 
   const killAllOrphans = async () => {
@@ -3150,7 +3251,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
     });
     setSelectedAgentPids([]);
-    await loadAgentObservability(activeServiceKey);
+    await loadAgentObservability(activeServiceKey, { loadDetails: true });
   };
 
   const killAllSuspectedOrphans = async () => {
@@ -3169,7 +3270,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       message: `请求 ${result.requested}，命中 ${result.matched}，成功 ${result.succeeded}，失败 ${result.failed}，跳过 ${result.skipped}`,
     });
     setSelectedAgentPids([]);
-    await loadAgentObservability(activeServiceKey);
+    await loadAgentObservability(activeServiceKey, { loadDetails: true });
   };
 
   return (
@@ -5086,14 +5187,22 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     className="inline-flex items-center gap-2 rounded-xl border border-cyan-200 bg-white px-3 py-2 text-sm font-bold text-cyan-800 hover:bg-cyan-50"
                   >
                     <RefreshCw size={14} />
-                    刷新运行态
+                    刷新概览
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void loadAgentObservability(activeServiceKey, { loadDetails: true })}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Loader2 size={14} className={agentState.detailLoading ? 'animate-spin' : ''} />
+                    刷新全量明细
                   </button>
                   <button
                     type="button"
                     onClick={() => void killAllOrphans()}
-                    disabled={!orphanProcesses.some((item) => item.kill_allowed)}
+                    disabled={(dfaRuntimeSummary?.killable_orphan_processes || 0) <= 0}
                     className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${
-                      orphanProcesses.some((item) => item.kill_allowed)
+                      (dfaRuntimeSummary?.killable_orphan_processes || 0) > 0
                         ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
                         : 'border-slate-200 bg-slate-50 text-slate-400'
                     }`}
@@ -5104,9 +5213,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <button
                     type="button"
                     onClick={() => void killAllSuspectedOrphans()}
-                    disabled={!suspectedOrphanProcesses.some((item) => item.kill_allowed)}
+                    disabled={(dfaRuntimeSummary?.killable_suspected_orphan_processes || 0) <= 0}
                     className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${
-                      suspectedOrphanProcesses.some((item) => item.kill_allowed)
+                      (dfaRuntimeSummary?.killable_suspected_orphan_processes || 0) > 0
                         ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
                         : 'border-slate-200 bg-slate-50 text-slate-400'
                     }`}
@@ -5115,6 +5224,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     批量终止疑似孤儿
                   </button>
                 </div>
+              </div>
+
+              <div className="mt-3 text-xs text-slate-500">
+                默认仅拉取 `summary + pods`。进程和任务明细会在展开 Pod、使用明细筛选或手工刷新全量明细时再加载。
               </div>
 
               {agentState.error ? (
@@ -5190,6 +5303,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   ))}
                 </select>
               </div>
+              {requiresAgentDetailFiltering && loadedAgentProcesses.length === 0 ? (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                  当前过滤条件依赖 Pod 明细，页面会按需补拉对应 Pod 的进程和任务数据。
+                </div>
+              ) : null}
             </section>
 
             <section className="space-y-3">
@@ -5197,17 +5315,18 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
                   <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
                   <p className="mt-4 text-sm text-slate-500">
-                    正在抓取{activeServiceKey === 'dataflow-analysis' ? '数据流分析' : activeServiceKey === 'entry-analysis' ? '入口分析' : '系统分析'} worker Pod 内智能体运行态...
+                    正在抓取{activeServiceKey === 'dataflow-analysis' ? '数据流分析' : activeServiceKey === 'entry-analysis' ? '入口分析' : '系统分析'} worker Pod 智能体概览...
                   </p>
                 </section>
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
                   const expanded = expandedDfaAgentPods.includes(pod.pod_name);
-                  const podTasks = (pod.tasks || agentState.tasks.filter((item) => item.pod_name === pod.pod_name)).filter((item) => {
+                  const podDetail = agentPodDetails[`${activeServiceKey}:${pod.pod_name}`];
+                  const podTasks = (podDetail?.tasks || []).filter((item) => {
                     if (!dfaAgentTaskKeyword.trim()) return true;
                     return `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(dfaAgentTaskKeyword.trim().toLowerCase());
                   });
-                  const podProcesses = (pod.processes || agentState.processes.filter((item) => item.pod_name === pod.pod_name)).filter((item) => {
+                  const podProcesses = (podDetail?.processes || []).filter((item) => {
                     if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
                     if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
                     if (dfaAgentTaskKeyword.trim()) {
@@ -5256,6 +5375,16 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
 
                       {expanded ? (
                         <div className="space-y-4 border-t border-slate-100 px-5 py-5">
+                          {podDetail?.loading ? (
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                              正在加载该 Pod 的进程与任务明细...
+                            </div>
+                          ) : null}
+                          {podDetail?.error ? (
+                            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                              {podDetail.error}
+                            </div>
+                          ) : null}
                           <div className="grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
                             <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
                               <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关联任务</div>

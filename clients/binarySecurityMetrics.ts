@@ -194,6 +194,23 @@ const getAgentKillProcessPrefix = (serviceKey: BinarySecurityMetricsServiceKey):
   serviceKey === 'dataflow-analysis' ? 'aggregate/' : '';
 const getAgentKillAllOrphansPrefix = (serviceKey: BinarySecurityMetricsServiceKey): string =>
   serviceKey === 'dataflow-analysis' ? 'aggregate/' : '';
+const AGENT_DETAIL_TIMEOUT_MS = 60_000;
+
+const buildAgentAggregateUrl = (
+  serviceKey: BinarySecurityMetricsServiceKey,
+  suffix: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+): string => {
+  const url = new URL(
+    `${API_BASE}/api/app/${getAgentServicePath(serviceKey)}/agent-observability/${getAgentAggregatePrefix(serviceKey)}${suffix}`,
+    window.location.origin,
+  );
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    url.searchParams.set(key, String(value));
+  });
+  return `${url.pathname}${url.search}`;
+};
 
 export const binarySecurityMetricsApi = {
   listServices: (): BinarySecurityMetricsServiceDefinition[] => BINARY_SECURITY_METRICS_SERVICES,
@@ -219,27 +236,45 @@ export const binarySecurityMetricsApi = {
     ),
   getAgentProcesses: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
     getJsonWithDedupe(
-      `${API_BASE}/api/app/${getAgentServicePath(serviceKey)}/agent-observability/${getAgentAggregatePrefix(serviceKey)}processes`,
+      buildAgentAggregateUrl(serviceKey, 'processes'),
       { method: 'GET', headers: { ...getHeaders() } },
-      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
     ),
   getAgentSessions: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
     getJsonWithDedupe(
-      `${API_BASE}/api/app/${getAgentServicePath(serviceKey)}/agent-observability/${getAgentAggregatePrefix(serviceKey)}sessions`,
+      buildAgentAggregateUrl(serviceKey, 'sessions'),
       { method: 'GET', headers: { ...getHeaders() } },
-      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
     ),
   getAgentTasks: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
     getJsonWithDedupe(
-      `${API_BASE}/api/app/${getAgentServicePath(serviceKey)}/agent-observability/${getAgentAggregatePrefix(serviceKey)}tasks`,
+      buildAgentAggregateUrl(serviceKey, 'tasks'),
       { method: 'GET', headers: { ...getHeaders() } },
-      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
+    ),
+  getAgentPods: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
+    getJsonWithDedupe(
+      buildAgentAggregateUrl(serviceKey, 'pods'),
+      { method: 'GET', headers: { ...getHeaders() } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
+    ),
+  getAgentProcessesByPod: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string, pod: string) =>
+    getJsonWithDedupe(
+      buildAgentAggregateUrl(serviceKey, 'processes', { pod }),
+      { method: 'GET', headers: { ...getHeaders() } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
+    ),
+  getAgentTasksByPod: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string, pod: string) =>
+    getJsonWithDedupe(
+      buildAgentAggregateUrl(serviceKey, 'tasks', { pod }),
+      { method: 'GET', headers: { ...getHeaders() } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
     ),
   getAgentRuntimeAggregate: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
     getJsonWithDedupe(
-      `${API_BASE}/api/app/${getAgentServicePath(serviceKey)}/agent-observability/${getAgentAggregatePrefix(serviceKey)}runtime`,
+      buildAgentAggregateUrl(serviceKey, 'runtime'),
       { method: 'GET', headers: { ...getHeaders() } },
-      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
     ),
   getBinarySecurityReducerMetrics: async (): Promise<string> => {
     return getTextWithDedupe(

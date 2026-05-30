@@ -2787,6 +2787,8 @@ export interface AgentObservabilitySummary {
   aggregate_cache_hit?: boolean;
   aggregate_cache_age_seconds?: number | null;
   aggregate_failed_targets?: string[];
+  aggregate_all_sources_failed?: boolean;
+  scanned_at?: number | null;
 }
 
 export interface AgentProcessSnapshot {

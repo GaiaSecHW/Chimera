@@ -154,6 +154,7 @@ type DedupeGetJsonOptions = {
   ttlMs?: number;
   useRetry?: boolean;
   retryOptions?: { retries?: number; retryDelayMs?: number; retryOnStatus?: number[] };
+  timeoutMs?: number;
 };
 
 const DEFAULT_GET_DEDUPE_TTL_MS = 250;
@@ -247,14 +248,55 @@ export const installGlobalGetRequestDedupe = () => {
   )) as typeof fetch;
 };
 
+const withRequestTimeout = async (
+  _input: RequestInfo | URL,
+  init: RequestInit | undefined,
+  timeoutMs: number | undefined,
+  runner: (nextInit: RequestInit | undefined) => Promise<Response>,
+): Promise<Response> => {
+  const normalizedTimeoutMs = Math.max(0, Math.trunc(timeoutMs || 0));
+  if (!normalizedTimeoutMs) {
+    return runner(init);
+  }
+
+  const controller = new AbortController();
+  const upstreamSignal = init?.signal;
+  let timer: number | null = null;
+  let abortHandler: (() => void) | null = null;
+  if (upstreamSignal) {
+    if (upstreamSignal.aborted) {
+      controller.abort(upstreamSignal.reason);
+    } else {
+      abortHandler = () => controller.abort(upstreamSignal.reason);
+      upstreamSignal.addEventListener('abort', abortHandler, { once: true });
+    }
+  }
+  timer = window.setTimeout(() => controller.abort(new Error(`Request timed out after ${normalizedTimeoutMs}ms`)), normalizedTimeoutMs);
+  try {
+    return await runner({ ...(init || {}), signal: controller.signal });
+  } finally {
+    if (timer != null) window.clearTimeout(timer);
+    if (upstreamSignal && abortHandler) {
+      upstreamSignal.removeEventListener('abort', abortHandler);
+    }
+  }
+};
+
 const fetchWithOptionalRetry = async (
   input: RequestInfo | URL,
   init?: RequestInit,
   options?: DedupeGetJsonOptions,
 ): Promise<Response> => (
-  options?.useRetry
-    ? fetchWithRetry(input, init, options.retryOptions)
-    : fetchWithGetDedupe(input, init)
+  withRequestTimeout(
+    input,
+    init,
+    options?.timeoutMs,
+    (nextInit) => (
+      options?.useRetry
+        ? fetchWithRetry(input, nextInit, options.retryOptions)
+        : fetchWithGetDedupe(input, nextInit)
+    ),
+  )
 );
 
 const getWithDedupe = async <T,>(
