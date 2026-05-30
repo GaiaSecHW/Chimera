@@ -21,6 +21,7 @@ import {
 import {
   AppDfaTaskDetail,
   AppDfaTaskResult,
+  AppEaEntryDetail,
   AppEaTaskDetail,
   AppEaTaskResult,
   AppSaResultModule,
@@ -395,27 +396,34 @@ function b2sCandidates(detail: B2STaskDetail): Candidate[] {
   }));
 }
 
-function parseFunctionName(raw: string): string {
-  const text = String(raw || '').trim();
-  if (!text) return '';
-  if (text.includes('|')) {
-    const cells = text.split('|').map((part) => part.trim()).filter(Boolean);
-    const candidate = cells.find((part) => /^[A-Za-z_~][\w:~<>.,*&\s-]*\)?$/.test(part) && !/^(file|文件|line|行号|函数|function)$/i.test(part));
-    return candidate || cells[cells.length - 1] || text;
-  }
-  const match = text.match(/([A-Za-z_~][\w:~]*)\s*\(/);
-  return match?.[1] || text.replace(/^[-*\d.\s]+/, '').trim();
-}
-
 function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
-  const rows = (result?.functions || []).map(parseFunctionName).filter(Boolean);
-  const unique = Array.from(new Set(rows));
-  return unique.map((functionName, index) => ({
-    key: `${functionName}-${index}`,
-    label: functionName,
-    description: '函数级数据流分析',
-    payload: { functionName },
-  }));
+  const details: AppEaEntryDetail[] = (result?.entry_details || []).filter(
+    (e) => e.entry_category !== '处理入口',
+  );
+  return details.map((entry, index) => {
+    const fileName = (entry.file || '').split('/').pop() || entry.file || '';
+    const taintsStr = (entry.taints || []).join(', ') || '—';
+    const conf = entry.confidence != null ? `${Math.round(entry.confidence * 100)}%` : null;
+    const descParts = [
+      fileName ? `📄 ${fileName}` : null,
+      `污点: ${taintsStr}`,
+      conf ? `置信度: ${conf}` : null,
+    ].filter(Boolean);
+    return {
+      key: `${entry.func_hash || entry.function}-${index}`,
+      label: entry.function,
+      description: descParts.join(' · '),
+      payload: {
+        functionName: entry.function,
+        funcHash: entry.func_hash,
+        file: entry.file,
+        taints: entry.taints,
+        signature: entry.signature,
+        confidence: entry.confidence,
+        entryCategory: entry.entry_category,
+      },
+    };
+  });
 }
 
 function dataflowCandidates(task: AppDfaTaskDetail, result: AppDfaTaskResult | null): Candidate[] {

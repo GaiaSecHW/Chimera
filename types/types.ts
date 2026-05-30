@@ -3231,6 +3231,23 @@ export interface AppEaTaskRuntimeSummary {
   warnings?: string[];
 }
 
+export interface AppEaEntryDetail {
+  tag?: string;
+  file?: string;
+  line?: number;
+  function: string;
+  taints?: string[];
+  taint_details?: { name: string; description?: string }[];
+  func_hash?: string;
+  signature?: string;
+  entry_role?: string;
+  entry_category?: string;
+  entry_confidence?: number;
+  confidence?: number;
+  entry_type?: string;
+  function_description?: string;
+}
+
 export interface AppEaTaskResultSummary {
   module_name?: string | null;
   function_count: number;
@@ -3253,6 +3270,7 @@ export interface AppEaTaskResult {
   result_markdown?: string | null;
   functions_list_markdown?: string | null;
   functions: string[];
+  entry_details?: AppEaEntryDetail[];
   run_report_markdown?: string | null;
   result_json?: Record<string, any> | null;
   summary: AppEaTaskResultSummary;
