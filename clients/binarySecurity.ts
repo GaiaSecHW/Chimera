@@ -182,7 +182,6 @@ export interface BinarySecurityTask {
   status: string;
   execution_epoch: number;
   current_stage?: string | null;
-  pending_action?: 'continue' | 'retry' | string | null;
   last_error?: string | null;
   firmware_path: string;
   stage_sequence: string[];

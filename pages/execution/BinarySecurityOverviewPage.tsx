@@ -20,6 +20,25 @@ const BINARY_STAGES = ['firmware_unpack', 'system_analysis', 'binary_to_source',
 const SOURCE_STAGES = ['system_analysis', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 const MODULE_STAGES = ['binary_to_source', 'entry_analysis', 'dataflow_analysis', 'vuln_scan'];
 
+type ManualOperationDisplayState = {
+  operation_in_progress?: boolean;
+  operation_type?: string | null;
+};
+
+const activeOperationKind = (operationState?: ManualOperationDisplayState | null): 'continue' | 'retry' | null => {
+  if (!operationState?.operation_in_progress) return null;
+  if (operationState.operation_type === 'continue') return 'continue';
+  if ((operationState.operation_type || '').startsWith('retry')) return 'retry';
+  return null;
+};
+
+const taskDisplayStatus = (status?: string | null, operationState?: ManualOperationDisplayState | null) => {
+  const operationKind = activeOperationKind(operationState);
+  if (operationKind === 'continue') return 'continue_in_progress';
+  if (operationKind === 'retry') return 'retry_in_progress';
+  return status || '';
+};
+
 const statusTone = (status: string) => {
   switch (status) {
     case 'success':
@@ -38,9 +57,9 @@ const statusTone = (status: string) => {
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     case 'dispatching':
       return 'bg-sky-50 text-sky-700 border-sky-200';
-    case 'continue_preparing':
+    case 'continue_in_progress':
       return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'retry_preparing':
+    case 'retry_in_progress':
       return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'pending_module_confirmation':
       return 'bg-amber-50 text-amber-700 border-amber-200';
@@ -948,7 +967,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       />
                       <h3 className="text-lg font-black text-slate-900">{item.name}</h3>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>{item.status}</span>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(taskDisplayStatus(item.status, item.manual_operation_state))}`}>{taskDisplayStatus(item.status, item.manual_operation_state)}</span>
                         {item.manual_operation_state ? (
                           <span
                             title={item.manual_operation_state.blocking_reason || item.manual_operation_state.summary}

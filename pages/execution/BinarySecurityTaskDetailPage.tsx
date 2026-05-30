@@ -43,7 +43,6 @@ interface Props {
 }
 
 const TERMINAL = new Set(['success', 'partial_success', 'failed', 'cancelled', 'downstream_missing']);
-const PREPARING_STATUSES = new Set(['continue_preparing', 'retry_preparing']);
 const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'firmware_unpack',
   'system_analysis',
@@ -116,6 +115,25 @@ function downstreamDetailSupport(stageName: string, downstreamTaskId?: string | 
   return DOWNSTREAM_DETAIL_SUPPORT[stageName] || { supported: false, reason: '该阶段尚未配置可跳转的任务详情页面。' };
 }
 
+type ManualOperationDisplayState = {
+  operation_in_progress?: boolean;
+  operation_type?: string | null;
+};
+
+const activeOperationKind = (operationState?: ManualOperationDisplayState | null): 'continue' | 'retry' | null => {
+  if (!operationState?.operation_in_progress) return null;
+  if (operationState.operation_type === 'continue') return 'continue';
+  if ((operationState.operation_type || '').startsWith('retry')) return 'retry';
+  return null;
+};
+
+const taskDisplayStatus = (status?: string | null, operationState?: ManualOperationDisplayState | null) => {
+  const operationKind = activeOperationKind(operationState);
+  if (operationKind === 'continue') return 'continue_in_progress';
+  if (operationKind === 'retry') return 'retry_in_progress';
+  return status || '';
+};
+
 const statusTone = (status: string) => {
   switch (status) {
     case 'success':
@@ -140,9 +158,9 @@ const statusTone = (status: string) => {
       return 'bg-indigo-50 text-indigo-700 border-indigo-200';
     case 'running':
       return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'continue_preparing':
+    case 'continue_in_progress':
       return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    case 'retry_preparing':
+    case 'retry_in_progress':
       return 'bg-orange-50 text-orange-700 border-orange-200';
     case 'applying':
       return 'bg-violet-50 text-violet-700 border-violet-200';
@@ -170,9 +188,9 @@ const stageNodeTone = (status: string, selected: boolean) => {
       return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
     case 'running':
       return `border-blue-300 bg-blue-50 text-blue-800 ${selectedDepth}`;
-    case 'continue_preparing':
+    case 'continue_in_progress':
       return `border-emerald-300 bg-emerald-50 text-emerald-800 ${selectedDepth}`;
-    case 'retry_preparing':
+    case 'retry_in_progress':
       return `border-orange-300 bg-orange-50 text-orange-800 ${selectedDepth}`;
     case 'applying':
       return `border-violet-300 bg-violet-50 text-violet-800 ${selectedDepth}`;
@@ -199,9 +217,9 @@ const stageConnectorTone = (status: string) => {
       return 'text-orange-400';
     case 'running':
       return 'text-blue-400';
-    case 'continue_preparing':
+    case 'continue_in_progress':
       return 'text-emerald-400';
-    case 'retry_preparing':
+    case 'retry_in_progress':
       return 'text-orange-400';
     case 'applying':
       return 'text-violet-400';
@@ -1088,8 +1106,10 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
     };
   }
 
-  if (detail.status === 'continue_preparing' || detail.status === 'retry_preparing') {
-    const isRetryPreparing = detail.status === 'retry_preparing';
+  const operationState = detail.manual_operation_state;
+  const operationKind = activeOperationKind(operationState);
+  if (operationKind === 'continue' || operationKind === 'retry') {
+    const isRetryPreparing = operationKind === 'retry';
     const cleanupSnapshot = detail.cleanup_snapshot || {};
     const cleanupCounts = cleanupSnapshot.cleanup_counts || {};
     const downstreamRefCount = Array.isArray(cleanupSnapshot.downstream_refs) ? cleanupSnapshot.downstream_refs.length : 0;
@@ -1101,7 +1121,7 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
         : '后台正在定位下一个可执行阶段，并清理当前阶段及后续阶段需要重建的结果。',
       evidence: [
         { label: '目标阶段', value: currentStageLabel },
-        { label: '待处理动作', value: detail.pending_action || (isRetryPreparing ? 'retry' : 'continue') },
+        { label: '待处理动作', value: operationState?.operation_type || (isRetryPreparing ? 'retry' : 'continue') },
         ...(isRetryPreparing
           ? [
               { label: '执行代次', value: `第 ${detail.execution_epoch} 轮` },
@@ -1462,8 +1482,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     [detail?.stage_sequence, isBinaryModuleTask, isSourceTask],
   );
   const canActOnTask = Boolean(detail);
-  const isPreparing = PREPARING_STATUSES.has(detail?.status || '');
   const manualOperationState = detail?.manual_operation_state;
+  const displayTaskStatus = taskDisplayStatus(detail?.status, manualOperationState);
+  const isManualOperationInProgress = Boolean(manualOperationState?.operation_in_progress);
   const taskRetrySupported = Boolean(manualOperationState?.can_retry ?? detail?.task_retry_supported);
   const taskRetryReason = manualOperationState?.blocking_reason || detail?.task_retry_reason || '当前任务不可严格清理后从头开始';
   const taskRetryFailedItemsSupported = Boolean(manualOperationState?.can_retry_failed_items ?? detail?.task_retry_failed_items_supported);
@@ -1476,12 +1497,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const cleanupCounts = cleanupSnapshot?.cleanup_counts || {};
   const cleanupDownstreamRefs = Array.isArray(cleanupSnapshot?.downstream_refs) ? cleanupSnapshot.downstream_refs : [];
   const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
-  const strategyEditable = Boolean(manualOperationState?.can_edit_policy ?? (detail && !['dispatching', 'running', 'continue_preparing', 'retry_preparing'].includes(detail?.status || '')));
+  const strategyEditable = Boolean(
+    manualOperationState?.can_edit_policy ??
+    (detail && !['dispatching', 'running'].includes(detail?.status || '') && !isManualOperationInProgress),
+  );
   const strategyBlockedReason = !detail
     ? '任务详情尚未加载'
     : strategyEditable
       ? null
-      : manualOperationState?.blocking_reason || `任务运行中，任务策略暂不可修改。当前状态：${detail.status}`;
+      : manualOperationState?.blocking_reason || `任务运行中，任务策略暂不可修改。当前状态：${formatBinarySecurityStatus(displayTaskStatus)}`;
   const strategyDirty = useMemo(
     () => !strategyDraftEquals(strategyDraft, strategySavedSnapshot),
     [strategyDraft, strategySavedSnapshot],
@@ -2650,8 +2674,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                         <div className="text-xs font-bold text-slate-400">当前状态</div>
                         <div className="mt-2">
-                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail?.status || '')}`}>
-                            {detail?.status || '-'}
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${statusTone(taskDisplayStatus(detail?.status, detail?.manual_operation_state))}`}>
+                            {formatBinarySecurityStatus(taskDisplayStatus(detail?.status, detail?.manual_operation_state))}
                           </span>
                         </div>
                       </div>
@@ -2711,18 +2735,18 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             type="button"
             onClick={() => void syncDownstreamStatus()}
             title={manualOperationState?.blocking_reason || undefined}
-            disabled={actionLoading !== '' || isPreparing}
+            disabled={actionLoading !== '' || isManualOperationInProgress}
             className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-700 disabled:opacity-60"
           >
             <RefreshCw size={16} />
             同步下游状态
           </button>
-          <button type="button" title={taskCancelSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可取消')} onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !taskCancelSupported || isPreparing} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
+          <button type="button" title={taskCancelSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可取消')} onClick={() => void runAction('cancel')} disabled={actionLoading !== '' || !taskCancelSupported || isManualOperationInProgress} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">取消</button>
           <button
             type="button"
             title={taskRetrySupported ? undefined : taskRetryReason}
             onClick={() => setPendingBlockingAction('retry')}
-            disabled={actionLoading !== '' || !taskRetrySupported || isPreparing}
+            disabled={actionLoading !== '' || !taskRetrySupported || isManualOperationInProgress}
             className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 disabled:opacity-60"
           >
             清空并从头开始
@@ -2731,12 +2755,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             type="button"
             title={taskRetryFailedItemsSupported ? undefined : taskRetryFailedItemsReason}
             onClick={() => setPendingBlockingAction('retry_failed_items')}
-            disabled={actionLoading !== '' || !taskRetryFailedItemsSupported || isPreparing}
+            disabled={actionLoading !== '' || !taskRetryFailedItemsSupported || isManualOperationInProgress}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 disabled:opacity-60"
           >
             {actionLoading === 'retry_failed_items' ? '重试中...' : '重试失败项'}
           </button>
-          <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isPreparing} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
+          <button type="button" title={taskDeleteSupported ? undefined : (manualOperationState?.blocking_reason || '当前任务不可删除')} onClick={() => void runAction('delete')} disabled={actionLoading !== '' || !taskDeleteSupported || isManualOperationInProgress} className="rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-bold text-rose-700 disabled:opacity-60">删除</button>
         </div>
       </div>
 
@@ -2754,15 +2778,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-900">{detail.name}</h1>
                 <div className="mt-2 break-all font-mono text-xs text-slate-400">{detail.id}</div>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                  <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(detail.status)}`}>{formatBinarySecurityStatus(detail.status)}</span>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(displayTaskStatus)}`}>{formatBinarySecurityStatus(displayTaskStatus)}</span>
                   <span className="text-sm text-slate-500">当前阶段：{STAGE_LABELS[detail.current_stage || ''] || detail.current_stage || '-'}</span>
                 </div>
-                {detail.status === 'continue_preparing' ? (
+                {manualOperationState?.operation_in_progress && manualOperationState?.operation_type === 'continue' ? (
                   <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     正在继续任务准备。后台正在定位下一个可执行阶段并清理必要结果。
                   </div>
                 ) : null}
-                {detail.status === 'retry_preparing' ? (
+                {manualOperationState?.operation_in_progress && manualOperationState?.operation_type === 'retry' ? (
                   <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
                     正在准备重试。后台正在按当前选择的重试类型清理阶段、归档和下游任务，完成后会自动重新排队。
                   </div>
@@ -3155,7 +3179,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">当前状态</div>
-                  <div className="mt-1 font-black text-slate-900">{formatBinarySecurityStatus(detail.status)}</div>
+                  <div className="mt-1 font-black text-slate-900">{formatBinarySecurityStatus(displayTaskStatus)}</div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                   <div className="text-xs font-bold text-slate-400">队列位置</div>

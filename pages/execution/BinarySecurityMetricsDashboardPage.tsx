@@ -1750,7 +1750,6 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
   const executorCapacity = firmwareMetric(rows, 'firmware_unpacker_slot_usage', { kind: 'executor_capacity' });
   const cleanupFailed = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_cleanup_jobs_by_status', { status: 'failed' }));
   const cleanupSuccess = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_cleanup_jobs_by_status', { status: 'success' }));
-  const retryPreparing = valueOrZero(firmwareMetric(rows, 'firmware_unpacker_tasks_by_status', { status: 'retry_preparing' }));
   const backpressure = firmwareMetric(rows, 'firmware_unpacker_dispatch_backpressure_total');
   const claimedTotal = firmwareMetric(rows, 'firmware_unpacker_claimed_tasks_total');
   const dbRetry = sumMetric(rows, (row) => row.name === 'firmware_unpacker_db_retry_total');
@@ -1837,7 +1836,6 @@ const buildFirmwareUnpackerViewModel = (rows: DisplayMetricRow[]): FirmwareUnpac
       { label: 'DB 重试', value: dbRetry, hint: 'transient database retries', tone: dbRetry > 0 ? 'text-amber-700' : 'text-slate-900' },
       { label: '调度反压', value: backpressure, hint: 'no free local execution slots', tone: (backpressure || 0) > 0 ? 'text-amber-700' : 'text-slate-900' },
       { label: '已领取任务', value: claimedTotal, hint: 'claimed_tasks_total', tone: 'text-slate-900' },
-      { label: '重试准备中', value: retryPreparing, hint: 'retry_preparing tasks', tone: retryPreparing > 0 ? 'text-amber-700' : 'text-slate-900' },
     ],
     aiSummary: [
       { label: 'AI 会话', value: formatNumber(aiSessions), hint: 'ai_session_total', tone: (aiSessions || 0) > 0 ? 'text-indigo-700' : 'text-slate-900' },

@@ -52,7 +52,6 @@ const canCancelTask = (s: string) => ['pending', 'running', 'cancelling'].includ
 const STATUS_OPTIONS = [
   { value: '', label: '全部状态' },
   { value: 'pending', label: '排队中' },
-  { value: 'retry_preparing', label: '重试准备中' },
   { value: 'running', label: '运行中' },
   { value: 'cancelling', label: '取消中' },
   { value: 'cancelled', label: '已取消' },
@@ -555,7 +554,6 @@ function MetricBar({ label, value, tone = 'blue' }: { label: string; value: numb
 function TaskStatusBadge({ status }: { status: string }) {
   const cfg: Record<string, { cls: string; label: string }> = {
     pending: { cls: 'bg-amber-50 text-amber-700 border-amber-200', label: '排队中' },
-    retry_preparing: { cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: '重试准备中' },
     running: { cls: 'bg-blue-50 text-blue-700 border-blue-200', label: '运行中' },
     cancelling: { cls: 'bg-orange-50 text-orange-700 border-orange-200', label: '取消中' },
     cancelled: { cls: 'bg-slate-50 text-slate-500 border-slate-200', label: '已取消' },

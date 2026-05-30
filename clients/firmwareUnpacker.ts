@@ -43,7 +43,7 @@ export interface FirmwareUnpackTask {
   parent_task_display?: string | null;
   firmware_path: string;
   output_path: string;
-  /** pending | retry_preparing | running | cancelling | cancelled | success | failed */
+  /** pending | running | cancelling | cancelled | success | failed */
   status: string;
   worker_id: string | null;
   result_status: string | null;
