@@ -420,6 +420,9 @@ function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
         tag: entry.tag,
         taints: entry.taints,
         taintDetails: entry.taint_details,
+        functionDescription: entry.function_description,
+        entryReason: entry.entry_reason,
+        line: entry.line,
         signature: entry.signature,
         confidence: entry.confidence,
         entryCategory: entry.entry_category,
@@ -728,14 +731,22 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
       } else if (sourceKind === 'entry_analysis') {
         const entryTask = task as AppEaTaskDetail;
         const moduleName = entryTask.module_name || '';
+        const moduleInputPath = String(entryTask.input_path || '').trim();
+        const sourceRootPath = String(entryTask.source_path || entryTask.input_path || '').trim();
+        if (!moduleInputPath) throw new Error('缺少入口分析任务输入目录 input_path，无法创建数据流分析任务');
+        if (!sourceRootPath) throw new Error('缺少源码根目录 source_path，无法创建数据流分析任务');
         for (const candidate of selectedCandidates) {
-          const functionName = String(candidate.payload.functionName);
-          const file = String(candidate.payload.file || '');
+          const functionName = String(candidate.payload.functionName || '').trim();
+          const file = String(candidate.payload.file || '').trim();
           const tag = String(candidate.payload.tag || 'P');
-          const taints: string[] = Array.isArray(candidate.payload.taints) ? candidate.payload.taints : [];
-          const taintDetails: { name: string; description?: string }[] = Array.isArray(candidate.payload.taintDetails)
+          const taints: string[] = Array.isArray(candidate.payload.taints)
+            ? candidate.payload.taints.map((item: any) => String(item).trim()).filter(Boolean)
+            : [];
+          const taintDetails: { name: string; description?: string; source_kind?: string }[] = Array.isArray(candidate.payload.taintDetails)
             ? candidate.payload.taintDetails
             : [];
+          if (!functionName) throw new Error('候选入口缺少函数名，无法创建数据流分析任务');
+          if (!file) throw new Error(`候选入口 ${functionName} 缺少 source_file，无法创建数据流分析任务`);
           const taintLines = taints.map((name, i) => {
             const detail = taintDetails.find((d) => d.name === name);
             const detail_desc = detail?.description ? `（${detail.description}）` : '';
@@ -750,16 +761,35 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             ? `，函数主动拉取了污点，污点为函数内变量:\n${taintLines.join('\n')}`
             : `，污点为函数入参:\n${taintLines.join('\n')}`;
           const promptContent = header + taintBody;
-          const createdTask = await executionApi.appDataflowAnalyse.createTask({
-            project_id: projectId,
-            task_name: `${defaultPrefix}-${functionName}`,
-            input_path: entryTask.source_path || entryTask.input_path,
-            prompt_content: promptContent,
-            function_name: functionName,
-            source_file: file || undefined,
-            taint_params: taints.length ? taints : undefined,
-          });
-          rows.push({ id: createdTask.task_id, label: createdTask.task_name, targetStage: 'dataflow_analysis' });
+          try {
+            const createdTask = await executionApi.appDataflowAnalyse.createTask({
+              project_id: projectId,
+              task_name: `${defaultPrefix}-${functionName}`,
+              input_path: moduleInputPath,
+              module_input_path: moduleInputPath,
+              source_root_path: sourceRootPath,
+              prompt_content: promptContent,
+              function_name: functionName,
+              source_file: file,
+              line_hint: candidate.payload.line != null ? String(candidate.payload.line) : undefined,
+              taint_params: taints.length ? taints : undefined,
+              taint_details: taintDetails.length ? taintDetails : undefined,
+              function_description: candidate.payload.functionDescription || undefined,
+              function_description_source: candidate.payload.functionDescription ? 'agent' : undefined,
+              entry_reason: candidate.payload.entryReason || undefined,
+              entry_reason_source: candidate.payload.entryReason ? 'agent' : undefined,
+              task_origin_type: 'binary_security',
+              parent_project_id: projectId,
+              parent_task_id: entryTask.task_id,
+              parent_task_type: 'source',
+              parent_stage_name: 'entry_analysis',
+              parent_stage_item_id: candidate.payload.funcHash || undefined,
+              parent_stage_item_key: functionName,
+            });
+            rows.push({ id: createdTask.task_id, label: createdTask.task_name, targetStage: 'dataflow_analysis' });
+          } catch (err: any) {
+            throw new Error(`创建 ${functionName} 失败（source_file=${file}）: ${err?.message || err}`);
+          }
         }
       } else if (sourceKind === 'dataflow_analysis') {
         for (const candidate of selectedCandidates) {

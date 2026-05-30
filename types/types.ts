@@ -3239,7 +3239,7 @@ export interface AppEaEntryDetail {
   line?: number;
   function: string;
   taints?: string[];
-  taint_details?: { name: string; description?: string }[];
+  taint_details?: { name: string; description?: string; source_kind?: string }[];
   func_hash?: string;
   signature?: string;
   entry_role?: string;
@@ -3248,6 +3248,7 @@ export interface AppEaEntryDetail {
   confidence?: number;
   entry_type?: string;
   function_description?: string;
+  entry_reason?: string;
 }
 
 export interface AppEaTaskResultSummary {
@@ -3551,6 +3552,8 @@ export interface AppDfaTaskCreateRequest {
   project_id: string;
   task_name: string;
   input_path: string;
+  module_input_path?: string;
+  source_root_path?: string;
   output_path?: string;
   task_description?: string;
   prompt_template_id?: string;
@@ -3558,7 +3561,13 @@ export interface AppDfaTaskCreateRequest {
   source_file?: string;
   function_name?: string;
   line_hint?: string;
+  definition_kind?: 'definition' | 'declaration' | 'unknown';
   taint_params?: string[];
+  function_description?: string;
+  function_description_source?: string;
+  entry_reason?: string;
+  entry_reason_source?: string;
+  taint_details?: { name: string; description?: string; source_kind?: string }[];
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;
