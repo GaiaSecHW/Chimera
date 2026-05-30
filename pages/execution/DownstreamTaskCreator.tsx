@@ -417,7 +417,9 @@ function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
         functionName: entry.function,
         funcHash: entry.func_hash,
         file: entry.file,
+        tag: entry.tag,
         taints: entry.taints,
+        taintDetails: entry.taint_details,
         signature: entry.signature,
         confidence: entry.confidence,
         entryCategory: entry.entry_category,
@@ -725,14 +727,37 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
         }
       } else if (sourceKind === 'entry_analysis') {
         const entryTask = task as AppEaTaskDetail;
+        const moduleName = entryTask.module_name || '';
         for (const candidate of selectedCandidates) {
           const functionName = String(candidate.payload.functionName);
+          const file = String(candidate.payload.file || '');
+          const tag = String(candidate.payload.tag || 'P');
+          const taints: string[] = Array.isArray(candidate.payload.taints) ? candidate.payload.taints : [];
+          const taintDetails: { name: string; description?: string }[] = Array.isArray(candidate.payload.taintDetails)
+            ? candidate.payload.taintDetails
+            : [];
+          const taintLines = taints.map((name, i) => {
+            const detail = taintDetails.find((d) => d.name === name);
+            const detail_desc = detail?.description ? `（${detail.description}）` : '';
+            return `污点${i + 1}：${name}${detail_desc}`;
+          });
+          const header = [
+            moduleName ? `分析${moduleName}中` : '分析',
+            file ? `${file}的` : '',
+            `${functionName}的污点数据流`,
+          ].join('');
+          const taintBody = tag === 'A'
+            ? `，函数主动拉取了污点，污点为函数内变量:\n${taintLines.join('\n')}`
+            : `，污点为函数入参:\n${taintLines.join('\n')}`;
+          const promptContent = header + taintBody;
           const createdTask = await executionApi.appDataflowAnalyse.createTask({
             project_id: projectId,
             task_name: `${defaultPrefix}-${functionName}`,
             input_path: entryTask.source_path || entryTask.input_path,
-            prompt_content: `分析函数 ${functionName} 的外部输入数据流`,
+            prompt_content: promptContent,
             function_name: functionName,
+            source_file: file || undefined,
+            taint_params: taints.length ? taints : undefined,
           });
           rows.push({ id: createdTask.task_id, label: createdTask.task_name, targetStage: 'dataflow_analysis' });
         }
