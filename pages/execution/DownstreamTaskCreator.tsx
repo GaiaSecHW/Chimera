@@ -757,9 +757,10 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             file ? `${file}的` : '',
             `${functionName}的污点数据流`,
           ].join('');
+          const legacyTaintLine = `\n外部输入参数为: ${taints.join(', ')}`;
           const taintBody = tag === 'A'
-            ? `，函数主动拉取了污点，污点为函数内变量:\n${taintLines.join('\n')}`
-            : `，污点为函数入参:\n${taintLines.join('\n')}`;
+            ? `，函数主动拉取了污点，污点为函数内变量:\n${taintLines.join('\n')}${legacyTaintLine}`
+            : `，污点为函数入参:\n${taintLines.join('\n')}${legacyTaintLine}`;
           const promptContent = header + taintBody;
           try {
             const createdTask = await executionApi.appDataflowAnalyse.createTask({
