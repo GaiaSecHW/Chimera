@@ -515,6 +515,8 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
   const lineHint = recordText(taskConfig, 'line_hint');
   const functionDescription = recordText(taskConfig, 'function_description');
   const entryReason = recordText(taskConfig, 'entry_reason');
+  const taintParams = Array.isArray(taskConfig.taint_params) ? taskConfig.taint_params.map((item: any) => String(item || '').trim()).filter(Boolean) : [];
+  const taintDetails = Array.isArray(taskConfig.taint_details) ? taskConfig.taint_details.filter((item: any) => item && typeof item === 'object') : [];
   const resumeWorkspace = recordText(taskConfig, 'resume_workspace');
   return (
     <div className="space-y-4">
@@ -621,7 +623,29 @@ export const DataflowAnalysisTaskConfigPanel: React.FC<{ detail: AppDfaTaskDetai
             ) : null}
             {taskConfig.taint_params !== undefined ? (
               <>
-                <ConfigRow label="污点参数"><TagList items={Array.isArray(taskConfig.taint_params) ? taskConfig.taint_params : []} emptyText="未指定" /></ConfigRow>
+                <ConfigRow label="污点参数"><TagList items={taintParams} emptyText="未指定" /></ConfigRow>
+                <Divider />
+              </>
+            ) : null}
+            {taintDetails.length > 0 ? (
+              <>
+                <ConfigRow label="污点详情">
+                  <div className="space-y-2">
+                    {taintDetails.map((item: any, index: number) => {
+                      const name = String(item.name || item.taint || item.param || '').trim() || `污点${index + 1}`;
+                      const description = String(item.description || item.summary || '').trim();
+                      const sourceKind = String(item.source_kind || '').trim();
+                      const source = String(item.description_source || '').trim();
+                      return (
+                        <div key={`${name}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <div className="font-mono text-xs font-black text-slate-800">{name}</div>
+                          {description ? <div className="mt-1 text-xs text-slate-600">{description}</div> : null}
+                          {(sourceKind || source) ? <div className="mt-1 text-[10px] font-semibold text-slate-400">{[sourceKind ? `source_kind=${sourceKind}` : '', source ? `source=${source}` : ''].filter(Boolean).join(' · ')}</div> : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ConfigRow>
                 <Divider />
               </>
             ) : null}
