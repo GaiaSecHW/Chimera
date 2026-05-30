@@ -24,10 +24,14 @@ export const appDataflowAnalyseApi = {
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
   createTask: async (payload: AppDfaTaskCreateRequest): Promise<AppDfaTaskDetail> =>
-    handleResponse(await fetch(`${BASE}/tasks`, {
+    handleResponse(await fetchWithRetry(`${BASE}/tasks`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(payload),
+    }, {
+      retries: 3,
+      retryDelayMs: 500,
+      retryOnStatus: [408, 429, 500, 502, 503, 504],
     })),
 
   listTasks: async (params: {
