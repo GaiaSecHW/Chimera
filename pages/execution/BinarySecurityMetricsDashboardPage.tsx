@@ -146,6 +146,8 @@ type ReducerEventState = {
 
 type AgentObservabilityState = {
   loading: boolean;
+  podsLoading: boolean;
+  podsLoaded: boolean;
   detailLoading: boolean;
   detailLoaded: boolean;
   summary: AgentObservabilitySummary | null;
@@ -2400,6 +2402,8 @@ const INITIAL_ENTRY_WORKER_DETAIL_STATE: EntryWorkerDetailState = {
 
 const INITIAL_AGENT_STATE: AgentObservabilityState = {
   loading: false,
+  podsLoading: false,
+  podsLoaded: false,
   detailLoading: false,
   detailLoaded: false,
   summary: null,
@@ -2718,24 +2722,22 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setAgentState((current) => ({ ...current, loading: true, error: null }));
     try {
       if (serviceKey === 'dataflow-analysis' || serviceKey === 'entry-analysis' || serviceKey === 'system-analysis') {
-        const [summary, pods] = await Promise.all([
-          executionMetricsApi.getAgentObservabilitySummary(serviceKey, projectId) as Promise<AgentObservabilitySummary>,
-          executionMetricsApi.getAgentPods(serviceKey, projectId) as Promise<AgentPodRuntimeSnapshot[]>,
-        ]);
+        const summary = await executionMetricsApi.getAgentObservabilitySummary(serviceKey, projectId) as AgentObservabilitySummary;
+        const pods = options?.loadDetails
+          ? await executionMetricsApi.getAgentPods(serviceKey, projectId) as AgentPodRuntimeSnapshot[]
+          : [];
         let processes: AgentProcessSnapshot[] = [];
         let tasks: AgentTaskOwnershipSnapshot[] = [];
         let runtimeSummary = buildAgentRuntimeSummaryFromState(summary, pods, processes);
         if (options?.loadDetails) {
-          setAgentState((current) => ({ ...current, detailLoading: true }));
-          const runtime = await executionMetricsApi.getAgentRuntimeAggregate(serviceKey, projectId) as AgentRuntimeAggregateResponse;
-          processes = runtime.processes || [];
-          tasks = runtime.tasks || [];
-          runtimeSummary = runtime.summary || runtimeSummary;
+          setAgentState((current) => ({ ...current, podsLoading: true, detailLoading: true }));
         }
         setAgentState({
           loading: false,
+          podsLoading: false,
+          podsLoaded: Boolean(options?.loadDetails),
           detailLoading: false,
-          detailLoaded: Boolean(options?.loadDetails),
+          detailLoaded: false,
           summary,
           processes,
           sessions: [],
@@ -2745,15 +2747,14 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
           error: null,
           refreshedAt: Date.now(),
         });
-        if (options?.loadDetails) {
-          setAgentPodDetails({});
-        }
+        setAgentPodDetails({});
         return;
       }
     } catch (error: any) {
       setAgentState((current) => ({
         ...current,
         loading: false,
+        podsLoading: false,
         detailLoading: false,
         error: error?.message || '智能体观测抓取失败',
         refreshedAt: Date.now(),
@@ -2761,8 +2762,35 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     }
   };
 
+  const ensureAgentPodsLoaded = useCallback(async (serviceKey: BinarySecurityMetricsServiceKey) => {
+    if (!projectId || !agentObservabilityEnabled) return;
+    if (agentState.podsLoaded || agentState.podsLoading) return;
+    setAgentState((current) => ({ ...current, podsLoading: true, error: null }));
+    try {
+      const pods = await executionMetricsApi.getAgentPods(serviceKey, projectId) as AgentPodRuntimeSnapshot[];
+      setAgentState((current) => ({
+        ...current,
+        podsLoading: false,
+        podsLoaded: true,
+        pods,
+        runtimeSummary: buildAgentRuntimeSummaryFromState(current.summary, pods, current.processes),
+        refreshedAt: Date.now(),
+      }));
+    } catch (error: any) {
+      setAgentState((current) => ({
+        ...current,
+        podsLoading: false,
+        error: error?.message || 'Pod 列表抓取失败',
+        refreshedAt: Date.now(),
+      }));
+    }
+  }, [agentObservabilityEnabled, agentState.podsLoaded, agentState.podsLoading, executionMetricsApi, projectId]);
+
   const ensureAgentPodDetail = useCallback(async (serviceKey: BinarySecurityMetricsServiceKey, podName: string) => {
     if (!projectId || !agentObservabilityEnabled || !podName) return;
+    if (!agentState.podsLoaded) {
+      await ensureAgentPodsLoaded(serviceKey);
+    }
     const cacheKey = `${serviceKey}:${podName}`;
     const existing = agentPodDetails[cacheKey];
     if (existing?.loading || existing?.loaded) return;
@@ -2785,7 +2813,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         [cacheKey]: { loading: false, loaded: false, error: error?.message || 'Pod 明细抓取失败', processes: [], tasks: [] },
       }));
     }
-  }, [agentObservabilityEnabled, agentPodDetails, executionMetricsApi, projectId]);
+  }, [agentObservabilityEnabled, agentPodDetails, agentState.podsLoaded, ensureAgentPodsLoaded, executionMetricsApi, projectId]);
 
   useEffect(() => {
     const current = stateByService[activeServiceKey];
@@ -3110,12 +3138,16 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
 
   useEffect(() => {
     if (activeSecondaryTab !== 'agent' || !agentObservabilityEnabled || !requiresAgentDetailFiltering) return;
+    if (!agentState.podsLoaded) {
+      void ensureAgentPodsLoaded(activeServiceKey);
+      return;
+    }
     agentState.pods.forEach((pod) => {
       if (pod.pod_name) {
         void ensureAgentPodDetail(activeServiceKey, pod.pod_name);
       }
     });
-  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, agentState.pods, ensureAgentPodDetail, requiresAgentDetailFiltering]);
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, agentState.pods, agentState.podsLoaded, ensureAgentPodDetail, ensureAgentPodsLoaded, requiresAgentDetailFiltering]);
 
   const filteredDfaPods = useMemo(() => {
     if (!agentObservabilityEnabled) return [] as AgentPodRuntimeSnapshot[];
@@ -5191,11 +5223,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   </button>
                   <button
                     type="button"
-                    onClick={() => void loadAgentObservability(activeServiceKey, { loadDetails: true })}
+                    onClick={() => void ensureAgentPodsLoaded(activeServiceKey)}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
                   >
-                    <Loader2 size={14} className={agentState.detailLoading ? 'animate-spin' : ''} />
-                    刷新全量明细
+                    <Loader2 size={14} className={agentState.podsLoading ? 'animate-spin' : ''} />
+                    {agentState.podsLoaded ? '刷新 Pod 列表' : '加载 Pod 列表'}
                   </button>
                   <button
                     type="button"
@@ -5227,7 +5259,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               </div>
 
               <div className="mt-3 text-xs text-slate-500">
-                默认仅拉取 `summary + pods`。进程和任务明细会在展开 Pod、使用明细筛选或手工刷新全量明细时再加载。
+                默认仅拉取 `summary`。Pod 列表需要手工加载；进程和任务明细会在展开 Pod、使用明细筛选或加载 Pod 列表后再按需获取。
               </div>
 
               {agentState.error ? (
@@ -5303,9 +5335,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   ))}
                 </select>
               </div>
-              {requiresAgentDetailFiltering && loadedAgentProcesses.length === 0 ? (
+              {requiresAgentDetailFiltering && !agentState.podsLoaded ? (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-                  当前过滤条件依赖 Pod 明细，页面会按需补拉对应 Pod 的进程和任务数据。
+                  当前过滤条件依赖 Pod/进程明细，页面会先自动拉取 Pod 列表，再按需补拉对应 Pod 的进程和任务数据。
                 </div>
               ) : null}
             </section>
@@ -5317,6 +5349,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <p className="mt-4 text-sm text-slate-500">
                     正在抓取{activeServiceKey === 'dataflow-analysis' ? '数据流分析' : activeServiceKey === 'entry-analysis' ? '入口分析' : '系统分析'} worker Pod 智能体概览...
                   </p>
+                </section>
+              ) : !agentState.podsLoaded ? (
+                <section className="rounded-[2rem] border border-dashed border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
+                  <p className="text-sm text-slate-500">当前只加载了聚合概览。点击“加载 Pod 列表”后再查看各 Worker Pod 详情。</p>
                 </section>
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
