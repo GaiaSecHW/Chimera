@@ -3042,6 +3042,15 @@ export interface EntryAnalyseWorkerSlot {
   running_jobs: number;
   queued_jobs: number;
   available_slots: number;
+  agent_process_limit: number;
+  agent_process_in_use: number;
+  agent_process_available: number;
+  agent_waiting_requests: number;
+  agent_waiting_tasks: number;
+  agent_queue_oldest_wait_seconds: number;
+  agent_rss_total_bytes: number;
+  agent_rss_max_bytes: number;
+  agent_snapshot_at?: string | null;
   last_heartbeat_at?: string | null;
   source: string;
   error?: string | null;
@@ -3057,6 +3066,17 @@ export interface EntryAnalyseSlotClusterSummary {
   busy_slots: number;
   running_jobs: number;
   available_slots: number;
+  dispatch_limit?: number;
+  dispatch_running?: number;
+  dispatch_available?: number;
+  agent_total_capacity: number;
+  agent_in_use: number;
+  agent_available: number;
+  agent_waiting_requests: number;
+  agent_waiting_tasks: number;
+  agent_queue_oldest_wait_seconds: number;
+  agent_rss_total_bytes: number;
+  agent_rss_max_bytes: number;
   queued_tasks: number;
   queued_jobs: number;
   updated_at?: string | null;
@@ -3367,10 +3387,6 @@ export interface EntryAnalysisServiceConfig {
   agent_timeout_max_retries: number;
   pi_max_retries: number;
   pi_retry_delay: number;
-  worker_parallel: boolean;
-  worker_parallelism: number;
-  // 流水线并行度
-  pipeline_parallelism: number;
   // 各阶段独立轮次配置（-1=无限，0=跳过，正整数=上限）
   r1a_max_rounds: number;
   r1b_max_rounds: number;

@@ -49,6 +49,7 @@ const AppShell: React.FC = () => {
   const [activeFirmwareUnpackerTaskId, setActiveFirmwareUnpackerTaskId] = useState<string>('');
   const [activeBinarySecurityTaskId, setActiveBinarySecurityTaskId] = useState<string>('');
   const [activeSourceSecurityTaskId, setActiveSourceSecurityTaskId] = useState<string>('');
+  const [activeBinaryModuleSecurityTaskId, setActiveBinaryModuleSecurityTaskId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -591,6 +592,7 @@ const AppShell: React.FC = () => {
                     activeFirmwareUnpackerTaskId,
                     activeBinarySecurityTaskId,
                     activeSourceSecurityTaskId,
+                    activeBinaryModuleSecurityTaskId,
                     selectedStaticPkgIds,
                     setCurrentView: navigateToView,
                     setActiveProjectId: (id) => setActiveProjectId(id),
@@ -607,6 +609,7 @@ const AppShell: React.FC = () => {
                     setActiveFirmwareUnpackerTaskId: (id) => setActiveFirmwareUnpackerTaskId(id),
                     setActiveBinarySecurityTaskId: (id) => setActiveBinarySecurityTaskId(id),
                     setActiveSourceSecurityTaskId: (id) => setActiveSourceSecurityTaskId(id),
+                    setActiveBinaryModuleSecurityTaskId: (id) => setActiveBinaryModuleSecurityTaskId(id),
                     setSelectedStaticPkgIds: (ids) => setSelectedStaticPkgIds(ids),
                     fetchProjects,
                     fetchAdminStats,

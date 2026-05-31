@@ -38,6 +38,19 @@ const SLOT_TASK_STATUS_LABEL: Record<string, string> = {
   passed: '通过',
 };
 
+function formatBytes(value?: number | null): string {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let current = bytes;
+  let index = 0;
+  while (current >= 1024 && index < units.length - 1) {
+    current /= 1024;
+    index += 1;
+  }
+  return `${current >= 10 || index === 0 ? current.toFixed(0) : current.toFixed(1)} ${units[index]}`;
+}
+
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
   if (!startedAt) return '-';
   const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
@@ -980,6 +993,10 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     { label: '占用槽位', value: slotCluster.busy_slots, className: 'bg-blue-50 border-blue-200 text-blue-700' },
     { label: '空闲槽位', value: slotCluster.available_slots, className: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
     { label: '排队任务', value: slotCluster.queued_tasks, className: 'bg-amber-50 border-amber-200 text-amber-700' },
+    { label: '智能体上限', value: slotCluster.agent_total_capacity, className: 'bg-violet-50 border-violet-200 text-violet-700' },
+    { label: '智能体占用', value: slotCluster.agent_in_use, className: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700' },
+    { label: '智能体等待', value: slotCluster.agent_waiting_requests, className: 'bg-orange-50 border-orange-200 text-orange-700' },
+    { label: '智能体RSS', value: formatBytes(slotCluster.agent_rss_total_bytes || 0), className: 'bg-cyan-50 border-cyan-200 text-cyan-700' },
   ] : [];
 
   return (
@@ -1021,6 +1038,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                         <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                         <span className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
                         <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
+                        <span className="rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1 text-violet-700">智能体 {worker.agent_process_in_use}/{worker.agent_process_limit}</span>
+                        <span className="rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-orange-700">等待 {worker.agent_waiting_requests}</span>
+                        <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-cyan-700">RSS {formatBytes(worker.agent_rss_total_bytes || 0)}</span>
                         <span className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-slate-500">来源 {worker.source || 'capacity'}</span>
                         <button
                           type="button"
@@ -1435,6 +1455,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700">槽位 {worker.running_jobs}/{worker.max_concurrent_jobs}</span>
                       <span className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-blue-700">排队 {worker.queued_jobs}</span>
                       <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">空闲 {worker.available_slots}</span>
+                      <span className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-violet-700">智能体 {worker.agent_process_in_use}/{worker.agent_process_limit}</span>
+                      <span className="rounded-lg border border-orange-200 bg-orange-50 px-2 py-1 text-orange-700">等待 {worker.agent_waiting_requests}</span>
+                      <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-cyan-700">RSS {formatBytes(worker.agent_rss_total_bytes || 0)}</span>
                     </div>
                     <div className="mt-3 text-[11px] text-slate-500">心跳：{formatDateTime(worker.last_heartbeat_at)}</div>
                     <div className="mt-1 text-[11px] text-slate-400">来源：{worker.source || 'worker_registry'} · 活动任务 {worker.active_tasks.length}</div>

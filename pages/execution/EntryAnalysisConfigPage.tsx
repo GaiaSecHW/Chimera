@@ -64,9 +64,6 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   agent_timeout_max_retries: 3,
   pi_max_retries: -1,
   pi_retry_delay: 5,
-  worker_parallel: false,
-  worker_parallelism: 128,
-  pipeline_parallelism: 64,
   r1a_max_rounds: -1,
   r1b_max_rounds: -1,
   r2_max_rounds: -1,
@@ -207,9 +204,6 @@ const applyEntryPanel = (
         ...base,
         pass_threshold: source.pass_threshold,
         max_concurrent_tasks: source.max_concurrent_tasks,
-        worker_parallel: source.worker_parallel,
-        worker_parallelism: source.worker_parallelism,
-        pipeline_parallelism: source.pipeline_parallelism,
         lean_mode: source.lean_mode,
       };
     case 'retry':
@@ -279,6 +273,7 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
   const [config, setConfig] = useState<EntryAnalysisServiceConfig>(() => defaultConfig(projectId));
   const [savedConfig, setSavedConfig] = useState<EntryAnalysisServiceConfig>(() => defaultConfig(projectId));
   const [modelOptions, setModelOptions] = useState<string[]>([]);
+  const [slotCluster, setSlotCluster] = useState<any | null>(null);
 
   const patch = (p: Partial<EntryAnalysisServiceConfig>) => setConfig((prev) => ({ ...prev, ...p }));
 
@@ -321,6 +316,22 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [projectId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    entryAnalysis.getSlotCluster()
+      .then((data) => {
+        if (!cancelled) {
+          setSlotCluster(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSlotCluster(null);
+        }
+      });
     return () => { cancelled = true; };
   }, [projectId]);
 
@@ -410,11 +421,20 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
               <FieldRow label="任务间并发上限" hint="单个项目内同时运行的任务数">
                 <NumberInput value={config.max_concurrent_tasks} min={1} max={128} onChange={(v) => patch({ max_concurrent_tasks: Math.max(1, Math.min(128, Math.trunc(v || 1))) })} />
               </FieldRow>
-              <FieldRow label="任务内并发上限" hint="单个任务内部 Worker 最大并发">
-                <NumberInput value={config.worker_parallelism} min={1} max={256} onChange={(v) => patch({ worker_parallelism: Math.max(1, Math.min(256, Math.trunc(v || 1))) })} />
+              <FieldRow label="Pod 智能体进程上限" hint="部署级运行参数 EA_AGENT_PROCESS_LIMIT">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {slotCluster?.agent_total_capacity ?? '-'}
+                </div>
               </FieldRow>
-              <FieldRow label="pipeline_parallelism" hint="全局 pi 进程信号量，建议≤ model_max_concurrency（过高会导致模型峧排队延迟）">
-                <NumberInput value={config.pipeline_parallelism} min={1} max={512} onChange={(v) => patch({ pipeline_parallelism: Math.max(1, Math.min(512, Math.trunc(v || 64))) })} />
+              <FieldRow label="Pod 智能体占用/可用" hint="只读观测值，由 worker 心跳上报">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {(slotCluster?.agent_in_use ?? 0)} / {(slotCluster?.agent_available ?? 0)}
+                </div>
+              </FieldRow>
+              <FieldRow label="智能体等待请求" hint="多个任务竞争同一 Pod 槽位时按 FIFO 排队">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  {(slotCluster?.agent_waiting_requests ?? 0)} 请求 / {(slotCluster?.agent_waiting_tasks ?? 0)} 任务
+                </div>
               </FieldRow>
             </div>
 
@@ -456,41 +476,10 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
               )}
             </div>
 
-            <FieldRow label="并行 Worker 模式" hint="开启后 Workers 中的多个实例同时运行，各自分析一个文件分片">
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="inline-flex cursor-pointer items-center gap-3">
-                  <div className="relative">
-                    <input type="checkbox" className="peer sr-only" checked={config.worker_parallel} onChange={(e) => patch({ worker_parallel: e.target.checked })} />
-                    <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-violet-600 transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
-                  </div>
-                  <span className="text-sm text-slate-600">
-                    {config.worker_parallel
-                      ? <span className="font-semibold text-violet-700">并行模式</span>
-                      : <span className="text-slate-400">串行模式</span>}
-                  </span>
-                </label>
-                {config.worker_parallel && (
-                  <label className="inline-flex items-center gap-2 text-sm text-slate-600">
-                    当前任务内并发
-                    <input
-                      type="number"
-                      min={1}
-                      max={256}
-                      value={config.worker_parallelism}
-                      onChange={(e) => {
-                        const n = Math.max(1, Math.min(256, Number(e.target.value) || 1));
-                        patch({ worker_parallelism: n });
-                      }}
-                      className="w-20 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
-                    />
-                    <span className="text-xs text-slate-400">个并发槽位</span>
-                  </label>
-                )}
-              </div>
+            <FieldRow label="智能体并发说明" hint="单任务内不再单独限流">
               <p className="text-xs leading-5 text-slate-500">
-                `Workers` 中的 Agent 实例表示可复用的执行配置，不再等同于并发数量。并行执行时会在这些 Agent 配置间循环复用，
-                实际任务内并发以上面的 `worker_parallelism` 为准，最大支持 256。
+                入口分析的智能体并发现在统一由 worker Pod 的 `EA_AGENT_PROCESS_LIMIT` 控制。
+                单任务可以吃满整个 Pod 的智能体进程；多个任务同时运行时，所有智能体请求按 FIFO 排队获取槽位。
               </p>
             </FieldRow>
           </SectionCard>
@@ -530,13 +519,10 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
           {/* Workers */}
           <RoleConfigBlock
             title="Workers 配置"
-            subtitle={config.worker_parallel
-              ? `并行模式 — 当前任务内最多 ${config.worker_parallelism} 个并发槽位，按顺序复用下方 Agent 配置`
-              : '串行模式 — 仅使用 agents[0]，多余实例仅作为备用配置'}
+            subtitle="Worker Agent 配置列表用于选择执行模型与工具，不再决定单任务并发上限"
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
-            parallelMode={config.worker_parallel}
             actions={(
               <PanelActions
                 saving={savingPanel === 'workers'}

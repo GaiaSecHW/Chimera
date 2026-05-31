@@ -114,6 +114,7 @@ export interface ViewRegistryContext {
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
+  activeBinaryModuleSecurityTaskId: string;
   selectedStaticPkgIds: Set<string>;
   setCurrentView: (view: string) => void;
   setActiveProjectId: (id: string) => void;
@@ -130,6 +131,7 @@ export interface ViewRegistryContext {
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
+  setActiveBinaryModuleSecurityTaskId: (id: string) => void;
   setSelectedStaticPkgIds: (ids: Set<string>) => void;
   fetchProjects: (refresh?: boolean) => Promise<void>;
   fetchAdminStats: () => Promise<void>;
@@ -490,19 +492,19 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           projectId={ctx.selectedProjectId}
           taskType="binary_module"
           onOpenTask={(taskId) => {
-            ctx.setActiveBinarySecurityTaskId(taskId);
+            ctx.setActiveBinaryModuleSecurityTaskId(taskId);
             ctx.setCurrentView('binary-module-security-detail');
           }}
         />
       );
     case 'binary-module-security-detail':
-      if (!ctx.activeBinarySecurityTaskId) {
+      if (!ctx.activeBinaryModuleSecurityTaskId) {
         return (
           <BinarySecurityOverviewPage
             projectId={ctx.selectedProjectId}
             taskType="binary_module"
             onOpenTask={(taskId) => {
-              ctx.setActiveBinarySecurityTaskId(taskId);
+              ctx.setActiveBinaryModuleSecurityTaskId(taskId);
               ctx.setCurrentView('binary-module-security-detail');
             }}
           />
@@ -511,7 +513,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return (
         <BinarySecurityTaskDetailPage
           projectId={ctx.selectedProjectId}
-          taskId={ctx.activeBinarySecurityTaskId}
+          taskId={ctx.activeBinaryModuleSecurityTaskId}
           taskType="binary_module"
           onBack={() => ctx.setCurrentView('binary-module-security')}
         />

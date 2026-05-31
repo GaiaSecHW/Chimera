@@ -376,6 +376,10 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadSpeed, setUploadSpeed] = useState<Record<string, number>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const loadRequestIdRef = useRef(0);
+  const activeLoadRequestRef = useRef(0);
+  const loadInFlightRef = useRef(false);
+  const mountedRef = useRef(true);
   const [defaultStageParallelism, setDefaultStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
   const [defaultMaxRetries, setDefaultMaxRetries] = useState(2);
   const [defaultContinueOnFailure, setDefaultContinueOnFailure] = useState(true);
@@ -412,12 +416,27 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     return ['.zip', '.tar', '.tar.gz', '.tgz', '.tar.bz2', '.tbz2', '.tar.xz', '.txz'].some((ext) => lowered.endsWith(ext));
   };
 
-  const load = async () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const load = async (options?: { silent?: boolean; skipIfInFlight?: boolean }) => {
     if (!projectId) return;
-    setLoading(true);
+    if (options?.skipIfInFlight && loadInFlightRef.current) return;
+    const requestId = loadRequestIdRef.current + 1;
+    loadRequestIdRef.current = requestId;
+    activeLoadRequestRef.current = requestId;
+    loadInFlightRef.current = true;
+    if (!options?.silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
+      if (!mountedRef.current || activeLoadRequestRef.current !== requestId) return;
       const nextItems = data.items || [];
       setItems(nextItems);
       setProjectStats(data.project_stats || deriveProjectStats(nextItems));
@@ -426,9 +445,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
       setQueuedCount(data.queued_count || 0);
       setMaxConcurrentTasks(data.max_concurrent_tasks || 50);
     } catch (e: any) {
+      if (!mountedRef.current || activeLoadRequestRef.current !== requestId) return;
       setError(e?.message || '加载失败');
     } finally {
-      setLoading(false);
+      if (!mountedRef.current || activeLoadRequestRef.current !== requestId) return;
+      loadInFlightRef.current = false;
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -445,7 +469,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
           activeTaskIds.map((taskId) => executionApi.binarySecurity.syncDownstreamStatus(projectId, taskId, { force: true })),
         );
       }
-      await load();
+      await load({ silent: true });
     } catch (e: any) {
       setError(e?.message || '刷新失败');
     } finally {
@@ -538,7 +562,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
     if (!hasActive) return;
-    const timer = window.setInterval(() => void load(), 5000);
+    const timer = window.setInterval(() => void load({ silent: true, skipIfInFlight: true }), 5000);
     return () => window.clearInterval(timer);
   }, [hasActive, projectId, taskType]);
 
