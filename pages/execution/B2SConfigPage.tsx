@@ -29,9 +29,18 @@ const defaultCacheSummary: B2SCacheSummary = {
   current_project_entries: 0,
   fast_entries: 0,
   deep_entries: 0,
+  turbo_entries: 0,
   total_hit_count: 0,
   latest_hit_at: null,
 };
+
+const cacheModeOptions = [
+  { value: 'all', label: '全部模式' },
+  { value: 'fast', label: 'fast / 快速' },
+  { value: 'deep', label: 'deep / 深度' },
+  { value: 'turbo', label: 'turbo / 极速' },
+  { value: 'unknown', label: 'unknown / 其他' },
+] as const;
 
 const B2S_FLOW = {
   title: '二进制逆向阶段推进关系',
@@ -583,12 +592,13 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               </div>
             )}
           >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
               {[
                 { label: '当前可见条目', value: formatNumber(cacheSummary.visible_entries), tone: 'text-slate-900' },
                 { label: '当前项目条目', value: formatNumber(cacheSummary.current_project_entries), tone: 'text-indigo-700' },
                 { label: 'Fast 条目', value: formatNumber(cacheSummary.fast_entries), tone: 'text-emerald-700' },
                 { label: 'Deep 条目', value: formatNumber(cacheSummary.deep_entries), tone: 'text-cyan-700' },
+                { label: 'Turbo 条目', value: formatNumber(cacheSummary.turbo_entries), tone: 'text-fuchsia-700' },
                 { label: '总命中次数', value: formatNumber(cacheSummary.total_hit_count), tone: 'text-amber-700' },
                 { label: '最近命中时间', value: formatDateTime(cacheSummary.latest_hit_at), tone: 'text-slate-900' },
               ].map((item) => (
@@ -609,11 +619,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
               <FieldRow label="当前项目">
                 <input value={projectId} disabled className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600" />
               </FieldRow>
-              <FieldRow label="模式">
+              <FieldRow label="模式" hint="支持 fast / deep / turbo / 其他">
                 <select value={cacheModeFilter} onChange={(e) => { setCacheModeFilter(e.target.value); setCachePage(1); }} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
-                  <option value="all">全部</option>
-                  <option value="fast">fast</option>
-                  <option value="deep">deep</option>
+                  {cacheModeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
               </FieldRow>
               <FieldRow label="状态">
@@ -719,7 +729,11 @@ export const B2SConfigPage: React.FC<{ projectId: string; embedded?: boolean }> 
                       <div className="font-semibold text-slate-800">{entry.elf_basename || '-'}</div>
                     </ExecutionTableTd>
                     <ExecutionTableTd className="min-w-[260px] font-mono text-xs break-all">{entry.cache_key}</ExecutionTableTd>
-                    <ExecutionTableTd>{entry.mode}</ExecutionTableTd>
+                    <ExecutionTableTd>
+                      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                        {entry.mode || 'unknown'}
+                      </span>
+                    </ExecutionTableTd>
                     <ExecutionTableTd>{entry.source_project_id || '-'}</ExecutionTableTd>
                     <ExecutionTableTd className="font-mono text-xs">{entry.source_task_id || '-'}</ExecutionTableTd>
                     <ExecutionTableTd className="font-mono text-xs">{entry.source_item_id || '-'}</ExecutionTableTd>

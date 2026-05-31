@@ -8,7 +8,7 @@ export interface B2SElfTaskInput {
   metadata?: Record<string, any>;
 }
 
-export type B2SRunMode = 'fast' | 'deep';
+export type B2SRunMode = 'fast' | 'deep' | 'turbo';
 export type B2SBudgetExhaustedAction = 'treat_as_passed' | 'treat_as_failed';
 
 export interface B2SServiceConfig {
@@ -54,6 +54,7 @@ export interface B2SCacheSummary {
   current_project_entries: number;
   fast_entries: number;
   deep_entries: number;
+  turbo_entries: number;
   total_hit_count: number;
   latest_hit_at?: string | null;
 }
