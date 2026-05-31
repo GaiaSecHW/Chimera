@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   BarChart3,
@@ -2480,8 +2480,19 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const dataflowAnalysisApi = api.domains.execution.appDataflowAnalyse;
   const entryAnalysisApi = api.domains.execution.appEntryAnalyse;
   const systemAnalysisApi = api.domains.execution.appSystemAnalyse;
+  const validSecondaryTabs = useMemo(
+    () => new Set<BinarySecurityMetricsSecondaryTab>(BINARY_SECURITY_METRICS_SECONDARY_TABS.map((tab) => tab.key)),
+    [],
+  );
+  const resolveSecondaryTabFromUrl = useCallback((): BinarySecurityMetricsSecondaryTab => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('secondary_tab');
+    return tab && validSecondaryTabs.has(tab as BinarySecurityMetricsSecondaryTab)
+      ? (tab as BinarySecurityMetricsSecondaryTab)
+      : 'observability';
+  }, [validSecondaryTabs]);
   const [activeServiceKey, setActiveServiceKey] = useState<BinarySecurityMetricsServiceKey>(BINARY_SECURITY_METRICS_SERVICES[0].key);
-  const [activeSecondaryTab, setActiveSecondaryTab] = useState<BinarySecurityMetricsSecondaryTab>('observability');
+  const [activeSecondaryTab, setActiveSecondaryTab] = useState<BinarySecurityMetricsSecondaryTab>(() => resolveSecondaryTabFromUrl());
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [groupFilter, setGroupFilter] = useState<'all' | BinarySecurityMetricsGroup>('all');
@@ -2535,6 +2546,21 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [selectedAgentSessionId, setSelectedAgentSessionId] = useState<string>('');
   const [agentSessionContentState, setAgentSessionContentState] = useState<AgentSessionContentState>(INITIAL_AGENT_SESSION_CONTENT_STATE);
   const [agentKillHistory, setAgentKillHistory] = useState<AgentKillHistoryEntry[]>([]);
+  const previousProjectIdRef = useRef(projectId);
+
+  useEffect(() => {
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set('secondary_tab', activeSecondaryTab);
+    window.history.replaceState(window.history.state, '', `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+  }, [activeSecondaryTab]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveSecondaryTab(resolveSecondaryTabFromUrl());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [resolveSecondaryTabFromUrl]);
 
   const activeService = useMemo(
     () => BINARY_SECURITY_METRICS_SERVICES.find((service) => service.key === activeServiceKey) || BINARY_SECURITY_METRICS_SERVICES[0],
@@ -2880,7 +2906,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setAiSearchKeyword('');
     setAiRoleFilter('all');
     setSelectedEntryStage('all');
-    setActiveSecondaryTab('observability');
+    if (previousProjectIdRef.current !== projectId) {
+      setActiveSecondaryTab(resolveSecondaryTabFromUrl());
+    }
     setAgentState(INITIAL_AGENT_STATE);
     setAgentPodDetails({});
     setSelectedAgentPids([]);
@@ -2893,7 +2921,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setDfaAgentRoleFilter('all');
     setExpandedDfaAgentPods([]);
     setAgentSessionContentState(INITIAL_AGENT_SESSION_CONTENT_STATE);
-  }, [activeServiceKey, projectId]);
+    previousProjectIdRef.current = projectId;
+  }, [activeServiceKey, projectId, resolveSecondaryTabFromUrl]);
 
   const activeState = stateByService[activeServiceKey];
   const activeRefreshTimestamp = activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer' ? reducerMetricsState.refreshedAt : activeState.refreshedAt;
