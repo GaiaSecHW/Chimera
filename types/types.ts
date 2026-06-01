@@ -3380,6 +3380,7 @@ export interface EntryAnalysisServiceConfig {
   min_rounds: number;
   pass_threshold: number;
   max_concurrent_tasks: number;
+  agent_process_limit: number;
   agent_max_retries: number;
   agent_retry_delay: number;
   agent_run_timeout_seconds: number;

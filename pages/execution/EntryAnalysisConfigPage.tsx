@@ -56,7 +56,8 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   max_rounds_exceeded_action: 'treat_as_passed',
   min_rounds: 2,
   pass_threshold: 0,
-  max_concurrent_tasks: 64,
+  max_concurrent_tasks: 8,
+  agent_process_limit: 8,
   agent_max_retries: 100,
   agent_retry_delay: 30,
   agent_run_timeout_seconds: 3600,
@@ -204,6 +205,7 @@ const applyEntryPanel = (
         ...base,
         pass_threshold: source.pass_threshold,
         max_concurrent_tasks: source.max_concurrent_tasks,
+        agent_process_limit: source.agent_process_limit,
         lean_mode: source.lean_mode,
       };
     case 'retry':
@@ -418,13 +420,11 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
             )}
           >
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              <FieldRow label="任务间并发上限" hint="单个项目内同时运行的任务数">
+              <FieldRow label="单 Pod 任务并发上限" hint="每个 worker Pod 可同时运行的任务数">
                 <NumberInput value={config.max_concurrent_tasks} min={1} max={128} onChange={(v) => patch({ max_concurrent_tasks: Math.max(1, Math.min(128, Math.trunc(v || 1))) })} />
               </FieldRow>
-              <FieldRow label="Pod 智能体进程上限" hint="部署级运行参数 EA_AGENT_PROCESS_LIMIT">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  {slotCluster?.agent_total_capacity ?? '-'}
-                </div>
+              <FieldRow label="单 Pod 智能体进程上限" hint="配置保存后由 worker 心跳热生效">
+                <NumberInput value={config.agent_process_limit} min={1} max={128} onChange={(v) => patch({ agent_process_limit: Math.max(1, Math.min(128, Math.trunc(v || 1))) })} />
               </FieldRow>
               <FieldRow label="Pod 智能体占用/可用" hint="只读观测值，由 worker 心跳上报">
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
@@ -478,8 +478,8 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
 
             <FieldRow label="智能体并发说明" hint="单任务内不再单独限流">
               <p className="text-xs leading-5 text-slate-500">
-                入口分析的智能体并发现在统一由 worker Pod 的 `EA_AGENT_PROCESS_LIMIT` 控制。
-                单任务可以吃满整个 Pod 的智能体进程；多个任务同时运行时，所有智能体请求按 FIFO 排队获取槽位。
+                入口分析的任务并发和智能体并发都由配置页动态控制，并通过 worker 心跳热生效，无需重启 Pod。
+                单任务可以吃满所在 Pod 的智能体进程；多个任务同时运行时，所有智能体请求按 FIFO 排队获取槽位。
               </p>
             </FieldRow>
           </SectionCard>
