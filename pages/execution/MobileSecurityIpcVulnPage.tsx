@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Background, Controls, Edge, Handle, MarkerType, Node, NodeProps, Position, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { AlertTriangle, ArrowLeft, Bot, CheckCircle2, Clock3, Info, Loader2, Plus, RefreshCw, RotateCcw, Search, Server, SquareTerminal, Trash2, Wrench, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Bot, CheckCircle2, ChevronDown, ChevronRight, Clock3, Info, Loader2, Plus, RefreshCw, RotateCcw, Search, Server, SquareTerminal, Trash2, Wrench, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -626,6 +626,8 @@ const defaultCustomGraphPipeline = {
     {
       id: 'audit',
       agent: 'opencode',
+      retries: 1000,
+      timeout_seconds: 7200,
       prompt: defaultAuditGraphPrompt,
       success_criteria: [
         {
@@ -638,6 +640,8 @@ const defaultCustomGraphPipeline = {
       id: 'poc',
       agent: 'opencode',
       depends_on: ['audit'],
+      retries: 1000,
+      timeout_seconds: 7200,
       prompt: defaultPocGraphPrompt,
       success_criteria: [
         {
@@ -682,6 +686,8 @@ const defaultPythonBuilderCode = [
   '            task_id="audit",',
   '            prompt=AUDIT_PROMPT,',
   '            tools="read_write",',
+  '            retries=1000,',
+  '            timeout_seconds=7200,',
   '            success_criteria=[',
   '                {"kind": "file_nonempty", "path": AUDIT_REPORT_PATH},',
   '            ],',
@@ -690,6 +696,8 @@ const defaultPythonBuilderCode = [
   '            task_id="poc",',
   '            prompt=POC_PROMPT,',
   '            tools="read_write",',
+  '            retries=1000,',
+  '            timeout_seconds=7200,',
   '            success_criteria=[',
   '                {"kind": "file_nonempty", "path": POC_REPORT_PATH},',
   '                {"kind": "json_valid", "path": AUDITED_RESULT_PATH},',
@@ -2189,6 +2197,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [customGraphExpanded, setCustomGraphExpanded] = useState(false);
 
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasks, setTasks] = useState<IpcAuditTaskSummary[]>([]);
@@ -3274,6 +3283,12 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   }, [pipelineMode, customGraphNodeKey, reportOutputDrafts.length]);
 
   useEffect(() => {
+    if (createModalOpen) {
+      setCustomGraphExpanded(false);
+    }
+  }, [createModalOpen]);
+
+  useEffect(() => {
     if (!createModalOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !creating) {
@@ -3457,6 +3472,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   });
 
   const focusGraphEditor = (target: GraphEditorTarget) => {
+    setCustomGraphExpanded(true);
     if (target === 'inline_json') {
       setGraphSourceType('inline_json');
     }
@@ -3479,6 +3495,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   };
 
   const handleSaveTemplate = async () => {
+    setCustomGraphExpanded(true);
     if (!workspaceId) {
       notify('请先选择工作区', 'error');
       return;
@@ -3516,6 +3533,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
       notify('请选择一个模板', 'error');
       return;
     }
+    setCustomGraphExpanded(true);
     applyTemplateConfig(target.config);
     setTemplateName(target.name);
     setTemplateDescription(target.description || '');
@@ -3550,6 +3568,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   };
 
   const handleResetReportOutputs = () => {
+    setCustomGraphExpanded(true);
     setReportOutputDrafts(buildDefaultReportOutputs(pipelineMode, customGraphNodeIds));
   };
 
@@ -3615,6 +3634,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   };
 
   const handleAddReportOutput = () => {
+    setCustomGraphExpanded(true);
     setReportOutputDrafts((current) => current.concat(toReportOutputDraft({
       output_id: `report_${current.length + 1}`,
       node_id: customGraphNodeIds[current.length] || customGraphNodeIds[0] || '',
@@ -5272,28 +5292,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                     <div className="mt-2 text-xs font-medium text-slate-500">单选时作为任务标题；多选时作为标题前缀并自动追加项目名。</div>
                   </label>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="block">
-                      <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">Pipeline Mode</div>
-                      <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700">
-                        {formatPipelineMode(pipelineMode)}
-                      </div>
-                    </div>
-
-                    <label className="block">
-                      <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">执行器</div>
-                      <select
-                        value={executorMode}
-                        onChange={(event) => setExecutorMode(event.target.value as ExecutorMode)}
-                        disabled
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-                      >
-                        <option value="agentflow_cli">{formatExecutorMode('agentflow_cli')}</option>
-                      </select>
-                      <div className="mt-2 text-xs font-medium text-slate-500">当前页面固定走 `custom_graph + agentflow_cli`。</div>
-                    </label>
-                  </div>
-
                   <label className="block">
                     <div className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">Model</div>
                     <input
@@ -5305,6 +5303,40 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                   </label>
                   <div className="text-xs font-medium text-slate-500">{modelHintForExecutor(executorMode, providerFallbackModel || null)}</div>
 
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setCustomGraphExpanded((current) => !current)}
+                        aria-expanded={customGraphExpanded}
+                        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+                      >
+                        <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600">
+                          {customGraphExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-xs font-black uppercase tracking-[0.18em] text-slate-500">自定义 AgentFlow 图</span>
+                          <span className="mt-1 block text-xs font-medium leading-6 text-slate-500">
+                            默认使用内置图配置创建任务；需要调整 Graph、模板或报告输出时点击展开。
+                          </span>
+                        </span>
+                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                          {graphSourceType === 'inline_json' ? 'Inline JSON' : `Python · ${builderSourceMode === 'entry' ? 'Entry' : 'Code'}`}
+                        </span>
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                          {customGraphNodeIds.length} Nodes
+                        </span>
+                        <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                          {reportOutputDrafts.length} Outputs
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {customGraphExpanded ? (
+                    <>
                   <div ref={graphDefinitionCardRef} className="rounded-lg border border-sky-200 bg-sky-50/80 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
@@ -5588,6 +5620,8 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                           )}
                         </div>
                       </div>
+                    </>
+                  ) : null}
 
                   <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
                     <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -5698,9 +5732,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Create Summary</div>
                         <h3 className="mt-2 text-lg font-black text-slate-950">当前输入配置</h3>
                       </div>
-                      <span className={`rounded-full border px-3 py-1 text-xs font-bold ${statusTone(pipelineMode)}`}>
-                        {formatPipelineMode(pipelineMode)}
-                      </span>
                     </div>
                     <div className="mt-4 space-y-3 text-sm">
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
@@ -5723,17 +5754,6 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                             ))
                           )}
                         </div>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Pipeline</div>
-                        <div className="mt-2 font-semibold text-slate-800">{formatPipelineMode(pipelineMode)}</div>
-                        <div className="mt-1 text-xs font-medium text-slate-500">
-                          AgentFlow 自定义图，节点和报告数量由图与输出声明决定。
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">执行器</div>
-                        <div className="mt-2 font-semibold text-slate-800">{formatExecutorMode(executorMode)}</div>
                       </div>
                       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
                         <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Model</div>
