@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, Trash2, UploadCloud, X } from 'lucide-react';
 
-import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskDetail } from '../../clients/binaryToSource';
+import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskDetail, B2STaskListStats } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
-import { B2SStatsHeader, summarizeB2STasks } from './B2SStatsHeader';
+import { B2SStatsHeader } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
@@ -77,6 +77,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const autoRefreshStorageKey = `secflow:b2s:autoRefresh:${projectId || 'default'}`;
   const refreshIntervalStorageKey = `secflow:b2s:refreshInterval:${projectId || 'default'}`;
   const [items, setItems] = useState<B2STask[]>([]);
+  const [taskStats, setTaskStats] = useState<B2STaskListStats>({ total: 0, pending: 0, running: 0, success: 0, partial: 0, failed: 0, cancelled: 0 });
   const [piClusterCapacity, setPiClusterCapacity] = useState<B2SPiClusterCapacity | null>(null);
   const [activeTaskDetails, setActiveTaskDetails] = useState<Record<string, B2STaskDetail>>({});
   const [loading, setLoading] = useState(false);
@@ -116,13 +117,29 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [uploadProgress, setUploadProgress] = useState('');
   const hasSelectedProviderInList = !llmProviderKey || llmProviders.some((item) => item.provider_key === llmProviderKey);
 
+  const listQuery = useMemo(() => ({
+    status: statusFilter || undefined,
+    search: searchText.trim() || undefined,
+    parent_task_id: parentTaskFilter.trim() || undefined,
+    task_origin_type: originFilter || undefined,
+    input_filename: inputFileFilter.trim() || undefined,
+    sort_by: 'created_at',
+    sort_order: 'desc' as const,
+    limit: perPage,
+    offset: Math.max(0, (page - 1) * perPage),
+  }), [inputFileFilter, originFilter, page, perPage, parentTaskFilter, searchText, statusFilter]);
+
   const load = useCallback(async (showLoading = true) => {
     if (!projectId) return;
     if (showLoading) setLoading(true);
     else setRefreshing(true);
     try {
-      const data = await executionApi.binaryToSource.listTasks(projectId);
+      const [data, stats] = await Promise.all([
+        executionApi.binaryToSource.listTasks(projectId, listQuery),
+        executionApi.binaryToSource.getTaskStats(projectId, listQuery),
+      ]);
       setItems(data.items || []);
+      setTaskStats(stats);
       setError(null);
     } catch (e: any) {
       setError(e?.message || '加载失败');
@@ -130,7 +147,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
       if (showLoading) setLoading(false);
       else setRefreshing(false);
     }
-  }, [executionApi.binaryToSource, projectId]);
+  }, [executionApi.binaryToSource, listQuery, projectId]);
 
   const loadPiClusterCapacity = useCallback(async () => {
     if (!projectId) return;
@@ -198,36 +215,19 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     return () => window.clearInterval(timer);
   }, [autoRefreshEnabled, load, loadPiClusterCapacity, projectId, refreshIntervalSec]);
 
-  const stats = useMemo(() => summarizeB2STasks(items), [items]);
-  const statusOptions = useMemo(() => {
-    const present = new Set(items.map((task) => normalizeB2STaskStatus(task.status)).filter(Boolean));
-    return B2S_TASK_STATUS_ORDER.filter((status) => present.has(status));
-  }, [items]);
-  const filteredItems = useMemo(() => {
-    const keyword = searchText.trim().toLowerCase();
-    const inputKeyword = inputFileFilter.trim().toLowerCase();
-    return items.filter((task) => {
-      if (statusFilter && normalizeB2STaskStatus(task.status) !== statusFilter) return false;
-      if (parentTaskFilter && String(task.parent_task_id || '').trim() !== parentTaskFilter) return false;
-      if (inputKeyword) {
-        const filenames = (task.input_filenames || []).map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
-        if (!filenames.some((value) => value.includes(inputKeyword))) return false;
-      }
-      if (originFilter && String(task.task_origin_type || 'manual').trim() !== originFilter) return false;
-      if (!keyword) return true;
-      const haystack = [
-        task.name,
-        task.id,
-        task.parent_task_display,
-        task.parent_task_id,
-        task.origin_label,
-      ].join(' ').toLowerCase();
-      return haystack.includes(keyword);
-    });
-  }, [inputFileFilter, items, originFilter, parentTaskFilter, searchText, statusFilter]);
-  const total = filteredItems.length;
+  const stats = taskStats;
+  const statusOptions = B2S_TASK_STATUS_ORDER.filter((status) => {
+    if (status === 'pending') return stats.pending > 0;
+    if (status === 'running') return stats.running > 0;
+    if (status === 'success' || status === 'completed') return stats.success > 0;
+    if (status === 'partial') return stats.partial > 0;
+    if (status === 'failed') return stats.failed > 0;
+    if (status === 'cancelled') return stats.cancelled > 0;
+    return false;
+  });
+  const total = stats.total;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
-  const pagedItems = useMemo(() => filteredItems.slice((page - 1) * perPage, page * perPage), [filteredItems, page, perPage]);
+  const pagedItems = items;
   const pageStart = total === 0 ? 0 : (page - 1) * perPage + 1;
   const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * perPage + pagedItems.length);
   const pagedTaskIds = useMemo(() => pagedItems.map((task) => task.id), [pagedItems]);
@@ -974,7 +974,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <div>任务</div>
                         <input
                           value={searchText}
-                          onChange={(e) => setSearchText(e.target.value)}
+                          onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
                           placeholder="搜索任务名/任务ID"
                           className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
                           onClick={(event) => event.stopPropagation()}
@@ -986,7 +986,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <div>输入文件</div>
                         <input
                           value={inputFileFilter}
-                          onChange={(e) => setInputFileFilter(e.target.value)}
+                          onChange={(e) => { setInputFileFilter(e.target.value); setPage(1); }}
                           placeholder="搜索输入文件"
                           className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs normal-case tracking-normal text-slate-700"
                           onClick={(event) => event.stopPropagation()}
@@ -1017,7 +1017,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                         <div>来源</div>
                         <select
                           value={originFilter}
-                          onChange={(e) => setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security')}
+                          onChange={(e) => { setOriginFilter((e.target.value || '') as '' | 'manual' | 'binary_security'); setPage(1); }}
                           className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs normal-case tracking-normal text-slate-700"
                           onClick={(event) => event.stopPropagation()}
                         >

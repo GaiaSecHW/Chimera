@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownUp, ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, XCircle } from 'lucide-react';
 
 import { api } from '../../clients/api';
-import { AppSaClusterCapacity, AppSaClusterCapacitySummary, AppSaTaskListItem } from '../../types/types';
+import { AppSaClusterCapacity, AppSaClusterCapacitySummary, AppSaTaskListItem, AppSaTaskListStats } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
@@ -172,6 +172,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [batchRestarting, setBatchRestarting] = useState(false);
   const [tasks, setTasks] = useState<AppSaTaskListItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [taskStats, setTaskStats] = useState<AppSaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [statusFilter, setStatusFilter] = useState('');
@@ -270,6 +271,21 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     }
   }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
+  const loadTaskStats = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const resp = await appApi.getTaskStats({
+        project_id: projectId,
+        status: statusFilter,
+        analysis_mode: analysisModeFilter,
+        parent_task_id: parentTaskIdFilter.trim() || undefined,
+      });
+      setTaskStats(resp);
+    } catch (err: any) {
+      notify(`加载任务统计失败: ${err?.message || err}`, 'error');
+    }
+  }, [appApi, projectId, statusFilter, analysisModeFilter, parentTaskIdFilter, notify]);
+
   const loadClusterCapacity = useCallback(async () => {
     setSlotLoading(true);
     try {
@@ -299,6 +315,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   }, [appApi]);
 
   useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  useEffect(() => { void loadTaskStats(); }, [loadTaskStats]);
   useEffect(() => { void loadClusterCapacity(); }, [loadClusterCapacity]);
 
   useEffect(() => {
@@ -553,10 +570,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
-            { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
-            { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-            { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-            { label: '失败/取消', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error' || t.status === 'cancelled').length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+            { label: '总任务', value: taskStats.total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
+            { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            { label: '已通过', value: taskStats.passed, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+            { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
               <p className={`text-lg font-black ${s.text}`}>{s.value}</p>

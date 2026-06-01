@@ -153,6 +153,16 @@ export interface B2STask {
   updated_at?: string;
 }
 
+export interface B2STaskListStats {
+  total: number;
+  pending: number;
+  running: number;
+  success: number;
+  partial: number;
+  failed: number;
+  cancelled: number;
+}
+
 export interface B2STaskBatchDeleteResult {
   task_id: string;
   status: string;
@@ -966,9 +976,44 @@ export const binaryToSourceApi = {
     return handleResponse(resp);
   },
 
-  listTasks: async (projectId: string, status?: string): Promise<{ total: number; items: B2STask[] }> => {
-    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+  listTasks: async (projectId: string, params: {
+    status?: string;
+    search?: string;
+    parent_task_id?: string;
+    parent_stage_item_id?: string;
+    task_origin_type?: string;
+    input_filename?: string;
+    sort_by?: string;
+    sort_order?: 'asc' | 'desc';
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<{ total: number; items: B2STask[] }> => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value == null || value === '') return;
+      search.set(key, String(value));
+    });
+    const q = search.toString() ? `?${search.toString()}` : '';
     return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks${q}`, {
+      headers: getHeaders(),
+    });
+  },
+
+  getTaskStats: async (projectId: string, params: {
+    status?: string;
+    search?: string;
+    parent_task_id?: string;
+    parent_stage_item_id?: string;
+    task_origin_type?: string;
+    input_filename?: string;
+  } = {}): Promise<B2STaskListStats> => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value == null || value === '') return;
+      search.set(key, String(value));
+    });
+    const q = search.toString() ? `?${search.toString()}` : '';
+    return getJsonWithDedupe(`${API_BASE}/api/app/binary-to-source/projects/${projectId}/tasks/stats${q}`, {
       headers: getHeaders(),
     });
   },

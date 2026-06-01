@@ -673,6 +673,10 @@ export const dataflowVulnScannerApi = {
     page?: number;
     per_page?: number;
     status?: string;
+    search?: string;
+    slot_binding_state?: string;
+    report_status?: string;
+    model?: string;
     mode?: 'manual' | 'binary' | 'source';
     parent_task_id?: string;
     sort_by?: string;
@@ -684,6 +688,10 @@ export const dataflowVulnScannerApi = {
       page: params.page,
       per_page: params.per_page,
       status: params.status,
+      search: params.search,
+      slot_binding_state: params.slot_binding_state,
+      report_status: params.report_status,
+      model: params.model,
       mode: params.mode,
       parent_task_id: params.parent_task_id,
       sort_by: params.sort_by,
@@ -699,6 +707,10 @@ export const dataflowVulnScannerApi = {
   getTaskStats: async (params: {
     projectId?: string;
     status?: string;
+    search?: string;
+    slot_binding_state?: string;
+    report_status?: string;
+    model?: string;
     mode?: 'manual' | 'binary' | 'source';
     parent_task_id?: string;
     profileId?: string;
@@ -706,6 +718,10 @@ export const dataflowVulnScannerApi = {
     return getJsonWithDedupe(withQuery(`${PREFIX}/tasks/stats`, {
       project_id: params.projectId,
       status: params.status,
+      search: params.search,
+      slot_binding_state: params.slot_binding_state,
+      report_status: params.report_status,
+      model: params.model,
       mode: params.mode,
       parent_task_id: params.parent_task_id,
       profile_id: params.profileId,

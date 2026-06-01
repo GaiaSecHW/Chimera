@@ -655,10 +655,20 @@ export const binarySecurityApi = {
 
   listTasks: async (
     projectId: string,
-    status?: string,
-    taskType?: BinarySecurityTaskType,
+    query?: {
+      status?: string;
+      taskType?: BinarySecurityTaskType;
+      search?: string;
+      sortBy?: 'created_at' | 'updated_at' | 'started_at' | 'finished_at' | 'status' | 'name' | 'task_name';
+      sortOrder?: 'asc' | 'desc';
+      page?: number;
+      pageSize?: number;
+    },
   ): Promise<{
     total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
     running_count: number;
     queued_count: number;
     max_concurrent_tasks: number;
@@ -667,8 +677,13 @@ export const binarySecurityApi = {
     items: BinarySecurityTask[];
   }> => {
     const params = new URLSearchParams();
-    if (status) params.set('status', status);
-    if (taskType) params.set('task_type', taskType);
+    if (query?.status) params.set('status', query.status);
+    if (query?.taskType) params.set('task_type', query.taskType);
+    if (query?.search) params.set('search', query.search);
+    if (query?.sortBy) params.set('sort_by', query.sortBy);
+    if (query?.sortOrder) params.set('sort_order', query.sortOrder);
+    if (query?.page) params.set('page', String(query.page));
+    if (query?.pageSize) params.set('page_size', String(query.pageSize));
     const q = params.size > 0 ? `?${params.toString()}` : '';
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks${q}`, {
       headers: getHeaders(),

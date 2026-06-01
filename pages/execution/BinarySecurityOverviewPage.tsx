@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, ShieldAlert, Upload } from 'lucide-react';
+import { Archive, BarChart3, ChevronRight, Layers3, Loader2, Plus, RefreshCw, Search, ShieldAlert, Upload } from 'lucide-react';
 
 import { BinarySecurityInputFile, BinarySecurityPipelineMode, BinarySecurityProjectStageAggregate, BinarySecurityProjectStats, BinarySecurityTask, BinarySecurityTaskType } from '../../clients/binarySecurity';
 import { fileserverApi } from '../../clients/fileserver';
@@ -355,6 +355,15 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [projectStats, setProjectStats] = useState<BinarySecurityProjectStats>(() => emptyProjectStats());
   const [projectStageAggregates, setProjectStageAggregates] = useState<BinarySecurityProjectStageAggregate[]>(() => emptyStageAggregates());
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [sortBy, setSortBy] = useState<'created_at' | 'updated_at' | 'started_at' | 'finished_at' | 'status' | 'name'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [runningCount, setRunningCount] = useState(0);
   const [queuedCount, setQueuedCount] = useState(0);
   const [maxConcurrentTasks, setMaxConcurrentTasks] = useState(50);
@@ -398,6 +407,11 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [moduleRiskLevels, setModuleRiskLevels] = useState<string[]>(['高']);
   const [stageParallelism, setStageParallelism] = useState<Record<string, number>>(DEFAULT_STAGE_PARALLELISM);
 
+  const toggleStatusQuickFilter = (status: string) => {
+    setStatusFilter((current) => (current === status ? '' : status));
+    setPage(1);
+  };
+
   const isSourceTask = taskType === 'source';
   const isBinaryModuleTask = taskType === 'binary_module';
   const pageTitle = isSourceTask ? '源码扫描' : isBinaryModuleTask ? '二进制模块扫描' : '二进制安全';
@@ -435,10 +449,20 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
     }
     setError(null);
     try {
-      const data = await executionApi.binarySecurity.listTasks(projectId, undefined, taskType);
+      const data = await executionApi.binarySecurity.listTasks(projectId, {
+        status: statusFilter || undefined,
+        taskType,
+        search: search || undefined,
+        sortBy,
+        sortOrder,
+        page,
+        pageSize,
+      });
       if (!mountedRef.current || activeLoadRequestRef.current !== requestId) return;
       const nextItems = data.items || [];
       setItems(nextItems);
+      setTotal(data.total || 0);
+      setTotalPages(data.total_pages || 1);
       setProjectStats(data.project_stats || deriveProjectStats(nextItems));
       setProjectStageAggregates(Array.isArray(data.project_stage_aggregates) ? data.project_stage_aggregates : emptyStageAggregates());
       setRunningCount(data.running_count || 0);
@@ -557,14 +581,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
 
   useEffect(() => {
     void load();
-  }, [projectId, taskType]);
+  }, [projectId, taskType, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   const hasActive = useMemo(() => items.some((item) => !TERMINAL.has(item.status)), [items]);
   useEffect(() => {
     if (!hasActive) return;
     const timer = window.setInterval(() => void load({ silent: true, skipIfInFlight: true }), 5000);
     return () => window.clearInterval(timer);
-  }, [hasActive, projectId, taskType]);
+  }, [hasActive, projectId, taskType, statusFilter, search, sortBy, sortOrder, page, pageSize]);
 
   useEffect(() => {
     if (!showCreateDialog) return;
@@ -601,6 +625,8 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const hasNextCreateTab = currentCreateTabIndex >= 0 && currentCreateTabIndex < CREATE_DIALOG_TABS.length - 1;
   const selectedCount = selectedTaskIds.length;
   const allSelected = items.length > 0 && selectedCount === items.length;
+  const pageStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const pageEnd = total === 0 ? 0 : Math.min(total, (page - 1) * pageSize + items.length);
 
   const applyCreateDefaults = (defaults: {
     stageParallelism: Record<string, number>;
@@ -961,7 +987,85 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                 {deleting ? '删除中...' : `删除选中 (${selectedCount})`}
               </button>
             )}
-            <div className="text-sm text-slate-500">共 {items.length} 条</div>
+            <div className="text-sm text-slate-500">共 {total} 条</div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+            <label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <Search size={16} className="text-slate-400" />
+              <input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setPage(1);
+                    setSearch(searchInput.trim());
+                  }
+                }}
+                placeholder="搜索任务名 / 路径 / ID"
+                className="w-full bg-transparent text-sm outline-none"
+              />
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+            >
+              <option value="">全部状态</option>
+              <option value="pending">pending</option>
+              <option value="dispatching">dispatching</option>
+              <option value="success">success</option>
+              <option value="partial_success">partial_success</option>
+              <option value="failed">failed</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+            <select
+              value={`${sortBy}:${sortOrder}`}
+              onChange={(e) => {
+                const [nextSortBy, nextSortOrder] = e.target.value.split(':');
+                setSortBy((nextSortBy as typeof sortBy) || 'created_at');
+                setSortOrder((nextSortOrder as 'asc' | 'desc') || 'desc');
+                setPage(1);
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+            >
+              <option value="created_at:desc">创建时间 最新</option>
+              <option value="created_at:asc">创建时间 最早</option>
+              <option value="updated_at:desc">更新时间 最新</option>
+              <option value="started_at:desc">开始时间 最新</option>
+              <option value="status:asc">状态 A-Z</option>
+              <option value="name:asc">任务名 A-Z</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setPage(1);
+                setSearch(searchInput.trim());
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700"
+            >
+              查询
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput('');
+                setSearch('');
+                setStatusFilter('');
+                setSortBy('created_at');
+                setSortOrder('desc');
+                setPage(1);
+              }}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700"
+            >
+              重置
+            </button>
           </div>
         </div>
         {error && <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</div>}
@@ -991,7 +1095,14 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
                       />
                       <h3 className="text-lg font-black text-slate-900">{item.name}</h3>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(taskDisplayStatus(item.status, item.manual_operation_state))}`}>{taskDisplayStatus(item.status, item.manual_operation_state)}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleStatusQuickFilter(item.status)}
+                          title={statusFilter === item.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
+                          className={`rounded-full border px-3 py-1 text-xs font-black ${statusTone(taskDisplayStatus(item.status, item.manual_operation_state))}`}
+                        >
+                          {taskDisplayStatus(item.status, item.manual_operation_state)}
+                        </button>
                         {item.manual_operation_state ? (
                           <span
                             title={item.manual_operation_state.blocking_reason || item.manual_operation_state.summary}
@@ -1061,6 +1172,41 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             ))}
           </div>
         )}
+        <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-slate-500">
+            当前第 {page} / {Math.max(1, totalPages)} 页，显示 {pageStart}-{pageEnd} / {total}
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value) || 20);
+                setPage(1);
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+            >
+              {[10, 20, 50, 100].map((size) => (
+                <option key={size} value={size}>{size} / 页</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              上一页
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page >= totalPages}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              下一页
+            </button>
+          </div>
+        </div>
       </section>
 
       {showCreateDialog && (

@@ -97,7 +97,6 @@ const TASK_SORT_OPTIONS = [
   { value: 'priority', label: '优先级' },
 ] as const;
 
-type LocalTaskSortKey = 'started_at' | 'duration';
 type LocalFilterOwner = 'slot' | 'status' | 'report' | 'model';
 
 const REVIEW_PROFILE_OPTIONS = [
@@ -741,7 +740,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [localSort, setLocalSort] = useState<{ key: LocalTaskSortKey; order: 'asc' | 'desc' } | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -883,7 +881,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         projectId,
         page: targetPage,
         per_page: perPage,
-        status: runStatusFilter || undefined,
+        status: runStatusFilter || statusQuickFilter || undefined,
+        search: runQuery.trim() || undefined,
+        slot_binding_state: slotQuickFilter || undefined,
+        report_status: reportQuickFilter || undefined,
+        model: modelQuickFilter || undefined,
         mode: modeFilter || undefined,
         parent_task_id: parentTaskIdFilter.trim() || undefined,
         sort_by: sortBy,
@@ -900,14 +902,18 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     } finally {
       setLoading(false);
     }
-  }, [executionApi, modeFilter, notify, parentTaskIdFilter, perPage, projectId, runStatusFilter, sortBy, sortOrder]);
+  }, [executionApi, modeFilter, modelQuickFilter, notify, parentTaskIdFilter, perPage, projectId, reportQuickFilter, runQuery, runStatusFilter, slotQuickFilter, sortBy, sortOrder, statusQuickFilter]);
 
   const loadTaskStats = useCallback(async () => {
     if (!projectId) return;
     try {
       const payload = await executionApi.getTaskStats({
         projectId,
-        status: runStatusFilter || undefined,
+        status: runStatusFilter || statusQuickFilter || undefined,
+        search: runQuery.trim() || undefined,
+        slot_binding_state: slotQuickFilter || undefined,
+        report_status: reportQuickFilter || undefined,
+        model: modelQuickFilter || undefined,
         mode: modeFilter || undefined,
         parent_task_id: parentTaskIdFilter.trim() || undefined,
       });
@@ -915,7 +921,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     } catch {
       setTaskStats((current) => current);
     }
-  }, [executionApi, modeFilter, parentTaskIdFilter, projectId, runStatusFilter]);
+  }, [executionApi, modeFilter, modelQuickFilter, parentTaskIdFilter, projectId, reportQuickFilter, runQuery, runStatusFilter, slotQuickFilter, statusQuickFilter]);
 
   const loadSlotSummary = useCallback(async () => {
     setSlotSummaryLoading(true);
@@ -962,12 +968,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     setStatusQuickFilter('');
     setReportQuickFilter('');
     setModelQuickFilter('');
-    setLocalSort(null);
   }, [projectId]);
 
   useEffect(() => {
     void loadAll(page);
-  }, [loadAll, page, projectId, perPage, runStatusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
+  }, [loadAll, page, projectId, perPage, runQuery, runStatusFilter, slotQuickFilter, statusQuickFilter, reportQuickFilter, modelQuickFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
   useEffect(() => {
     if (!showSlotDetailModal) return;
@@ -980,67 +985,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     sessionStorage.removeItem('secflow:dataflowVulnTaskId');
     void openTaskDetail({ task_id: storedTaskId, latest_execution_id: '' });
   }, [projectId]);
-
-  const filteredTasks = useMemo(() => {
-    const text = runQuery.trim().toLowerCase();
-    const matched = tasks.filter((task) => {
-      const run = taskRunLocator(task);
-      const runSummary = taskRunSummary(task);
-      const normalizedStatus = normalizeRunStatus(taskDisplayStatus(task));
-      const slotView = getExecutionSlotView(task);
-      const reportStatus = vulnReportStatusLabel(task);
-      const modelValue = String(runSummary.model || '').trim();
-
-      if (text && ![
-        task.title,
-        task.task_id,
-        task.status,
-        task.message,
-        task.latest_execution_id,
-        task.profile_id,
-        run.name,
-        run.path,
-        taskRunDirectoryPath(task),
-        run.root_path,
-        runSummary.status,
-        STATUS_META[normalizedStatus]?.label,
-        runSummary.model,
-        runSummary.provider,
-        runSummary.workflow_mode,
-        run.linked_task_id,
-        run.linked_execution_id,
-      ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text))) {
-        return false;
-      }
-
-      if (slotQuickFilter && slotView.state !== slotQuickFilter) return false;
-      if (statusQuickFilter && normalizedStatus !== statusQuickFilter) return false;
-      if (reportQuickFilter && reportStatus.label !== reportQuickFilter) return false;
-      if (modelQuickFilter && modelValue !== modelQuickFilter) return false;
-      return true;
-    });
-
-    if (!localSort) return matched;
-
-    const sorted = [...matched];
-    sorted.sort((left, right) => {
-      if (localSort.key === 'started_at') {
-        const leftValue = new Date(left.started_at || left.created_at || 0).getTime();
-        const rightValue = new Date(right.started_at || right.created_at || 0).getTime();
-        const safeLeft = Number.isFinite(leftValue) ? leftValue : 0;
-        const safeRight = Number.isFinite(rightValue) ? rightValue : 0;
-        return localSort.order === 'asc' ? safeLeft - safeRight : safeRight - safeLeft;
-      }
-      const leftStart = new Date(left.started_at || left.created_at || 0).getTime();
-      const rightStart = new Date(right.started_at || right.created_at || 0).getTime();
-      const leftEnd = left.finished_at ? new Date(left.finished_at).getTime() : Date.now();
-      const rightEnd = right.finished_at ? new Date(right.finished_at).getTime() : Date.now();
-      const leftDuration = Number.isFinite(leftStart) && Number.isFinite(leftEnd) && leftEnd >= leftStart ? leftEnd - leftStart : -1;
-      const rightDuration = Number.isFinite(rightStart) && Number.isFinite(rightEnd) && rightEnd >= rightStart ? rightEnd - rightStart : -1;
-      return localSort.order === 'asc' ? leftDuration - rightDuration : rightDuration - leftDuration;
-    });
-    return sorted;
-  }, [localSort, modelQuickFilter, reportQuickFilter, runQuery, slotQuickFilter, statusQuickFilter, tasks]);
 
   const toggleQuickFilter = useCallback((owner: LocalFilterOwner, value: string) => {
     setPage(1);
@@ -1057,14 +1001,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
       return;
     }
     setModelQuickFilter((current) => current === value ? '' : value);
-  }, []);
-
-  const toggleLocalSort = useCallback((key: LocalTaskSortKey) => {
-    setLocalSort((current) => {
-      if (!current || current.key !== key) return { key, order: 'desc' };
-      if (current.order === 'desc') return { key, order: 'asc' };
-      return null;
-    });
   }, []);
 
   const stats = taskStats;
@@ -1090,7 +1026,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const toggleAllVisibleSelection = (checked: boolean) => {
-    const visibleTaskIds = filteredTasks.map((task) => task.task_id);
+    const visibleTaskIds = tasks.map((task) => task.task_id);
     setSelectedTaskIds((current) => {
       const next = new Set(current);
       if (checked) visibleTaskIds.forEach((taskId) => next.add(taskId));
@@ -1173,7 +1109,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   };
 
   const hasSelection = selectedTaskIds.size > 0;
-  const allVisibleSelected = filteredTasks.length > 0 && filteredTasks.every((task) => selectedTaskIds.has(task.task_id));
+  const allVisibleSelected = tasks.length > 0 && tasks.every((task) => selectedTaskIds.has(task.task_id));
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, perPage)));
   const toggleSlotWorkerExpanded = (workerId: string) => {
     setExpandedSlotWorkerIds((current) => (
@@ -1408,11 +1344,10 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <div className="text-sm font-black text-slate-900">任务 / Run 列表</div>
-                  <div className="mt-1 text-xs text-slate-500">对齐数据流分析 / 入口分析列表：任务列表与槽位摘要分离加载，支持分页、模式筛选与服务端排序。</div>
+                  <div className="mt-1 text-xs text-slate-500">对齐数据流分析 / 入口分析列表：筛选、快速筛选、分页和排序都基于当前项目下的全量任务做服务端查询。</div>
                 </div>
                 <div className="text-xs font-bold text-slate-500">
-                  当前页 {tasks.length} 条 · 共 {total} 条
-                  {filteredTasks.length !== tasks.length ? ` · 搜索命中 ${filteredTasks.length} 条` : ''}
+                  当前页 {tasks.length} 条 · 筛选后共 {total} 条
                 </div>
               </div>
               <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1420,8 +1355,8 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                   <Search size={16} className="text-slate-400" />
                   <input
                     value={runQuery}
-                    onChange={(event) => setRunQuery(event.target.value)}
-                    placeholder="搜索当前页任务名、任务 ID、执行 ID、Run 目录、模型、状态或工作流模式"
+                    onChange={(event) => { setRunQuery(event.target.value); setPage(1); }}
+                    placeholder="搜索当前项目任务名、任务 ID、执行 ID、Run 目录、模型、状态或工作流模式"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </div>
@@ -1502,7 +1437,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                         checked={allVisibleSelected}
                         onChange={(event) => toggleAllVisibleSelection(event.target.checked)}
                       />
-                      全选当前筛选结果（{filteredTasks.length} 条）
+                      全选当前页结果（{tasks.length} 条）
                     </label>
                     <span className="font-black text-cyan-700">已选择 {selectedTaskIds.size} 个任务</span>
                   </div>
@@ -1548,27 +1483,13 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     <ExecutionTableTh>轮次</ExecutionTableTh>
                     <ExecutionTableTh>结果</ExecutionTableTh>
                     <ExecutionTableTh>疑点上报</ExecutionTableTh>
-                    <ExecutionTableTh>
-                      <TableSortButton
-                        label="开始时间"
-                        active={localSort?.key === 'started_at'}
-                        order={localSort?.key === 'started_at' ? localSort.order : undefined}
-                        onClick={() => toggleLocalSort('started_at')}
-                      />
-                    </ExecutionTableTh>
-                    <ExecutionTableTh>
-                      <TableSortButton
-                        label="耗时"
-                        active={localSort?.key === 'duration'}
-                        order={localSort?.key === 'duration' ? localSort.order : undefined}
-                        onClick={() => toggleLocalSort('duration')}
-                      />
-                    </ExecutionTableTh>
+                    <ExecutionTableTh>开始时间</ExecutionTableTh>
+                    <ExecutionTableTh>耗时</ExecutionTableTh>
                     <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
                   </tr>
                 </ExecutionTableHead>
                 <tbody>
-                  {filteredTasks.map((task) => {
+                  {tasks.map((task) => {
                     const run = taskRunLocator(task);
                     const runSummary = taskRunSummary(task);
                     const slotView = getExecutionSlotView(task);
@@ -1722,7 +1643,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                 </tbody>
               </ExecutionTable>
 
-              {!loading && !tasksError && filteredTasks.length === 0 ? (
+              {!loading && !tasksError && tasks.length === 0 ? (
                 <div className="p-6">
                   <EmptyPanel title="暂无任务" description="当前筛选条件下没有可展示的数据流漏洞挖掘任务。" />
                 </div>

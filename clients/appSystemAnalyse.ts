@@ -6,6 +6,7 @@ import {
   AppSaSessionSnapshot,
   AppSaClusterCapacity,
   AppSaClusterCapacitySummary,
+  AppSaTaskListStats,
   AppSaStagesJson,
   AppSaTaskActionResponse,
   AppSaTaskCreateRequest,
@@ -91,6 +92,19 @@ export const appSystemAnalyseApi = {
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
     return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
+  },
+
+  getTaskStats: async (params: {
+    project_id: string;
+    status?: string;
+    analysis_mode?: 'binary' | 'source' | '';
+    parent_task_id?: string;
+  }): Promise<AppSaTaskListStats> => {
+    const query = new URLSearchParams({ project_id: params.project_id });
+    if (params.status) query.append('status', params.status);
+    if (params.analysis_mode) query.append('analysis_mode', params.analysis_mode);
+    if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
+    return getJsonWithDedupe(`${BASE}/tasks/stats?${query.toString()}`, { headers: getHeaders() });
   },
 
   getWorkerClusterCapacitySummary: async (): Promise<AppSaClusterCapacitySummary> =>

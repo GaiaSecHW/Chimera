@@ -2973,6 +2973,16 @@ export interface AppSaClusterCapacitySummary {
   updated_at?: string | null;
 }
 
+export interface AppSaTaskListStats {
+  total: number;
+  pending: number;
+  running: number;
+  passed: number;
+  failed: number;
+  error: number;
+  cancelled: number;
+}
+
 
 // ─── Entry Analysis Types ─────────────────────────────────────────────────────
 
@@ -3502,6 +3512,16 @@ export interface AppDfaTaskItem {
   execution_epoch?: number | null;
   control_version?: number | null;
   dispatch_status?: string | null;
+}
+
+export interface AppDfaTaskListStats {
+  total: number;
+  pending: number;
+  running: number;
+  passed: number;
+  failed: number;
+  error: number;
+  cancelled: number;
 }
 
 export interface AppDfaWorkerActiveJob {

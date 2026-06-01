@@ -7,6 +7,7 @@ import {
   AppDfaSessionSnapshot,
   AppDfaStagesJson,
   AppDfaClusterCapacity,
+  AppDfaTaskListStats,
   AppDfaTaskTimeline,
   AppDfaTaskCreateRequest,
   AppDfaTaskDetail,
@@ -53,6 +54,21 @@ export const appDataflowAnalyseApi = {
     if (params.sort_by) query.append('sort_by', params.sort_by);
     if (params.sort_order) query.append('sort_order', params.sort_order);
     return getJsonWithDedupe(`${BASE}/tasks?${query.toString()}`, { headers: getHeaders() });
+  },
+
+  getTaskStats: async (params: {
+    project_id: string;
+    status?: string;
+    mode?: 'manual' | 'binary' | 'source';
+    parent_task_id?: string;
+    parent_stage_item_id?: string;
+  }): Promise<AppDfaTaskListStats> => {
+    const query = new URLSearchParams({ project_id: params.project_id });
+    if (params.status) query.append('status', params.status);
+    if (params.mode) query.append('mode', params.mode);
+    if (params.parent_task_id) query.append('parent_task_id', params.parent_task_id);
+    if (params.parent_stage_item_id) query.append('parent_stage_item_id', params.parent_stage_item_id);
+    return getJsonWithDedupe(`${BASE}/tasks/stats?${query.toString()}`, { headers: getHeaders() });
   },
 
   getWorkerClusterCapacity: async (): Promise<AppDfaClusterCapacity> =>
