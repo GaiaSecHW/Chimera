@@ -1555,10 +1555,14 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                           </span>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="text-xs text-slate-500">
-                          {runSummary.start_epoch ? formatEpochTime(runSummary.start_epoch) : formatDateTime(task.started_at || task.created_at)}
+                          <div title={runSummary.start_epoch ? `Run 开始时间：${formatEpochTime(runSummary.start_epoch)}` : undefined}>
+                            {formatDateTime(task.started_at || task.created_at)}
+                          </div>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="text-slate-600">
-                          {runSummary.duration_seconds ? formatSeconds(runSummary.duration_seconds || 0) : formatDuration(task.started_at || task.created_at, task.finished_at)}
+                          <div title={runSummary.duration_seconds ? `Run 执行时长：${formatSeconds(runSummary.duration_seconds || 0)}` : undefined}>
+                            {formatDuration(task.started_at || task.created_at, task.finished_at)}
+                          </div>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="text-right">
                           <div className="flex items-center justify-end gap-2" onClick={(event) => event.stopPropagation()}>
