@@ -189,6 +189,11 @@ const getSummaryServicePath = (serviceKey: BinarySecurityMetricsServiceKey): str
           ? 'dataflow-vuln-scanner'
         : serviceKey;
 
+const getSummaryBasePath = (serviceKey: BinarySecurityMetricsServiceKey): string =>
+  serviceKey === 'dataflow-vuln'
+    ? `${API_BASE}/api/${getSummaryServicePath(serviceKey)}`
+    : `${API_BASE}/api/app/${getSummaryServicePath(serviceKey)}`;
+
 export const getBinarySecurityMetricsService = (serviceKey: BinarySecurityMetricsServiceKey) => SERVICE_MAP[serviceKey];
 
 const getAgentServicePath = (serviceKey: BinarySecurityMetricsServiceKey): string =>
@@ -241,19 +246,19 @@ export const binarySecurityMetricsApi = {
   },
   getServiceObservabilitySummary: async (serviceKey: BinarySecurityMetricsServiceKey) =>
     getJsonWithDedupe(
-      `${API_BASE}/api/app/${getSummaryServicePath(serviceKey)}/metrics/summary`,
+      `${getSummaryBasePath(serviceKey)}/metrics/summary`,
       { method: 'GET', headers: { ...getHeaders() } },
       { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
     ),
   getServiceRestApiSummary: async (serviceKey: BinarySecurityMetricsServiceKey) =>
     getJsonWithDedupe(
-      `${API_BASE}/api/app/${getSummaryServicePath(serviceKey)}/metrics/rest-api-summary`,
+      `${getSummaryBasePath(serviceKey)}/metrics/rest-api-summary`,
       { method: 'GET', headers: { ...getHeaders() } },
       { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
     ),
   getServiceAiSummary: async (serviceKey: BinarySecurityMetricsServiceKey) =>
     getJsonWithDedupe(
-      `${API_BASE}/api/app/${getSummaryServicePath(serviceKey)}/metrics/ai-summary`,
+      `${getSummaryBasePath(serviceKey)}/metrics/ai-summary`,
       { method: 'GET', headers: { ...getHeaders() } },
       { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
     ),
