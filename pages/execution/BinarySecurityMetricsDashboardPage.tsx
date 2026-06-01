@@ -2429,8 +2429,8 @@ const buildAgentRuntimeSummaryFromState = (
 ): AgentRuntimeAggregateSummary | null => {
   if (!summary) return null;
   return {
-    total_pods: pods.length,
-    healthy_pods: pods.filter((item) => item.healthy !== false).length,
+    total_pods: Number(summary.total_pods ?? pods.length),
+    healthy_pods: Number(summary.healthy_pods ?? pods.filter((item) => item.healthy !== false).length),
     total_processes: processes.length || Number(summary.active_processes || 0) + Number((summary as any).residual_processes || 0) + Number(summary.unknown_processes || 0),
     tracked_processes: Number(summary.active_processes || 0),
     residual_processes: Number((summary as any).residual_processes || 0),

@@ -2777,6 +2777,8 @@ export interface AgentObservabilitySummary {
   killable_residual_processes: number;
   killable_unknown_processes?: number;
   unknown_processes: number;
+  total_pods?: number | null;
+  healthy_pods?: number | null;
   scan_errors?: number | null;
   aggregate_mode?: string | null;
   aggregate_partial?: boolean;
