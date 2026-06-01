@@ -1765,10 +1765,13 @@ function TaskDetailPanel({
   };
 
   const handleConfirmEvolutionReplacementClick = async () => {
-    if (!activeEvolutionJob?.id || !activeEvolutionJob.final_tool_path || !activeEvolutionJob.replaced_tool_path) return;
+    if (!activeEvolutionJob?.id || !activeEvolutionJob.final_tool_path) return;
+    const targetLabel = activeEvolutionJob.replaced_tool_path
+      ? `原工具：${activeEvolutionJob.replaced_tool_path}`
+      : '原工具：无，将发布并激活新工具';
     const confirmed = await showConfirm({
       title: '确认替换原工具',
-      message: `将使用新工具覆盖原工具。\n\n原工具：${activeEvolutionJob.replaced_tool_path}\n新工具：${activeEvolutionJob.final_tool_path}`,
+      message: `将使用新工具覆盖原工具。\n\n${targetLabel}\n新工具：${activeEvolutionJob.final_tool_path}`,
       confirmText: '确认替换',
       cancelText: '取消',
       danger: true,

@@ -1135,10 +1135,13 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   };
 
   const handleConfirmReplacement = async () => {
-    if (!activeJob?.id || !activeJob.final_tool_path || !activeJob.replaced_tool_path) return;
+    if (!activeJob?.id || !activeJob.final_tool_path) return;
+    const targetLabel = activeJob.replaced_tool_path
+      ? `原工具：${activeJob.replaced_tool_path}`
+      : '原工具：无，将发布并激活新工具';
     const confirmed = await showConfirm({
       title: '确认替换原工具',
-      message: `将使用新工具覆盖原工具。\n\n原工具：${activeJob.replaced_tool_path}\n新工具：${activeJob.final_tool_path}`,
+      message: `将使用新工具覆盖原工具。\n\n${targetLabel}\n新工具：${activeJob.final_tool_path}`,
       confirmText: '确认替换',
       cancelText: '取消',
       danger: true,
