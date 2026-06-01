@@ -274,12 +274,6 @@ export const binarySecurityMetricsApi = {
       { method: 'GET', headers: { ...getHeaders() } },
       { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
     ),
-  getAgentSessions: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
-    getJsonWithDedupe(
-      buildAgentAggregateUrl(serviceKey, 'sessions'),
-      { method: 'GET', headers: { ...getHeaders() } },
-      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 }, timeoutMs: AGENT_DETAIL_TIMEOUT_MS },
-    ),
   getAgentTasks: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
     getJsonWithDedupe(
       buildAgentAggregateUrl(serviceKey, 'tasks'),

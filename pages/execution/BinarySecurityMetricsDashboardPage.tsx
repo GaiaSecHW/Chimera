@@ -45,17 +45,10 @@ import {
   AgentPodRuntimeSnapshot,
   AgentProcessKillResponse,
   AgentProcessSnapshot,
-  AgentRuntimeAggregateResponse,
   AgentRuntimeAggregateSummary,
-  AgentSessionObservabilitySnapshot,
   AgentTaskOwnershipSnapshot,
   AppDfaClusterCapacity,
-  AppDfaSessionMeta,
-  AppDfaSessionSnapshot,
-  AppEaSessionSnapshot,
   AppSaClusterCapacity,
-  AppSaSessionMeta,
-  AppSaSessionSnapshot,
   EntryAnalyseSlotClusterSummary,
 } from '../../types/types';
 import {
@@ -162,7 +155,6 @@ type AgentObservabilityState = {
   detailLoaded: boolean;
   summary: AgentObservabilitySummary | null;
   processes: AgentProcessSnapshot[];
-  sessions: AgentSessionObservabilitySnapshot[];
   tasks: AgentTaskOwnershipSnapshot[];
   pods: AgentPodRuntimeSnapshot[];
   runtimeSummary: AgentRuntimeAggregateSummary | null;
@@ -176,12 +168,6 @@ type AgentPodDetailState = {
   error: string | null;
   processes: AgentProcessSnapshot[];
   tasks: AgentTaskOwnershipSnapshot[];
-};
-
-type AgentSessionContentState = {
-  loading: boolean;
-  data: AppEaSessionSnapshot | AppSaSessionSnapshot | AppDfaSessionSnapshot | null;
-  error: string | null;
 };
 
 type AgentKillHistoryEntry = {
@@ -513,73 +499,6 @@ const AI_COVERAGE_BADGE: Record<AiCoverage, string> = {
   basic: 'border-amber-200 bg-amber-50 text-amber-700',
   partial: 'border-sky-200 bg-sky-50 text-sky-700',
   complete: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-};
-
-const buildFallbackAgentSessionMeta = (
-  session: AgentSessionObservabilitySnapshot,
-): AppSaSessionMeta => ({
-  session_id: session.session_id || session.session_file,
-  session_name: session.display_name,
-  relative_path: session.session_file,
-  stage_group: session.stage_key || 'agent',
-  role_name: session.role_kind || 'agent',
-  size: 0,
-  mtime: 0,
-  event_count: 0,
-  line_count: session.line_count,
-  is_active: session.live,
-  display_name: session.display_name,
-  warnings: session.parse_warnings,
-});
-
-const normalizeAgentSessionMeta = (
-  snapshot: AppEaSessionSnapshot | AppSaSessionSnapshot | AppDfaSessionSnapshot | null,
-  session: AgentSessionObservabilitySnapshot | null,
-): AppSaSessionMeta | null => {
-  if (!session) return null;
-  const fallback = buildFallbackAgentSessionMeta(session);
-  if (!snapshot) return fallback;
-
-  const dfaMeta = 'meta' in snapshot ? (snapshot.meta as AppDfaSessionMeta | undefined | null) : null;
-  if (dfaMeta) {
-    return {
-      ...fallback,
-      session_id: dfaMeta.session_id || fallback.session_id,
-      session_name: dfaMeta.session_name || fallback.session_name,
-      relative_path: dfaMeta.relative_path || fallback.relative_path,
-      stage_group: dfaMeta.stage_group || fallback.stage_group,
-      role_name: dfaMeta.role_name || fallback.role_name,
-      size: dfaMeta.size ?? fallback.size,
-      mtime: dfaMeta.mtime ?? fallback.mtime,
-      event_count: dfaMeta.event_count ?? snapshot.events?.length ?? fallback.event_count,
-      line_count: snapshot.line_count ?? fallback.line_count,
-      is_active: dfaMeta.is_active ?? fallback.is_active,
-      display_name: dfaMeta.display_name || fallback.display_name,
-      warnings: snapshot.warnings || fallback.warnings,
-    };
-  }
-
-  const rawMeta = 'session_meta' in snapshot ? snapshot.session_meta : null;
-  if (rawMeta && typeof rawMeta === 'object') {
-    const meta = rawMeta as Partial<AppSaSessionMeta> & Record<string, unknown>;
-    return {
-      ...fallback,
-      session_id: String(meta.session_id || fallback.session_id),
-      session_name: String(meta.session_name || fallback.session_name),
-      relative_path: String(meta.relative_path || fallback.relative_path),
-      stage_group: String(meta.stage_group || fallback.stage_group),
-      role_name: String(meta.role_name || fallback.role_name),
-      size: typeof meta.size === 'number' ? meta.size : fallback.size,
-      mtime: typeof meta.mtime === 'number' ? meta.mtime : fallback.mtime,
-      event_count: typeof meta.event_count === 'number' ? meta.event_count : snapshot.events?.length ?? fallback.event_count,
-      line_count: typeof meta.line_count === 'number' ? meta.line_count : snapshot.line_count ?? fallback.line_count,
-      is_active: typeof meta.is_active === 'boolean' ? meta.is_active : fallback.is_active,
-      display_name: String(meta.display_name || fallback.display_name),
-      warnings: Array.isArray(meta.warnings) ? meta.warnings.map((item) => String(item)) : snapshot.warnings || fallback.warnings,
-    };
-  }
-
-  return fallback;
 };
 
 const AI_SERVICE_SCOPE: Record<BinarySecurityMetricsServiceKey, string> = {
@@ -2496,18 +2415,11 @@ const INITIAL_AGENT_STATE: AgentObservabilityState = {
   detailLoaded: false,
   summary: null,
   processes: [],
-  sessions: [],
   tasks: [],
   pods: [],
   runtimeSummary: null,
   error: null,
   refreshedAt: null,
-};
-
-const INITIAL_AGENT_SESSION_CONTENT_STATE: AgentSessionContentState = {
-  loading: false,
-  data: null,
-  error: null,
 };
 
 const buildAgentRuntimeSummaryFromState = (
@@ -2519,13 +2431,12 @@ const buildAgentRuntimeSummaryFromState = (
   return {
     total_pods: pods.length,
     healthy_pods: pods.filter((item) => item.healthy !== false).length,
-    total_processes: processes.length || Number(summary.active_processes || 0) + Number(summary.orphan_processes || 0) + Number(summary.unknown_processes || 0),
+    total_processes: processes.length || Number(summary.active_processes || 0) + Number((summary as any).residual_processes || 0) + Number(summary.unknown_processes || 0),
     tracked_processes: Number(summary.active_processes || 0),
-    orphan_processes: Number(summary.orphan_processes || 0),
-    suspected_orphan_processes: Number(summary.unknown_processes || 0),
-    killable_orphan_processes: Number(summary.killable_orphan_processes || 0),
-    killable_suspected_orphan_processes: Number(summary.killable_suspected_orphan_processes || 0),
-    orphan_sessions: Number(summary.orphan_sessions || 0),
+    residual_processes: Number((summary as any).residual_processes || 0),
+    unknown_processes: Number(summary.unknown_processes || 0),
+    killable_residual_processes: Number((summary as any).killable_residual_processes || 0),
+    killable_unknown_processes: Number((summary as any).killable_unknown_processes || 0),
     aggregate_partial: Boolean(summary.aggregate_partial),
     aggregate_sources: summary.aggregate_sources ?? null,
     aggregate_fanout_errors: summary.aggregate_fanout_errors ?? null,
@@ -2594,7 +2505,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [dfaAgentPodKeyword, setDfaAgentPodKeyword] = useState('');
   const [dfaAgentTaskKeyword, setDfaAgentTaskKeyword] = useState('');
   const [dfaAgentPidKeyword, setDfaAgentPidKeyword] = useState('');
-  const [dfaAgentOwnerFilter, setDfaAgentOwnerFilter] = useState<'all' | 'tracked' | 'orphan' | 'unknown'>('all');
+  const [dfaAgentOwnerFilter, setDfaAgentOwnerFilter] = useState<'all' | 'tracked' | 'residual' | 'unknown'>('all');
   const [dfaAgentRoleFilter, setDfaAgentRoleFilter] = useState<'all' | string>('all');
   const [expandedDfaAgentPods, setExpandedDfaAgentPods] = useState<string[]>([]);
   const [restApiRouteKeyword, setRestApiRouteKeyword] = useState('');
@@ -2640,8 +2551,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [agentPodDetails, setAgentPodDetails] = useState<Record<string, AgentPodDetailState>>({});
   const [selectedAgentPids, setSelectedAgentPids] = useState<number[]>([]);
   const [selectedAgentTaskId, setSelectedAgentTaskId] = useState<string>('');
-  const [selectedAgentSessionId, setSelectedAgentSessionId] = useState<string>('');
-  const [agentSessionContentState, setAgentSessionContentState] = useState<AgentSessionContentState>(INITIAL_AGENT_SESSION_CONTENT_STATE);
   const [agentKillHistory, setAgentKillHistory] = useState<AgentKillHistoryEntry[]>([]);
   const previousProjectIdRef = useRef(projectId);
 
@@ -2955,7 +2864,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
           detailLoaded: false,
           summary,
           processes,
-          sessions: [],
           tasks,
           pods,
           runtimeSummary,
@@ -3145,14 +3053,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setAgentPodDetails({});
     setSelectedAgentPids([]);
     setSelectedAgentTaskId('');
-    setSelectedAgentSessionId('');
     setDfaAgentPodKeyword('');
     setDfaAgentTaskKeyword('');
     setDfaAgentPidKeyword('');
     setDfaAgentOwnerFilter('all');
     setDfaAgentRoleFilter('all');
     setExpandedDfaAgentPods([]);
-    setAgentSessionContentState(INITIAL_AGENT_SESSION_CONTENT_STATE);
     previousProjectIdRef.current = projectId;
   }, [activeServiceKey, projectId, resolveSecondaryTabFromUrl]);
 
@@ -3399,36 +3305,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     return Array.from(roles).sort((left, right) => left.localeCompare(right, 'zh-CN'));
   }, [effectiveAiViewModel.rows]);
 
-  const filteredAgentProcesses = useMemo(() => {
-    return agentState.processes.filter((item) => {
-      if (selectedAgentTaskId && item.task_id !== selectedAgentTaskId) return false;
-      if (selectedAgentSessionId && item.session_id !== selectedAgentSessionId) return false;
-      return true;
-    });
-  }, [agentState.processes, selectedAgentSessionId, selectedAgentTaskId]);
-
-  const filteredAgentSessions = useMemo(() => {
-    return agentState.sessions.filter((item) => {
-      if (selectedAgentTaskId && item.task_id !== selectedAgentTaskId) return false;
-      if (selectedAgentSessionId && item.session_id !== selectedAgentSessionId) return false;
-      return true;
-    });
-  }, [agentState.sessions, selectedAgentSessionId, selectedAgentTaskId]);
-
-  const filteredAgentTasks = useMemo(() => {
-    return selectedAgentTaskId ? agentState.tasks.filter((item) => item.task_id === selectedAgentTaskId) : agentState.tasks;
-  }, [agentState.tasks, selectedAgentTaskId]);
-
-  const selectedAgentSession = useMemo(
-    () => agentState.sessions.find((item) => item.session_id === selectedAgentSessionId) || null,
-    [agentState.sessions, selectedAgentSessionId],
-  );
-
-  const selectedAgentSessionMeta = useMemo(
-    () => normalizeAgentSessionMeta(agentSessionContentState.data, selectedAgentSession),
-    [agentSessionContentState.data, selectedAgentSession],
-  );
-
   const pushAgentKillHistory = useCallback((scope: AgentKillHistoryEntry['scope'], response: AgentProcessKillResponse, id: string) => {
     setAgentKillHistory((current) => [
       {
@@ -3441,29 +3317,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     ].slice(0, 8));
   }, []);
 
-  useEffect(() => {
-    const loadSessionContent = async () => {
-      if (!selectedAgentSession || !selectedAgentSession.task_id || !selectedAgentSession.session_file) {
-        setAgentSessionContentState(INITIAL_AGENT_SESSION_CONTENT_STATE);
-        return;
-      }
-      setAgentSessionContentState({ loading: true, data: null, error: null });
-      try {
-        const data = activeServiceKey === 'entry-analysis'
-          ? await entryAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file)
-          : activeServiceKey === 'system-analysis'
-            ? await systemAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file)
-            : await dataflowAnalysisApi.getTaskSessionFile(selectedAgentSession.task_id, selectedAgentSession.session_file);
-        setAgentSessionContentState({ loading: false, data, error: null });
-      } catch (error: any) {
-        setAgentSessionContentState({ loading: false, data: null, error: error?.message || '会话内容加载失败' });
-      }
-    };
-    if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
-      void loadSessionContent();
-    }
-  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, dataflowAnalysisApi, entryAnalysisApi, selectedAgentSession, systemAnalysisApi]);
-
   const loadedAgentProcesses = useMemo(
     () => Object.values(agentPodDetails).flatMap((item) => item.processes || []),
     [agentPodDetails],
@@ -3474,8 +3327,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     [loadedAgentProcesses, selectedAgentPids],
   );
 
-  const orphanProcesses = useMemo(() => loadedAgentProcesses.filter((item) => item.owner_kind === 'orphan'), [loadedAgentProcesses]);
-  const suspectedOrphanProcesses = useMemo(() => loadedAgentProcesses.filter((item) => item.owner_kind === 'unknown'), [loadedAgentProcesses]);
   const dfaAgentRoleOptions = useMemo(() => {
     const roles = new Set<string>();
     loadedAgentProcesses.forEach((item) => {
@@ -5674,28 +5525,28 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <button
                     type="button"
                     onClick={() => void killAllOrphans()}
-                    disabled={(dfaRuntimeSummary?.killable_orphan_processes || 0) <= 0}
+                    disabled={(dfaRuntimeSummary?.killable_residual_processes || 0) <= 0}
                     className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${
-                      (dfaRuntimeSummary?.killable_orphan_processes || 0) > 0
+                      (dfaRuntimeSummary?.killable_residual_processes || 0) > 0
                         ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
                         : 'border-slate-200 bg-slate-50 text-slate-400'
                     }`}
                   >
                     <ShieldAlert size={14} />
-                    批量终止已确认孤儿
+                    批量终止残留进程
                   </button>
                   <button
                     type="button"
                     onClick={() => void killAllSuspectedOrphans()}
-                    disabled={(dfaRuntimeSummary?.killable_suspected_orphan_processes || 0) <= 0}
+                    disabled={(dfaRuntimeSummary?.killable_unknown_processes || 0) <= 0}
                     className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${
-                      (dfaRuntimeSummary?.killable_suspected_orphan_processes || 0) > 0
+                      (dfaRuntimeSummary?.killable_unknown_processes || 0) > 0
                         ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
                         : 'border-slate-200 bg-slate-50 text-slate-400'
                     }`}
                   >
                     <TimerReset size={14} />
-                    批量终止疑似孤儿
+                    批量终止未归属进程
                   </button>
                 </div>
               </div>
@@ -5726,10 +5577,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 {[
                   { label: 'Worker Pods', value: formatNumber(dfaRuntimeSummary?.total_pods), hint: `healthy ${formatNumber(dfaRuntimeSummary?.healthy_pods)} / scanned ${formatTime(agentState.refreshedAt)}`, tone: 'text-slate-900' },
-                  { label: '运行中智能体进程', value: formatNumber(dfaRuntimeSummary?.total_processes), hint: `tracked ${formatNumber(dfaRuntimeSummary?.tracked_processes)}`, tone: 'text-cyan-800' },
-                  { label: '已确认孤儿', value: formatNumber(dfaRuntimeSummary?.orphan_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_orphan_processes)}`, tone: 'text-rose-700' },
-                  { label: '疑似孤儿', value: formatNumber(dfaRuntimeSummary?.suspected_orphan_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_suspected_orphan_processes)}`, tone: 'text-amber-700' },
-                  { label: '孤儿会话', value: formatNumber(dfaRuntimeSummary?.orphan_sessions), hint: '仅 session 层诊断', tone: 'text-violet-700' },
+                  { label: '智能体进程总数', value: formatNumber(dfaRuntimeSummary?.total_processes), hint: `正常 ${formatNumber(dfaRuntimeSummary?.tracked_processes)}`, tone: 'text-cyan-800' },
+                  { label: '残留进程', value: formatNumber(dfaRuntimeSummary?.residual_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_residual_processes)}`, tone: 'text-rose-700' },
+                  { label: '未归属进程', value: formatNumber(dfaRuntimeSummary?.unknown_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_unknown_processes)}`, tone: 'text-amber-700' },
+                  { label: '正常进程', value: formatNumber(dfaRuntimeSummary?.tracked_processes), hint: '归属到 running 任务', tone: 'text-emerald-700' },
                   { label: '失败 Pod 数', value: formatNumber(dfaRuntimeSummary?.aggregate_failed_targets?.length), hint: dfaRuntimeSummary?.aggregate_partial ? '部分聚合失败' : '本轮聚合完整', tone: (dfaRuntimeSummary?.aggregate_failed_targets?.length || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/85 px-4 py-3 shadow-sm">
@@ -5748,7 +5599,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">按 Pod / 任务 / PID / 归属筛选</h3>
                 </div>
                 <div className="text-xs text-slate-500">
-                  每个 worker Pod 独立成表，真实进程优先，session 仅作辅助诊断
+                  每个 worker Pod 独立成表，只展示真实智能体进程，再反查关联任务
                 </div>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -5764,11 +5615,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
                   <input value={dfaAgentPidKeyword} onChange={(event) => setDfaAgentPidKeyword(event.target.value)} placeholder="筛选 PID / PGID / PPID" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                 </div>
-                <select value={dfaAgentOwnerFilter} onChange={(event) => setDfaAgentOwnerFilter(event.target.value as 'all' | 'tracked' | 'orphan' | 'unknown')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                <select value={dfaAgentOwnerFilter} onChange={(event) => setDfaAgentOwnerFilter(event.target.value as 'all' | 'tracked' | 'residual' | 'unknown')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
                   <option value="all">全部归属</option>
-                  <option value="tracked">活动归属</option>
-                  <option value="orphan">已确认孤儿</option>
-                  <option value="unknown">疑似孤儿</option>
+                  <option value="tracked">正常进程</option>
+                  <option value="residual">残留进程</option>
+                  <option value="unknown">未归属进程</option>
                 </select>
                 <select value={dfaAgentRoleFilter} onChange={(event) => setDfaAgentRoleFilter(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
                   <option value="all">全部角色</option>
@@ -5836,10 +5687,10 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                           </div>
                           <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
                             <span>进程 {formatNumber(pod.process_count)}</span>
-                            <span>活动归属 {formatNumber(pod.tracked_process_count)}</span>
-                            <span className="text-rose-700">确认孤儿 {formatNumber(pod.orphan_process_count)}</span>
-                            <span className="text-amber-700">疑似孤儿 {formatNumber(pod.suspected_orphan_process_count)}</span>
-                            <span>任务 {formatNumber(pod.active_task_count)}/{formatNumber(pod.task_count)}</span>
+                            <span>正常进程 {formatNumber(pod.tracked_process_count)}</span>
+                            <span className="text-rose-700">残留进程 {formatNumber(pod.residual_process_count)}</span>
+                            <span className="text-amber-700">未归属进程 {formatNumber(pod.unknown_process_count)}</span>
+                            <span>任务 {formatNumber(pod.running_task_count)}/{formatNumber(pod.task_count)}</span>
                             <span>扫描 {pod.last_scanned_at ? formatTime(new Date(pod.last_scanned_at).getTime()) : '-'}</span>
                           </div>
                           {pod.scan_errors ? (
@@ -5894,7 +5745,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                               ? 'bg-rose-100 text-rose-700'
                                               : 'bg-amber-100 text-amber-800'
                                         }`}>
-                                          {task.ownership_status === 'unknown' ? '疑似孤儿' : task.ownership_status || '-'}
+                                          {task.ownership_status === 'tracked' ? '运行中任务' : task.ownership_status === 'residual' ? '残留任务' : '未归属'}
                                         </span>
                                       </div>
                                       <div className="mt-2 space-y-1 text-xs text-slate-500">
@@ -5902,7 +5753,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                         <div>stage: {task.stage_key || '-'}</div>
                                         <div>roles: {asArray(task.agent_roles).join(', ') || '-'}</div>
                                         <div>processes: {asArray(task.process_pids).join(', ') || '-'}</div>
-                                        <div>sessions: {asArray(task.session_ids).join(', ') || '-'}</div>
                                       </div>
                                     </div>
                                   ))
@@ -5927,7 +5777,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                       <th className="px-3 py-3">阶段</th>
                                       <th className="px-3 py-3">所属判定</th>
                                       <th className="px-3 py-3">原因</th>
-                                      <th className="px-3 py-3">Session</th>
                                       <th className="px-3 py-3">RSS</th>
                                       <th className="px-3 py-3">CWD</th>
                                       <th className="px-3 py-3">操作</th>
@@ -5974,19 +5823,14 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                                             <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                               process.owner_kind === 'tracked'
                                                 ? 'bg-emerald-100 text-emerald-700'
-                                                : process.owner_kind === 'orphan'
+                                                : process.owner_kind === 'residual'
                                                   ? 'bg-rose-100 text-rose-700'
                                                   : 'bg-amber-100 text-amber-800'
                                             }`}>
-                                              {process.owner_kind === 'tracked' ? '活动归属' : process.owner_kind === 'orphan' ? '已确认孤儿' : '疑似孤儿'}
+                                              {process.owner_kind === 'tracked' ? '正常进程' : process.owner_kind === 'residual' ? '残留进程' : '未归属进程'}
                                             </span>
                                           </td>
                                           <td className="px-3 py-3 text-[11px] text-slate-500">{process.owner_reason || '-'}</td>
-                                          <td className="px-3 py-3 font-mono text-[11px] text-slate-600">
-                                            <div>{process.session_id || '-'}</div>
-                                            <div className="mt-1 break-all text-slate-400">{process.session_file || '-'}</div>
-                                            {process.session_arg_path ? <div className="mt-1 break-all text-slate-300">arg: {process.session_arg_path}</div> : null}
-                                          </td>
                                           <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{formatBytes(process.rss_bytes)}</td>
                                           <td className="px-3 py-3 align-top text-[11px] text-slate-500">
                                             <div className="max-w-[18rem] break-all">{process.cwd || '-'}</div>
@@ -6029,23 +5873,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                             </div>
                           </div>
 
-                          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">会话摘要</div>
-                            <h4 className="mt-2 text-lg font-black tracking-tight text-slate-900">Session Snapshot</h4>
-                            <div className="mt-3 grid gap-3 md:grid-cols-4">
-                              {[
-                                { label: '会话总数', value: formatNumber(pod.session_count), tone: 'text-slate-900' },
-                                { label: '孤儿会话', value: formatNumber(pod.orphan_session_count), tone: 'text-violet-700' },
-                                { label: '活跃任务', value: formatNumber(pod.active_task_count), tone: 'text-cyan-800' },
-                                { label: '扫描错误', value: formatNumber(pod.scan_errors), tone: (pod.scan_errors || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
-                              ].map((item) => (
-                                <div key={item.label} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
-                                  <div className={`mt-2 text-lg font-black ${item.tone}`}>{item.value}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
                         </div>
                       ) : null}
                     </section>
