@@ -76,7 +76,11 @@ const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
 ) as Record<string, boolean>;
-const STAGE_ITEMS_PER_PAGE = 10;
+const DEFAULT_STAGE_ITEMS_PER_PAGE = 10;
+const STAGE_ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
+type StageItemTimeSortKey = 'started_at' | 'finished_at' | 'duration' | 'last_synced_at';
+type SortDirection = 'asc' | 'desc';
+type StageItemTimeSort = { key: StageItemTimeSortKey; direction: SortDirection } | null;
 
 const STAGE_LABELS: Record<string, string> = {
   firmware_unpack: '固件解包',
@@ -917,6 +921,36 @@ const durationLabel = (started?: string | null, ended?: string | null) => {
   return `${hours}h ${minutes % 60}m`;
 };
 
+const timestampValue = (value?: string | null) => {
+  if (!value) return null;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const stageItemDurationValue = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+  const startMs = timestampValue(item.started_at);
+  if (startMs == null) return null;
+  const endMs = timestampValue(item.finished_at) ?? Date.now();
+  return endMs >= startMs ? endMs - startMs : null;
+};
+
+const stageItemSortValue = (item: BinarySecurityTaskDetail['stage_items'][number], key: StageItemTimeSortKey) => {
+  if (key === 'duration') return stageItemDurationValue(item);
+  return timestampValue(item[key]);
+};
+
+const compareNullableNumber = (left: number | null, right: number | null, direction: SortDirection) => {
+  if (left == null && right == null) return 0;
+  if (left == null) return 1;
+  if (right == null) return -1;
+  return direction === 'asc' ? left - right : right - left;
+};
+
+const nextStageItemSort = (current: StageItemTimeSort, key: StageItemTimeSortKey): StageItemTimeSort => {
+  if (!current || current.key !== key) return { key, direction: 'desc' };
+  return { key, direction: current.direction === 'desc' ? 'asc' : 'desc' };
+};
+
 const shouldShowStageRetryReason = (status?: string | null, retryable?: boolean, retryReason?: string | null) => (
   Boolean(!retryable && retryReason && ['failed', 'partial_success', 'cancelled', 'downstream_missing'].includes(String(status || '')))
 );
@@ -1444,11 +1478,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [stageItemsPageLoading, setStageItemsPageLoading] = useState(false);
   const [stageItemsPageError, setStageItemsPageError] = useState<string | null>(null);
   const [stageItemsCurrentPage, setStageItemsCurrentPage] = useState(1);
+  const [stageItemsPerPage, setStageItemsPerPage] = useState(DEFAULT_STAGE_ITEMS_PER_PAGE);
   const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
   const [selectedStageItemIds, setSelectedStageItemIds] = useState<string[]>([]);
   const [stageStatusFilter, setStageStatusFilter] = useState<string>('all');
+  const [stageDownstreamStatusFilter, setStageDownstreamStatusFilter] = useState<string>('all');
+  const [stageSyncStatusFilter, setStageSyncStatusFilter] = useState<string>('all');
+  const [stageItemTimeSort, setStageItemTimeSort] = useState<StageItemTimeSort>(null);
   const [actionLoading, setActionLoading] = useState<string>('');
   const [expandedEventKey, setExpandedEventKey] = useState<string | null>(null);
   const [timelinePage, setTimelinePage] = useState(1);
@@ -1908,7 +1946,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     void api.binarySecurity.getTaskStageItems(projectId, taskId, {
       stage_name: selectedStage,
       page: stageItemsCurrentPage,
-      per_page: STAGE_ITEMS_PER_PAGE,
+      per_page: stageItemsPerPage,
     }).then((payload) => {
       if (cancelled) return;
       setStageItemsPage(payload);
@@ -1922,7 +1960,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     return () => {
       cancelled = true;
     };
-  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, taskId]);
+  }, [activeTab, detail, projectId, selectedNodeKind, selectedStage, stageItemsCurrentPage, stageItemsPerPage, taskId]);
 
   useEffect(() => {
     const node = stageFlowRef.current;
@@ -2253,14 +2291,48 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
       .map(([status, count]) => ({ status, count }));
   }, [filteredStageItems]);
+  const stageDownstreamStatusOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of filteredStageItems) {
+      const status = item.downstream_status || 'pending';
+      counts.set(status, (counts.get(status) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+      .map(([status, count]) => ({ status, count }));
+  }, [filteredStageItems]);
+  const stageSyncStatusOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of filteredStageItems) {
+      const status = item.sync_status || 'unknown';
+      counts.set(status, (counts.get(status) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+      .map(([status, count]) => ({ status, count }));
+  }, [filteredStageItems]);
   const visibleStageItems = useMemo(() => {
-    if (stageStatusFilter === 'all') return filteredStageItems;
-    return filteredStageItems.filter((item) => item.status === stageStatusFilter);
-  }, [filteredStageItems, stageStatusFilter]);
+    const filtered = filteredStageItems.filter((item) => {
+      if (stageStatusFilter !== 'all' && item.status !== stageStatusFilter) return false;
+      if (stageDownstreamStatusFilter !== 'all' && (item.downstream_status || 'pending') !== stageDownstreamStatusFilter) return false;
+      if (stageSyncStatusFilter !== 'all' && (item.sync_status || 'unknown') !== stageSyncStatusFilter) return false;
+      return true;
+    });
+    if (!stageItemTimeSort) return filtered;
+    return [...filtered].sort((left, right) => {
+      const compared = compareNullableNumber(
+        stageItemSortValue(left, stageItemTimeSort.key),
+        stageItemSortValue(right, stageItemTimeSort.key),
+        stageItemTimeSort.direction,
+      );
+      if (compared !== 0) return compared;
+      return left.id.localeCompare(right.id, 'zh-CN');
+    });
+  }, [filteredStageItems, stageDownstreamStatusFilter, stageItemTimeSort, stageStatusFilter, stageSyncStatusFilter]);
   const stageItemsTotal = selectedNodeKind === 'business' && stageItemsPage?.stage_name === selectedStage
     ? Number(stageItemsPage.total || 0)
     : filteredStageItems.length;
-  const stageItemsTotalPages = Math.max(1, Math.ceil(stageItemsTotal / STAGE_ITEMS_PER_PAGE));
+  const stageItemsTotalPages = Math.max(1, Math.ceil(stageItemsTotal / Math.max(1, stageItemsPerPage)));
   const isSystemAnalysisStageTable = selectedStage === 'system_analysis';
   const isEntryAnalysisStageTable = selectedStage === 'entry_analysis';
   const selectedVisibleStageItems = useMemo(
@@ -2271,6 +2343,43 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     () => selectedVisibleStageItems.filter((item) => Boolean(item.downstream_task_id)),
     [selectedVisibleStageItems],
   );
+  const stageFilterSelectClassName = 'mt-2 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold normal-case tracking-normal text-slate-700 outline-none focus:border-slate-400';
+  const renderStageItemFilterSelect = (
+    value: string,
+    onChange: (value: string) => void,
+    options: Array<{ status: string; count: number }>,
+    formatter: (value: string) => string,
+  ) => (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className={stageFilterSelectClassName}
+    >
+      <option value="all">全部</option>
+      {options.map((option) => (
+        <option key={option.status} value={option.status}>
+          {formatter(option.status)} ({option.count})
+        </option>
+      ))}
+    </select>
+  );
+  const renderSortableStageItemHeader = (label: string, key: StageItemTimeSortKey) => {
+    const active = stageItemTimeSort?.key === key;
+    const marker = active ? (stageItemTimeSort.direction === 'asc' ? '↑' : '↓') : '↕';
+    return (
+      <button
+        type="button"
+        onClick={() => setStageItemTimeSort((current) => nextStageItemSort(current, key))}
+        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-left font-black transition ${
+          active ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+        }`}
+        title={`按${label}${active && stageItemTimeSort.direction === 'desc' ? '正序' : '倒序'}排序`}
+      >
+        <span>{label}</span>
+        <span className="text-[10px]">{marker}</span>
+      </button>
+    );
+  };
 
   const timelineItems = useMemo(() => {
     return timeline.map((event, index) => ({
@@ -2302,8 +2411,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     setExpandedStageItemId(null);
     setSelectedStageItemIds([]);
     setStageStatusFilter('all');
+    setStageDownstreamStatusFilter('all');
+    setStageSyncStatusFilter('all');
+    setStageItemTimeSort(null);
     setStageItemsCurrentPage(1);
   }, [selectedStage, selectedNodeKind, taskId]);
+
+  useEffect(() => {
+    setStageItemsCurrentPage(1);
+  }, [stageDownstreamStatusFilter, stageItemsPerPage, stageStatusFilter, stageSyncStatusFilter]);
 
   useEffect(() => {
     setDownstreamByItemId({});
@@ -3727,9 +3843,25 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                   <div className="text-sm text-slate-500">
                     阶段子任务分页：
                     <span className="ml-2 font-bold text-slate-900">第 {stageItemsCurrentPage} / {stageItemsTotalPages} 页</span>
-                    <span className="ml-2 text-slate-400">共 {stageItemsTotal} 条，每页 {STAGE_ITEMS_PER_PAGE} 条</span>
+                    <span className="ml-2 text-slate-400">共 {stageItemsTotal} 条，每页 {stageItemsPerPage} 条</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+                      每页
+                      <select
+                        value={stageItemsPerPage}
+                        onChange={(event) => {
+                          const next = Number(event.target.value) || DEFAULT_STAGE_ITEMS_PER_PAGE;
+                          setStageItemsPerPage(next);
+                        }}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-800 outline-none"
+                      >
+                        {STAGE_ITEMS_PER_PAGE_OPTIONS.map((size) => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                      条
+                    </label>
                     <button
                       type="button"
                       disabled={stageItemsPageLoading || stageItemsCurrentPage <= 1}
@@ -3781,8 +3913,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                              }}
 	                            />
 	                          </th>
-	                          <th className="w-24 px-3 py-3">编排状态</th>
-                          <th className="w-24 px-3 py-3">下游状态</th>
+	                          <th className="w-28 px-3 py-3">
+                              <div>编排状态</div>
+                              {renderStageItemFilterSelect(stageStatusFilter, setStageStatusFilter, stageStatusOptions, formatBinarySecurityStatus)}
+                            </th>
+                          <th className="w-28 px-3 py-3">
+                            <div>下游状态</div>
+                            {renderStageItemFilterSelect(stageDownstreamStatusFilter, setStageDownstreamStatusFilter, stageDownstreamStatusOptions, formatDownstreamStatus)}
+                          </th>
 	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
 	                          <th className="w-24 px-3 py-3">重试</th>
                           {isSystemAnalysisStageTable ? (
@@ -3793,11 +3931,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             </>
                           ) : null}
                           {isEntryAnalysisStageTable ? <th className="w-24 px-3 py-3">入口数量</th> : null}
-                          <th className="w-44 px-3 py-3">开始时间</th>
-                          <th className="w-44 px-3 py-3">结束时间</th>
-                          <th className="w-28 px-3 py-3">耗时</th>
-                          <th className="w-44 px-3 py-3">上次同步时间</th>
-                          <th className="w-28 px-3 py-3">同步状态</th>
+                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('开始时间', 'started_at')}</th>
+                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('结束时间', 'finished_at')}</th>
+                          <th className="w-28 px-3 py-3">{renderSortableStageItemHeader('耗时', 'duration')}</th>
+                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('上次同步时间', 'last_synced_at')}</th>
+                          <th className="w-32 px-3 py-3">
+                            <div>同步状态</div>
+                            {renderStageItemFilterSelect(stageSyncStatusFilter, setStageSyncStatusFilter, stageSyncStatusOptions, formatStageItemSyncStatus)}
+                          </th>
                           <th className="w-52 px-3 py-3 text-right">操作</th>
                         </tr>
                       </thead>
@@ -3831,9 +3972,6 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.status)}`}>
                                       {formatBinarySecurityStatus(item.status)}
 	                                    </span>
-                                    <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-500">
-                                      {STAGE_LABELS[item.stage_name] || item.stage_name}
-                                    </span>
 	                                  </div>
 	                                </td>
                                   <td className="px-3 py-3">
