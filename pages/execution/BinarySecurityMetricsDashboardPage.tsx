@@ -75,6 +75,13 @@ type MetricsState = {
   refreshedAt: number | null;
 };
 
+type JsonTabState<T> = {
+  loading: boolean;
+  data: T | null;
+  error: string | null;
+  refreshedAt: number | null;
+};
+
 type DfaWorkerDetailState = {
   loading: boolean;
   data: AppDfaClusterCapacity | null;
@@ -97,6 +104,9 @@ type SystemAnalysisWorkerDetailState = {
 };
 
 const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+const FIRST_BATCH_SUMMARY_SERVICES: BinarySecurityMetricsServiceKey[] = BINARY_SECURITY_METRICS_SERVICES.map((service) => service.key);
+const supportsSummaryApi = (serviceKey: BinarySecurityMetricsServiceKey) => FIRST_BATCH_SUMMARY_SERVICES.includes(serviceKey);
+const initialJsonTabState = <T,>(): JsonTabState<T> => ({ loading: false, data: null, error: null, refreshedAt: null });
 
 type PrometheusMetricType = 'counter' | 'gauge' | 'histogram' | 'summary' | 'untyped';
 
@@ -230,6 +240,43 @@ type AiViewModel = {
   roleChart: Array<{ name: string; value: number }>;
   tokenChart: Array<{ name: string; value: number }>;
   coverageText: string;
+};
+
+type SummaryObservabilityResponse = {
+  overview_cards?: Array<{ label: string; value: number | string | null; hint?: string; tone?: string }>;
+  alerts?: Array<{ label: string; text: string; tone: string }>;
+  status_counts?: Record<string, number>;
+  metric_rows?: Array<{ name: string; family_name: string; labels: Record<string, string>; value: number }>;
+};
+
+type SummaryRestApiResponse = {
+  rows: RestApiRouteSummary[];
+  total_requests: number;
+  total_inflight: number;
+  avg_seconds: number | null;
+  p95_seconds: number | null;
+  slow_route_count: number;
+  error_rate: number | null;
+  top_by_count: Array<{ name: string; value: number }>;
+  top_by_p95: Array<{ name: string; value: number }>;
+  top_by_5xx: Array<{ name: string; value: number }>;
+};
+
+type SummaryAiResponse = {
+  rows: Array<{ name: string; family_name: string; labels: Record<string, string>; value: number }>;
+  cards: Array<{ label: string; value: number; hint: string }>;
+  coverage: AiCoverage;
+  coverage_label: string;
+  family_count: number;
+  role_chart: Array<{ name: string; value: number }>;
+  token_chart: Array<{ name: string; value: number }>;
+  coverage_text: string;
+};
+
+type SummaryObservabilityViewModel = {
+  overviewCards: Array<{ label: string; value: string; hint: string; tone: string }>;
+  alerts: Array<{ label: string; text: string; tone: string }>;
+  statusRows: Array<{ label: string; value: number; tone: string }>;
 };
 
 type B2SBusinessViewModel = {
@@ -1269,6 +1316,47 @@ const buildAiViewModel = (rows: DisplayMetricRow[], service: BinarySecurityMetri
     coverageText: AI_SERVICE_SCOPE[service.key],
   };
 };
+
+const buildSummaryObservabilityViewModel = (summary: SummaryObservabilityResponse | null): SummaryObservabilityViewModel | null => {
+  if (!summary) return null;
+  const overviewCards = (summary.overview_cards || []).map((item) => ({
+    label: item.label,
+    value: typeof item.value === 'number' ? formatMetricValue(item.value) : String(item.value ?? '-'),
+    hint: item.hint || '',
+    tone: item.tone || 'text-slate-900',
+  }));
+  const statusRows = Object.entries(summary.status_counts || {})
+    .map(([label, value]) => ({
+      label,
+      value: Number(value) || 0,
+      tone: label === 'failed' || label === 'error' ? 'text-rose-700' : label === 'running' ? 'text-teal-700' : 'text-slate-700',
+    }))
+    .sort((left, right) => right.value - left.value);
+  return {
+    overviewCards,
+    alerts: summary.alerts || [],
+    statusRows,
+  };
+};
+
+const buildRowsFromSummaryMetricRows = (summary: SummaryObservabilityResponse | null): DisplayMetricRow[] =>
+  (summary?.metric_rows || []).map((row) => {
+    const labels = Object.fromEntries(Object.entries(row.labels || {}).map(([key, value]) => [key, String(value)])) as Record<string, string>;
+    const metric: ParsedMetricSample = {
+      name: row.name,
+      familyName: row.family_name,
+      labels,
+      value: Number(row.value) || 0,
+      type: 'gauge',
+      help: null,
+    };
+    return {
+      ...metric,
+      group: detectGroup(metric, getBinarySecurityMetricsService('binary-security')),
+      labelText: labelTextForMetric(labels),
+      displayName: row.name,
+    };
+  });
 
 const sumMetric = (rows: DisplayMetricRow[], matcher: (row: DisplayMetricRow) => boolean) =>
   rows.filter(matcher).reduce((total, row) => total + row.value, 0);
@@ -2531,6 +2619,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [stateByService, setStateByService] = useState<Record<BinarySecurityMetricsServiceKey, MetricsState>>(
     Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, INITIAL_STATE])) as Record<BinarySecurityMetricsServiceKey, MetricsState>,
   );
+  const [observabilityStateByService, setObservabilityStateByService] = useState<Record<BinarySecurityMetricsServiceKey, JsonTabState<SummaryObservabilityResponse>>>(
+    Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, initialJsonTabState<SummaryObservabilityResponse>()])) as Record<BinarySecurityMetricsServiceKey, JsonTabState<SummaryObservabilityResponse>>,
+  );
+  const [restApiStateByService, setRestApiStateByService] = useState<Record<BinarySecurityMetricsServiceKey, JsonTabState<SummaryRestApiResponse>>>(
+    Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, initialJsonTabState<SummaryRestApiResponse>()])) as Record<BinarySecurityMetricsServiceKey, JsonTabState<SummaryRestApiResponse>>,
+  );
+  const [aiStateByService, setAiStateByService] = useState<Record<BinarySecurityMetricsServiceKey, JsonTabState<SummaryAiResponse>>>(
+    Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((service) => [service.key, initialJsonTabState<SummaryAiResponse>()])) as Record<BinarySecurityMetricsServiceKey, JsonTabState<SummaryAiResponse>>,
+  );
   const [dfaWorkerDetailState, setDfaWorkerDetailState] = useState<DfaWorkerDetailState>(INITIAL_DFA_WORKER_DETAIL_STATE);
   const [entryWorkerDetailState, setEntryWorkerDetailState] = useState<EntryWorkerDetailState>(INITIAL_ENTRY_WORKER_DETAIL_STATE);
   const [systemWorkerDetailState, setSystemWorkerDetailState] = useState<SystemAnalysisWorkerDetailState>({
@@ -2681,6 +2778,98 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
           });
         }
       }
+    }
+  };
+
+  const loadObservabilitySummary = async (serviceKey: BinarySecurityMetricsServiceKey) => {
+    if (!supportsSummaryApi(serviceKey)) {
+      await loadMetrics(serviceKey);
+      return;
+    }
+    setObservabilityStateByService((current) => ({
+      ...current,
+      [serviceKey]: { ...current[serviceKey], loading: true, error: null },
+    }));
+    if (serviceKey === 'dataflow-analysis') {
+      setDfaWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
+    }
+    if (serviceKey === 'entry-analysis') {
+      setEntryWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
+    }
+    if (serviceKey === 'system-analysis') {
+      setSystemWorkerDetailState((current) => ({ ...current, loading: true, error: null }));
+    }
+    try {
+      const [data, dfaWorkerData, entryWorkerData, systemWorkerData] = await Promise.all([
+        executionMetricsApi.getServiceObservabilitySummary(serviceKey) as Promise<SummaryObservabilityResponse>,
+        serviceKey === 'dataflow-analysis' ? dataflowAnalysisApi.getWorkerClusterCapacity() : Promise.resolve(null),
+        serviceKey === 'entry-analysis' ? entryAnalysisApi.getSlotCluster() : Promise.resolve(null),
+        serviceKey === 'system-analysis' ? systemAnalysisApi.getWorkerClusterCapacity() : Promise.resolve(null),
+      ]);
+      setObservabilityStateByService((current) => ({
+        ...current,
+        [serviceKey]: { loading: false, data, error: null, refreshedAt: Date.now() },
+      }));
+      if (serviceKey === 'dataflow-analysis') {
+        setDfaWorkerDetailState({ loading: false, data: dfaWorkerData, error: null, refreshedAt: Date.now() });
+      }
+      if (serviceKey === 'entry-analysis') {
+        setEntryWorkerDetailState({ loading: false, data: entryWorkerData, error: null, refreshedAt: Date.now() });
+      }
+      if (serviceKey === 'system-analysis') {
+        setSystemWorkerDetailState({ loading: false, data: systemWorkerData, error: null, refreshedAt: Date.now() });
+      }
+    } catch (error: any) {
+      setObservabilityStateByService((current) => ({
+        ...current,
+        [serviceKey]: { ...current[serviceKey], loading: false, error: error?.message || '摘要抓取失败', refreshedAt: Date.now() },
+      }));
+    }
+  };
+
+  const loadRestApiSummary = async (serviceKey: BinarySecurityMetricsServiceKey) => {
+    if (!supportsSummaryApi(serviceKey)) {
+      await loadMetrics(serviceKey);
+      return;
+    }
+    setRestApiStateByService((current) => ({
+      ...current,
+      [serviceKey]: { ...current[serviceKey], loading: true, error: null },
+    }));
+    try {
+      const data = await executionMetricsApi.getServiceRestApiSummary(serviceKey) as SummaryRestApiResponse;
+      setRestApiStateByService((current) => ({
+        ...current,
+        [serviceKey]: { loading: false, data, error: null, refreshedAt: Date.now() },
+      }));
+    } catch (error: any) {
+      setRestApiStateByService((current) => ({
+        ...current,
+        [serviceKey]: { ...current[serviceKey], loading: false, error: error?.message || 'REST API 摘要抓取失败', refreshedAt: Date.now() },
+      }));
+    }
+  };
+
+  const loadAiSummary = async (serviceKey: BinarySecurityMetricsServiceKey) => {
+    if (!supportsSummaryApi(serviceKey)) {
+      await loadMetrics(serviceKey);
+      return;
+    }
+    setAiStateByService((current) => ({
+      ...current,
+      [serviceKey]: { ...current[serviceKey], loading: true, error: null },
+    }));
+    try {
+      const data = await executionMetricsApi.getServiceAiSummary(serviceKey) as SummaryAiResponse;
+      setAiStateByService((current) => ({
+        ...current,
+        [serviceKey]: { loading: false, data, error: null, refreshedAt: Date.now() },
+      }));
+    } catch (error: any) {
+      setAiStateByService((current) => ({
+        ...current,
+        [serviceKey]: { ...current[serviceKey], loading: false, error: error?.message || 'AI 摘要抓取失败', refreshedAt: Date.now() },
+      }));
     }
   };
 
@@ -2842,11 +3031,48 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   }, [agentObservabilityEnabled, agentPodDetails, agentState.podsLoaded, ensureAgentPodsLoaded, executionMetricsApi, projectId]);
 
   useEffect(() => {
-    const current = stateByService[activeServiceKey];
-    if (!current.rawText && !current.loading && !current.error) {
-      void loadMetrics(activeServiceKey);
+    if (activeSecondaryTab === 'observability') {
+      if (supportsSummaryApi(activeServiceKey)) {
+        const current = observabilityStateByService[activeServiceKey];
+        if (!current.data && !current.loading && !current.error) {
+          void loadObservabilitySummary(activeServiceKey);
+        }
+      } else {
+        const current = stateByService[activeServiceKey];
+        if (!current.rawText && !current.loading && !current.error) {
+          void loadMetrics(activeServiceKey);
+        }
+      }
+      return;
     }
-  }, [activeServiceKey, stateByService]);
+    if (activeSecondaryTab === 'rest-api') {
+      if (supportsSummaryApi(activeServiceKey)) {
+        const current = restApiStateByService[activeServiceKey];
+        if (!current.data && !current.loading && !current.error) {
+          void loadRestApiSummary(activeServiceKey);
+        }
+      } else {
+        const current = stateByService[activeServiceKey];
+        if (!current.rawText && !current.loading && !current.error) {
+          void loadMetrics(activeServiceKey);
+        }
+      }
+      return;
+    }
+    if (activeSecondaryTab === 'ai-zone') {
+      if (supportsSummaryApi(activeServiceKey)) {
+        const current = aiStateByService[activeServiceKey];
+        if (!current.data && !current.loading && !current.error) {
+          void loadAiSummary(activeServiceKey);
+        }
+      } else {
+        const current = stateByService[activeServiceKey];
+        if (!current.rawText && !current.loading && !current.error) {
+          void loadMetrics(activeServiceKey);
+        }
+      }
+    }
+  }, [activeSecondaryTab, activeServiceKey, aiStateByService, observabilityStateByService, restApiStateByService, stateByService]);
 
   useEffect(() => {
     if (activeServiceKey !== 'binary-security') return;
@@ -2890,7 +3116,13 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         void loadAgentObservability(activeServiceKey);
         return;
       }
-      void loadMetrics(activeServiceKey);
+      if (activeSecondaryTab === 'observability') {
+        void (supportsSummaryApi(activeServiceKey) ? loadObservabilitySummary(activeServiceKey) : loadMetrics(activeServiceKey));
+      } else if (activeSecondaryTab === 'rest-api') {
+        void (supportsSummaryApi(activeServiceKey) ? loadRestApiSummary(activeServiceKey) : loadMetrics(activeServiceKey));
+      } else if (activeSecondaryTab === 'ai-zone') {
+        void (supportsSummaryApi(activeServiceKey) ? loadAiSummary(activeServiceKey) : loadMetrics(activeServiceKey));
+      }
       if (activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer') {
         void loadReducerMetrics();
         void loadReducerEvents();
@@ -2925,11 +3157,49 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   }, [activeServiceKey, projectId, resolveSecondaryTabFromUrl]);
 
   const activeState = stateByService[activeServiceKey];
-  const activeRefreshTimestamp = activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer' ? reducerMetricsState.refreshedAt : activeState.refreshedAt;
+  const activeObservabilityState = observabilityStateByService[activeServiceKey];
+  const activeRestApiState = restApiStateByService[activeServiceKey];
+  const activeAiState = aiStateByService[activeServiceKey];
+  const activeTabLoading =
+    activeSecondaryTab === 'observability' && supportsSummaryApi(activeServiceKey)
+      ? activeObservabilityState.loading && !activeObservabilityState.data
+      : activeSecondaryTab === 'rest-api' && supportsSummaryApi(activeServiceKey)
+        ? activeRestApiState.loading && !activeRestApiState.data
+        : activeSecondaryTab === 'ai-zone' && supportsSummaryApi(activeServiceKey)
+          ? activeAiState.loading && !activeAiState.data
+          : activeState.loading && !activeState.rawText;
+  const activeTabError =
+    activeSecondaryTab === 'observability' && supportsSummaryApi(activeServiceKey)
+      ? (!activeObservabilityState.data ? activeObservabilityState.error : null)
+      : activeSecondaryTab === 'rest-api' && supportsSummaryApi(activeServiceKey)
+        ? (!activeRestApiState.data ? activeRestApiState.error : null)
+        : activeSecondaryTab === 'ai-zone' && supportsSummaryApi(activeServiceKey)
+          ? (!activeAiState.data ? activeAiState.error : null)
+          : !activeState.rawText
+            ? activeState.error
+            : null;
+  const activeRefreshTimestamp =
+    activeServiceKey === 'binary-security' && activeSecondaryTab === 'reducer'
+      ? reducerMetricsState.refreshedAt
+      : activeSecondaryTab === 'observability' && supportsSummaryApi(activeServiceKey)
+        ? activeObservabilityState.refreshedAt
+        : activeSecondaryTab === 'rest-api' && supportsSummaryApi(activeServiceKey)
+          ? activeRestApiState.refreshedAt
+          : activeSecondaryTab === 'ai-zone' && supportsSummaryApi(activeServiceKey)
+            ? activeAiState.refreshedAt
+            : activeState.refreshedAt;
   const viewModel = useMemo(() => buildServiceViewModel(activeState.rawText, activeService), [activeService, activeState.rawText]);
+  const binarySecuritySummaryRows = useMemo(
+    () => (activeServiceKey === 'binary-security' ? buildRowsFromSummaryMetricRows(activeObservabilityState.data) : []),
+    [activeObservabilityState.data, activeServiceKey],
+  );
+  const observabilityRows =
+    activeServiceKey === 'binary-security' && supportsSummaryApi(activeServiceKey) && activeObservabilityState.data
+      ? binarySecuritySummaryRows
+      : viewModel.rows;
   const aggregateCoverage = useMemo(
-    () => buildAggregateCoverageSummary(viewModel.rows, activeServiceKey),
-    [activeServiceKey, viewModel.rows],
+    () => buildAggregateCoverageSummary(observabilityRows, activeServiceKey),
+    [activeServiceKey, observabilityRows],
   );
   const aiViewModel = useMemo(() => buildAiViewModel(viewModel.rows, activeService), [activeService, viewModel.rows]);
   const dataflowVulnAiViewModel = useMemo(
@@ -2986,7 +3256,28 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     () => (activeServiceKey === 'dataflow-analysis' ? buildDataflowAnalysisViewModel(viewModel.rows) : null),
     [activeServiceKey, viewModel.rows],
   );
-  const restApiViewModel = useMemo(() => buildRestApiViewModel(viewModel.rows), [viewModel.rows]);
+  const summaryObservabilityViewModel = useMemo(
+    () => (supportsSummaryApi(activeServiceKey) && activeServiceKey !== 'binary-security' ? buildSummaryObservabilityViewModel(activeObservabilityState.data) : null),
+    [activeObservabilityState.data, activeServiceKey],
+  );
+  const restApiViewModel = useMemo(
+    () =>
+      supportsSummaryApi(activeServiceKey) && activeRestApiState.data
+        ? {
+            rows: activeRestApiState.data.rows || [],
+            totalRequests: activeRestApiState.data.total_requests || 0,
+            totalInflight: activeRestApiState.data.total_inflight || 0,
+            avgSeconds: activeRestApiState.data.avg_seconds,
+            p95Seconds: activeRestApiState.data.p95_seconds,
+            slowRouteCount: activeRestApiState.data.slow_route_count || 0,
+            errorRate: activeRestApiState.data.error_rate,
+            topByCount: activeRestApiState.data.top_by_count || [],
+            topByP95: activeRestApiState.data.top_by_p95 || [],
+            topBy5xx: activeRestApiState.data.top_by_5xx || [],
+          }
+        : buildRestApiViewModel(viewModel.rows),
+    [activeRestApiState.data, activeServiceKey, viewModel.rows],
+  );
   const restApiMethods = useMemo(
     () => Array.from(new Set(restApiViewModel.rows.map((item) => item.method))).sort((left, right) => left.localeCompare(right, 'zh-CN')),
     [restApiViewModel.rows],
@@ -3020,8 +3311,8 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     [activeServiceKey, reducerHistoryByService, reducerMetricsState.rawText],
   );
   const binarySecurityObservabilityViewModel = useMemo(
-    () => (activeServiceKey === 'binary-security' ? buildBinarySecurityObservabilityViewModel(viewModel.rows, aggregateCoverage) : null),
-    [activeServiceKey, aggregateCoverage, viewModel.rows],
+    () => (activeServiceKey === 'binary-security' ? buildBinarySecurityObservabilityViewModel(observabilityRows, aggregateCoverage) : null),
+    [activeServiceKey, aggregateCoverage, observabilityRows],
   );
 
   const filteredRows = useMemo(() => {
@@ -3049,9 +3340,44 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     });
   }, [activeServiceKey, dataflowVulnSampleScope, groupFilter, searchKeyword, selectedDfaWorkerFilter, selectedEntryWorkerFilter, selectedSystemWorkerFilter, viewModel.rows]);
 
+  const effectiveAiViewModel = useMemo<AiViewModel>(
+    () =>
+      supportsSummaryApi(activeServiceKey) && activeAiState.data
+        ? {
+            rows: (activeAiState.data.rows || []).map((row) => {
+              const labels = Object.fromEntries(
+                Object.entries(row.labels || {}).map(([key, value]) => [key, String(value)]),
+              ) as Record<string, string>;
+              return {
+              name: row.name,
+              familyName: row.family_name,
+              labels,
+              value: row.value,
+              type: 'gauge' as const,
+              help: null,
+              group: 'ai-agent' as BinarySecurityMetricsGroup,
+              labelText: Object.entries(labels).map(([key, value]) => `${key}=${value}`).join(', '),
+              displayName: row.name,
+              };
+            }),
+            cards: (activeAiState.data.cards || []).map((item, index) => ({
+              ...item,
+              icon: [<Brain size={16} key="brain" />, <Coins size={16} key="coins" />, <Bot size={16} key="bot" />, <Activity size={16} key="activity" />, <Gauge size={16} key="gauge" />, <BarChart3 size={16} key="bar" />][index] || <Brain size={16} key={`icon-${index}`} />,
+            })),
+            coverage: activeAiState.data.coverage,
+            coverageLabel: activeAiState.data.coverage_label,
+            familyCount: activeAiState.data.family_count,
+            roleChart: activeAiState.data.role_chart || [],
+            tokenChart: activeAiState.data.token_chart || [],
+            coverageText: activeAiState.data.coverage_text,
+          }
+        : aiViewModel,
+    [activeAiState.data, activeServiceKey, aiViewModel],
+  );
+
   const aiRows = useMemo(() => {
     const keyword = aiSearchKeyword.trim().toLowerCase();
-    return aiViewModel.rows.filter((row) => {
+    return effectiveAiViewModel.rows.filter((row) => {
       if (aiRoleFilter !== 'all') {
         const roleHit = Object.values(row.labels).some((value) => value === aiRoleFilter);
         if (!roleHit) return false;
@@ -3059,11 +3385,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       if (!keyword) return true;
       return `${row.name} ${row.labelText} ${row.help || ''}`.toLowerCase().includes(keyword);
     });
-  }, [aiRoleFilter, aiSearchKeyword, aiViewModel.rows]);
+  }, [aiRoleFilter, aiSearchKeyword, effectiveAiViewModel.rows]);
 
   const aiRoles = useMemo(() => {
     const roles = new Set<string>();
-    aiViewModel.rows.forEach((row) => {
+    effectiveAiViewModel.rows.forEach((row) => {
       Object.entries(row.labels).forEach(([key, value]) => {
         if ((BINARY_SECURITY_AI_DIMENSION_LABEL_KEYS as readonly string[]).includes(key) && value) {
           roles.add(value);
@@ -3071,7 +3397,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       });
     });
     return Array.from(roles).sort((left, right) => left.localeCompare(right, 'zh-CN'));
-  }, [aiViewModel.rows]);
+  }, [effectiveAiViewModel.rows]);
 
   const filteredAgentProcesses = useMemo(() => {
     return agentState.processes.filter((item) => {
@@ -3342,7 +3668,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-teal-600">Binary Security</p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">性能看板</h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
-              面向二进制安全链路的轻量指标看板，直接抓取各微服务的 Prometheus `/metrics` 快照，并拆分通用观测与 AI/智能体观测。
+              面向二进制安全链路的轻量指标看板，按微服务和 Tab 拉取后端 summary 数据；原始 Prometheus 指标保留为兜底排查入口。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -3362,7 +3688,21 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   void loadReducerMetrics();
                   return;
                 }
-                void loadMetrics(activeServiceKey);
+                if (activeSecondaryTab === 'agent' && agentObservabilityEnabled) {
+                  void loadAgentObservability(activeServiceKey);
+                  return;
+                }
+                if (activeSecondaryTab === 'observability') {
+                  void (supportsSummaryApi(activeServiceKey) ? loadObservabilitySummary(activeServiceKey) : loadMetrics(activeServiceKey));
+                  return;
+                }
+                if (activeSecondaryTab === 'rest-api') {
+                  void (supportsSummaryApi(activeServiceKey) ? loadRestApiSummary(activeServiceKey) : loadMetrics(activeServiceKey));
+                  return;
+                }
+                if (activeSecondaryTab === 'ai-zone') {
+                  void (supportsSummaryApi(activeServiceKey) ? loadAiSummary(activeServiceKey) : loadMetrics(activeServiceKey));
+                }
               }}
               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
             >
@@ -3387,6 +3727,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         <div className="flex flex-wrap items-center gap-2">
           {BINARY_SECURITY_METRICS_SERVICES.map((service) => {
             const state = stateByService[service.key];
+            const observabilityTabState = observabilityStateByService[service.key];
+            const restTabState = restApiStateByService[service.key];
+            const aiTabState = aiStateByService[service.key];
+            const hasAnySummaryData = Boolean(observabilityTabState.data || restTabState.data || aiTabState.data);
+            const summaryLoading = observabilityTabState.loading || restTabState.loading || aiTabState.loading;
+            const summaryError = observabilityTabState.error || restTabState.error || aiTabState.error;
             const active = service.key === activeServiceKey;
             return (
               <button
@@ -3399,7 +3745,21 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               >
                 <div className="text-sm font-black">{service.label}</div>
                 <div className={`mt-1 text-[11px] ${active ? 'text-slate-200' : 'text-slate-500'}`}>
-                  {state.loading ? '抓取中...' : state.error ? '抓取失败' : state.refreshedAt ? '已更新' : '待抓取'}
+                  {supportsSummaryApi(service.key)
+                    ? summaryLoading
+                      ? '抓取中...'
+                      : summaryError && !hasAnySummaryData
+                        ? '抓取失败'
+                        : hasAnySummaryData
+                          ? '已更新'
+                          : '待抓取'
+                    : state.loading
+                      ? '抓取中...'
+                      : state.error
+                        ? '抓取失败'
+                        : state.refreshedAt
+                          ? '已更新'
+                          : '待抓取'}
                 </div>
               </button>
             );
@@ -3427,14 +3787,14 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
         </div>
       </section>
 
-      {activeState.loading && !activeState.rawText ? (
+      {activeTabLoading ? (
         <section className="rounded-[2rem] border border-slate-200 bg-white px-6 py-12 text-center shadow-sm">
           <Loader2 className="mx-auto animate-spin text-slate-400" size={24} />
           <p className="mt-4 text-sm text-slate-500">正在抓取 {activeService.label} 的指标...</p>
         </section>
-      ) : activeState.error && !activeState.rawText ? (
+      ) : activeTabError ? (
         <section className="rounded-[2rem] border border-rose-200 bg-rose-50 px-6 py-12 text-center shadow-sm">
-          <p className="text-sm font-semibold text-rose-700">{activeState.error}</p>
+          <p className="text-sm font-semibold text-rose-700">{activeTabError}</p>
         </section>
       ) : activeSecondaryTab === 'observability' ? (
         <>
@@ -3469,7 +3829,60 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
             </section>
           ) : null}
 
-          {binarySecurityObservabilityViewModel ? (
+          {summaryObservabilityViewModel ? (
+            <section className="space-y-4 rounded-[2rem] border border-teal-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_36%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-teal-700">Light Summary</div>
+                  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-900">{activeService.label} 轻量观测摘要</h2>
+                  <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                    当前 Tab 使用后端 `metrics/summary` JSON，不再下载整包 Prometheus 文本；槽位和智能体明细仍由各自独立接口按需加载。
+                  </p>
+                </div>
+                <span className="inline-flex rounded-full border border-teal-200 bg-white/80 px-3 py-1 text-xs font-black text-teal-800">
+                  summary endpoint
+                </span>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                {summaryObservabilityViewModel.overviewCards.map((item) => (
+                  <div key={item.label} className="rounded-2xl border border-teal-100 bg-white/90 px-4 py-3 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                    <div className={`mt-2 text-xl font-black ${item.tone}`}>{item.value}</div>
+                    <div className="mt-1 text-xs text-slate-500">{item.hint}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-3">
+                {summaryObservabilityViewModel.alerts.map((alert) => (
+                  <div key={alert.label} className={`rounded-2xl border px-4 py-3 shadow-sm ${alert.tone}`}>
+                    <div className="text-sm font-black">{alert.label}</div>
+                    <div className="mt-1 text-xs leading-5 opacity-90">{alert.text}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Status Counts</div>
+                <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">任务状态分布</h3>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+                  {summaryObservabilityViewModel.statusRows.length ? (
+                    summaryObservabilityViewModel.statusRows.map((item) => (
+                      <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <div className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</div>
+                        <div className={`mt-1 text-base font-black ${item.tone}`}>{formatNumber(item.value)}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500 sm:col-span-2 xl:col-span-6">
+                      当前 summary 暂无任务状态分布。
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : binarySecurityObservabilityViewModel ? (
             <section className="space-y-4 rounded-[2rem] border border-emerald-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_34%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -5676,15 +6089,15 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               <div>
                 <div className="text-[11px] font-black uppercase tracking-[0.18em] text-fuchsia-500">AI/智能体</div>
                 <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-900">AI专区</h2>
-                <p className="mt-2 max-w-3xl text-sm text-slate-500">{aiViewModel.coverageText}</p>
+                <p className="mt-2 max-w-3xl text-sm text-slate-500">{effectiveAiViewModel.coverageText}</p>
               </div>
-              <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${AI_COVERAGE_BADGE[aiViewModel.coverage]}`}>
-                {aiViewModel.coverageLabel}
+              <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${AI_COVERAGE_BADGE[effectiveAiViewModel.coverage]}`}>
+                {effectiveAiViewModel.coverageLabel}
               </div>
             </div>
           </section>
 
-          {aiViewModel.rows.length === 0 ? (
+          {effectiveAiViewModel.rows.length === 0 ? (
             <EmptyCard text="当前服务尚未完成 AI 观测埋点，AI专区暂时没有可展示的指标。" />
           ) : (
             <>
@@ -5696,7 +6109,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               ) : (
                 <>
                   <section className="grid gap-4 xl:grid-cols-3">
-                    {aiViewModel.cards.map((item) => (
+                    {effectiveAiViewModel.cards.map((item) => (
                       <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
                     ))}
                   </section>
@@ -5708,18 +6121,18 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">识别到的 AI 指标族</div>
-                          <div className="mt-3 text-3xl font-black text-slate-900">{formatNumber(aiViewModel.familyCount)}</div>
+                          <div className="mt-3 text-3xl font-black text-slate-900">{formatNumber(effectiveAiViewModel.familyCount)}</div>
                         </div>
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Canonical 契约</div>
-                          <div className="mt-3 text-base font-black text-slate-900">{aiViewModel.coverageLabel}</div>
+                          <div className="mt-3 text-base font-black text-slate-900">{effectiveAiViewModel.coverageLabel}</div>
                         </div>
                       </div>
                       <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
                         <div className="text-sm font-bold text-slate-800">已识别 canonical 维度</div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {BINARY_SECURITY_CANONICAL_AI_METRICS.map((item) => {
-                            const hit = aiViewModel.rows.some((row) => row.name.includes(item.key.replace(/-/gu, '_')) || (row.help || '').includes(item.label));
+                            const hit = effectiveAiViewModel.rows.some((row) => row.name.includes(item.key.replace(/-/gu, '_')) || (row.help || '').includes(item.label));
                             return (
                               <span key={item.key} className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold ${hit ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
                                 {item.label}
@@ -5734,9 +6147,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">角色分布</div>
                       <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI 角色分布图</h3>
                       <div className="mt-4 h-72">
-                        {aiViewModel.roleChart.length ? (
+                        {effectiveAiViewModel.roleChart.length ? (
                           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
-                            <BarChart data={aiViewModel.roleChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                            <BarChart data={effectiveAiViewModel.roleChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                               <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
                               <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
@@ -5755,9 +6168,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Token / Cost</div>
                     <h3 className="mt-2 text-xl font-black tracking-tight text-slate-900">AI Token/Cost 图</h3>
                     <div className="mt-4 h-72">
-                      {aiViewModel.tokenChart.length ? (
+                      {effectiveAiViewModel.tokenChart.length ? (
                         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
-                          <BarChart data={aiViewModel.tokenChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                          <BarChart data={effectiveAiViewModel.tokenChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                             <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
                             <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />

@@ -178,6 +178,17 @@ const SERVICE_MAP = Object.fromEntries(BINARY_SECURITY_METRICS_SERVICES.map((ser
   BinarySecurityMetricsServiceDefinition
 >;
 
+const getSummaryServicePath = (serviceKey: BinarySecurityMetricsServiceKey): string =>
+  serviceKey === 'entry-analysis'
+    ? 'entry-analyse'
+    : serviceKey === 'system-analysis'
+      ? 'system-analyse'
+      : serviceKey === 'dataflow-analysis'
+        ? 'dataflow-analyse'
+        : serviceKey === 'dataflow-vuln'
+          ? 'dataflow-vuln-scanner'
+        : serviceKey;
+
 export const getBinarySecurityMetricsService = (serviceKey: BinarySecurityMetricsServiceKey) => SERVICE_MAP[serviceKey];
 
 const getAgentServicePath = (serviceKey: BinarySecurityMetricsServiceKey): string =>
@@ -228,6 +239,24 @@ export const binarySecurityMetricsApi = {
       { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
     );
   },
+  getServiceObservabilitySummary: async (serviceKey: BinarySecurityMetricsServiceKey) =>
+    getJsonWithDedupe(
+      `${API_BASE}/api/app/${getSummaryServicePath(serviceKey)}/metrics/summary`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+    ),
+  getServiceRestApiSummary: async (serviceKey: BinarySecurityMetricsServiceKey) =>
+    getJsonWithDedupe(
+      `${API_BASE}/api/app/${getSummaryServicePath(serviceKey)}/metrics/rest-api-summary`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+    ),
+  getServiceAiSummary: async (serviceKey: BinarySecurityMetricsServiceKey) =>
+    getJsonWithDedupe(
+      `${API_BASE}/api/app/${getSummaryServicePath(serviceKey)}/metrics/ai-summary`,
+      { method: 'GET', headers: { ...getHeaders() } },
+      { useRetry: true, retryOptions: { retries: 2, retryDelayMs: 400 } },
+    ),
   getAgentObservabilitySummary: async (serviceKey: BinarySecurityMetricsServiceKey, _projectId: string) =>
     getJsonWithDedupe(
       `${API_BASE}/api/app/${getAgentServicePath(serviceKey)}/agent-observability/${getAgentAggregatePrefix(serviceKey)}summary`,
