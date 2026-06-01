@@ -247,9 +247,18 @@ export interface BinarySecurityTask {
     blocking_reason?: string | null;
     operation_in_progress: boolean;
     operation_type?: string | null;
+    operation_status?: string | null;
     operation_owner?: string | null;
+    operation_started_at?: string | null;
     operation_expires_at?: string | null;
     operation_heartbeat_at?: string | null;
+    current_step?: string | null;
+    target_stage?: string | null;
+    error_code?: string | null;
+    error_message?: string | null;
+    downstream_cleanup_result_count?: number;
+    downstream_cleanup_blocking_count?: number;
+    downstream_cleanup_blocking_refs?: Array<Record<string, any>>;
     can_cancel: boolean;
     can_continue: boolean;
     can_retry: boolean;

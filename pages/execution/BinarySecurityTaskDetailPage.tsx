@@ -1342,6 +1342,8 @@ function manualOperationLabel(overall: string) {
 }
 
 function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
+  const blockingRefs = Array.isArray(state.downstream_cleanup_blocking_refs) ? state.downstream_cleanup_blocking_refs : [];
+  const firstBlockingRef = blockingRefs[0];
   return (
     <div className={`rounded-2xl border px-4 py-3 ${manualOperationTone(state.overall)}`}>
       <div className="flex flex-wrap items-center gap-3">
@@ -1356,6 +1358,10 @@ function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
           <div className="mt-1 font-black">{state.operation_type || '-'}</div>
         </div>
         <div className="rounded-xl border border-current/10 bg-white/55 px-3 py-2">
+          <div className="font-bold opacity-60">操作状态 / 步骤</div>
+          <div className="mt-1 break-all font-black">{state.operation_status || '-'} / {state.current_step || '-'}</div>
+        </div>
+        <div className="rounded-xl border border-current/10 bg-white/55 px-3 py-2">
           <div className="font-bold opacity-60">锁持有实例</div>
           <div className="mt-1 break-all font-black">{state.operation_owner || '-'}</div>
         </div>
@@ -1368,6 +1374,25 @@ function ManualOperationStateCard({ state }: { state: ManualOperationState }) {
           <div className="mt-1 font-black">{fmt(state.operation_expires_at)}</div>
         </div>
       </div>
+      {state.error_message ? (
+        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+          后台操作失败：{state.error_message}
+        </div>
+      ) : null}
+      {Number(state.downstream_cleanup_result_count || 0) > 0 ? (
+        <div className="mt-3 rounded-xl border border-current/10 bg-white/55 px-3 py-2 text-xs">
+          <div className="font-bold opacity-60">下游清理</div>
+          <div className="mt-1 font-semibold">
+            已记录 {state.downstream_cleanup_result_count} 个清理目标
+            {Number(state.downstream_cleanup_blocking_count || 0) > 0 ? `，阻塞 ${state.downstream_cleanup_blocking_count} 个` : ''}
+          </div>
+          {firstBlockingRef ? (
+            <div className="mt-1 break-all font-mono text-[11px] opacity-80">
+              阻塞目标：{String(firstBlockingRef.service || firstBlockingRef.downstream_service || '-')}/{String(firstBlockingRef.task_id || firstBlockingRef.downstream_task_id || '-')}，状态：{String(firstBlockingRef.observed_status || firstBlockingRef.delete_status || '-')}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {state.blocking_reason ? (
         <div className="mt-2 text-xs font-semibold opacity-80">{state.blocking_reason}</div>
       ) : null}
