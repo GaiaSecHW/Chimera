@@ -3154,6 +3154,7 @@ export interface AppEaFunctionCatalogItem {
   start_line?: number;
   end_line?: number;
   r2j_state?: string;
+  r2_source_incomplete?: boolean;
   r3w_state?: string;
   r3j_state?: string;
   r3_state?: string;

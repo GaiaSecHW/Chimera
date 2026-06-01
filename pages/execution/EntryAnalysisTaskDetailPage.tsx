@@ -334,6 +334,7 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
       case 'r1_j_done': touch(0, ts); break;
   // R2 (idx=1) — 只有 Judge，无 Worker 步骤
       case 'r2_j_start': touch(1, ts); break;
+      case 'r2_script_pass': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash)); break;
       case 'r2_j_done': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash)); break;
       // R3 (idx=2) — 与 CC 并行
       case 'r3_w_start': case 'r3_j_start': touch(2, ts); break;
@@ -710,9 +711,14 @@ function formatEvent(evt: AppEaStageEvent): string {
     case 'r1_j_retry': case 'r1_retry_scheduled': return `[${ts}] ↺ R1 重试: ${d.file ?? ''} (第${d.attempt ?? '?'}次)`;
     // ── R2 准确性校正 ─────────────────────────────────────────────────
     case 'r2_w_start':          return `[${ts}] ▶ R2-W 启动: ${d.function ?? d.func_hash ?? ''}${Number(d.attempt) > 1 ? `(第${d.attempt}次)` : ''}`;
-    case 'r2_w_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-W 完成: ${d.function ?? d.func_hash ?? ''}${!d.passed && d.error ? ` — ${d.error}` : ''}`;
+    case 'r2_w_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-W 完成: ${d.function ?? d.func_hash ?? ''}${'source_incomplete' in d && d.source_incomplete ? ' — 源文件不完整' : (!d.passed && d.error ? ` — ${d.error}` : '')}`;
+    case 'r2_w_source_incomplete': return `[${ts}] ⚠ R2-W 判定源文件不完整: ${d.function ?? d.func_hash ?? ''}，等待 Judge 核实`;
     case 'r2_j_start':          return `[${ts}] ▶ R2-J 准确性验证: ${d.function ?? d.func_hash ?? ''}`;
-    case 'r2_j_done':           return `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 准确性验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    case 'r2_j_done':           return d.source_incomplete
+      ? `[${ts}] ⏭ R2-J 跳过(源文件不完整): ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`
+      : `[${ts}] ${d.passed ? '✓' : '✗'} R2-J 准确性验证 ${d.passed ? '通过' : '未通过'}: ${d.function ?? d.func_hash ?? ''}${d.feedback ? ` — ${String(d.feedback).slice(0, 80)}` : ''}`;
+    case 'r2_script_pass':      return `[${ts}] ⚡ R2 脚本快速通过: ${d.function ?? d.func_hash ?? ''} (body 匹配)`;
+    case 'r2_source_incomplete': return `[${ts}] ❌ R2 永久跳过: ${d.function ?? d.func_hash ?? ''} — ${String(d.feedback || '源文件函数体不完整').slice(0, 100)}`;
     // ── R3 外部输入分析 ───────────────────────────────────────────────
     case 'r3_w_start':          return `[${ts}] ▶ R3-W 外部输入分析: ${d.function ?? d.func_hash ?? ''}`;
     case 'r3_w_done':           return `[${ts}] ✓ R3-W 完成: ${d.function ?? d.func_hash ?? ''} has_input=${d.has_external_input ?? ''}`;
@@ -861,7 +867,7 @@ function deriveFuncProgress(
     if (!fh) continue;
     const f = getOrCreate(fh, String(item.name || fh), String(item.file || ''));
     // R2-J: 'failed' 仅是暂时状态（引擎必重试至 passed 或 force-pass），显示为运行中
-    f.r2j = item.r2j_state === 'failed' ? 'running' : toStage(item.r2j_state);
+    f.r2j = item.r2_source_incomplete ? 'failed' : (item.r2j_state === 'failed' ? 'running' : toStage(item.r2j_state));
     f.r3w = toStage(item.r3w_state);
     f.r3j = toStage(item.r3j_state);
     f.r3 = combineR3(f.r3w, f.r3j);
@@ -898,17 +904,25 @@ function deriveFuncProgress(
     const fi = String(d.file || '');
 
     switch (evt.type) {
+      case 'r2_script_pass':
+        if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'r2j', 'passed'); f.lastTs = ts; }
+        break;
+      case 'r2_source_incomplete':
+        if (fh) { const f = getOrCreate(fh, fn, fi); f.r2j = 'failed'; f.lastTs = ts; }
+        break;
       case 'r2_j_start':
         if (fh) { const f = getOrCreate(fh, fn, fi); advanceStage(f, 'r2j', 'running'); f.lastTs = ts; }
         break;
       case 'r2_j_done':
         if (fh) {
           const f = getOrCreate(fh, fn, fi);
-          if (d.passed) {
+          if (d.source_incomplete) {
+            // 源文件不完整：永久失败，不进入下游阶段
+            f.r2j = 'failed';
+          } else if (d.passed) {
             advanceStage(f, 'r2j', 'passed');
           } else {
-            // R2-J 失败是暂时的：引擎将带着 J 反馈运行 R2-W 再验证，不允许漏报。
-            // 不设为终态 failed，不将下游 R3/R4 标为 skip，保持 running 状态等待重试。
+            // R2-J 失败是暂时的：保持 running 状态等待重试。
             advanceStage(f, 'r2j', 'running');
           }
           f.lastTs = ts;
