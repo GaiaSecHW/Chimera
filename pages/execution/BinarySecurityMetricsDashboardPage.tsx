@@ -170,6 +170,53 @@ type AgentPodDetailState = {
   tasks: AgentTaskOwnershipSnapshot[];
 };
 
+type UnifiedAgentPodCard = {
+  pod_name: string;
+  worker_id: string;
+  pod_ip: string | null;
+  healthy: boolean;
+  slot_source: 'slot' | 'agent' | 'merged';
+  mismatch: 'none' | 'slot_only' | 'agent_only';
+  max_concurrent_jobs: number;
+  running_jobs: number;
+  available_slots: number;
+  queued_jobs: number;
+  active_task_count: number;
+  agent_process_limit: number;
+  agent_process_in_use: number;
+  agent_process_available: number;
+  agent_waiting_requests: number;
+  agent_rss_total_bytes: number;
+  process_count: number;
+  tracked_process_count: number;
+  residual_process_count: number;
+  unknown_process_count: number;
+  running_task_count: number;
+  task_count: number;
+  source: string;
+  last_heartbeat_at: string | null;
+  last_scanned_at: string | null;
+  scan_errors: number;
+  error: string | null;
+};
+
+type UnifiedAgentRuntimeViewModel = {
+  podCards: UnifiedAgentPodCard[];
+  totalPods: number;
+  healthyPods: number;
+  totalCapacity: number;
+  busySlots: number;
+  availableSlots: number;
+  queuedJobs: number;
+  agentTotalCapacity: number;
+  agentInUse: number;
+  agentAvailable: number;
+  agentWaitingRequests: number;
+  agentRssTotalBytes: number;
+  slotOnlyPods: number;
+  agentOnlyPods: number;
+};
+
 type AgentKillHistoryEntry = {
   id: string;
   scope: 'single' | 'selected' | 'bulk';
@@ -2446,6 +2493,127 @@ const buildAgentRuntimeSummaryFromState = (
   };
 };
 
+const buildUnifiedAgentRuntimeViewModel = ({
+  slotWorkers,
+  runtimeSummary,
+  agentPods,
+}: {
+  slotWorkers: Array<
+    Partial<AppSaClusterCapacity['workers'][number]> |
+    Partial<AppDfaClusterCapacity['workers'][number]> |
+    Partial<EntryAnalyseSlotClusterSummary['workers'][number]>
+  >;
+  runtimeSummary: AgentRuntimeAggregateSummary | null;
+  agentPods: AgentPodRuntimeSnapshot[];
+}): UnifiedAgentRuntimeViewModel => {
+  const podMap = new Map<string, UnifiedAgentPodCard>();
+
+  const ensurePod = (podName: string, seed?: Partial<UnifiedAgentPodCard>): UnifiedAgentPodCard => {
+    const key = String(podName || '').trim() || `unknown-pod-${podMap.size + 1}`;
+    const existing = podMap.get(key);
+    if (existing) {
+      if (seed) Object.assign(existing, seed);
+      return existing;
+    }
+    const created: UnifiedAgentPodCard = {
+      pod_name: key,
+      worker_id: String(seed?.worker_id || '').trim() || key,
+      pod_ip: seed?.pod_ip ?? null,
+      healthy: seed?.healthy ?? false,
+      slot_source: seed?.slot_source || 'agent',
+      mismatch: seed?.mismatch || 'none',
+      max_concurrent_jobs: Number(seed?.max_concurrent_jobs || 0),
+      running_jobs: Number(seed?.running_jobs || 0),
+      available_slots: Number(seed?.available_slots || 0),
+      queued_jobs: Number(seed?.queued_jobs || 0),
+      active_task_count: Number(seed?.active_task_count || 0),
+      agent_process_limit: Number(seed?.agent_process_limit || 0),
+      agent_process_in_use: Number(seed?.agent_process_in_use || 0),
+      agent_process_available: Number(seed?.agent_process_available || 0),
+      agent_waiting_requests: Number(seed?.agent_waiting_requests || 0),
+      agent_rss_total_bytes: Number(seed?.agent_rss_total_bytes || 0),
+      process_count: Number(seed?.process_count || 0),
+      tracked_process_count: Number(seed?.tracked_process_count || 0),
+      residual_process_count: Number(seed?.residual_process_count || 0),
+      unknown_process_count: Number(seed?.unknown_process_count || 0),
+      running_task_count: Number(seed?.running_task_count || 0),
+      task_count: Number(seed?.task_count || 0),
+      source: String(seed?.source || '').trim() || 'unknown',
+      last_heartbeat_at: seed?.last_heartbeat_at ?? null,
+      last_scanned_at: seed?.last_scanned_at ?? null,
+      scan_errors: Number(seed?.scan_errors || 0),
+      error: seed?.error ?? null,
+    };
+    podMap.set(key, created);
+    return created;
+  };
+
+  slotWorkers.forEach((worker) => {
+    const podName = String((worker as { pod_name?: string | null }).pod_name || '').trim();
+    if (!podName) return;
+    ensurePod(podName, {
+      worker_id: String((worker as { worker_id?: string | null }).worker_id || '').trim() || podName,
+      pod_ip: (worker as { pod_ip?: string | null }).pod_ip ?? null,
+      healthy: Boolean((worker as { healthy?: boolean }).healthy),
+      slot_source: 'slot',
+      mismatch: 'slot_only',
+      max_concurrent_jobs: Number((worker as { max_concurrent_jobs?: number }).max_concurrent_jobs || 0),
+      running_jobs: Number((worker as { running_jobs?: number }).running_jobs || 0),
+      available_slots: Number((worker as { available_slots?: number }).available_slots || 0),
+      queued_jobs: Number((worker as { queued_jobs?: number }).queued_jobs || 0),
+      active_task_count: Array.isArray((worker as { active_jobs?: unknown[] }).active_jobs) ? (worker as { active_jobs?: unknown[] }).active_jobs!.length : 0,
+      agent_process_limit: Number((worker as { agent_process_limit?: number }).agent_process_limit || 0),
+      agent_process_in_use: Number((worker as { agent_process_in_use?: number }).agent_process_in_use || 0),
+      agent_process_available: Number((worker as { agent_process_available?: number }).agent_process_available || 0),
+      agent_waiting_requests: Number((worker as { agent_waiting_requests?: number }).agent_waiting_requests || 0),
+      agent_rss_total_bytes: Number((worker as { agent_rss_total_bytes?: number }).agent_rss_total_bytes || 0),
+      source: String((worker as { source?: string | null }).source || '').trim() || 'slot',
+      last_heartbeat_at: (worker as { last_heartbeat_at?: string | null }).last_heartbeat_at ?? null,
+      error: (worker as { error?: string | null }).error ?? null,
+    });
+  });
+
+  agentPods.forEach((pod) => {
+    const card = ensurePod(pod.pod_name, {
+      worker_id: pod.worker_id || pod.pod_name,
+      healthy: pod.healthy !== false,
+      slot_source: podMap.has(pod.pod_name) ? 'merged' : 'agent',
+      mismatch: podMap.has(pod.pod_name) ? 'none' : 'agent_only',
+      process_count: Number(pod.process_count || 0),
+      tracked_process_count: Number(pod.tracked_process_count || 0),
+      residual_process_count: Number(pod.residual_process_count || 0),
+      unknown_process_count: Number(pod.unknown_process_count || 0),
+      running_task_count: Number(pod.running_task_count || 0),
+      task_count: Number(pod.task_count || 0),
+      last_scanned_at: pod.last_scanned_at ?? null,
+      scan_errors: Number(pod.scan_errors || 0),
+      error: pod.error ?? null,
+    });
+    if (card.mismatch === 'slot_only') {
+      card.mismatch = 'none';
+      card.slot_source = 'merged';
+    }
+  });
+
+  const podCards = Array.from(podMap.values()).sort((left, right) => left.pod_name.localeCompare(right.pod_name, 'zh-CN'));
+  return {
+    podCards,
+    totalPods: podCards.length,
+    healthyPods: podCards.filter((pod) => pod.healthy).length,
+    totalCapacity: podCards.reduce((sum, pod) => sum + pod.max_concurrent_jobs, 0),
+    busySlots: podCards.reduce((sum, pod) => sum + pod.running_jobs, 0),
+    availableSlots: podCards.reduce((sum, pod) => sum + pod.available_slots, 0),
+    queuedJobs: podCards.reduce((sum, pod) => sum + pod.queued_jobs, 0),
+    agentTotalCapacity: podCards.reduce((sum, pod) => sum + pod.agent_process_limit, 0),
+    agentInUse: podCards.reduce((sum, pod) => sum + pod.agent_process_in_use, 0),
+    agentAvailable: podCards.reduce((sum, pod) => sum + pod.agent_process_available, 0),
+    agentWaitingRequests: podCards.reduce((sum, pod) => sum + pod.agent_waiting_requests, 0),
+    agentRssTotalBytes: podCards.reduce((sum, pod) => sum + pod.agent_rss_total_bytes, 0),
+    slotOnlyPods: podCards.filter((pod) => pod.mismatch === 'slot_only').length,
+    agentOnlyPods: podCards.filter((pod) => pod.mismatch === 'agent_only').length,
+  };
+};
+
 const ReducerMetricList: React.FC<{ title: string; items: ReducerBreakdownItem[]; emptyText: string }> = ({ title, items, emptyText }) => (
   <div className="rounded-[1.6rem] border border-slate-200 bg-white p-4 shadow-sm">
     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{title}</div>
@@ -3220,6 +3388,30 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     () => (activeServiceKey === 'binary-security' ? buildBinarySecurityObservabilityViewModel(observabilityRows, aggregateCoverage) : null),
     [activeServiceKey, aggregateCoverage, observabilityRows],
   );
+  const unifiedAgentRuntimeViewModel = useMemo(() => {
+    if (!agentObservabilityEnabled) return null;
+    const slotWorkers =
+      activeServiceKey === 'entry-analysis'
+        ? entryWorkerDetailState.data?.workers || []
+        : activeServiceKey === 'system-analysis'
+          ? systemWorkerDetailState.data?.workers || []
+          : activeServiceKey === 'dataflow-analysis'
+            ? dfaWorkerDetailState.data?.workers || []
+            : [];
+    return buildUnifiedAgentRuntimeViewModel({
+      slotWorkers,
+      runtimeSummary: agentState.runtimeSummary,
+      agentPods: agentState.pods,
+    });
+  }, [
+    activeServiceKey,
+    agentObservabilityEnabled,
+    agentState.pods,
+    agentState.runtimeSummary,
+    dfaWorkerDetailState.data?.workers,
+    entryWorkerDetailState.data?.workers,
+    systemWorkerDetailState.data?.workers,
+  ]);
 
   const filteredRows = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase();
@@ -3348,19 +3540,19 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       void ensureAgentPodsLoaded(activeServiceKey);
       return;
     }
-    agentState.pods.forEach((pod) => {
+    (unifiedAgentRuntimeViewModel?.podCards || []).forEach((pod) => {
       if (pod.pod_name) {
         void ensureAgentPodDetail(activeServiceKey, pod.pod_name);
       }
     });
-  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, agentState.pods, agentState.podsLoaded, ensureAgentPodDetail, ensureAgentPodsLoaded, requiresAgentDetailFiltering]);
+  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, agentState.podsLoaded, ensureAgentPodDetail, ensureAgentPodsLoaded, requiresAgentDetailFiltering, unifiedAgentRuntimeViewModel?.podCards]);
 
   const filteredDfaPods = useMemo(() => {
-    if (!agentObservabilityEnabled) return [] as AgentPodRuntimeSnapshot[];
+    if (!agentObservabilityEnabled) return [] as UnifiedAgentPodCard[];
     const podKeyword = dfaAgentPodKeyword.trim().toLowerCase();
     const taskKeyword = dfaAgentTaskKeyword.trim().toLowerCase();
     const pidKeyword = dfaAgentPidKeyword.trim();
-    return agentState.pods.filter((pod) => {
+    return (unifiedAgentRuntimeViewModel?.podCards || []).filter((pod) => {
       if (podKeyword) {
         const fingerprint = `${pod.pod_name || ''} ${pod.worker_id || ''}`.toLowerCase();
         if (!fingerprint.includes(podKeyword)) return false;
@@ -3394,12 +3586,12 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     activeServiceKey,
     agentPodDetails,
     agentObservabilityEnabled,
-    agentState.pods,
     dfaAgentOwnerFilter,
     dfaAgentPidKeyword,
     dfaAgentPodKeyword,
     dfaAgentRoleFilter,
     dfaAgentTaskKeyword,
+    unifiedAgentRuntimeViewModel?.podCards,
   ]);
 
   const toggleDfaAgentPod = useCallback((podName: string) => {
@@ -5576,12 +5768,13 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
                 {[
-                  { label: 'Worker Pods', value: formatNumber(dfaRuntimeSummary?.total_pods), hint: `healthy ${formatNumber(dfaRuntimeSummary?.healthy_pods)} / scanned ${formatTime(agentState.refreshedAt)}`, tone: 'text-slate-900' },
+                  { label: 'Worker Pods', value: formatNumber(unifiedAgentRuntimeViewModel?.totalPods), hint: `healthy ${formatNumber(unifiedAgentRuntimeViewModel?.healthyPods)} / scanned ${formatTime(agentState.refreshedAt)}`, tone: 'text-slate-900' },
+                  { label: '总槽位 / 占用', value: `${formatNumber(unifiedAgentRuntimeViewModel?.totalCapacity)} / ${formatNumber(unifiedAgentRuntimeViewModel?.busySlots)}`, hint: `空闲 ${formatNumber(unifiedAgentRuntimeViewModel?.availableSlots)} / 排队 ${formatNumber(unifiedAgentRuntimeViewModel?.queuedJobs)}`, tone: 'text-sky-800' },
                   { label: '智能体进程总数', value: formatNumber(dfaRuntimeSummary?.total_processes), hint: `正常 ${formatNumber(dfaRuntimeSummary?.tracked_processes)}`, tone: 'text-cyan-800' },
                   { label: '残留进程', value: formatNumber(dfaRuntimeSummary?.residual_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_residual_processes)}`, tone: 'text-rose-700' },
                   { label: '未归属进程', value: formatNumber(dfaRuntimeSummary?.unknown_processes), hint: `可终止 ${formatNumber(dfaRuntimeSummary?.killable_unknown_processes)}`, tone: 'text-amber-700' },
-                  { label: '正常进程', value: formatNumber(dfaRuntimeSummary?.tracked_processes), hint: '归属到 running 任务', tone: 'text-emerald-700' },
-                  { label: '失败 Pod 数', value: formatNumber(dfaRuntimeSummary?.aggregate_failed_targets?.length), hint: dfaRuntimeSummary?.aggregate_partial ? '部分聚合失败' : '本轮聚合完整', tone: (dfaRuntimeSummary?.aggregate_failed_targets?.length || 0) > 0 ? 'text-rose-700' : 'text-emerald-700' },
+                  { label: '智能体上限 / 占用', value: `${formatNumber(unifiedAgentRuntimeViewModel?.agentTotalCapacity)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentInUse)}`, hint: `等待 ${formatNumber(unifiedAgentRuntimeViewModel?.agentWaitingRequests)} / RSS ${formatBytes(unifiedAgentRuntimeViewModel?.agentRssTotalBytes || 0)}`, tone: 'text-violet-700' },
+                  { label: 'Pod 缺口', value: `${formatNumber(unifiedAgentRuntimeViewModel?.slotOnlyPods)} / ${formatNumber(unifiedAgentRuntimeViewModel?.agentOnlyPods)}`, hint: 'slot_only / agent_only', tone: (Number(unifiedAgentRuntimeViewModel?.slotOnlyPods || 0) + Number(unifiedAgentRuntimeViewModel?.agentOnlyPods || 0)) > 0 ? 'text-amber-700' : 'text-emerald-700' },
                 ].map((item) => (
                   <div key={item.label} className="rounded-2xl border border-cyan-100 bg-white/85 px-4 py-3 shadow-sm">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
@@ -5684,8 +5877,17 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
                               worker {pod.worker_id || '-'}
                             </span>
+                            {pod.mismatch !== 'none' ? (
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${pod.mismatch === 'slot_only' ? 'bg-amber-100 text-amber-800' : 'bg-violet-100 text-violet-800'}`}>
+                                {pod.mismatch === 'slot_only' ? 'slot_only' : 'agent_only'}
+                              </span>
+                            ) : null}
                           </div>
                           <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                            <span>槽位 {formatNumber(pod.running_jobs)}/{formatNumber(pod.max_concurrent_jobs)}</span>
+                            <span>空闲 {formatNumber(pod.available_slots)}</span>
+                            <span>排队 {formatNumber(pod.queued_jobs)}</span>
+                            <span>智能体 {formatNumber(pod.agent_process_in_use)}/{formatNumber(pod.agent_process_limit)}</span>
                             <span>进程 {formatNumber(pod.process_count)}</span>
                             <span>正常进程 {formatNumber(pod.tracked_process_count)}</span>
                             <span className="text-rose-700">残留进程 {formatNumber(pod.residual_process_count)}</span>
@@ -5696,6 +5898,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                           {pod.scan_errors ? (
                             <div className="mt-2 text-xs text-rose-600">scan errors: {formatNumber(pod.scan_errors)}</div>
                           ) : null}
+                          {pod.error ? (
+                            <div className="mt-2 text-xs text-rose-600">{pod.error}</div>
+                          ) : null}
                         </div>
                         <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
                           {expanded ? '收起' : '展开'}
@@ -5704,6 +5909,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
 
                       {expanded ? (
                         <div className="space-y-4 border-t border-slate-100 px-5 py-5">
+                          {!podDetail?.loading && !podDetail?.loaded && !podDetail?.error ? (
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                              当前 Pod 已保留在槽位/智能体并集视图中，进程与任务明细尚未加载。
+                            </div>
+                          ) : null}
                           {podDetail?.loading ? (
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
                               正在加载该 Pod 的进程与任务明细...

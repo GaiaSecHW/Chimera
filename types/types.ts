@@ -2932,12 +2932,20 @@ export interface AppSaWorkerActiveJob {
 export interface AppSaWorkerCapacity {
   worker_id: string;
   host_name: string;
+  pod_name?: string | null;
+  pod_ip?: string | null;
   healthy: boolean;
   max_concurrent_jobs: number;
   running_jobs: number;
   available_slots: number;
+  queued_jobs?: number;
   source: string;
   last_heartbeat_at?: string | null;
+  agent_process_limit?: number;
+  agent_process_in_use?: number;
+  agent_process_available?: number;
+  agent_waiting_requests?: number;
+  agent_rss_total_bytes?: number;
   active_jobs: AppSaWorkerActiveJob[];
   error?: string | null;
 }
