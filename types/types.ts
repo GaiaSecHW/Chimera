@@ -3052,6 +3052,11 @@ export interface EntryAnalyseWorkerSlot {
   agent_rss_max_bytes: number;
   agent_snapshot_at?: string | null;
   last_heartbeat_at?: string | null;
+  heartbeat_age_seconds?: number | null;
+  consecutive_heartbeat_failures?: number;
+  last_heartbeat_error?: string | null;
+  last_heartbeat_duration_ms?: number | null;
+  worker_role_state?: string;
   source: string;
   error?: string | null;
   active_tasks: EntryAnalyseActiveTaskRef[];
@@ -3062,6 +3067,9 @@ export interface EntryAnalyseSlotClusterSummary {
   worker_count: number;
   healthy_workers: number;
   stale_workers: number;
+  live_stale_workers?: number;
+  retired_workers?: number;
+  stale_owner_workers?: number;
   total_capacity: number;
   busy_slots: number;
   running_jobs: number;
@@ -3079,6 +3087,8 @@ export interface EntryAnalyseSlotClusterSummary {
   agent_rss_max_bytes: number;
   queued_tasks: number;
   queued_jobs: number;
+  registry_cleanup_at?: string | null;
+  registry_cleanup_deleted_rows?: number;
   updated_at?: string | null;
   workers: EntryAnalyseWorkerSlot[];
 }

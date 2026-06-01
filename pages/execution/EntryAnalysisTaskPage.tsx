@@ -1438,12 +1438,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">Worker {slotCluster.worker_count}</span>
                 <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Healthy {slotCluster.healthy_workers}</span>
-                <span className={`rounded-full px-3 py-1 text-xs ${slotCluster.stale_workers > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>Stale {slotCluster.stale_workers}</span>
+                <span className={`rounded-full px-3 py-1 text-xs ${slotCluster.stale_workers > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>活跃失联 {slotCluster.stale_workers}</span>
+                <span className={`rounded-full px-3 py-1 text-xs ${(slotCluster.retired_workers || 0) > 0 ? 'border border-amber-200 bg-amber-50 text-amber-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>退休残留 {slotCluster.retired_workers || 0}</span>
+                <span className={`rounded-full px-3 py-1 text-xs ${(slotCluster.stale_owner_workers || 0) > 0 ? 'border border-orange-200 bg-orange-50 text-orange-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>Owner异常 {slotCluster.stale_owner_workers || 0}</span>
                 <span className="text-xs text-slate-400">更新时间：{formatDateTime(slotCluster.updated_at)}</span>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {slotCluster.workers.slice(0, 6).map((worker) => (
-                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-slate-50/70' : 'border-rose-200 bg-rose-50/70'}`}>
+                  <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-slate-50/70' : worker.worker_role_state === 'retired' ? 'border-amber-200 bg-amber-50/70' : 'border-rose-200 bg-rose-50/70'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-black text-slate-900">{worker.pod_name}</div>
@@ -1459,8 +1461,19 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       <span className="rounded-lg border border-orange-200 bg-orange-50 px-2 py-1 text-orange-700">等待 {worker.agent_waiting_requests}</span>
                       <span className="rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-cyan-700">RSS {formatBytes(worker.agent_rss_total_bytes || 0)}</span>
                     </div>
-                    <div className="mt-3 text-[11px] text-slate-500">心跳：{formatDateTime(worker.last_heartbeat_at)}</div>
-                    <div className="mt-1 text-[11px] text-slate-400">来源：{worker.source || 'worker_registry'} · 活动任务 {worker.active_tasks.length}</div>
+                    <div className="mt-3 text-[11px] text-slate-500">
+                      心跳：{formatDateTime(worker.last_heartbeat_at)}
+                      {typeof worker.heartbeat_age_seconds === 'number' ? ` · 距今 ${Math.round(worker.heartbeat_age_seconds)}s` : ''}
+                    </div>
+                    <div className="mt-1 text-[11px] text-slate-400">
+                      来源：{worker.source || 'worker_registry'} · 状态 {worker.worker_role_state || 'healthy'} · 活动任务 {worker.active_tasks.length}
+                    </div>
+                    {typeof worker.last_heartbeat_duration_ms === 'number' ? (
+                      <div className="mt-1 text-[11px] text-slate-400">
+                        心跳耗时 {Math.round(worker.last_heartbeat_duration_ms)}ms · 连续失败 {worker.consecutive_heartbeat_failures || 0}
+                      </div>
+                    ) : null}
+                    {worker.last_heartbeat_error ? <div className="mt-1 text-[11px] text-rose-600">最近心跳错误：{worker.last_heartbeat_error}</div> : null}
                     {worker.error ? <div className="mt-1 text-[11px] text-rose-600">{worker.error}</div> : null}
                   </div>
                 ))}

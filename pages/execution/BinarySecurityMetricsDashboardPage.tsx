@@ -4130,7 +4130,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <>
                     <div className="mt-4 grid gap-3 md:grid-cols-4">
                       {[
-                        { label: 'Worker 数', value: dfaWorkerDetailState.data?.worker_count ?? '-', hint: `健康 ${dfaWorkerDetailState.data?.healthy_workers ?? 0} / 失联 ${dfaWorkerDetailState.data?.stale_workers ?? 0}` },
+                        { label: 'Worker 数', value: dfaWorkerDetailState.data?.worker_count ?? '-', hint: `健康 ${dfaWorkerDetailState.data?.healthy_workers ?? 0} / 活跃失联 ${dfaWorkerDetailState.data?.stale_workers ?? 0}${typeof (dfaWorkerDetailState.data as any)?.retired_workers === 'number' ? ` / 退休残留 ${(dfaWorkerDetailState.data as any).retired_workers}` : ''}` },
                         { label: '总槽位', value: dfaWorkerDetailState.data?.total_capacity ?? '-', hint: 'worker max_concurrent_jobs 汇总' },
                         { label: '运行中', value: dfaWorkerDetailState.data?.running_jobs ?? '-', hint: 'active running jobs' },
                         { label: '空闲 / 排队', value: `${dfaWorkerDetailState.data?.available_slots ?? '-'} / ${dfaWorkerDetailState.data?.queued_jobs ?? '-'}`, hint: 'available slots / queued jobs' },
