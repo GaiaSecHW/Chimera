@@ -97,6 +97,9 @@ const TASK_SORT_OPTIONS = [
   { value: 'priority', label: '优先级' },
 ] as const;
 
+type LocalTaskSortKey = 'started_at' | 'duration';
+type LocalFilterOwner = 'slot' | 'status' | 'report' | 'model';
+
 const REVIEW_PROFILE_OPTIONS = [
   { value: 'fast', label: '快速筛选' },
   { value: 'balanced', label: '平衡挖掘' },
@@ -564,6 +567,22 @@ const PageHeader: React.FC<{
   </section>
 );
 
+const TableSortButton: React.FC<{
+  label: string;
+  active: boolean;
+  order?: 'asc' | 'desc';
+  onClick: () => void;
+}> = ({ label, active, order, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`inline-flex items-center gap-1 font-inherit ${active ? 'text-cyan-700' : 'text-inherit hover:text-slate-900'}`}
+  >
+    <span>{label}</span>
+    {active ? (order === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <SlidersHorizontal size={13} />}
+  </button>
+);
+
 const PanelActions: React.FC<{ saving: boolean; disabled?: boolean; onSave: () => void; onReset: () => void }> = ({
   saving,
   disabled = false,
@@ -714,10 +733,15 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [perPage, setPerPage] = useState(20);
   const [runQuery, setRunQuery] = useState('');
   const [runStatusFilter, setRunStatusFilter] = useState('');
+  const [slotQuickFilter, setSlotQuickFilter] = useState('');
+  const [statusQuickFilter, setStatusQuickFilter] = useState('');
+  const [reportQuickFilter, setReportQuickFilter] = useState('');
+  const [modelQuickFilter, setModelQuickFilter] = useState('');
   const [modeFilter, setModeFilter] = useState<'' | 'manual' | 'binary' | 'source'>('');
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [localSort, setLocalSort] = useState<{ key: LocalTaskSortKey; order: 'asc' | 'desc' } | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [batchDeleting, setBatchDeleting] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -934,6 +958,11 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     setSelectedTaskIds(new Set());
     setTaskStats({ total: 0, pending: 0, running: 0, succeeded: 0, failed: 0, cancelled: 0 });
     setPage(1);
+    setSlotQuickFilter('');
+    setStatusQuickFilter('');
+    setReportQuickFilter('');
+    setModelQuickFilter('');
+    setLocalSort(null);
   }, [projectId]);
 
   useEffect(() => {
@@ -954,12 +983,15 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   const filteredTasks = useMemo(() => {
     const text = runQuery.trim().toLowerCase();
-    if (!text) return tasks;
-    return tasks.filter((task) => {
+    const matched = tasks.filter((task) => {
       const run = taskRunLocator(task);
       const runSummary = taskRunSummary(task);
       const normalizedStatus = normalizeRunStatus(taskDisplayStatus(task));
-      return [
+      const slotView = getExecutionSlotView(task);
+      const reportStatus = vulnReportStatusLabel(task);
+      const modelValue = String(runSummary.model || '').trim();
+
+      if (text && ![
         task.title,
         task.task_id,
         task.status,
@@ -977,9 +1009,63 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         runSummary.workflow_mode,
         run.linked_task_id,
         run.linked_execution_id,
-      ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text));
+      ].filter(Boolean).some((value) => String(value).toLowerCase().includes(text))) {
+        return false;
+      }
+
+      if (slotQuickFilter && slotView.state !== slotQuickFilter) return false;
+      if (statusQuickFilter && normalizedStatus !== statusQuickFilter) return false;
+      if (reportQuickFilter && reportStatus.label !== reportQuickFilter) return false;
+      if (modelQuickFilter && modelValue !== modelQuickFilter) return false;
+      return true;
     });
-  }, [runQuery, tasks]);
+
+    if (!localSort) return matched;
+
+    const sorted = [...matched];
+    sorted.sort((left, right) => {
+      if (localSort.key === 'started_at') {
+        const leftValue = new Date(left.started_at || left.created_at || 0).getTime();
+        const rightValue = new Date(right.started_at || right.created_at || 0).getTime();
+        const safeLeft = Number.isFinite(leftValue) ? leftValue : 0;
+        const safeRight = Number.isFinite(rightValue) ? rightValue : 0;
+        return localSort.order === 'asc' ? safeLeft - safeRight : safeRight - safeLeft;
+      }
+      const leftStart = new Date(left.started_at || left.created_at || 0).getTime();
+      const rightStart = new Date(right.started_at || right.created_at || 0).getTime();
+      const leftEnd = left.finished_at ? new Date(left.finished_at).getTime() : Date.now();
+      const rightEnd = right.finished_at ? new Date(right.finished_at).getTime() : Date.now();
+      const leftDuration = Number.isFinite(leftStart) && Number.isFinite(leftEnd) && leftEnd >= leftStart ? leftEnd - leftStart : -1;
+      const rightDuration = Number.isFinite(rightStart) && Number.isFinite(rightEnd) && rightEnd >= rightStart ? rightEnd - rightStart : -1;
+      return localSort.order === 'asc' ? leftDuration - rightDuration : rightDuration - leftDuration;
+    });
+    return sorted;
+  }, [localSort, modelQuickFilter, reportQuickFilter, runQuery, slotQuickFilter, statusQuickFilter, tasks]);
+
+  const toggleQuickFilter = useCallback((owner: LocalFilterOwner, value: string) => {
+    setPage(1);
+    if (owner === 'slot') {
+      setSlotQuickFilter((current) => current === value ? '' : value);
+      return;
+    }
+    if (owner === 'status') {
+      setStatusQuickFilter((current) => current === value ? '' : value);
+      return;
+    }
+    if (owner === 'report') {
+      setReportQuickFilter((current) => current === value ? '' : value);
+      return;
+    }
+    setModelQuickFilter((current) => current === value ? '' : value);
+  }, []);
+
+  const toggleLocalSort = useCallback((key: LocalTaskSortKey) => {
+    setLocalSort((current) => {
+      if (!current || current.key !== key) return { key, order: 'desc' };
+      if (current.order === 'desc') return { key, order: 'asc' };
+      return null;
+    });
+  }, []);
 
   const stats = taskStats;
 
@@ -1462,8 +1548,22 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     <ExecutionTableTh>轮次</ExecutionTableTh>
                     <ExecutionTableTh>结果</ExecutionTableTh>
                     <ExecutionTableTh>疑点上报</ExecutionTableTh>
-                    <ExecutionTableTh>开始时间</ExecutionTableTh>
-                    <ExecutionTableTh>耗时</ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <TableSortButton
+                        label="开始时间"
+                        active={localSort?.key === 'started_at'}
+                        order={localSort?.key === 'started_at' ? localSort.order : undefined}
+                        onClick={() => toggleLocalSort('started_at')}
+                      />
+                    </ExecutionTableTh>
+                    <ExecutionTableTh>
+                      <TableSortButton
+                        label="耗时"
+                        active={localSort?.key === 'duration'}
+                        order={localSort?.key === 'duration' ? localSort.order : undefined}
+                        onClick={() => toggleLocalSort('duration')}
+                      />
+                    </ExecutionTableTh>
                     <ExecutionTableTh className="text-right">操作</ExecutionTableTh>
                   </tr>
                 </ExecutionTableHead>
@@ -1485,9 +1585,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     return (
                       <tr
                         key={task.task_id}
-                        onClick={() => void openTaskRowDetail(task)}
-                        className={`${executionTableRowClassName} cursor-pointer ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
-                        title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
+                        className={`${executionTableRowClassName} ${selectedTaskIds.has(task.task_id) ? 'bg-cyan-50/60' : ''}`.trim()}
                       >
                         <ExecutionTableTd onClick={(event) => event.stopPropagation()}>
                           <input
@@ -1498,7 +1596,12 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                           />
                         </ExecutionTableTd>
                         <ExecutionTableTd>
-                          <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => void openTaskRowDetail(task)}
+                            className="flex w-full items-center gap-3 rounded-lg text-left hover:bg-slate-50"
+                            title={hasRun ? '按 Run 目录进入运行详情' : '查看任务记录，Run 初始化后会自动进入详情'}
+                          >
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
                               {hasRun ? <FolderOpen size={17} /> : <FileSearch size={17} />}
                             </div>
@@ -1511,12 +1614,17 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                               </div>
                               <div className="mt-1 truncate text-xs text-slate-500">{secondaryLine}</div>
                             </div>
-                          </div>
+                          </button>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="min-w-[200px]">
-                          <div className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${slotView.className}`}>
+                          <button
+                            type="button"
+                            onClick={() => toggleQuickFilter('slot', slotView.state)}
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold transition hover:brightness-95 ${slotView.className} ${slotQuickFilter === slotView.state ? 'ring-2 ring-cyan-200' : ''}`}
+                            title={slotQuickFilter === slotView.state ? '点击取消执行槽位筛选' : '点击按执行槽位状态快速筛选'}
+                          >
                             {slotView.label}
-                          </div>
+                          </button>
                           <div className="mt-1 space-y-0.5 text-xs">
                             {slotView.ownerLabel ? (
                               <div className="font-semibold text-slate-700" title={slotView.ownerFull}>
@@ -1528,9 +1636,26 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                             ))}
                           </div>
                         </ExecutionTableTd>
-                        <ExecutionTableTd><StatusBadge status={displayStatus} /></ExecutionTableTd>
                         <ExecutionTableTd>
-                          <div className="font-bold text-slate-700">{runSummary.model || '-'}</div>
+                          <button
+                            type="button"
+                            onClick={() => toggleQuickFilter('status', normalizeRunStatus(displayStatus))}
+                            className={`rounded-full ${statusQuickFilter === normalizeRunStatus(displayStatus) ? 'ring-2 ring-cyan-200' : ''}`}
+                            title={statusQuickFilter === normalizeRunStatus(displayStatus) ? '点击取消状态筛选' : '点击按状态快速筛选'}
+                          >
+                            <StatusBadge status={displayStatus} />
+                          </button>
+                        </ExecutionTableTd>
+                        <ExecutionTableTd>
+                          <button
+                            type="button"
+                            onClick={() => runSummary.model && toggleQuickFilter('model', String(runSummary.model))}
+                            disabled={!runSummary.model}
+                            className={`text-left ${runSummary.model ? 'hover:text-cyan-700' : 'cursor-default'} ${modelQuickFilter === String(runSummary.model || '') ? 'text-cyan-700' : ''}`}
+                            title={runSummary.model ? (modelQuickFilter === String(runSummary.model) ? '点击取消模型筛选' : '点击按模型快速筛选') : undefined}
+                          >
+                            <div className="font-bold text-slate-700">{runSummary.model || '-'}</div>
+                          </button>
                           <div className="mt-1 text-xs text-slate-500">{formatThinking(runSummary.thinking)}</div>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="font-bold text-slate-700">
@@ -1550,9 +1675,14 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                           )}
                         </ExecutionTableTd>
                         <ExecutionTableTd>
-                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${reportStatus.className}`}>
+                          <button
+                            type="button"
+                            onClick={() => toggleQuickFilter('report', reportStatus.label)}
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-black ${reportStatus.className} ${reportQuickFilter === reportStatus.label ? 'ring-2 ring-cyan-200' : ''}`}
+                            title={reportQuickFilter === reportStatus.label ? '点击取消疑点上报筛选' : '点击按疑点上报状态快速筛选'}
+                          >
                             {reportStatus.label}
-                          </span>
+                          </button>
                         </ExecutionTableTd>
                         <ExecutionTableTd className="text-xs text-slate-500">
                           <div title={runSummary.start_epoch ? `Run 开始时间：${formatEpochTime(runSummary.start_epoch)}` : undefined}>
