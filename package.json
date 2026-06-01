@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "smoke:agent-runtime-view-model": "node --experimental-strip-types scripts/agentRuntimeViewModel.smoke.ts",
     "smoke:dataflow-vuln-metrics": "node --experimental-strip-types scripts/dataflowVulnMetrics.smoke.ts",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
