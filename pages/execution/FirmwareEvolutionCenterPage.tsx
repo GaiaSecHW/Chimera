@@ -564,6 +564,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const sessionSocketRef = useRef<WebSocket | null>(null);
   const notifyRef = useRef(notify);
   const runtimeRequestSeqRef = useRef(0);
+  const detailLoadSeqRef = useRef(0);
 
   useEffect(() => {
     notifyRef.current = notify;
@@ -695,6 +696,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
   const refreshJobDetail = useCallback(async (jobId: string, options?: { silent?: boolean }) => {
     if (!jobId) return;
+    const requestSeq = ++detailLoadSeqRef.current;
     if (!options?.silent) {
       setDetailLoading(true);
       setDetailError('');
@@ -711,13 +713,15 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
           round_count: rounds.length,
         }
         : job;
+      if (detailLoadSeqRef.current !== requestSeq) return;
       setActiveJob((prev) => sameJsonValue(prev, mergedJob) ? prev : mergedJob);
       setJobs((prev) => prev.map((item) => item.id === mergedJob.id ? mergedJob : item));
     } catch (e: any) {
+      if (detailLoadSeqRef.current !== requestSeq) return;
       setDetailError(e?.message || '加载进化任务详情失败');
       notify(`加载进化任务详情失败: ${e?.message || e}`, 'error');
     } finally {
-      if (!options?.silent) setDetailLoading(false);
+      if (!options?.silent && detailLoadSeqRef.current === requestSeq) setDetailLoading(false);
     }
   }, [notify]);
 
@@ -919,6 +923,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
   useEffect(() => {
     if (!activeJobId) {
+      detailLoadSeqRef.current += 1;
       setActiveJob(null);
       setDetailError('');
       setRuntimeFiles(null);
@@ -941,13 +946,13 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       closeSessionSocket();
       return;
     }
+    detailLoadSeqRef.current += 1;
     setDetailError('');
-    setActiveJob((current) => current && current.id === activeJobId ? current : (jobs.find((item) => item.id === activeJobId) || current));
     setActiveTab('overview');
     void refreshJobDetail(activeJobId);
     // 只在切换详情任务时加载一次，避免 refreshJobDetail 引用变化导致详情页循环刷新。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeJobId, closeSessionSocket, jobs]);
+  }, [activeJobId, closeSessionSocket]);
 
   useEffect(() => {
     runtimeRequestSeqRef.current += 1;
