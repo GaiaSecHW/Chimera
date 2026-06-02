@@ -141,6 +141,9 @@ export interface DataflowScanTaskListResponse {
   total: number;
   page: number;
   per_page: number;
+  projection_backfill_pending?: boolean;
+  projection_backfill_enqueued?: boolean;
+  projection_total_missing?: number;
 }
 
 export interface DataflowScanTaskStats {
@@ -150,6 +153,7 @@ export interface DataflowScanTaskStats {
   succeeded: number;
   failed: number;
   cancelled: number;
+  projection_backfill_pending?: boolean;
 }
 
 export interface DataflowScanTaskDetail extends DataflowScanTaskListItem {
@@ -621,7 +625,10 @@ const unwrapList = <T,>(payload: unknown): T[] => {
   return [];
 };
 
-const unwrapPagedList = <T,>(payload: unknown, defaults?: { page?: number; per_page?: number }): { items: T[]; total: number; page: number; per_page: number } => {
+const unwrapPagedList = <T,>(
+  payload: unknown,
+  defaults?: { page?: number; per_page?: number },
+): { items: T[]; total: number; page: number; per_page: number; [key: string]: unknown } => {
   const items = unwrapList<T>(payload);
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return {
@@ -636,6 +643,7 @@ const unwrapPagedList = <T,>(payload: unknown, defaults?: { page?: number; per_p
   const page = Number(envelope.page);
   const perPage = Number(envelope.per_page);
   return {
+    ...envelope,
     items,
     total: Number.isFinite(total) ? total : items.length,
     page: Number.isFinite(page) && page > 0 ? page : (defaults?.page ?? 1),

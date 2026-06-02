@@ -726,6 +726,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [tasks, setTasks] = useState<DataflowScanTaskListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [taskStats, setTaskStats] = useState<DataflowScanTaskStats>({ total: 0, pending: 0, running: 0, succeeded: 0, failed: 0, cancelled: 0 });
+  const [projectionBackfillPending, setProjectionBackfillPending] = useState(false);
+  const [projectionBackfillEnqueued, setProjectionBackfillEnqueued] = useState(false);
+  const [projectionTotalMissing, setProjectionTotalMissing] = useState(0);
   const [tasksError, setTasksError] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -752,6 +755,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [slotsPanelExpanded, setSlotsPanelExpanded] = useState(false);
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
+  const refreshSequenceRef = useRef(0);
 
   const openTaskDetail = async (
     task: Pick<DataflowScanTask, 'task_id' | 'latest_execution_id'>,
@@ -876,6 +880,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     if (!projectId) return;
     setLoading(true);
     setTasksError('');
+    const refreshId = ++refreshSequenceRef.current;
     try {
       const payload = await executionApi.listTasks({
         projectId,
@@ -891,11 +896,19 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         sort_by: sortBy,
         sort_order: sortOrder,
       });
+      if (refreshId !== refreshSequenceRef.current) return;
       setTasks(payload.items || []);
       setTotal(payload.total || 0);
+      setProjectionBackfillPending(Boolean(payload.projection_backfill_pending));
+      setProjectionBackfillEnqueued(Boolean(payload.projection_backfill_enqueued));
+      setProjectionTotalMissing(Number(payload.projection_total_missing || 0));
     } catch (error: any) {
+      if (refreshId !== refreshSequenceRef.current) return;
       setTasks([]);
       setTotal(0);
+      setProjectionBackfillPending(false);
+      setProjectionBackfillEnqueued(false);
+      setProjectionTotalMissing(0);
       const message = error?.message || '读取任务列表失败';
       setTasksError(message);
       notify(`加载数据流漏洞挖掘任务列表失败: ${message}`, 'error');
@@ -906,6 +919,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
 
   const loadTaskStats = useCallback(async () => {
     if (!projectId) return;
+    const refreshId = refreshSequenceRef.current;
     try {
       const payload = await executionApi.getTaskStats({
         projectId,
@@ -917,7 +931,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
         mode: modeFilter || undefined,
         parent_task_id: parentTaskIdFilter.trim() || undefined,
       });
+      if (refreshId !== refreshSequenceRef.current) return;
       setTaskStats(payload);
+      setProjectionBackfillPending((current) => current || Boolean(payload.projection_backfill_pending));
     } catch {
       setTaskStats((current) => current);
     }
@@ -938,11 +954,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   }, [executionApi]);
 
   const loadAll = useCallback(async (targetPage: number) => {
-    await Promise.allSettled([
-      loadTasks(targetPage),
-      loadTaskStats(),
-      loadSlotSummary(),
-    ]);
+    await loadTasks(targetPage);
+    void loadTaskStats();
+    void loadSlotSummary();
   }, [loadSlotSummary, loadTaskStats, loadTasks]);
 
   const loadSlotDetail = async () => {
@@ -963,6 +977,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     setProfilesLoaded(false);
     setSelectedTaskIds(new Set());
     setTaskStats({ total: 0, pending: 0, running: 0, succeeded: 0, failed: 0, cancelled: 0 });
+    setProjectionBackfillPending(false);
+    setProjectionBackfillEnqueued(false);
+    setProjectionTotalMissing(0);
     setPage(1);
     setSlotQuickFilter('');
     setStatusQuickFilter('');
@@ -1426,6 +1443,13 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
               {tasksError ? (
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">
                   {tasksError}
+                </div>
+              ) : null}
+              {projectionBackfillPending ? (
+                <div className="mt-3 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-semibold text-cyan-800">
+                  任务列表索引后台修复中，统计可能短暂不完整。
+                  {projectionTotalMissing > 0 ? ` 当前待补投影 ${projectionTotalMissing} 条。` : ''}
+                  {projectionBackfillEnqueued ? ' 已登记后台修复。' : ''}
                 </div>
               ) : null}
               {hasSelection ? (
