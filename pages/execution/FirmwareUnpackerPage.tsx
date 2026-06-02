@@ -3469,7 +3469,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [loading, setLoading] = useState(false);
   const [listError, setListError] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [activeTaskId, setActiveTaskId] = useState(() => initialTaskId.trim());
+  const [activeTaskId, setActiveTaskId] = useState('');
   const [detailLoading, setDetailLoading] = useState(false);
   const [deletingTaskId, setDeletingTaskId] = useState('');
   const [resourceUsage, setResourceUsage] = useState<FirmwareTaskResourceUsage | null>(null);
@@ -3484,8 +3484,6 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [resultRefreshingTaskId, setResultRefreshingTaskId] = useState('');
   const [detailActiveTab, setDetailActiveTab] = useState<DetailTab>('overview');
   const [detailRefreshRequest, setDetailRefreshRequest] = useState(0);
-  const normalizedInitialTaskId = initialTaskId.trim();
-
   const [filterStatus, setFilterStatus] = useState('');
   const [filterOriginMode, setFilterOriginMode] = useState('');
   const [filterSearch, setFilterSearch] = useState('');
@@ -3559,21 +3557,14 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       if (currentOriginMode) query.origin_mode = currentOriginMode;
       if (currentSearch) query.search = currentSearch;
       const res = await fwApi.listTasks(query);
-      setTasks((prev) => {
-        let next = res.items;
-        if (activeTaskId && !next.some((task) => task.id === activeTaskId)) {
-          const activeFromPrev = prev.find((task) => task.id === activeTaskId);
-          if (activeFromPrev) next = [activeFromPrev, ...next];
-        }
-        return sameJsonValue(prev, next) ? prev : next;
-      });
+      setTasks((prev) => sameJsonValue(prev, res.items) ? prev : res.items);
       setTotal((prev) => prev === res.total ? prev : res.total);
     } catch (e: any) {
       if (!options?.silent) setListError(e?.message || '加载失败');
     } finally {
       if (!options?.silent) setLoading(false);
     }
-  }, [activeTaskId, page, pageSize, projectId, filterStatus, filterOriginMode, filterSearch, filterWorker]);
+  }, [page, pageSize, projectId, filterStatus, filterOriginMode, filterSearch, filterWorker]);
 
   const refreshOne = useCallback(async (id: string, options?: {
     showDetailLoading?: boolean;
@@ -3653,35 +3644,9 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   useEffect(() => {
     fetchTasks(true);
     setSelected(new Set());
-    const storedTaskId = normalizedInitialTaskId || sessionStorage.getItem('secflow:firmwareUnpackerTaskId')?.trim();
-    if (storedTaskId) {
-      sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
-      setActiveTaskId(storedTaskId);
-      setDetailActiveTab('overview');
-    } else {
-      setActiveTaskId('');
-    }
-  }, [projectId, normalizedInitialTaskId]);
-
-  useEffect(() => {
-    if (!normalizedInitialTaskId) return;
-    setActiveTaskId(normalizedInitialTaskId);
+    setActiveTaskId('');
     setDetailActiveTab('overview');
-  }, [normalizedInitialTaskId]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent).detail || {};
-      if (detail.view !== 'pentest-exec-firmware-unpacker' && detail.view !== 'pentest-exec-firmware-task-list') return;
-      const taskId = String(detail.firmwareUnpackerTaskId || detail.taskId || '').trim();
-      if (!taskId) return;
-      sessionStorage.removeItem('secflow:firmwareUnpackerTaskId');
-      setActiveTaskId(taskId);
-      setDetailActiveTab('overview');
-    };
-    window.addEventListener('secflow-navigate-view', handler as EventListener);
-    return () => window.removeEventListener('secflow-navigate-view', handler as EventListener);
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     if (!pageEffectMountedRef.current) {
@@ -3709,13 +3674,6 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setLogModalTitle('');
       setLogModalPhase('');
       return;
-    }
-    if (!taskItems.some((task) => task.id === activeTaskId)) {
-      void refreshOne(activeTaskId, {
-        showDetailLoading: true,
-        refreshProgress: false,
-        refreshResource: false,
-      });
     }
     loadResourceUsage(activeTaskId);
     loadTaskProgress(activeTaskId);
@@ -3831,6 +3789,12 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
       setResultRefreshingTaskId('');
     }
   };
+
+  const handleOpenDetail = useCallback((id: string) => {
+    setActiveTaskId(id);
+    setDetailActiveTab('overview');
+    onActiveTaskChange?.(id);
+  }, [onActiveTaskChange]);
 
   const handleCreateEvolution = useCallback(async (id: string) => {
     try {
@@ -4309,7 +4273,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                     selected={selected.has(task.id)}
                     active={activeTaskId === task.id}
                     onSelect={toggleSelect}
-                    onOpenDetail={setActiveTaskId}
+                    onOpenDetail={handleOpenDetail}
                   />
                 ))}
               </tbody>
