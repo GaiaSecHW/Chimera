@@ -14,6 +14,7 @@ import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
   running: '分析中',
+  cancelling: '取消中',
   passed: '通过',
   failed: '失败',
   error: '错误',
@@ -23,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-600',
   running: 'bg-blue-100 text-blue-700',
+  cancelling: 'bg-orange-100 text-orange-700',
   passed: 'bg-emerald-100 text-emerald-700',
   failed: 'bg-red-100 text-red-700',
   error: 'bg-orange-100 text-orange-700',
@@ -1177,8 +1179,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               {detail ? (
                 <div className="flex items-center gap-2.5 min-w-0">
                   <h2 className="text-lg font-black text-slate-900 truncate">{detail.task_name}</h2>
-                  <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[detail.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {STATUS_LABEL[detail.status] ?? detail.status}
+                  <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_COLOR[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                    {STATUS_LABEL[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status] ?? detail.status}
                   </span>
                 </div>
               ) : (
@@ -1545,8 +1547,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       <div className="truncate text-sm font-black text-slate-900">{task.task_name}</div>
                       <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{task.task_id}</div>
                     </div>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLOR[task.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                      {STATUS_LABEL[task.status] ?? task.status}
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_COLOR[task.cancel_requested && ['running','pending'].includes(task.status) ? 'cancelling' : task.status] ?? 'bg-slate-100 text-slate-600'}`}>
+                      {STATUS_LABEL[task.cancel_requested && ['running','pending'].includes(task.status) ? 'cancelling' : task.status] ?? task.status}
                     </span>
                   </div>
                   <div className="mt-3 grid gap-2 text-[11px] text-slate-500">
@@ -1863,11 +1865,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       onClick={() => toggleStatusQuickFilter(t.status)}
                       className={getQuickFilterButtonClassName(
                         statusFilter === t.status,
-                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.status] ?? 'bg-slate-100 text-slate-600'}`
+                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.cancel_requested && ['running','pending'].includes(t.status) ? 'cancelling' : t.status] ?? 'bg-slate-100 text-slate-600'}`
                       )}
                       title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
                     >
-                      {STATUS_LABEL[t.status] ?? t.status}
+                      {STATUS_LABEL[t.cancel_requested && ['running','pending'].includes(t.status) ? 'cancelling' : t.status] ?? t.status}
                     </button>
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">

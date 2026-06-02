@@ -48,6 +48,7 @@ import { AbnormalReasonCard } from './AbnormalReasonCard';
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
   running: '分析中',
+  cancelling: '取消中',
   passed: '通过',
   failed: '失败',
   error: '错误',
@@ -57,6 +58,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-600',
   running: 'bg-blue-100 text-blue-700',
+  cancelling: 'bg-orange-100 text-orange-700',
   passed: 'bg-emerald-100 text-emerald-700',
   failed: 'bg-red-100 text-red-700',
   error: 'bg-orange-100 text-orange-700',
@@ -1764,7 +1766,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
 
   const handleCancel = async () => {
     if (!detail) return;
-    try { await appApi.cancelTask(detail.task_id); notify('任务已取消', 'success'); await loadDetail(); }
+    try { await appApi.cancelTask(detail.task_id); notify('已发送取消请求，任务取消中...', 'success'); await loadDetail(); }
     catch (err: any) { notify(`取消失败: ${err?.message || err}`, 'error'); }
   };
   const handleDelete = async () => {
@@ -2084,15 +2086,15 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             <p className="mt-4 text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-black tracking-tight text-slate-900">{detail?.task_name || '任务详情'}</h1>
-              {detail ? <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[detail.status]}`}>{STATUS_LABEL[detail.status] || detail.status}</span> : null}
+              {detail ? <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_COLOR[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status]}`}>{STATUS_LABEL[detail.cancel_requested && ['running','pending'].includes(detail.status) ? 'cancelling' : detail.status] || detail.status}</span> : null}
             </div>
             <p className="mt-2 text-sm text-slate-500 break-all">{detail?.input_path || '正在加载任务详情。'}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {detail && ['running', 'pending'].includes(detail.status) ? <button onClick={() => void handleCancel()} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">取消任务</button> : null}
+            {detail && ['running', 'pending'].includes(detail.status) && !detail.cancel_requested ? <button onClick={() => void handleCancel()} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">取消任务</button> : null}
+            {detail && ['running', 'pending'].includes(detail.status) && detail.cancel_requested ? <button disabled className="inline-flex items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-600 opacity-80 cursor-not-allowed"><Loader2 size={13} className="animate-spin" />取消中...</button> : null}
             {detail && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleRestart()} disabled={restarting} className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-100 disabled:opacity-50">{restarting ? <Loader2 size={13} className="animate-spin" /> : <RotateCcw size={13} />}重新运行</button> : null}
             {detail ? <DownstreamTaskCreator projectId={projectId} sourceKind="entry_analysis" task={detail} /> : null}
-            {detail && detail.started_at && !['pending', 'running'].includes(detail.status) ? <button onClick={() => void handleResume()} disabled={resuming} className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100 disabled:opacity-50">{resuming ? <Loader2 size={13} className="animate-spin" /> : <PlayCircle size={13} />}断点续跑</button> : null}
             {detail ? <button onClick={() => void handleDelete()} className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"><Trash2 size={13} />删除任务</button> : null}
             <button onClick={() => { void Promise.all([loadDetail(), loadLogs(false)]); if (activeTab === 'result') void loadResult(); if (activeTab === 'evaluation') void loadEvaluation(); if (sessionFeatureActive) void loadSessions(false, true); }} className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:bg-slate-50"><RefreshCw size={14} className={loading || resultLoading || evaluationLoading || sessionsLoading ? 'animate-spin' : ''} /></button>
           </div>
