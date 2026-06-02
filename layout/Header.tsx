@@ -4,6 +4,10 @@ import { TopLevelNavKey, TOP_LEVEL_NAV_ITEMS } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
 
+const FRONTEND_BUILD_VERSION = String(
+  typeof __SECFLOW_BUILD_VERSION__ !== 'undefined' ? __SECFLOW_BUILD_VERSION__ : '',
+).trim() || 'dev';
+
 interface HeaderProps {
   user: UserInfo | null;
   currentTopLevelNav: TopLevelNavKey;
@@ -61,7 +65,12 @@ export const Header: React.FC<HeaderProps> = ({
             <Shield className="text-white" size={24} />
           </div>
           <div className="min-w-0">
-            <span className="block text-xl font-black text-white tracking-tighter">SecFlow</span>
+            <div className="flex items-baseline gap-2">
+              <span className="block text-xl font-black text-white tracking-tighter">SecFlow</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                {FRONTEND_BUILD_VERSION}
+              </span>
+            </div>
             <span className="block text-[10px] font-black text-blue-400 uppercase tracking-[0.25em] truncate">
               Security Platform
             </span>

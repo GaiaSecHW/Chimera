@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => {
     const buildTime = env.BUILD_TIME || new Date().toISOString().replace('T', ' ').slice(0, 19);
     const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
     const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
+    const buildVersion = String(env.SECFLOW_BUILD_VERSION || '').trim() || 'dev';
     return {
       // Use an absolute base in dev so HMR/module requests stay rooted at the
       // Vite server, while production builds keep relative assets for static hosting.
@@ -71,6 +72,7 @@ export default defineConfig(({ mode }) => {
       plugins: [react(), stripMonacoSourcemaps],
       define: {
         __BUILD_TIME__: JSON.stringify(buildTime),
+        __SECFLOW_BUILD_VERSION__: JSON.stringify(buildVersion),
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },

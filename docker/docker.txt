@@ -1,6 +1,9 @@
 # 构建阶段
 FROM public.ecr.aws/docker/library/node:20-alpine AS builder
 
+ARG SECFLOW_BUILD_VERSION=dev
+ENV SECFLOW_BUILD_VERSION=${SECFLOW_BUILD_VERSION}
+ 
 # 设置工作目录
 WORKDIR /app
 
