@@ -1790,8 +1790,15 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 const riskMatch = riskFocusHint ? getEntryAnalysisRiskMatch(t, riskFocusHint) : null;
                 const matchedRisk = Boolean(riskMatch?.matched);
                 const recommendationReason = recommended ? getEntryAnalysisRecommendationReason(t, stageFocusHint, riskPreset) : '';
+                const leaseExpiryTs = t.lease_expires_at ? Math.floor(new Date(t.lease_expires_at).getTime() / 1000) : null;
+                const leaseExpired = typeof leaseExpiryTs === 'number'
+                  && Number.isFinite(leaseExpiryTs)
+                  && leaseExpiryTs > 0
+                  && leaseExpiryTs < clockNow;
                 const contextualRowClassName = selectedTaskIds.has(t.task_id)
                   ? 'bg-violet-50/60'
+                  : leaseExpired
+                    ? 'bg-rose-50/70 hover:bg-rose-100/70'
                   : recommended
                     ? 'bg-indigo-50/40'
                     : matchedRisk
