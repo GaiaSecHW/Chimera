@@ -3007,6 +3007,8 @@ export interface AppEaTaskItem {
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   owner_pod?: string | null;
   lease_expires_at?: string | null;
+  awaiting_takeover?: boolean;
+  reconcile_pending?: boolean;
   cancel_requested?: boolean;
   error?: string | null;
   abnormal_reason_title?: string | null;

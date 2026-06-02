@@ -40,6 +40,9 @@ const SLOT_TASK_STATUS_LABEL: Record<string, string> = {
   passed: '通过',
 };
 
+const SLOT_WORKER_PAGE_SIZE = 6;
+const ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS = 180;
+
 function formatBytes(value?: number | null): string {
   const bytes = Number(value || 0);
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -404,6 +407,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const [slotClusterError, setSlotClusterError] = useState('');
   const [slotDetailOpen, setSlotDetailOpen] = useState(false);
   const [slotPanelExpanded, setSlotPanelExpanded] = useState(false);
+  const [slotWorkerPage, setSlotWorkerPage] = useState(1);
   const [expandedWorkerIds, setExpandedWorkerIds] = useState<string[]>([]);
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -1003,6 +1007,21 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     { label: '智能体等待', value: slotCluster.agent_waiting_requests, className: 'bg-orange-50 border-orange-200 text-orange-700' },
     { label: '智能体RSS', value: formatBytes(slotCluster.agent_rss_total_bytes || 0), className: 'bg-cyan-50 border-cyan-200 text-cyan-700' },
   ] : [];
+  const slotWorkerTotalPages = Math.max(1, Math.ceil((slotCluster?.workers.length || 0) / SLOT_WORKER_PAGE_SIZE));
+  const slotWorkerPageSafe = Math.min(slotWorkerPage, slotWorkerTotalPages);
+  const pagedSlotWorkers = slotCluster
+    ? slotCluster.workers.slice((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE, slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE)
+    : [];
+
+  useEffect(() => {
+    setSlotWorkerPage(1);
+  }, [slotCluster?.updated_at, slotCluster?.workers.length]);
+
+  useEffect(() => {
+    if (slotWorkerPage > slotWorkerTotalPages) {
+      setSlotWorkerPage(slotWorkerTotalPages);
+    }
+  }, [slotWorkerPage, slotWorkerTotalPages]);
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -1016,10 +1035,33 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 <div className="text-xs font-black uppercase tracking-[0.18em] text-violet-600">Slot Detail</div>
                 <h2 className="mt-1 text-lg font-black text-slate-900">执行槽位明细</h2>
               </div>
-              <button onClick={() => setSlotDetailOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <button
+                    type="button"
+                    onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
+                    disabled={slotWorkerPageSafe <= 1}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-50"
+                  >
+                    上一页
+                  </button>
+                  <span>
+                    第 {slotWorkerPageSafe}/{slotWorkerTotalPages} 页
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
+                    disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-50"
+                  >
+                    下一页
+                  </button>
+                </div>
+                <button onClick={() => setSlotDetailOpen(false)} className="rounded-lg p-1 text-slate-400 hover:text-slate-700"><X size={16} /></button>
+              </div>
             </div>
             <div className="space-y-4 overflow-y-auto px-6 py-5">
-              {slotCluster.workers.map((worker) => {
+              {pagedSlotWorkers.map((worker) => {
                 const expanded = expandedWorkerIds.includes(worker.worker_id);
                 return (
                   <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/50'}`}>
@@ -1420,6 +1462,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation();
+                  setSlotWorkerPage(1);
                   setSlotDetailOpen(true);
                 }}
                 className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-black text-violet-700 hover:bg-violet-100"
@@ -1455,7 +1498,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 <span className="text-xs text-slate-400">更新时间：{formatDateTime(slotCluster.updated_at)}</span>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {slotCluster.workers.slice(0, 6).map((worker) => (
+                {pagedSlotWorkers.map((worker) => (
                   <div key={worker.worker_id} className={`rounded-2xl border px-4 py-4 ${worker.healthy ? 'border-slate-200 bg-slate-50/70' : worker.worker_role_state === 'retired' ? 'border-amber-200 bg-amber-50/70' : 'border-rose-200 bg-rose-50/70'}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -1492,6 +1535,36 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   </div>
                 ))}
               </div>
+              {slotCluster.workers.length > SLOT_WORKER_PAGE_SIZE ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs text-slate-500">
+                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotCluster.workers.length)}
+                    {' - '}
+                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotCluster.workers.length)}
+                    {' / '}
+                    {slotCluster.workers.length} 个 Worker
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
+                      disabled={slotWorkerPageSafe <= 1}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                    >
+                      上一页
+                    </button>
+                    <span className="text-slate-500">第 {slotWorkerPageSafe}/{slotWorkerTotalPages} 页</span>
+                    <button
+                      type="button"
+                      onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
+                      disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : (
             <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
@@ -1795,10 +1868,18 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   && Number.isFinite(leaseExpiryTs)
                   && leaseExpiryTs > 0
                   && leaseExpiryTs < clockNow;
+                const expiredLeaseAgeSeconds = leaseExpired && typeof leaseExpiryTs === 'number'
+                  ? Math.max(0, clockNow - leaseExpiryTs)
+                  : 0;
+                const isAwaitingTakeover = Boolean(t.awaiting_takeover || t.reconcile_pending);
+                const shouldHighlightLeaseError = leaseExpired && (!isAwaitingTakeover || expiredLeaseAgeSeconds >= ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS);
+                const shouldHighlightLeaseWarning = leaseExpired && !shouldHighlightLeaseError;
                 const contextualRowClassName = selectedTaskIds.has(t.task_id)
                   ? 'bg-violet-50/60'
-                  : leaseExpired
+                  : shouldHighlightLeaseError
                     ? 'bg-rose-50/70 hover:bg-rose-100/70'
+                  : shouldHighlightLeaseWarning
+                    ? 'bg-amber-50/50 hover:bg-amber-100/60'
                   : recommended
                     ? 'bg-indigo-50/40'
                     : matchedRisk
@@ -1841,6 +1922,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       {stageFocusHint ? (
                         <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-black text-cyan-700">
                           {stageFocusHint} 阶段线索
+                        </span>
+                      ) : null}
+                      {isAwaitingTakeover ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
+                          等待接管
                         </span>
                       ) : null}
                     </div>
@@ -1917,7 +2003,17 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     )}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
-                    {formatDateTime(t.lease_expires_at)}
+                    <div>{formatDateTime(t.lease_expires_at)}</div>
+                    {shouldHighlightLeaseWarning ? (
+                      <div className="mt-1 text-[11px] font-semibold text-amber-600">
+                        正在等待回收/接管
+                      </div>
+                    ) : null}
+                    {shouldHighlightLeaseError ? (
+                      <div className="mt-1 text-[11px] font-semibold text-rose-600">
+                        租约过期超过 {ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS}s
+                      </div>
+                    ) : null}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap">
                     {t.cancel_requested ? (
