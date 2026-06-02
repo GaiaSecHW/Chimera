@@ -533,6 +533,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const [activeJobId, setActiveJobId] = useState('');
   const [activeJob, setActiveJob] = useState<FirmwareEvolutionJob | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [sourceTasks, setSourceTasks] = useState<FirmwareUnpackTask[]>([]);
   const [sourceTasksLoading, setSourceTasksLoading] = useState(false);
@@ -562,6 +563,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const [replacing, setReplacing] = useState(false);
   const sessionSocketRef = useRef<WebSocket | null>(null);
   const notifyRef = useRef(notify);
+  const runtimeRequestSeqRef = useRef(0);
 
   useEffect(() => {
     notifyRef.current = notify;
@@ -583,9 +585,12 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
     [runtimeItems, runtimeSelectedPath],
   );
   const runtimeRootPath = useMemo(() => {
-    const candidate = String(activeJob?.run_root || '').trim();
-    return candidate || null;
-  }, [activeJob?.run_root]);
+    if (showingDetail) {
+      const candidate = String(activeJob?.run_root || '').trim();
+      return candidate || '/data/secflow-app-firmware-unpacker';
+    }
+    return '/data/secflow-app-firmware-unpacker';
+  }, [activeJob?.run_root, showingDetail]);
   const canConfirmReplacement = Boolean(
     activeJob
     && activeJob.status === 'success'
@@ -656,10 +661,12 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
   const loadRuntimeFiles = useCallback(async () => {
     if (!projectId) return;
+    const requestSeq = ++runtimeRequestSeqRef.current;
     setRuntimeFilesLoading(true);
     setRuntimeFilesError('');
     try {
       const payload = await fwApi.listRuntimeFiles(projectId, 2000, runtimeRootPath);
+      if (runtimeRequestSeqRef.current !== requestSeq) return;
       setRuntimeFiles(payload);
       setRuntimeExpandedPaths((current) => {
         if (current.size > 0) return current;
@@ -675,17 +682,23 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       });
       setRuntimeSelectedPath((current) => current || payload.items.find((item) => item.kind !== 'dir')?.path || payload.items[0]?.path || '');
     } catch (e: any) {
+      if (runtimeRequestSeqRef.current !== requestSeq) return;
       const message = e?.message || '加载运行时文件失败';
       setRuntimeFilesError(message);
       notifyRef.current(`加载运行时文件失败: ${message}`, 'error');
     } finally {
-      setRuntimeFilesLoading(false);
+      if (runtimeRequestSeqRef.current === requestSeq) {
+        setRuntimeFilesLoading(false);
+      }
     }
   }, [projectId, runtimeRootPath]);
 
   const refreshJobDetail = useCallback(async (jobId: string, options?: { silent?: boolean }) => {
     if (!jobId) return;
-    if (!options?.silent) setDetailLoading(true);
+    if (!options?.silent) {
+      setDetailLoading(true);
+      setDetailError('');
+    }
     try {
       const [job, rounds] = await Promise.all([
         fwApi.getEvolutionJob(jobId),
@@ -701,6 +714,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       setActiveJob((prev) => sameJsonValue(prev, mergedJob) ? prev : mergedJob);
       setJobs((prev) => prev.map((item) => item.id === mergedJob.id ? mergedJob : item));
     } catch (e: any) {
+      setDetailError(e?.message || '加载进化任务详情失败');
       notify(`加载进化任务详情失败: ${e?.message || e}`, 'error');
     } finally {
       if (!options?.silent) setDetailLoading(false);
@@ -739,6 +753,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       setSessionsLoading(true);
       setSessionsError('');
     }
+    setSessionError('');
     try {
       const payload = await fwApi.getEvolutionSessions(activeJobId);
       const items = payload.items || [];
@@ -764,7 +779,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   const loadSessionFile = useCallback(async (sessionFile: string) => {
     const jobProjectId = activeJob?.project_id || projectId;
     if (!jobProjectId || !sessionRoot || !sessionFile) return;
-    const fsPath = extractFsRelPath(normalizeJoinPath(sessionRoot, sessionFile), jobProjectId);
+    const fsPath = extractFsRelPath(normalizeJoinPath(sessionRoot, sessionFile), jobProjectId)
+      || extractFsRelPath(sessionFile, jobProjectId);
     if (!fsPath) {
       setSessionError('当前会话路径不在 fileserver 项目目录下');
       return;
@@ -904,6 +920,7 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
   useEffect(() => {
     if (!activeJobId) {
       setActiveJob(null);
+      setDetailError('');
       setRuntimeFiles(null);
       setRuntimeFilesError('');
       setRuntimeSelectedPath('');
@@ -924,13 +941,16 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       closeSessionSocket();
       return;
     }
+    setDetailError('');
+    setActiveJob((current) => current && current.id === activeJobId ? current : (jobs.find((item) => item.id === activeJobId) || current));
     setActiveTab('overview');
     void refreshJobDetail(activeJobId);
     // 只在切换详情任务时加载一次，避免 refreshJobDetail 引用变化导致详情页循环刷新。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeJobId, closeSessionSocket]);
+  }, [activeJobId, closeSessionSocket, jobs]);
 
   useEffect(() => {
+    runtimeRequestSeqRef.current += 1;
     setRuntimeFiles(null);
     setRuntimeFilesError('');
     setRuntimeSelectedPath('');
@@ -969,6 +989,10 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
         setSessionEvents([]);
         setSessionWarnings([]);
         setSessionError('');
+      } else {
+        setSessionSnapshot(null);
+        setSessionEvents([]);
+        setSessionWarnings([]);
       }
       return;
     }
@@ -983,7 +1007,8 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
       setSessionLive(false);
       return;
     }
-    const watchPath = extractFsRelPath(normalizeJoinPath(sessionRoot, selectedSessionPath), jobProjectId);
+    const watchPath = extractFsRelPath(normalizeJoinPath(sessionRoot, selectedSessionPath), jobProjectId)
+      || extractFsRelPath(selectedSessionPath, jobProjectId);
     if (!watchPath) {
       setSessionLive(false);
       setSessionError('当前会话路径不在 fileserver 项目目录下，无法实时监听');
@@ -1176,7 +1201,19 @@ export const FirmwareEvolutionCenterPage: React.FC<Props> = ({ projectId }) => {
 
   const renderDetail = () => {
     if (!activeJob) {
-      return <div className="rounded-2xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">加载进化任务详情中...</div>;
+      return (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+          <div>{detailError || '加载进化任务详情中...'}</div>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <button onClick={() => setActiveJobId('')} className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">返回列表</button>
+            {activeJobId ? (
+              <button onClick={() => refreshJobDetail(activeJobId)} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white">
+                重试加载
+              </button>
+            ) : null}
+          </div>
+        </div>
+      );
     }
     const progressPhases = buildEvolutionProgressPhases(activeJob);
     const effectRows = activeJob.rounds.map((round) => ({ round, metrics: getEvolutionRoundMetrics(round) }));

@@ -96,9 +96,15 @@ function deriveRunPath(outputPath: string) {
   return '';
 }
 
-function resolveTaskRunPath(task: Pick<FirmwareUnpackTask, 'run_path' | 'output_path'> | null | undefined) {
+function resolveTaskRunPath(
+  task: Pick<FirmwareUnpackTask, 'run_path' | 'run_root' | 'runtime_root' | 'output_path'> | null | undefined,
+) {
   const explicit = String(task?.run_path || '').trim();
   if (explicit) return explicit;
+  const runRoot = String(task?.run_root || '').trim();
+  if (runRoot) return runRoot;
+  const runtimeRoot = String(task?.runtime_root || '').trim();
+  if (runtimeRoot) return runtimeRoot;
   return deriveRunPath(String(task?.output_path || ''));
 }
 
@@ -136,6 +142,23 @@ function formatPhaseDuration(seconds: number | null | undefined) {
   return `（${formatSeconds(seconds)}）`;
 }
 
+function formatPhaseTokens(tokens: number | null | undefined) {
+  if (tokens == null || !Number.isFinite(tokens)) return '';
+  return `（${Math.max(0, Math.round(tokens)).toLocaleString()} tokens）`;
+}
+
+function formatTokenLines(inputTokens: number | null | undefined, outputTokens: number | null | undefined) {
+  const hasInput = inputTokens != null && Number.isFinite(inputTokens);
+  const hasOutput = outputTokens != null && Number.isFinite(outputTokens);
+  if (!hasInput && !hasOutput) return null;
+  return (
+    <div className="mt-1 space-y-0.5 text-[10px] leading-tight text-slate-500">
+      <div>输入：{hasInput ? `${Math.max(0, Math.round(inputTokens as number)).toLocaleString()} tokens` : '-'}</div>
+      <div>输出：{hasOutput ? `${Math.max(0, Math.round(outputTokens as number)).toLocaleString()} tokens` : '-'}</div>
+    </div>
+  );
+}
+
 function formatEvolutionToolDuration(seconds: number | null | undefined) {
   if (seconds == null || !Number.isFinite(seconds)) return '-';
   return formatSeconds(seconds);
@@ -160,6 +183,7 @@ function buildPlaceholderPhase(key: string, label: string): ProgressPhase {
     current_round: null,
     total_rounds: null,
     duration_seconds: null,
+    token_total: null,
   };
 }
 
@@ -1000,6 +1024,13 @@ function TaskDetailPanel({
       .map((phase) => phase.duration_seconds)
       .filter((value): value is number => value != null && Number.isFinite(value));
     if (!values.length) return null;
+    return values.reduce((sum, value) => sum + value, 0);
+  }, [normalizedProgressPhases]);
+  const progressTokenTotal = useMemo(() => {
+    const values = normalizedProgressPhases
+      .filter((phase) => phase.key === 'llm_cleanup' || phase.key === 'llm_review_tool' || phase.key.startsWith('llm_unpack_round_') || phase.key.startsWith('llm_review_round_'))
+      .map((phase) => phase.token_total)
+      .filter((value): value is number => value != null && Number.isFinite(value));
     return values.reduce((sum, value) => sum + value, 0);
   }, [normalizedProgressPhases]);
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
@@ -1930,6 +1961,8 @@ function TaskDetailPanel({
                 ['开始时间', fmtTime(task.started_at)],
                 ['完成时间', fmtTime(task.completed_at)],
                 ['耗时', progressDurationSeconds != null ? formatSeconds(progressDurationSeconds) : fmtDuration(task.started_at, task.completed_at)],
+                ['输入 Token 消耗', `${result?.summary.input_tokens ?? progress?.input_tokens ?? 0} tokens`],
+                ['输出 Token 消耗', `${result?.summary.output_tokens ?? progress?.output_tokens ?? 0} tokens`],
                 ['AI 轮次', task.rounds ?? '-'],
               ].map(([label, value], index) => (
                 <div key={index} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -2037,6 +2070,7 @@ function TaskDetailPanel({
                                           {node.label}
                                           {hideAggregateDuration ? '' : formatPhaseDuration(node.phase.duration_seconds)}
                                         </div>
+                                        {!hideAggregateDuration ? formatTokenLines(node.phase.input_tokens, node.phase.output_tokens) : null}
                                         <div className="mt-1 flex justify-center">
                                           <PhaseStatusBadge status={node.phase.status} />
                                         </div>
@@ -2072,6 +2106,7 @@ function TaskDetailPanel({
                                                     {roundPhase.status === 'running' ? '运行中' : roundPhase.status === 'success' ? '成功' : roundPhase.status === 'failed' ? '失败' : roundPhase.status === 'skipped' ? '跳过' : roundPhase.status === 'not_executed' ? '未执行' : '待处理'}
                                                   </span>
                                                 </div>
+                                                {formatTokenLines(roundPhase.input_tokens, roundPhase.output_tokens)}
                                                 <div className="mt-2 flex justify-end">
                                                   <button
                                                     type="button"
@@ -2106,6 +2141,7 @@ function TaskDetailPanel({
                               {layeredProgress.cleanup.label}
                               {formatPhaseDuration(layeredProgress.cleanup.duration_seconds)}
                             </div>
+                            {formatTokenLines(layeredProgress.cleanup.input_tokens, layeredProgress.cleanup.output_tokens)}
                             <div className="mt-1 flex justify-center">
                               <PhaseStatusBadge status={layeredProgress.cleanup.status} />
                             </div>
@@ -3291,6 +3327,8 @@ function TaskDetailPanel({
                         <div className="flex items-center justify-between gap-3"><span>事件数</span><span className="font-bold text-slate-800">{result.summary.event_count}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>执行轮次</span><span className="font-bold text-slate-800">{result.summary.executor_rounds}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>耗时</span><span className="font-bold text-slate-800">{result.summary.duration_seconds == null ? '-' : `${result.summary.duration_seconds}s`}</span></div>
+                        <div className="flex items-center justify-between gap-3"><span>输入 Token</span><span className="font-bold text-slate-800">{result.summary.input_tokens.toLocaleString()} tokens</span></div>
+                        <div className="flex items-center justify-between gap-3"><span>输出 Token</span><span className="font-bold text-slate-800">{result.summary.output_tokens.toLocaleString()} tokens</span></div>
                         <div className="flex items-center justify-between gap-3"><span>命中工具</span><span className="max-w-[180px] truncate font-bold text-slate-800">{result.summary.matched_skill || '-'}</span></div>
                         <div className="flex items-center justify-between gap-3"><span>回退到 LLM</span><span className="font-bold text-slate-800">{result.summary.fallback_to_llm ? '是' : '否'}</span></div>
                       </div>

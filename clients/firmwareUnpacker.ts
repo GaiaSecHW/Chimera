@@ -114,6 +114,9 @@ export interface FirmwareTaskProgressPhase {
   current_round: number | null;
   total_rounds: number | null;
   duration_seconds: number | null;
+  token_total: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
 }
 
 export interface FirmwareTaskProgress {
@@ -122,6 +125,9 @@ export interface FirmwareTaskProgress {
   summary: string | null;
   current_round: number | null;
   total_rounds: number | null;
+  token_total: number;
+  input_tokens: number;
+  output_tokens: number;
   phases: FirmwareTaskProgressPhase[];
 }
 
@@ -214,6 +220,9 @@ export interface FirmwareTaskResultSummary {
   started_at: string | null;
   completed_at: string | null;
   duration_seconds: number | null;
+  token_total: number;
+  input_tokens: number;
+  output_tokens: number;
 }
 
 export interface FirmwareTaskResult {
@@ -785,6 +794,9 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
       current_round: asNullableNumber(entry.current_round),
       total_rounds: asNullableNumber(entry.total_rounds),
       duration_seconds: asNullableNumber(entry.duration_seconds),
+      token_total: asNullableNumber(entry.token_total),
+      input_tokens: asNullableNumber(entry.input_tokens),
+      output_tokens: asNullableNumber(entry.output_tokens),
     };
   });
   return {
@@ -793,6 +805,9 @@ const normalizeTaskProgress = (value: unknown): FirmwareTaskProgress => {
     summary: asNullableString(record.summary),
     current_round: asNullableNumber(record.current_round),
     total_rounds: asNullableNumber(record.total_rounds),
+    token_total: asNumber(record.token_total, 0),
+    input_tokens: asNumber(record.input_tokens, 0),
+    output_tokens: asNumber(record.output_tokens, 0),
     phases,
   };
 };
@@ -916,6 +931,9 @@ const normalizeTaskResult = (value: unknown): FirmwareTaskResult => {
       started_at: asNullableString(summary.started_at),
       completed_at: asNullableString(summary.completed_at),
       duration_seconds: summary.duration_seconds == null ? null : asNumber(summary.duration_seconds, 0),
+      token_total: asNumber(summary.token_total, 0),
+      input_tokens: asNumber(summary.input_tokens, 0),
+      output_tokens: asNumber(summary.output_tokens, 0),
     },
   };
 };

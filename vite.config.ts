@@ -1,4 +1,5 @@
 import http from 'http';
+import https from 'https';
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -17,6 +18,8 @@ const stripMonacoSourcemaps = {
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const buildTime = env.BUILD_TIME || new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const keepAliveHttpAgent = new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
+    const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 });
     return {
       // Use an absolute base in dev so HMR/module requests stay rooted at the
       // Vite server, while production builds keep relative assets for static hosting.
@@ -27,12 +30,12 @@ export default defineConfig(({ mode }) => {
         sourcemapIgnoreList: (sourcePath) => sourcePath.includes('node_modules'),
         proxy: {
           '/api/app/kernel-scan': {
-            target: 'http://secflow.ai.icsl.huawei.com',
+            target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
           },
           '/api': {
-            target: 'http://secflow.ai.icsl.huawei.com',
+            target: 'https://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
             ws: true,
@@ -41,7 +44,7 @@ export default defineConfig(({ mode }) => {
             // the socket immediately after each response; on Windows the OS
             // then sends TCP RST to Nginx, Nginx echoes RST back, and
             // Node fires ECONNRESET -> Vite returns empty 500 -> ERR_ABORTED.
-            agent: new http.Agent({ keepAlive: true, maxSockets: 50, keepAliveMsecs: 3000 }),
+            agent: keepAliveHttpsAgent,
             configure: (proxy) => {
               // If a stale pooled socket is reused and gets ECONNRESET,
               // send 503 JSON so fetchWithRetry can retry on a fresh socket.
@@ -57,10 +60,11 @@ export default defineConfig(({ mode }) => {
             },
           },
           '/ws': {
-            target: 'ws://secflow.ai.icsl.huawei.com',
+            target: 'wss://secflow.ai.icsl.huawei.com',
             changeOrigin: true,
             secure: false,
             ws: true,
+            agent: keepAliveHttpsAgent,
           },
         },
       },

@@ -6,6 +6,9 @@ import { Bot, Loader2, Wrench } from 'lucide-react';
 import { AppSaSessionEvent, AppSaSessionMeta } from '../../types/types';
 import { mergeAgentSessionToolResults } from './agentSessionParsing';
 
+const ESTIMATED_EVENT_HEIGHT = 180;
+const OVERSCAN_COUNT = 8;
+
 const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
   <div className="markdown-body break-words leading-6">
     <ReactMarkdown
@@ -129,6 +132,40 @@ const SessionMessage: React.FC<{ event: AppSaSessionEvent & { _toolResults?: App
   return <div className="rounded-2xl bg-slate-100 px-4 py-3 text-xs text-slate-500">{event.role || event.type}</div>;
 };
 
+const SessionEventRow: React.FC<{
+  event: AppSaSessionEvent & { _toolResults?: AppSaSessionEvent[] };
+  index: number;
+  onHeightChange: (index: number, height: number) => void;
+}> = ({ event, index, onHeightChange }) => {
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = rowRef.current;
+    if (!node) return;
+
+    const report = () => onHeightChange(index, node.getBoundingClientRect().height);
+    report();
+
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => report());
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [event, index, onHeightChange]);
+
+  let content: React.ReactNode;
+  if (event.type === 'model_change') {
+    content = <div className="text-xs text-slate-500">Model: <span className="font-semibold text-cyan-700">{event.provider || ''}/{event.modelId || ''}</span></div>;
+  } else if (event.type === 'thinking_level_change') {
+    content = <div className="text-xs text-slate-500">Thinking: <span className="font-semibold text-violet-700">{event.thinkingLevel || ''}</span></div>;
+  } else if (event.type === 'message') {
+    content = <SessionMessage event={event} />;
+  } else {
+    content = <div className="rounded-2xl bg-slate-100 px-4 py-3 text-xs text-slate-500">[Line {event.line}] {event.summary || event.type}</div>;
+  }
+
+  return <div ref={rowRef}>{content}</div>;
+};
+
 export const AgentSessionViewer: React.FC<{
   sessionMeta?: AppSaSessionMeta | null;
   sessionHeader?: Record<string, any> | null;
@@ -139,11 +176,78 @@ export const AgentSessionViewer: React.FC<{
 }> = ({ sessionMeta, sessionHeader, events, loading = false, live = false, error = null }) => {
   const merged = useMemo(() => mergeAgentSessionToolResults(events), [events]);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [viewportHeight, setViewportHeight] = useState(720);
+  const [scrollTop, setScrollTop] = useState(0);
+  const [measuredHeights, setMeasuredHeights] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    setMeasuredHeights({});
+  }, [sessionMeta?.session_id]);
 
   useEffect(() => {
     if (!scrollerRef.current) return;
     scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight;
   }, [merged.length]);
+
+  useEffect(() => {
+    const node = scrollerRef.current;
+    if (!node) return;
+    const update = () => setViewportHeight(node.clientHeight || 720);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const handleHeightChange = (index: number, height: number) => {
+    if (!Number.isFinite(height) || height <= 0) return;
+    setMeasuredHeights((current) => {
+      if (current[index] === height) return current;
+      return { ...current, [index]: height };
+    });
+  };
+
+  const estimatedOffsets = useMemo(() => {
+    const offsets: number[] = new Array(merged.length);
+    let running = 0;
+    for (let i = 0; i < merged.length; i += 1) {
+      offsets[i] = running;
+      running += measuredHeights[i] ?? ESTIMATED_EVENT_HEIGHT;
+    }
+    return {
+      offsets,
+      totalHeight: running,
+    };
+  }, [merged.length, measuredHeights]);
+
+  const visibleRange = useMemo(() => {
+    if (merged.length === 0) return { start: 0, end: 0 };
+    const top = Math.max(0, scrollTop);
+    const bottom = top + viewportHeight;
+    let start = 0;
+    while (
+      start < merged.length &&
+      estimatedOffsets.offsets[start] + (measuredHeights[start] ?? ESTIMATED_EVENT_HEIGHT) < top
+    ) {
+      start += 1;
+    }
+    let end = start;
+    while (end < merged.length && estimatedOffsets.offsets[end] < bottom) {
+      end += 1;
+    }
+    return {
+      start: Math.max(0, start - OVERSCAN_COUNT),
+      end: Math.min(merged.length, end + OVERSCAN_COUNT),
+    };
+  }, [estimatedOffsets.offsets, merged.length, measuredHeights, scrollTop, viewportHeight]);
+
+  const visibleItems = useMemo(
+    () => merged.slice(visibleRange.start, visibleRange.end).map((event, offset) => ({
+      event,
+      index: visibleRange.start + offset,
+      top: estimatedOffsets.offsets[visibleRange.start + offset] ?? 0,
+    })),
+    [estimatedOffsets.offsets, merged, visibleRange.end, visibleRange.start],
+  );
 
   const userCount = events.filter((event) => event.type === 'message' && event.role === 'user').length;
   const assistantCount = events.filter((event) => event.type === 'message' && event.role === 'assistant').length;
@@ -210,25 +314,30 @@ export const AgentSessionViewer: React.FC<{
         </div>
       </div>
 
-      <div ref={scrollerRef} className="max-h-[calc(100vh-24rem)] overflow-auto px-6 py-5">
-        <div className="space-y-4">
-          {merged.length > 0 ? merged.map((event) => {
-            if (event.type === 'model_change') {
-              return <div key={`model-${event.line}`} className="text-xs text-slate-500">Model: <span className="font-semibold text-cyan-700">{event.provider || ''}/{event.modelId || ''}</span></div>;
-            }
-            if (event.type === 'thinking_level_change') {
-              return <div key={`thinking-level-${event.line}`} className="text-xs text-slate-500">Thinking: <span className="font-semibold text-violet-700">{event.thinkingLevel || ''}</span></div>;
-            }
-            if (event.type === 'message') {
-              return <SessionMessage key={`message-${event.line}`} event={event} />;
-            }
-            return <div key={`raw-${event.line}`} className="rounded-2xl bg-slate-100 px-4 py-3 text-xs text-slate-500">[Line {event.line}] {event.summary || event.type}</div>;
-          }) : (
+      <div
+        ref={scrollerRef}
+        className="max-h-[calc(100vh-24rem)] overflow-auto px-6 py-5"
+        onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+      >
+        {merged.length > 0 ? (
+          <div className="relative" style={{ height: `${estimatedOffsets.totalHeight}px` }}>
+            {visibleItems.map(({ event, index, top }) => (
+              <div
+                key={`${event.type}-${event.line || index}-${index}`}
+                className="absolute left-0 right-0"
+                style={{ top: `${top}px` }}
+              >
+                <SessionEventRow event={event} index={index} onHeightChange={handleHeightChange} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500">
               Empty session
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
