@@ -3062,6 +3062,9 @@ export interface EntryAnalyseWorkerSlot {
 
 export interface EntryAnalyseSlotClusterSummary {
   worker_count: number;
+  registry_visible_workers?: number;
+  live_pod_count?: number;
+  registry_missing_live_pods?: number;
   healthy_workers: number;
   stale_workers: number;
   live_stale_workers?: number;

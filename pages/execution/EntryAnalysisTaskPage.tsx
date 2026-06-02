@@ -993,6 +993,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     { label: '占用槽位', value: slotCluster.busy_slots, className: 'bg-blue-50 border-blue-200 text-blue-700' },
     { label: '空闲槽位', value: slotCluster.available_slots, className: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
     { label: '排队任务', value: slotCluster.queued_tasks, className: 'bg-amber-50 border-amber-200 text-amber-700' },
+    { label: 'Live Pod', value: slotCluster.live_pod_count ?? slotCluster.worker_count, className: 'bg-cyan-50 border-cyan-200 text-cyan-700' },
+    { label: 'Registry Worker', value: slotCluster.registry_visible_workers ?? slotCluster.worker_count, className: 'bg-violet-50 border-violet-200 text-violet-700' },
+    { label: '注册缺口', value: slotCluster.registry_missing_live_pods ?? 0, className: 'bg-rose-50 border-rose-200 text-rose-700' },
     { label: '智能体上限', value: slotCluster.agent_total_capacity, className: 'bg-violet-50 border-violet-200 text-violet-700' },
     { label: '智能体占用', value: slotCluster.agent_in_use, className: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700' },
     { label: '智能体等待', value: slotCluster.agent_waiting_requests, className: 'bg-orange-50 border-orange-200 text-orange-700' },
@@ -1437,6 +1440,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600">Worker {slotCluster.worker_count}</span>
+                <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs text-cyan-700">Live Pod {slotCluster.live_pod_count ?? slotCluster.worker_count}</span>
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs text-violet-700">Registry {slotCluster.registry_visible_workers ?? slotCluster.worker_count}</span>
+                <span className={`rounded-full px-3 py-1 text-xs ${(slotCluster.registry_missing_live_pods || 0) > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>缺口 {slotCluster.registry_missing_live_pods || 0}</span>
                 <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-700">Healthy {slotCluster.healthy_workers}</span>
                 <span className={`rounded-full px-3 py-1 text-xs ${slotCluster.stale_workers > 0 ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>活跃失联 {slotCluster.stale_workers}</span>
                 <span className={`rounded-full px-3 py-1 text-xs ${(slotCluster.retired_workers || 0) > 0 ? 'border border-amber-200 bg-amber-50 text-amber-700' : 'border border-slate-200 bg-slate-50 text-slate-500'}`}>退休残留 {slotCluster.retired_workers || 0}</span>
