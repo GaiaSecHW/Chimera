@@ -3032,6 +3032,7 @@ export interface EntryAnalyseWorkerSlot {
   url?: string | null;
   pod_name: string;
   pod_ip?: string | null;
+  first_seen_at?: string | null;
   healthy: boolean;
   max_concurrent_tasks: number;
   max_concurrent_jobs: number;
@@ -3156,14 +3157,13 @@ export interface AppEaTaskEventSummary {
 
 export interface AppEaTaskTimelineResponse {
   task_id: string;
-  total: number;
-  items: AppEaTaskEvent[];
+  events: AppEaTaskEvent[];
 }
 
 export interface AppEaTaskActionResponse {
-  success: boolean;
+  status: string;
+  task_id?: string;
   message?: string | null;
-  deleted_count?: number | null;
   deleted_event_count?: number | null;
 }
 

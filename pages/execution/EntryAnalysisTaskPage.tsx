@@ -1037,6 +1037,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                         <div className="mt-1 text-xs text-slate-500">
                           {worker.pod_ip || '-'} · 心跳 {formatDateTime(worker.last_heartbeat_at)}
                         </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          首次发现 {formatDateTime(worker.first_seen_at)} · 已存在 {formatDuration(worker.first_seen_at, undefined, clockNow)}
+                        </div>
                         {worker.error ? <div className="mt-1 text-xs text-rose-600">{worker.error}</div> : null}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -1472,6 +1475,9 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     <div className="mt-3 text-[11px] text-slate-500">
                       心跳：{formatDateTime(worker.last_heartbeat_at)}
                       {typeof worker.heartbeat_age_seconds === 'number' ? ` · 距今 ${Math.round(worker.heartbeat_age_seconds)}s` : ''}
+                    </div>
+                    <div className="mt-1 text-[11px] text-slate-500">
+                      首次发现：{formatDateTime(worker.first_seen_at)} · 已存在 {formatDuration(worker.first_seen_at, undefined, clockNow)}
                     </div>
                     <div className="mt-1 text-[11px] text-slate-400">
                       来源：{worker.source || 'worker_registry'} · 状态 {worker.worker_role_state || 'healthy'} · 活动任务 {worker.active_tasks.length}

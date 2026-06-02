@@ -1556,7 +1556,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
     setTimelineLoading(true);
     try {
       const data = await appApi.getTimeline(taskId);
-      setTimeline(data.items || []);
+      setTimeline(data.events || []);
     } catch (err: any) {
       notify(`加载事件时间线失败: ${err?.message || err}`, 'error');
     } finally {
