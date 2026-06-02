@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, Loader2, Plus, RefreshCw, Trash2, UploadClou
 
 import { B2SElfTaskInput, B2SLlmProviderSummary, B2SPiClusterCapacity, B2SPiWorkerActiveJob, B2SRunMode, B2STask, B2STaskDetail, B2STaskListStats } from '../../clients/binaryToSource';
 import { api } from '../../clients/api';
-import { B2SStatsHeader } from './B2SStatsHeader';
+import { B2SStatsHeader, emptyB2SStats, summarizeB2STasks } from './B2SStatsHeader';
 import { ProjectFilesystemPickerModal, ProjectFilesystemSelection } from '../../components/assets/ProjectFilesystemPickerModal';
 import { ExecutionTable, ExecutionTableHead, ExecutionTableTh, ExecutionTableTd, executionTableRowClassName } from '../../components/execution/ExecutionTable';
 import { ServicePageTitle, useServiceBuildVersion } from '../../components/execution/ServiceBuildVersion';
@@ -215,7 +215,24 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     return () => window.clearInterval(timer);
   }, [autoRefreshEnabled, load, loadPiClusterCapacity, projectId, refreshIntervalSec]);
 
-  const stats = taskStats;
+  const stats = useMemo(() => {
+    const hasProjectItemStats = typeof taskStats.total_items === 'number';
+    if (hasProjectItemStats) {
+      return {
+        taskCount: taskStats.task_count ?? taskStats.total ?? 0,
+        totalItems: taskStats.total_items ?? 0,
+        pendingItems: taskStats.pending_items ?? 0,
+        queuedItems: taskStats.queued_items ?? 0,
+        runningItems: taskStats.running_items ?? 0,
+        cancellingItems: taskStats.cancelling_items ?? 0,
+        successItems: taskStats.success_items ?? 0,
+        partialItems: taskStats.partial_items ?? 0,
+        failedItems: taskStats.failed_items ?? 0,
+        cancelledItems: taskStats.cancelled_items ?? 0,
+      };
+    }
+    return items.length > 0 ? summarizeB2STasks(items) : emptyB2SStats();
+  }, [items, taskStats]);
   const statusOptions = B2S_TASK_STATUS_ORDER.filter((status) => {
     if (status === 'pending') return stats.pending > 0;
     if (status === 'running') return stats.running > 0;

@@ -161,6 +161,16 @@ export interface B2STaskListStats {
   partial: number;
   failed: number;
   cancelled: number;
+  task_count?: number;
+  total_items?: number;
+  pending_items?: number;
+  queued_items?: number;
+  running_items?: number;
+  cancelling_items?: number;
+  success_items?: number;
+  partial_items?: number;
+  failed_items?: number;
+  cancelled_items?: number;
 }
 
 export interface B2STaskBatchDeleteResult {
