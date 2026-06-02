@@ -44,6 +44,11 @@ import { EntryAnalysisTaskConfigPanel } from './TaskConfigPanels';
 import { TaskOriginCard } from './taskOrigin';
 import { WarningListPanel } from './WarningListPanel';
 import { AbnormalReasonCard } from './AbnormalReasonCard';
+import {
+  asBinarySecurityContract,
+  entryContractModuleDir,
+  entryContractSourceRoot,
+} from '../../utils/binarySecurityContracts';
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -508,6 +513,10 @@ function openInFileExplorer(fsPath: string) {
   const normalizedPath = fsPath.startsWith('/') ? fsPath : `/${fsPath}`;
   sessionStorage.setItem('secflow:fileExplorerNavigatePath', normalizedPath);
   window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'project-file-explorer', path: normalizedPath } }));
+}
+
+function asRecord(value: unknown): Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
 }
 
 function normalizeJoinPath(basePath: string, relativePath: string): string {
@@ -1363,6 +1372,34 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return <div className="flex gap-3"><span className="w-24 shrink-0 text-xs text-slate-400">{label}</span><span className="text-xs text-slate-700 break-all">{value}</span></div>;
 }
 
+function ProjectDirectoryOverviewValue({
+  path,
+  projectId,
+  openInExplorer,
+}: {
+  path?: string | null;
+  projectId: string;
+  openInExplorer: (fsPath: string) => void;
+}) {
+  const normalizedPath = String(path || '').trim();
+  if (!normalizedPath) return <>-</>;
+  const fsPath = extractFsRelPath(normalizedPath, projectId);
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <span className="break-all font-mono">{normalizedPath}</span>
+      <button
+        type="button"
+        disabled={!fsPath}
+        onClick={() => fsPath && openInExplorer(fsPath)}
+        className="inline-flex items-center gap-1 rounded-md border border-violet-200 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <FolderOpen size={10} />
+        项目文件
+      </button>
+    </span>
+  );
+}
+
 function MetricCard({ label, value, icon }: { label: string; value: React.ReactNode; icon: React.ReactNode }) {
   return <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</div><div className="text-slate-400">{icon}</div></div><div className="mt-3 text-2xl font-black text-slate-900">{value}</div></div>;
 }
@@ -1386,6 +1423,11 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const sessionLoadSeqRef = useRef(0);
   const runtimeSummarySeqRef = useRef(0);
   const hasReturnContext = hasExecutionReturnContext() || hasBinarySecurityReturnTarget(detail);
+  const entryTaskConfig = useMemo(() => asRecord(detail?.task_config_json), [detail?.task_config_json]);
+  const entryInputContract = useMemo(() => asBinarySecurityContract(entryTaskConfig.input_contract), [entryTaskConfig]);
+  const overviewModuleDir = entryContractModuleDir(entryInputContract) || detail?.input_path || null;
+  const overviewSourceRoot = entryContractSourceRoot(entryInputContract) || detail?.source_path || null;
+  const overviewOutputPath = detail?.output_path || null;
   const [result, setResult] = useState<AppEaTaskResult | null>(null);
   const [evaluation, setEvaluation] = useState<AppEaTaskEvaluation | null>(null);
   const [loading, setLoading] = useState(false);
@@ -2263,13 +2305,22 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             <div className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
               <InfoRow label="任务 ID"   value={<span className="font-mono">{detail.task_id}</span>} />
               <InfoRow label="创建时间"  value={detail.created_at ? new Date(detail.created_at).toLocaleString('zh-CN') : '-'} />
-              <InfoRow label="模块目录"  value={<span className="font-mono">{detail.input_path}</span>} />
+              <InfoRow
+                label="模块目录"
+                value={<ProjectDirectoryOverviewValue path={overviewModuleDir} projectId={projectId} openInExplorer={openInFileExplorer} />}
+              />
               <InfoRow label="开始时间"  value={detail.started_at ? new Date(detail.started_at).toLocaleString('zh-CN') : '-'} />
-              <InfoRow label="源码目录"  value={detail.source_path ? <span className="font-mono">{detail.source_path}</span> : '-'} />
+              <InfoRow
+                label="源码目录"
+                value={<ProjectDirectoryOverviewValue path={overviewSourceRoot} projectId={projectId} openInExplorer={openInFileExplorer} />}
+              />
               <InfoRow label="耗时"      value={detail.finished_at ? formatDuration(detail.started_at, detail.finished_at) : formatLiveDuration(detail.started_at, clockNow)} />
               <InfoRow label="分析模块"  value={detail.module_name || '-'} />
               <InfoRow label="完成时间"  value={detail.finished_at ? new Date(detail.finished_at).toLocaleString('zh-CN') : '-'} />
-              <InfoRow label="输出路径"  value={detail.output_path ? <span className="font-mono">{detail.output_path}</span> : '-'} />
+              <InfoRow
+                label="输出路径"
+                value={<ProjectDirectoryOverviewValue path={overviewOutputPath} projectId={projectId} openInExplorer={openInFileExplorer} />}
+              />
               <InfoRow label="最近事件时间" value={timeline[0]?.created_at ? new Date(timeline[0].created_at).toLocaleString('zh-CN') : '-'} />
             </div>
           </section>
