@@ -13,6 +13,7 @@ import { TaskOriginCard } from './taskOrigin';
 import { saveExecutionReturnContext } from '../../utils/executionReturnContext';
 
 const RUNNING_AGENT_PAGE_SIZE = 10;
+const SLOT_WORKER_PAGE_SIZE = 6;
 
 const STATUS_LABEL: Record<string, string> = {
   pending: '等待中',
@@ -638,6 +639,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [showSlotDetailModal, setShowSlotDetailModal] = useState(false);
   const [slotPanelExpanded, setSlotPanelExpanded] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
+  const [slotWorkerPage, setSlotWorkerPage] = useState(1);
   const [runningAgentNameFilter, setRunningAgentNameFilter] = useState('');
   const [runningAgentPage, setRunningAgentPage] = useState(1);
 
@@ -1214,6 +1216,21 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
       text: 'text-amber-700',
     },
   ], [slotSummary]);
+  const slotWorkerTotalPages = Math.max(1, Math.ceil((slotSummary?.workers.length || 0) / SLOT_WORKER_PAGE_SIZE));
+  const slotWorkerPageSafe = Math.min(slotWorkerPage, slotWorkerTotalPages);
+  const pagedSlotWorkers = slotSummary
+    ? slotSummary.workers.slice((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE, slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE)
+    : [];
+
+  useEffect(() => {
+    setSlotWorkerPage(1);
+  }, [slotSummary?.updated_at, slotSummary?.workers.length]);
+
+  useEffect(() => {
+    if (slotWorkerPage > slotWorkerTotalPages) {
+      setSlotWorkerPage(slotWorkerTotalPages);
+    }
+  }, [slotWorkerPage, slotWorkerTotalPages]);
 
   return (
     <div className="px-8 pt-8 pb-10 space-y-6">
@@ -1593,11 +1610,11 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {(slotSummary?.workers || []).map((worker) => (
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {pagedSlotWorkers.map((worker) => (
                   <div
                     key={worker.worker_id}
-                    className={`min-w-[220px] rounded-2xl border px-4 py-3 ${
+                    className={`rounded-2xl border px-4 py-3 ${
                       worker.healthy
                         ? 'border-slate-200 bg-slate-50'
                         : 'border-rose-200 bg-rose-50'
@@ -1630,6 +1647,36 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </div>
                 ) : null}
               </div>
+              {slotSummary && slotSummary.workers.length > SLOT_WORKER_PAGE_SIZE ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs text-slate-500">
+                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotSummary.workers.length)}
+                    {' - '}
+                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotSummary.workers.length)}
+                    {' / '}
+                    {slotSummary.workers.length} 个 Worker
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
+                      disabled={slotWorkerPageSafe <= 1}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                    >
+                      上一页
+                    </button>
+                    <span className="text-slate-500">第 {slotWorkerPageSafe}/{slotWorkerTotalPages} 页</span>
+                    <button
+                      type="button"
+                      onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
+                      disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               {slotSummaryError ? (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
                   暂无槽位数据：{slotSummaryError}
@@ -1650,6 +1697,25 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 <p className="mt-2 text-sm text-slate-500">按 worker 展示当前执行中的数据流分析任务与租约心跳状态。</p>
               </div>
               <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <button
+                    type="button"
+                    onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
+                    disabled={slotWorkerPageSafe <= 1}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-50"
+                  >
+                    上一页
+                  </button>
+                  <span>第 {slotWorkerPageSafe}/{slotWorkerTotalPages} 页</span>
+                  <button
+                    type="button"
+                    onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
+                    disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-50"
+                  >
+                    下一页
+                  </button>
+                </div>
                 <div className="text-right text-xs text-slate-400">
                   <div>最近同步</div>
                   <div className="mt-1 font-semibold text-slate-500">{formatDateTime(slotSummary?.updated_at)}</div>
@@ -1671,7 +1737,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {(slotSummary?.workers || []).map((worker) => {
+                  {pagedSlotWorkers.map((worker) => {
                     const expanded = expandedSlotWorkerIds.includes(worker.worker_id);
                     const activeJobs = worker.active_jobs || [];
                     return (
@@ -1773,6 +1839,36 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   })}
                 </div>
               )}
+              {slotSummary && slotSummary.workers.length > SLOT_WORKER_PAGE_SIZE ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs text-slate-500">
+                    当前显示 {Math.min((slotWorkerPageSafe - 1) * SLOT_WORKER_PAGE_SIZE + 1, slotSummary.workers.length)}
+                    {' - '}
+                    {Math.min(slotWorkerPageSafe * SLOT_WORKER_PAGE_SIZE, slotSummary.workers.length)}
+                    {' / '}
+                    {slotSummary.workers.length} 个 Worker
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setSlotWorkerPage((current) => Math.max(1, current - 1))}
+                      disabled={slotWorkerPageSafe <= 1}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                    >
+                      上一页
+                    </button>
+                    <span className="text-slate-500">第 {slotWorkerPageSafe}/{slotWorkerTotalPages} 页</span>
+                    <button
+                      type="button"
+                      onClick={() => setSlotWorkerPage((current) => Math.min(slotWorkerTotalPages, current + 1))}
+                      disabled={slotWorkerPageSafe >= slotWorkerTotalPages}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-slate-100"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

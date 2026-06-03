@@ -114,12 +114,48 @@ const DOWNSTREAM_DETAIL_SUPPORT: Record<string, { supported: boolean; reason?: s
   vuln_scan: { supported: true },
 };
 
-function downstreamDetailSupport(stageName: string, downstreamTaskId?: string | null) {
+function downstreamDetailSupport(stageName: string, downstreamTaskId?: string | null, missingReason?: string | null) {
   if (!downstreamTaskId?.trim()) {
-    return { supported: false, reason: '该阶段子任务尚未创建下游任务。' };
+    return { supported: false, reason: missingReason || '该阶段子任务尚未创建下游任务。' };
   }
   return DOWNSTREAM_DETAIL_SUPPORT[stageName] || { supported: false, reason: '该阶段尚未配置可跳转的任务详情页面。' };
 }
+
+const stageItemBindingStateLabel = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+  const state = String(item.downstream_binding_state || '').trim().toLowerCase();
+  if (item.downstream_task_id && !item.downstream_status) return '下游已创建，状态待同步';
+  switch (state) {
+    case 'creating':
+      return '下游任务创建中';
+    case 'create_retrying':
+      return '下游任务创建重试中';
+    case 'create_failed':
+      return '下游任务创建失败';
+    case 'created_pending_sync':
+      return '下游已创建，状态待同步';
+    default:
+      return null;
+  }
+};
+
+const stageItemDisplayDownstreamStatus = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+  return stageItemBindingStateLabel(item) || formatDownstreamStatus(item.downstream_status);
+};
+
+const stageItemMissingDownstreamReason = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+  if (item.downstream_binding_message) return item.downstream_binding_message;
+  const state = String(item.downstream_binding_state || '').trim().toLowerCase();
+  switch (state) {
+    case 'creating':
+      return '创建中，尚未拿到下游任务ID';
+    case 'create_retrying':
+      return '正在自动重试创建，成功后可跳转';
+    case 'create_failed':
+      return '创建失败，当前无下游任务可查看';
+    default:
+      return '该阶段子任务尚未创建下游任务。';
+  }
+};
 
 type ManualOperationDisplayState = {
   operation_in_progress?: boolean;
@@ -272,6 +308,20 @@ const formatStageItemSyncStatus = (status?: string | null) => {
     default:
       return status ? status : '-';
   }
+};
+
+const isRetryableCreateFailure = (item: BinarySecurityTaskDetail['stage_items'][number]) => (
+  item.stage_name === 'vuln_scan'
+  && !item.downstream_task_id
+  && ['create_retrying', 'create_failed', 'creating'].includes(String(item.downstream_binding_state || '').trim().toLowerCase())
+);
+
+const stageItemDownstreamToneStatus = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+  if (item.downstream_task_id) return item.downstream_status || 'queued';
+  const bindingState = String(item.downstream_binding_state || '').trim().toLowerCase();
+  if (bindingState === 'create_failed') return 'failed';
+  if (bindingState === 'create_retrying' || bindingState === 'creating') return 'running';
+  return 'queued';
 };
 
 function firstMeaningfulValue(...values: Array<unknown>): string | null {
@@ -1026,7 +1076,10 @@ function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusRea
   const pendingStages = stageSummaries.filter((stage) => stage.status === 'pending');
   const failedItems = stageItems.filter((item) => item.status === 'failed');
   const missingItems = stageItems.filter((item) => item.status === 'downstream_missing');
-  const downstreamFailedItems = stageItems.filter((item) => ['failed', 'error'].includes(String(item.downstream_status || '').toLowerCase()));
+  const downstreamFailedItems = stageItems.filter((item) => (
+    String(item.downstream_binding_state || '').trim().toLowerCase() === 'create_failed'
+    || ['failed', 'error'].includes(String(item.downstream_status || '').toLowerCase())
+  ));
   const downstreamCancelledItems = stageItems.filter((item) => String(item.downstream_status || '').toLowerCase() === 'cancelled');
   const runningItems = stageItems.filter((item) => ['running', 'dispatching'].includes(item.status));
   const cancelledItems = stageItems.filter((item) => item.status === 'cancelled');
@@ -2307,10 +2360,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       const confirmed = await showConfirm({
         title: '同步下游状态',
         message: options?.itemId
-          ? '将查询该阶段子任务在对应微服务中的真实状态，并刷新当前编排记录。该操作不会启动、取消、删除或重试任何任务，是否继续？'
+          ? '将查询该阶段子任务在对应微服务中的真实状态；若该漏洞扫描子任务尚未成功创建下游任务，也会触发恢复绑定或重新创建尝试。是否继续？'
           : options?.stageName
-            ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态。该操作不会触发执行动作，是否继续？`
-            : '将同步当前任务所有已创建下游子任务的真实状态。该操作不会启动、取消、删除或重试任何任务，是否继续？',
+            ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态；其中漏洞扫描缺失绑定的子任务会尝试自动恢复。是否继续？`
+            : '将同步当前任务所有下游子任务的真实状态，并尝试恢复漏洞扫描阶段缺失的下游绑定。是否继续？',
         confirmText: '确认同步',
         cancelText: '取消',
       });
@@ -2459,7 +2512,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const stageDownstreamStatusOptions = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of filteredStageItems) {
-      const status = item.downstream_status || 'pending';
+      const status = stageItemDisplayDownstreamStatus(item);
       counts.set(status, (counts.get(status) || 0) + 1);
     }
     return Array.from(counts.entries())
@@ -2479,7 +2532,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const visibleStageItems = useMemo(() => {
     const filtered = filteredStageItems.filter((item) => {
       if (stageStatusFilter !== 'all' && item.status !== stageStatusFilter) return false;
-      if (stageDownstreamStatusFilter !== 'all' && (item.downstream_status || 'pending') !== stageDownstreamStatusFilter) return false;
+      if (stageDownstreamStatusFilter !== 'all' && stageItemDisplayDownstreamStatus(item) !== stageDownstreamStatusFilter) return false;
       if (stageSyncStatusFilter !== 'all' && (item.sync_status || 'unknown') !== stageSyncStatusFilter) return false;
       return true;
     });
@@ -2630,7 +2683,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
   const openDownstreamTaskDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
     const downstreamTaskId = item.downstream_task_id?.trim();
-    const detailSupport = downstreamDetailSupport(item.stage_name, downstreamTaskId);
+    const detailSupport = downstreamDetailSupport(item.stage_name, downstreamTaskId, stageItemMissingDownstreamReason(item));
     if (!downstreamTaskId || !detailSupport.supported) return;
     saveBinarySecurityReturnContext({
       view: taskType === 'source' ? 'source-security-detail' : taskType === 'binary_module' ? 'binary-module-security-detail' : 'binary-security-detail',
@@ -2680,7 +2733,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     if (!state?.detail || !stateMatchesCurrent) {
       return item.downstream_task_id
         ? <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">展开详情后按需加载下游任务摘要。</div>
-        : <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">当前子任务没有可用的下游详情。</div>;
+        : <div className="rounded-xl bg-white px-3 py-3 text-xs text-slate-500">{stageItemMissingDownstreamReason(item)}</div>;
     }
 
     const detailState = state.detail;
@@ -4119,7 +4172,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
 	                        {visibleStageItems.map((item) => {
-	                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id);
+	                          const detailSupport = downstreamDetailSupport(item.stage_name, item.downstream_task_id, stageItemMissingDownstreamReason(item));
 	                          const expanded = expandedStageItemId === item.id;
 	                          const checked = selectedStageItemIds.includes(item.id);
                             const riskCounts = systemAnalysisRiskCountLabels(item, downstreamByItemId[item.id]);
@@ -4151,9 +4204,14 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 	                                </td>
                                   <td className="px-3 py-3">
                                     <div className="flex flex-col gap-2">
-                                      <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(item.downstream_status || 'queued')}`}>
-                                        {formatDownstreamStatus(item.downstream_status)}
+                                      <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(stageItemDownstreamToneStatus(item))}`}>
+                                        {stageItemDisplayDownstreamStatus(item)}
                                       </span>
+                                      {!item.downstream_task_id && item.downstream_binding_message ? (
+                                        <span className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                                          {item.downstream_binding_message}
+                                        </span>
+                                      ) : null}
                                       {item.status === 'failed' && String(item.downstream_status || '').toLowerCase() === 'passed' ? (
                                         <span className="inline-flex w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
                                           父任务保留失败快照
@@ -4225,6 +4283,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                         同步状态
                                       </button>
                                     ) : null}
+                                    {isRetryableCreateFailure(item) ? (
+                                      <button
+                                        type="button"
+                                        className="rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-black text-amber-700 disabled:opacity-60"
+                                        disabled={actionLoading !== ''}
+                                        onClick={() => void syncDownstreamStatus({ stageName: item.stage_name, itemId: item.id, force: true })}
+                                      >
+                                        重试创建
+                                      </button>
+                                    ) : null}
                                     {detailSupport.supported ? (
                                       <button
                                         type="button"
@@ -4261,6 +4329,24 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               <div className="text-slate-400">任务 ID</div>
                                               <div className="mt-1 break-all font-mono text-slate-800">{item.downstream_task_id || '-'}</div>
                                             </div>
+                                            {!item.downstream_task_id ? (
+                                              <div>
+                                                <div className="text-slate-400">绑定状态</div>
+                                                <div className="mt-1 text-slate-800">{stageItemDisplayDownstreamStatus(item)}</div>
+                                              </div>
+                                            ) : null}
+                                            {!item.downstream_task_id && item.downstream_create_attempts ? (
+                                              <div>
+                                                <div className="text-slate-400">创建尝试次数</div>
+                                                <div className="mt-1 text-slate-800">{item.downstream_create_attempts}</div>
+                                              </div>
+                                            ) : null}
+                                            {!item.downstream_task_id && item.downstream_create_next_retry_at ? (
+                                              <div>
+                                                <div className="text-slate-400">下次重试时间</div>
+                                                <div className="mt-1 font-mono text-slate-800">{fmt(item.downstream_create_next_retry_at)}</div>
+                                              </div>
+                                            ) : null}
                                           </div>
                                           {!detailSupport.supported ? (
                                             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">

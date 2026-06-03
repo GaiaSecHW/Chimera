@@ -362,6 +362,14 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     parent_key?: string | null;
     status: string;
     downstream_status?: string | null;
+    downstream_binding_state?: string | null;
+    downstream_create_attempts?: number;
+    downstream_create_last_attempt_at?: string | null;
+    downstream_create_next_retry_at?: string | null;
+    downstream_create_last_error?: string | null;
+    downstream_create_last_error_type?: string | null;
+    downstream_create_recoverable?: boolean | null;
+    downstream_binding_message?: string | null;
     retry_count: number;
     downstream_service?: string | null;
     downstream_task_id?: string | null;
