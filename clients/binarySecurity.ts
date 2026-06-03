@@ -430,6 +430,20 @@ export interface BinarySecurityStageItemPage {
   items: BinarySecurityTaskDetail['stage_items'];
 }
 
+export interface BinarySecurityArchiveJobPage {
+  task_id: string;
+  stage_name?: string | null;
+  total: number;
+  page: number;
+  per_page: number;
+  items: BinarySecurityTaskDetail['archive_jobs'];
+}
+
+export interface BinarySecurityOverviewResponse {
+  task_id: string;
+  nodes: BinarySecurityOverviewNode[];
+}
+
 export interface BinarySecurityOrchestrationObservability {
   state_events?: {
     status_counts?: Record<string, number>;
@@ -711,6 +725,31 @@ export const binarySecurityApi = {
       per_page: String(params.per_page ?? 100),
     });
     const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/stage-items?${query.toString()}`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskOverview: async (projectId: string, taskId: string): Promise<BinarySecurityOverviewResponse> => {
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/overview`, {
+      headers: getHeaders(),
+      cache: 'no-store',
+    });
+    return handleResponse(resp);
+  },
+
+  getTaskArchiveJobs: async (
+    projectId: string,
+    taskId: string,
+    params?: { stage_name?: string; page?: number; per_page?: number },
+  ): Promise<BinarySecurityArchiveJobPage> => {
+    const query = new URLSearchParams();
+    if (params?.stage_name) query.set('stage_name', params.stage_name);
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.per_page) query.set('per_page', String(params.per_page));
+    const suffix = query.size > 0 ? `?${query.toString()}` : '';
+    const resp = await fetch(`${API_BASE}/api/app/binary-security/projects/${projectId}/tasks/${taskId}/archive-jobs${suffix}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

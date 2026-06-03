@@ -8,7 +8,9 @@ import {
   BinarySecurityEntryContract,
   BinarySecurityModuleContract,
   BinarySecurityModuleSelection,
+  BinarySecurityOrchestrationObservability,
   BinarySecurityOverviewNode,
+  BinarySecurityOverviewResponse,
   BinarySecurityStageItemPage,
   BinarySecurityTaskDetail,
   BinarySecurityTaskPolicy,
@@ -1486,6 +1488,41 @@ function OrchestrationObservabilityPanel({ detail }: { detail: BinarySecurityTas
   );
 }
 
+function deriveArchiveJobsFromStageSummaries(detail: BinarySecurityTaskDetail): ArchiveJob[] {
+  const summaries = detail.stage_summaries || [];
+  return summaries.flatMap((summary) => {
+    const archive = (summary as any).archive as { status_counts?: Record<string, number> } | undefined;
+    const statusCounts = archive?.status_counts || {};
+    const knownStatuses = ['success', 'failed', 'running', 'pending', 'archived', 'applying'] as const;
+    return knownStatuses.flatMap((status) => {
+      const count = Number(statusCounts[status] || 0);
+      if (count <= 0) return [];
+      return Array.from({ length: count }, (_, index) => ({
+        id: `summary:${summary.stage_name}:${status}:${index}`,
+        stage_name: summary.stage_name,
+        item_id: '',
+        item_key: null,
+        downstream_service: null,
+        downstream_task_id: null,
+        archive_status: status,
+        archive_root: null,
+        error_message: null,
+        abnormal_reason: null,
+        attempts: 0,
+        created_at: null,
+        started_at: null,
+        completed_at: null,
+        updated_at: null,
+        retry_supported: false,
+        retry_reason: null,
+        retry_failed_supported: false,
+        retry_failed_reason: null,
+        copy_stats: undefined,
+      }));
+    });
+  });
+}
+
 export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskId, taskType, onBack }) => {
   const executionApi = api.domains.execution;
   const navigate = useNavigate();
@@ -1499,6 +1536,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineClearing, setTimelineClearing] = useState(false);
   const [artifactsLoading, setArtifactsLoading] = useState(false);
+  const [overviewNodes, setOverviewNodes] = useState<BinarySecurityOverviewNode[]>([]);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [overviewLoaded, setOverviewLoaded] = useState(false);
+  const [archiveJobs, setArchiveJobs] = useState<ArchiveJob[]>([]);
+  const [archiveJobsLoading, setArchiveJobsLoading] = useState(false);
+  const [archiveJobsLoaded, setArchiveJobsLoaded] = useState(false);
+  const [orchestrationObservability, setOrchestrationObservability] = useState<BinarySecurityOrchestrationObservability | null>(null);
+  const [orchestrationLoading, setOrchestrationLoading] = useState(false);
+  const [orchestrationLoaded, setOrchestrationLoaded] = useState(false);
   const [stageItemsPage, setStageItemsPage] = useState<BinarySecurityStageItemPage | null>(null);
   const [stageItemsPageLoading, setStageItemsPageLoading] = useState(false);
   const [stageItemsPageError, setStageItemsPageError] = useState<string | null>(null);
@@ -1559,7 +1605,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const cleanupSnapshot = detail?.cleanup_snapshot || null;
   const cleanupCounts = cleanupSnapshot?.cleanup_counts || {};
   const cleanupDownstreamRefs = Array.isArray(cleanupSnapshot?.downstream_refs) ? cleanupSnapshot.downstream_refs : [];
-  const taskStatusReason = useMemo(() => (detail ? deriveTaskStatusReason(detail) : null), [detail]);
+  const effectiveDetail = useMemo(() => {
+    if (!detail) return null;
+    return {
+      ...detail,
+      archive_jobs: archiveJobsLoaded ? archiveJobs : deriveArchiveJobsFromStageSummaries(detail),
+      overview_nodes: overviewNodes.length > 0 ? overviewNodes : (detail.overview_nodes || []),
+      orchestration_observability: orchestrationLoaded ? (orchestrationObservability || {}) : (detail.orchestration_observability || {}),
+    } as BinarySecurityTaskDetail;
+  }, [archiveJobs, archiveJobsLoaded, detail, orchestrationLoaded, orchestrationObservability, overviewNodes]);
+  const taskStatusReason = useMemo(() => (effectiveDetail ? deriveTaskStatusReason(effectiveDetail) : null), [effectiveDetail]);
   const strategyEditable = Boolean(
     manualOperationState?.can_edit_policy ??
     (detail && !['dispatching', 'running'].includes(detail?.status || '') && !isManualOperationInProgress),
@@ -1715,6 +1770,48 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     }
   };
 
+  const loadOverview = async () => {
+    if (!projectId || !taskId) return;
+    setOverviewLoading(true);
+    try {
+      const payload: BinarySecurityOverviewResponse = await executionApi.binarySecurity.getTaskOverview(projectId, taskId);
+      setOverviewNodes(payload.nodes || []);
+    } catch (e: any) {
+      setError(e?.message || '加载任务总览失败');
+    } finally {
+      setOverviewLoaded(true);
+      setOverviewLoading(false);
+    }
+  };
+
+  const loadArchiveJobs = async () => {
+    if (!projectId || !taskId) return;
+    setArchiveJobsLoading(true);
+    try {
+      const payload = await executionApi.binarySecurity.getTaskArchiveJobs(projectId, taskId, { per_page: 500 });
+      setArchiveJobs(payload.items || []);
+    } catch (e: any) {
+      setError(e?.message || '加载归档任务失败');
+    } finally {
+      setArchiveJobsLoaded(true);
+      setArchiveJobsLoading(false);
+    }
+  };
+
+  const loadOrchestrationObservability = async () => {
+    if (!projectId || !taskId) return;
+    setOrchestrationLoading(true);
+    try {
+      const payload = await executionApi.binarySecurity.getOrchestrationObservability(projectId, taskId);
+      setOrchestrationObservability(payload || {});
+    } catch (e: any) {
+      setError(e?.message || '加载编排观测失败');
+    } finally {
+      setOrchestrationLoaded(true);
+      setOrchestrationLoading(false);
+    }
+  };
+
   const updateStrategyStageEnabled = (stageName: string, enabled: boolean) => {
     setStrategyDraft((current) => {
       if (!current) return current;
@@ -1830,6 +1927,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     try {
       if (activeTab === 'overview') {
         setDownstreamByItemId({});
+        setOverviewNodes([]);
+        setOverviewLoaded(false);
+        setArchiveJobs([]);
+        setArchiveJobsLoaded(false);
       }
       if (activeTab === 'modules') {
         setModuleSelection(null);
@@ -1842,13 +1943,21 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         setArtifacts(null);
         setArtifactsLoaded(false);
       }
+      if (activeTab === 'orchestration') {
+        setOrchestrationObservability(null);
+        setOrchestrationLoaded(false);
+      }
       const refreshedTask = await loadTask({
         showLoading: false,
         preserveStrategyDraft: activeTab === 'strategy' && strategyDirty,
       });
+      if (activeTab === 'overview' && refreshedTask) {
+        await Promise.all([loadOverview(), loadArchiveJobs()]);
+      }
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
       if (activeTab === 'timeline') await loadTimeline();
       if (activeTab === 'artifacts') await loadArtifacts();
+      if (activeTab === 'orchestration') await loadOrchestrationObservability();
     } finally {
       setDetailRefreshing(false);
     }
@@ -1865,6 +1974,15 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   useEffect(() => {
     setArtifacts(null);
     setArtifactsLoaded(false);
+  }, [projectId, taskId]);
+
+  useEffect(() => {
+    setOverviewNodes([]);
+    setOverviewLoaded(false);
+    setArchiveJobs([]);
+    setArchiveJobsLoaded(false);
+    setOrchestrationObservability(null);
+    setOrchestrationLoaded(false);
   }, [projectId, taskId]);
 
   useEffect(() => {
@@ -1905,6 +2023,24 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       void loadTimeline();
     }
   }, [activeTab, timeline.length, timelineLoading, projectId, taskId]);
+
+  useEffect(() => {
+    if (activeTab === 'overview' && !overviewLoaded && !overviewLoading) {
+      void loadOverview();
+    }
+  }, [activeTab, overviewLoaded, overviewLoading, projectId, taskId]);
+
+  useEffect(() => {
+    if (activeTab === 'overview' && !archiveJobsLoaded && !archiveJobsLoading) {
+      void loadArchiveJobs();
+    }
+  }, [activeTab, archiveJobsLoaded, archiveJobsLoading, projectId, taskId]);
+
+  useEffect(() => {
+    if (activeTab === 'orchestration' && !orchestrationLoaded && !orchestrationLoading) {
+      void loadOrchestrationObservability();
+    }
+  }, [activeTab, orchestrationLoaded, orchestrationLoading, projectId, taskId]);
 
   useEffect(() => {
     downstreamByItemIdRef.current = downstreamByItemId;
@@ -2248,7 +2384,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   };
 
   const stageDisplayNodes = useMemo(() => {
-    return ((detail?.overview_nodes || []) as BinarySecurityOverviewNode[]).map((node) => ({
+    return overviewNodes.map((node) => ({
       ...node,
       id: node.node_id,
       kind: node.node_type === 'archive' ? 'archive' as const : 'business' as const,
@@ -2256,7 +2392,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       retryable: node.retry_supported,
       stale: staleStages.has(node.stage_name),
     }));
-  }, [detail?.overview_nodes, staleStages]);
+  }, [overviewNodes, staleStages]);
 
   const selectedArchiveNode = useMemo(
     () => stageDisplayNodes.find((node) => node.node_type === 'archive' && node.stage_name === selectedStage) || null,
@@ -3394,6 +3530,16 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
             ) : null}
 
             <div ref={stageFlowRef} className="mt-6 overflow-x-auto">
+              {overviewLoading && stageDisplayNodes.length === 0 ? (
+                <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm font-semibold text-slate-500">
+                  正在加载阶段总览与归档节点…
+                </div>
+              ) : null}
+              {!overviewLoading && overviewLoaded && stageDisplayNodes.length === 0 ? (
+                <div className="flex min-h-[160px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm font-semibold text-slate-500">
+                  当前暂无可展示的阶段总览节点
+                </div>
+              ) : null}
               <div className={stageFlowLayout.mode === 'horizontal' ? 'inline-flex items-center justify-start pb-2 pr-2' : 'flex flex-col items-stretch'}>
                 {stageDisplayNodes.map((stage, index) => (
                   <React.Fragment key={stage.id}>
@@ -4229,7 +4375,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           ) : null}
 
           {activeTab === 'orchestration' ? (
-            <OrchestrationObservabilityPanel detail={detail} />
+            effectiveDetail ? <OrchestrationObservabilityPanel detail={effectiveDetail} /> : null
           ) : null}
 
           {activeTab === 'modules' ? (
