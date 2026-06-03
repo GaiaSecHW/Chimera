@@ -70,7 +70,7 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
-// ─── 完整模式 STAGE_STEPS（6步）────────────────────────────────────────────
+// ─── 完整模式 STAGE_STEPS（7步：R2 后默认 API_Filter）──────────────────────
 const FULL_STAGE_STEPS = [
   {
     key: 'r1',
@@ -86,6 +86,13 @@ const FULL_STAGE_STEPS = [
     desc: '每函数准确性验证（Judge），校正起止行',
     triggers: ['r2_j_start', 'r2_j_done'],
     artifactSubpath: 'run/workspace/r1-functions',
+  },
+  {
+    key: 'api_filter',
+    label: 'API_Filter 预筛',
+    desc: 'Direct LLM API 预筛，与 Agent 共用 pod 级排队槽位，过滤非入口函数',
+    triggers: ['api_filter_start', 'api_filter_done', 'api_filter_error'],
+    artifactSubpath: '',
   },
   {
     key: 'r3',
@@ -342,6 +349,7 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
 
   const r1Files   = new Set<string>();
   const r2Funcs   = new Set<string>();
+  const afFuncs   = new Set<string>();
   const r3Funcs   = new Set<string>();
   const r4Funcs   = new Set<string>();
   let ccNodes = 0, ccEdges = 0, ccStatus: 'pending'|'running'|'done'|'failed' = 'pending';
@@ -373,41 +381,49 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
         result[1].tokensOut = (result[1].tokensOut || 0) + (Number(d.tokens_output) || 0);
         result[1].durationMs = (result[1].durationMs || 0) + (Number(d.duration_ms) || 0);
         break;
-      // R3 (idx=2) — 与 CC 并行
-      case 'r3_w_start': case 'r3_j_start': touch(2, ts); break;
-      case 'r3_w_done': touch(2, ts); if (d.func_hash) r3Funcs.add(String(d.func_hash));
-        result[2].tokensIn  = (result[2].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
-        result[2].tokensOut = (result[2].tokensOut || 0) + (Number(d.tokens_output) || 0);
+      // API_Filter (idx=2) — Direct API，与 Agent 共用槽位
+      case 'api_filter_start': touch(2, ts); break;
+      case 'api_filter_done':
+        touch(2, ts); if (d.func_hash) afFuncs.add(String(d.func_hash));
         result[2].durationMs = (result[2].durationMs || 0) + (Number(d.duration_ms) || 0);
+        result[2].autoPassCount = (result[2].autoPassCount || 0) + (Number(d.is_entry) === 0 ? 1 : 0);
         break;
-      case 'r3_j_done': touch(2, ts);
-        if (d.auto_pass) result[2].autoPassCount = (result[2].autoPassCount || 0) + 1;
-        result[2].tokensIn  = (result[2].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
-        result[2].tokensOut = (result[2].tokensOut || 0) + (Number(d.tokens_output) || 0);
-        result[2].durationMs = (result[2].durationMs || 0) + (Number(d.duration_ms) || 0);
+      case 'api_filter_error': touch(2, ts); break;
+      // R3 (idx=3) — 与 CC 并行
+      case 'r3_w_start': case 'r3_j_start': touch(3, ts); break;
+      case 'r3_w_done': touch(3, ts); if (d.func_hash) r3Funcs.add(String(d.func_hash));
+        result[3].tokensIn  = (result[3].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        result[3].tokensOut = (result[3].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        result[3].durationMs = (result[3].durationMs || 0) + (Number(d.duration_ms) || 0);
         break;
-      // CC (idx=3) — R4 前置，与 R3 并行
-      case 'callchain_start': touch(3, ts); ccStatus = 'running'; break;
+      case 'r3_j_done': touch(3, ts);
+        if (d.auto_pass) result[3].autoPassCount = (result[3].autoPassCount || 0) + 1;
+        result[3].tokensIn  = (result[3].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        result[3].tokensOut = (result[3].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        result[3].durationMs = (result[3].durationMs || 0) + (Number(d.duration_ms) || 0);
+        break;
+      // CC (idx=4) — R4 前置，与 R3 并行
+      case 'callchain_start': touch(4, ts); ccStatus = 'running'; break;
       case 'callchain_done':
-        touch(3, ts); ccStatus = 'done';
+        touch(4, ts); ccStatus = 'done';
         ccNodes = Number(d.nodes) || ccNodes; ccEdges = Number(d.edges) || ccEdges; break;
-      case 'callchain_failed': touch(3, ts); ccStatus = 'failed'; break;
-      // R4 (idx=4) — 需要 R3+CC 并行完成
-      case 'r4_w_start': case 'r4_w_func_start': touch(4, ts); break;
-      case 'r4_w_done': touch(4, ts); break;
-      case 'r4_w_func_done': touch(4, ts);
+      case 'callchain_failed': touch(4, ts); ccStatus = 'failed'; break;
+      // R4 (idx=5) — 需要 R3+CC 并行完成
+      case 'r4_w_start': case 'r4_w_func_start': touch(5, ts); break;
+      case 'r4_w_done': touch(5, ts); break;
+      case 'r4_w_func_done': touch(5, ts);
         if (d.func_hash && d.decision === 'keep') r4Funcs.add(String(d.func_hash)); break;
-      case 'r6_j_start': touch(4, ts); break;
+      case 'r6_j_start': touch(5, ts); break;
       case 'r6_j_done':
-        touch(4, ts);
-        if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
-      // R5 (idx=5)
-      case 'r5_w_start': case 'r5_j_done': touch(5, ts); break;
-      case 'r5_done':
         touch(5, ts);
         if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
+      // R5 (idx=6)
+      case 'r5_w_start': case 'r5_j_done': touch(6, ts); break;
+      case 'r5_done':
+        touch(6, ts);
+        if (typeof d.entry_count === 'number') entriesFound = d.entry_count; break;
       case 'task_end': case 'functions_list_synced': case 'functions_list_error':
-      case 'functions_list_autofix': touch(5, ts); break;
+      case 'functions_list_autofix': touch(6, ts); break;
       default: break;
     }
   }
@@ -416,21 +432,23 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
   result[1] = { funcsDone: r2Funcs.size || undefined, startTs: firstTs[1], lastTs: lastTs[1],
     tokensIn: result[1].tokensIn, tokensOut: result[1].tokensOut, durationMs: result[1].durationMs,
     scriptPassCount: result[1].scriptPassCount };
-  result[2] = { funcsDone: r3Funcs.size || undefined, startTs: firstTs[2], lastTs: lastTs[2],
-    tokensIn: result[2].tokensIn, tokensOut: result[2].tokensOut, durationMs: result[2].durationMs,
-    autoPassCount: result[2].autoPassCount };
-  result[3] = {
+  result[2] = { funcsDone: afFuncs.size || undefined, startTs: firstTs[2], lastTs: lastTs[2],
+    durationMs: result[2].durationMs, autoPassCount: result[2].autoPassCount };
+  result[3] = { funcsDone: r3Funcs.size || undefined, startTs: firstTs[3], lastTs: lastTs[3],
+    tokensIn: result[3].tokensIn, tokensOut: result[3].tokensOut, durationMs: result[3].durationMs,
+    autoPassCount: result[3].autoPassCount };
+  result[4] = {
     nodeCount: ccNodes || undefined,
     edgeCount: ccEdges || undefined,
     ccStatus,
-    startTs: firstTs[3], lastTs: lastTs[3],
-  };
-  result[4] = {
-    funcsDone:    r4Funcs.size || undefined,
-    entriesFound: entriesFound || undefined,
     startTs: firstTs[4], lastTs: lastTs[4],
   };
-  result[5] = { entriesFound: entriesFound || undefined, startTs: firstTs[5], lastTs: lastTs[5] };
+  result[5] = {
+    funcsDone:    r4Funcs.size || undefined,
+    entriesFound: entriesFound || undefined,
+    startTs: firstTs[5], lastTs: lastTs[5],
+  };
+  result[6] = { entriesFound: entriesFound || undefined, startTs: firstTs[6], lastTs: lastTs[6] };
   return result;
 }
 
@@ -883,7 +901,7 @@ interface FuncProgress {
   name: string;
   file?: string;
   r2j: FuncStage;   // R2-J 准确性验证（Judge only）
-  af: 'pending' | 'pass' | 'reject';  // API_Filter 预筛（lean mode）
+  af: 'pending' | 'pass' | 'reject';  // API_Filter 预筛（full/lean modes）
   afDurMs?: number;   // 0 = prefilter, >0 = LLM
   r3w: FuncStage;   // R3-W 内部状态
   r3j: FuncStage;   // R3-J 内部状态
@@ -2429,18 +2447,25 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             const totalFuncs = totalFuncCount || (stageStats[1]?.funcsDone ?? 0) || funcProgress.length;
             const r1Done     = stageStats[0]?.filesDone ?? 0;
             const r2Funcs    = stageStats[1]?.funcsDone ?? 0;
-            const r3Funcs    = stageStats[2]?.funcsDone ?? 0;
-            const r4Entries  = stageStats[4]?.entriesFound ?? stageStats[5]?.entriesFound ?? 0;
-            const ccNodes    = stageStats[3]?.nodeCount ?? 0;
+            const r3Funcs    = stageStats[3]?.funcsDone ?? 0;
+            const r4Entries  = stageStats[5]?.entriesFound ?? stageStats[6]?.entriesFound ?? 0;
+            const ccNodes    = stageStats[4]?.nodeCount ?? 0;
+            const afFuncs = funcProgress.filter((f) => f.af !== 'pending');
+            const afDone = afFuncs.length;
+            const afReject = afFuncs.filter((f) => f.af === 'reject').length;
+            const afPass = afFuncs.filter((f) => f.af === 'pass').length;
+            const afPrefilterReject = afFuncs.filter((f) => f.af === 'reject' && (f.afDurMs ?? 0) === 0).length;
+            const afLLM = afFuncs.filter((f) => (f.afDurMs ?? 0) > 0).length;
+            const afRate = afDone > 0 ? `${Math.round(100*afReject/afDone)}%过滤` : '-';
             // token/time 统计
             const r2TokIn  = stageStats[1]?.tokensIn  ?? 0;
             const r2TokOut = stageStats[1]?.tokensOut ?? 0;
             const r2DurSec = Math.round((stageStats[1]?.durationMs ?? 0) / 1000);
             const r2Script = stageStats[1]?.scriptPassCount ?? 0;
-            const r3TokIn  = stageStats[2]?.tokensIn  ?? 0;
-            const r3TokOut = stageStats[2]?.tokensOut ?? 0;
-            const r3DurSec = Math.round((stageStats[2]?.durationMs ?? 0) / 1000);
-            const r3Auto   = stageStats[2]?.autoPassCount ?? 0;
+            const r3TokIn  = stageStats[3]?.tokensIn  ?? 0;
+            const r3TokOut = stageStats[3]?.tokensOut ?? 0;
+            const r3DurSec = Math.round((stageStats[3]?.durationMs ?? 0) / 1000);
+            const r3Auto   = stageStats[3]?.autoPassCount ?? 0;
             const fmtK = (n: number) => n >= 1000 ? `${(n/1000).toFixed(1)}K` : String(n);
             const fmtSec = (s: number) => s >= 60 ? `${Math.floor(s/60)}m${s%60}s` : `${s}s`;
             return (
@@ -2455,6 +2480,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     { label: '总函数数',   value: totalFuncs || '-',  border: 'border-slate-200', bg: 'bg-slate-50/80',   text: 'text-slate-700' },
                     { label: 'R1完成文件', value: r1Done || '-',    border: 'border-sky-100',   bg: 'bg-sky-50',       text: 'text-sky-700' },
                     { label: 'R2完成函数', value: r2Funcs || '-',    border: 'border-indigo-100',bg: 'bg-indigo-50',    text: 'text-indigo-700' },
+                    { label: `AF预筛(${afRate})`, value: afDone ? `${afPass}通过` : '-', border: 'border-orange-100', bg: 'bg-orange-50', text: 'text-orange-700' },
                     { label: 'R3函数小计', value: r3Funcs || '-',    border: 'border-teal-100',  bg: 'bg-teal-50',      text: 'text-teal-700' },
                     { label: '最终入口数', value: r4Entries || '-', border: 'border-emerald-100',bg: 'bg-emerald-50', text: 'text-emerald-700' },
                     { label: 'CC节点数',   value: ccNodes || '-',    border: 'border-violet-100',bg: 'bg-violet-50',    text: 'text-violet-700' },
@@ -2465,6 +2491,30 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     </div>
                   ))}
                 </div>
+                {afDone > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-center">
+                      <div className="text-xs font-black text-orange-700">API_Filter</div>
+                      <div className="mt-0.5 text-[11px] text-orange-600">执行 {afDone} · 通过 {afPass}</div>
+                      <div className="text-[10px] font-bold text-orange-600">过滤 {afReject} ({afRate})</div>
+                    </div>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2 text-center">
+                      <div className="text-xs font-black text-slate-600">预筛过滤</div>
+                      <div className="mt-0.5 text-[11px] text-slate-600">{afPrefilterReject} 个</div>
+                      <div className="text-[10px] text-slate-400">0ms · 不调用 LLM</div>
+                    </div>
+                    <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-center">
+                      <div className="text-xs font-black text-blue-700">Direct API</div>
+                      <div className="mt-0.5 text-[11px] text-blue-600">{afLLM} 次</div>
+                      <div className="text-[10px] text-blue-500">与 Agent 共用排队槽位</div>
+                    </div>
+                    <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-center">
+                      <div className="text-xs font-black text-emerald-700">R3 节省</div>
+                      <div className="mt-0.5 text-[11px] text-emerald-600">{afReject} 次 Agent 调用</div>
+                      <div className="text-[10px] text-emerald-500">AF reject 不进入 R3</div>
+                    </div>
+                  </div>
+                )}
                 {/* token/time 细分统计 */}
                 {(r2TokIn > 0 || r3TokIn > 0) && (
                   <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -2632,7 +2682,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                       <th className="px-4 py-2.5 text-left">函数名</th>
                       <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
                       <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2</th>
-                      {isLeanMode && <th className="px-2 py-2.5 text-center" title="API_Filter 预筛（精简模式）">AF</th>}
+                      <th className="px-2 py-2.5 text-center" title="API_Filter 预筛（与 Agent 共用排队槽位）">AF</th>
                       <th className="px-2 py-2.5 text-center" title="R3 外部输入分析（W+J 均通过才算完成）">R3</th>
                       <th className="px-2 py-2.5 text-center">R4</th>
                       {!isLeanMode && <th className="px-2 py-2.5 text-center">R5</th>}
@@ -2671,19 +2721,17 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                           }
                         </td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2" /></td>
-                        {isLeanMode && (
-                          <td className="px-2 py-2 text-center">
-                            {f.af === 'pending' ? <FuncStageDot state="pending" label="AF" />
-                            : f.af === 'pass'    ? <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700" title={f.afDurMs ? `LLM ${f.afDurMs}ms` : '预筛通过'}>{f.afDurMs ? '✓LLM' : '✓pre'}</span>
-                            : <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[9px] font-bold text-orange-700" title={f.afDurMs ? `LLM reject ${f.afDurMs}ms` : '预筛过滤'}>{f.afDurMs ? '✗LLM' : '✗pre'}</span>}
-                          </td>
-                        )}
+                        <td className="px-2 py-2 text-center">
+                          {f.af === 'pending' ? <FuncStageDot state="pending" label="AF" />
+                          : f.af === 'pass'    ? <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700" title={f.afDurMs ? `LLM ${f.afDurMs}ms` : '预筛通过'}>{f.afDurMs ? '✓LLM' : '✓pre'}</span>
+                          : <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[9px] font-bold text-orange-700" title={f.afDurMs ? `LLM reject ${f.afDurMs}ms` : '预筛过滤'}>{f.afDurMs ? '✗LLM' : '✗pre'}</span>}
+                        </td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3} label="R3" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
                         {!isLeanMode && <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="R5" /></td>}
                         <td className="px-4 py-2 text-slate-500">
                           {f.rep === 'passed'   ? <span className="text-emerald-800 font-bold">✓ R5 完成</span>
-                          : isLeanMode && f.af === 'reject' ? <span className="text-orange-500">AF 过滤</span>
+                          : f.af === 'reject' ? <span className="text-orange-500">AF 过滤</span>
                           : f.rep === 'running'  ? <span className="text-teal-600 animate-pulse">R5 报告中…</span>
                           : f.r4 === 'keep'      ? <span className="text-emerald-600 font-semibold">✓ 入口·等R5</span>
                           : f.r4 === 'remove'    ? <span className="text-orange-600">R4 过滤</span>
