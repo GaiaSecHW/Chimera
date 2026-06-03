@@ -268,6 +268,11 @@ const normalizeConfigPayload = (value?: Partial<DataflowProfileConfigPayload> | 
 
 const fileserverTaskId = (runName: string) => `fileserver:${runName}`;
 const isSyntheticFileserverTaskId = (value?: string | null) => String(value || '').startsWith('fileserver:');
+const decodeFileserverTaskRunName = (value?: string | null) => {
+  const normalized = String(value || '').trim();
+  if (!isSyntheticFileserverTaskId(normalized)) return '';
+  return normalized.slice('fileserver:'.length);
+};
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const TASK_RUN_ROUTE_CACHE_PREFIX = 'secflow:dataflowVuln:taskRunRoute:';
 const DATAFLOW_VULN_LIST_RETURN_VIEW = 'pentest-exec-dataflow-vuln-task-list';
@@ -421,6 +426,7 @@ const isActiveTaskStatus = (status?: string | null) =>
   ['pending', 'queued', 'running', 'cancel_requested', 'delete_requested'].includes(normalizeRunStatus(status));
 
 type ExecutionSlotState = 'running' | 'pending' | 'expired' | 'released' | 'idle';
+type ExecutionSlotFilterState = 'bound' | 'queued' | 'unbound' | 'released';
 
 function parseOwnerHost(owner?: string | null) {
   const normalized = String(owner || '').trim();
@@ -435,6 +441,7 @@ function isHeartbeatExpired(heartbeatAgeSeconds?: number | null): boolean {
 
 function getExecutionSlotView(task: DataflowScanTask): {
   state: ExecutionSlotState;
+  filterState: ExecutionSlotFilterState;
   label: string;
   ownerLabel: string;
   ownerFull: string;
@@ -452,6 +459,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
   if (terminal) {
     return {
       state: 'released',
+      filterState: 'released',
       label: '已释放',
       ownerLabel: '',
       ownerFull,
@@ -462,6 +470,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
   if (status === 'running' && ownerFull && isHeartbeatExpired(task.heartbeat_age_seconds)) {
     return {
       state: 'expired',
+      filterState: 'bound',
       label: '状态过期',
       ownerLabel: ownerLabel || ownerFull,
       ownerFull,
@@ -472,6 +481,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
   if (status === 'running' && ownerFull) {
     return {
       state: 'running',
+      filterState: 'bound',
       label: '运行中',
       ownerLabel: ownerLabel || ownerFull,
       ownerFull,
@@ -483,6 +493,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
     const queued = dispatchStatus === 'queued' || dispatchStatus === 'dispatching' || status === 'queued';
     return {
       state: 'pending',
+      filterState: queued ? 'queued' : 'unbound',
       label: queued ? '排队中' : '未占用槽位',
       ownerLabel: '',
       ownerFull,
@@ -492,6 +503,7 @@ function getExecutionSlotView(task: DataflowScanTask): {
   }
   return {
     state: 'idle',
+    filterState: 'unbound',
     label: '未占用槽位',
     ownerLabel: ownerLabel || '',
     ownerFull,
@@ -732,7 +744,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
   const [tasksError, setTasksError] = useState('');
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(50);
   const [runQuery, setRunQuery] = useState('');
   const [runStatusFilter, setRunStatusFilter] = useState('');
   const [slotQuickFilter, setSlotQuickFilter] = useState('');
@@ -1421,7 +1433,7 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
                     title="每页显示条数"
                   >
-                    {[20, 50, 100, 200, 500].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+                    {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
                   </select>
                   <button
                     type="button"
@@ -1557,9 +1569,9 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
                         <ExecutionTableTd className="min-w-[200px]">
                           <button
                             type="button"
-                            onClick={() => toggleQuickFilter('slot', slotView.state)}
-                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold transition hover:brightness-95 ${slotView.className} ${slotQuickFilter === slotView.state ? 'ring-2 ring-cyan-200' : ''}`}
-                            title={slotQuickFilter === slotView.state ? '点击取消执行槽位筛选' : '点击按执行槽位状态快速筛选'}
+                            onClick={() => toggleQuickFilter('slot', slotView.filterState)}
+                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold transition hover:brightness-95 ${slotView.className} ${slotQuickFilter === slotView.filterState ? 'ring-2 ring-cyan-200' : ''}`}
+                            title={slotQuickFilter === slotView.filterState ? '点击取消执行槽位筛选' : '点击按执行槽位状态快速筛选'}
                           >
                             {slotView.label}
                           </button>
@@ -1883,6 +1895,7 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
   const fileserverRouteSummary = routeState?.fileserverRunSummary || null;
   const returnView = routeState?.returnView || '';
   const isSyntheticFileserverTask = useMemo(() => isSyntheticFileserverTaskId(taskId), [taskId]);
+  const syntheticRunName = useMemo(() => decodeFileserverTaskRunName(taskId), [taskId]);
   const isFileserverMode = isSyntheticFileserverTask && Boolean(fileserverRunName);
   const isRunBootstrapMode = isSyntheticFileserverTask && Boolean(routeRunId && !fileserverRunName);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -2029,31 +2042,33 @@ export const DataflowVulnTaskDetailPage: React.FC<{ projectId: string; onBack?: 
     let cancelled = false;
     setDetailLoading(true);
     setLoadError('');
-    executionApi.getRun(routeRunId)
-      .then((run) => {
-        if (cancelled) return;
-        const params = new URLSearchParams(location.search);
-        params.set('run_id', run.run_id || routeRunId);
-        params.set('fileserver_run', run.name);
-        params.set('fileserver_root', run.root_path || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT);
-        navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(fileserverTaskId(run.name))}?${params.toString()}`, {
-          replace: true,
-          state: fileserverRouteSummary ? { fileserverRunSummary: fileserverRouteSummary } : undefined,
-        });
-      })
-      .catch((error: any) => {
-        if (cancelled) return;
-        const message = error?.message || '解析 Run 失败';
-        setLoadError(message);
-        notify(`解析 Run 失败: ${message}`, 'error');
-      })
-      .finally(() => {
-        if (!cancelled) setDetailLoading(false);
+    try {
+      const runName = fileserverRouteSummary?.name || syntheticRunName;
+      if (!runName) {
+        throw new Error('缺少 Run 名称，无法进入详情页');
+      }
+      const target = {
+        name: runName,
+        run_id: fileserverRouteSummary?.run_id || routeRunId,
+        root_path: fileserverRouteSummary?.root_path || fileserverRootPath || DEFAULT_DATAFLOW_FILESERVER_RUNS_ROOT,
+        linked_task_id: linkedTaskId || fileserverRouteSummary?.linked_task_id || null,
+      };
+      navigate(buildRunDetailPath(target), {
+        replace: true,
+        state: fileserverRouteSummary ? { fileserverRunSummary: fileserverRouteSummary } : undefined,
       });
+    } catch (error: any) {
+      if (cancelled) return;
+      const message = error?.message || '解析 Run 失败';
+      setLoadError(message);
+      notify(`解析 Run 失败: ${message}`, 'error');
+    } finally {
+      if (!cancelled) setDetailLoading(false);
+    }
     return () => {
       cancelled = true;
     };
-  }, [executionApi, fileserverRouteSummary, routeRunId, isRunBootstrapMode, location.search, navigate, notify]);
+  }, [fileserverRootPath, fileserverRouteSummary, isRunBootstrapMode, linkedTaskId, navigate, notify, routeRunId, syntheticRunName]);
 
   if (isFileserverMode) {
     return (

@@ -622,7 +622,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
   const [total, setTotal] = useState(0);
   const [taskStats, setTaskStats] = useState<AppDfaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(100);
+  const [perPage, setPerPage] = useState(50);
   const [statusFilter, setStatusFilter] = useState('');
   const [modeFilter, setModeFilter] = useState<'' | 'manual' | 'binary' | 'source'>('');
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
@@ -1862,7 +1862,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
               className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs text-slate-600 bg-white"
               title="每页显示条数"
             >
-              {[50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
+              {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}条/页</option>)}
             </select>
             <button onClick={() => void loadAll(page)} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />

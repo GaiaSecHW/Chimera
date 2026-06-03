@@ -357,7 +357,7 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(50);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -1180,12 +1180,12 @@ export const BinarySecurityOverviewPage: React.FC<Props> = ({ projectId, taskTyp
             <select
               value={pageSize}
               onChange={(e) => {
-                setPageSize(Number(e.target.value) || 20);
+                setPageSize(Number(e.target.value) || 50);
                 setPage(1);
               }}
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
             >
-              {[10, 20, 50, 100].map((size) => (
+              {[10, 50, 100, 200, 500, 1000].map((size) => (
                 <option key={size} value={size}>{size} / 页</option>
               ))}
             </select>

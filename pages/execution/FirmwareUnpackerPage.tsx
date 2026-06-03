@@ -64,7 +64,7 @@ const ORIGIN_MODE_OPTIONS = [
   { value: 'manual', label: '手动任务' },
   { value: 'linked', label: '总任务关联' },
 ];
-const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 50, 100, 200, 500, 1000];
 
 const FILESERVER_CONTAINER_ROOT = '/data/files';
 const TASK_WORKSPACE_SEGMENT = 'app/secflow-app-firmware-unpacker';
@@ -3489,7 +3489,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
   const [filterSearch, setFilterSearch] = useState('');
   const [filterWorker, setFilterWorker] = useState('');
   const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(50);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pageEffectMountedRef = useRef(false);
@@ -4290,7 +4290,7 @@ export const FirmwareUnpackerPage: React.FC<Props> = ({ projectId, projects = []
                 <select
                   value={pageSize}
                   onChange={(e) => {
-                    const nextSize = Number(e.target.value) || 20;
+                    const nextSize = Number(e.target.value) || 50;
                     setPageSize(nextSize);
                     fetchTasks(true, { pageSizeOverride: nextSize });
                   }}

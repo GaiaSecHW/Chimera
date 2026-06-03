@@ -84,7 +84,7 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(50);
   const [statusFilter, setStatusFilter] = useState('');
   const [parentTaskFilter, setParentTaskFilter] = useState('');
   const [inputFileFilter, setInputFileFilter] = useState('');
@@ -1198,10 +1198,10 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
                   每页
                   <select
                     value={perPage}
-                    onChange={(e) => setPerPage(Number(e.target.value) || 20)}
+                    onChange={(e) => setPerPage(Number(e.target.value) || 50)}
                     className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
                   >
-                    {[20, 50, 100, 200].map((n) => <option key={n} value={n}>{n}</option>)}
+                    {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                   条
                 </label>

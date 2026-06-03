@@ -175,7 +175,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [taskStats, setTaskStats] = useState<AppSaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
   const [taskStatsError, setTaskStatsError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(20);
+  const [perPage, setPerPage] = useState(50);
   const [statusFilter, setStatusFilter] = useState('');
   const [analysisModeFilter, setAnalysisModeFilter] = useState<'' | 'binary' | 'source'>('');
   const [parentTaskIdFilter, setParentTaskIdFilter] = useState('');
@@ -997,13 +997,13 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <select
                 value={perPage}
                 onChange={(e) => {
-                  const nextSize = Number(e.target.value) || 20;
+                  const nextSize = Number(e.target.value) || 50;
                   setPerPage(nextSize);
                   setPage(1);
                 }}
                 className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none"
               >
-                {[20, 50, 100, 200, 500].map((n) => <option key={n} value={n}>{n}</option>)}
+                {[10, 50, 100, 200, 500, 1000].map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
               条
             </label>
