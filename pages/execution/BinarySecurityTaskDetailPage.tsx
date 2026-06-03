@@ -80,7 +80,7 @@ const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
 ) as Record<string, boolean>;
 const DEFAULT_STAGE_ITEMS_PER_PAGE = 10;
 const STAGE_ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100];
-type StageItemTimeSortKey = 'started_at' | 'finished_at' | 'duration' | 'last_synced_at';
+type StageItemTimeSortKey = 'started_at' | 'finished_at' | 'duration' | 'last_sync_attempt_at' | 'last_sync_success_at' | 'last_sync_error_at';
 type SortDirection = 'asc' | 'desc';
 type StageItemTimeSort = { key: StageItemTimeSortKey; direction: SortDirection } | null;
 
@@ -308,6 +308,49 @@ const formatStageItemSyncStatus = (status?: string | null) => {
     default:
       return status ? status : '-';
   }
+};
+
+const formatStageItemSyncFreshness = (state?: string | null) => {
+  switch (String(state || '').trim().toLowerCase()) {
+    case 'healthy':
+      return '同步正常';
+    case 'failing_after_success':
+      return '同步失败中';
+    case 'stale_success':
+      return '仅历史成功';
+    case 'never_succeeded':
+      return '从未同步成功';
+    case 'not_applicable':
+      return '未绑定下游';
+    default:
+      return '状态未知';
+  }
+};
+
+const stageItemSyncFreshnessTone = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
+  const state = String(item.sync_freshness_state || '').trim().toLowerCase();
+  switch (state) {
+    case 'healthy':
+      return 'success';
+    case 'failing_after_success':
+      return 'failed';
+    case 'stale_success':
+      return 'pending';
+    case 'never_succeeded':
+      return 'failed';
+    case 'not_applicable':
+      return 'queued';
+    default:
+      return item.sync_status === 'synced' ? 'success' : item.sync_status === 'transport_error' ? 'failed' : 'queued';
+  }
+};
+
+const displayStageItemSyncTime = (
+  value: string | null | undefined,
+  fallback: string,
+) => {
+  if (!value) return fallback;
+  return fmt(value);
 };
 
 const isRetryableCreateFailure = (item: BinarySecurityTaskDetail['stage_items'][number]) => (
@@ -988,7 +1031,8 @@ const stageItemDurationValue = (item: BinarySecurityTaskDetail['stage_items'][nu
 
 const stageItemSortValue = (item: BinarySecurityTaskDetail['stage_items'][number], key: StageItemTimeSortKey) => {
   if (key === 'duration') return stageItemDurationValue(item);
-  return timestampValue(item[key]);
+  const value = item[key] as string | null | undefined;
+  return timestampValue(value);
 };
 
 const compareNullableNumber = (left: number | null, right: number | null, direction: SortDirection) => {
@@ -3199,6 +3243,44 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               </div>
             </div>
+            <div className="mt-4 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">下游同步总览</div>
+                  <div className="mt-1 text-sm text-slate-600">区分最近一次尝试、最近一次成功和最近一次失败，避免把“很久没同步”和“最近同步失败”混在一起。</div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                  <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700">
+                    活跃错误 {detail.active_sync_error_item_count || 0}
+                  </span>
+                  <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">
+                    从未成功 {detail.never_synced_item_count || 0}
+                  </span>
+                  <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-700">
+                    同步陈旧 {detail.stale_synced_item_count || 0}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-2 md:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600">
+                  <div className="text-slate-400">最近尝试</div>
+                  <div className="mt-1 break-words font-mono font-bold text-slate-900">{fmt(detail.last_sync_attempt_at)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600">
+                  <div className="text-slate-400">最近成功</div>
+                  <div className="mt-1 break-words font-mono font-bold text-slate-900">{fmt(detail.last_successful_downstream_sync_at)}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600">
+                  <div className="text-slate-400">最近失败</div>
+                  <div className="mt-1 break-words font-mono font-bold text-slate-900">{fmt(detail.last_sync_error_at)}</div>
+                  <div className="mt-1 break-all text-[11px] text-slate-500">
+                    {detail.last_sync_error_type || detail.last_sync_error_message
+                      ? `${detail.last_sync_error_type || 'sync_error'}${detail.last_sync_error_message ? ` · ${detail.last_sync_error_message}` : ''}`
+                      : '暂无失败记录'}
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-sm">
@@ -4172,7 +4254,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                           <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('开始时间', 'started_at')}</th>
                           <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('结束时间', 'finished_at')}</th>
                           <th className="w-28 px-3 py-3">{renderSortableStageItemHeader('耗时', 'duration')}</th>
-                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('上次同步时间', 'last_synced_at')}</th>
+                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('最近尝试', 'last_sync_attempt_at')}</th>
+                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('最近成功', 'last_sync_success_at')}</th>
+                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('最近失败', 'last_sync_error_at')}</th>
                           <th className="w-32 px-3 py-3">
                             <div>同步状态</div>
                             {renderStageItemFilterSelect(stageSyncStatusFilter, setStageSyncStatusFilter, stageSyncStatusOptions, formatStageItemSyncStatus)}
@@ -4258,21 +4342,34 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.started_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.finished_at)}</td>
                                 <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</td>
-                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.last_synced_at)}</td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">
+                                  {displayStageItemSyncTime(item.last_sync_attempt_at, item.downstream_task_id ? '未尝试' : '不适用')}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">
+                                  {displayStageItemSyncTime(item.last_sync_success_at || item.last_synced_at, item.downstream_task_id ? '从未成功' : '不适用')}
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">
+                                  {displayStageItemSyncTime(item.last_sync_error_at, item.downstream_task_id ? '暂无失败' : '不适用')}
+                                </td>
                                 <td className="px-3 py-3">
-                                  <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(
-                                    item.sync_status === 'transport_error'
-                                      ? 'failed'
-                                      : item.sync_status === 'synced'
-                                        ? 'success'
-                                        : item.sync_status === 'skipped'
-                                          ? 'cancelled'
-                                          : item.sync_status === 'pending'
-                                            ? 'pending'
-                                            : 'queued'
-                                  )}`}>
-                                    {formatStageItemSyncStatus(item.sync_status)}
-                                  </span>
+                                  <div className="flex flex-col gap-2">
+                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(stageItemSyncFreshnessTone(item))}`}>
+                                      {formatStageItemSyncFreshness(item.sync_freshness_state)}
+                                    </span>
+                                    <span className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-black ${statusTone(
+                                      item.sync_status === 'transport_error'
+                                        ? 'failed'
+                                        : item.sync_status === 'synced'
+                                          ? 'success'
+                                          : item.sync_status === 'skipped'
+                                            ? 'cancelled'
+                                            : item.sync_status === 'pending'
+                                              ? 'pending'
+                                              : 'queued'
+                                    )}`}>
+                                      {formatStageItemSyncStatus(item.sync_status)}
+                                    </span>
+                                  </div>
                                 </td>
                                 <td className="px-3 py-3">
                                   <div className="flex flex-wrap items-center justify-end gap-2">
@@ -4363,6 +4460,35 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                               {detailSupport.reason}
                                             </div>
                                           ) : null}
+                                          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600">
+                                            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">同步诊断</div>
+                                            <div className="mt-3 space-y-3">
+                                              <div>
+                                                <div className="text-slate-400">当前同步结论</div>
+                                                <div className="mt-1 text-slate-800">{formatStageItemSyncFreshness(item.sync_freshness_state)}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-slate-400">最近尝试</div>
+                                                <div className="mt-1 font-mono text-slate-800">{displayStageItemSyncTime(item.last_sync_attempt_at, item.downstream_task_id ? '未尝试' : '不适用')}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-slate-400">最近成功</div>
+                                                <div className="mt-1 font-mono text-slate-800">{displayStageItemSyncTime(item.last_sync_success_at || item.last_synced_at, item.downstream_task_id ? '从未成功' : '不适用')}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-slate-400">最近失败</div>
+                                                <div className="mt-1 font-mono text-slate-800">{displayStageItemSyncTime(item.last_sync_error_at, item.downstream_task_id ? '暂无失败' : '不适用')}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-slate-400">最近错误类型</div>
+                                                <div className="mt-1 text-slate-800">{item.last_sync_error_type || item.sync_observation_error_type || '-'}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-slate-400">最近错误摘要</div>
+                                                <div className="mt-1 break-all text-slate-800">{item.last_sync_error_message || item.sync_observation_error_message || '-'}</div>
+                                              </div>
+                                            </div>
+                                          </div>
                                         </aside>
                                         <div>
                                           {item.abnormal_reason ? (
