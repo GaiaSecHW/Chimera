@@ -475,6 +475,71 @@ const normalizeDownstreamDetailError = (error: any) => {
 };
 
 const fmt = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
+
+const formatRuntimeHealthStatus = (status?: string | null) => {
+  switch (String(status || '').trim().toLowerCase()) {
+    case 'healthy':
+      return '健康';
+    case 'degraded':
+      return '有风险';
+    case 'unhealthy':
+      return '异常';
+    case 'idle':
+      return '当前未启用';
+    case 'done':
+      return '已结束';
+    case 'terminal':
+      return '已结束';
+    case 'unknown':
+      return '未知';
+    default:
+      return status || '-';
+  }
+};
+
+const runtimeHealthTone = (status?: string | null) => {
+  switch (String(status || '').trim().toLowerCase()) {
+    case 'healthy':
+    case 'done':
+    case 'terminal':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    case 'degraded':
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    case 'unhealthy':
+      return 'border-rose-200 bg-rose-50 text-rose-700';
+    case 'idle':
+    case 'unknown':
+    default:
+      return 'border-slate-200 bg-slate-50 text-slate-600';
+  }
+};
+
+const formatRuntimeUnitKind = (kind?: string | null) => {
+  switch (String(kind || '').trim().toLowerCase()) {
+    case 'thread':
+      return '线程';
+    case 'coroutine':
+      return '协程';
+    case 'task_owner':
+      return '保活';
+    case 'operation':
+      return '操作';
+    case 'archive':
+      return '归档';
+    case 'sync':
+      return '同步';
+    default:
+      return kind || '-';
+  }
+};
+
+const formatAgeSeconds = (value?: number | null) => {
+  if (typeof value !== 'number' || Number.isNaN(value) || value < 0) return '-';
+  if (value < 60) return `${Math.round(value)}s`;
+  if (value < 3600) return `${Math.round(value / 60)}m`;
+  if (value < 86400) return `${Math.round(value / 3600)}h`;
+  return `${Math.round(value / 86400)}d`;
+};
 const fmtTime = (value?: string | null) => (value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-');
 const safeInt = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
@@ -1683,6 +1748,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [selectedNodeKind, setSelectedNodeKind] = useState<StageNodeKind>('business');
   const [downstreamByItemId, setDownstreamByItemId] = useState<Record<string, DownstreamTaskState>>({});
   const downstreamByItemIdRef = useRef<Record<string, DownstreamTaskState>>({});
+  const [runtimeHealthExpanded, setRuntimeHealthExpanded] = useState(false);
   const [stageFlowLayout, setStageFlowLayout] = useState<{ mode: 'horizontal' | 'vertical'; cardWidth: number; connectorWidth: number }>({
     mode: 'horizontal',
     cardWidth: 160,
@@ -1712,6 +1778,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const cleanupSnapshot = detail?.cleanup_snapshot || null;
   const cleanupCounts = cleanupSnapshot?.cleanup_counts || {};
   const cleanupDownstreamRefs = Array.isArray(cleanupSnapshot?.downstream_refs) ? cleanupSnapshot.downstream_refs : [];
+  const runtimeHealth = detail?.runtime_health || null;
+  const runtimeHealthSummary = runtimeHealth?.summary || null;
+  const runtimeHealthUnits = runtimeHealth?.units || [];
+  const visibleRuntimeHealthUnits = runtimeHealthExpanded ? runtimeHealthUnits : runtimeHealthUnits.slice(0, 5);
   const effectiveDetail = useMemo(() => {
     if (!detail) return null;
     return {
@@ -3413,79 +3483,79 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               </section>
 
               {!isBinaryModuleTask ? (
-              <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div>
-                    <h3 className="text-lg font-black text-slate-900">模块推进策略</h3>
-                    <p className="mt-1 text-sm text-slate-500">与创建任务页保持一致，只影响后续模块筛选、人工确认与自动推进行为。</p>
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => resetStrategySection('module_strategy')}
-                      disabled={!moduleStrategyDirty || Boolean(strategySavingSection)}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                    >
-                      重置模块策略
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void saveTaskPolicySection('module_strategy')}
-                      disabled={!strategyEditable || !moduleStrategyDirty || Boolean(strategySavingSection)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
-                    >
-                      {strategySavingSection === 'module_strategy' ? <Loader2 size={16} className="animate-spin" /> : null}
-                      {strategySavingSection === 'module_strategy' ? '保存中...' : '保存模块策略'}
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-5 grid gap-5 xl:grid-cols-2">
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">推进方式</div>
-                    <div className="mt-3 grid gap-2">
-                      {MODULE_SELECTION_OPTIONS.map((option) => (
-                        <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                          <input
-                            type="radio"
-                            name="taskStrategyModuleSelection"
-                            checked={strategyDraft.module_selection_mode === option.value}
-                            disabled={!strategyEditable || Boolean(strategySavingSection)}
-                            onChange={() => setStrategyDraft((current) => (current ? { ...current, module_selection_mode: option.value as 'auto' | 'manual_confirm' } : current))}
-                          />
-                          {option.label}
-                        </label>
-                      ))}
+                <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">模块推进策略</h3>
+                      <p className="mt-1 text-sm text-slate-500">与创建任务页保持一致，只影响后续模块筛选、人工确认与自动推进行为。</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => resetStrategySection('module_strategy')}
+                        disabled={!moduleStrategyDirty || Boolean(strategySavingSection)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        重置模块策略
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void saveTaskPolicySection('module_strategy')}
+                        disabled={!strategyEditable || !moduleStrategyDirty || Boolean(strategySavingSection)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                      >
+                        {strategySavingSection === 'module_strategy' ? <Loader2 size={16} className="animate-spin" /> : null}
+                        {strategySavingSection === 'module_strategy' ? '保存中...' : '保存模块策略'}
+                      </button>
                     </div>
                   </div>
-                  <div>
-                    <div className="text-sm font-bold text-slate-800">风险等级</div>
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {MODULE_RISK_OPTIONS.map((risk) => (
-                        <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                          <input
-                            type="checkbox"
-                            checked={strategyDraft.module_risk_levels.includes(risk)}
-                            disabled={!strategyEditable || Boolean(strategySavingSection)}
-                            onChange={(event) => {
-                              setStrategyDraft((current) => {
-                                if (!current) return current;
-                                const nextLevels = event.target.checked
-                                  ? (current.module_risk_levels.includes(risk) ? current.module_risk_levels : current.module_risk_levels.concat(risk))
-                                  : current.module_risk_levels.filter((item) => item !== risk);
-                                return { ...current, module_risk_levels: nextLevels };
-                              });
-                            }}
-                          />
-                          {risk}
-                        </label>
-                      ))}
+                  <div className="mt-5 grid gap-5 xl:grid-cols-2">
+                    <div>
+                      <div className="text-sm font-bold text-slate-800">推进方式</div>
+                      <div className="mt-3 grid gap-2">
+                        {MODULE_SELECTION_OPTIONS.map((option) => (
+                          <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                            <input
+                              type="radio"
+                              name="taskStrategyModuleSelection"
+                              checked={strategyDraft.module_selection_mode === option.value}
+                              disabled={!strategyEditable || Boolean(strategySavingSection)}
+                              onChange={() => setStrategyDraft((current) => (current ? { ...current, module_selection_mode: option.value as 'auto' | 'manual_confirm' } : current))}
+                            />
+                            {option.label}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                    <div className="mt-2 text-xs text-slate-500">
-                      至少选择一个风险等级；若选择人工确认，系统分析完成后再确认最终推进模块。
+                    <div>
+                      <div className="text-sm font-bold text-slate-800">风险等级</div>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        {MODULE_RISK_OPTIONS.map((risk) => (
+                          <label key={risk} className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={strategyDraft.module_risk_levels.includes(risk)}
+                              disabled={!strategyEditable || Boolean(strategySavingSection)}
+                              onChange={(event) => {
+                                setStrategyDraft((current) => {
+                                  if (!current) return current;
+                                  const nextLevels = event.target.checked
+                                    ? (current.module_risk_levels.includes(risk) ? current.module_risk_levels : current.module_risk_levels.concat(risk))
+                                    : current.module_risk_levels.filter((item) => item !== risk);
+                                  return { ...current, module_risk_levels: nextLevels };
+                                });
+                              }}
+                            />
+                            {risk}
+                          </label>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        至少选择一个风险等级；若选择人工确认，系统分析完成后再确认最终推进模块。
+                      </div>
                     </div>
                   </div>
-                </div>
-              </section>
+                </section>
               ) : null}
 
               <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -3588,29 +3658,132 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
           {activeTab === 'overview' ? (
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900">任务总览</h2>
-              <p className="mt-2 text-sm text-slate-500">总览包含任务主详情、阶段流转和下游子任务；事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
-              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                  <div className="text-xs font-bold text-slate-400">任务类型</div>
-                  <div className="mt-1 font-black text-slate-900">{taskTypeLabel(taskType)}</div>
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">任务总览</h2>
+                  <p className="mt-2 text-sm text-slate-500">总览包含任务主详情、阶段流转和下游子任务；事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
+                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                      <div className="text-xs font-bold text-slate-400">任务类型</div>
+                      <div className="mt-1 font-black text-slate-900">{taskTypeLabel(taskType)}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                      <div className="text-xs font-bold text-slate-400">执行代次</div>
+                      <div className="mt-1 font-black text-slate-900">第 {detail.execution_epoch} 轮</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                      <div className="text-xs font-bold text-slate-400">阶段数</div>
+                      <div className="mt-1 font-black text-slate-900">{stageSequence.length}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                      <div className="text-xs font-bold text-slate-400">当前状态</div>
+                      <div className="mt-1 font-black text-slate-900">{formatBinarySecurityStatus(displayTaskStatus)}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                      <div className="text-xs font-bold text-slate-400">队列位置</div>
+                      <div className="mt-1 font-black text-slate-900">{detail.is_queued ? `第 ${detail.queue_position || '-'} 位` : '未排队'}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                  <div className="text-xs font-bold text-slate-400">执行代次</div>
-                  <div className="mt-1 font-black text-slate-900">第 {detail.execution_epoch} 轮</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                  <div className="text-xs font-bold text-slate-400">阶段数</div>
-                  <div className="mt-1 font-black text-slate-900">{stageSequence.length}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                  <div className="text-xs font-bold text-slate-400">当前状态</div>
-                  <div className="mt-1 font-black text-slate-900">{formatBinarySecurityStatus(displayTaskStatus)}</div>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                  <div className="text-xs font-bold text-slate-400">队列位置</div>
-                  <div className="mt-1 font-black text-slate-900">{detail.is_queued ? `第 ${detail.queue_position || '-'} 位` : '未排队'}</div>
-                </div>
+                <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">线程与协程健康</h3>
+                      <p className="mt-1 text-xs text-slate-500">仅展示当前 binary-security 父任务自身相关的 task-scoped 运行单元。</p>
+                    </div>
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${runtimeHealthTone(runtimeHealthSummary?.overall_status)}`}>
+                      {formatRuntimeHealthStatus(runtimeHealthSummary?.overall_status)}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-xs font-bold text-slate-400">活跃单元</div>
+                      <div className="mt-1 text-lg font-black text-slate-900">{runtimeHealthSummary?.active_unit_count ?? 0}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-xs font-bold text-slate-400">健康 / 风险</div>
+                      <div className="mt-1 text-lg font-black text-slate-900">
+                        {runtimeHealthSummary?.healthy_unit_count ?? 0} / {runtimeHealthSummary?.degraded_unit_count ?? 0}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-xs font-bold text-slate-400">异常单元</div>
+                      <div className="mt-1 text-lg font-black text-slate-900">{runtimeHealthSummary?.unhealthy_unit_count ?? 0}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="text-xs font-bold text-slate-400">最近刷新</div>
+                      <div className="mt-1 text-sm font-black text-slate-900">{fmt(runtimeHealthSummary?.last_updated_at)}</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                    {runtimeHealthSummary?.message || '当前暂无可展示的任务线程/协程健康快照。'}
+                  </div>
+                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
+                        <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                          <tr>
+                            <th className="min-w-[150px] px-4 py-3">名称</th>
+                            <th className="w-24 px-4 py-3">类型</th>
+                            <th className="w-24 px-4 py-3">状态</th>
+                            <th className="min-w-[140px] px-4 py-3">Owner</th>
+                            <th className="min-w-[150px] px-4 py-3">最近心跳</th>
+                            <th className="w-24 px-4 py-3">持续/年龄</th>
+                            <th className="min-w-[260px] px-4 py-3">原因 / 证据</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {visibleRuntimeHealthUnits.length > 0 ? visibleRuntimeHealthUnits.map((unit) => (
+                            <tr key={unit.unit_key}>
+                              <td className="px-4 py-3 align-top">
+                                <div className="font-bold text-slate-900">{unit.unit_label}</div>
+                                {unit.detail ? <div className="mt-1 text-[11px] text-slate-500">{unit.detail}</div> : null}
+                              </td>
+                              <td className="px-4 py-3 align-top text-slate-600">{formatRuntimeUnitKind(unit.unit_kind)}</td>
+                              <td className="px-4 py-3 align-top">
+                                <span className={`inline-flex rounded-full border px-2.5 py-1 font-bold ${runtimeHealthTone(unit.status)}`}>
+                                  {formatRuntimeHealthStatus(unit.status)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-600">{unit.owner_instance_id || '-'}</td>
+                              <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-600">{fmt(unit.last_heartbeat_at || unit.started_at)}</td>
+                              <td className="px-4 py-3 align-top text-slate-600">{formatAgeSeconds(unit.age_seconds)}</td>
+                              <td className="px-4 py-3 align-top">
+                                {unit.reason ? <div className="text-slate-700">{unit.reason}</div> : <div className="text-slate-400">-</div>}
+                                {unit.evidence?.length ? (
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {unit.evidence.slice(0, 3).map((evidence) => (
+                                      <span key={`${unit.unit_key}-${evidence.label}`} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-500">
+                                        {evidence.label}:{evidence.value ?? '-'}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </td>
+                            </tr>
+                          )) : (
+                            <tr>
+                              <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
+                                当前暂无可展示的任务线程/协程健康快照
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {runtimeHealthUnits.length > 5 ? (
+                      <div className="border-t border-slate-100 px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => setRuntimeHealthExpanded((current) => !current)}
+                          className="text-xs font-bold text-sky-700 transition hover:text-sky-800"
+                        >
+                          {runtimeHealthExpanded ? '收起' : `查看全部 ${runtimeHealthUnits.length} 个运行单元`}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
               </div>
             </section>
           ) : null}

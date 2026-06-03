@@ -448,7 +448,43 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
   overview_nodes: BinarySecurityOverviewNode[];
   orchestration_observability?: BinarySecurityOrchestrationObservability;
   cleanup_snapshot?: BinarySecurityCleanupSnapshot;
+  runtime_health?: BinarySecurityRuntimeHealth;
   abnormal_reason_history?: BinarySecurityAbnormalReasonEventSummary[];
+}
+
+export interface BinarySecurityRuntimeHealthEvidence {
+  label: string;
+  value?: string | null;
+}
+
+export interface BinarySecurityRuntimeHealthUnit {
+  unit_key: string;
+  unit_label: string;
+  unit_kind: string;
+  status: string;
+  task_scoped: boolean;
+  owner_instance_id?: string | null;
+  started_at?: string | null;
+  last_heartbeat_at?: string | null;
+  age_seconds?: number | null;
+  detail?: string | null;
+  reason?: string | null;
+  evidence: BinarySecurityRuntimeHealthEvidence[];
+}
+
+export interface BinarySecurityRuntimeHealthSummary {
+  overall_status: string;
+  active_unit_count: number;
+  healthy_unit_count: number;
+  degraded_unit_count: number;
+  unhealthy_unit_count: number;
+  last_updated_at?: string | null;
+  message?: string | null;
+}
+
+export interface BinarySecurityRuntimeHealth {
+  summary: BinarySecurityRuntimeHealthSummary;
+  units: BinarySecurityRuntimeHealthUnit[];
 }
 
 export interface BinarySecurityStageItemPage {
