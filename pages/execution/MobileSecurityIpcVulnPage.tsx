@@ -1077,7 +1077,7 @@ const parseSessionJsonlObject = (obj: Record<string, any>, rawLine: string, line
   sessionMeta?: Record<string, any>;
   events?: AppSaSessionEvent[];
 } => {
-  const eventType = String(obj.type || '');
+  const eventType = String(obj.type || obj.kind || '');
   const timestamp = normalizeSessionTimestamp(obj.timestamp || obj.time || '');
   const payload = sessionNestedRecord(obj, 'payload');
   const data = sessionNestedRecord(obj, 'data');
@@ -1602,7 +1602,7 @@ const buildTaskGraphNodeViews = (
       prompt: String(pipelineNode?.prompt || '').trim(),
       sessionFiles,
       reports: reportOutputMap.get(nodeId) || [],
-      hasEventsJsonl: sessionFiles.some((path) => fileNameOf(path) === 'events.jsonl'),
+      hasEventsJsonl: sessionFiles.some((path) => ['trace.jsonl', 'events.jsonl'].includes(fileNameOf(path))),
       hasLastMessage: sessionFiles.some((path) => fileNameOf(path) === 'last-message.md'),
       hasPrompt: sessionFiles.some((path) => fileNameOf(path) === 'prompt.txt'),
     };
@@ -1730,6 +1730,7 @@ const defaultStage = (
 
 const preferredSession = (items: IpcAuditStageSessionSummary[]) => {
   return (
+    items.find((item) => fileNameOf(item.path) === 'trace.jsonl') ||
     items.find((item) => fileNameOf(item.path) === 'events.jsonl') ||
     items.find((item) => fileNameOf(item.path) === 'last-message.md') ||
     items.find((item) => fileNameOf(item.path) === 'prompt.txt') ||
@@ -2410,7 +2411,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
   const customGraphNodeKey = customGraphNodeIds.join('|');
   const currentStageKey = currentStageNames.join('|');
   const supportedPipelineModeKey = supportedPipelineModes.join('|');
-  const focusStageArtifacts = (stageName: string, preferredFileName?: 'events.jsonl' | 'last-message.md' | 'prompt.txt') => {
+  const focusStageArtifacts = (stageName: string, preferredFileName?: 'trace.jsonl' | 'events.jsonl' | 'last-message.md' | 'prompt.txt') => {
     setSelectedStage(stageName);
     const items = stageSessions[stageName] || [];
     const next = preferredFileName
@@ -4698,7 +4699,7 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               nodes={taskGraphFlow.nodes}
                               edges={taskGraphFlow.edges}
                               nodeTypes={taskGraphNodeTypes}
-                              onNodeClick={(_, node) => focusStageArtifacts(node.id as StageName, 'events.jsonl')}
+                              onNodeClick={(_, node) => focusStageArtifacts(node.id as StageName, 'trace.jsonl')}
                               fitView
                               nodesDraggable={false}
                               nodesConnectable={false}
@@ -4753,10 +4754,10 @@ export const MobileSecurityIpcVulnPage: React.FC<{ projectId: string }> = ({ pro
                               <div className="mt-4 flex flex-wrap gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => focusStageArtifacts(selectedGraphNode.id, 'events.jsonl')}
+                                  onClick={() => focusStageArtifacts(selectedGraphNode.id, 'trace.jsonl')}
                                   className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
                                 >
-                                  打开 events.jsonl
+                                  打开 trace.jsonl
                                 </button>
                                 <button
                                   type="button"
