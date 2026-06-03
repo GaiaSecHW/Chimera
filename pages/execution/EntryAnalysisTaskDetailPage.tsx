@@ -125,27 +125,46 @@ const FULL_STAGE_STEPS = [
 // ─── 精简模式 STAGE_STEPS（3步）────────────────────────────────────────────
 const LEAN_STAGE_STEPS = [
   {
-    key: 'lean_file',
-    label: '文件级分析',
-    desc: '每文件：静态提取函数 → Worker 写脚本执行 → Judge 验证结果',
-    triggers: ['pipeline_start', 'lean_static_extract', 'lean_static_done',
-               'lean_w_start', 'lean_w_done', 'lean_j_start', 'lean_j_done'],
-    artifactSubpath: 'run/workspace/lean-r3',
+    key: 'lean_r1',
+    label: 'R1 覆盖率',
+    desc: '静态提取函数 → LLM 检查 gap',
+    triggers: ['pipeline_start', 'r1_static_extract', 'r1_static_done',
+               'r1_w_start', 'r1_w_done', 'r1_j_start', 'r1_j_done'],
+    artifactSubpath: 'run/workspace/r1-functions',
   },
   {
-    key: 'lean_module',
-    label: '模块级合并',
-    desc: '汇总所有文件入口 → 模块级 Worker+Judge 去重精炼',
-    triggers: ['lean_module_w_start', 'lean_module_w_done',
-               'lean_module_j_start', 'lean_module_j_done'],
-    artifactSubpath: 'run/workspace/lean-r4',
+    key: 'lean_r2',
+    label: 'R2 行号校正',
+    desc: '脚本化校验函数边界准确性',
+    triggers: ['r2_j_start', 'r2_j_done', 'r2_script', 'r2_script_pass'],
+    artifactSubpath: 'run/workspace/r2-judge',
+  },
+  {
+    key: 'lean_af',
+    label: 'API_Filter 预筛',
+    desc: '直接 LLM API 快速判断是否外部入口，过滤非入口函数',
+    triggers: ['api_filter_start', 'api_filter_done', 'api_filter_error'],
+    artifactSubpath: '',
+  },
+  {
+    key: 'lean_r3',
+    label: 'R3 入口分析',
+    desc: 'W+J 深度分析外部输入类型',
+    triggers: ['r3_w_start', 'r3_w_done', 'r3_j_start', 'r3_j_done'],
+    artifactSubpath: 'run/workspace/r3-analysis',
+  },
+  {
+    key: 'lean_r4cc',
+    label: 'CC + R4 调用链',
+    desc: '调用链建图 + 凭准冒泡删除',
+    triggers: ['callchain_start', 'callchain_done', 'r4_w_func_start', 'r4_w_func_done'],
+    artifactSubpath: 'run/workspace/callchain',
   },
   {
     key: 'lean_output',
     label: '产物输出',
-    desc: '生成报告与 functions.list',
-    triggers: ['lean_report_start', 'lean_report_done',
-               'task_end', 'functions_list_synced', 'functions_list_error'],
+    desc: '最终入口列表 + 报告',
+    triggers: ['r6_j_done', 'task_end', 'functions_list_synced', 'functions_list_error'],
     artifactSubpath: 'output',
   },
 ];
@@ -415,7 +434,7 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
   return result;
 }
 
-/** 精简模式各阶段统计 */
+/** 精简模式各阶段统计（已更新为新架构 R1+R2+API_Filter+R3+CC+R4） */
 interface LeanFileStat {
   file: string;
   file_hash: string;
@@ -429,12 +448,18 @@ interface LeanFileStat {
 }
 
 function deriveLeanStageStats(events: AppEaStageEvent[]): { stats: StageStat[]; files: LeanFileStat[] } {
+  // 6 stages: 0=R1, 1=R2, 2=API_Filter, 3=R3, 4=CC+R4, 5=output
   const stats: StageStat[] = LEAN_STAGE_STEPS.map(() => ({}));
   const firstTs: Array<number | undefined> = LEAN_STAGE_STEPS.map(() => undefined);
   const lastTs:  Array<number | undefined> = LEAN_STAGE_STEPS.map(() => undefined);
   const fileMap = new Map<string, LeanFileStat>();
   let totalFiles = 0;
-  let moduleEntries = 0;
+  let r1FileDone = new Set<string>();
+  let r2FuncDone = new Set<string>();
+  let afDone = 0, afPass = 0, afReject = 0;
+  let r3FuncDone = new Set<string>();
+  let r4FuncDone = new Set<string>();
+  let finalEntries = 0;
 
   const touch = (idx: number, ts: number) => {
     if (ts <= 0) return;
@@ -446,46 +471,81 @@ function deriveLeanStageStats(events: AppEaStageEvent[]): { stats: StageStat[]; 
     const ts = evt.ts || 0;
     const d  = evt.data || {};
     const fh = String(d.file_hash || '');
+    const func_hash = String(d.func_hash || '');
     const fname = String(d.file || fh);
     switch (evt.type) {
+      // R1
       case 'pipeline_start': totalFiles = Number(d.file_count) || totalFiles; touch(0, ts); break;
-      case 'lean_static_extract': touch(0, ts);
+      case 'r1_static_extract': touch(0, ts);
         if (fh && !fileMap.has(fh)) fileMap.set(fh, { file: fname, file_hash: fh, static_done: false, w_state: 'pending', w_attempts: 0, j_state: 'pending', j_attempts: 0 }); break;
-      case 'lean_static_done': touch(0, ts);
+      case 'r1_static_done': touch(0, ts);
         if (fh) {
           const f = fileMap.get(fh) || { file: fname, file_hash: fh, static_done: false, w_state: 'pending', w_attempts: 0, j_state: 'pending', j_attempts: 0 };
           f.static_done = true; f.func_count = Number(d.func_count) || f.func_count;
           fileMap.set(fh, f);
         } break;
-      case 'lean_w_start': touch(0, ts);
-        if (fh) { const f = fileMap.get(fh); if (f) { f.w_state = 'running'; f.w_attempts = Number(d.attempt) || f.w_attempts; } } break;
-      case 'lean_w_done': touch(0, ts);
-        if (fh) { const f = fileMap.get(fh); if (f) f.w_state = 'passed'; } break;
-      case 'lean_j_start': touch(0, ts);
-        if (fh) { const f = fileMap.get(fh); if (f) { f.j_state = 'running'; f.j_attempts = Number(d.attempt) || f.j_attempts; } } break;
-      case 'lean_j_done': touch(0, ts);
-        if (fh) {
-          const f = fileMap.get(fh);
-          if (f) {
-            f.j_state = d.passed ? 'passed' : 'failed';
-            if (d.passed && typeof d.entries === 'number') f.entries = d.entries;
-          }
-        } break;
-      case 'lean_module_w_start': case 'lean_module_j_start': touch(1, ts); break;
-      case 'lean_module_w_done': case 'lean_module_j_done': touch(1, ts);
-        if (typeof d.entries === 'number') moduleEntries = d.entries; break;
-      case 'lean_report_start': touch(2, ts); break;
-      case 'lean_report_done': touch(2, ts); break;
-      case 'task_end': case 'functions_list_synced': case 'functions_list_error': touch(2, ts); break;
+      case 'r1_w_start': touch(0, ts); break;
+      case 'r1_w_done': touch(0, ts); if (fh) r1FileDone.add(fh); break;
+      case 'r1_j_done': touch(0, ts); break;
+      // R2
+      case 'r2_j_start': touch(1, ts); break;
+      case 'r2_script': touch(1, ts);
+        stats[1].scriptPassCount = (stats[1].scriptPassCount || 0) + 1; break;
+      case 'r2_script_pass': case 'r2_j_done': touch(1, ts);
+        if (func_hash) r2FuncDone.add(func_hash);
+        stats[1].tokensIn  = (stats[1].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        stats[1].tokensOut = (stats[1].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        stats[1].durationMs = (stats[1].durationMs || 0) + (Number(d.duration_ms) || 0);
+        break;
+      // API_Filter
+      case 'api_filter_start': touch(2, ts); break;
+      case 'api_filter_done': touch(2, ts);
+        afDone++;
+        if (Number(d.is_entry) === 1) afPass++; else afReject++;
+        stats[2].durationMs = (stats[2].durationMs || 0) + (Number(d.duration_ms) || 0);
+        break;
+      case 'api_filter_error': touch(2, ts); break;
+      // R3
+      case 'r3_w_start': case 'r3_j_start': touch(3, ts); break;
+      case 'r3_w_done': touch(3, ts);
+        if (func_hash) r3FuncDone.add(func_hash);
+        stats[3].tokensIn  = (stats[3].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        stats[3].tokensOut = (stats[3].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        stats[3].durationMs = (stats[3].durationMs || 0) + (Number(d.duration_ms) || 0);
+        break;
+      case 'r3_j_done': touch(3, ts);
+        if (d.auto_pass) stats[3].autoPassCount = (stats[3].autoPassCount || 0) + 1;
+        stats[3].tokensIn  = (stats[3].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        stats[3].tokensOut = (stats[3].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        break;
+      // CC + R4
+      case 'callchain_start': touch(4, ts); break;
+      case 'callchain_done': touch(4, ts);
+        stats[4].nodeCount = Number(d.nodes) || stats[4].nodeCount;
+        stats[4].edgeCount = Number(d.edges) || stats[4].edgeCount; break;
+      case 'r4_w_func_start': touch(4, ts); break;
+      case 'r4_w_func_done': touch(4, ts);
+        if (func_hash && d.decision === 'keep') r4FuncDone.add(func_hash); break;
+      case 'r6_j_done': touch(4, ts);
+        if (typeof d.entry_count === 'number') finalEntries = d.entry_count; break;
+      // output
+      case 'task_end': case 'functions_list_synced': case 'functions_list_error': touch(5, ts);
+        if (typeof d.entry_count === 'number') finalEntries = d.entry_count; break;
       default: break;
     }
   }
 
-  const doneFiles = Array.from(fileMap.values()).filter((f) => f.j_state === 'passed').length;
-  const totalEntries = moduleEntries || Array.from(fileMap.values()).reduce((s, f) => s + (f.entries || 0), 0);
-  stats[0] = { filesTotal: totalFiles || fileMap.size || undefined, filesDone: doneFiles || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
-  stats[1] = { entriesFound: totalEntries || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
-  stats[2] = { entriesFound: totalEntries || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
+  const fmtRate = (a: number, b: number) => b > 0 ? `${Math.round(100*a/b)}%` : '-';
+  stats[0] = { filesTotal: totalFiles || fileMap.size || undefined, filesDone: r1FileDone.size || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
+  stats[1] = { ...stats[1], funcsDone: r2FuncDone.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
+  stats[2] = { ...stats[2], funcsDone: afDone || undefined,
+    // encode reject count in autoPassCount field for display
+    autoPassCount: afReject || undefined,
+    startTs: firstTs[2], lastTs: lastTs[2] };
+  stats[3] = { ...stats[3], funcsDone: r3FuncDone.size || undefined, startTs: firstTs[3], lastTs: lastTs[3] };
+  stats[4] = { ...stats[4], funcsDone: r4FuncDone.size || undefined,
+    entriesFound: finalEntries || undefined, startTs: firstTs[4], lastTs: lastTs[4] };
+  stats[5] = { entriesFound: finalEntries || undefined, startTs: firstTs[5], lastTs: lastTs[5] };
 
   const files = Array.from(fileMap.values());
   files.sort((a, b) => a.file.localeCompare(b.file));
@@ -2269,19 +2329,33 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             const activeStageIdx = statusSteps.reduce((last: number, s: StepStatus, i: number) => (s === 'running' || s === 'completed') ? i : last, -1);
             const activeStage = activeStageIdx >= 0 ? activeStageSteps[activeStageIdx]?.label : '等待中';
             if (isLeanMode) {
-              const finalEntries = stageStats[1]?.entriesFound ?? stageStats[2]?.entriesFound ?? 0;
-              const doneFiles = stageStats[0]?.filesDone ?? 0;
+              const lnR1Files  = stageStats[0]?.filesDone  ?? 0;
+              const lnR2Funcs  = stageStats[1]?.funcsDone  ?? 0;
+              const lnAFDone   = stageStats[2]?.funcsDone  ?? 0;
+              const lnAFReject = stageStats[2]?.autoPassCount ?? 0;
+              const lnAFPass   = lnAFDone - lnAFReject;
+              const lnAFRate   = lnAFDone > 0 ? `${Math.round(100*lnAFReject/lnAFDone)}%过滤` : '-';
+              const lnR3Funcs  = stageStats[3]?.funcsDone  ?? 0;
+              const lnEntries  = stageStats[4]?.entriesFound ?? stageStats[5]?.entriesFound ?? 0;
+              const lnR3TokIn  = stageStats[3]?.tokensIn  ?? 0;
+              const lnR3TokOut = stageStats[3]?.tokensOut ?? 0;
+              const lnAFDurSec = Math.round((stageStats[2]?.durationMs ?? 0) / 1000);
+              const fmtK2 = (n: number) => n >= 1000 ? `${(n/1000).toFixed(1)}K` : String(n);
+              const fmtSec2 = (s: number) => s >= 60 ? `${Math.floor(s/60)}m${s%60}s` : `${s}s`;
               return (
                 <section className="rounded-2xl border border-violet-100 bg-violet-50/60 px-5 py-4 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="text-[11px] font-black uppercase tracking-[0.18em] text-violet-600">精简模式 · 流水线统计</div>
                     <span className="rounded-full border border-violet-200 bg-white px-3 py-1 text-[11px] font-bold text-violet-700">当前阶段：{activeStage}</span>
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                     {([
-                      { label: '总文件数', value: totalFiles || '-', border: 'border-slate-200', bg: 'bg-white', text: 'text-slate-900' },
-                      { label: '已分析文件', value: doneFiles || '-', border: 'border-violet-100', bg: 'bg-violet-50', text: 'text-violet-700' },
-                      { label: '文件入口合计', value: finalEntries || '-', border: 'border-emerald-100', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+                      { label: '总文件数',       value: totalFiles || '-',   border: 'border-slate-200',  bg: 'bg-white',        text: 'text-slate-900' },
+                      { label: 'R1完成文件',   value: lnR1Files || '-',   border: 'border-sky-100',    bg: 'bg-sky-50',       text: 'text-sky-700' },
+                      { label: 'R2通过函数',   value: lnR2Funcs || '-',   border: 'border-indigo-100', bg: 'bg-indigo-50',    text: 'text-indigo-700' },
+                      { label: `AF预筛(${lnAFRate})`, value: lnAFDone ? `${lnAFPass}通过` : '-', border: 'border-orange-100', bg: 'bg-orange-50', text: 'text-orange-700' },
+                      { label: 'R3分析函数',   value: lnR3Funcs || '-',   border: 'border-teal-100',   bg: 'bg-teal-50',      text: 'text-teal-700' },
+                      { label: '最终入口数',   value: lnEntries || '-',   border: 'border-emerald-100',bg: 'bg-emerald-50',   text: 'text-emerald-700' },
                     ] as Array<{label:string;value:string|number;border:string;bg:string;text:string}>).map(({ label, value, border, bg, text }) => (
                       <div key={label} className={`rounded-xl border px-3 py-3 text-center ${border} ${bg}`}>
                         <div className={`text-2xl font-black ${text}`}>{value}</div>
@@ -2289,6 +2363,23 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                       </div>
                     ))}
                   </div>
+                  {/* API_Filter 详细统计 */}
+                  {lnAFDone > 0 && (
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      <div className="rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-center">
+                        <div className="text-xs font-black text-orange-700">API_Filter 预筛</div>
+                        <div className="mt-0.5 text-[11px] text-orange-600">通过 {lnAFPass} / 过滤 {lnAFReject} / 共 {lnAFDone}</div>
+                        {lnAFDurSec > 0 && <div className="text-[10px] text-slate-400">总 LLM 耗时 {fmtSec2(lnAFDurSec)}</div>}
+                        {lnAFDone > 0 && <div className="text-[10px] font-bold text-orange-600">减少 R3 {lnAFDone > 0 ? Math.round(100*lnAFReject/lnAFDone) : 0}% Agent 调用</div>}
+                      </div>
+                      {lnR3TokIn > 0 && (
+                        <div className="rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2 text-center">
+                          <div className="text-xs font-black text-teal-700">R3 Token</div>
+                          <div className="mt-0.5 text-[11px] text-teal-600">输入 {fmtK2(lnR3TokIn)} | 输出 {fmtK2(lnR3TokOut)}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
               );
             }
