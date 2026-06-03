@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   TimerReset,
   TrendingUp,
+  X,
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -5835,8 +5836,23 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
               </section>
             ) : null}
             {activeAgentPodDialog && activeAgentPodCard ? (
-              <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-                <div className="flex max-h-[92vh] w-[min(96vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+              <div
+                className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+                onClick={closeAgentPodDialog}
+              >
+                <div
+                  className="relative flex max-h-[92vh] w-[min(96vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={closeAgentPodDialog}
+                    className="absolute right-4 top-4 z-10 rounded-full border border-slate-200 bg-white/95 p-2 text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-900"
+                    title="关闭"
+                    aria-label="关闭"
+                  >
+                    <X size={18} />
+                  </button>
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
