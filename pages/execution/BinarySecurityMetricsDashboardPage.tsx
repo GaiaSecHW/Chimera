@@ -98,6 +98,23 @@ type SystemAnalysisWorkerDetailState = {
 };
 
 const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+const resolveAgentOwnerKindLabel = (ownerKind: string | null | undefined): string => {
+  if (ownerKind === 'tracked') return '正常进程';
+  if (ownerKind === 'tracked_subprocess') return '子进程继承';
+  if (ownerKind === 'tracked_inferred') return '推断归属';
+  if (ownerKind === 'residual') return '残留进程';
+  if (ownerKind === 'suspected_orphan') return '疑似孤儿';
+  return '未归属进程';
+};
+
+const resolveAgentOwnerKindBadge = (ownerKind: string | null | undefined): string => {
+  if (ownerKind === 'tracked' || ownerKind === 'tracked_subprocess' || ownerKind === 'tracked_inferred') {
+    return 'bg-emerald-100 text-emerald-700';
+  }
+  if (ownerKind === 'residual') return 'bg-rose-100 text-rose-700';
+  if (ownerKind === 'suspected_orphan') return 'bg-amber-100 text-amber-800';
+  return 'bg-slate-100 text-slate-700';
+};
 const FIRST_BATCH_SUMMARY_SERVICES: BinarySecurityMetricsServiceKey[] = BINARY_SECURITY_METRICS_SERVICES.map((service) => service.key);
 const supportsSummaryApi = (serviceKey: BinarySecurityMetricsServiceKey) => FIRST_BATCH_SUMMARY_SERVICES.includes(serviceKey);
 const initialJsonTabState = <T,>(): JsonTabState<T> => ({ loading: false, data: null, error: null, refreshedAt: null });
@@ -2506,9 +2523,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
   const [dfaAgentPodKeyword, setDfaAgentPodKeyword] = useState('');
   const [dfaAgentTaskKeyword, setDfaAgentTaskKeyword] = useState('');
   const [dfaAgentPidKeyword, setDfaAgentPidKeyword] = useState('');
-  const [dfaAgentOwnerFilter, setDfaAgentOwnerFilter] = useState<'all' | 'tracked' | 'residual' | 'unknown'>('all');
+  const [dfaAgentOwnerFilter, setDfaAgentOwnerFilter] = useState<'all' | 'tracked' | 'residual' | 'unknown' | 'suspected_orphan'>('all');
   const [dfaAgentRoleFilter, setDfaAgentRoleFilter] = useState<'all' | string>('all');
-  const [expandedDfaAgentPods, setExpandedDfaAgentPods] = useState<string[]>([]);
+  const [activeAgentPodDialog, setActiveAgentPodDialog] = useState<{ serviceKey: BinarySecurityMetricsServiceKey; podName: string } | null>(null);
   const [restApiRouteKeyword, setRestApiRouteKeyword] = useState('');
   const [restApiMethodFilter, setRestApiMethodFilter] = useState<'all' | string>('all');
   const [restApiSlowOnly, setRestApiSlowOnly] = useState(false);
@@ -3059,7 +3076,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     setDfaAgentPidKeyword('');
     setDfaAgentOwnerFilter('all');
     setDfaAgentRoleFilter('all');
-    setExpandedDfaAgentPods([]);
+    setActiveAgentPodDialog(null);
     previousProjectIdRef.current = projectId;
   }, [activeServiceKey, projectId, resolveSecondaryTabFromUrl]);
 
@@ -3426,16 +3443,91 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     unifiedAgentRuntimeViewModel?.podCards,
   ]);
 
-  const toggleDfaAgentPod = useCallback((podName: string) => {
-    setExpandedDfaAgentPods((current) => (current.includes(podName) ? current.filter((item) => item !== podName) : [...current, podName]));
+  const openAgentPodDialog = useCallback((serviceKey: BinarySecurityMetricsServiceKey, podName: string) => {
+    setSelectedAgentPids([]);
+    setActiveAgentPodDialog({ serviceKey, podName });
+    void ensureAgentPodDetail(serviceKey, podName);
+  }, [ensureAgentPodDetail]);
+
+  const closeAgentPodDialog = useCallback(() => {
+    setActiveAgentPodDialog(null);
+    setSelectedAgentPids([]);
   }, []);
 
-  useEffect(() => {
-    if (activeSecondaryTab !== 'agent' || !agentObservabilityEnabled) return;
-    expandedDfaAgentPods.forEach((podName) => {
-      void ensureAgentPodDetail(activeServiceKey, podName);
+  const activeAgentPodCard = useMemo(
+    () => (
+      activeAgentPodDialog
+        ? (unifiedAgentRuntimeViewModel?.podCards || []).find((pod) => pod.pod_name === activeAgentPodDialog.podName) || null
+        : null
+    ),
+    [activeAgentPodDialog, unifiedAgentRuntimeViewModel?.podCards],
+  );
+
+  const activeAgentPodDetail = useMemo(
+    () => (
+      activeAgentPodDialog
+        ? agentPodDetails[`${activeAgentPodDialog.serviceKey}:${activeAgentPodDialog.podName}`] || null
+        : null
+    ),
+    [activeAgentPodDialog, agentPodDetails],
+  );
+
+  const activeAgentPodTasks = useMemo(() => {
+    if (!activeAgentPodDetail) return [] as AgentTaskOwnershipSnapshot[];
+    const keyword = dfaAgentTaskKeyword.trim().toLowerCase();
+    return (activeAgentPodDetail.tasks || []).filter((item) => {
+      if (!keyword) return true;
+      return `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(keyword);
     });
-  }, [activeSecondaryTab, activeServiceKey, agentObservabilityEnabled, ensureAgentPodDetail, expandedDfaAgentPods]);
+  }, [activeAgentPodDetail, dfaAgentTaskKeyword]);
+
+  const activeAgentPodProcesses = useMemo(() => {
+    if (!activeAgentPodDetail) return [] as AgentProcessSnapshot[];
+    const taskKeyword = dfaAgentTaskKeyword.trim().toLowerCase();
+    const pidKeyword = dfaAgentPidKeyword.trim();
+    return (activeAgentPodDetail.processes || []).filter((item) => {
+      if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
+      if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
+      if (taskKeyword) {
+        const fingerprint = `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase();
+        if (!fingerprint.includes(taskKeyword)) return false;
+      }
+      if (pidKeyword) {
+        const fingerprint = `${item.pid} ${item.pgid ?? ''} ${item.ppid ?? ''}`;
+        if (!fingerprint.includes(pidKeyword)) return false;
+      }
+      return true;
+    });
+  }, [activeAgentPodDetail, dfaAgentOwnerFilter, dfaAgentPidKeyword, dfaAgentRoleFilter, dfaAgentTaskKeyword]);
+
+  const activeAgentPodKillablePids = useMemo(
+    () => activeAgentPodProcesses.filter((item) => item.kill_allowed).map((item) => item.pid),
+    [activeAgentPodProcesses],
+  );
+
+  const selectedKillablePidsForActivePod = useMemo(
+    () => selectedAgentPids.filter((pid) => activeAgentPodKillablePids.includes(pid)),
+    [activeAgentPodKillablePids, selectedAgentPids],
+  );
+
+  const allKillableSelectedForActivePod =
+    activeAgentPodKillablePids.length > 0 && selectedKillablePidsForActivePod.length === activeAgentPodKillablePids.length;
+
+  const toggleAgentProcessSelection = useCallback((pid: number, checked: boolean) => {
+    setSelectedAgentPids((current) => {
+      if (checked) {
+        return current.includes(pid) ? current : [...current, pid];
+      }
+      return current.filter((item) => item !== pid);
+    });
+  }, []);
+
+  const toggleAllAgentProcessSelection = useCallback((checked: boolean) => {
+    setSelectedAgentPids((current) => {
+      const remaining = current.filter((pid) => !activeAgentPodKillablePids.includes(pid));
+      return checked ? [...remaining, ...activeAgentPodKillablePids] : remaining;
+    });
+  }, [activeAgentPodKillablePids]);
 
   const killSingleOrphan = async (process: AgentProcessSnapshot) => {
     if (!projectId || !agentObservabilityEnabled) return;
@@ -3446,7 +3538,7 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
       });
       return;
     }
-    const suspected = process.owner_kind === 'unknown';
+    const suspected = process.owner_kind === 'unknown' || process.owner_kind === 'suspected_orphan';
     const confirmed = await showConfirm({
       title: suspected ? '终止疑似孤儿智能体进程' : '终止孤儿智能体进程',
       message: suspected
@@ -5640,10 +5732,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
                   <input value={dfaAgentPidKeyword} onChange={(event) => setDfaAgentPidKeyword(event.target.value)} placeholder="筛选 PID / PGID / PPID" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-sm text-slate-700" />
                 </div>
-                <select value={dfaAgentOwnerFilter} onChange={(event) => setDfaAgentOwnerFilter(event.target.value as 'all' | 'tracked' | 'residual' | 'unknown')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                <select value={dfaAgentOwnerFilter} onChange={(event) => setDfaAgentOwnerFilter(event.target.value as 'all' | 'tracked' | 'residual' | 'unknown' | 'suspected_orphan')} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
                   <option value="all">全部归属</option>
                   <option value="tracked">正常进程</option>
                   <option value="residual">残留进程</option>
+                  <option value="suspected_orphan">疑似孤儿</option>
                   <option value="unknown">未归属进程</option>
                 </select>
                 <select value={dfaAgentRoleFilter} onChange={(event) => setDfaAgentRoleFilter(event.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700">
@@ -5674,30 +5767,11 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                 </section>
               ) : filteredDfaPods.length ? (
                 filteredDfaPods.map((pod) => {
-                  const expanded = expandedDfaAgentPods.includes(pod.pod_name);
-                  const podDetail = agentPodDetails[`${activeServiceKey}:${pod.pod_name}`];
-                  const podTasks = (podDetail?.tasks || []).filter((item) => {
-                    if (!dfaAgentTaskKeyword.trim()) return true;
-                    return `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase().includes(dfaAgentTaskKeyword.trim().toLowerCase());
-                  });
-                  const podProcesses = (podDetail?.processes || []).filter((item) => {
-                    if (dfaAgentOwnerFilter !== 'all' && item.owner_kind !== dfaAgentOwnerFilter) return false;
-                    if (dfaAgentRoleFilter !== 'all' && item.role_kind !== dfaAgentRoleFilter) return false;
-                    if (dfaAgentTaskKeyword.trim()) {
-                      const fingerprint = `${item.task_id || ''} ${item.task_name || ''}`.toLowerCase();
-                      if (!fingerprint.includes(dfaAgentTaskKeyword.trim().toLowerCase())) return false;
-                    }
-                    if (dfaAgentPidKeyword.trim()) {
-                      const fingerprint = `${item.pid} ${item.pgid ?? ''} ${item.ppid ?? ''}`;
-                      if (!fingerprint.includes(dfaAgentPidKeyword.trim())) return false;
-                    }
-                    return true;
-                  });
                   return (
                     <section key={pod.pod_name} className={`rounded-[1.8rem] border shadow-sm ${pod.healthy ? 'border-slate-200 bg-white' : 'border-rose-200 bg-rose-50/40'}`}>
                       <button
                         type="button"
-                        onClick={() => toggleDfaAgentPod(pod.pod_name)}
+                        onClick={() => openAgentPodDialog(activeServiceKey, pod.pod_name)}
                         className="flex w-full flex-wrap items-start justify-between gap-4 px-5 py-4 text-left"
                       >
                         <div className="min-w-0">
@@ -5735,188 +5809,9 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                           ) : null}
                         </div>
                         <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                          {expanded ? '收起' : '展开'}
+                          查看详情
                         </div>
                       </button>
-
-                      {expanded ? (
-                        <div className="space-y-4 border-t border-slate-100 px-5 py-5">
-                          {!podDetail?.loading && !podDetail?.loaded && !podDetail?.error ? (
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                              当前 Pod 已保留在槽位/智能体并集视图中，进程与任务明细尚未加载。
-                            </div>
-                          ) : null}
-                          {podDetail?.loading ? (
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                              正在加载该 Pod 的进程与任务明细...
-                            </div>
-                          ) : null}
-                          {podDetail?.error ? (
-                            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
-                              {podDetail.error}
-                            </div>
-                          ) : null}
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关联任务</div>
-                              <h4 className="mt-2 text-lg font-black tracking-tight text-slate-900">Task Ownership</h4>
-                              <div className="mt-3 space-y-2">
-                                {podTasks.length ? (
-                                  podTasks.map((task) => (
-                                    <div key={`${pod.pod_name}:${task.task_id}:${task.stage_key || '-'}`} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
-                                            detail: activeServiceKey === 'dataflow-analysis'
-                                              ? { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: task.task_id }
-                                              : activeServiceKey === 'entry-analysis'
-                                                ? { view: 'entry-analysis-detail', entryAnalysisTaskId: task.task_id }
-                                                : { view: 'system-analysis-detail', systemAnalysisTaskId: task.task_id },
-                                          }))}
-                                          className="min-w-0 truncate text-left text-sm font-black text-cyan-700 hover:text-cyan-900"
-                                          title={task.task_name || task.task_id}
-                                        >
-                                          {task.task_name || task.task_id}
-                                        </button>
-                                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{task.task_status || '-'}</span>
-                                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                          task.ownership_status === 'tracked'
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : task.ownership_status === 'orphan'
-                                              ? 'bg-rose-100 text-rose-700'
-                                              : 'bg-amber-100 text-amber-800'
-                                        }`}>
-                                          {task.ownership_status === 'tracked' ? '运行中任务' : task.ownership_status === 'residual' ? '残留任务' : '未归属'}
-                                        </span>
-                                      </div>
-                                      <div className="mt-2 space-y-1 text-xs text-slate-500">
-                                        <div className="font-mono break-all">task_id: {task.task_id}</div>
-                                        <div>stage: {task.stage_key || '-'}</div>
-                                        <div>roles: {asArray(task.agent_roles).join(', ') || '-'}</div>
-                                        <div>processes: {asArray(task.process_pids).join(', ') || '-'}</div>
-                                      </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <div className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
-                                    当前 Pod 没有匹配过滤条件的关联任务。
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">智能体进程</div>
-                              <h4 className="mt-2 text-lg font-black tracking-tight text-slate-900">Processes</h4>
-                              <div className="mt-3 overflow-auto rounded-2xl border border-slate-200 bg-white">
-                                <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
-                                  <thead className="bg-slate-50 text-slate-500">
-                                    <tr>
-                                      <th className="px-3 py-3">PID / PGID</th>
-                                      <th className="px-3 py-3">角色</th>
-                                      <th className="px-3 py-3">任务</th>
-                                      <th className="px-3 py-3">阶段</th>
-                                      <th className="px-3 py-3">所属判定</th>
-                                      <th className="px-3 py-3">原因</th>
-                                      <th className="px-3 py-3">RSS</th>
-                                      <th className="px-3 py-3">CWD</th>
-                                      <th className="px-3 py-3">操作</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-slate-100 bg-white">
-                                    {podProcesses.length ? (
-                                      podProcesses.map((process) => (
-                                        <tr key={`${pod.pod_name}:${process.pid}`} className="hover:bg-slate-50">
-                                          <td className="px-3 py-3 font-mono text-[11px] text-slate-700">
-                                            <div>PID {process.pid}</div>
-                                            <div className="text-slate-400">PGID {process.pgid ?? '-'} / PPID {process.ppid ?? '-'}</div>
-                                          </td>
-                                          <td className="px-3 py-3">
-                                            <div className="font-semibold text-slate-700">{process.runtime_kind || '-'}</div>
-                                            <div className="mt-1 text-[10px] text-slate-400">{process.role_kind || '-'}</div>
-                                          </td>
-                                          <td className="px-3 py-3 align-top">
-                                            {process.task_id ? (
-                                              <button
-                                                type="button"
-                                                onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
-                                                  detail: activeServiceKey === 'dataflow-analysis'
-                                                    ? { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: process.task_id }
-                                                    : activeServiceKey === 'entry-analysis'
-                                                      ? { view: 'entry-analysis-detail', entryAnalysisTaskId: process.task_id }
-                                                      : { view: 'system-analysis-detail', systemAnalysisTaskId: process.task_id },
-                                                }))}
-                                                className="max-w-[14rem] truncate text-left font-semibold text-cyan-700 hover:text-cyan-900"
-                                                title={process.task_name || process.task_id}
-                                              >
-                                                {process.task_name || process.task_id}
-                                              </button>
-                                            ) : (
-                                              <span className="text-slate-400">未关联任务</span>
-                                            )}
-                                            <div className="mt-1 font-mono text-[10px] text-slate-400">{process.task_id || '-'}</div>
-                                          </td>
-                                          <td className="px-3 py-3">
-                                            <div className="text-slate-700">{process.task_status || '-'}</div>
-                                            <div className="mt-1 text-[10px] text-slate-400">{process.stage_key || '-'}</div>
-                                          </td>
-                                          <td className="px-3 py-3">
-                                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                              process.owner_kind === 'tracked'
-                                                ? 'bg-emerald-100 text-emerald-700'
-                                                : process.owner_kind === 'residual'
-                                                  ? 'bg-rose-100 text-rose-700'
-                                                  : 'bg-amber-100 text-amber-800'
-                                            }`}>
-                                              {process.owner_kind === 'tracked' ? '正常进程' : process.owner_kind === 'residual' ? '残留进程' : '未归属进程'}
-                                            </span>
-                                          </td>
-                                          <td className="px-3 py-3 text-[11px] text-slate-500">{process.owner_reason || '-'}</td>
-                                          <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{formatBytes(process.rss_bytes)}</td>
-                                          <td className="px-3 py-3 align-top text-[11px] text-slate-500">
-                                            <div className="max-w-[18rem] break-all">{process.cwd || '-'}</div>
-                                            {process.workspace_root ? <div className="mt-1 max-w-[18rem] break-all text-slate-400">workspace: {process.workspace_root}</div> : null}
-                                            {process.match_source || process.match_confidence ? <div className="mt-1 text-[10px] text-slate-400">match: {process.match_source || '-'} / {process.match_confidence || '-'}</div> : null}
-                                            {process.command ? <div className="mt-1 max-w-[18rem] break-all font-mono text-[10px] text-slate-400">{process.command}</div> : null}
-                                          </td>
-                                          <td className="px-3 py-3">
-                                            <button
-                                              type="button"
-                                              onClick={() => void killSingleOrphan(process)}
-                                              disabled={!process.kill_allowed}
-                                              className={`rounded-lg border px-3 py-1.5 text-[11px] font-bold ${
-                                                process.kill_allowed
-                                                  ? process.owner_kind === 'unknown'
-                                                    ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
-                                                    : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-                                                  : 'border-slate-200 bg-slate-50 text-slate-400'
-                                              }`}
-                                              title={process.kill_allowed ? undefined : process.kill_block_reason || '当前进程不满足终止条件'}
-                                            >
-                                              终止
-                                            </button>
-                                            {!process.kill_allowed && process.kill_block_reason ? (
-                                              <div className="mt-1 max-w-[12rem] text-[10px] text-slate-400">{process.kill_block_reason}</div>
-                                            ) : null}
-                                          </td>
-                                        </tr>
-                                      ))
-                                    ) : (
-                                      <tr>
-                                        <td colSpan={10} className="px-4 py-8 text-center text-sm text-slate-500">
-                                          当前 Pod 没有匹配过滤条件的进程。
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          </div>
-
-                        </div>
-                      ) : null}
                     </section>
                   );
                 })
@@ -5938,6 +5833,291 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
                   ))}
                 </div>
               </section>
+            ) : null}
+            {activeAgentPodDialog && activeAgentPodCard ? (
+              <div className="fixed inset-0 z-[320] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+                <div className="flex max-h-[92vh] w-[min(96vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-xl font-black tracking-tight text-slate-900">{activeAgentPodCard.pod_name}</div>
+                        <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${activeAgentPodCard.healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {activeAgentPodCard.healthy ? 'healthy' : 'partial/unhealthy'}
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                          {activeService.serviceName}
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                          worker {activeAgentPodCard.worker_id || '-'}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+                        <span>槽位 {formatNumber(activeAgentPodCard.running_jobs)}/{formatNumber(activeAgentPodCard.max_concurrent_jobs)}</span>
+                        <span>空闲 {formatNumber(activeAgentPodCard.available_slots)}</span>
+                        <span>排队 {formatNumber(activeAgentPodCard.queued_jobs)}</span>
+                        <span>智能体 {formatNumber(activeAgentPodCard.agent_process_in_use)}/{formatNumber(activeAgentPodCard.agent_process_limit)}</span>
+                        <span>进程 {formatNumber(activeAgentPodCard.process_count)}</span>
+                        <span>任务 {formatNumber(activeAgentPodCard.running_task_count)}/{formatNumber(activeAgentPodCard.task_count)}</span>
+                        <span>扫描 {activeAgentPodCard.last_scanned_at ? formatTime(new Date(activeAgentPodCard.last_scanned_at).getTime()) : '-'}</span>
+                      </div>
+                      {activeAgentPodCard.error ? (
+                        <div className="mt-2 text-xs text-rose-600">{activeAgentPodCard.error}</div>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleAllAgentProcessSelection(!allKillableSelectedForActivePod)}
+                        disabled={activeAgentPodKillablePids.length === 0}
+                        className={`rounded-xl border px-4 py-2 text-sm font-bold ${
+                          activeAgentPodKillablePids.length
+                            ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            : 'border-slate-200 bg-slate-50 text-slate-400'
+                        }`}
+                      >
+                        {allKillableSelectedForActivePod ? '取消全选可终止进程' : '全选可终止进程'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void killSelectedOrphans()}
+                        disabled={selectedKillablePidsForActivePod.length === 0}
+                        className={`rounded-xl border px-4 py-2 text-sm font-bold ${
+                          selectedKillablePidsForActivePod.length
+                            ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                            : 'border-slate-200 bg-slate-50 text-slate-400'
+                        }`}
+                      >
+                        终止选中进程（{selectedKillablePidsForActivePod.length}）
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeAgentPodDialog}
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
+                      >
+                        关闭
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+                    {!activeAgentPodDetail?.loading && !activeAgentPodDetail?.loaded && !activeAgentPodDetail?.error ? (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                        当前 Pod 已保留在槽位/智能体并集视图中，进程与任务明细尚未加载。
+                      </div>
+                    ) : null}
+                    {activeAgentPodDetail?.loading ? (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                        正在加载该 Pod 的进程与任务明细...
+                      </div>
+                    ) : null}
+                    {activeAgentPodDetail?.error ? (
+                      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700">
+                        {activeAgentPodDetail.error}
+                      </div>
+                    ) : null}
+
+                    <section className="rounded-[1.8rem] border border-slate-200 bg-slate-50/60 p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">关联任务</div>
+                          <h4 className="mt-2 text-lg font-black tracking-tight text-slate-900">Task Ownership</h4>
+                        </div>
+                        <div className="text-xs font-semibold text-slate-500">共 {formatNumber(activeAgentPodTasks.length)} 条</div>
+                      </div>
+                      <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                        <table className="min-w-[980px] divide-y divide-slate-200 text-left text-xs">
+                          <thead className="bg-slate-50 text-slate-500">
+                            <tr>
+                              <th className="px-3 py-3">任务</th>
+                              <th className="px-3 py-3">状态</th>
+                              <th className="px-3 py-3">归属</th>
+                              <th className="px-3 py-3">阶段</th>
+                              <th className="px-3 py-3">角色</th>
+                              <th className="px-3 py-3">关联进程</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {activeAgentPodTasks.length ? (
+                              activeAgentPodTasks.map((task) => (
+                                <tr key={`${activeAgentPodCard.pod_name}:${task.task_id}:${task.stage_key || '-'}`} className="hover:bg-slate-50">
+                                  <td className="px-3 py-3 align-top">
+                                    <button
+                                      type="button"
+                                      onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+                                        detail: activeServiceKey === 'dataflow-analysis'
+                                          ? { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: task.task_id }
+                                          : activeServiceKey === 'entry-analysis'
+                                            ? { view: 'entry-analysis-detail', entryAnalysisTaskId: task.task_id }
+                                            : { view: 'system-analysis-detail', systemAnalysisTaskId: task.task_id },
+                                      }))}
+                                      className="max-w-[20rem] truncate text-left font-semibold text-cyan-700 hover:text-cyan-900"
+                                      title={task.task_name || task.task_id}
+                                    >
+                                      {task.task_name || task.task_id}
+                                    </button>
+                                    <div className="mt-1 font-mono text-[10px] text-slate-400">{task.task_id}</div>
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-700">{task.task_status || '-'}</td>
+                                  <td className="px-3 py-3">
+                                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                      task.ownership_status === 'tracked'
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : task.ownership_status === 'residual'
+                                          ? 'bg-rose-100 text-rose-700'
+                                          : 'bg-amber-100 text-amber-800'
+                                    }`}>
+                                      {task.ownership_status === 'tracked' ? '运行中任务' : task.ownership_status === 'residual' ? '残留任务' : '未归属'}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-3 text-slate-700">{task.stage_key || '-'}</td>
+                                  <td className="px-3 py-3 text-slate-700">{asArray(task.agent_roles).join(', ') || '-'}</td>
+                                  <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{asArray(task.process_pids).join(', ') || '-'}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">
+                                  当前 Pod 没有匹配过滤条件的关联任务。
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+
+                    <section className="rounded-[1.8rem] border border-slate-200 bg-slate-50/60 p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">智能体进程</div>
+                          <h4 className="mt-2 text-lg font-black tracking-tight text-slate-900">Processes</h4>
+                        </div>
+                        <div className="text-xs font-semibold text-slate-500">
+                          共 {formatNumber(activeAgentPodProcesses.length)} 条，可终止 {formatNumber(activeAgentPodKillablePids.length)} 条
+                        </div>
+                      </div>
+                      <div className="mt-4 overflow-auto rounded-2xl border border-slate-200 bg-white">
+                        <table className="min-w-[1480px] divide-y divide-slate-200 text-left text-xs">
+                          <thead className="bg-slate-50 text-slate-500">
+                            <tr>
+                              <th className="px-3 py-3">
+                                <input
+                                  type="checkbox"
+                                  checked={allKillableSelectedForActivePod}
+                                  onChange={(event) => toggleAllAgentProcessSelection(event.target.checked)}
+                                  disabled={activeAgentPodKillablePids.length === 0}
+                                  className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                                />
+                              </th>
+                              <th className="px-3 py-3">PID / PGID</th>
+                              <th className="px-3 py-3">角色</th>
+                              <th className="px-3 py-3">任务</th>
+                              <th className="px-3 py-3">阶段</th>
+                              <th className="px-3 py-3">所属判定</th>
+                              <th className="px-3 py-3">原因</th>
+                              <th className="px-3 py-3">RSS</th>
+                              <th className="px-3 py-3">CWD / Workspace</th>
+                              <th className="px-3 py-3">命令</th>
+                              <th className="px-3 py-3">操作</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {activeAgentPodProcesses.length ? (
+                              activeAgentPodProcesses.map((process) => (
+                                <tr key={`${activeAgentPodCard.pod_name}:${process.pid}`} className="hover:bg-slate-50">
+                                  <td className="px-3 py-3 align-top">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedAgentPids.includes(process.pid)}
+                                      onChange={(event) => toggleAgentProcessSelection(process.pid, event.target.checked)}
+                                      disabled={!process.kill_allowed}
+                                      className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-3 font-mono text-[11px] text-slate-700">
+                                    <div>PID {process.pid}</div>
+                                    <div className="text-slate-400">PGID {process.pgid ?? '-'} / PPID {process.ppid ?? '-'}</div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="font-semibold text-slate-700">{process.runtime_kind || '-'}</div>
+                                    <div className="mt-1 text-[10px] text-slate-400">{process.role_kind || '-'}</div>
+                                  </td>
+                                  <td className="px-3 py-3 align-top">
+                                    {process.task_id ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', {
+                                          detail: activeServiceKey === 'dataflow-analysis'
+                                            ? { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: process.task_id }
+                                            : activeServiceKey === 'entry-analysis'
+                                              ? { view: 'entry-analysis-detail', entryAnalysisTaskId: process.task_id }
+                                              : { view: 'system-analysis-detail', systemAnalysisTaskId: process.task_id },
+                                        }))}
+                                        className="max-w-[16rem] truncate text-left font-semibold text-cyan-700 hover:text-cyan-900"
+                                        title={process.task_name || process.task_id}
+                                      >
+                                        {process.task_name || process.task_id}
+                                      </button>
+                                    ) : (
+                                      <span className="text-slate-400">未关联任务</span>
+                                    )}
+                                    <div className="mt-1 font-mono text-[10px] text-slate-400">{process.task_id || '-'}</div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="text-slate-700">{process.task_status || '-'}</div>
+                                    <div className="mt-1 text-[10px] text-slate-400">{process.stage_key || '-'}</div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${resolveAgentOwnerKindBadge(process.owner_kind)}`}>
+                                      {resolveAgentOwnerKindLabel(process.owner_kind)}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-3 text-[11px] text-slate-500">
+                                    <div>{process.owner_reason || '-'}</div>
+                                    {process.kill_block_reason ? <div className="mt-1 text-[10px] text-slate-400">{process.kill_block_reason}</div> : null}
+                                  </td>
+                                  <td className="px-3 py-3 font-mono text-[11px] text-slate-700">{formatBytes(process.rss_bytes)}</td>
+                                  <td className="px-3 py-3 align-top text-[11px] text-slate-500">
+                                    <div className="max-w-[22rem] break-all">{process.cwd || '-'}</div>
+                                    {process.workspace_root ? <div className="mt-1 max-w-[22rem] break-all text-slate-400">workspace: {process.workspace_root}</div> : null}
+                                    {process.match_source || process.match_confidence ? <div className="mt-1 text-[10px] text-slate-400">match: {process.match_source || '-'} / {process.match_confidence || '-'}</div> : null}
+                                  </td>
+                                  <td className="px-3 py-3 align-top text-[11px] text-slate-500">
+                                    <div className="max-w-[26rem] break-all font-mono">{process.command || '-'}</div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => void killSingleOrphan(process)}
+                                      disabled={!process.kill_allowed}
+                                      className={`rounded-lg border px-3 py-1.5 text-[11px] font-bold ${
+                                        process.kill_allowed
+                                          ? process.owner_kind === 'suspected_orphan' || process.owner_kind === 'unknown'
+                                            ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                                            : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                                          : 'border-slate-200 bg-slate-50 text-slate-400'
+                                      }`}
+                                      title={process.kill_allowed ? undefined : process.kill_block_reason || '当前进程不满足终止条件'}
+                                    >
+                                      终止
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={11} className="px-4 py-8 text-center text-sm text-slate-500">
+                                  当前 Pod 没有匹配过滤条件的进程。
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </div>
             ) : null}
           </div>
         ) : (
