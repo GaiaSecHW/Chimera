@@ -883,6 +883,8 @@ interface FuncProgress {
   name: string;
   file?: string;
   r2j: FuncStage;   // R2-J 准确性验证（Judge only）
+  af: 'pending' | 'pass' | 'reject';  // API_Filter 预筛（lean mode）
+  afDurMs?: number;   // 0 = prefilter, >0 = LLM
   r3w: FuncStage;   // R3-W 内部状态
   r3j: FuncStage;   // R3-J 内部状态
   r3: FuncStage;    // R3 合并态
@@ -938,6 +940,7 @@ function deriveFuncProgress(
         name: name || fh.slice(0, 8),
         file,
         r2j: 'pending',
+        af: 'pending',
         r3w: 'pending',
         r3j: 'pending',
         r3: 'pending',
@@ -1019,6 +1022,20 @@ function deriveFuncProgress(
           } else {
             // R2-J 失败是暂时的：保持 running 状态等待重试。
             advanceStage(f, 'r2j', 'running');
+          }
+          f.lastTs = ts;
+        }
+        break;
+
+      case 'api_filter_done':
+        if (fh) {
+          const f = getOrCreate(fh, fn, fi);
+          f.af = Number(d.is_entry) === 1 ? 'pass' : 'reject';
+          f.afDurMs = Number(d.duration_ms) || 0;
+          if (f.af === 'reject') {
+            // API_Filter 过滤掉，跳过 R3/R4
+            if (f.r3 === 'pending') f.r3 = 'skip';
+            if (f.r4 === 'pending') f.r4 = 'skip';
           }
           f.lastTs = ts;
         }
@@ -2331,10 +2348,17 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             if (isLeanMode) {
               const lnR1Files  = stageStats[0]?.filesDone  ?? 0;
               const lnR2Funcs  = stageStats[1]?.funcsDone  ?? 0;
-              const lnAFDone   = stageStats[2]?.funcsDone  ?? 0;
-              const lnAFReject = stageStats[2]?.autoPassCount ?? 0;
-              const lnAFPass   = lnAFDone - lnAFReject;
-              const lnAFRate   = lnAFDone > 0 ? `${Math.round(100*lnAFReject/lnAFDone)}%过滤` : '-';
+              // AF stats: use funcProgress (accurate per-function data)
+              const afFuncs = funcProgress.filter((f) => f.af !== 'pending');
+              const lnAFDone    = afFuncs.length;
+              const lnAFReject  = afFuncs.filter((f) => f.af === 'reject').length;
+              const lnAFPass    = afFuncs.filter((f) => f.af === 'pass').length;
+              const lnPrefilter = afFuncs.filter((f) => f.af === 'reject' && (f.afDurMs ?? 0) === 0).length;
+              const lnLLMJudge  = afFuncs.filter((f) => (f.afDurMs ?? 0) > 0).length;
+              const lnLLMReject = afFuncs.filter((f) => f.af === 'reject' && (f.afDurMs ?? 0) > 0).length;
+              const afDurs = afFuncs.filter((f) => (f.afDurMs ?? 0) > 0).map((f) => f.afDurMs ?? 0);
+              const lnLLMAvgMs  = afDurs.length > 0 ? Math.round(afDurs.reduce((a,b)=>a+b,0)/afDurs.length) : 0;
+              const lnAFRate    = lnAFDone > 0 ? `${Math.round(100*lnAFReject/lnAFDone)}%过滤` : '-';
               const lnR3Funcs  = stageStats[3]?.funcsDone  ?? 0;
               const lnEntries  = stageStats[4]?.entriesFound ?? stageStats[5]?.entriesFound ?? 0;
               const lnR3TokIn  = stageStats[3]?.tokensIn  ?? 0;
@@ -2363,19 +2387,38 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                       </div>
                     ))}
                   </div>
-                  {/* API_Filter 详细统计 */}
+                  {/* API_Filter 详细统计（来自 funcProgress 准确数据） */}
                   {lnAFDone > 0 && (
-                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                       <div className="rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-center">
-                        <div className="text-xs font-black text-orange-700">API_Filter 预筛</div>
-                        <div className="mt-0.5 text-[11px] text-orange-600">通过 {lnAFPass} / 过滤 {lnAFReject} / 共 {lnAFDone}</div>
-                        {lnAFDurSec > 0 && <div className="text-[10px] text-slate-400">总 LLM 耗时 {fmtSec2(lnAFDurSec)}</div>}
-                        {lnAFDone > 0 && <div className="text-[10px] font-bold text-orange-600">减少 R3 {lnAFDone > 0 ? Math.round(100*lnAFReject/lnAFDone) : 0}% Agent 调用</div>}
+                        <div className="text-xs font-black text-orange-700">AF 共执行</div>
+                        <div className="mt-0.5 text-[11px] text-orange-600">共 {lnAFDone} 个函数</div>
+                        <div className="text-[10px] text-emerald-600">通过: {lnAFPass}</div>
+                        <div className="text-[10px] font-bold text-orange-600">过滤: {lnAFReject} ({lnAFRate})</div>
                       </div>
-                      {lnR3TokIn > 0 && (
+                      <div className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2 text-center">
+                        <div className="text-xs font-black text-slate-600">预筛过滤</div>
+                        <div className="mt-0.5 text-[11px] text-slate-600">{lnPrefilter} 个</div>
+                        <div className="text-[10px] text-slate-400">0ms · 无 LLM</div>
+                        <div className="text-[10px] font-bold text-slate-500">立即过滤</div>
+                      </div>
+                      <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-3 py-2 text-center">
+                        <div className="text-xs font-black text-blue-700">LLM 判断</div>
+                        <div className="mt-0.5 text-[11px] text-blue-600">{lnLLMJudge} 个</div>
+                        <div className="text-[10px] text-slate-400">{lnLLMAvgMs > 0 ? `平均 ${Math.round(lnLLMAvgMs/1000)}s` : ''}</div>
+                        <div className="text-[10px] font-bold text-blue-600">通过 {lnLLMJudge - lnLLMReject} / 拒绝 {lnLLMReject}</div>
+                      </div>
+                      {lnR3TokIn > 0 ? (
                         <div className="rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2 text-center">
-                          <div className="text-xs font-black text-teal-700">R3 Token</div>
-                          <div className="mt-0.5 text-[11px] text-teal-600">输入 {fmtK2(lnR3TokIn)} | 输出 {fmtK2(lnR3TokOut)}</div>
+                          <div className="text-xs font-black text-teal-700">R3 Agent Token</div>
+                          <div className="mt-0.5 text-[11px] text-teal-600">输入 {fmtK2(lnR3TokIn)}</div>
+                          <div className="text-[10px] text-teal-500">输出 {fmtK2(lnR3TokOut)}</div>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-center">
+                          <div className="text-xs font-black text-emerald-700">R3 减少</div>
+                          <div className="mt-0.5 text-[11px] text-emerald-600">{lnAFDone > 0 ? Math.round(100*lnAFReject/lnAFDone) : 0}% Agent 调用节省</div>
+                          <div className="text-[10px] text-emerald-500">{lnAFReject}/{lnAFDone} 不进 R3</div>
                         </div>
                       )}
                     </div>
@@ -2529,46 +2572,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             </div>
           </section>
           {/* ─ 精简模式：文件级列表 / 完整模式：函数级列表 */}
-          {isLeanMode && leanFileData.length > 0 ? (
-            <section className="rounded-2xl border border-violet-100 bg-white shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
-                <div>
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-violet-700">精简模式 · 文件分析进度</h2>
-                  <p className="mt-1 text-xs text-slate-400">共 {leanFileData.length} 个文件，已完成 {leanFileData.filter((f) => f.j_state === 'passed').length} 个</p>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
-                      <th className="px-4 py-2.5 text-left">文件名</th>
-                      <th className="px-3 py-2.5 text-center">函数数</th>
-                      <th className="px-3 py-2.5 text-center">静态提取</th>
-                      <th className="px-3 py-2.5 text-center">Worker</th>
-                      <th className="px-3 py-2.5 text-center">Judge</th>
-                      <th className="px-3 py-2.5 text-center">入口数</th>
-                      <th className="px-3 py-2.5 text-center">重试</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {leanFileData.map((f) => (
-                      <tr key={f.file_hash} className={`transition ${f.j_state === 'passed' ? 'bg-emerald-50/30 hover:bg-emerald-50' : 'hover:bg-slate-50'}`}>
-                        <td className="px-4 py-2 font-mono text-slate-800 max-w-[280px] truncate" title={f.file}>{f.file}</td>
-                        <td className="px-3 py-2 text-center text-slate-500">{f.func_count ?? '-'}</td>
-                        <td className="px-3 py-2 text-center"><FuncStageDot state={f.static_done ? 'passed' : 'pending'} label="静态" /></td>
-                        <td className="px-3 py-2 text-center"><FuncStageDot state={f.w_state as any} label="Worker" /></td>
-                        <td className="px-3 py-2 text-center"><FuncStageDot state={f.j_state as any} label="Judge" /></td>
-                        <td className="px-3 py-2 text-center">
-                          {f.entries != null ? <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-black text-emerald-700">{f.entries}</span> : <span className="text-slate-300">-</span>}
-                        </td>
-                        <td className="px-3 py-2 text-center text-slate-400 text-[10px]">{f.j_attempts > 1 ? `↺${f.j_attempts}` : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ) : !isLeanMode && funcProgress.length > 0 ? (
+          {funcProgress.length > 0 ? (
             <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 pb-4 pt-5">
                 <div>
@@ -2628,9 +2632,10 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                       <th className="px-4 py-2.5 text-left">函数名</th>
                       <th className="px-3 py-2.5 text-center whitespace-nowrap">是否入口</th>
                       <th className="px-2 py-2.5 text-center" title="R2 准确性验证 Judge">R2</th>
+                      {isLeanMode && <th className="px-2 py-2.5 text-center" title="API_Filter 预筛（精简模式）">AF</th>}
                       <th className="px-2 py-2.5 text-center" title="R3 外部输入分析（W+J 均通过才算完成）">R3</th>
                       <th className="px-2 py-2.5 text-center">R4</th>
-                      <th className="px-2 py-2.5 text-center">R5</th>
+                      {!isLeanMode && <th className="px-2 py-2.5 text-center">R5</th>}
                       <th className="px-4 py-2.5 text-left">状态</th>
                     </tr>
                   </thead>
@@ -2666,11 +2671,19 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                           }
                         </td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r2j} label="R2" /></td>
+                        {isLeanMode && (
+                          <td className="px-2 py-2 text-center">
+                            {f.af === 'pending' ? <FuncStageDot state="pending" label="AF" />
+                            : f.af === 'pass'    ? <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700" title={f.afDurMs ? `LLM ${f.afDurMs}ms` : '预筛通过'}>{f.afDurMs ? '✓LLM' : '✓pre'}</span>
+                            : <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[9px] font-bold text-orange-700" title={f.afDurMs ? `LLM reject ${f.afDurMs}ms` : '预筛过滤'}>{f.afDurMs ? '✗LLM' : '✗pre'}</span>}
+                          </td>
+                        )}
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r3} label="R3" /></td>
                         <td className="px-2 py-2 text-center"><FuncStageDot state={f.r4}  label="R4" /></td>
-                        <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="R5" /></td>
+                        {!isLeanMode && <td className="px-2 py-2 text-center"><FuncStageDot state={f.rep} label="R5" /></td>}
                         <td className="px-4 py-2 text-slate-500">
                           {f.rep === 'passed'   ? <span className="text-emerald-800 font-bold">✓ R5 完成</span>
+                          : isLeanMode && f.af === 'reject' ? <span className="text-orange-500">AF 过滤</span>
                           : f.rep === 'running'  ? <span className="text-teal-600 animate-pulse">R5 报告中…</span>
                           : f.r4 === 'keep'      ? <span className="text-emerald-600 font-semibold">✓ 入口·等R5</span>
                           : f.r4 === 'remove'    ? <span className="text-orange-600">R4 过滤</span>
