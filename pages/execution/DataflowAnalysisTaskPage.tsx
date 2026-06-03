@@ -33,6 +33,8 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 };
 
+const ACTIVE_OR_TERMINAL_TASK_STATUSES = new Set(['running', 'passed', 'failed', 'error', 'cancelled']);
+
 function formatDuration(startedAt: string | null | undefined, finishedAt: string | null | undefined, nowSecs = Math.floor(Date.now() / 1000)): string {
   if (!startedAt) return '-';
   const startSecs = Math.floor(new Date(startedAt).getTime() / 1000);
@@ -2219,12 +2221,14 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {t.latest_started_at
                       ? new Date(t.latest_started_at).toLocaleString('zh-CN')
-                      : (t.started_at ? new Date(t.started_at).toLocaleString('zh-CN') : '-')}
+                      : '-'}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {t.execution_duration_ms != null
                       ? formatDurationMs(t.execution_duration_ms)
-                      : formatDuration(t.started_at, t.finished_at, clockNow)}
+                      : (ACTIVE_OR_TERMINAL_TASK_STATUSES.has(String(t.status || '').trim().toLowerCase())
+                        ? formatDuration(t.started_at, t.finished_at, clockNow)
+                        : '-')}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {formatDuration(t.started_at, t.finished_at, clockNow)}
