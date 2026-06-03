@@ -4242,7 +4242,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             {renderStageItemFilterSelect(stageDownstreamStatusFilter, setStageDownstreamStatusFilter, stageDownstreamStatusOptions, formatDownstreamStatus)}
                           </th>
 	                          <th className="min-w-[260px] px-3 py-3">子任务</th>
-	                          <th className="w-24 px-3 py-3">重试</th>
+                          <th className="w-28 px-3 py-3">总重试</th>
                           {isSystemAnalysisStageTable ? (
                             <>
                               <th className="w-28 px-3 py-3">高风险模块</th>
@@ -4251,7 +4251,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                             </>
                           ) : null}
                           {isEntryAnalysisStageTable ? <th className="w-24 px-3 py-3">入口数量</th> : null}
-                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('开始时间', 'started_at')}</th>
+                          <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('首次开始', 'started_at')}</th>
                           <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('结束时间', 'finished_at')}</th>
                           <th className="w-28 px-3 py-3">{renderSortableStageItemHeader('耗时', 'duration')}</th>
                           <th className="w-44 px-3 py-3">{renderSortableStageItemHeader('最近尝试', 'last_sync_attempt_at')}</th>
@@ -4328,7 +4328,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 font-bold text-slate-700">{item.retry_count || 0}</td>
+                                <td className="px-3 py-3">
+                                  <div className="font-bold text-slate-700">{item.total_retry_count || 0}</div>
+                                  <div className="mt-1 text-[11px] text-slate-500">
+                                    自动 {item.auto_retry_count || 0} / 重跑 {item.rerun_count || 0}
+                                  </div>
+                                </td>
                                 {isSystemAnalysisStageTable ? (
                                   <>
                                     <td className="px-3 py-3 font-black text-slate-900">{riskCounts.high}</td>
@@ -4339,9 +4344,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                 {isEntryAnalysisStageTable ? (
                                   <td className="px-3 py-3 font-black text-slate-900">{stageItemEntryCountLabel(item, entryAnalysisEntryCountByItemKey)}</td>
                                 ) : null}
-                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.started_at)}</td>
+                                <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.first_started_at || item.started_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">{fmt(item.finished_at)}</td>
-                                <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.started_at, item.finished_at)}</td>
+                                <td className="px-3 py-3 font-black text-slate-900">{durationLabel(item.latest_started_at || item.started_at, item.finished_at)}</td>
                                 <td className="whitespace-nowrap px-3 py-3 font-mono text-[11px] text-slate-600">
                                   {displayStageItemSyncTime(item.last_sync_attempt_at, item.downstream_task_id ? '未尝试' : '不适用')}
                                 </td>
@@ -4463,6 +4468,20 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                                           <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600">
                                             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">同步诊断</div>
                                             <div className="mt-3 space-y-3">
+                                              <div>
+                                                <div className="text-slate-400">首次开始</div>
+                                                <div className="mt-1 font-mono text-slate-800">{fmt(item.first_started_at || item.started_at)}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-slate-400">本轮开始</div>
+                                                <div className="mt-1 font-mono text-slate-800">{fmt(item.latest_started_at || item.started_at)}</div>
+                                              </div>
+                                              <div>
+                                                <div className="text-slate-400">重试统计</div>
+                                                <div className="mt-1 text-slate-800">
+                                                  总计 {item.total_retry_count || 0}，自动重试 {item.auto_retry_count || 0}，重跑 {item.rerun_count || 0}
+                                                </div>
+                                              </div>
                                               <div>
                                                 <div className="text-slate-400">当前同步结论</div>
                                                 <div className="mt-1 text-slate-800">{formatStageItemSyncFreshness(item.sync_freshness_state)}</div>

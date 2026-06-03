@@ -371,6 +371,9 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     status: string;
     downstream_status?: string | null;
     downstream_binding_state?: string | null;
+    total_retry_count?: number;
+    rerun_count?: number;
+    auto_retry_count?: number;
     downstream_create_attempts?: number;
     downstream_create_last_attempt_at?: string | null;
     downstream_create_next_retry_at?: string | null;
@@ -404,6 +407,8 @@ export interface BinarySecurityTaskDetail extends BinarySecurityTask {
     sync_observation_error_message?: string | null;
     sync_observation_error_type?: string | null;
     sync_observation_http_status?: number | null;
+    first_started_at?: string | null;
+    latest_started_at?: string | null;
     started_at?: string | null;
     finished_at?: string | null;
   }>;
