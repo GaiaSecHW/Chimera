@@ -996,13 +996,6 @@ export const DataflowVulnTaskListPage: React.FC<{ projectId: string }> = ({ proj
     void loadSlotDetail();
   }, [showSlotDetailModal]);
 
-  useEffect(() => {
-    const storedTaskId = sessionStorage.getItem('secflow:dataflowVulnTaskId');
-    if (!storedTaskId || !projectId) return;
-    sessionStorage.removeItem('secflow:dataflowVulnTaskId');
-    void openTaskDetail({ task_id: storedTaskId, latest_execution_id: '' });
-  }, [projectId]);
-
   const toggleQuickFilter = useCallback((owner: LocalFilterOwner, value: string) => {
     setPage(1);
     if (owner === 'slot') {
