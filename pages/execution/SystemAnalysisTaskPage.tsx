@@ -173,6 +173,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [tasks, setTasks] = useState<AppSaTaskListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [taskStats, setTaskStats] = useState<AppSaTaskListStats>({ total: 0, pending: 0, running: 0, passed: 0, failed: 0, error: 0, cancelled: 0 });
+  const [taskStatsError, setTaskStatsError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
   const [statusFilter, setStatusFilter] = useState('');
@@ -195,6 +196,8 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   const [slotPanelExpanded, setSlotPanelExpanded] = useState(false);
   const [expandedSlotWorkerIds, setExpandedSlotWorkerIds] = useState<string[]>([]);
   const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
+  const [lastStatsLoadedAt, setLastStatsLoadedAt] = useState<number>(0);
+  const [lastClusterSummaryLoadedAt, setLastClusterSummaryLoadedAt] = useState<number>(0);
 
   const handleHeaderSort = (field: 'task' | 'status' | 'created_at' | 'duration') => {
     const mapped = HEADER_SORT_FIELDS[field];
@@ -281,8 +284,10 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         parent_task_id: parentTaskIdFilter.trim() || undefined,
       });
       setTaskStats(resp);
+      setTaskStatsError(null);
+      setLastStatsLoadedAt(Date.now());
     } catch (err: any) {
-      notify(`加载任务统计失败: ${err?.message || err}`, 'error');
+      setTaskStatsError(err?.message || '加载任务统计失败');
     }
   }, [appApi, projectId, statusFilter, analysisModeFilter, parentTaskIdFilter, notify]);
 
@@ -292,6 +297,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
       const payload = await appApi.getWorkerClusterCapacitySummary();
       setClusterCapacitySummary(payload);
       setSlotError(null);
+      setLastClusterSummaryLoadedAt(Date.now());
     } catch (err: any) {
       setSlotError(err?.message || '读取执行槽位失败');
       setClusterCapacitySummary(null);
@@ -315,8 +321,15 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
   }, [appApi]);
 
   useEffect(() => { void loadTasks(page); }, [projectId, page, perPage, statusFilter, analysisModeFilter, parentTaskIdFilter, sortBy, sortOrder]);
-  useEffect(() => { void loadTaskStats(); }, [loadTaskStats]);
-  useEffect(() => { void loadClusterCapacity(); }, [loadClusterCapacity]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = window.setTimeout(() => {
+      void loadTaskStats();
+      void loadClusterCapacity();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [projectId, statusFilter, analysisModeFilter, parentTaskIdFilter, loadTaskStats, loadClusterCapacity]);
 
   useEffect(() => {
     const storedEnabled = localStorage.getItem(autoRefreshStorageKey);
@@ -373,11 +386,17 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
     if (!pageVisible) return;
     const timer = setInterval(() => {
       void loadTasks(page);
-      void loadClusterCapacity();
+      const now = Date.now();
+      if (now - lastClusterSummaryLoadedAt >= 30_000) {
+        void loadClusterCapacity();
+      }
+      if (now - lastStatsLoadedAt >= 30_000) {
+        void loadTaskStats();
+      }
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, pageVisible, projectId, page]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, pageVisible, projectId, page, lastClusterSummaryLoadedAt, lastStatsLoadedAt]);
 
   const toggleSlotWorkerExpanded = (workerId: string) => {
     setExpandedSlotWorkerIds((current) => (
@@ -569,11 +588,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
         <ServicePageTitle title="分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">指定分析路径，启动安全分析任务。</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: '总任务', value: taskStats.total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
-            { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-            { label: '已通过', value: taskStats.passed, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-            { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+            {[
+              { label: '总任务', value: taskStats.total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
+              { label: '运行中', value: taskStats.running + taskStats.pending, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+              { label: '已通过', value: taskStats.passed, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+              { label: '失败/取消', value: taskStats.failed + taskStats.error + taskStats.cancelled, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
           ].map((s) => (
             <div key={s.label} className={`min-w-[96px] rounded-xl border ${s.border} ${s.bg} px-3 py-2`}>
               <p className={`text-lg font-black ${s.text}`}>{s.value}</p>
@@ -581,6 +600,11 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
             </div>
           ))}
         </div>
+        {taskStatsError ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            统计摘要暂不可用：{taskStatsError}
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
@@ -727,7 +751,7 @@ export const SystemAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask: (
               <option value="desc">降序</option>
               <option value="asc">升序</option>
             </select>
-            <button onClick={() => { void loadTasks(page); void loadClusterCapacity(); }} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
+            <button onClick={() => { void loadTasks(page); void loadTaskStats(); void loadClusterCapacity(); }} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50">
               <RefreshCw size={14} />
             </button>
             <button onClick={() => { setCreateModalInitialForm(buildDefaultSystemAnalysisTaskForm(projectId)); setCreateModalOpen(true); }}
