@@ -234,15 +234,15 @@ export const B2SOverviewPage: React.FC<Props> = ({ projectId, onOpenTask }) => {
     return items.length > 0 ? summarizeB2STasks(items) : emptyB2SStats();
   }, [items, taskStats]);
   const statusOptions = B2S_TASK_STATUS_ORDER.filter((status) => {
-    if (status === 'pending') return stats.pending > 0;
-    if (status === 'running') return stats.running > 0;
-    if (status === 'success' || status === 'completed') return stats.success > 0;
-    if (status === 'partial') return stats.partial > 0;
-    if (status === 'failed') return stats.failed > 0;
-    if (status === 'cancelled') return stats.cancelled > 0;
+    if (status === 'pending') return stats.pendingItems > 0;
+    if (status === 'running') return stats.runningItems > 0;
+    if (status === 'success' || status === 'completed') return stats.successItems > 0;
+    if (status === 'partial') return stats.partialItems > 0;
+    if (status === 'failed') return stats.failedItems > 0;
+    if (status === 'cancelled') return stats.cancelledItems > 0;
     return false;
   });
-  const total = stats.total;
+  const total = stats.taskCount;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const pagedItems = items;
   const pageStart = total === 0 ? 0 : (page - 1) * perPage + 1;

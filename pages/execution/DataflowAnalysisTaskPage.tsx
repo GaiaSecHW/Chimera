@@ -44,6 +44,15 @@ function formatDuration(startedAt: string | null | undefined, finishedAt: string
   return `${m}m${s}s`;
 }
 
+function formatDurationMs(durationMs: number | null | undefined): string {
+  if (durationMs == null || Number.isNaN(durationMs) || durationMs < 0) return '-';
+  const secs = Math.floor(durationMs / 1000);
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}m${s}s`;
+}
+
 function formatTsDuration(startTs: number | null, endTs: number | null): string {
   if (!startTs || !endTs || endTs <= startTs) return '';
   const secs = Math.round(endTs - startTs);
@@ -58,6 +67,10 @@ function formatDateTime(value?: string | null): string {
   if (!value) return '-';
   const timestamp = new Date(value);
   return Number.isFinite(timestamp.getTime()) ? timestamp.toLocaleString('zh-CN') : value;
+}
+
+function getTaskExecutionAttemptCount(task: AppDfaTaskItem): number {
+  return Math.max(0, Number(task.execution_epoch || 0));
 }
 
 // ── DFA Stage Steps ───────────────────────────────────────────────────────────
@@ -686,6 +699,14 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
     if (!parentTaskId) return;
     setParentTaskIdFilter((current) => (current === parentTaskId ? '' : parentTaskId));
     setPage(1);
+  };
+
+  const toggleSourceQuickFilter = (task: AppDfaTaskItem) => {
+    if (task.parent_task_id) {
+      toggleParentTaskQuickFilter(task.parent_task_id);
+      return;
+    }
+    toggleModeQuickFilter(getTaskMode(task));
   };
 
   // Pre-fill input_path from FileExplorer right-click
@@ -2067,7 +2088,7 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   onClick={() => handleHeaderSort('status')}
                 />
                 <ExecutionTableTh>执行槽位</ExecutionTableTh>
-                <ExecutionTableTh>源码路径</ExecutionTableTh>
+                <ExecutionTableTh>重执行次数</ExecutionTableTh>
                 <ExecutionTableTh>来源</ExecutionTableTh>
                 <SortableHeader
                   label="创建时间"
@@ -2075,8 +2096,10 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   direction={sortOrder}
                   onClick={() => handleHeaderSort('created_at')}
                 />
+                <ExecutionTableTh>最近开始时间</ExecutionTableTh>
+                <ExecutionTableTh>执行耗时</ExecutionTableTh>
                 <SortableHeader
-                  label="耗时"
+                  label="生命周期时长"
                   active={sortBy === 'started_at'}
                   direction={sortOrder}
                   onClick={() => handleHeaderSort('duration')}
@@ -2158,21 +2181,33 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                       ))}
                     </div>
                   </ExecutionTableTd>
-                  <ExecutionTableTd className="max-w-[320px]">
-                    <div className="truncate font-mono text-xs text-slate-500" title={t.input_path}>{t.input_path}</div>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-600">
+                    <span
+                      title={`执行代次 ${Math.max(0, Number(t.execution_epoch || 0))} · 控制面重跑 ${Math.max(0, Number(t.control_version || 0))} · lease_lost 回收 ${Math.max(0, Number(t.lease_lost_count || 0))}`}
+                    >
+                      {getTaskExecutionAttemptCount(t)}
+                    </span>
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
-                    {t.parent_task_id ? (
+                    {(t.parent_task_id || t.parent_task_display || t.origin_label) ? (
                       <button
                         type="button"
-                        onClick={() => toggleParentTaskQuickFilter(t.parent_task_id || '')}
+                        onClick={() => toggleSourceQuickFilter(t)}
                         className={getQuickFilterButtonClassName(
-                          parentTaskIdFilter === t.parent_task_id,
+                          t.parent_task_id
+                            ? parentTaskIdFilter === t.parent_task_id
+                            : modeFilter === getTaskMode(t),
                           'inline-flex max-w-full items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-xs font-semibold text-slate-700'
                         )}
-                        title={parentTaskIdFilter === t.parent_task_id ? '再次点击取消主任务筛选' : '点击按主任务 ID 快速筛选'}
+                        title={
+                          t.parent_task_id
+                            ? (parentTaskIdFilter === t.parent_task_id ? '再次点击取消来源筛选' : '点击按来源快速筛选')
+                            : (modeFilter === getTaskMode(t) ? '再次点击取消来源筛选' : '点击按来源快速筛选')
+                        }
                       >
-                        <span className="truncate" title={t.parent_task_id}>{t.parent_task_id}</span>
+                        <span className="truncate" title={t.parent_task_display || t.parent_task_id || t.origin_label || '-'}>
+                          {t.parent_task_display || t.parent_task_id || t.origin_label}
+                        </span>
                       </button>
                     ) : (
                       <span className="text-xs text-slate-400">-</span>
@@ -2180,6 +2215,12 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {t.latest_started_at ? new Date(t.latest_started_at).toLocaleString('zh-CN') : '-'}
+                  </ExecutionTableTd>
+                  <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
+                    {formatDurationMs(t.execution_duration_ms)}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {formatDuration(t.started_at, t.finished_at, clockNow)}

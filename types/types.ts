@@ -3511,11 +3511,14 @@ export interface AppDfaTaskItem {
   updated_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+  latest_started_at?: string | null;
+  execution_duration_ms?: number | null;
   execution_owner_id?: string | null;
   execution_lease_until?: string | null;
   execution_heartbeat_at?: string | null;
   execution_epoch?: number | null;
   control_version?: number | null;
+  rerun_count?: number | null;
   dispatch_status?: string | null;
 }
 

@@ -184,6 +184,8 @@ function buildPlaceholderPhase(key: string, label: string): ProgressPhase {
     total_rounds: null,
     duration_seconds: null,
     token_total: null,
+    input_tokens: null,
+    output_tokens: null,
   };
 }
 

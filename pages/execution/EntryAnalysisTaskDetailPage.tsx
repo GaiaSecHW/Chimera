@@ -1561,6 +1561,7 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const [timelineEventTypeFilter, setTimelineEventTypeFilter] = useState<string>('__all__');
   const [timelineLevelFilter, setTimelineLevelFilter] = useState<string>('__all__');
   const [timelineStatusFilter, setTimelineStatusFilter] = useState<string>('__all__');
+  const [timelineTimeSort, setTimelineTimeSort] = useState<'desc' | 'asc'>('desc');
   const [timelinePage, setTimelinePage] = useState(1);
   const [timelinePageSize, setTimelinePageSize] = useState(200);
   const [resultView, setResultView] = useState<'final' | 'functions' | 'report' | 'json'>('final');
@@ -2017,13 +2018,19 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
   const timelineEventTypeOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.event_type || '').trim()).filter(Boolean))), [timeline]);
   const timelineLevelOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.level || '').trim()).filter(Boolean))), [timeline]);
   const timelineStatusOptions = useMemo(() => Array.from(new Set(timeline.map((event) => String(event.status || event.dispatch_status || '').trim()).filter(Boolean))), [timeline]);
-  const filteredTimeline = useMemo(() => timeline.filter((event) => {
-    if (timelineEventTypeFilter !== '__all__' && (event.event_type || '__none__') !== timelineEventTypeFilter) return false;
-    if (timelineLevelFilter !== '__all__' && (event.level || '__none__') !== timelineLevelFilter) return false;
-    const normalizedStatus = event.status || event.dispatch_status || '__none__';
-    if (timelineStatusFilter !== '__all__' && normalizedStatus !== timelineStatusFilter) return false;
-    return true;
-  }), [timeline, timelineEventTypeFilter, timelineLevelFilter, timelineStatusFilter]);
+  const filteredTimeline = useMemo(() => timeline
+    .filter((event) => {
+      if (timelineEventTypeFilter !== '__all__' && (event.event_type || '__none__') !== timelineEventTypeFilter) return false;
+      if (timelineLevelFilter !== '__all__' && (event.level || '__none__') !== timelineLevelFilter) return false;
+      const normalizedStatus = event.status || event.dispatch_status || '__none__';
+      if (timelineStatusFilter !== '__all__' && normalizedStatus !== timelineStatusFilter) return false;
+      return true;
+    })
+    .sort((left, right) => {
+      const leftTs = left.created_at ? new Date(left.created_at).getTime() : 0;
+      const rightTs = right.created_at ? new Date(right.created_at).getTime() : 0;
+      return timelineTimeSort === 'asc' ? leftTs - rightTs : rightTs - leftTs;
+    }), [timeline, timelineEventTypeFilter, timelineLevelFilter, timelineStatusFilter, timelineTimeSort]);
   const timelineTotalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredTimeline.length / Math.max(1, timelinePageSize))),
     [filteredTimeline.length, timelinePageSize],
@@ -2876,12 +2883,29 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
                     展示 {timelineRangeStart}-{timelineRangeEnd} / {filteredTimeline.length}
                   </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
+                    第 {normalizedTimelinePage} / {timelineTotalPages} 页
+                  </div>
                   <label className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-500">
                     每页
                     <select value={timelinePageSize} onChange={(event) => setTimelinePageSize(Math.min(2000, Math.max(50, Number(event.target.value) || 200)))} className="ml-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">
                       {[50, 100, 200, 500].map((size) => <option key={size} value={size}>{size}</option>)}
                     </select>
                   </label>
+                  <button
+                    onClick={() => setTimelinePage((page) => Math.max(1, page - 1))}
+                    disabled={timelineLoading || normalizedTimelinePage <= 1}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    上一页
+                  </button>
+                  <button
+                    onClick={() => setTimelinePage((page) => Math.min(timelineTotalPages, page + 1))}
+                    disabled={timelineLoading || normalizedTimelinePage >= timelineTotalPages}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    下一页
+                  </button>
                   <button onClick={() => void loadTimeline()} disabled={timelineLoading} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
                     {timelineLoading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     刷新
@@ -2891,20 +2915,6 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     清空
                   </button>
                 </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-                  <option value="__all__">全部事件</option>
-                  {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
-                </select>
-                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-                  <option value="__all__">全部级别</option>
-                  {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
-                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
-                  <option value="__all__">全部状态</option>
-                  {timelineStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
               </div>
               <div className="mt-4 space-y-3">
                 {timelineLoading && timeline.length === 0 ? (
@@ -2918,11 +2928,44 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                         <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
                           <tr>
                             <th className="w-14 px-3 py-2">#</th>
-                            <th className="w-44 px-3 py-2">时间</th>
+                            <th className="w-44 px-3 py-2">
+                              <button
+                                type="button"
+                                onClick={() => setTimelineTimeSort((current) => (current === 'desc' ? 'asc' : 'desc'))}
+                                className="inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400 hover:text-slate-600"
+                              >
+                                时间
+                                <span>{timelineTimeSort === 'desc' ? '↓' : '↑'}</span>
+                              </button>
+                            </th>
                             <th className="w-32 px-3 py-2">分类</th>
-                            <th className="w-44 px-3 py-2">事件</th>
-                            <th className="w-28 px-3 py-2">状态</th>
-                            <th className="w-24 px-3 py-2">级别</th>
+                            <th className="w-44 px-3 py-2">
+                              <div className="flex flex-col gap-2">
+                                <span>事件</span>
+                                <select value={timelineEventTypeFilter} onChange={(event) => setTimelineEventTypeFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold normal-case tracking-normal text-slate-700">
+                                  <option value="__all__">全部事件</option>
+                                  {timelineEventTypeOptions.map((value) => <option key={value} value={value}>{formatTimelineEventTypeLabel(value)}</option>)}
+                                </select>
+                              </div>
+                            </th>
+                            <th className="w-28 px-3 py-2">
+                              <div className="flex flex-col gap-2">
+                                <span>状态</span>
+                                <select value={timelineStatusFilter} onChange={(event) => setTimelineStatusFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold normal-case tracking-normal text-slate-700">
+                                  <option value="__all__">全部状态</option>
+                                  {timelineStatusOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                                </select>
+                              </div>
+                            </th>
+                            <th className="w-24 px-3 py-2">
+                              <div className="flex flex-col gap-2">
+                                <span>级别</span>
+                                <select value={timelineLevelFilter} onChange={(event) => setTimelineLevelFilter(event.target.value)} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold normal-case tracking-normal text-slate-700">
+                                  <option value="__all__">全部级别</option>
+                                  {timelineLevelOptions.map((value) => <option key={value} value={value}>{value}</option>)}
+                                </select>
+                              </div>
+                            </th>
                             <th className="px-3 py-2">摘要</th>
                             <th className="w-56 px-3 py-2">来源/归属</th>
                             <th className="w-36 px-3 py-2 text-right">操作</th>
