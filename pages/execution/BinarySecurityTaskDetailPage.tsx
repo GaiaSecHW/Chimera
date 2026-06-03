@@ -1054,8 +1054,18 @@ const firstText = (...values: Array<unknown>): string | null => {
 
 const summarizeCount = (count: number, unit = '项') => `${count.toLocaleString()} ${unit}`;
 
+const TERMINAL_BINARY_SECURITY_STATUSES = new Set([
+  'success',
+  'failed',
+  'downstream_missing',
+  'partial_success',
+  'cancelled',
+]);
+
 function deriveTaskStatusReason(detail: BinarySecurityTaskDetail): TaskStatusReason {
-  if (detail.abnormal_reason) {
+  const normalizedTaskStatus = String(detail.status || '').trim().toLowerCase();
+  const shouldTrustAbnormalReasonSnapshot = TERMINAL_BINARY_SECURITY_STATUSES.has(normalizedTaskStatus);
+  if (detail.abnormal_reason && shouldTrustAbnormalReasonSnapshot) {
     return {
       tone: abnormalReasonTone(detail.abnormal_reason),
       title: detail.abnormal_reason.title,
