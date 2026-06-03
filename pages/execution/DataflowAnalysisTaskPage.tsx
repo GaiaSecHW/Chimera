@@ -2217,10 +2217,14 @@ export const DataflowAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?
                     {t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '-'}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
-                    {t.latest_started_at ? new Date(t.latest_started_at).toLocaleString('zh-CN') : '-'}
+                    {t.latest_started_at
+                      ? new Date(t.latest_started_at).toLocaleString('zh-CN')
+                      : (t.started_at ? new Date(t.started_at).toLocaleString('zh-CN') : '-')}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
-                    {formatDurationMs(t.execution_duration_ms)}
+                    {t.execution_duration_ms != null
+                      ? formatDurationMs(t.execution_duration_ms)
+                      : formatDuration(t.started_at, t.finished_at, clockNow)}
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     {formatDuration(t.started_at, t.finished_at, clockNow)}
