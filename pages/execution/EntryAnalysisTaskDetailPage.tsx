@@ -304,6 +304,11 @@ interface StageStat {
   ccStatus?: 'pending'|'running'|'done'|'failed';
   startTs?: number;
   lastTs?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  durationMs?: number;
+  scriptPassCount?: number;  // R2-J 脚本化通过数
+  autoPassCount?: number;    // R3-J 自动通过数
 }
 
 /**
@@ -341,12 +346,27 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
       case 'r1_j_done': touch(0, ts); break;
   // R2 (idx=1) — 只有 Judge，无 Worker 步骤
       case 'r2_j_start': touch(1, ts); break;
+      case 'r2_script': touch(1, ts);
+        result[1].scriptPassCount = (result[1].scriptPassCount || 0) + 1; break;
       case 'r2_script_pass': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash)); break;
-      case 'r2_j_done': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash)); break;
+      case 'r2_j_done': touch(1, ts); if (d.func_hash) r2Funcs.add(String(d.func_hash));
+        result[1].tokensIn  = (result[1].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        result[1].tokensOut = (result[1].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        result[1].durationMs = (result[1].durationMs || 0) + (Number(d.duration_ms) || 0);
+        break;
       // R3 (idx=2) — 与 CC 并行
       case 'r3_w_start': case 'r3_j_start': touch(2, ts); break;
-      case 'r3_w_done': touch(2, ts); if (d.func_hash) r3Funcs.add(String(d.func_hash)); break;
-      case 'r3_j_done': touch(2, ts); break;
+      case 'r3_w_done': touch(2, ts); if (d.func_hash) r3Funcs.add(String(d.func_hash));
+        result[2].tokensIn  = (result[2].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        result[2].tokensOut = (result[2].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        result[2].durationMs = (result[2].durationMs || 0) + (Number(d.duration_ms) || 0);
+        break;
+      case 'r3_j_done': touch(2, ts);
+        if (d.auto_pass) result[2].autoPassCount = (result[2].autoPassCount || 0) + 1;
+        result[2].tokensIn  = (result[2].tokensIn  || 0) + (Number(d.tokens_input)  || 0);
+        result[2].tokensOut = (result[2].tokensOut || 0) + (Number(d.tokens_output) || 0);
+        result[2].durationMs = (result[2].durationMs || 0) + (Number(d.duration_ms) || 0);
+        break;
       // CC (idx=3) — R4 前置，与 R3 并行
       case 'callchain_start': touch(3, ts); ccStatus = 'running'; break;
       case 'callchain_done':
@@ -374,8 +394,12 @@ function deriveFullStageStats(events: AppEaStageEvent[]): StageStat[] {
   }
 
   result[0] = { filesTotal: totalFiles || undefined, filesDone: r1Files.size || undefined, startTs: firstTs[0], lastTs: lastTs[0] };
-  result[1] = { funcsDone: r2Funcs.size || undefined, startTs: firstTs[1], lastTs: lastTs[1] };
-  result[2] = { funcsDone: r3Funcs.size || undefined, startTs: firstTs[2], lastTs: lastTs[2] };
+  result[1] = { funcsDone: r2Funcs.size || undefined, startTs: firstTs[1], lastTs: lastTs[1],
+    tokensIn: result[1].tokensIn, tokensOut: result[1].tokensOut, durationMs: result[1].durationMs,
+    scriptPassCount: result[1].scriptPassCount };
+  result[2] = { funcsDone: r3Funcs.size || undefined, startTs: firstTs[2], lastTs: lastTs[2],
+    tokensIn: result[2].tokensIn, tokensOut: result[2].tokensOut, durationMs: result[2].durationMs,
+    autoPassCount: result[2].autoPassCount };
   result[3] = {
     nodeCount: ccNodes || undefined,
     edgeCount: ccEdges || undefined,
@@ -2274,6 +2298,17 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
             const r3Funcs    = stageStats[2]?.funcsDone ?? 0;
             const r4Entries  = stageStats[4]?.entriesFound ?? stageStats[5]?.entriesFound ?? 0;
             const ccNodes    = stageStats[3]?.nodeCount ?? 0;
+            // token/time 统计
+            const r2TokIn  = stageStats[1]?.tokensIn  ?? 0;
+            const r2TokOut = stageStats[1]?.tokensOut ?? 0;
+            const r2DurSec = Math.round((stageStats[1]?.durationMs ?? 0) / 1000);
+            const r2Script = stageStats[1]?.scriptPassCount ?? 0;
+            const r3TokIn  = stageStats[2]?.tokensIn  ?? 0;
+            const r3TokOut = stageStats[2]?.tokensOut ?? 0;
+            const r3DurSec = Math.round((stageStats[2]?.durationMs ?? 0) / 1000);
+            const r3Auto   = stageStats[2]?.autoPassCount ?? 0;
+            const fmtK = (n: number) => n >= 1000 ? `${(n/1000).toFixed(1)}K` : String(n);
+            const fmtSec = (s: number) => s >= 60 ? `${Math.floor(s/60)}m${s%60}s` : `${s}s`;
             return (
               <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2296,6 +2331,27 @@ export const EntryAnalysisTaskDetailPage: React.FC<{ projectId: string; taskId: 
                     </div>
                   ))}
                 </div>
+                {/* token/time 细分统计 */}
+                {(r2TokIn > 0 || r3TokIn > 0) && (
+                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {r2TokIn > 0 && (
+                      <div className="rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-center">
+                        <div className="text-xs font-black text-indigo-700">R2 Token</div>
+                        <div className="mt-0.5 text-[11px] text-indigo-600">输入 {fmtK(r2TokIn)} | 输出 {fmtK(r2TokOut)}</div>
+                        {r2DurSec > 0 && <div className="text-[10px] text-slate-400">{fmtSec(r2DurSec)}</div>}
+                        {r2Script > 0 && <div className="text-[10px] text-indigo-500">脚本化通过 {r2Script}</div>}
+                      </div>
+                    )}
+                    {r3TokIn > 0 && (
+                      <div className="rounded-lg border border-teal-100 bg-teal-50/60 px-3 py-2 text-center">
+                        <div className="text-xs font-black text-teal-700">R3 Token</div>
+                        <div className="mt-0.5 text-[11px] text-teal-600">输入 {fmtK(r3TokIn)} | 输出 {fmtK(r3TokOut)}</div>
+                        {r3DurSec > 0 && <div className="text-[10px] text-slate-400">{fmtSec(r3DurSec)}</div>}
+                        {r3Auto > 0 && <div className="text-[10px] text-teal-500">自动通过 {r3Auto} / {r3Funcs}</div>}
+                      </div>
+                    )}
+                  </div>
+                )}
               </section>
             );
           })()}
