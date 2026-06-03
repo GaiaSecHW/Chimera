@@ -460,6 +460,12 @@ const cloneReportOutputDrafts = (items: ReportOutputDraft[]): ReportOutputDraft[
   items.map((item) => ({ ...item, key: createDraftKey() }));
 
 const defaultCustomGraphAuditedResultPath = '[[ task.attempt_root ]]/exports/audited-result.json';
+const defaultOpenCodeNodeProvider = {
+  name: 'opencode',
+  options: {
+    chunkTimeout: 120000,
+  },
+};
 
 const defaultAuditGraphPrompt = `OpenHarmony IPC deep OOB audit task.
 Embedded workflow profile: openharmony-project-deep-oob-audit
@@ -471,17 +477,21 @@ This prompt is self-contained. Do not invoke, require, or assume any external Co
 
 Goal:
 - Audit only the specified OpenHarmony subproject for IPC-reachable out-of-bounds memory reads/writes.
-- Stay scoped to the subproject for candidate surfaces, but follow call chains to real implementations anywhere under Repo root when needed.
+- Stay scoped to the subproject source for candidate surfaces and broad searches.
+- Do not use rg/find from Repo root to discover candidates. If readtags or a direct code reference points to a file outside the subproject, read that exact file directly as dependency context only.
 - Write the final Markdown report exactly to Output report path. Create parent directories if needed.
 
 Workflow:
 1. Find IPC-reachable attack surfaces first.
 - Search under the subproject for server-side IPC handlers and parcel consumers: OnRemoteRequest, OnRemoteRequestInner, IRemoteStub, RemoteStub, IPCObjectStub, transaction dispatch switches/tables, and helpers that read MessageParcel/data.
 - Prefer rg under the subproject first. Exclude tests, fuzzers, demos, and sample code unless they reveal the production path.
+- The process cwd is intended to be the Subproject path. Do not cd to Repo root or run bare rg/find there.
+- Do not run broad rg searches from Repo root. Repo-root access is only for reading exact files resolved by readtags or already referenced from the subproject code.
 
 2. Resolve real implementations; never guess.
 - When a relevant function or class is declared, generated, virtual, or referenced indirectly, resolve its real implementation before judging safety.
 - Prefer readtags against the Repo root tags file when available: readtags -e -t <Repo root>/tags <symbol> | grep -v test.
+- If readtags returns definitions in another project, open those returned files directly. Do not use repo-wide rg to rediscover or expand the search.
 - If an implementation cannot be found, record it in an Unresolved section and do not claim a vulnerability based on assumptions.
 
 3. Build the full serialization/deserialization object graph.
@@ -502,6 +512,7 @@ Workflow:
 - Cite exact attacker-controlled parcel fields and exact later OOB sinks.
 - Include file paths and line numbers wherever possible.
 - If safety depends on an assumption you cannot prove from code, mark the path unresolved instead of reporting it.
+- Keep external files resolved by readtags clearly marked as dependency context, not as new audit scope.
 
 Report requirements:
 - Include Scope: Repo root, Subproject, audited IPC entrypoints, and transaction codes if known.
@@ -512,6 +523,7 @@ Report requirements:
 const defaultPocGraphPrompt = `OpenHarmony IPC audit report PoC validation task.
 Embedded workflow profile: openharmony-ipc-project-report-poc
 Repo root: [[ task.repo_root ]]
+Subproject: [[ task.project_path ]]
 Project report: [[ task.report_outputs["audit_report"].absolute_path ]]
 Output PoC report path: [[ task.report_outputs["poc_report"].absolute_path ]]
 Output audited result json path: ${defaultCustomGraphAuditedResultPath}
@@ -558,11 +570,14 @@ Failure handling rules:
 This prompt is self-contained. Do not invoke, require, or assume any external Codex/OpenCode skill.
 
 Goal:
-- Validate the issues in Project report against the code under Repo root.
+- Validate the issues in Project report against the reported subproject code and exact referenced dependency files only.
 - Always write a PoC report exactly to Output PoC report path. Create parent directories if needed.
 - Always write a JSON stats file exactly to Output audited result json path. Create parent directories if needed.
 
 Scope rules:
+- Keep code validation scoped to the reported subproject and exact files already cited by the report, direct code references, or readtags.
+- The process cwd is intended to be the Subproject path. Do not cd to Repo root or run bare rg/find there.
+- Do not run broad rg/find searches from Repo root. If readtags resolves helper classes or implementations in another project, read those exact files directly as dependency context.
 - If a reported sink cannot be triggered from OnRemoteRequest or an equivalent IPC stub dispatch into the service-side implementation, classify it as NOT_APPLICABLE and do not generate a PoC for it.
 - For Lite system reports, issues based on Lite IPC IpcIo rather than MessageParcel-based IPC are NOT_APPLICABLE in this workflow.
 - Do not patch the target service implementation to force a crash.
@@ -626,6 +641,7 @@ const defaultCustomGraphPipeline = {
     {
       id: 'audit',
       agent: 'opencode',
+      provider: defaultOpenCodeNodeProvider,
       retries: 1000,
       timeout_seconds: 7200,
       prompt: defaultAuditGraphPrompt,
@@ -639,6 +655,7 @@ const defaultCustomGraphPipeline = {
     {
       id: 'poc',
       agent: 'opencode',
+      provider: defaultOpenCodeNodeProvider,
       depends_on: ['audit'],
       retries: 1000,
       timeout_seconds: 7200,
@@ -671,6 +688,7 @@ const defaultPythonBuilderCode = [
   `AUDIT_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["audit_report"].absolute_path ]]')}`,
   `POC_REPORT_PATH = ${JSON.stringify('[[ task.report_outputs["poc_report"].absolute_path ]]')}`,
   `AUDITED_RESULT_PATH = ${JSON.stringify(defaultCustomGraphAuditedResultPath)}`,
+  `OPENCODE_PROVIDER = ${JSON.stringify(defaultOpenCodeNodeProvider)}`,
   '',
   'def parse_args():',
   '    parser = argparse.ArgumentParser()',
@@ -680,11 +698,12 @@ const defaultPythonBuilderCode = [
   '',
   'def build_graph(context: dict) -> Graph:',
   '    task = context.get("task") if isinstance(context.get("task"), dict) else context',
-  '    repo_root = str(task.get("repo_root") or ".")',
-  '    with Graph("custom-graph", working_dir=repo_root, concurrency=1) as dag:',
+  '    work_dir = str(task.get("project_path") or task.get("repo_root") or ".")',
+  '    with Graph("custom-graph", working_dir=work_dir, concurrency=1) as dag:',
   '        audit = opencode(',
   '            task_id="audit",',
   '            prompt=AUDIT_PROMPT,',
+  '            provider=OPENCODE_PROVIDER,',
   '            tools="read_write",',
   '            retries=1000,',
   '            timeout_seconds=7200,',
@@ -695,6 +714,7 @@ const defaultPythonBuilderCode = [
   '        poc = opencode(',
   '            task_id="poc",',
   '            prompt=POC_PROMPT,',
+  '            provider=OPENCODE_PROVIDER,',
   '            tools="read_write",',
   '            retries=1000,',
   '            timeout_seconds=7200,',
