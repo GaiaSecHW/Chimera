@@ -1612,6 +1612,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       });
       return task;
     } catch (e: any) {
+      setDetail(null);
+      setStageItemsPage(null);
+      setDownstreamByItemId({});
       setError(e?.message || '加载失败');
       return null;
     } finally {
@@ -1977,6 +1980,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       setStageItemsPage(payload);
     }).catch((fetchError: any) => {
       if (cancelled) return;
+      setStageItemsPage(null);
       setStageItemsPageError(fetchError?.message || '加载阶段子任务失败');
     }).finally(() => {
       if (cancelled) return;
