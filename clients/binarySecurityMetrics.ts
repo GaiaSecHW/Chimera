@@ -8,6 +8,7 @@ export type BinarySecurityMetricsServiceKey =
   | 'binary-to-source'
   | 'entry-analysis'
   | 'dataflow-analysis'
+  | 'dataflow-vuln-scan'
   | 'dataflow-vuln';
 
 export type BinarySecurityMetricsGroup =
@@ -164,6 +165,14 @@ export const BINARY_SECURITY_METRICS_SERVICES: BinarySecurityMetricsServiceDefin
     serviceSpecificKeywords: ['session', 'round', 'review', 'judge', 'trace', 'dataflow'],
   },
   {
+    key: 'dataflow-vuln-scan',
+    label: '数据流漏洞挖掘(114)',
+    serviceName: 'secflow-app-dataflow-vuln-scan',
+    metricsPath: `${API_BASE}/api/app/dataflow-vuln-scan/metrics/aggregate`,
+    preferredGroups: ['task', 'duration', 'llm-token-cost', 'ai-agent', 'worker', 'error-retry-timeout', 'http', 'queue', 'service-specific'],
+    serviceSpecificKeywords: ['session', 'round', 'review', 'judge', 'trace', 'dataflow', 'vuln'],
+  },
+  {
     key: 'dataflow-vuln',
     label: '数据流漏洞挖掘',
     serviceName: 'secflow-app-dataflow-vuln-scanner',
@@ -185,6 +194,8 @@ const getSummaryServicePath = (serviceKey: BinarySecurityMetricsServiceKey): str
       ? 'system-analyse'
       : serviceKey === 'dataflow-analysis'
         ? 'dataflow-analyse'
+        : serviceKey === 'dataflow-vuln-scan'
+          ? 'dataflow-vuln-scan'
         : serviceKey === 'dataflow-vuln'
           ? 'dataflow-vuln-scanner'
         : serviceKey;
@@ -203,13 +214,15 @@ const getAgentServicePath = (serviceKey: BinarySecurityMetricsServiceKey): strin
       ? 'system-analyse'
       : serviceKey === 'dataflow-analysis'
         ? 'dataflow-analyse'
+        : serviceKey === 'dataflow-vuln-scan'
+          ? 'dataflow-vuln-scan'
         : '';
 
 const getAgentAggregatePrefix = (_serviceKey: BinarySecurityMetricsServiceKey): string => 'aggregate/';
 const getAgentKillProcessPrefix = (serviceKey: BinarySecurityMetricsServiceKey): string =>
-  serviceKey === 'dataflow-analysis' ? 'aggregate/' : '';
+  serviceKey === 'dataflow-analysis' || serviceKey === 'dataflow-vuln-scan' ? 'aggregate/' : '';
 const getAgentKillAllOrphansPrefix = (serviceKey: BinarySecurityMetricsServiceKey): string =>
-  serviceKey === 'dataflow-analysis' ? 'aggregate/' : '';
+  serviceKey === 'dataflow-analysis' || serviceKey === 'dataflow-vuln-scan' ? 'aggregate/' : '';
 const AGENT_DETAIL_TIMEOUT_MS = 60_000;
 
 const buildAgentAggregateUrl = (

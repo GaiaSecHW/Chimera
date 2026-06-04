@@ -528,6 +528,7 @@ const AI_SERVICE_SCOPE: Record<BinarySecurityMetricsServiceKey, string> = {
   'binary-to-source': '二进制逆向 AI 观测覆盖 review 尝试、session、token/cost、validator/judge 相关行为。',
   'entry-analysis': '入口分析 AI 观测覆盖 worker/judge/session、token/cost、轮次与失败/超时。',
   'dataflow-analysis': '数据流分析 AI 观测覆盖 judge/session、token/cost、轮次、trace 相关 AI 行为。',
+  'dataflow-vuln-scan': '数据流漏洞挖掘(114) AI 观测覆盖 judge/session、token/cost、轮次、trace 与漏洞挖掘相关 AI 行为。',
   'dataflow-vuln': '数据流漏洞挖掘 AI 观测覆盖 cycle/review/plugin、runtime trace、token/cost 与失败分布。',
 };
 

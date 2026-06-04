@@ -32,6 +32,9 @@ import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfi
 import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
 import { DataflowAnalysisTaskDetailPage } from '../pages/execution/DataflowAnalysisTaskDetailPage';
 import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
+import { DataflowVulnScanTaskPage } from '../pages/execution/DataflowVulnScanTaskPage';
+import { DataflowVulnScanTaskDetailPage } from '../pages/execution/DataflowVulnScanTaskDetailPage';
+import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanConfigPage';
 import { EntryAnalysisTaskPage } from '../pages/execution/EntryAnalysisTaskPage';
 import { EntryAnalysisTaskDetailPage } from '../pages/execution/EntryAnalysisTaskDetailPage';
 import { EntryAnalysisConfigPage } from '../pages/execution/EntryAnalysisConfigPage';
@@ -111,6 +114,7 @@ export interface ViewRegistryContext {
   activeSystemAnalysisTaskId: string;
   activeEntryAnalysisTaskId: string;
   activeDataflowAnalysisTaskId: string;
+  activeDataflowVulnScanTaskId: string;
   activeFirmwareUnpackerTaskId: string;
   activeBinarySecurityTaskId: string;
   activeSourceSecurityTaskId: string;
@@ -128,6 +132,7 @@ export interface ViewRegistryContext {
   setActiveSystemAnalysisTaskId: (id: string) => void;
   setActiveEntryAnalysisTaskId: (id: string) => void;
   setActiveDataflowAnalysisTaskId: (id: string) => void;
+  setActiveDataflowVulnScanTaskId: (id: string) => void;
   setActiveFirmwareUnpackerTaskId: (id: string) => void;
   setActiveBinarySecurityTaskId: (id: string) => void;
   setActiveSourceSecurityTaskId: (id: string) => void;
@@ -279,6 +284,28 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'dataflow-analysis-config':
       return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+    case 'pentest-dataflow-vuln-scan':
+    case 'dataflow-vuln-scan-task':
+      return (
+        <DataflowVulnScanTaskPage
+          projectId={ctx.selectedProjectId}
+          onOpenTask={(taskId) => {
+            saveExecutionReturnContext({ view: 'dataflow-vuln-scan-task' });
+            ctx.setActiveDataflowVulnScanTaskId(taskId);
+            ctx.setCurrentView('dataflow-vuln-scan-detail');
+          }}
+        />
+      );
+    case 'dataflow-vuln-scan-detail':
+      return (
+        <DataflowVulnScanTaskDetailPage
+          projectId={ctx.selectedProjectId}
+          taskId={ctx.activeDataflowVulnScanTaskId}
+          onBack={() => ctx.setCurrentView('dataflow-vuln-scan-task')}
+        />
+      );
+    case 'dataflow-vuln-scan-config':
+      return <DataflowVulnScanConfigPage projectId={ctx.selectedProjectId} />;
     case 'workflow-instances':
       return (
         <WorkflowInstancePage

@@ -3521,6 +3521,7 @@ export interface AppDfaTaskItem {
   execution_epoch?: number | null;
   control_version?: number | null;
   rerun_count?: number | null;
+  lease_lost_count?: number | null;
   dispatch_status?: string | null;
 }
 

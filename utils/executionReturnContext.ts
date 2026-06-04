@@ -8,6 +8,7 @@ export type ExecutionReturnContext =
   | { view: 'entry-analysis-task' }
   | { view: 'system-analysis-task' }
   | { view: 'dataflow-analysis-task' }
+  | { view: 'dataflow-vuln-scan-task' }
   | { view: 'pentest-exec-b2s' }
   | { view: 'pentest-exec-b2s-detail'; b2sTaskId: string };
 
@@ -73,6 +74,7 @@ export const getExecutionReturnContext = (): ExecutionReturnContext | null => {
       (parsed.view === 'entry-analysis-task'
         || parsed.view === 'system-analysis-task'
         || parsed.view === 'dataflow-analysis-task'
+        || parsed.view === 'dataflow-vuln-scan-task'
         || parsed.view === 'pentest-exec-b2s')
     ) {
       return { view: parsed.view };
