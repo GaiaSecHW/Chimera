@@ -9,15 +9,15 @@ import { StaticPipelineFlow } from './StaticPipelineFlow';
 
 const DATAFLOW_ANALYSIS_FLOW = {
   title: '数据流漏洞挖掘阶段推进关系',
-  subtitle: '展示数据流漏洞挖掘服务的静态推进路径，用于辅助理解追踪深度、并发、轮次和评审相关配置。',
+  subtitle: '展示数据流漏洞挖掘服务的静态推进路径，用于辅助理解追踪深度、并发、Worker 与脚本校验配置。',
   lanes: [
     {
       label: '任务推进链路',
       steps: [
         { id: 'dfa-prepare', title: '任务准备', desc: '解析配置、初始化工作区并装载上游结果。', badge: '1', tone: 'analysis' as const },
-        { id: 'dfa-worker', title: 'Worker 分析', desc: '并行跟踪函数数据流、调用边与污点传播。', badge: '2', tone: 'analysis' as const },
-        { id: 'dfa-judge', title: 'Judge 评估', desc: '评估可信度、覆盖率，并决定是否继续迭代。', badge: '3', tone: 'review' as const },
-        { id: 'dfa-report', title: '报告输出', desc: '生成 Markdown 与结构化结果，沉淀最终分析产物。', badge: '4', tone: 'artifact' as const },
+        { id: 'dfa-worker', title: 'Worker 分析', desc: '单个 Worker 同时跟踪当前函数所有污点并输出结构化图谱。', badge: '2', tone: 'analysis' as const },
+        { id: 'dfa-validator', title: '脚本校验', desc: '校验 taint-graph/dataflow/tainted.list 等产物是否符合合同。', badge: '3', tone: 'review' as const },
+        { id: 'dfa-report', title: '报告输出', desc: '生成 Markdown、SQLite 图数据库与漏洞产物。', badge: '4', tone: 'artifact' as const },
       ],
     },
   ],
@@ -28,8 +28,8 @@ const DATAFLOW_ANALYSIS_FLOW = {
       tone: 'analysis' as const,
     },
     {
-      title: '评审收敛',
-      detail: '达到最大轮次后，会按 max_rounds_exceeded_review_strategy 决定任务最终按通过还是失败收敛。',
+      title: '脚本校验',
+      detail: '本微服务不使用 Judge；Worker 输出由后端脚本校验结构合同，确保产物格式可被图数据库消费。',
       tone: 'review' as const,
     },
   ],
@@ -46,7 +46,7 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   max_rounds: 3,
   max_rounds_exceeded_review_strategy: 'treat_as_passed',
   min_rounds: 2,
-  pass_threshold: 1,
+  pass_threshold: 0,
   agent_max_retries: 100,
   agent_retry_delay: 30,
   agent_run_timeout_seconds: 3600,
@@ -57,7 +57,7 @@ const defaultConfig = (projectId: string): AppDfaServiceConfig => ({
   max_trace_depth: 5,
   callee_concurrency: 4,
   workers: defaultRole(),
-  judges: defaultRole(),
+  judges: { ...defaultRole(), agents: [] },
   output_dir: '/data/output',
   archive_dir: '/data/output',
   result_dir: '/data/output',
@@ -164,9 +164,9 @@ const RoleConfigBlock: React.FC<{
   </SectionCard>
 );
 
-type DfaPanelKey = 'basic' | 'analysis' | 'retry' | 'workers' | 'judges';
+type DfaPanelKey = 'basic' | 'analysis' | 'retry' | 'workers';
 
-const DFA_PANEL_KEYS: DfaPanelKey[] = ['basic', 'analysis', 'retry', 'workers', 'judges'];
+const DFA_PANEL_KEYS: DfaPanelKey[] = ['basic', 'analysis', 'retry', 'workers'];
 
 const applyDfaPanel = (
   base: AppDfaServiceConfig,
@@ -180,7 +180,7 @@ const applyDfaPanel = (
         max_rounds: source.max_rounds,
         max_rounds_exceeded_review_strategy: source.max_rounds_exceeded_review_strategy,
         min_rounds: source.min_rounds,
-        pass_threshold: source.pass_threshold,
+        pass_threshold: 0,
       };
     case 'analysis':
       return {
@@ -201,8 +201,6 @@ const applyDfaPanel = (
       };
     case 'workers':
       return { ...base, workers: source.workers };
-    case 'judges':
-      return { ...base, judges: source.judges };
     default:
       return base;
   }
@@ -272,18 +270,13 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
 
   const mergeConfig = (raw: Partial<AppDfaServiceConfig>): AppDfaServiceConfig => {
     const base = defaultConfig(projectId);
-    const normalizedPassThreshold = typeof raw.pass_threshold === 'number'
-      ? raw.pass_threshold
-      : Number(raw.pass_threshold);
     return {
       ...base,
       ...raw,
-      pass_threshold: Number.isFinite(normalizedPassThreshold) && normalizedPassThreshold > 0
-        ? normalizedPassThreshold
-        : base.pass_threshold,
+      pass_threshold: 0,
       project_id: projectId,
       workers: { ...base.workers, ...(raw.workers && typeof raw.workers === 'object' ? raw.workers : {}) },
-      judges: { ...base.judges, ...(raw.judges && typeof raw.judges === 'object' ? raw.judges : {}) },
+      judges: { ...base.judges, agents: [] },
     };
   };
 
@@ -423,21 +416,21 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
               />
             )}
           >
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              <FieldRow label="max_rounds" hint="-1=无限">
-                <NumberInput value={config.max_rounds} min={-1} onChange={(v) => patch({ max_rounds: v })} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FieldRow label="max_rounds" hint="保留兼容；当前脚本校验模式通常只运行 1 轮 Worker">
+                <NumberInput value={config.max_rounds} min={1} onChange={(v) => patch({ max_rounds: v })} />
               </FieldRow>
-              <FieldRow label="min_rounds" hint="最少通过轮数">
+              <FieldRow label="min_rounds" hint="保留兼容；无 Judge 时不用于评审收敛">
                 <NumberInput value={config.min_rounds} min={1} max={20} onChange={(v) => patch({ min_rounds: v })} />
               </FieldRow>
-              <FieldRow label="pass_threshold" hint="通过所需裁判数">
-                <NumberInput value={config.pass_threshold} min={1} max={10} onChange={(v) => patch({ pass_threshold: v })} />
-              </FieldRow>
+            </div>
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
+              本微服务当前采用 <b>Worker + 脚本校验</b> 架构：不配置 Judge，`pass_threshold=0` 固定由后端保存，结果通过 taint-graph/dataflow/tainted.list 结构校验决定。
             </div>
             <div className="mt-4 grid grid-cols-1 gap-4">
               <FieldRow
                 label="max_rounds_exceeded_review_strategy"
-                hint="单个数据流漏洞挖掘子任务达到最大轮次且评审仍未通过时的全局处理策略"
+                hint="Worker 输出不符合结构合同时的兼容处理策略；当前主要由脚本校验直接判定"
               >
                 <select
                   value={config.max_rounds_exceeded_review_strategy}
@@ -451,8 +444,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                 </select>
               </FieldRow>
               <p className="text-xs leading-5 text-slate-500">
-                该配置作用于单个 `secflow-app-dataflow-vuln-scan` 子任务；默认值为 `treat_as_passed`，
-                即当子任务达到 `max_rounds_exceeded` 时，不再按失败处理，而是按通过收敛并继续后续流程。
+                该配置为兼容字段；当前服务不使用 Judge，Worker 产物会由脚本校验结构合同并写入 SQLite 图数据库。
               </p>
             </div>
           </SectionCard>
@@ -526,7 +518,7 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
           {/* Workers */}
           <RoleConfigBlock
             title="Workers 配置"
-            subtitle="执行数据流漏洞挖掘工作的 Agent（必填：至少添加一个 Agent 并选择模型才能保存）"
+            subtitle="单 Worker 负责当前函数所有污点；不再按污点拆分 Worker，不配置 Judge。"
             modelOptions={modelOptions}
             value={config.workers}
             onChange={(v) => patch({ workers: v })}
@@ -535,22 +527,6 @@ export const DataflowVulnScanConfigPage: React.FC<{ projectId: string; embedded?
                 saving={savingPanel === 'workers'}
                 onSave={() => { void handlePanelSave('workers', 'Workers 配置'); }}
                 onReset={() => handlePanelReset('workers', 'Workers 配置')}
-              />
-            )}
-          />
-
-          {/* Judges */}
-          <RoleConfigBlock
-            title="Judges 配置"
-            subtitle="评判 Worker 结果的 Agent"
-            modelOptions={modelOptions}
-            value={config.judges}
-            onChange={(v) => patch({ judges: v })}
-            actions={(
-              <PanelActions
-                saving={savingPanel === 'judges'}
-                onSave={() => { void handlePanelSave('judges', 'Judges 配置'); }}
-                onReset={() => handlePanelReset('judges', 'Judges 配置')}
               />
             )}
           />

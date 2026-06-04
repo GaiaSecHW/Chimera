@@ -56,7 +56,7 @@ import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/e
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
-import { BinarySecurityMetricsDashboardPage } from '../pages/execution/BinarySecurityMetricsDashboardPage';
+import BinarySecurityMetricsDashboardPage from '../pages/execution/BinarySecurityMetricsDashboardPage';
 import { BinarySecurityTaskDetailPage } from '../pages/execution/BinarySecurityTaskDetailPage';
 import { MobileSecurityIpcVulnPage } from '../pages/execution/MobileSecurityIpcVulnPage';
 import { KernelScanPage } from '../pages/execution/KernelScanPage';

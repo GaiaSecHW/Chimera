@@ -1571,9 +1571,18 @@ export const DataflowVulnScanTaskPage: React.FC<{ projectId: string; onOpenTask?
 
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Analysis</p>
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Dataflow Vulnerability Mining</p>
         <ServicePageTitle title="数据流漏洞挖掘任务" version={buildVersion} />
-        <p className="mt-2 text-sm text-slate-500">追踪污点传播路径，识别敏感数据流向危险函数的安全风险。</p>
+        <p className="mt-2 text-sm text-slate-500">单 Worker 同时跟踪函数内所有污点，脚本校验结构化图谱，并挖掘潜在漏洞。</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-vuln-scan-config' } }))}
+            className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-bold text-violet-700 hover:bg-violet-100"
+          >
+            参数配置
+          </button>
+        </div>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             { label: '总任务', value: taskStats.total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },

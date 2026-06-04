@@ -2493,7 +2493,7 @@ function reducerRowClassName(item: BinarySecurityReducerEventRecord): string {
   return executionTableRowClassName;
 }
 
-export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ projectId }) => {
+const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }> = ({ projectId }) => {
   const executionMetricsApi = api.domains.execution.metrics;
   const binarySecurityExecutionApi = api.domains.execution.binarySecurity;
   const dataflowAnalysisApi = api.domains.execution.appDataflowAnalyse;
@@ -6306,3 +6306,6 @@ export const BinarySecurityMetricsDashboardPage: React.FC<{ projectId: string }>
     </div>
   );
 };
+
+export { BinarySecurityMetricsDashboardPage };
+export default BinarySecurityMetricsDashboardPage;
