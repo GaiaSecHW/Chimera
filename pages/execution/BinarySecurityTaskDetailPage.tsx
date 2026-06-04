@@ -593,7 +593,7 @@ type DownstreamTaskState = {
   downstreamTaskId?: string;
 };
 
-type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts' | 'orchestration';
+type DetailTab = 'overview' | 'strategy' | 'modules' | 'timeline' | 'artifacts' | 'orchestration' | 'runtime_health';
 type StageNodeKind = 'business' | 'archive';
 type ArchiveJob = BinarySecurityTaskDetail['archive_jobs'][number];
 type BlockingActionKind = '' | 'retry' | 'retry_failed_items';
@@ -3066,6 +3066,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     { key: 'strategy', label: '任务策略', hint: '仅影响后续阶段与下次运行' },
     { key: 'modules', label: '高危模块', hint: '系统分析候选、已选与确认操作' },
     { key: 'orchestration', label: '编排观测', hint: 'Reducer、事件队列、锁与归档健康' },
+    { key: 'runtime_health', label: '线程与协程健康', hint: '任务 scoped 运行单元健康' },
     { key: 'timeline', label: '事件时间线', hint: '编排事件记录' },
     { key: 'artifacts', label: '产物文件', hint: '归档输出文件' },
   ];
@@ -3658,7 +3659,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
 
           {activeTab === 'overview' ? (
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+              <div>
                 <div>
                   <h2 className="text-xl font-black text-slate-900">任务总览</h2>
                   <p className="mt-2 text-sm text-slate-500">总览包含任务主详情、阶段流转和下游子任务；事件记录和产物文件会在打开对应 Tab 后再请求后端。</p>
@@ -3685,105 +3686,108 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                     </div>
                   </div>
                 </div>
-                <section className="rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-black text-slate-900">线程与协程健康</h3>
-                      <p className="mt-1 text-xs text-slate-500">仅展示当前 binary-security 父任务自身相关的 task-scoped 运行单元。</p>
-                    </div>
-                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${runtimeHealthTone(runtimeHealthSummary?.overall_status)}`}>
-                      {formatRuntimeHealthStatus(runtimeHealthSummary?.overall_status)}
-                    </span>
+              </div>
+            </section>
+          ) : null}
+
+          {activeTab === 'runtime_health' ? (
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">线程与协程健康</h2>
+                  <p className="mt-2 text-sm text-slate-500">仅展示当前 binary-security 父任务自身相关的 task-scoped 运行单元。</p>
+                </div>
+                <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${runtimeHealthTone(runtimeHealthSummary?.overall_status)}`}>
+                  {formatRuntimeHealthStatus(runtimeHealthSummary?.overall_status)}
+                </span>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">活跃单元</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{runtimeHealthSummary?.active_unit_count ?? 0}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">健康 / 风险</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">
+                    {runtimeHealthSummary?.healthy_unit_count ?? 0} / {runtimeHealthSummary?.degraded_unit_count ?? 0}
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <div className="text-xs font-bold text-slate-400">活跃单元</div>
-                      <div className="mt-1 text-lg font-black text-slate-900">{runtimeHealthSummary?.active_unit_count ?? 0}</div>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <div className="text-xs font-bold text-slate-400">健康 / 风险</div>
-                      <div className="mt-1 text-lg font-black text-slate-900">
-                        {runtimeHealthSummary?.healthy_unit_count ?? 0} / {runtimeHealthSummary?.degraded_unit_count ?? 0}
-                      </div>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <div className="text-xs font-bold text-slate-400">异常单元</div>
-                      <div className="mt-1 text-lg font-black text-slate-900">{runtimeHealthSummary?.unhealthy_unit_count ?? 0}</div>
-                    </div>
-                    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                      <div className="text-xs font-bold text-slate-400">最近刷新</div>
-                      <div className="mt-1 text-sm font-black text-slate-900">{fmt(runtimeHealthSummary?.last_updated_at)}</div>
-                    </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">异常单元</div>
+                  <div className="mt-1 text-lg font-black text-slate-900">{runtimeHealthSummary?.unhealthy_unit_count ?? 0}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold text-slate-400">最近刷新</div>
+                  <div className="mt-1 text-sm font-black text-slate-900">{fmt(runtimeHealthSummary?.last_updated_at)}</div>
+                </div>
+              </div>
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                {runtimeHealthSummary?.message || '当前暂无可展示的任务线程/协程健康快照。'}
+              </div>
+              <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
+                    <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
+                      <tr>
+                        <th className="min-w-[150px] px-4 py-3">名称</th>
+                        <th className="w-24 px-4 py-3">类型</th>
+                        <th className="w-24 px-4 py-3">状态</th>
+                        <th className="min-w-[140px] px-4 py-3">Owner</th>
+                        <th className="min-w-[150px] px-4 py-3">最近心跳</th>
+                        <th className="w-24 px-4 py-3">持续/年龄</th>
+                        <th className="min-w-[260px] px-4 py-3">原因 / 证据</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {visibleRuntimeHealthUnits.length > 0 ? visibleRuntimeHealthUnits.map((unit) => (
+                        <tr key={unit.unit_key}>
+                          <td className="px-4 py-3 align-top">
+                            <div className="font-bold text-slate-900">{unit.unit_label}</div>
+                            {unit.detail ? <div className="mt-1 text-[11px] text-slate-500">{unit.detail}</div> : null}
+                          </td>
+                          <td className="px-4 py-3 align-top text-slate-600">{formatRuntimeUnitKind(unit.unit_kind)}</td>
+                          <td className="px-4 py-3 align-top">
+                            <span className={`inline-flex rounded-full border px-2.5 py-1 font-bold ${runtimeHealthTone(unit.status)}`}>
+                              {formatRuntimeHealthStatus(unit.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-600">{unit.owner_instance_id || '-'}</td>
+                          <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-600">{fmt(unit.last_heartbeat_at || unit.started_at)}</td>
+                          <td className="px-4 py-3 align-top text-slate-600">{formatAgeSeconds(unit.age_seconds)}</td>
+                          <td className="px-4 py-3 align-top">
+                            {unit.reason ? <div className="text-slate-700">{unit.reason}</div> : <div className="text-slate-400">-</div>}
+                            {unit.evidence?.length ? (
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {unit.evidence.slice(0, 3).map((evidence) => (
+                                  <span key={`${unit.unit_key}-${evidence.label}`} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-500">
+                                    {evidence.label}:{evidence.value ?? '-'}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
+                            当前暂无可展示的任务线程/协程健康快照
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {runtimeHealthUnits.length > 5 ? (
+                  <div className="border-t border-slate-100 px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setRuntimeHealthExpanded((current) => !current)}
+                      className="text-xs font-bold text-sky-700 transition hover:text-sky-800"
+                    >
+                      {runtimeHealthExpanded ? '收起' : `查看全部 ${runtimeHealthUnits.length} 个运行单元`}
+                    </button>
                   </div>
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                    {runtimeHealthSummary?.message || '当前暂无可展示的任务线程/协程健康快照。'}
-                  </div>
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-slate-100 text-left text-xs">
-                        <thead className="bg-slate-50 text-[11px] font-black uppercase tracking-[0.12em] text-slate-400">
-                          <tr>
-                            <th className="min-w-[150px] px-4 py-3">名称</th>
-                            <th className="w-24 px-4 py-3">类型</th>
-                            <th className="w-24 px-4 py-3">状态</th>
-                            <th className="min-w-[140px] px-4 py-3">Owner</th>
-                            <th className="min-w-[150px] px-4 py-3">最近心跳</th>
-                            <th className="w-24 px-4 py-3">持续/年龄</th>
-                            <th className="min-w-[260px] px-4 py-3">原因 / 证据</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white">
-                          {visibleRuntimeHealthUnits.length > 0 ? visibleRuntimeHealthUnits.map((unit) => (
-                            <tr key={unit.unit_key}>
-                              <td className="px-4 py-3 align-top">
-                                <div className="font-bold text-slate-900">{unit.unit_label}</div>
-                                {unit.detail ? <div className="mt-1 text-[11px] text-slate-500">{unit.detail}</div> : null}
-                              </td>
-                              <td className="px-4 py-3 align-top text-slate-600">{formatRuntimeUnitKind(unit.unit_kind)}</td>
-                              <td className="px-4 py-3 align-top">
-                                <span className={`inline-flex rounded-full border px-2.5 py-1 font-bold ${runtimeHealthTone(unit.status)}`}>
-                                  {formatRuntimeHealthStatus(unit.status)}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-600">{unit.owner_instance_id || '-'}</td>
-                              <td className="px-4 py-3 align-top font-mono text-[11px] text-slate-600">{fmt(unit.last_heartbeat_at || unit.started_at)}</td>
-                              <td className="px-4 py-3 align-top text-slate-600">{formatAgeSeconds(unit.age_seconds)}</td>
-                              <td className="px-4 py-3 align-top">
-                                {unit.reason ? <div className="text-slate-700">{unit.reason}</div> : <div className="text-slate-400">-</div>}
-                                {unit.evidence?.length ? (
-                                  <div className="mt-2 flex flex-wrap gap-1.5">
-                                    {unit.evidence.slice(0, 3).map((evidence) => (
-                                      <span key={`${unit.unit_key}-${evidence.label}`} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-500">
-                                        {evidence.label}:{evidence.value ?? '-'}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </td>
-                            </tr>
-                          )) : (
-                            <tr>
-                              <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
-                                当前暂无可展示的任务线程/协程健康快照
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    {runtimeHealthUnits.length > 5 ? (
-                      <div className="border-t border-slate-100 px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => setRuntimeHealthExpanded((current) => !current)}
-                          className="text-xs font-bold text-sky-700 transition hover:text-sky-800"
-                        >
-                          {runtimeHealthExpanded ? '收起' : `查看全部 ${runtimeHealthUnits.length} 个运行单元`}
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                </section>
+                ) : null}
               </div>
             </section>
           ) : null}
