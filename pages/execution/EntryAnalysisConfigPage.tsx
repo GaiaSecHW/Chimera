@@ -76,6 +76,7 @@ const defaultConfig = (projectId: string): EntryAnalysisServiceConfig => ({
   lean_mode: false,
   lean_file_max_rounds: -1,
   lean_module_max_rounds: -1,
+  api_filter_entry_judge: true,
   workers: defaultRole(),
   judges: defaultRole(),
   output_dir: '/data/output',
@@ -207,6 +208,7 @@ const applyEntryPanel = (
         max_concurrent_tasks: source.max_concurrent_tasks,
         agent_process_limit: source.agent_process_limit,
         lean_mode: source.lean_mode,
+        api_filter_entry_judge: source.api_filter_entry_judge,
       };
     case 'retry':
       return {
@@ -474,6 +476,37 @@ export const EntryAnalysisConfigPage: React.FC<{ projectId: string; embedded?: b
                   精简模式已开启：跳过 R2 行号校正、调用链建图及 per-function 精细分析。
                 </div>
               )}
+
+              {/* API_Filter 入口判断开关 */}
+              <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">
+                      API_Filter 入口判断
+                      <span className="ml-2 font-mono text-xs font-normal text-slate-500">api_filter_entry_judge</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {config.api_filter_entry_judge
+                        ? 'Direct LLM API 在 R3 前判断函数是否入口；R3 仅做污点分析。速度更快，适合大多数场景。'
+                        : 'R3 Agent 完整判断入口 + 分析污点。精确度最高，适合对漏报征阶最严格的场景。'}
+                    </p>
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-3 shrink-0 ml-4">
+                    <div className="relative">
+                      <input type="checkbox" className="peer sr-only"
+                        checked={config.api_filter_entry_judge}
+                        onChange={(e) => patch({ api_filter_entry_judge: e.target.checked })} />
+                      <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-blue-600 transition-colors" />
+                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                    </div>
+                    <span className={`text-sm font-semibold ${
+                      config.api_filter_entry_judge ? 'text-blue-700' : 'text-slate-500'
+                    }`}>
+                      {config.api_filter_entry_judge ? 'API 判断入口' : 'R3 判断入口'}
+                    </span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <FieldRow label="智能体并发说明" hint="单任务内不再单独限流">
