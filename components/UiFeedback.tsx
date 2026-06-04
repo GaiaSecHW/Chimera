@@ -47,19 +47,19 @@ interface PromptOptions {
 
 const noticeStyles: Record<NoticeLevel, { box: string; icon: React.ReactNode }> = {
   info: {
-    box: 'bg-blue-50 border-blue-200 text-blue-700',
+    box: 'bg-blue-50 border-blue-200 text-blue-700 shadow-panel',
     icon: <Info size={16} className="text-blue-600" />,
   },
   success: {
-    box: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+    box: 'bg-emerald-50 border-emerald-200 text-emerald-700 shadow-panel',
     icon: <CheckCircle2 size={16} className="text-emerald-600" />,
   },
   warning: {
-    box: 'bg-amber-50 border-amber-200 text-amber-700',
+    box: 'bg-amber-50 border-amber-200 text-amber-700 shadow-panel',
     icon: <AlertTriangle size={16} className="text-amber-600" />,
   },
   error: {
-    box: 'bg-rose-50 border-rose-200 text-rose-700',
+    box: 'bg-rose-50 border-rose-200 text-rose-700 shadow-panel',
     icon: <AlertTriangle size={16} className="text-rose-600" />,
   },
 };
@@ -135,11 +135,11 @@ export const useUiFeedback = () => {
 
         {confirmState && (
           <div className="fixed inset-0 z-[270] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-6">
-            <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
-              <div className="p-7 border-b border-slate-100">
-                <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">确认操作</p>
-                <h3 className="text-2xl font-black text-slate-800 mt-2">{confirmState.title}</h3>
-                <p className="text-sm text-slate-600 mt-3 leading-relaxed whitespace-pre-wrap">{confirmState.message}</p>
+            <div className="w-full max-w-lg bg-theme-surface rounded-3xl border border-theme-border shadow-section overflow-hidden">
+              <div className="p-7 border-b border-theme-border">
+                <p className="text-[10px] font-black tracking-widest text-theme-text-faint uppercase">确认操作</p>
+                <h3 className="text-2xl font-black text-theme-text-primary mt-2">{confirmState.title}</h3>
+                <p className="text-sm text-theme-text-secondary mt-3 leading-relaxed whitespace-pre-wrap">{confirmState.message}</p>
               </div>
               <div className="p-6 flex justify-end gap-3">
                 <button
@@ -147,7 +147,7 @@ export const useUiFeedback = () => {
                     confirmState.resolve(false);
                     setConfirmState(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-theme-elevated text-theme-text-secondary font-bold hover:bg-slate-200 transition-all"
                 >
                   {confirmState.cancelText}
                 </button>
@@ -156,7 +156,7 @@ export const useUiFeedback = () => {
                     confirmState.resolve(true);
                     setConfirmState(null);
                   }}
-                  className={`px-5 py-2.5 rounded-xl text-white font-bold transition-all ${
+                  className={`px-5 py-2.5 rounded-xl text-theme-text-inverse font-bold transition-all ${
                     confirmState.danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-blue-600 hover:bg-blue-700'
                   }`}
                 >
@@ -169,17 +169,17 @@ export const useUiFeedback = () => {
 
         {promptState && (
           <div className="fixed inset-0 z-[270] bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-6">
-            <div className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
-              <div className="p-7 border-b border-slate-100">
-                <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">输入信息</p>
-                <h3 className="text-2xl font-black text-slate-800 mt-2">{promptState.title}</h3>
-                <p className="text-sm text-slate-600 mt-3 leading-relaxed whitespace-pre-wrap">{promptState.message}</p>
+            <div className="w-full max-w-lg bg-theme-surface rounded-3xl border border-theme-border shadow-section overflow-hidden">
+              <div className="p-7 border-b border-theme-border">
+                <p className="text-[10px] font-black tracking-widest text-theme-text-faint uppercase">输入信息</p>
+                <h3 className="text-2xl font-black text-theme-text-primary mt-2">{promptState.title}</h3>
+                <p className="text-sm text-theme-text-secondary mt-3 leading-relaxed whitespace-pre-wrap">{promptState.message}</p>
                 <input
                   autoFocus
                   value={promptValue}
                   onChange={(e) => setPromptValue(e.target.value)}
                   placeholder={promptState.placeholder}
-                  className="mt-4 w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 outline-none focus:ring-2 ring-blue-500/15"
+                  className="mt-4 w-full px-4 py-3 border border-theme-border rounded-xl text-sm font-medium text-theme-text-primary bg-theme-elevated outline-none focus:ring-2 ring-blue-500/15"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       promptState.resolve(promptValue);
@@ -194,7 +194,7 @@ export const useUiFeedback = () => {
                     promptState.resolve(null);
                     setPromptState(null);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-theme-elevated text-theme-text-secondary font-bold hover:bg-slate-200 transition-all"
                 >
                   {promptState.cancelText}
                 </button>

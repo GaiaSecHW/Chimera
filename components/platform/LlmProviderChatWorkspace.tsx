@@ -25,7 +25,7 @@ const createFallbackModelList = (provider: LlmProviderSummary, errorMessage?: st
 });
 
 const getProviderStatusTone = (provider: LlmProviderSummary) =>
-  provider.enabled ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500';
+  provider.enabled ? 'bg-green-100 text-green-700' : 'bg-theme-elevated text-theme-text-muted';
 
 const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
   <div className="markdown-body break-words leading-6">
@@ -38,7 +38,7 @@ const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
             href={href}
             target="_blank"
             rel="noreferrer"
-            className="font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2"
+            className="font-semibold text-brand-primary underline decoration-blue-300 underline-offset-2"
           >
             {children}
           </a>
@@ -46,11 +46,11 @@ const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
         ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
         ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
         li: ({ children }) => <li>{children}</li>,
-        h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-slate-900 last:mb-0">{children}</h1>,
-        h2: ({ children }) => <h2 className="mb-3 text-lg font-black text-slate-900 last:mb-0">{children}</h2>,
-        h3: ({ children }) => <h3 className="mb-2 text-base font-black text-slate-900 last:mb-0">{children}</h3>,
+        h1: ({ children }) => <h1 className="mb-3 text-xl font-black text-theme-text-primary last:mb-0">{children}</h1>,
+        h2: ({ children }) => <h2 className="mb-3 text-lg font-black text-theme-text-primary last:mb-0">{children}</h2>,
+        h3: ({ children }) => <h3 className="mb-2 text-base font-black text-theme-text-primary last:mb-0">{children}</h3>,
         blockquote: ({ children }) => (
-          <blockquote className="mb-3 border-l-4 border-slate-300 bg-slate-50 px-4 py-2 italic text-slate-700 last:mb-0">
+          <blockquote className="mb-3 border-l-4 border-theme-border bg-theme-elevated px-4 py-2 italic text-theme-text-secondary last:mb-0">
             {children}
           </blockquote>
         ),
@@ -59,9 +59,9 @@ const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
             <table className="min-w-full border-collapse text-left text-xs">{children}</table>
           </div>
         ),
-        thead: ({ children }) => <thead className="bg-slate-200/70">{children}</thead>,
-        th: ({ children }) => <th className="border border-slate-300 px-3 py-2 font-black text-slate-800">{children}</th>,
-        td: ({ children }) => <td className="border border-slate-300 px-3 py-2 align-top">{children}</td>,
+        thead: ({ children }) => <thead className="bg-theme-elevated">{children}</thead>,
+        th: ({ children }) => <th className="border border-theme-border px-3 py-2 font-black text-theme-text-primary">{children}</th>,
+        td: ({ children }) => <td className="border border-theme-border px-3 py-2 align-top text-theme-text-secondary">{children}</td>,
         code: ({ children, className }) => {
           const isBlock = Boolean(className);
           if (isBlock) {
@@ -71,7 +71,7 @@ const MarkdownMessage: React.FC<{ content: string }> = ({ content }) => (
               </code>
             );
           }
-          return <code className="rounded bg-slate-200 px-1.5 py-0.5 font-mono text-[0.9em] text-slate-900">{children}</code>;
+          return <code className="rounded bg-theme-elevated px-1.5 py-0.5 font-mono text-[0.9em] text-theme-text-primary">{children}</code>;
         },
         pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
       }}
@@ -285,19 +285,19 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
   };
 
   return (
-    <div className="rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-[2.5rem] border border-theme-border bg-theme-surface p-6 shadow-panel">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">在线聊天</p>
-          <h2 className="mt-2 flex items-center gap-3 text-2xl font-black text-slate-900">
-            <MessageSquare className="h-6 w-6 text-blue-600" />
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-theme-text-faint">在线聊天</p>
+          <h2 className="mt-2 flex items-center gap-3 text-2xl font-black text-theme-text-primary">
+            <MessageSquare className="h-6 w-6 text-brand-primary" />
             并排模型对话
           </h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-theme-text-muted">
             勾选一个或多个已保存 Provider，选择模型后即可开启多轮对话。聊天记录仅保存在当前页面内存中。
           </p>
         </div>
-        <div className="rounded-[1.5rem] border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-bold text-blue-700">
+        <div className="rounded-[1.5rem] border border-brand-border bg-brand-soft px-4 py-3 text-xs font-bold text-brand-primary">
           模型来源 = 后端模型列表 + Provider 已配置模型 + 手动输入
         </div>
       </div>
@@ -310,14 +310,14 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[360px,minmax(0,1fr)]">
         <div className="space-y-4">
-          <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="rounded-[2rem] border border-theme-border bg-theme-elevated p-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-black text-slate-900">选择 Provider</h3>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500">{selectedProviderKeys.length} 已选择</span>
+              <h3 className="text-sm font-black text-theme-text-primary">选择 Provider</h3>
+              <span className="rounded-full bg-theme-surface px-3 py-1 text-xs font-black text-theme-text-muted">{selectedProviderKeys.length} 已选择</span>
             </div>
             <div className="mt-4 space-y-3">
               {providers.length === 0 ? (
-                <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-xs font-medium text-slate-500">
+                <div className="rounded-[1.5rem] border border-dashed border-theme-border bg-theme-surface px-4 py-6 text-center text-xs font-medium text-theme-text-muted">
                   当前还没有可用的已保存 Provider。
                 </div>
               ) : providers.map((provider) => {
@@ -325,24 +325,24 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                 return (
                   <label
                     key={provider.provider_key}
-                    className={`block rounded-[1.5rem] border p-4 transition-all ${checked ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100/50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                    className={`block rounded-[1.5rem] border p-4 transition-all ${checked ? 'border-brand-border bg-brand-soft shadow-brand' : 'border-theme-border bg-theme-surface hover:border-brand-border'}`}
                   >
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={(event) => void toggleProvider(provider.provider_key, event.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="mt-1 h-4 w-4 rounded border-theme-border text-brand-primary focus:ring-blue-500"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="truncate text-sm font-black text-slate-900">{provider.display_name}</span>
+                          <span className="truncate text-sm font-black text-theme-text-primary">{provider.display_name}</span>
                           <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest ${getProviderStatusTone(provider)}`}>
                             {provider.enabled ? 'enabled' : 'disabled'}
                           </span>
                         </div>
-                        <p className="mt-1 truncate font-mono text-xs text-slate-500">{provider.provider_key}</p>
-                        <p className="mt-2 text-xs text-slate-500">{provider.provider_type}</p>
+                        <p className="mt-1 truncate font-mono text-xs text-theme-text-muted">{provider.provider_key}</p>
+                        <p className="mt-2 text-xs text-theme-text-muted">{provider.provider_type}</p>
                       </div>
                     </div>
                   </label>
@@ -355,16 +355,16 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
             const options = modelOptions[provider.provider_key]?.items || [];
             const effectiveModel = customModels[provider.provider_key]?.trim() || selectedModels[provider.provider_key] || provider.model || '';
             return (
-              <div key={provider.provider_key} className="rounded-[2rem] border border-slate-200 bg-white p-5">
+              <div key={provider.provider_key} className="rounded-[2rem] border border-theme-border bg-theme-surface p-5 shadow-panel">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">{provider.display_name}</h3>
-                    <p className="mt-1 text-xs text-slate-500">{provider.provider_type}</p>
+                    <h3 className="text-sm font-black text-theme-text-primary">{provider.display_name}</h3>
+                    <p className="mt-1 text-xs text-theme-text-muted">{provider.provider_type}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => void loadModels(provider.provider_key, true)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-theme-border bg-theme-elevated px-3 py-2 text-xs font-black text-theme-text-secondary"
                   >
                     {modelLoading[provider.provider_key] ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                     刷新模型
@@ -373,11 +373,11 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
 
                 <div className="mt-4 space-y-3">
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">可选模型</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint">可选模型</label>
                     <select
                       value={selectedModels[provider.provider_key] || ''}
                       onChange={(event) => setSelectedModels((current) => ({ ...current, [provider.provider_key]: event.target.value }))}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                      className="mt-2 w-full rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm text-theme-text-primary outline-none focus:border-blue-500"
                     >
                       <option value="">请选择模型</option>
                       {options.map((item) => (
@@ -388,16 +388,16 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">手动模型名</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint">手动模型名</label>
                     <input
                       value={customModels[provider.provider_key] || ''}
                       onChange={(event) => setCustomModels((current) => ({ ...current, [provider.provider_key]: event.target.value }))}
-                      className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                      className="mt-2 w-full rounded-2xl border border-theme-border bg-theme-elevated px-4 py-3 text-sm text-theme-text-primary outline-none focus:border-blue-500"
                       placeholder="可直接覆盖上面的选择，例如 gpt-4.1-mini"
                     />
                   </div>
-                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                    当前发送模型：<span className="font-mono font-bold text-slate-900">{effectiveModel || '未选择'}</span>
+                  <div className="rounded-[1.5rem] border border-theme-border bg-theme-elevated px-4 py-3 text-xs text-theme-text-secondary">
+                    当前发送模型：<span className="font-mono font-bold text-theme-text-primary">{effectiveModel || '未选择'}</span>
                   </div>
                   {modelOptions[provider.provider_key]?.error_message && (
                     <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
@@ -411,13 +411,13 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
         </div>
 
         <div className="space-y-5">
-          <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
+          <div className="rounded-[2rem] border border-theme-border bg-theme-elevated p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-black text-slate-900">发送消息</h3>
-                <p className="mt-1 text-xs text-slate-500">同一条消息会并排发送给已勾选 Provider，各自保留自己的多轮上下文。</p>
+                <h3 className="text-sm font-black text-theme-text-primary">发送消息</h3>
+                <p className="mt-1 text-xs text-theme-text-muted">同一条消息会并排发送给已勾选 Provider，各自保留自己的多轮上下文。</p>
               </div>
-              <div className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500">
+              <div className="rounded-full bg-theme-surface px-3 py-1 text-xs font-black text-theme-text-muted">
                 {selectedProviderKeys.length} 个会话列
               </div>
             </div>
@@ -426,18 +426,18 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
               onChange={(event) => setDraftMessage(event.target.value)}
               rows={4}
               placeholder="输入你想发给模型的内容"
-              className="mt-4 w-full rounded-[1.75rem] border border-slate-200 bg-white px-4 py-4 text-sm outline-none focus:border-blue-500"
+              className="mt-4 w-full rounded-[1.75rem] border border-theme-border bg-theme-surface px-4 py-4 text-sm text-theme-text-primary outline-none focus:border-blue-500"
             />
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Sparkles size={14} className="text-blue-500" />
+              <div className="flex items-center gap-2 text-xs text-theme-text-muted">
+                <Sparkles size={14} className="text-brand-primary" />
                 默认流式传输，支持上游 Provider 与浏览器前端实时增量显示。
               </div>
               <button
                 type="button"
                 onClick={() => void handleSend()}
                 disabled={sending}
-                className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                className="theme-primary-button px-5 py-3 text-sm disabled:opacity-50"
               >
                 {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 发送到所选模型
@@ -447,9 +447,9 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
 
           <div className="overflow-x-auto">
             {selectedProviders.length === 0 ? (
-              <div className="rounded-[2rem] border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
-                <Bot className="mx-auto h-8 w-8 text-slate-300" />
-                <p className="mt-4 text-sm font-black text-slate-600">先勾选至少一个已保存 Provider，再开始在线对话。</p>
+              <div className="rounded-[2rem] border border-dashed border-theme-border bg-theme-surface px-6 py-12 text-center">
+                <Bot className="mx-auto h-8 w-8 text-theme-text-faint" />
+                <p className="mt-4 text-sm font-black text-theme-text-secondary">先勾选至少一个已保存 Provider，再开始在线对话。</p>
               </div>
             ) : (
               <div
@@ -460,28 +460,28 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                   const result = latestResults[provider.provider_key];
                   const currentModel = (customModels[provider.provider_key] || selectedModels[provider.provider_key] || provider.model || '').trim();
                   return (
-                    <div key={provider.provider_key} className="flex min-h-[560px] flex-col rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-                      <div className="border-b border-slate-200 px-5 py-4">
+                    <div key={provider.provider_key} className="flex min-h-[560px] flex-col rounded-[2rem] border border-theme-border bg-theme-surface shadow-panel">
+                      <div className="border-b border-theme-border px-5 py-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="text-sm font-black text-slate-900">{provider.display_name}</h3>
-                            <p className="mt-1 text-xs text-slate-500">{provider.provider_type}</p>
+                            <h3 className="text-sm font-black text-theme-text-primary">{provider.display_name}</h3>
+                            <p className="mt-1 text-xs text-theme-text-muted">{provider.provider_type}</p>
                           </div>
                           <span className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest ${getProviderStatusTone(provider)}`}>
                             {provider.enabled ? 'enabled' : 'disabled'}
                           </span>
                         </div>
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-black">
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">{currentModel || '未选择模型'}</span>
+                          <span className="rounded-full bg-theme-elevated px-3 py-1 text-theme-text-secondary">{currentModel || '未选择模型'}</span>
                           {streamingProviderKeys.includes(provider.provider_key) && (
-                            <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-700">streaming...</span>
+                            <span className="rounded-full bg-brand-soft px-3 py-1 text-brand-primary">streaming...</span>
                           )}
                           {result && <span className={`rounded-full px-3 py-1 ${result.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{result.latency_ms} ms</span>}
                         </div>
                       </div>
                       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
                         {(chatHistories[provider.provider_key] || []).length === 0 ? (
-                          <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-xs text-slate-500">
+                          <div className="rounded-[1.5rem] border border-dashed border-theme-border bg-theme-elevated px-4 py-8 text-center text-xs text-theme-text-muted">
                             这里会显示 {provider.display_name} 的多轮会话内容。
                           </div>
                         ) : (chatHistories[provider.provider_key] || []).map((message, index) => (
@@ -489,9 +489,9 @@ export const LlmProviderChatWorkspace: React.FC<LlmProviderChatWorkspaceProps> =
                             key={`${provider.provider_key}-${index}`}
                             className={`rounded-[1.5rem] px-4 py-3 text-sm ${
                               message.role === 'user'
-                                ? 'ml-8 bg-blue-600 text-white'
+                                ? 'ml-8 bg-brand-primary text-theme-text-inverse'
                                 : message.role === 'assistant'
-                                  ? 'mr-8 bg-slate-100 text-slate-800'
+                                  ? 'mr-8 bg-theme-elevated text-theme-text-primary'
                                   : 'border border-amber-200 bg-amber-50 text-amber-800'
                             }`}
                           >

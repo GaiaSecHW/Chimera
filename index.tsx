@@ -5,6 +5,7 @@ import App from './App';
 import './styles.css';
 import { installGlobalGetRequestDedupe } from './clients/base';
 import { ensureLocalMonaco } from './utils/monaco';
+import { ThemeProvider } from './theme/ThemeProvider';
 
 try {
   ensureLocalMonaco();
@@ -65,7 +66,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <AppErrorBoundary>
-      <App />
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
     </AppErrorBoundary>
   </React.StrictMode>
 );

@@ -3,8 +3,245 @@
 @tailwind utilities;
 
 @layer base {
+  :root,
+  :root[data-theme='secflow-classic'] {
+    --bg-app: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f8fafc;
+    --bg-sidebar: #0f172a;
+    --bg-sidebar-muted: #1e293b;
+    --bg-header: #0f172a;
+    --bg-login: #020617;
+    --bg-login-card: rgba(255, 255, 255, 0.06);
+    --bg-login-input: rgba(255, 255, 255, 0.08);
+    --login-border: rgba(255, 255, 255, 0.12);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --text-faint: #94a3b8;
+    --text-inverse: #ffffff;
+    --text-soft: #cbd5e1;
+    --border-default: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --brand-primary: #2563eb;
+    --brand-primary-hover: #1d4ed8;
+    --brand-secondary: #1d4ed8;
+    --brand-accent: #4f46e5;
+    --brand-soft: #dbeafe;
+    --brand-border: #bfdbfe;
+    --success: #059669;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --info: #2563eb;
+    --success-soft: #d1fae5;
+    --warning-soft: #fef3c7;
+    --danger-soft: #fee2e2;
+    --info-soft: #dbeafe;
+    --success-border: #a7f3d0;
+    --warning-border: #fde68a;
+    --danger-border: #fecaca;
+    --info-border: #bfdbfe;
+    --logo-surface: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 30%), linear-gradient(135deg, #ffffff 0%, #f8fafc 46%, #eef6ff 100%);
+    --shadow-panel: 0 18px 45px rgba(15, 23, 42, 0.08);
+    --shadow-section: 0 28px 80px rgba(15, 23, 42, 0.12);
+    --shadow-brand: 0 18px 44px rgba(37, 99, 235, 0.18);
+    --xterm-bg: #1a1a2e;
+    --xterm-fg: #eaeaea;
+    --xterm-cursor: #00ff88;
+  }
+
+  :root[data-theme='chimera'] {
+    --bg-app: #f5f3ee;
+    --bg-surface: #fffdf8;
+    --bg-elevated: #f8f4eb;
+    --bg-sidebar: #163250;
+    --bg-sidebar-muted: #1e3a5f;
+    --bg-header: #1e3a5f;
+    --bg-login: #0d1b2a;
+    --bg-login-card: rgba(18, 43, 70, 0.72);
+    --bg-login-input: rgba(255, 255, 255, 0.09);
+    --login-border: rgba(232, 192, 74, 0.25);
+    --text-primary: #1f2937;
+    --text-secondary: #5b6471;
+    --text-muted: #6b7280;
+    --text-faint: #9ca3af;
+    --text-inverse: #fffdf7;
+    --text-soft: #d7deea;
+    --border-default: #e7dcc8;
+    --border-strong: #d6c6ab;
+    --brand-primary: #d4a030;
+    --brand-primary-hover: #e8c04a;
+    --brand-secondary: #ff6b2b;
+    --brand-accent: #2a5a8f;
+    --brand-soft: #f6ead0;
+    --brand-border: #ecd7a2;
+    --success: #2e8b57;
+    --warning: #d97706;
+    --danger: #c2410c;
+    --info: #2a5a8f;
+    --success-soft: #d8f3e3;
+    --warning-soft: #fef0cf;
+    --danger-soft: #fde7df;
+    --info-soft: #dbe7f6;
+    --success-border: #b7e4cc;
+    --warning-border: #f7d89a;
+    --danger-border: #f4c7b6;
+    --info-border: #bdd0ea;
+    --logo-surface: linear-gradient(135deg, #d4a030 0%, #ff6b2b 55%, #e8c04a 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(212, 160, 48, 0.16), transparent 30%), linear-gradient(135deg, #fffdf8 0%, #f8f4eb 46%, #efe7d6 100%);
+    --shadow-panel: 0 18px 45px rgba(30, 58, 95, 0.10);
+    --shadow-section: 0 28px 80px rgba(30, 58, 95, 0.14);
+    --shadow-brand: 0 18px 44px rgba(212, 160, 48, 0.24);
+    --xterm-bg: #151b2d;
+    --xterm-fg: #f8f5ee;
+    --xterm-cursor: #e8c04a;
+  }
+
+  * {
+    border-color: var(--border-default);
+  }
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
       'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', Arial, sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
   }
+}
+
+@layer components {
+  .bg-theme-app { background-color: var(--bg-app); }
+  .bg-theme-surface { background-color: var(--bg-surface); }
+  .bg-theme-elevated { background-color: var(--bg-elevated); }
+  .bg-theme-sidebar { background-color: var(--bg-sidebar); }
+  .bg-theme-sidebar-muted { background-color: var(--bg-sidebar-muted); }
+  .bg-theme-header { background-color: var(--bg-header); }
+  .bg-theme-login { background-color: var(--bg-login); }
+  .bg-logo-surface { background: var(--logo-surface); }
+  .text-theme-text-primary { color: var(--text-primary); }
+  .text-theme-text-secondary { color: var(--text-secondary); }
+  .text-theme-text-muted { color: var(--text-muted); }
+  .text-theme-text-faint { color: var(--text-faint); }
+  .text-theme-text-inverse { color: var(--text-inverse); }
+  .text-theme-text-soft { color: var(--text-soft); }
+  .border-theme-border { border-color: var(--border-default); }
+  .border-theme-sidebar { border-color: rgba(255,255,255,0.08); }
+  .text-brand-primary { color: var(--brand-primary); }
+  .bg-brand-primary { background-color: var(--brand-primary); }
+  .bg-brand-soft { background-color: var(--brand-soft); }
+  .border-brand-border { border-color: var(--brand-border); }
+  .text-state-danger { color: var(--danger); }
+  .bg-state-danger-soft { background-color: var(--danger-soft); }
+  .border-state-danger-border { border-color: var(--danger-border); }
+  .text-state-warning { color: var(--warning); }
+  .bg-state-warning-soft { background-color: var(--warning-soft); }
+  .border-state-warning-border { border-color: var(--warning-border); }
+  .shadow-panel { box-shadow: var(--shadow-panel); }
+  .shadow-brand { box-shadow: var(--shadow-brand); }
+  .theme-primary-button {
+    @apply rounded-2xl font-black transition-all flex items-center justify-center text-white;
+    background: var(--logo-surface);
+    box-shadow: var(--shadow-brand);
+  }
+  .theme-primary-button:hover {
+    background: linear-gradient(135deg, var(--brand-primary-hover) 0%, var(--brand-secondary) 100%);
+  }
+  .theme-form-input {
+    @apply rounded-2xl border outline-none font-semibold transition-all;
+    background-color: var(--bg-elevated);
+    border-color: var(--border-default);
+    color: var(--text-primary);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.32);
+  }
+  .theme-login-input {
+    @apply w-full px-5 py-4 rounded-2xl border outline-none transition-all;
+    background-color: var(--bg-login-input);
+    border-color: var(--login-border);
+    color: var(--text-inverse);
+  }
+  .theme-form-input:focus,
+  .theme-login-input:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-primary) 14%, transparent);
+  }
+  .theme-login-input::placeholder {
+    color: var(--text-faint);
+  }
+}
+
+@layer utilities {
+  :root .bg-white { background-color: var(--bg-surface); }
+  :root .bg-slate-50 { background-color: var(--bg-elevated); }
+  :root .bg-slate-100 { background-color: color-mix(in srgb, var(--bg-elevated) 88%, var(--border-default)); }
+  :root .bg-slate-200 { background-color: color-mix(in srgb, var(--bg-elevated) 72%, var(--border-strong)); }
+  :root .bg-slate-800 { background-color: var(--bg-sidebar-muted); }
+  :root .bg-slate-900 { background-color: var(--bg-sidebar); }
+  :root .bg-slate-950 { background-color: var(--bg-login); }
+  :root .bg-blue-50 { background-color: var(--info-soft); }
+  :root .bg-blue-100 { background-color: color-mix(in srgb, var(--info-soft) 80%, white); }
+  :root .bg-blue-600 { background-color: var(--brand-primary); }
+  :root .bg-blue-700 { background-color: var(--brand-primary-hover); }
+  :root .bg-amber-50 { background-color: var(--warning-soft); }
+  :root .bg-amber-100 { background-color: color-mix(in srgb, var(--warning-soft) 80%, white); }
+  :root .bg-amber-500,
+  :root .bg-amber-600 { background-color: var(--warning); }
+  :root .bg-amber-700 { background-color: color-mix(in srgb, var(--warning) 85%, black); }
+  :root .bg-emerald-50,
+  :root .bg-green-50 { background-color: var(--success-soft); }
+  :root .bg-emerald-100,
+  :root .bg-green-100 { background-color: color-mix(in srgb, var(--success-soft) 80%, white); }
+  :root .bg-emerald-500,
+  :root .bg-green-500 { background-color: var(--success); }
+  :root .bg-rose-50,
+  :root .bg-red-50 { background-color: var(--danger-soft); }
+  :root .bg-rose-100,
+  :root .bg-red-100 { background-color: color-mix(in srgb, var(--danger-soft) 80%, white); }
+  :root .bg-rose-500,
+  :root .bg-red-500 { background-color: var(--danger); }
+  :root .bg-purple-100 { background-color: color-mix(in srgb, var(--brand-accent) 18%, white); }
+  :root .bg-orange-100 { background-color: var(--warning-soft); }
+  :root .text-white { color: var(--text-inverse); }
+  :root .text-slate-300 { color: var(--text-soft); }
+  :root .text-slate-400 { color: var(--text-faint); }
+  :root .text-slate-500 { color: var(--text-muted); }
+  :root .text-slate-600 { color: var(--text-secondary); }
+  :root .text-slate-700 { color: color-mix(in srgb, var(--text-primary) 82%, var(--text-secondary)); }
+  :root .text-slate-800,
+  :root .text-slate-900 { color: var(--text-primary); }
+  :root .text-blue-400,
+  :root .text-blue-600,
+  :root .text-blue-700 { color: var(--brand-primary); }
+  :root .text-amber-700,
+  :root .text-orange-700 { color: var(--warning); }
+  :root .text-emerald-600,
+  :root .text-emerald-700,
+  :root .text-green-600,
+  :root .text-green-700 { color: var(--success); }
+  :root .text-rose-600,
+  :root .text-rose-700,
+  :root .text-red-500,
+  :root .text-red-600,
+  :root .text-red-700 { color: var(--danger); }
+  :root .text-purple-600,
+  :root .text-purple-800 { color: var(--brand-accent); }
+  :root .border-slate-100 { border-color: color-mix(in srgb, var(--border-default) 60%, white); }
+  :root .border-slate-200 { border-color: var(--border-default); }
+  :root .border-slate-300 { border-color: var(--border-strong); }
+  :root .border-slate-700,
+  :root .border-slate-800 { border-color: rgba(255,255,255,0.08); }
+  :root .border-blue-100,
+  :root .border-blue-200,
+  :root .border-blue-500 { border-color: var(--brand-border); }
+  :root .border-amber-100,
+  :root .border-amber-200 { border-color: var(--warning-border); }
+  :root .border-emerald-200,
+  :root .border-green-200 { border-color: var(--success-border); }
+  :root .border-rose-100,
+  :root .border-rose-200,
+  :root .border-red-100 { border-color: var(--danger-border); }
+  :root .shadow-sm,
+  :root .shadow-lg,
+  :root .shadow-xl,
+  :root .shadow-2xl { box-shadow: var(--shadow-panel); }
 }

@@ -14,6 +14,40 @@ export default {
   theme: {
     extend: {
       colors: {
+        theme: {
+          bg: {
+            app: 'var(--bg-app)',
+            surface: 'var(--bg-surface)',
+            elevated: 'var(--bg-elevated)',
+            sidebar: 'var(--bg-sidebar)',
+            'sidebar-muted': 'var(--bg-sidebar-muted)',
+            header: 'var(--bg-header)',
+          },
+          text: {
+            primary: 'var(--text-primary)',
+            secondary: 'var(--text-secondary)',
+            muted: 'var(--text-muted)',
+            faint: 'var(--text-faint)',
+            inverse: 'var(--text-inverse)',
+            soft: 'var(--text-soft)',
+          },
+          border: {
+            DEFAULT: 'var(--border-default)',
+            strong: 'var(--border-strong)',
+          },
+        },
+        brand: {
+          primary: 'var(--brand-primary)',
+          hover: 'var(--brand-primary-hover)',
+          secondary: 'var(--brand-secondary)',
+          accent: 'var(--brand-accent)',
+        },
+        state: {
+          success: 'var(--success)',
+          warning: 'var(--warning)',
+          danger: 'var(--danger)',
+          info: 'var(--info)',
+        },
         code: {
           output: '#d6deeb',
           muted: '#9aa7bd',
@@ -50,11 +84,12 @@ export default {
         detail: '1.5rem',
       },
       boxShadow: {
-        panel: '0 18px 45px rgba(15,23,42,0.08)',
-        section: '0 28px 80px rgba(15,23,42,0.12)',
+        panel: 'var(--shadow-panel)',
+        section: 'var(--shadow-section)',
+        brand: 'var(--shadow-brand)',
       },
       backgroundImage: {
-        'review-panel': 'radial-gradient(circle at top left, rgba(16,185,129,0.16), transparent 30%), linear-gradient(135deg, #ffffff 0%, #f8fafc 46%, #eef6ff 100%)',
+        'review-panel': 'var(--gradient-brand)',
       },
     },
   },

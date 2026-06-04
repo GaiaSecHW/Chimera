@@ -25,34 +25,43 @@ export const XTerminal: React.FC<XTerminalProps> = ({
   const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  const readTerminalTheme = useCallback(() => {
+    const rootStyle = getComputedStyle(document.documentElement);
+    const background = rootStyle.getPropertyValue('--xterm-bg').trim() || '#1a1a2e';
+    const foreground = rootStyle.getPropertyValue('--xterm-fg').trim() || '#eaeaea';
+    const cursor = rootStyle.getPropertyValue('--xterm-cursor').trim() || '#00ff88';
+
+    return {
+      background,
+      foreground,
+      cursor,
+      cursorAccent: background,
+      selectionBackground: 'rgba(38, 79, 120, 0.45)',
+      black: '#000000',
+      red: '#cd3131',
+      green: '#0dbc79',
+      yellow: '#e5e510',
+      blue: '#2472c8',
+      magenta: '#bc3fbc',
+      cyan: '#11a8cd',
+      white: '#e5e5e5',
+      brightBlack: '#666666',
+      brightRed: '#f14c4c',
+      brightGreen: '#23d18b',
+      brightYellow: '#f5f543',
+      brightBlue: '#3b8eea',
+      brightMagenta: '#d670d6',
+      brightCyan: '#29b8db',
+      brightWhite: '#ffffff',
+    };
+  }, []);
+
   // 初始化终端
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
 
     const term = new Terminal({
-      theme: {
-        background: '#1a1a2e',
-        foreground: '#eaeaea',
-        cursor: '#00ff88',
-        cursorAccent: '#1a1a2e',
-        selectionBackground: '#264f78',
-        black: '#000000',
-        red: '#cd3131',
-        green: '#0dbc79',
-        yellow: '#e5e510',
-        blue: '#2472c8',
-        magenta: '#bc3fbc',
-        cyan: '#11a8cd',
-        white: '#e5e5e5',
-        brightBlack: '#666666',
-        brightRed: '#f14c4c',
-        brightGreen: '#23d18b',
-        brightYellow: '#f5f543',
-        brightBlue: '#3b8eea',
-        brightMagenta: '#d670d6',
-        brightCyan: '#29b8db',
-        brightWhite: '#ffffff',
-      },
+      theme: readTerminalTheme(),
       fontFamily: '"Cascadia Code", "Fira Code", "Source Code Pro", Consolas, "Courier New", monospace',
       fontSize: 14,
       lineHeight: 1.2,
@@ -97,6 +106,12 @@ export const XTerminal: React.FC<XTerminalProps> = ({
       fitAddonRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!xtermRef.current) return;
+    xtermRef.current.options.theme = readTerminalTheme();
+    xtermRef.current.refresh(0, xtermRef.current.rows - 1);
+  }, [readTerminalTheme]);
 
   // 处理窗口resize
   useEffect(() => {
@@ -220,10 +235,10 @@ export const XTerminal: React.FC<XTerminalProps> = ({
     <div className="flex flex-col h-full">
       {/* 终端标题栏 */}
       {showHeader && (
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-700">
+        <div className="flex items-center justify-between px-4 py-2 bg-theme-sidebar border-b border-theme-sidebar">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-slate-300 font-mono text-sm">{podName}</span>
+            <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+            <span className="text-theme-text-soft font-mono text-sm">{podName}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -235,7 +250,7 @@ export const XTerminal: React.FC<XTerminalProps> = ({
             </span>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-all"
+              className="p-1.5 text-theme-text-faint hover:text-theme-text-inverse hover:bg-theme-sidebar-muted rounded transition-all"
               title="关闭终端"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -250,8 +265,11 @@ export const XTerminal: React.FC<XTerminalProps> = ({
       {/* 终端容器 */}
       <div
         ref={terminalRef}
-        className="flex-1 bg-[#1a1a2e] p-2 overflow-hidden"
-        style={{ minHeight: showHeader ? '400px' : '100%' }}
+        className="flex-1 p-2 overflow-hidden"
+        style={{
+          minHeight: showHeader ? '400px' : '100%',
+          backgroundColor: 'var(--xterm-bg)',
+        }}
       />
     </div>
   );

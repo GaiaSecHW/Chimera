@@ -1,7 +1,7 @@
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { HashRouter, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Loader2, AlertCircle, Shield, Lock } from 'lucide-react';
+import { Loader2, AlertCircle, Lock } from 'lucide-react';
 import { ViewType, SecurityProject, UserInfo, Agent, EnvTemplate, StaticPackage, PackageStats, AdminDashboardStats } from './types/types';
 import { api } from './clients/api';
 import { getTopLevelDefaultView, getTopLevelNavForView, PROJECT_REQUIRED_VIEWS } from './app/navigation';
@@ -14,6 +14,7 @@ import { UploadCenterProvider } from './services/uploadCenter';
 import { ServiceTerminalWindowPage } from './pages/environment/ServiceTerminalWindowPage';
 import { canAccessView, getUserAccess, getUserCenterDefaultView } from './utils/rbac';
 import { AggregatedServiceHealth, MenuServiceHealthSummary } from './clients/menu';
+import { ThemeLogo } from './components/ThemeLogo';
 
 const DEFAULT_VIEW = 'dashboard';
 
@@ -424,23 +425,20 @@ const AppShell: React.FC = () => {
 
   if (!token) return (
     <>
-      <div className="h-screen w-full flex items-center justify-center bg-slate-950 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600 rounded-full blur-[120px]" />
+      <div className="h-screen w-full flex items-center justify-center bg-theme-login relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-25 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-accent rounded-full blur-[120px]" />
         </div>
 
-        <div className="w-full max-w-md p-10 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-2xl relative z-10">
+        <div className="w-full max-w-md p-10 backdrop-blur-xl rounded-[2.5rem] shadow-brand relative z-10" style={{ backgroundColor: 'var(--bg-login-card)', border: '1px solid var(--login-border)' }}>
           <div className="flex flex-col items-center mb-10 text-center">
-            <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-blue-500/20">
-              <Shield className="text-white" size={40} />
-            </div>
-            <h1 className="text-4xl font-black text-white tracking-tighter">SecFlow</h1>
-            <p className="text-slate-500 mt-2 font-medium uppercase tracking-widest text-[10px]">专业安全测试流程引擎</p>
+            <ThemeLogo size="large" showBadge />
+            <p className="text-theme-text-faint mt-4 font-medium uppercase tracking-widest text-[10px]">专业安全测试流程引擎</p>
           </div>
 
           {loginError && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl text-xs font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+            <div className="mb-6 p-4 bg-state-danger-soft border border-state-danger-border text-state-danger rounded-2xl text-xs font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
               <AlertCircle size={16} className="shrink-0" />
               {loginError}
             </div>
@@ -448,19 +446,19 @@ const AppShell: React.FC = () => {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-500 uppercase ml-2">账户名称</label>
-              <input name="username" required className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-blue-500 transition-all" placeholder="Username" />
+              <label className="text-[10px] font-black text-theme-text-faint uppercase ml-2">账户名称</label>
+              <input name="username" required className="theme-login-input" placeholder="Username" />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-500 uppercase ml-2">身份凭证</label>
-              <input name="password" type="password" required className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-blue-500 transition-all" placeholder="Password" />
+              <label className="text-[10px] font-black text-theme-text-faint uppercase ml-2">身份凭证</label>
+              <input name="password" type="password" required className="theme-login-input" placeholder="Password" />
             </div>
-            <button disabled={isLoading} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-500/20 hover:bg-blue-500 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-50 disabled:active:scale-100">
+            <button disabled={isLoading} className="theme-primary-button w-full py-4 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100">
               {isLoading ? <Loader2 className="animate-spin" size={20} /> : '进入平台'}
             </button>
           </form>
 
-          <p className="mt-8 text-center text-[10px] text-slate-600 font-medium leading-relaxed">
+          <p className="mt-8 text-center text-[10px] text-theme-text-faint font-medium leading-relaxed">
             &copy; 2025 SecFlow 极速安全测试平台 <br/> 受信任的二进制分发与自动化渗透环境
           </p>
         </div>
@@ -471,7 +469,7 @@ const AppShell: React.FC = () => {
 
   return (
     <UploadCenterProvider>
-      <div className="flex h-screen flex-col bg-slate-50 text-slate-900 overflow-hidden font-sans">
+      <div className="flex h-screen flex-col bg-theme-app text-theme-text-primary overflow-hidden font-sans">
         <Header 
           user={user} 
           currentTopLevelNav={activeTopLevelNav}
@@ -511,56 +509,56 @@ const AppShell: React.FC = () => {
           <main className="flex-1 flex flex-col min-w-0">
             <div className="flex-1 overflow-y-auto custom-scrollbar relative">
               {user?.must_change_password ? (
-                <div className="min-h-full flex items-center justify-center bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_30%),linear-gradient(180deg,_rgba(248,250,252,0.98),_rgba(255,255,255,1))] p-8">
-                  <div className="w-full max-w-lg rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl p-10">
+                <div className="min-h-full flex items-center justify-center bg-theme-app p-8">
+                  <div className="w-full max-w-lg rounded-[2.5rem] bg-theme-surface border border-theme-border shadow-panel p-10">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-3xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                      <div className="w-14 h-14 rounded-3xl bg-amber-500 text-white flex items-center justify-center shadow-brand">
                         <Lock size={26} />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-black text-slate-900">首次登录请先修改密码</h2>
-                        <p className="mt-1 text-sm font-medium text-slate-500">账号 <span className="font-black text-slate-700">{user.username}</span> 当前被设置为首次登录强制改密，修改完成后才可继续使用系统。</p>
+                        <h2 className="text-2xl font-black text-theme-text-primary">首次登录请先修改密码</h2>
+                        <p className="mt-1 text-sm font-medium text-theme-text-secondary">账号 <span className="font-black text-theme-text-primary">{user.username}</span> 当前被设置为首次登录强制改密，修改完成后才可继续使用系统。</p>
                       </div>
                     </div>
                     {forcedPasswordError && (
-                      <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                      <div className="mt-6 rounded-2xl border border-state-danger-border bg-state-danger-soft px-4 py-3 text-sm font-semibold text-state-danger">
                         {forcedPasswordError}
                       </div>
                     )}
                     <form onSubmit={handleForcedPasswordChange} className="mt-8 space-y-5">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">当前密码</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint ml-1">当前密码</label>
                         <input
                           type="password"
                           required
-                          className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                          className="theme-form-input w-full px-6 py-4"
                           value={forcedPasswordForm.old_password}
                           onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, old_password: e.target.value })}
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">新密码</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint ml-1">新密码</label>
                         <input
                           type="password"
                           required
                           minLength={6}
-                          className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                          className="theme-form-input w-full px-6 py-4"
                           value={forcedPasswordForm.new_password}
                           onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, new_password: e.target.value })}
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">确认新密码</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-theme-text-faint ml-1">确认新密码</label>
                         <input
                           type="password"
                           required
                           minLength={6}
-                          className="w-full px-6 py-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 ring-amber-500/10 font-semibold text-slate-800"
+                          className="theme-form-input w-full px-6 py-4"
                           value={forcedPasswordForm.confirm_password}
                           onChange={(e) => setForcedPasswordForm({ ...forcedPasswordForm, confirm_password: e.target.value })}
                         />
                       </div>
-                      <button disabled={forcedPasswordLoading} className="w-full py-4 rounded-2xl bg-amber-600 text-white font-black shadow-xl shadow-amber-500/20 hover:bg-amber-700 transition-all flex items-center justify-center">
+                      <button disabled={forcedPasswordLoading} className="theme-primary-button w-full py-4">
                         {forcedPasswordLoading ? <Loader2 className="animate-spin" size={20} /> : '修改密码并进入系统'}
                       </button>
                     </form>
@@ -568,7 +566,7 @@ const AppShell: React.FC = () => {
                 </div>
               ) : (
                 user && !canAccessView(user, currentView) ? (
-                  <div className="p-20 text-center"><h3 className="text-xl font-black text-slate-400">当前账号无权访问该页面。</h3></div>
+                  <div className="p-20 text-center"><h3 className="text-xl font-black text-theme-text-faint">当前账号无权访问该页面。</h3></div>
                 ) : (
                   renderCurrentView({
                     currentView: String(currentView),

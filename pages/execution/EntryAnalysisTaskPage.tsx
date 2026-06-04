@@ -1871,11 +1871,14 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 const expiredLeaseAgeSeconds = leaseExpired && typeof leaseExpiryTs === 'number'
                   ? Math.max(0, clockNow - leaseExpiryTs)
                   : 0;
+                const hasInvalidOwner = Boolean(t.owner_pod && t.owner_valid === false);
                 const isAwaitingTakeover = Boolean(t.awaiting_takeover || t.reconcile_pending);
                 const shouldHighlightLeaseError = leaseExpired && (!isAwaitingTakeover || expiredLeaseAgeSeconds >= ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS);
                 const shouldHighlightLeaseWarning = leaseExpired && !shouldHighlightLeaseError;
                 const contextualRowClassName = selectedTaskIds.has(t.task_id)
                   ? 'bg-violet-50/60'
+                  : hasInvalidOwner
+                    ? 'bg-rose-50/70 hover:bg-rose-100/70'
                   : shouldHighlightLeaseError
                     ? 'bg-rose-50/70 hover:bg-rose-100/70'
                   : shouldHighlightLeaseWarning
@@ -1927,6 +1930,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       {isAwaitingTakeover ? (
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-700">
                           等待接管
+                        </span>
+                      ) : null}
+                      {hasInvalidOwner ? (
+                        <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-black text-rose-700">
+                          非法 Owner
                         </span>
                       ) : null}
                     </div>
@@ -1992,6 +2000,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     {t.owner_pod ? (
                       <div className="space-y-1">
                         <div className="font-mono text-xs font-semibold text-slate-700">{t.owner_pod}</div>
+                        {t.owner_role_guess && t.owner_role_guess !== 'worker' && t.owner_role_guess !== 'worker_adaptive' ? (
+                          <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                            {t.owner_role_guess === 'api' ? 'api owner' : 'invalid owner'}
+                          </span>
+                        ) : null}
                         {slotCluster?.workers.some((worker) => worker.pod_name === t.owner_pod && !worker.healthy) ? (
                           <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                             stale owner
@@ -2004,6 +2017,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                   </ExecutionTableTd>
                   <ExecutionTableTd className="whitespace-nowrap text-xs text-slate-500">
                     <div>{formatDateTime(t.lease_expires_at)}</div>
+                    {hasInvalidOwner ? (
+                      <div className="mt-1 text-[11px] font-semibold text-rose-600">
+                        owner 是 API/非法实例，正在回收重调度
+                      </div>
+                    ) : null}
                     {shouldHighlightLeaseWarning ? (
                       <div className="mt-1 text-[11px] font-semibold text-amber-600">
                         正在等待回收/接管
@@ -2011,7 +2029,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                     ) : null}
                     {shouldHighlightLeaseError ? (
                       <div className="mt-1 text-[11px] font-semibold text-rose-600">
-                        租约过期超过 {ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS}s
+                        {t.owner_live ? 'owner worker 仍存活但未续租' : `租约过期超过 ${ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS}s`}
                       </div>
                     ) : null}
                   </ExecutionTableTd>

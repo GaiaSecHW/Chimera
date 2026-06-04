@@ -3006,9 +3006,13 @@ export interface AppEaTaskItem {
   output_path?: string | null;
   status: 'pending' | 'running' | 'passed' | 'failed' | 'error' | 'cancelled';
   owner_pod?: string | null;
+  owner_role_guess?: string | null;
+  owner_valid?: boolean;
+  owner_live?: boolean;
   lease_expires_at?: string | null;
   awaiting_takeover?: boolean;
   reconcile_pending?: boolean;
+  reconcile_reason?: string | null;
   cancel_requested?: boolean;
   error?: string | null;
   abnormal_reason_title?: string | null;
@@ -3027,12 +3031,17 @@ export interface EntryAnalyseActiveTaskRef {
   entry_id?: string | null;
   status: string;
   lease_expires_at?: string | null;
+  owner_role_guess?: string | null;
+  owner_valid?: boolean;
+  owner_live?: boolean;
+  reconcile_reason?: string | null;
 }
 
 export interface EntryAnalyseWorkerSlot {
   worker_id: string;
   url?: string | null;
   pod_name: string;
+  runtime_role?: string;
   pod_ip?: string | null;
   first_seen_at?: string | null;
   healthy: boolean;
@@ -3075,6 +3084,8 @@ export interface EntryAnalyseSlotClusterSummary {
   stale_owner_workers?: number;
   total_capacity: number;
   busy_slots: number;
+  running_invalid_owner?: number;
+  running_invalid_owner_owner_alive?: number;
   running_jobs: number;
   available_slots: number;
   dispatch_limit?: number;

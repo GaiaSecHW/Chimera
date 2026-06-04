@@ -46,6 +46,14 @@ export interface FirmwareUnpackTask {
   /** pending | running | cancelling | cancelled | success | failed */
   status: string;
   worker_id: string | null;
+  assigned_worker_id?: string | null;
+  assigned_pod_name?: string | null;
+  dispatch_lease_expires_at?: string | null;
+  run_lease_expires_at?: string | null;
+  takeover_count?: number | null;
+  pre_cleanup_scan_id?: string | null;
+  post_cleanup_scan_id?: string | null;
+  last_cleanup_residual_count?: number | null;
   result_status: string | null;
   result_message: string | null;
   rounds: number | null;
@@ -526,14 +534,41 @@ export interface FirmwareUnpackTaskList {
   items: FirmwareUnpackTask[];
 }
 
+export interface FirmwareCleanupScan {
+  id: string;
+  task_id: string | null;
+  worker_id: string;
+  phase: string;
+  started_at: string | null;
+  completed_at: string | null;
+  suspected_process_count: number;
+  terminated_count: number;
+  killed_count: number;
+  remaining_count: number;
+  processes_json: string | null;
+  errors_json: string | null;
+}
+
 export interface FirmwareWorkerInstance {
   worker_id: string;
+  owner_id?: string;
   hostname: string | null;
+  pod_name?: string | null;
   pod_ip: string | null;
+  role?: string | null;
+  advertised_capacity?: number;
   started_at: string | null;
   last_heartbeat: string | null;
   is_alive: boolean;
   active_tasks: number;
+  active_task_count?: number;
+  running_task_id?: string | null;
+  state?: string | null;
+  drain_requested?: boolean;
+  drain_reason?: string | null;
+  startup_epoch?: string | null;
+  last_cleanup_scan_at?: string | null;
+  last_cleanup_summary_json?: string | null;
 }
 
 export interface FirmwareConcurrencyInfo {
@@ -556,9 +591,13 @@ export interface FirmwareConcurrencyInfo {
 }
 
 export interface FirmwareClusterInfo {
-  this_worker: string;
+  this_worker: FirmwareWorkerInstance | null;
+  this_owner?: string;
   total_workers: number;
   alive_workers: number;
+  total_capacity?: number;
+  available_capacity?: number;
+  queued_tasks?: number;
   workers: FirmwareWorkerInstance[];
   task_counts: Record<string, number>;
   total_tasks: number;
@@ -698,6 +737,14 @@ const normalizeTask = (value: unknown): FirmwareUnpackTask => {
     output_path: asString(record.output_path),
     status: asString(record.status, 'unknown'),
     worker_id: asNullableString(record.owner_id ?? record.worker_id),
+    assigned_worker_id: asNullableString(record.assigned_worker_id),
+    assigned_pod_name: asNullableString(record.assigned_pod_name),
+    dispatch_lease_expires_at: asNullableString(record.dispatch_lease_expires_at),
+    run_lease_expires_at: asNullableString(record.run_lease_expires_at),
+    takeover_count: asNullableNumber(record.takeover_count),
+    pre_cleanup_scan_id: asNullableString(record.pre_cleanup_scan_id),
+    post_cleanup_scan_id: asNullableString(record.post_cleanup_scan_id),
+    last_cleanup_residual_count: asNullableNumber(record.last_cleanup_residual_count),
     result_status: asNullableString(record.result_status),
     result_message: asNullableString(record.result_message),
     rounds: asNullableNumber(record.rounds),
@@ -1183,12 +1230,24 @@ const normalizeWorker = (value: unknown): FirmwareWorkerInstance => {
   const record = asRecord(value);
   return {
     worker_id: asString(record.worker_id),
+    owner_id: asNullableString(record.owner_id),
     hostname: asNullableString(record.hostname),
+    pod_name: asNullableString(record.pod_name),
     pod_ip: asNullableString(record.pod_ip),
+    role: asNullableString(record.role),
+    advertised_capacity: asNumber(record.advertised_capacity, 0),
     started_at: asNullableString(record.started_at),
     last_heartbeat: asNullableString(record.last_heartbeat),
     is_alive: asBoolean(record.is_alive),
     active_tasks: asNumber(record.active_tasks, 0),
+    active_task_count: asNumber(record.active_task_count, asNumber(record.active_tasks, 0)),
+    running_task_id: asNullableString(record.running_task_id),
+    state: asNullableString(record.state),
+    drain_requested: asBoolean(record.drain_requested),
+    drain_reason: asNullableString(record.drain_reason),
+    startup_epoch: asNullableString(record.startup_epoch),
+    last_cleanup_scan_at: asNullableString(record.last_cleanup_scan_at),
+    last_cleanup_summary_json: asNullableString(record.last_cleanup_summary_json),
   };
 };
 
@@ -1205,9 +1264,13 @@ const normalizeClusterInfo = (value: unknown): FirmwareClusterInfo => {
   );
   const concurrencyRecord = asRecord(record.concurrency);
   return {
-    this_worker: asString(record.this_worker),
+    this_worker: record.this_worker ? normalizeWorker(record.this_worker) : null,
+    this_owner: asNullableString(record.this_owner),
     total_workers: asNumber(record.total_workers, workers.length),
     alive_workers: asNumber(record.alive_workers, workers.filter((item) => item.is_alive).length),
+    total_capacity: asNumber(record.total_capacity, 0),
+    available_capacity: asNumber(record.available_capacity, 0),
+    queued_tasks: asNumber(record.queued_tasks, 0),
     workers,
     task_counts,
     total_tasks: asNumber(record.total_tasks, Object.values(task_counts).reduce((sum, count) => sum + count, 0)),
@@ -1707,6 +1770,34 @@ export const firmwareUnpackerApi = {
   getCluster: async (): Promise<FirmwareClusterInfo> => {
     const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/cluster`, { headers: getHeaders() });
     return normalizeClusterInfo(await handleResponse(r));
+  },
+
+  getSlotCluster: async (): Promise<FirmwareClusterInfo> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/workers/slot-cluster`, { headers: getHeaders() });
+    return normalizeClusterInfo(await handleResponse(r));
+  },
+
+  getTaskWorkerRuntime: async (taskId: string): Promise<any> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/worker-runtime`, { headers: getHeaders() });
+    return handleResponse(r);
+  },
+
+  listTaskCleanupScans: async (taskId: string): Promise<FirmwareCleanupScan[]> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/cleanup-scans`, { headers: getHeaders() });
+    return handleResponse(r);
+  },
+
+  getTaskCleanupScan: async (taskId: string, scanId: string): Promise<FirmwareCleanupScan> => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/tasks/${taskId}/cleanup-scans/${scanId}`, { headers: getHeaders() });
+    return handleResponse(r);
+  },
+
+  drainWorker: async (workerId: string) => {
+    const r = await fetch(`${API_BASE}/api/app/firmware-unpacker/workers/${encodeURIComponent(workerId)}/drain`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    return handleResponse(r);
   },
 
   /** GET /api/app/firmware-unpacker/config */

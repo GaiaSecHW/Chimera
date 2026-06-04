@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Lock, LogOut, RotateCw, Settings, Shield, UserCog } from 'lucide-react';
+import { ChevronDown, Lock, LogOut, Palette, RotateCw, Settings, UserCog } from 'lucide-react';
 import { TopLevelNavKey, TOP_LEVEL_NAV_ITEMS } from '../app/navigation';
 import { SecurityProject, UserInfo, ViewType } from '../types/types';
 import { getPlatformRoleLabel, getUserAccess, getUserCenterDefaultView } from '../utils/rbac';
+import { useTheme } from '../theme/ThemeProvider';
+import { ThemeLogo } from '../components/ThemeLogo';
 
 const FRONTEND_BUILD_VERSION = String(
   typeof __SECFLOW_BUILD_VERSION__ !== 'undefined' ? __SECFLOW_BUILD_VERSION__ : '',
@@ -43,7 +45,10 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const userAccess = getUserAccess(user);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
+  const { theme, themes, setTheme } = useTheme();
 
   const currentProject = projects.find((p) => p.id === selectedProjectId) || { name: '选择项目' };
 
@@ -52,29 +57,19 @@ export const Header: React.FC<HeaderProps> = ({
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
+      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
+        setIsThemeMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 shadow-sm z-20 sticky top-0">
+    <header className="bg-theme-header border-b border-theme-sidebar shadow-brand z-20 sticky top-0">
       <div className="h-20 px-6 xl:px-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="w-11 h-11 bg-blue-600 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/30">
-            <Shield className="text-white" size={24} />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-baseline gap-2">
-              <span className="block text-xl font-black text-white tracking-tighter">SecFlow</span>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                {FRONTEND_BUILD_VERSION}
-              </span>
-            </div>
-            <span className="block text-[10px] font-black text-blue-400 uppercase tracking-[0.25em] truncate">
-              Security Platform
-            </span>
-          </div>
+          <ThemeLogo buildVersion={FRONTEND_BUILD_VERSION} />
         </div>
 
         <div className="flex justify-center min-w-0">
@@ -87,8 +82,8 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => onSelectTopLevelNav(item.id)}
                   className={`px-5 py-3 rounded-2xl text-sm font-black whitespace-nowrap transition-all ${
                     isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700'
+                      ? 'bg-brand-primary text-theme-text-inverse shadow-brand'
+                      : 'bg-theme-sidebar text-theme-text-soft hover:bg-theme-sidebar-muted hover:text-theme-text-inverse border border-theme-sidebar'
                   }`}
                 >
                   {item.label}
@@ -102,17 +97,17 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative min-w-0 max-w-[18rem]">
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-3 px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-black text-slate-100 hover:bg-slate-700 transition-all min-w-[12rem] max-w-[18rem]"
+              className="flex items-center gap-3 px-4 py-2.5 bg-theme-sidebar border border-theme-sidebar rounded-2xl text-sm font-black text-theme-text-inverse hover:bg-theme-sidebar-muted transition-all min-w-[12rem] max-w-[18rem]"
             >
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+              <div className="w-2.5 h-2.5 rounded-full bg-brand-primary shrink-0" />
               <span className="truncate">{currentProject.name}</span>
               <ChevronDown size={16} className="shrink-0" />
             </button>
             {isProjectDropdownOpen && (
-              <div className="absolute top-full right-0 mt-3 w-80 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl p-3 z-50">
+              <div className="absolute top-full right-0 mt-3 w-80 bg-theme-header border border-theme-sidebar rounded-3xl shadow-brand p-3 z-50">
                 <input
                   placeholder="过滤项目..."
-                  className="w-full px-4 py-3 bg-slate-800 text-slate-100 rounded-2xl text-xs outline-none placeholder:text-slate-500"
+                  className="w-full px-4 py-3 bg-theme-sidebar text-theme-text-inverse rounded-2xl text-xs outline-none placeholder:text-theme-text-faint"
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 <div className="max-h-60 overflow-y-auto mt-2 space-y-1">
@@ -124,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsProjectDropdownOpen(false);
                       }}
                       className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold ${
-                        selectedProjectId === p.id ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-800'
+                        selectedProjectId === p.id ? 'bg-brand-primary text-theme-text-inverse shadow-brand' : 'text-theme-text-soft hover:bg-theme-sidebar hover:text-theme-text-inverse'
                       }`}
                     >
                       {p.name}
@@ -135,36 +130,77 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          <button onClick={() => fetchProjects(true)} className="p-3 text-slate-500 hover:text-blue-400 transition-all shrink-0">
+          <button onClick={() => fetchProjects(true)} className="p-3 text-theme-text-faint hover:text-brand-primary transition-all shrink-0">
             <RotateCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
           </button>
+
+          <div className="relative shrink-0" ref={themeMenuRef}>
+            <button
+              onClick={() => setIsThemeMenuOpen((prev) => !prev)}
+              className="inline-flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-theme-sidebar text-theme-text-soft border border-theme-sidebar hover:bg-theme-sidebar-muted hover:text-theme-text-inverse transition-all"
+            >
+              <Palette size={16} />
+              <span className="hidden lg:inline text-xs font-black">
+                {themes.find((item) => item.id === theme)?.label || 'Theme'}
+              </span>
+              <ChevronDown size={14} className={`transition-transform ${isThemeMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isThemeMenuOpen && (
+              <div className="absolute top-full right-0 mt-3 w-56 rounded-3xl border border-theme-border bg-theme-surface shadow-brand p-2 z-50">
+                <div className="px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-theme-text-faint">Theme</div>
+                {themes.map((item) => {
+                  const active = item.id === theme;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setTheme(item.id);
+                        setIsThemeMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-3 rounded-2xl text-left transition-all ${
+                        active ? 'bg-brand-primary text-theme-text-inverse shadow-brand' : 'text-theme-text-primary hover:bg-theme-elevated'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-sm font-black">{item.label}</div>
+                        <div className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${active ? 'text-theme-text-inverse/80' : 'text-theme-text-faint'}`}>
+                          {item.badgeText}
+                        </div>
+                      </div>
+                      {active ? <span className="text-[10px] font-black uppercase tracking-[0.16em]">Active</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <div className="relative shrink-0" ref={userMenuRef}>
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="group flex items-center gap-3 p-1 pr-4 bg-slate-900 rounded-2xl hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-900/10"
+              className="group flex items-center gap-3 p-1 pr-4 bg-theme-header rounded-2xl hover:bg-theme-sidebar transition-all active:scale-95 shadow-brand"
             >
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-sm border-2 border-slate-900 shadow-inner group-hover:rotate-6 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-theme-text-inverse font-black text-sm border-2 border-theme-sidebar shadow-inner group-hover:rotate-6 transition-transform">
                 {user?.username?.[0]?.toUpperCase()}
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-[10px] font-black text-white leading-tight">{user?.username}</p>
-                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{getPlatformRoleLabel(userAccess.platformRole)}</p>
+                <p className="text-[10px] font-black text-theme-text-inverse leading-tight">{user?.username}</p>
+                <p className="text-[8px] font-bold text-theme-text-faint uppercase tracking-widest">{getPlatformRoleLabel(userAccess.platformRole)}</p>
               </div>
-              <ChevronDown size={14} className={`text-slate-500 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={14} className={`text-theme-text-faint transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute top-full right-0 mt-3 w-64 bg-white border border-slate-200 rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2 border-t-4 border-t-blue-600">
-                <div className="px-4 py-4 border-b border-slate-50 mb-1">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Current Identity</p>
+              <div className="absolute top-full right-0 mt-3 w-64 bg-theme-surface border border-theme-border rounded-[2rem] shadow-brand overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50 p-2 border-t-4 border-t-brand-primary">
+                <div className="px-4 py-4 border-b border-theme-border mb-1">
+                  <p className="text-[9px] font-black text-theme-text-faint uppercase tracking-widest">Current Identity</p>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-800 font-black">
+                    <div className="w-10 h-10 rounded-xl bg-theme-elevated flex items-center justify-center text-theme-text-primary font-black">
                       {user?.username?.[0]?.toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm font-black text-slate-800 leading-tight">{user?.username}</p>
-                      <span className="text-[8px] font-black uppercase text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 mt-1 inline-block">
+                      <p className="text-sm font-black text-theme-text-primary leading-tight">{user?.username}</p>
+                      <span className="text-[8px] font-black uppercase text-brand-primary bg-brand-soft px-1.5 py-0.5 rounded border border-brand-border mt-1 inline-block">
                         UID: {user?.id}
                       </span>
                     </div>
@@ -177,9 +213,9 @@ export const Header: React.FC<HeaderProps> = ({
                       setCurrentView('sys-settings');
                       setIsUserMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
                   >
-                    <Settings size={16} className="text-slate-400" /> 系统设置
+                    <Settings size={16} className="text-theme-text-faint" /> 系统设置
                   </button>
                   {userAccess.canAccessUserCenter && (
                     <button
@@ -187,9 +223,9 @@ export const Header: React.FC<HeaderProps> = ({
                         setCurrentView(getUserCenterDefaultView(user));
                         setIsUserMenuOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
                     >
-                      <UserCog size={16} className="text-slate-400" /> 用户管理
+                      <UserCog size={16} className="text-theme-text-faint" /> 用户管理
                     </button>
                   )}
                   <button
@@ -197,20 +233,20 @@ export const Header: React.FC<HeaderProps> = ({
                       setCurrentView('change-password');
                       setIsUserMenuOpen(false);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-xs font-bold text-theme-text-secondary hover:bg-theme-elevated rounded-xl transition-all"
                   >
-                    <Lock size={16} className="text-slate-400" /> 修改密码
+                    <Lock size={16} className="text-theme-text-faint" /> 修改密码
                   </button>
                 </div>
 
-                <div className="h-px bg-slate-50 my-1 mx-2" />
+                <div className="h-px bg-theme-elevated my-1 mx-2" />
 
                 <button
                   onClick={() => {
                     handleLogout();
                     setIsUserMenuOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-red-500 hover:bg-red-50 rounded-xl transition-all uppercase tracking-widest"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black text-state-danger hover:bg-state-danger-soft rounded-xl transition-all uppercase tracking-widest"
                 >
                   <LogOut size={16} /> 退出系统
                 </button>
