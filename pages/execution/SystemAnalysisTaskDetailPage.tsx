@@ -9,6 +9,7 @@ import {
   ChevronUp,
   ClipboardCopy,
   BarChart3,
+  GitFork,
   FolderOpen,
   Loader2,
   PlayCircle,
@@ -2488,6 +2489,80 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                     items={result.warnings}
                   />
 
+                  {result.module_dependency_graph ? (
+                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">
+                            <GitFork size={14} />
+                            模块依赖关系图
+                          </div>
+                          <h3 className="mt-2 text-lg font-black text-slate-900">基于 ELF/SO 导入导出关系</h3>
+                          <p className="mt-1 text-xs text-slate-500">
+                            连线方向 A → B 表示 A 依赖 B；依赖更少的模块更可能位于系统外层，风险排序会获得额外权重。
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                          <div>模块：<span className="font-black text-slate-900">{result.module_dependency_graph.summary?.module_count ?? result.module_dependency_graph.nodes?.length ?? 0}</span></div>
+                          <div>依赖边：<span className="font-black text-slate-900">{result.module_dependency_graph.summary?.edge_count ?? result.module_dependency_graph.edges?.length ?? 0}</span></div>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+                        <div className="relative min-h-[360px] overflow-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
+                          <div className="grid min-w-[720px] grid-cols-3 gap-4">
+                            {(result.module_dependency_graph.nodes || []).map((node: any) => {
+                              const name = String(node.module_name || node.id || 'unknown');
+                              const outgoing = (result.module_dependency_graph?.edges || []).filter((edge: any) => edge.source === name).slice(0, 8);
+                              return (
+                                <div key={name} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <div className="truncate text-sm font-black text-slate-900">{name}</div>
+                                      <div className="mt-1 text-[11px] text-slate-500">文件 {node.file_count ?? '-'}</div>
+                                    </div>
+                                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${riskTone(node.risk_level)}`}>{node.risk_level || '未知'}</span>
+                                  </div>
+                                  <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                                    <span className="rounded-full bg-slate-100 px-2 py-1">依赖 {node.dependency_count ?? 0}</span>
+                                    <span className="rounded-full bg-slate-100 px-2 py-1">被依赖 {node.reverse_dependency_count ?? 0}</span>
+                                    <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">外层权重 +{node.dependency_risk_bonus ?? 0}</span>
+                                  </div>
+                                  {outgoing.length > 0 ? (
+                                    <div className="mt-3 space-y-1 border-t border-slate-100 pt-3">
+                                      {outgoing.map((edge: any) => (
+                                        <div key={`${edge.source}-${edge.target}`} className="truncate text-[11px] text-slate-500">
+                                          → <span className="font-semibold text-slate-700">{edge.target}</span>
+                                          <span className="ml-1 text-slate-400">w={edge.weight ?? 1}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-700">无下游依赖，疑似外层/入口模块</div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="text-xs font-black text-slate-700">依赖最少 / 优先复核</div>
+                          <div className="mt-3 space-y-2">
+                            {[...(result.module_dependency_graph.nodes || [])]
+                              .sort((a: any, b: any) => (a.dependency_count ?? 0) - (b.dependency_count ?? 0) || (b.risk_score ?? 0) - (a.risk_score ?? 0))
+                              .slice(0, 10)
+                              .map((node: any, index: number) => (
+                                <div key={String(node.module_name || node.id)} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs">
+                                  <span className="font-mono text-slate-400">#{index + 1}</span>
+                                  <span className="min-w-0 flex-1 truncate font-bold text-slate-700">{node.module_name || node.id}</span>
+                                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">依赖 {node.dependency_count ?? 0}</span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  ) : null}
+
                   <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_300px]">
                     <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                       <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">结果导航</div>
@@ -2530,6 +2605,7 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                               <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
                                 <span>分数 {module.risk_score ?? '-'}</span>
                                 <span>文件 {module.file_count}</span>
+                                {typeof module.dependency_count === 'number' ? <span>依赖 {module.dependency_count}</span> : null}
                               </div>
                             </button>
                           );
@@ -2555,6 +2631,11 @@ export const SystemAnalysisTaskDetailPage: React.FC<{
                             <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
                               风险分数：{selectedModule.risk_score ?? '-'}
                             </span>
+                            {typeof selectedModule.dependency_count === 'number' ? (
+                              <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                                依赖数：{selectedModule.dependency_count}，外层权重 +{selectedModule.dependency_risk_bonus ?? 0}
+                              </span>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>

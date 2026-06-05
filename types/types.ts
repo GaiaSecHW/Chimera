@@ -2549,6 +2549,11 @@ export interface AppSaResultModule {
   file_count: number;
   risk_level?: string | null;
   risk_score?: number | null;
+  dependency_count?: number | null;
+  reverse_dependency_count?: number | null;
+  dependency_weight?: number | null;
+  dependency_risk_bonus?: number | null;
+  outer_layer_score?: number | null;
   report_sections: AppSaResultModuleSection[];
   report_preview?: string | null;
 }
@@ -2560,9 +2565,19 @@ export interface AppSaTaskResult {
   output_root?: string | null;
   final_report_path?: string | null;
   modules_list_path?: string | null;
+  module_dependency_graph_path?: string | null;
+  module_dependency_db_path?: string | null;
   report_generation_type?: 'ai' | 'program' | 'unknown' | 'missing' | string;
   report_generation_label?: string | null;
   final_report_markdown?: string | null;
+  module_dependency_graph?: {
+    version?: number;
+    direction?: string;
+    summary?: { module_count?: number; edge_count?: number; symbol_export_count?: number; [key: string]: any };
+    nodes?: Array<Record<string, any>>;
+    edges?: Array<{ source: string; target: string; weight?: number; symbols?: string[]; needed?: string[]; files?: string[]; [key: string]: any }>;
+    [key: string]: any;
+  } | null;
   modules: AppSaResultModule[];
   summary: AppSaTaskResultSummary;
   warnings: string[];
