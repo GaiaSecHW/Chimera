@@ -426,15 +426,20 @@ const AppShell: React.FC = () => {
   if (!token) return (
     <>
       <div className="h-screen w-full flex items-center justify-center bg-theme-login relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full opacity-25 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-accent rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'radial-gradient(circle at 20% 18%, rgba(212,160,48,0.18), transparent 18%), radial-gradient(circle at 82% 76%, rgba(42,90,143,0.22), transparent 24%), linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0))',
+            }}
+          />
         </div>
 
         <div className="w-full max-w-md p-10 backdrop-blur-xl rounded-[2.5rem] shadow-brand relative z-10" style={{ backgroundColor: 'var(--bg-login-card)', border: '1px solid var(--login-border)' }}>
           <div className="flex flex-col items-center mb-10 text-center">
             <ThemeLogo size="large" showBadge />
-            <p className="text-theme-text-faint mt-4 font-medium uppercase tracking-widest text-[10px]">专业安全测试流程引擎</p>
+            <p className="text-theme-text-faint mt-4 font-medium uppercase tracking-[0.28em] text-[10px]">专业安全测试流程引擎</p>
           </div>
 
           {loginError && (

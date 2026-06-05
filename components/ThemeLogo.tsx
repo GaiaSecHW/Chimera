@@ -7,6 +7,7 @@ interface ThemeLogoProps {
   showWordmark?: boolean;
   showBadge?: boolean;
   buildVersion?: string;
+  forceDarkWordmark?: boolean;
 }
 
 const SIZE_MAP = {
@@ -35,28 +36,33 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
   showWordmark = true,
   showBadge = true,
   buildVersion,
+  forceDarkWordmark = false,
 }) => {
   const { themeDefinition } = useTheme();
   const sizing = SIZE_MAP[size];
   const isClassic = themeDefinition.logoVariant === 'classic';
+  const wordmarkClass = forceDarkWordmark ? 'text-theme-text-primary' : 'text-theme-text-inverse';
 
   return (
     <div className="flex items-center gap-4 min-w-0">
-      <div className={`${sizing.box} bg-logo-surface flex items-center justify-center shrink-0 shadow-brand`}>
+      <div
+        className={`${sizing.box} bg-logo-surface flex items-center justify-center shrink-0 shadow-brand overflow-hidden`}
+        style={!isClassic ? { border: '1px solid color-mix(in srgb, var(--brand-primary) 44%, rgba(255,255,255,0.1))' } : undefined}
+      >
         {isClassic ? (
           <Shield className="text-theme-text-inverse" size={sizing.icon} />
         ) : (
           <img
             src={size === 'large' ? '/chimera-logo-full.svg' : size === 'small' ? '/chimera-logo-small.svg' : '/chimera-logo-medium.svg'}
             alt="Chimera"
-            className={sizing.image}
+            className={size === 'large' ? 'w-[4.5rem] h-[4.5rem]' : sizing.image}
           />
         )}
       </div>
       {showWordmark ? (
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className={`block ${sizing.title} font-black text-theme-text-inverse tracking-tighter`}>
+            <span className={`block ${sizing.title} font-black ${wordmarkClass} tracking-[0.02em]`}>
               {isClassic ? 'SecFlow' : 'Chimera'}
             </span>
             {buildVersion ? (
@@ -66,7 +72,7 @@ export const ThemeLogo: React.FC<ThemeLogoProps> = ({
             ) : null}
           </div>
           {showBadge ? (
-            <span className="block text-[10px] font-black text-brand-primary uppercase tracking-[0.25em] truncate">
+            <span className={`inline-flex mt-1 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.25em] truncate ${isClassic ? 'text-brand-primary' : 'theme-brand-chip'}`}>
               {themeDefinition.badgeText}
             </span>
           ) : null}

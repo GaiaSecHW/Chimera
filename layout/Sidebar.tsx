@@ -115,9 +115,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           disabled
                             ? 'bg-theme-sidebar/50 text-theme-text-faint cursor-not-allowed opacity-60'
                             : hasActiveSubItem
-                              ? 'bg-theme-sidebar-muted text-theme-text-inverse'
+                              ? 'theme-shell-muted text-theme-text-inverse'
                               : isActive
-                                ? 'bg-brand-primary text-theme-text-inverse shadow-brand'
+                                ? 'theme-shell-active'
                                 : 'text-theme-text-soft hover:bg-theme-sidebar-muted hover:text-theme-text-inverse'
                         }`}
                       >
@@ -151,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     subDisabled
                                       ? 'text-theme-text-faint cursor-not-allowed opacity-60'
                                       : subActive
-                                        ? 'bg-brand-primary text-theme-text-inverse shadow-brand font-semibold'
+                                        ? 'theme-shell-active font-semibold'
                                         : 'text-theme-text-faint hover:bg-theme-sidebar-muted hover:text-theme-text-inverse font-medium'
                                   }`}
                                 >

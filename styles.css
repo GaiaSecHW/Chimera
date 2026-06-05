@@ -52,30 +52,30 @@
   }
 
   :root[data-theme='chimera'] {
-    --bg-app: #f5f3ee;
-    --bg-surface: #fffdf8;
-    --bg-elevated: #f8f4eb;
-    --bg-sidebar: #163250;
-    --bg-sidebar-muted: #1e3a5f;
+    --bg-app: #f1ece2;
+    --bg-surface: #fdf9f1;
+    --bg-elevated: #f6efe2;
+    --bg-sidebar: #0d1b2a;
+    --bg-sidebar-muted: #14293f;
     --bg-header: #1e3a5f;
-    --bg-login: #0d1b2a;
-    --bg-login-card: rgba(18, 43, 70, 0.72);
-    --bg-login-input: rgba(255, 255, 255, 0.09);
-    --login-border: rgba(232, 192, 74, 0.25);
-    --text-primary: #1f2937;
-    --text-secondary: #5b6471;
-    --text-muted: #6b7280;
-    --text-faint: #9ca3af;
+    --bg-login: #0a0a14;
+    --bg-login-card: rgba(13, 27, 42, 0.78);
+    --bg-login-input: rgba(255, 248, 234, 0.06);
+    --login-border: rgba(212, 160, 48, 0.32);
+    --text-primary: #1d2632;
+    --text-secondary: #525d6b;
+    --text-muted: #677383;
+    --text-faint: #98a3b3;
     --text-inverse: #fffdf7;
-    --text-soft: #d7deea;
-    --border-default: #e7dcc8;
-    --border-strong: #d6c6ab;
+    --text-soft: #c3cfdd;
+    --border-default: #e1d4bd;
+    --border-strong: #cdb792;
     --brand-primary: #d4a030;
     --brand-primary-hover: #e8c04a;
     --brand-secondary: #ff6b2b;
     --brand-accent: #2a5a8f;
-    --brand-soft: #f6ead0;
-    --brand-border: #ecd7a2;
+    --brand-soft: #f4e4bc;
+    --brand-border: #dcc082;
     --success: #2e8b57;
     --warning: #d97706;
     --danger: #c2410c;
@@ -88,11 +88,11 @@
     --warning-border: #f7d89a;
     --danger-border: #f4c7b6;
     --info-border: #bdd0ea;
-    --logo-surface: linear-gradient(135deg, #d4a030 0%, #ff6b2b 55%, #e8c04a 100%);
-    --gradient-brand: radial-gradient(circle at top left, rgba(212, 160, 48, 0.16), transparent 30%), linear-gradient(135deg, #fffdf8 0%, #f8f4eb 46%, #efe7d6 100%);
-    --shadow-panel: 0 18px 45px rgba(30, 58, 95, 0.10);
-    --shadow-section: 0 28px 80px rgba(30, 58, 95, 0.14);
-    --shadow-brand: 0 18px 44px rgba(212, 160, 48, 0.24);
+    --logo-surface: radial-gradient(circle at 50% 45%, rgba(232, 192, 74, 0.18), rgba(212, 160, 48, 0.06) 42%, rgba(10, 10, 20, 0) 70%), linear-gradient(180deg, #0d1b2a 0%, #14293f 100%);
+    --gradient-brand: radial-gradient(circle at top left, rgba(212, 160, 48, 0.15), transparent 28%), linear-gradient(135deg, #fdf9f1 0%, #f6efe2 44%, #ece1cd 100%);
+    --shadow-panel: 0 18px 45px rgba(13, 27, 42, 0.10);
+    --shadow-section: 0 28px 80px rgba(13, 27, 42, 0.16);
+    --shadow-brand: 0 16px 36px rgba(20, 41, 63, 0.34);
     --xterm-bg: #151b2d;
     --xterm-fg: #f8f5ee;
     --xterm-cursor: #e8c04a;
@@ -119,6 +119,25 @@
   .bg-theme-header { background-color: var(--bg-header); }
   .bg-theme-login { background-color: var(--bg-login); }
   .bg-logo-surface { background: var(--logo-surface); }
+  .theme-brand-chip {
+    background: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 38%, transparent);
+    color: var(--brand-primary);
+  }
+  .theme-shell-active {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 92%, #ffffff 8%) 0%, color-mix(in srgb, var(--brand-secondary) 82%, var(--brand-primary) 18%) 100%);
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-brand);
+  }
+  .theme-shell-muted {
+    background: color-mix(in srgb, var(--bg-sidebar) 84%, var(--bg-sidebar-muted));
+    color: var(--text-soft);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 12%, rgba(255,255,255,0.08));
+  }
+  .theme-shell-muted:hover {
+    background: color-mix(in srgb, var(--bg-sidebar-muted) 90%, var(--brand-accent) 10%);
+    color: var(--text-inverse);
+  }
   .text-theme-text-primary { color: var(--text-primary); }
   .text-theme-text-secondary { color: var(--text-secondary); }
   .text-theme-text-muted { color: var(--text-muted); }
@@ -143,6 +162,7 @@
     @apply rounded-2xl font-black transition-all flex items-center justify-center text-white;
     background: var(--logo-surface);
     box-shadow: var(--shadow-brand);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 32%, transparent);
   }
   .theme-primary-button:hover {
     background: linear-gradient(135deg, var(--brand-primary-hover) 0%, var(--brand-secondary) 100%);

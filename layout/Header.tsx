@@ -82,8 +82,8 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={() => onSelectTopLevelNav(item.id)}
                   className={`px-5 py-3 rounded-2xl text-sm font-black whitespace-nowrap transition-all ${
                     isActive
-                      ? 'bg-brand-primary text-theme-text-inverse shadow-brand'
-                      : 'bg-theme-sidebar text-theme-text-soft hover:bg-theme-sidebar-muted hover:text-theme-text-inverse border border-theme-sidebar'
+                      ? 'theme-shell-active'
+                      : 'theme-shell-muted'
                   }`}
                 >
                   {item.label}
@@ -97,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative min-w-0 max-w-[18rem]">
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="flex items-center gap-3 px-4 py-2.5 bg-theme-sidebar border border-theme-sidebar rounded-2xl text-sm font-black text-theme-text-inverse hover:bg-theme-sidebar-muted transition-all min-w-[12rem] max-w-[18rem]"
+              className="flex items-center gap-3 px-4 py-2.5 theme-shell-muted rounded-2xl text-sm font-black min-w-[12rem] max-w-[18rem]"
             >
               <div className="w-2.5 h-2.5 rounded-full bg-brand-primary shrink-0" />
               <span className="truncate">{currentProject.name}</span>
@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsProjectDropdownOpen(false);
                       }}
                       className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold ${
-                        selectedProjectId === p.id ? 'bg-brand-primary text-theme-text-inverse shadow-brand' : 'text-theme-text-soft hover:bg-theme-sidebar hover:text-theme-text-inverse'
+                        selectedProjectId === p.id ? 'theme-shell-active' : 'text-theme-text-soft hover:bg-theme-sidebar hover:text-theme-text-inverse'
                       }`}
                     >
                       {p.name}
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative shrink-0" ref={themeMenuRef}>
             <button
               onClick={() => setIsThemeMenuOpen((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-3 py-2.5 rounded-2xl bg-theme-sidebar text-theme-text-soft border border-theme-sidebar hover:bg-theme-sidebar-muted hover:text-theme-text-inverse transition-all"
+              className="inline-flex items-center gap-2 px-3 py-2.5 rounded-2xl theme-shell-muted transition-all"
             >
               <Palette size={16} />
               <span className="hidden lg:inline text-xs font-black">
@@ -158,7 +158,7 @@ export const Header: React.FC<HeaderProps> = ({
                         setIsThemeMenuOpen(false);
                       }}
                       className={`w-full flex items-center justify-between px-3 py-3 rounded-2xl text-left transition-all ${
-                        active ? 'bg-brand-primary text-theme-text-inverse shadow-brand' : 'text-theme-text-primary hover:bg-theme-elevated'
+                        active ? 'theme-shell-active' : 'text-theme-text-primary hover:bg-theme-elevated'
                       }`}
                     >
                       <div>
@@ -180,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
               className="group flex items-center gap-3 p-1 pr-4 bg-theme-header rounded-2xl hover:bg-theme-sidebar transition-all active:scale-95 shadow-brand"
             >
-              <div className="w-10 h-10 rounded-xl bg-brand-primary flex items-center justify-center text-theme-text-inverse font-black text-sm border-2 border-theme-sidebar shadow-inner group-hover:rotate-6 transition-transform">
+              <div className="w-10 h-10 rounded-xl bg-logo-surface flex items-center justify-center text-theme-text-inverse font-black text-sm border shadow-inner group-hover:rotate-6 transition-transform" style={{ borderColor: 'color-mix(in srgb, var(--brand-primary) 42%, rgba(255,255,255,0.08))' }}>
                 {user?.username?.[0]?.toUpperCase()}
               </div>
               <div className="text-left hidden md:block">
