@@ -29,9 +29,6 @@ import { EnvProcessMonitorTasksPage } from '../pages/environment/EnvProcessMonit
 import { SystemAnalysisTaskPage } from '../pages/execution/SystemAnalysisTaskPage';
 import { SystemAnalysisTaskDetailPage } from '../pages/execution/SystemAnalysisTaskDetailPage';
 import { SystemAnalysisConfigPage } from '../pages/execution/SystemAnalysisConfigPage';
-import { DataflowAnalysisTaskPage } from '../pages/execution/DataflowAnalysisTaskPage';
-import { DataflowAnalysisTaskDetailPage } from '../pages/execution/DataflowAnalysisTaskDetailPage';
-import { DataflowAnalysisConfigPage } from '../pages/execution/DataflowAnalysisConfigPage';
 import { DataflowVulnScanTaskPage } from '../pages/execution/DataflowVulnScanTaskPage';
 import { DataflowVulnScanTaskDetailPage } from '../pages/execution/DataflowVulnScanTaskDetailPage';
 import { DataflowVulnScanConfigPage } from '../pages/execution/DataflowVulnScanConfigPage';
@@ -267,26 +264,14 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <SystemAnalysisConfigPage projectId={ctx.selectedProjectId} />;
     case 'pentest-dataflow':
     case 'dataflow-analysis-task':
-      return (
-        <DataflowAnalysisTaskPage
-          projectId={ctx.selectedProjectId}
-          onOpenTask={(taskId) => {
-            saveExecutionReturnContext({ view: 'dataflow-analysis-task' });
-            ctx.setActiveDataflowAnalysisTaskId(taskId);
-            ctx.setCurrentView('dataflow-analysis-detail');
-          }}
-        />
-      );
     case 'dataflow-analysis-detail':
-      return (
-        <DataflowAnalysisTaskDetailPage
-          projectId={ctx.selectedProjectId}
-          taskId={ctx.activeDataflowAnalysisTaskId}
-          onBack={() => ctx.setCurrentView('dataflow-analysis-task')}
-        />
-      );
     case 'dataflow-analysis-config':
-      return <DataflowAnalysisConfigPage projectId={ctx.selectedProjectId} />;
+      return (
+        <div className="p-20 text-center">
+          <h3 className="text-xl font-black text-slate-400">数据流分析前端页面已下线</h3>
+          <p className="mt-3 text-sm text-slate-500">该功能入口已从导航中移除。</p>
+        </div>
+      );
     case 'pentest-dataflow-vuln-scan':
     case 'dataflow-vuln-scan-task':
       return (

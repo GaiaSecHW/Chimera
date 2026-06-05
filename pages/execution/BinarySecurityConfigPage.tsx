@@ -5,11 +5,10 @@ import { api } from '../../clients/api';
 import { FirmwareUnpackConfigPage } from './FirmwareUnpackConfigPage';
 import { SystemAnalysisConfigPage } from './SystemAnalysisConfigPage';
 import { EntryAnalysisConfigPage } from './EntryAnalysisConfigPage';
-import { DataflowAnalysisConfigPage } from './DataflowAnalysisConfigPage';
 import { DataflowVulnConfigPage } from './DataflowVulnScannerPage';
 import { B2SConfigPage } from './B2SConfigPage';
 
-type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-analysis' | 'dataflow-vuln';
+type ConfigTab = 'binary-security' | 'binary-evolution' | 'firmware-unpacker' | 'system-analysis' | 'binary-to-source' | 'entry-analysis' | 'dataflow-vuln';
 const ORCHESTRATOR_STAGE_FIELDS = [
   { key: 'firmware_unpack', label: '固件解包' },
   { key: 'system_analysis', label: '系统分析' },
@@ -472,11 +471,6 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
               service: 'secflow-app-entry-analyse',
             },
             {
-              id: 'dataflow-analysis' as ConfigTab,
-              label: '数据流分析',
-              service: 'secflow-app-dataflow-analyse',
-            },
-            {
               id: 'dataflow-vuln' as ConfigTab,
               label: '数据流漏洞挖掘',
               service: 'secflow-app-dataflow-vuln-scanner',
@@ -707,8 +701,6 @@ export const BinarySecurityConfigPage: React.FC<{ projectId: string; initialTab?
         <B2SConfigPage projectId={projectId} embedded />
       ) : activeTab === 'entry-analysis' ? (
         <EntryAnalysisConfigPage projectId={projectId} embedded />
-      ) : activeTab === 'dataflow-analysis' ? (
-        <DataflowAnalysisConfigPage projectId={projectId} embedded />
       ) : (
         <DataflowVulnConfigPage projectId={projectId} embedded />
       )}
