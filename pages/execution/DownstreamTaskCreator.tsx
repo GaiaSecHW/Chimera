@@ -763,7 +763,7 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
             : `，污点为函数入参:\n${taintLines.join('\n')}${legacyTaintLine}`;
           const promptContent = header + taintBody;
           try {
-            const createdTask = await executionApi.appDataflowAnalyse.createTask({
+            const createdTask = await executionApi.appDataflowVulnScan.createTask({
               project_id: projectId,
               task_name: `${defaultPrefix}-${functionName}`,
               input_path: moduleInputPath,
