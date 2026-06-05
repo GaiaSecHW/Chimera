@@ -24,6 +24,8 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_COLOR: Record<string, string> = {
   pending: 'bg-slate-100 text-slate-600',
   running: 'bg-blue-100 text-blue-700',
+  takeover: 'bg-amber-100 text-amber-700',
+  lease_error: 'bg-rose-100 text-rose-700',
   cancelling: 'bg-orange-100 text-orange-700',
   passed: 'bg-emerald-100 text-emerald-700',
   failed: 'bg-red-100 text-red-700',
@@ -200,6 +202,29 @@ function getEntryAnalysisRecommendationReason(
     return `因为这条任务仍处于活跃状态，更适合观察实时推进与当前会话。${freshness}。`;
   }
   return `因为这条任务在当前筛选下更新时间靠前，可作为最近样本继续排查。${freshness}。`;
+}
+
+function getEntryTaskDisplayStatus(
+  task: Pick<AppEaTaskItem, 'status' | 'cancel_requested' | 'awaiting_takeover' | 'reconcile_pending' | 'lease_expires_at'>,
+  nowSeconds: number,
+): { key: string; label: string } {
+  if (task.cancel_requested && ['running', 'pending'].includes(task.status)) {
+    return { key: 'cancelling', label: STATUS_LABEL.cancelling };
+  }
+  if (task.status === 'running') {
+    const leaseExpiryTs = task.lease_expires_at ? Math.floor(new Date(task.lease_expires_at).getTime() / 1000) : null;
+    const leaseExpired = typeof leaseExpiryTs === 'number'
+      && Number.isFinite(leaseExpiryTs)
+      && leaseExpiryTs > 0
+      && leaseExpiryTs < nowSeconds;
+    if (task.awaiting_takeover || task.reconcile_pending) {
+      return { key: 'takeover', label: '等待接管' };
+    }
+    if (leaseExpired) {
+      return { key: 'lease_error', label: '租约异常' };
+    }
+  }
+  return { key: task.status, label: STATUS_LABEL[task.status] ?? task.status };
 }
 
 const STAGE_STEPS = [
@@ -1429,10 +1454,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         <p className="text-xs font-black uppercase tracking-[0.3em] text-violet-600">Entry Analysis</p>
         <ServicePageTitle title="入口分析任务" version={buildVersion} />
         <p className="mt-2 text-sm text-slate-500">指定目标模块路径，自动生成 Prompt 并启动入口点分析任务。</p>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {[
             { label: '总任务', value: total, bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' },
-            { label: '运行中', value: tasks.filter((t) => t.status === 'running' || t.status === 'pending').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            { label: '运行中', value: tasks.filter((t) => t.status === 'running').length, bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+            { label: '等待中', value: tasks.filter((t) => t.status === 'pending').length, bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
             { label: '已通过', value: tasks.filter((t) => t.status === 'passed').length, bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
             { label: '失败/取消', value: tasks.filter((t) => t.status === 'failed' || t.status === 'error' || t.status === 'cancelled').length, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
           ].map((s) => (
@@ -1884,6 +1910,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                 const isAwaitingTakeover = Boolean(t.awaiting_takeover || t.reconcile_pending);
                 const shouldHighlightLeaseError = leaseExpired && (!isAwaitingTakeover || expiredLeaseAgeSeconds >= ENTRY_ANALYSIS_LEASE_WARNING_GRACE_SECONDS);
                 const shouldHighlightLeaseWarning = leaseExpired && !shouldHighlightLeaseError;
+                const displayStatus = getEntryTaskDisplayStatus(t, clockNow);
                 const contextualRowClassName = selectedTaskIds.has(t.task_id)
                   ? 'bg-violet-50/60'
                   : hasInvalidOwner
@@ -1981,11 +2008,11 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
                       onClick={() => toggleStatusQuickFilter(t.status)}
                       className={getQuickFilterButtonClassName(
                         statusFilter === t.status,
-                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[t.cancel_requested && ['running','pending'].includes(t.status) ? 'cancelling' : t.status] ?? 'bg-slate-100 text-slate-600'}`
+                        `shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${STATUS_COLOR[displayStatus.key] ?? 'bg-slate-100 text-slate-600'}`
                       )}
                       title={statusFilter === t.status ? '再次点击取消状态筛选' : '点击按状态快速筛选'}
                     >
-                      {STATUS_LABEL[t.cancel_requested && ['running','pending'].includes(t.status) ? 'cancelling' : t.status] ?? t.status}
+                      {displayStatus.label}
                     </button>
                   </ExecutionTableTd>
                   <ExecutionTableTd className="min-w-[150px]">
