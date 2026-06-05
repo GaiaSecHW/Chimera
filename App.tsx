@@ -100,9 +100,10 @@ const AppShell: React.FC = () => {
     const targetUrl =
       normalizedView === 'project-file-explorer' && requestedPath
         ? `/${normalizedView}?path=${encodeURIComponent(requestedPath)}`
-        : normalizedView === 'binary-evolution-dataflow-vuln' && requestedTaskId
-          ? `/${normalizedView}/${encodeURIComponent(requestedTaskId)}`
-        : `/${normalizedView}`;
+        : /* [DISABLED] binary-evolution-dataflow-vuln - 方便后续复用
+          normalizedView === 'binary-evolution-dataflow-vuln' && requestedTaskId
+            ? `/${normalizedView}/${encodeURIComponent(requestedTaskId)}`
+          : */ `/${normalizedView}`;
     setCurrentView(normalizedView);
     if (!isServiceTerminalWindow) {
       const loc = locationRef.current;

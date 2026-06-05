@@ -171,13 +171,14 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-exec-b2s-result',
   'pentest-exec-b2s-detail',
   'pentest-exec-b2s-advanced',
-  'pentest-exec-dataflow-vuln',
+  // [DISABLED] 数据流漏洞挖掘 - 方便后续复用
+  // 'pentest-exec-dataflow-vuln',
+  // 'binary-evolution-dataflow-vuln',
+  // 'pentest-exec-dataflow-vuln-task-list',
+  // 'pentest-exec-dataflow-vuln-task-detail',
+  // 'pentest-exec-dataflow-vuln-system-config',
   'binary-evolution-center',
-  'binary-evolution-dataflow-vuln',
   'binary-evolution-firmware-unpacker',
-  'pentest-exec-dataflow-vuln-task-list',
-  'pentest-exec-dataflow-vuln-task-detail',
-  'pentest-exec-dataflow-vuln-system-config',
   'pentest-report',
   'vuln-engine',
   'vuln-overview',
@@ -188,6 +189,8 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'vuln-verification-detail',
   'vuln-decision',
   'vuln-decision-detail',
+  'vuln-review-judgment',
+  'vuln-review-judgment-detail',
   'vuln-queue',
   'vuln-services',
   'vuln-repro-config',
@@ -362,19 +365,21 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
         { id: 'pentest-threat', label: '入口分析', icon: Zap, aliases: ['entry-analysis-root', 'entry-analysis-task', 'entry-analysis-detail'], requiresProject: true },
         { id: 'pentest-dataflow', label: '数据流分析', icon: Workflow, aliases: ['dataflow-analysis-task', 'dataflow-analysis-detail'], requiresProject: true },
         { id: 'pentest-dataflow-vuln-scan', label: '数据流漏洞挖掘(114)', icon: Shield, aliases: ['dataflow-vuln-scan-task', 'dataflow-vuln-scan-detail', 'dataflow-vuln-scan-config'], requiresProject: true },
-        { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
+        // [DISABLED] 数据流漏洞挖掘 - 方便后续复用
+        // { id: 'pentest-exec-dataflow-vuln', label: '数据流漏洞挖掘', icon: Shield, aliases: ['pentest-exec-dataflow-vuln-task-list', 'pentest-exec-dataflow-vuln-task-detail'], requiresProject: true },
         {
           id: 'binary-evolution-center',
           label: '进化中心',
           icon: Sparkles,
           requiresProject: true,
           subItems: [
-            {
-              id: 'binary-evolution-dataflow-vuln',
-              label: '进化数据流漏洞挖掘',
-              aliases: ['binary-evolution-center'],
-              requiresProject: true,
-            },
+            // [DISABLED] 进化数据流漏洞挖掘 - 方便后续复用
+            // {
+            //   id: 'binary-evolution-dataflow-vuln',
+            //   label: '进化数据流漏洞挖掘',
+            //   aliases: ['binary-evolution-center'],
+            //   requiresProject: true,
+            // },
             {
               id: 'binary-evolution-firmware-unpacker',
               label: '进化固件解包',
@@ -382,7 +387,8 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
             },
           ],
         },
-        { id: 'binary-security-config', label: '参数配置', icon: Settings, aliases: ['pentest-exec-dataflow-vuln-system-config'], requiresProject: true },
+        // [DISABLED] alias pentest-exec-dataflow-vuln-system-config - 方便后续复用
+        { id: 'binary-security-config', label: '参数配置', icon: Settings, requiresProject: true },
         { id: 'binary-security-metrics', label: '性能看板', icon: Monitor, requiresProject: true },
       ],
     },
@@ -414,7 +420,17 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'vuln-overview', label: '生命周期总览', icon: Cpu, aliases: ['vuln-engine'], requiresProject: true, healthKey: 'vulnHealth' },
         { id: 'vuln-intake', label: '疑点上报', icon: FolderOpen, requiresProject: true },
-        { id: 'vuln-analysis', label: '研判阶段', icon: GitBranch, aliases: ['vuln-analysis-detail'], requiresProject: true },
+        {
+          id: 'vuln-analysis',
+          label: '研判阶段',
+          icon: GitBranch,
+          aliases: ['vuln-analysis-detail'],
+          requiresProject: true,
+          subItems: [
+            { id: 'vuln-analysis', label: '研判工作台', aliases: ['vuln-analysis-detail'], requiresProject: true },
+            { id: 'vuln-review-judgment', label: '评审研判', aliases: ['vuln-review-judgment-detail'], requiresProject: true },
+          ],
+        },
         { id: 'vuln-verification', label: '验证阶段', icon: ShieldCheck, aliases: ['vuln-verification-detail'], requiresProject: true },
         { id: 'vuln-decision', label: '结束管理', icon: ShieldAlert, aliases: ['vuln-decision-detail'], requiresProject: true },
         { id: 'vuln-queue', label: '运行队列', icon: Workflow, requiresProject: true },

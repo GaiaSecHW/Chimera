@@ -52,7 +52,8 @@ import { ExecutionWorkPlatformPage } from '../pages/execution/ExecutionWorkPlatf
 import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutionCenterPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
-import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
+// [DISABLED] DataflowVulnTask import - 方便后续复用
+// import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
@@ -68,6 +69,8 @@ import { VulnVerificationPage } from '../pages/vuln/VulnVerificationPage';
 import { VulnVerificationDetailPage } from '../pages/vuln/VulnVerificationDetailPage';
 import { VulnDecisionPage } from '../pages/vuln/VulnDecisionPage';
 import { VulnDecisionDetailPage } from '../pages/vuln/VulnDecisionDetailPage';
+import { ReviewJudgmentPage } from '../pages/vuln/ReviewJudgmentPage';
+import { ReviewJudgmentDetailPage } from '../pages/vuln/ReviewJudgmentDetailPage';
 import { VulnQueuePage } from '../pages/vuln/VulnQueuePage';
 import { VulnServicesPage } from '../pages/vuln/VulnServicesPage';
 import { VulnReproConfigPage } from '../pages/vuln/VulnReproConfigPage';
@@ -553,18 +556,22 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <MobileSecurityIpcVulnPage projectId={ctx.selectedProjectId} />;
     case 'kernel-scan':
       return <KernelScanPage projectId={ctx.selectedProjectId} />;
+    // [DISABLED] 数据流漏洞挖掘 - 方便后续复用
+    /*
     case 'pentest-exec-dataflow-vuln':
     case 'pentest-exec-dataflow-vuln-task-list':
       return <DataflowVulnTaskListPage projectId={ctx.selectedProjectId} />;
-    case 'binary-evolution-center':
     case 'binary-evolution-dataflow-vuln':
       return <BinaryEvolutionCenterPage projectId={ctx.selectedProjectId} />;
-    case 'binary-evolution-firmware-unpacker':
-      return <FirmwareEvolutionCenterPage projectId={ctx.selectedProjectId} />;
     case 'pentest-exec-dataflow-vuln-task-detail':
       return <DataflowVulnTaskDetailPage projectId={ctx.selectedProjectId} onBack={() => ctx.setCurrentView('pentest-exec-dataflow-vuln')} />;
     case 'pentest-exec-dataflow-vuln-system-config':
       return <BinarySecurityConfigPage projectId={ctx.selectedProjectId} initialTab="dataflow-vuln" />;
+    */
+    case 'binary-evolution-center':
+      return <BinaryEvolutionCenterPage projectId={ctx.selectedProjectId} />;
+    case 'binary-evolution-firmware-unpacker':
+      return <FirmwareEvolutionCenterPage projectId={ctx.selectedProjectId} />;
     case 'pentest-report':
       return <ReportsPage />;
     case 'security-assessment':
@@ -586,6 +593,10 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <VulnDecisionPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-decision-detail':
       return <VulnDecisionDetailPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+    case 'vuln-review-judgment':
+      return <ReviewJudgmentPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
+    case 'vuln-review-judgment-detail':
+      return <ReviewJudgmentDetailPage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-queue':
       return <VulnQueuePage projectId={ctx.selectedProjectId} onNavigateToView={ctx.setCurrentView} />;
     case 'vuln-services':
