@@ -139,6 +139,9 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
   'pentest-dataflow',
   'dataflow-analysis-task',
   'dataflow-analysis-config',
+  'dataflow-vuln-scan-task',
+  'dataflow-vuln-scan-detail',
+  'dataflow-vuln-scan-config',
   'entry-analysis-root',
   'entry-analysis-task',
   'entry-analysis-config',
@@ -236,6 +239,7 @@ export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
     view.startsWith('pentest-') ||
     view.startsWith('entry-analysis-') ||
     view.startsWith('system-analysis-') ||
+    view.startsWith('dataflow-vuln-scan-') ||
     view.startsWith('dataflow-analysis-')
   ) {
     return 'execution';
