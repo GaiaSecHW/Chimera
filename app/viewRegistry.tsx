@@ -11,6 +11,7 @@ import { DeployScriptPage } from '../pages/assets/DeployScriptPage';
 import { SecurityAssessmentPage } from '../pages/SecurityAssessmentPage';
 import { ConfigCenterLlmPage } from '../pages/platform/ConfigCenterLlmPage';
 import { ConfigCenterLlmChatPage } from '../pages/platform/ConfigCenterLlmChatPage';
+import { ChirmeraScheduleCenterPage } from '../pages/platform/ChirmeraScheduleCenterPage';
 import { PublicResourceManagementPage } from '../pages/assets/PublicResourceManagementPage';
 import { ProjectFileExplorerPage } from '../pages/assets/ProjectFileExplorerPage';
 import { FileserverArchiveTasksPage } from '../pages/assets/FileserverArchiveTasksPage';
@@ -197,6 +198,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       return <ConfigCenterLlmPage onOpenChat={() => ctx.setCurrentView('config-center-llm-chat')} />;
     case 'config-center-llm-chat':
       return <ConfigCenterLlmChatPage onBack={() => ctx.setCurrentView('config-center-llm')} />;
+    case 'chirmera-platform-schedule':
+      return <ChirmeraScheduleCenterPage projects={ctx.projects} initialProjectId={ctx.selectedProjectId} />;
     case 'public-resource-pvc-management':
       return <PublicResourceManagementPage projectId={ctx.selectedProjectId} initialTab="pvc" />;
     case 'public-resource-task-management':

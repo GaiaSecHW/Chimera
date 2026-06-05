@@ -442,6 +442,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       items: [
         { id: 'admin-dashboard', label: '管理员控制台', icon: ShieldAlert },
         { id: 'config-center-llm', label: '配置中心', icon: Key, aliases: ['config-center-root', 'config-center-llm-chat'], healthKey: 'configCenterHealth' },
+        { id: 'chirmera-platform-schedule', label: '调度中心', icon: Workflow },
         { id: 'static-packages', label: '静态软件包', icon: Package, aliases: ['static-package-detail'], healthKey: 'staticPackageHealth' },
         { id: 'deploy-script-mgmt', label: '部署脚本', icon: Terminal },
         { id: 'sys-settings', label: '系统设置', icon: Settings },

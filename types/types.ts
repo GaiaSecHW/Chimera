@@ -1843,6 +1843,152 @@ export interface Workspace {
   name: string;
 }
 
+export type ScheduleTriggerType = 'cron' | 'interval' | 'manual';
+export type ScheduleAuthMode = 'none' | 'bearer_passthrough' | 'machine_token' | 'static_bearer';
+export type ScheduleExecutionStatus = 'queued' | 'leased' | 'dispatching' | 'retry_wait' | 'succeeded' | 'failed' | 'timeout' | 'cancelled';
+export type LiteLLMVirtualKeyStatus = 'active' | 'disabled' | 'expired' | 'deleted';
+
+export interface ScheduleJobSummary {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string | null;
+  enabled: boolean;
+  trigger_type: ScheduleTriggerType;
+  cron_expr?: string | null;
+  interval_seconds?: number | null;
+  timezone: string;
+  target_method: string;
+  target_url: string;
+  target_headers: Record<string, any>;
+  target_query: Record<string, any>;
+  target_body_template: Record<string, any>;
+  auth_mode: ScheduleAuthMode;
+  static_bearer_token?: string | null;
+  success_status_codes: number[];
+  response_task_id_path?: string | null;
+  dedupe_window_seconds: number;
+  version: number;
+  max_concurrency: number;
+  dispatch_timeout_seconds?: number | null;
+  retry_policy: Record<string, any>;
+  target_bucket?: string | null;
+  misfire_policy: 'skip' | 'fire_once' | 'catch_up_limited';
+  paused_until?: string | null;
+  deleted?: boolean;
+  last_run_at?: string | null;
+  next_run_at?: string | null;
+  inflight_count?: number;
+  last_execution_status?: string | null;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ScheduleJobDetail = ScheduleJobSummary;
+
+export interface ScheduleExecution {
+  id: string;
+  schedule_job_id: string;
+  project_id: string;
+  trigger_source: string;
+  status: ScheduleExecutionStatus;
+  scheduled_for?: string | null;
+  dedupe_key: string;
+  attempt_no: number;
+  lease_owner?: string | null;
+  lease_expire_at?: string | null;
+  heartbeat_at?: string | null;
+  worker_pod?: string | null;
+  target_bucket?: string | null;
+  retry_at?: string | null;
+  result_code?: string | null;
+  result_reason?: string | null;
+  request_snapshot: Record<string, any>;
+  response_snapshot: Record<string, any>;
+  http_status?: number | null;
+  error_message?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  duration_ms?: number | null;
+  downstream_task_id?: string | null;
+  downstream_task_name?: string | null;
+  trace_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScheduleExecutionEvent {
+  id: string;
+  execution_id?: string;
+  event_type: string;
+  event_source?: string;
+  attempt_no?: number | null;
+  lease_token?: string | null;
+  message: string;
+  payload: Record<string, any>;
+  created_at: string;
+}
+
+export interface ScheduleRuntimeOverview {
+  queue: {
+    length: number;
+    oldest_age_seconds: number;
+    backend: string;
+  };
+  leader: {
+    token?: string | null;
+    is_local: boolean;
+    pod_name: string;
+  };
+  workers: {
+    local_pod: string;
+    concurrency: number;
+    inflight_executions: number;
+  };
+  stats: {
+    jobs_total: number;
+    active_jobs: number;
+    succeeded_total: number;
+    failed_total: number;
+  };
+  redis_available: boolean;
+}
+
+export interface ScheduleJobRuntime {
+  job_id: string;
+  project_id: string;
+  next_run_at?: string | null;
+  last_run_at?: string | null;
+  inflight_count: number;
+  last_execution_status?: string | null;
+  recent_error_rate: number;
+}
+
+export interface VirtualKey {
+  id: string;
+  project_id: string;
+  name: string;
+  alias?: string | null;
+  status: LiteLLMVirtualKeyStatus;
+  litellm_key_id?: string | null;
+  key_suffix?: string | null;
+  models: string[];
+  metadata: Record<string, any>;
+  budget_config: Record<string, any>;
+  expires_at?: string | null;
+  last_synced_at?: string | null;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VirtualKeyCreateResult extends VirtualKey {
+  plain_text_key?: string | null;
+}
+
 // Deploy Script Management Types
 export interface DeployScriptItem {
   name: string;
@@ -1861,7 +2007,7 @@ export interface DeployScriptListResponse {
 export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
   | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
-  | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat'
+  | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'chirmera-platform-schedule'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
   | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-detail' | 'system-analysis-history' | 'system-analysis-prompt' | 'system-analysis-config'

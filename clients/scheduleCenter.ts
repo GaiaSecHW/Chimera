@@ -1,0 +1,88 @@
+import { API_BASE, getHeaders, handleResponse } from './base';
+
+export const scheduleCenterApi = {
+  getHealth: async (): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/health`, { headers: getHeaders() })),
+
+  getRuntimeOverview: async (): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/runtime/overview`, { headers: getHeaders() })),
+
+  listJobs: async (projectId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs`, { headers: getHeaders() })),
+
+  getJob: async (projectId: string, jobId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs/${encodeURIComponent(jobId)}`, { headers: getHeaders() })),
+
+  createJob: async (projectId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  updateJob: async (projectId: string, jobId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs/${encodeURIComponent(jobId)}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  enableJob: async (projectId: string, jobId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs/${encodeURIComponent(jobId)}/enable`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  disableJob: async (projectId: string, jobId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs/${encodeURIComponent(jobId)}/disable`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  triggerJob: async (projectId: string, jobId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs/${encodeURIComponent(jobId)}/trigger`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  listExecutions: async (projectId: string, jobId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs/${encodeURIComponent(jobId)}/executions`, { headers: getHeaders() })),
+
+  getJobRuntime: async (projectId: string, jobId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/jobs/${encodeURIComponent(jobId)}/runtime`, { headers: getHeaders() })),
+
+  getExecution: async (projectId: string, executionId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/executions/${encodeURIComponent(executionId)}`, { headers: getHeaders() })),
+
+  listExecutionEvents: async (projectId: string, executionId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/executions/${encodeURIComponent(executionId)}/events`, { headers: getHeaders() })),
+
+  listKeys: async (projectId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/keys`, { headers: getHeaders() })),
+
+  getKey: async (projectId: string, keyId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/keys/${encodeURIComponent(keyId)}`, { headers: getHeaders() })),
+
+  createKey: async (projectId: string, payload: any): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/keys`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    })),
+
+  disableKey: async (projectId: string, keyId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/keys/${encodeURIComponent(keyId)}/disable`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  syncKey: async (projectId: string, keyId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/keys/${encodeURIComponent(keyId)}/sync`, {
+      method: 'POST',
+      headers: getHeaders(),
+    })),
+
+  listKeyEvents: async (projectId: string, keyId: string): Promise<any> =>
+    handleResponse(await fetch(`${API_BASE}/api/chirmera-platform-schedule/projects/${encodeURIComponent(projectId)}/keys/${encodeURIComponent(keyId)}/events`, { headers: getHeaders() })),
+};
