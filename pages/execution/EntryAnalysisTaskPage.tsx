@@ -420,6 +420,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
   const detailLogsCountRef = useRef<number>(0);
   const detailLoadSeqRef = useRef(0);
   const detailRefreshInFlightRef = useRef(false);
+  const taskListLoadSeqRef = useRef(0);
+  const taskListLoadingSeqRef = useRef(0);
   const [detailLoading, setDetailLoading] = useState(false);
   const [logsExpanded, setLogsExpanded] = useState(true);
 
@@ -510,6 +512,8 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
 
   const loadTasks = useCallback(async (p = page) => {
     if (!projectId) return;
+    const requestSeq = ++taskListLoadSeqRef.current;
+    taskListLoadingSeqRef.current = requestSeq;
     setLoading(true);
     try {
       const resp = await appApi.listTasks({
@@ -522,12 +526,18 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
         sort_by: sortBy,
         sort_order: sortOrder,
       });
-      setTasks(resp.items || []);
-      setTotal(resp.total || 0);
+      if (taskListLoadSeqRef.current === requestSeq) {
+        setTasks(resp.items || []);
+        setTotal(resp.total || 0);
+      }
     } catch (err: any) {
-      notify(`加载任务列表失败: ${err?.message || err}`, 'error');
+      if (taskListLoadSeqRef.current === requestSeq) {
+        notify(`加载任务列表失败: ${err?.message || err}`, 'error');
+      }
     } finally {
-      setLoading(false);
+      if (taskListLoadingSeqRef.current === requestSeq) {
+        setLoading(false);
+      }
     }
   }, [projectId, page, perPage, statusFilter, modeFilter, parentTaskIdFilter, sortBy, sortOrder]);
 
@@ -644,7 +654,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
     if (!autoRefreshEnabled) return;
     if (!hasActiveTasks && !hasActiveDetail) return;
     const timer = setInterval(() => {
-      void loadTasks(page);
+      void loadTasks();
       void loadSlotCluster();
       if (selectedTaskId && modalOpen && !detailRefreshInFlightRef.current) {
         detailRefreshInFlightRef.current = true;
@@ -654,8 +664,7 @@ export const EntryAnalysisTaskPage: React.FC<{ projectId: string; onOpenTask?: (
       }
     }, Math.max(5, refreshIntervalSec) * 1000);
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, hasActiveDetail, projectId, page, selectedTaskId, modalOpen, loadSlotCluster]);
+  }, [autoRefreshEnabled, refreshIntervalSec, hasActiveTasks, hasActiveDetail, loadTasks, loadSlotCluster, selectedTaskId, modalOpen]);
 
   // Auto-scroll logs to bottom when new events arrive
   useEffect(() => {
