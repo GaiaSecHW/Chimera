@@ -3625,6 +3625,8 @@ export interface AppDfaTaskCreateRequest {
   entry_reason?: string;
   entry_reason_source?: string;
   taint_details?: { name: string; description?: string; source_kind?: string }[];
+  funcdb_path?: string;
+  func_hash?: string;
   task_origin_type?: 'manual' | 'binary_security';
   parent_project_id?: string;
   parent_task_id?: string;

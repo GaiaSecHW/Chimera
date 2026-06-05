@@ -400,6 +400,7 @@ function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
   const details: AppEaEntryDetail[] = (result?.entry_details || []).filter(
     (e) => e.entry_category !== '处理入口',
   );
+  const funcdbPath = result?.output_root ? joinPath(result.output_root, 'funcdb') : '';
   return details.map((entry, index) => {
     const fileName = (entry.file || '').split('/').pop() || entry.file || '';
     const taintsStr = (entry.taints || []).join(', ') || '—';
@@ -426,6 +427,7 @@ function entryCandidates(result: AppEaTaskResult | null): Candidate[] {
         signature: entry.signature,
         confidence: entry.confidence,
         entryCategory: entry.entry_category,
+        funcdbPath,
       },
     };
   });
@@ -773,6 +775,8 @@ export const DownstreamTaskCreator: React.FC<Props> = ({
               function_name: functionName,
               source_file: file,
               line_hint: candidate.payload.line != null ? String(candidate.payload.line) : undefined,
+              funcdb_path: candidate.payload.funcdbPath || undefined,
+              func_hash: candidate.payload.funcHash || undefined,
               taint_params: taints.length ? taints : undefined,
               taint_details: taintDetails.length ? taintDetails : undefined,
               function_description: candidate.payload.functionDescription || undefined,
