@@ -546,7 +546,7 @@ export const AiGatewayPage: React.FC = () => {
       message: `确认解绑算力池绑定关系 #${binding.id} 吗？`,
       confirmText: '解绑',
       cancelText: '取消',
-      tone: 'danger',
+      danger: true,
     });
     if (!confirmed) return;
     try {
@@ -645,7 +645,7 @@ export const AiGatewayPage: React.FC = () => {
       message: `确认删除调用密钥 ${item.key_name} 吗？`,
       confirmText: '删除',
       cancelText: '取消',
-      tone: 'danger',
+      danger: true,
     });
     if (!confirmed) return;
     try {
@@ -663,7 +663,7 @@ export const AiGatewayPage: React.FC = () => {
       message: `确认删除算力池 ${pool.pool_name} 吗？`,
       confirmText: '删除',
       cancelText: '取消',
-      tone: 'danger',
+      danger: true,
     });
     if (!confirmed) return;
     try {
@@ -681,7 +681,7 @@ export const AiGatewayPage: React.FC = () => {
       message: `确认删除 ${label} 吗？`,
       confirmText: '删除',
       cancelText: '取消',
-      tone: 'danger',
+      danger: true,
     });
     if (!confirmed) return;
     setError('');
