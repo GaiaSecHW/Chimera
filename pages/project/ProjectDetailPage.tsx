@@ -27,7 +27,9 @@ import {
   ExternalLink,
   Copy,
   Key,
-  Check
+  Check,
+  Package,
+  GitBranch,
 } from 'lucide-react';
 import { SecurityProject, K8sResourceList, MachineToken, NamespaceStatus } from '../../types/types';
 import { api } from '../../clients/api';
@@ -310,6 +312,18 @@ export const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projectId,
                               <History size={10} /> 最后更新时间
                            </p>
                            <p className="text-sm font-black text-slate-700">{project?.updated_at?.replace('T', ' ') || '-'}</p>
+                        </div>
+                        <div className="space-y-1.5">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <Package size={10} /> 产品路径
+                           </p>
+                           <p className="text-sm font-black text-slate-700">{project?.product_path || '未归属版本'}</p>
+                        </div>
+                        <div className="space-y-1.5">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <GitBranch size={10} /> 产品版本
+                           </p>
+                           <p className="text-sm font-black text-slate-700">{project?.product_version || project?.product_version_name || '未归属版本'}</p>
                         </div>
                      </div>
                      

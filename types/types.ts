@@ -608,10 +608,44 @@ export interface SecurityProject {
   is_public?: boolean;
   department_id?: number | null;
   department_name?: string | null;
+  product_id?: string | null;
+  product_name?: string | null;
+  product_path?: string | null;
+  product_version_id?: string | null;
+  product_version_name?: string | null;
+  product_version?: string | null;
   can_manage?: boolean;
   created_at?: string;
   updated_at?: string;
   k8s_namespace?: string;
+}
+
+export interface ProductVersionNode {
+  id: string;
+  product_id: string;
+  version: string;
+  name?: string | null;
+  description?: string | null;
+  status: string;
+  project_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductTreeNode {
+  id: string;
+  name: string;
+  code: string;
+  parent_id?: string | null;
+  description?: string | null;
+  sort_order: number;
+  status: string;
+  is_leaf: boolean;
+  project_count: number;
+  created_at: string;
+  updated_at: string;
+  children: ProductTreeNode[];
+  versions: ProductVersionNode[];
 }
 
 export interface ProjectResource {
@@ -1932,22 +1966,22 @@ export interface ScheduleExecutionEvent {
 }
 
 export interface ScheduleRuntimeOverview {
-  queue: {
+  queue?: {
     length: number;
     oldest_age_seconds: number;
     backend: string;
   };
-  leader: {
+  leader?: {
     token?: string | null;
     is_local: boolean;
     pod_name: string;
   };
-  workers: {
+  workers?: {
     local_pod: string;
     concurrency: number;
     inflight_executions: number;
   };
-  stats: {
+  stats?: {
     jobs_total: number;
     active_jobs: number;
     succeeded_total: number;
@@ -2005,7 +2039,7 @@ export interface DeployScriptListResponse {
 }
 
 export type ViewType =
-  | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
+  | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'product-mgmt' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
   | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
   | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'chirmera-platform-schedule'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'

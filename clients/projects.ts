@@ -1,5 +1,5 @@
 import { API_BASE, handleResponse, getHeaders } from './base';
-import { SecurityProject, K8sResourceList, NamespaceStatus } from '../types/types';
+import { ProductTreeNode, ProductVersionNode, SecurityProject, K8sResourceList, NamespaceStatus } from '../types/types';
 
 export const projectsApi = {
   // Health Check
@@ -18,7 +18,7 @@ export const projectsApi = {
     return handleResponse(response);
   },
   
-  create: async (project: { name: string; description?: string; k8s_namespace?: string; is_public?: boolean; department_id?: number }): Promise<SecurityProject> => {
+  create: async (project: { name: string; description?: string; k8s_namespace?: string; is_public?: boolean; department_id?: number; product_version_id: string }): Promise<SecurityProject> => {
     const response = await fetch(`${API_BASE}/api/project`, {
       method: 'POST',
       headers: getHeaders(),
@@ -27,7 +27,7 @@ export const projectsApi = {
     return handleResponse(response);
   },
   
-  update: async (id: string, project: { name?: string; description?: string; k8s_namespace?: string; is_public?: boolean; department_id?: number }): Promise<SecurityProject> => {
+  update: async (id: string, project: { name?: string; description?: string; k8s_namespace?: string; is_public?: boolean; department_id?: number; product_version_id?: string | null }): Promise<SecurityProject> => {
     const response = await fetch(`${API_BASE}/api/project/${id}`, {
       method: 'PUT',
       headers: getHeaders(),
@@ -84,4 +84,63 @@ export const projectsApi = {
     const response = await fetch(`${API_BASE}/api/project/${projectId}/pods/${podName}/logs?${query}`, { headers: getHeaders() });
     return handleResponse(response);
   }
+};
+
+export const productsApi = {
+  getTree: async (): Promise<{ total: number; products: ProductTreeNode[] }> => {
+    const response = await fetch(`${API_BASE}/api/project/products/tree`, { headers: getHeaders() });
+    return handleResponse(response);
+  },
+
+  create: async (payload: { name: string; code: string; parent_id?: string | null; description?: string; sort_order?: number }): Promise<ProductTreeNode> => {
+    const response = await fetch(`${API_BASE}/api/project/products`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  update: async (productId: string, payload: { name?: string; code?: string; parent_id?: string | null; description?: string; sort_order?: number }): Promise<ProductTreeNode> => {
+    const response = await fetch(`${API_BASE}/api/project/products/${productId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (productId: string): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE}/api/project/products/${productId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
+
+  createVersion: async (productId: string, payload: { version: string; name?: string; description?: string }): Promise<ProductVersionNode> => {
+    const response = await fetch(`${API_BASE}/api/project/products/${productId}/versions`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  updateVersion: async (versionId: string, payload: { version?: string; name?: string; description?: string }): Promise<ProductVersionNode> => {
+    const response = await fetch(`${API_BASE}/api/project/products/versions/${versionId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  deleteVersion: async (versionId: string): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE}/api/project/products/versions/${versionId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    return handleResponse(response);
+  },
 };

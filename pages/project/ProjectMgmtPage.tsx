@@ -12,16 +12,18 @@ import {
   Layers,
   Loader2,
   Lock,
+  Package,
   Plus,
   RefreshCw,
   Search,
   Square,
   Trash2,
   User,
+  GitBranch,
 } from 'lucide-react';
 import { api } from '../../clients/api';
 import { orgApi, UserPermissionInfo } from '../../clients/org';
-import { Department, SecurityProject } from '../../types/types';
+import { Department, ProductTreeNode, ProductVersionNode, SecurityProject } from '../../types/types';
 import { StatusBadge } from '../../components/StatusBadge';
 
 interface ProjectMgmtPageProps {
@@ -36,6 +38,7 @@ interface ProjectFormState {
   description: string;
   is_public: boolean;
   department_id: string;
+  product_version_id: string;
 }
 
 const EMPTY_FORM: ProjectFormState = {
@@ -43,6 +46,7 @@ const EMPTY_FORM: ProjectFormState = {
   description: '',
   is_public: false,
   department_id: '',
+  product_version_id: '',
 };
 
 export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
@@ -66,16 +70,19 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [departments, setDepartments] = useState<Department[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermissionInfo | null>(null);
+  const [productTree, setProductTree] = useState<ProductTreeNode[]>([]);
 
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const [departmentList, permissions] = await Promise.all([
+        const [departmentList, permissions, productTreeResponse] = await Promise.all([
           orgApi.listDepartments(),
           orgApi.getUserPermissions(),
+          projectApi.products.getTree(),
         ]);
         setDepartments(departmentList || []);
         setUserPermissions(permissions);
+        setProductTree(productTreeResponse?.products || []);
       } catch (fetchError) {
         console.error('获取项目空间权限上下文失败:', fetchError);
       }
@@ -101,6 +108,21 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     return departments.filter((department) => allowedSet.has(department.id));
   }, [allowedDepartmentIds, departments, userPermissions]);
 
+  const productVersionOptions = useMemo(() => {
+    const flatNodes = (nodes: ProductTreeNode[]): ProductTreeNode[] =>
+      nodes.flatMap((node) => [node, ...flatNodes(node.children || [])]);
+
+    return flatNodes(productTree)
+      .filter((node) => node.is_leaf)
+      .flatMap((node) =>
+        (node.versions || []).map((version: ProductVersionNode) => ({
+          product: node,
+          version,
+          label: `${node.name} / ${version.version}${version.name ? ` · ${version.name}` : ''}`,
+        }))
+      );
+  }, [productTree]);
+
   const filteredProjects = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return (projects || []).filter((project) => {
@@ -113,6 +135,10 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         project.k8s_namespace || '',
         project.owner_name || '',
         project.department_name || '',
+        project.product_name || '',
+        project.product_path || '',
+        project.product_version || '',
+        project.product_version_name || '',
       ].some((value) => value.toLowerCase().includes(term));
     });
   }, [projects, searchTerm]);
@@ -151,6 +177,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     setNewProject({
       ...EMPTY_FORM,
       department_id: getDefaultDepartmentId(),
+      product_version_id: productVersionOptions[0]?.version.id || '',
     });
     setIsCreateModalOpen(true);
   };
@@ -159,6 +186,10 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
     e.preventDefault();
     if (!newProject.department_id) {
       setError('请选择项目归属部门');
+      return;
+    }
+    if (!newProject.product_version_id) {
+      setError('请选择产品版本');
       return;
     }
 
@@ -170,6 +201,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         description: newProject.description,
         is_public: newProject.is_public,
         department_id: Number(newProject.department_id),
+        product_version_id: newProject.product_version_id,
       });
       setIsCreateModalOpen(false);
       setNewProject(EMPTY_FORM);
@@ -197,6 +229,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         description: editForm.description,
         is_public: editForm.is_public,
         department_id: Number(editForm.department_id),
+        product_version_id: editForm.product_version_id || null,
       });
       setIsEditModalOpen(false);
       setEditingProject(null);
@@ -219,6 +252,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
       description: project.description || '',
       is_public: !!project.is_public,
       department_id: project.department_id ? String(project.department_id) : getDefaultDepartmentId(),
+      product_version_id: project.product_version_id || '',
     });
     setError(null);
     setIsEditModalOpen(true);
@@ -405,6 +439,14 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">产品路径</p>
+                          <p className="text-sm font-bold text-slate-700 mt-1 break-all">{project.product_path || '未归属版本'}</p>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">产品版本</p>
+                          <p className="text-sm font-bold text-slate-700 mt-1 break-all">{project.product_version || project.product_version_name || '未归属版本'}</p>
+                        </div>
+                        <div className="rounded-2xl bg-slate-50 px-4 py-3">
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">命名空间</p>
                           <p className="text-sm font-bold text-slate-700 mt-1 break-all">{project.k8s_namespace || '系统自动生成'}</p>
                         </div>
@@ -449,6 +491,29 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         {selectableDepartments.map((department) => (
           <option key={department.id} value={department.id}>
             {department.name}
+          </option>
+        ))}
+      </select>
+      <p className="text-[11px] text-slate-400 ml-1">{helperText}</p>
+    </div>
+  );
+
+  const renderProductVersionSelect = (
+    value: string,
+    onChange: (productVersionId: string) => void,
+    helperText: string
+  ) => (
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">产品版本 *</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="w-full px-6 py-4 bg-slate-50 rounded-2xl border-none outline-none focus:ring-4 ring-blue-500/10 font-bold text-slate-800 transition-all"
+      >
+        <option value="">请选择产品版本</option>
+        {productVersionOptions.map((option) => (
+          <option key={option.version.id} value={option.version.id}>
+            {option.label}
           </option>
         ))}
       </select>
@@ -540,6 +605,13 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
           </div>
           <Edit3 className="text-blue-100" size={40} />
         </div>
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">未归属版本</p>
+            <h3 className="text-3xl font-black text-slate-800 mt-1">{projects.filter((project) => !project.product_version_id).length}</h3>
+          </div>
+          <GitBranch className="text-slate-100" size={40} />
+        </div>
       </div>
 
       {userPermissions?.platform_role === 'ordinary_admin' && (
@@ -552,7 +624,7 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
         <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
         <input
           type="text"
-          placeholder="搜索项目名称、负责人、归属部门或命名空间..."
+          placeholder="搜索项目名称、负责人、归属部门、产品路径、版本号或命名空间..."
           className="w-full pl-16 pr-20 py-5 bg-white border border-slate-200 rounded-[2rem] text-sm outline-none focus:ring-4 ring-blue-500/5 transition-all font-medium shadow-sm"
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
@@ -624,6 +696,12 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 newProject.department_id,
                 (department_id) => setNewProject({ ...newProject, department_id }),
                 '私有项目仅对该部门及其上级部门可见；公开项目仍保留归属部门以便后续管理。'
+              )}
+
+              {renderProductVersionSelect(
+                newProject.product_version_id,
+                (product_version_id) => setNewProject({ ...newProject, product_version_id }),
+                '新建项目必须绑定到一个产品版本，版本从全局产品树的叶子节点下选择。'
               )}
 
               <div className="space-y-1.5">
@@ -759,6 +837,12 @@ export const ProjectMgmtPage: React.FC<ProjectMgmtPageProps> = ({
                 editForm.department_id,
                 (department_id) => setEditForm({ ...editForm, department_id }),
                 '归属部门决定私有项目的可见范围，同时决定哪些部门管理员可编辑和删除项目。'
+              )}
+
+              {renderProductVersionSelect(
+                editForm.product_version_id,
+                (product_version_id) => setEditForm({ ...editForm, product_version_id }),
+                '可切换到其他产品版本；历史项目允许暂时为空，但建议尽快补齐。'
               )}
 
               <div className="space-y-1.5">

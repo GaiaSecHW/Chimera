@@ -5,6 +5,7 @@ import { WorkflowPlaceholder } from '../components/WorkflowPlaceholder';
 import { DashboardPage } from '../pages/DashboardPage';
 import { ProjectMgmtPage } from '../pages/project/ProjectMgmtPage';
 import { ProjectDetailPage } from '../pages/project/ProjectDetailPage';
+import { ProductMgmtPage } from '../pages/project/ProductMgmtPage';
 import { StaticPackagesPage } from '../pages/assets/StaticPackagesPage';
 import { StaticPackageDetailPage } from '../pages/assets/StaticPackageDetailPage';
 import { DeployScriptPage } from '../pages/assets/DeployScriptPage';
@@ -51,7 +52,7 @@ import { FirmwareUnpackerPage } from '../pages/execution/FirmwareUnpackerPage';
 import { FirmwareEvolutionCenterPage } from '../pages/execution/FirmwareEvolutionCenterPage';
 import { ReportsPage } from '../pages/execution/ReportsPage';
 // [DISABLED] DataflowVulnTask import - 方便后续复用
-// import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScannerPage';
+// import { DataflowVulnTaskDetailPage, DataflowVulnTaskListPage } from '../pages/execution/DataflowVulnScanPage';
 import { BinaryEvolutionCenterPage } from '../pages/execution/BinaryEvolutionCenterPage';
 import { BinarySecurityOverviewPage } from '../pages/execution/BinarySecurityOverviewPage';
 import { BinarySecurityConfigPage } from '../pages/execution/BinarySecurityConfigPage';
@@ -177,6 +178,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
       );
     case 'project-detail':
       return <ProjectDetailPage projectId={ctx.activeProjectId} projects={ctx.projects} onBack={() => ctx.setCurrentView('project-mgmt')} />;
+    case 'product-mgmt':
+      return <ProductMgmtPage />;
     case 'static-packages':
       return (
         <StaticPackagesPage
@@ -271,7 +274,7 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
     case 'dataflow-analysis-config':
       return (
         <div className="p-20 text-center">
-          <h3 className="text-xl font-black text-slate-400">数据流分析前端页面已下线</h3>
+          <h3 className="text-xl font-black text-slate-400">数据流漏洞挖掘前端页面已下线</h3>
           <p className="mt-3 text-sm text-slate-500">该功能入口已从导航中移除。</p>
         </div>
       );

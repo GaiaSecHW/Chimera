@@ -18,7 +18,6 @@ import {
 } from '../../clients/binarySecurity';
 import { api } from '../../clients/api';
 import { B2STaskDetail } from '../../clients/binaryToSource';
-import { DataflowScanTaskDetail } from '../../clients/dataflowVulnScanner';
 import { FirmwareUnpackTask } from '../../clients/firmwareUnpacker';
 import { AppDfaTaskDetail, AppEaTaskDetail, AppSaTaskDetail } from '../../types/types';
 import { showConfirm } from '../../components/DialogService';
@@ -50,20 +49,17 @@ const DEFAULT_BINARY_STAGE_SEQUENCE = [
   'system_analysis',
   'binary_to_source',
   'entry_analysis',
-  'dataflow_analysis',
-  'vuln_scan',
+  'dataflow_vuln_scan',
 ];
 const DEFAULT_SOURCE_STAGE_SEQUENCE = [
   'system_analysis',
   'entry_analysis',
-  'dataflow_analysis',
-  'vuln_scan',
+  'dataflow_vuln_scan',
 ];
 const DEFAULT_MODULE_STAGE_SEQUENCE = [
   'binary_to_source',
   'entry_analysis',
-  'dataflow_analysis',
-  'vuln_scan',
+  'dataflow_vuln_scan',
 ];
 const MODULE_RISK_OPTIONS = ['高', '中', '低'];
 const MODULE_SELECTION_OPTIONS = [
@@ -73,7 +69,7 @@ const MODULE_SELECTION_OPTIONS = [
 const PARTIAL_SUCCESS_ADVANCEMENT_FIELDS = [
   { key: 'binary_to_source', label: '二进制逆向部分成功后继续推进' },
   { key: 'entry_analysis', label: '入口分析部分成功后继续推进' },
-  { key: 'dataflow_analysis', label: '数据流分析部分成功后继续推进' },
+  { key: 'dataflow_vuln_scan', label: '数据流漏洞挖掘部分成功后继续推进' },
 ] as const;
 const DEFAULT_PARTIAL_SUCCESS_STAGE_ADVANCEMENT = Object.fromEntries(
   PARTIAL_SUCCESS_ADVANCEMENT_FIELDS.map((field) => [field.key, false]),
@@ -89,8 +85,7 @@ const STAGE_LABELS: Record<string, string> = {
   system_analysis: '系统分析',
   binary_to_source: '二进制逆向',
   entry_analysis: '入口分析',
-  dataflow_analysis: '数据流分析',
-  vuln_scan: '漏洞扫描',
+  dataflow_vuln_scan: '数据流漏洞挖掘',
 };
 
 const RESULT_KIND_LABELS: Record<string, string> = {
@@ -110,8 +105,7 @@ const DOWNSTREAM_DETAIL_SUPPORT: Record<string, { supported: boolean; reason?: s
   system_analysis: { supported: true },
   binary_to_source: { supported: true },
   entry_analysis: { supported: true },
-  dataflow_analysis: { supported: true },
-  vuln_scan: { supported: true },
+  dataflow_vuln_scan: { supported: true },
 };
 
 function downstreamDetailSupport(stageName: string, downstreamTaskId?: string | null, missingReason?: string | null) {
@@ -354,7 +348,7 @@ const displayStageItemSyncTime = (
 };
 
 const isRetryableCreateFailure = (item: BinarySecurityTaskDetail['stage_items'][number]) => (
-  item.stage_name === 'vuln_scan'
+  item.stage_name === 'dataflow_vuln_scan'
   && !item.downstream_task_id
   && ['create_retrying', 'create_failed', 'creating'].includes(String(item.downstream_binding_state || '').trim().toLowerCase())
 );
@@ -391,9 +385,8 @@ function stageItemContractValue(
 function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][number]) {
   const outputRef = asStageItemContract(item.output_ref);
   const resultRef = asStageItemContract(item.result);
-  const isDataflowStage = item.stage_name === 'dataflow_analysis';
-  const isVulnScanStage = item.stage_name === 'vuln_scan';
-  const dfaOutputRows = isDataflowStage || isVulnScanStage
+  const isDataflowStage = item.stage_name === 'dataflow_vuln_scan';
+  const dfaOutputRows = isDataflowStage
     ? dfaOutputContractRows(resultRef || outputRef)
     : [];
   return {
@@ -417,16 +410,6 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
               : null),
         },
       ] : []),
-      ...(isVulnScanStage ? [
-        {
-          label: 'data_flow_files',
-          value: Array.isArray(resultRef?.data_flow_files) && resultRef.data_flow_files.length > 0
-            ? resultRef.data_flow_files.join('\n')
-            : (Array.isArray(outputRef?.data_flow_files) && outputRef.data_flow_files.length > 0
-              ? outputRef.data_flow_files.join('\n')
-              : null),
-        },
-      ] : []),
       ...dfaOutputRows.map((row) => ({ label: row.label, value: row.value })),
     ].filter((row) => row.value),
   };
@@ -434,7 +417,7 @@ function stageItemContractRows(item: BinarySecurityTaskDetail['stage_items'][num
 
 function stageItemInputContractRows(item: BinarySecurityTaskDetail['stage_items'][number]) {
   const contract = asStageItemContract(item.input_ref);
-  if (item.stage_name === 'dataflow_analysis') {
+  if (item.stage_name === 'dataflow_vuln_scan') {
     const rows = dfaInputContractRows(contract, null);
     if (rows.length > 0) {
       return rows.map((row) => ({
@@ -583,8 +566,7 @@ type DownstreamTaskDetail =
   | { kind: 'system_analysis'; data: AppSaTaskDetail }
   | { kind: 'binary_to_source'; data: B2STaskDetail }
   | { kind: 'entry_analysis'; data: AppEaTaskDetail }
-  | { kind: 'dataflow_analysis'; data: AppDfaTaskDetail }
-  | { kind: 'vuln_scan'; data: DataflowScanTaskDetail };
+  | { kind: 'dataflow_vuln_scan'; data: AppDfaTaskDetail };
 
 type DownstreamTaskState = {
   loading: boolean;
@@ -604,9 +586,10 @@ type TaskStrategyDraft = {
   continue_on_item_failure: boolean;
   partial_success_stage_advancement: Record<string, boolean>;
   module_selection_mode: 'auto' | 'manual_confirm';
+  entry_selection_mode: 'auto' | 'manual_confirm';
   module_risk_levels: string[];
 };
-type StrategySectionKey = 'stage_options' | 'module_strategy' | 'execution_policy';
+type StrategySectionKey = 'stage_options' | 'module_strategy' | 'entry_strategy' | 'execution_policy';
 type ManualOperationState = NonNullable<BinarySecurityTaskDetail['manual_operation_state']>;
 
 const systemAnalysisRiskCountLabels = (item: BinarySecurityTaskDetail['stage_items'][number], state?: DownstreamTaskState) => {
@@ -793,6 +776,7 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
   const normalizedRiskLevels = Array.isArray(nextPolicy.module_risk_levels) && nextPolicy.module_risk_levels.length > 0
     ? nextPolicy.module_risk_levels.filter((item) => MODULE_RISK_OPTIONS.includes(String(item)))
     : ['高'];
+  const normalizedEntryMode = String(nextPolicy.entry_selection_mode || 'auto') === 'manual_confirm' ? 'manual_confirm' : 'auto';
   return {
     stage_options: Object.fromEntries(stages.map((stageName) => [
       stageName,
@@ -814,6 +798,7 @@ const buildStrategyDraft = (policy: BinarySecurityTaskPolicy | undefined, stages
         ]),
     ),
     module_selection_mode: normalizedMode,
+    entry_selection_mode: normalizedEntryMode,
     module_risk_levels: normalizedRiskLevels.length > 0 ? normalizedRiskLevels : ['高'],
   };
 };
@@ -839,6 +824,9 @@ const strategySectionEquals = (
       module_selection_mode: right.module_selection_mode,
       module_risk_levels: right.module_risk_levels,
     });
+  }
+  if (section === 'entry_strategy') {
+    return left.entry_selection_mode === right.entry_selection_mode;
   }
   return JSON.stringify({
     stage_parallelism: left.stage_parallelism,
@@ -1725,6 +1713,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const [moduleSelectionLoading, setModuleSelectionLoading] = useState(false);
   const [moduleSelection, setModuleSelection] = useState<BinarySecurityModuleSelection | null>(null);
   const [selectedModuleKeys, setSelectedModuleKeys] = useState<string[]>([]);
+  const [entrySelectionLoading, setEntrySelectionLoading] = useState(false);
+  const [entrySelection, setEntrySelection] = useState<import('../../clients/binarySecurity').BinarySecurityEntrySelection | null>(null);
+  const [selectedEntryKeys, setSelectedEntryKeys] = useState<string[]>([]);
   const [selectedStageItemIds, setSelectedStageItemIds] = useState<string[]>([]);
   const [stageStatusFilter, setStageStatusFilter] = useState<string>('all');
   const [stageDownstreamStatusFilter, setStageDownstreamStatusFilter] = useState<string>('all');
@@ -1774,6 +1765,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
   const taskCancelSupported = Boolean(manualOperationState?.can_cancel ?? canActOnTask);
   const taskDeleteSupported = Boolean(manualOperationState?.can_delete ?? canActOnTask);
   const moduleConfirmSupported = Boolean(manualOperationState?.can_confirm_modules ?? false);
+  const entryConfirmSupported = Boolean(detail?.status === 'pending_entry_confirmation');
   const staleStages = useMemo(() => new Set<string>((detail?.summary?.stale_stages as string[] | undefined) || []), [detail?.summary]);
   const cleanupSnapshot = detail?.cleanup_snapshot || null;
   const cleanupCounts = cleanupSnapshot?.cleanup_counts || {};
@@ -1813,6 +1805,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
     () => !strategySectionEquals('module_strategy', strategyDraft, strategySavedSnapshot),
     [strategyDraft, strategySavedSnapshot],
   );
+  const entryStrategySectionDirty = useMemo(
+    () => !strategySectionEquals('entry_strategy', strategyDraft, strategySavedSnapshot),
+    [strategyDraft, strategySavedSnapshot],
+  );
   const executionPolicyDirty = useMemo(
     () => !strategySectionEquals('execution_policy', strategyDraft, strategySavedSnapshot),
     [strategyDraft, strategySavedSnapshot],
@@ -1833,6 +1829,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       if (!options?.preserveStrategyDraft) {
         setStrategyDraft(nextDraft);
         setStrategySavedSnapshot(nextDraft);
+      }
+      if (task.status === 'pending_entry_confirmation' || task.summary?.entry_selection) {
+        void loadEntrySelection();
+      } else {
+        setEntrySelection(null);
+        setSelectedEntryKeys([]);
       }
       setSelectedStage((current) => {
         const nextStageSequence = nextStages;
@@ -1869,6 +1871,25 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       setModuleSelection(null);
     } finally {
       setModuleSelectionLoading(false);
+    }
+  };
+
+  const loadEntrySelection = async () => {
+    if (!projectId || !taskId) return;
+    setEntrySelectionLoading(true);
+    try {
+      const entrySelectionResp = await executionApi.binarySecurity.getEntrySelection(projectId, taskId);
+      setEntrySelection(entrySelectionResp);
+      const defaultKeys = (
+        entrySelectionResp?.selected_entry_keys?.length
+          ? entrySelectionResp.selected_entry_keys
+          : (entrySelectionResp?.candidate_entries || []).map((item) => String(item.entry_key || '').trim()).filter(Boolean)
+      );
+      setSelectedEntryKeys(defaultKeys);
+    } catch {
+      setEntrySelection(null);
+    } finally {
+      setEntrySelectionLoading(false);
     }
   };
 
@@ -2028,6 +2049,12 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           module_risk_levels: strategySavedSnapshot.module_risk_levels,
         };
       }
+      if (section === 'entry_strategy') {
+        return {
+          ...current,
+          entry_selection_mode: strategySavedSnapshot.entry_selection_mode,
+        };
+      }
       return {
         ...current,
         stage_parallelism: strategySavedSnapshot.stage_parallelism,
@@ -2060,6 +2087,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
               module_selection_mode: strategyDraft.module_selection_mode,
               module_risk_levels: strategyDraft.module_risk_levels,
             }
+          : section === 'entry_strategy'
+            ? {
+                entry_selection_mode: strategyDraft.entry_selection_mode,
+              }
           : {
               stage_parallelism: Object.fromEntries(stageSequence.map((stageName) => [
                 stageName,
@@ -2085,6 +2116,8 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         ? '阶段启停'
         : section === 'module_strategy'
           ? '模块推进策略'
+          : section === 'entry_strategy'
+            ? '入口推进策略'
           : '并发与失败处理';
       setNotice(`${sectionLabel}已保存，将在后续阶段生效`);
       if (activeTab === 'timeline') {
@@ -2132,6 +2165,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         await Promise.all([loadOverview(), loadArchiveJobs()]);
       }
       if (activeTab === 'modules' && refreshedTask) await loadModuleSelection();
+      if ((refreshedTask?.status === 'pending_entry_confirmation') || refreshedTask?.summary?.entry_selection) await loadEntrySelection();
       if (activeTab === 'timeline') await loadTimeline();
       if (activeTab === 'artifacts') await loadArtifacts();
       if (activeTab === 'orchestration') await loadOrchestrationObservability();
@@ -2243,13 +2277,9 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       const data = await executionApi.appEntryAnalyse.getTask(downstreamTaskId);
       return { kind: 'entry_analysis', data };
     }
-    if (item.stage_name === 'dataflow_analysis') {
-      const data = await executionApi.appDataflowAnalyse.getTask(downstreamTaskId);
-      return { kind: 'dataflow_analysis', data };
-    }
-    if (item.stage_name === 'vuln_scan') {
-      const data = await executionApi.dataflowVulnScanner.getTask(downstreamTaskId);
-      return { kind: 'vuln_scan', data };
+    if (item.stage_name === 'dataflow_vuln_scan') {
+      const data = await executionApi.appDataflowVulnScan.getTask(downstreamTaskId);
+      return { kind: 'dataflow_vuln_scan', data };
     }
     throw new Error('当前阶段未配置下游详情加载器');
   };
@@ -2496,10 +2526,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       const confirmed = await showConfirm({
         title: '同步下游状态',
         message: options?.itemId
-          ? '将查询该阶段子任务在对应微服务中的真实状态；若该漏洞扫描子任务尚未成功创建下游任务，也会触发恢复绑定或重新创建尝试。是否继续？'
+          ? '将查询该阶段子任务在对应微服务中的真实状态；若该数据流漏洞挖掘子任务尚未成功创建下游任务，也会触发恢复绑定或重新创建尝试。是否继续？'
           : options?.stageName
-            ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态；其中漏洞扫描缺失绑定的子任务会尝试自动恢复。是否继续？`
-            : '将同步当前任务所有下游子任务的真实状态，并尝试恢复漏洞扫描阶段缺失的下游绑定。是否继续？',
+            ? `将同步阶段“${STAGE_LABELS[options.stageName] || options.stageName}”下所有子任务的真实状态；其中数据流漏洞挖掘缺失绑定的子任务会尝试自动恢复。是否继续？`
+            : '将同步当前任务所有下游子任务的真实状态，并尝试恢复数据流漏洞挖掘阶段缺失的下游绑定。是否继续？',
         confirmText: '确认同步',
         cancelText: '取消',
       });
@@ -2567,6 +2597,28 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       await refreshActiveTab();
     } catch (e: any) {
       setError(e?.message || '确认模块失败');
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const confirmEntrySelection = async () => {
+    if (!projectId || !taskId) return;
+    if (!entryConfirmSupported) {
+      setError('当前任务暂不可确认入口');
+      return;
+    }
+    if (selectedEntryKeys.length === 0) {
+      setError('至少选择 1 个入口');
+      return;
+    }
+    setActionLoading('confirm-entries');
+    setError(null);
+    try {
+      await executionApi.binarySecurity.confirmEntrySelection(projectId, taskId, selectedEntryKeys);
+      await refreshActiveTab();
+    } catch (e: any) {
+      setError(e?.message || '确认入口失败');
     } finally {
       setActionLoading('');
     }
@@ -2849,12 +2901,10 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
       window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'entry-analysis-detail', entryAnalysisTaskId: downstreamTaskId } }));
       return;
     }
-    if (item.stage_name === 'dataflow_analysis') {
-      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-analysis-detail', dataflowAnalysisTaskId: downstreamTaskId } }));
+    if (item.stage_name === 'dataflow_vuln_scan') {
+      window.dispatchEvent(new CustomEvent('secflow-navigate-view', { detail: { view: 'dataflow-vuln-scan-detail', dataflowVulnScanTaskId: downstreamTaskId } }));
       return;
     }
-    sessionStorage.setItem('secflow:dataflowVulnTaskId', downstreamTaskId);
-    navigate(`/pentest-exec-dataflow-vuln-task-detail/${encodeURIComponent(downstreamTaskId)}`);
   };
 
   const renderDownstreamDetail = (item: BinarySecurityTaskDetail['stage_items'][number]) => {
@@ -2931,7 +2981,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
         </div>
       );
     }
-    if (detailState.kind === 'dataflow_analysis') {
+    if (detailState.kind === 'dataflow_vuln_scan') {
       const task = detailState.data;
       return (
         <div className="space-y-3">
@@ -2954,7 +3004,7 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
           <div className={detailPanelTone}>重试次数：{task.retry_count} / {task.max_retry_count}</div>
           <div className={detailPanelTone}>执行尝试数：{task.attempts?.length || 0}</div>
         </div>
-        <DownstreamSummaryGrid payload={task.task_metadata} preferredKeys={VULN_METADATA_KEYS} emptyText="当前漏洞扫描任务尚未记录元数据摘要。" />
+        <DownstreamSummaryGrid payload={task.task_metadata} preferredKeys={VULN_METADATA_KEYS} emptyText="当前数据流漏洞挖掘任务尚未记录元数据摘要。" />
       </div>
     );
   };
@@ -3576,6 +3626,56 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                         至少选择一个风险等级；若选择人工确认，系统分析完成后再确认最终推进模块。
                       </div>
                     </div>
+                  </div>
+                </section>
+              ) : null}
+
+              {!isSourceTask ? (
+                <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">入口推进策略</h3>
+                      <p className="mt-1 text-sm text-slate-500">控制入口分析产出的入口函数是自动进入下游，还是先由人工确认后再继续。</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => resetStrategySection('entry_strategy')}
+                        disabled={!entryStrategySectionDirty || Boolean(strategySavingSection)}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                      >
+                        重置入口策略
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void saveTaskPolicySection('entry_strategy')}
+                        disabled={!strategyEditable || !entryStrategySectionDirty || Boolean(strategySavingSection)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                      >
+                        {strategySavingSection === 'entry_strategy' ? <Loader2 size={16} className="animate-spin" /> : null}
+                        {strategySavingSection === 'entry_strategy' ? '保存中...' : '保存入口策略'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-5 grid gap-2">
+                    {[
+                      { value: 'auto', label: '自动选择入口函数', description: '入口分析结果直接进入数据流分析与后续漏洞扫描。' },
+                      { value: 'manual_confirm', label: '人工确认入口函数', description: '入口分析后暂停，需手动选择候选入口再继续。' },
+                    ].map((option) => (
+                      <label key={option.value} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                        <input
+                          type="radio"
+                          name="taskStrategyEntrySelection"
+                          checked={strategyDraft.entry_selection_mode === option.value}
+                          disabled={!strategyEditable || Boolean(strategySavingSection)}
+                          onChange={() => setStrategyDraft((current) => (current ? { ...current, entry_selection_mode: option.value as 'auto' | 'manual_confirm' } : current))}
+                        />
+                        <div>
+                          <div className="font-bold text-slate-900">{option.label}</div>
+                          <div className="text-xs text-slate-500">{option.description}</div>
+                        </div>
+                      </label>
+                    ))}
                   </div>
                 </section>
               ) : null}
@@ -4896,6 +4996,65 @@ export const BinarySecurityTaskDetailPage: React.FC<Props> = ({ projectId, taskI
                 </div>
               )}
             </div>
+          ) : null}
+
+          {activeTab === 'modules' && (detail?.status === 'pending_entry_confirmation' || entrySelection) ? (
+            <section className="rounded-[2rem] border border-amber-200 bg-amber-50/70 p-6 shadow-sm">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">入口确认</h2>
+                  <p className="mt-1 text-sm text-slate-600">入口分析已完成，当前需要确认候选入口函数后，任务才会继续进入数据流分析。</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="rounded-2xl bg-white px-3 py-2.5 text-xs text-slate-600">
+                    <div className="text-slate-400">候选入口</div>
+                    <div className="mt-1 text-lg font-black text-slate-900">{entrySelection?.candidate_entries.length || detail?.candidate_entry_count || 0}</div>
+                  </div>
+                  <div className="rounded-2xl bg-white px-3 py-2.5 text-xs text-slate-600">
+                    <div className="text-slate-400">已勾选</div>
+                    <div className="mt-1 text-lg font-black text-slate-900">{selectedEntryKeys.length}</div>
+                  </div>
+                  <div className="rounded-2xl bg-white px-3 py-2.5 text-xs text-slate-600">
+                    <div className="text-slate-400">选择模式</div>
+                    <div className="mt-1 text-sm font-black text-slate-900">{entrySelection?.selection_mode === 'manual_confirm' ? '人工确认' : '自动选择'}</div>
+                  </div>
+                  <div className="rounded-2xl bg-white px-3 py-2.5 text-xs text-slate-600">
+                    <div className="text-slate-400">状态</div>
+                    <div className="mt-1 text-sm font-black text-slate-900">{entrySelectionLoading ? '加载中...' : (entrySelection?.requires_confirmation ? '等待确认' : '自动推进')}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button type="button" onClick={() => setSelectedEntryKeys((entrySelection?.candidate_entries || []).map((item) => String(item.entry_key || '').trim()).filter(Boolean))} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">全选候选入口</button>
+                <button type="button" onClick={() => setSelectedEntryKeys([])} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700">清空勾选</button>
+                <button type="button" onClick={() => void confirmEntrySelection()} disabled={actionLoading === 'confirm-entries' || selectedEntryKeys.length === 0 || !entryConfirmSupported} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">
+                  {actionLoading === 'confirm-entries' ? '确认中...' : '确认并继续'}
+                </button>
+              </div>
+              <div className="mt-4 grid gap-3">
+                {(entrySelection?.candidate_entries || []).map((entry) => {
+                  const key = String(entry.entry_key || '').trim();
+                  const checked = selectedEntryKeys.includes(key);
+                  return (
+                    <label key={key || `${entry.module_key}-${entry.function_name}`} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                      <div className="flex items-start gap-3">
+                        <input type="checkbox" checked={checked} onChange={(event) => setSelectedEntryKeys((current) => event.target.checked ? (current.includes(key) ? current : current.concat(key)) : current.filter((item) => item !== key))} />
+                        <div className="min-w-0">
+                          <div className="font-black text-slate-900">{entry.function_name || '-'}</div>
+                          <div className="mt-1 text-xs text-slate-500 break-all">{entry.module_name || '-'} · {entry.definition_file || entry.file_name || '-'}{entry.definition_line ? `:${entry.definition_line}` : ''}</div>
+                          <div className="mt-2 text-xs text-slate-600">{entry.entry_reason || '-'}</div>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+                {entrySelectionLoading || (entrySelection?.candidate_entries || []).length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-400">
+                    {entrySelectionLoading ? '正在加载入口候选...' : '暂无入口候选'}
+                  </div>
+                ) : null}
+              </div>
+            </section>
           ) : null}
 
           {activeTab === 'timeline' ? (

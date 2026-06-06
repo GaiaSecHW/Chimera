@@ -197,7 +197,7 @@ export const PROJECT_REQUIRED_VIEWS = new Set<string>([
 export const getTopLevelNavForView = (view: string): TopLevelNavKey => {
   if (view === 'dashboard') return 'dashboard';
 
-  if (view === 'project-mgmt' || view === 'project-detail') {
+  if (view === 'project-mgmt' || view === 'project-detail' || view === 'product-mgmt') {
     return 'project';
   }
 
@@ -292,6 +292,7 @@ export const SIDEBAR_SECTIONS: Record<TopLevelNavKey, NavSection[]> = {
       title: '项目空间',
       items: [
         { id: 'project-mgmt', label: '项目管理', icon: Briefcase, aliases: ['project-detail'], healthKey: 'projectHealth' },
+        { id: 'product-mgmt', label: '产品管理', icon: Package, healthKey: 'projectHealth' },
       ],
     },
   ],
