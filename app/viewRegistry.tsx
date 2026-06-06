@@ -87,6 +87,7 @@ import { DepartmentPage } from '../pages/platform/DepartmentPage';
 import { DepartmentMemberPage } from '../pages/platform/DepartmentMemberPage';
 import { ProjectPage } from '../pages/platform/ProjectPage';
 import { AdminDashboardPage } from '../pages/platform/AdminDashboardPage';
+import { AiGatewayPage } from '../pages/platform/AiGatewayPage';
 import { ChangePasswordPage } from '../pages/platform/ChangePasswordPage';
 import { Agent, AdminDashboardStats, EnvTemplate, SecurityProject, StaticPackage, PackageStats, UserInfo } from '../types/types';
 
@@ -166,6 +167,8 @@ export const renderCurrentView = (ctx: ViewRegistryContext): React.ReactNode => 
           setCurrentView={ctx.setCurrentView}
         />
       );
+    case 'aigw-admin':
+      return <AiGatewayPage />;
     case 'project-mgmt':
       return (
         <ProjectMgmtPage

@@ -2007,7 +2007,7 @@ export interface DeployScriptListResponse {
 export type ViewType =
   | 'dashboard' | 'admin-dashboard' | 'project-mgmt' | 'project-detail' | 'static-packages' | 'static-package-detail' | 'deploy-script-mgmt'
   | 'public-resource-pvc-management' | 'public-resource-task-management' | 'test-input-release' | 'test-input-code' | 'test-input-doc' | 'test-input-tasks' | 'test-input-other' | 'pvc-management' | 'project-file-explorer' | 'fileserver-archive-tasks'
-  | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'chirmera-platform-schedule'
+  | 'config-center-root' | 'config-center-llm' | 'config-center-llm-chat' | 'aigw-admin' | 'chirmera-platform-schedule'
   | 'env-mgmt' | 'env-agent' | 'env-service' | 'env-ai-agent' | 'env-ai-agent-overview' | 'env-ai-helper' | 'env-ai-agent-manage' | 'env-ai-agent-session-manage' | 'env-ai-session' | 'env-ai-batch-session' | 'env-template' | 'env-tasks'
   | 'env-process-monitor-root' | 'env-process-monitor-overview' | 'env-process-monitor-detail' | 'env-process-monitor-tasks'
   | 'system-analysis-root' | 'system-analysis-overview' | 'system-analysis-task' | 'system-analysis-detail' | 'system-analysis-history' | 'system-analysis-prompt' | 'system-analysis-config'
@@ -2075,6 +2075,209 @@ export interface AdminDashboardStats {
     deploymentName?: string | null;
   }[];
   lastUpdated: string;
+}
+
+export interface AiGatewayBackendUnit {
+  id: number;
+  unit_code: string;
+  provider_type: string;
+  api_base_url: string;
+  model_name: string;
+  api_key_ciphertext?: string;
+  api_key_fingerprint?: string;
+  total_max_concurrency: number;
+  priority_default: number;
+  supports_chat_completions: boolean;
+  supports_responses: boolean;
+  supports_messages: boolean;
+  enabled: boolean;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AiGatewayModelAlias {
+  id: number;
+  alias_name: string;
+  max_tokens_default: number;
+  temperature_default: number;
+  enabled: boolean;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AiGatewayModelAliasBinding {
+  id: number;
+  model_alias_id: number;
+  backend_unit_id: number;
+  priority: number;
+  weight: number;
+  enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AiGatewayStatsOverview {
+  total_requests: number;
+  active_models: number;
+  model_mappings: number;
+  avg_response_time: number;
+  avg_first_token_latency: number;
+  avg_token_latency: number;
+  active_requests: number;
+  waiting_requests: number;
+}
+
+export interface AiGatewayProviderStat {
+  model_name: string;
+  request_count: number;
+  avg_response_time: number;
+  avg_first_token_latency?: number;
+  avg_token_latency?: number;
+  active_requests?: number;
+  waiting_requests?: number;
+  success_rate?: number;
+  backend_unit_id?: number;
+  model_alias_id?: number;
+  backend_config_id?: number;
+  backend_model_name?: string;
+  backend_api_base_url?: string;
+  adaptive_routing_score?: number;
+}
+
+export interface AiGatewayLlmKey {
+  id: number;
+  key_name: string;
+  key_type: 'task' | 'work' | string;
+  parent_key_id?: number | null;
+  key_prefix: string;
+  max_concurrency: number;
+  task_id: string;
+  sub_task_id: string;
+  enabled: boolean;
+  expires_at?: string | null;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AiGatewayLlmKeyTaskBindingInput {
+  task_id: string;
+  sub_task_id: string;
+}
+
+export interface AiGatewayLlmKeyCreatePayload {
+  key_name: string;
+  key_type: 'task' | 'work';
+  parent_key_id?: number | null;
+  max_concurrency: number;
+  task_id: string;
+  sub_task_id: string;
+  enabled: boolean;
+  expires_at?: string | null;
+  description: string;
+  model_alias_ids: number[];
+  task_bindings: AiGatewayLlmKeyTaskBindingInput[];
+}
+
+export interface AiGatewayLlmKeyCreateResponse {
+  key: AiGatewayLlmKey;
+  secret: string;
+}
+
+export interface AiGatewayCapacityPool {
+  id: number;
+  pool_name: string;
+  enabled: boolean;
+  description: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AiGatewayCapacityPoolModelBinding {
+  id: number;
+  capacity_pool_id: number;
+  model_alias_id: number;
+  priority: number;
+  enabled: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AiGatewayConnectionTestResult {
+  success?: boolean;
+  reachable?: boolean;
+  error?: string;
+  error_message?: string;
+  message?: string;
+  latency_ms?: number;
+  status_code?: number;
+}
+
+export interface AiGatewayLogSummary {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  endpoint: string;
+  is_stream: boolean;
+  status_code: number;
+  model_name: string;
+  llm_key_id: number;
+  llm_key_prefix: string;
+  task_key_id: number;
+  task_key_prefix: string;
+  task_id: string;
+  sub_task_id: string;
+  model_alias_id: number;
+  backend_unit_id: number;
+  backend_config_id: number;
+  backend_model_name: string;
+  backend_api_base_url: string;
+  fingerprint: string;
+  response_time: number;
+  first_token_latency: number;
+  avg_token_latency: number;
+  active_requests: number;
+  request_preview: string;
+  request_bytes: number;
+  response_bytes: number;
+  stream_bytes: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  gateway_cache_hit: boolean;
+}
+
+export interface AiGatewayLogListResponse {
+  total: number;
+  logs: AiGatewayLogSummary[];
+}
+
+export interface AiGatewayLogDetail extends AiGatewayLogSummary {
+  request?: string;
+  response?: string;
+  stream_response?: string;
+  provider_cached_tokens?: number;
+  provider_cache_hit_tokens?: number;
+  provider_cache_miss_tokens?: number;
+  gateway_cache_key?: string;
+  gateway_cache_saved_tokens?: number;
+  gateway_cache_saved_cost?: number;
+  usage_source?: string;
+  pricing_version?: string;
+  estimated_cost?: number;
+}
+
+export interface AiGatewayReplayResponse {
+  original_request: string;
+  modified_request: string;
+  original_response: string;
+  new_response: string;
+  model_name: string;
+  actual_model_name: string;
+  response_time: number;
+  error?: string;
 }
 
 export type AnalysisRiskLevel = 'unknown' | 'low' | 'medium' | 'high' | 'critical';
